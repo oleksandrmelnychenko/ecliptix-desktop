@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core", "Ecliptix.Core\Ecliptix.Core\Ecliptix.Core.csproj", "{F8411210-42D1-4D54-AAA3-8C57F179A5F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core.Desktop", "Ecliptix.Core\Ecliptix.Core.Desktop\Ecliptix.Core.Desktop.csproj", "{EECCED89-B23E-468B-AE2F-23613DFCE343}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F8411210-42D1-4D54-AAA3-8C57F179A5F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8411210-42D1-4D54-AAA3-8C57F179A5F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8411210-42D1-4D54-AAA3-8C57F179A5F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8411210-42D1-4D54-AAA3-8C57F179A5F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
