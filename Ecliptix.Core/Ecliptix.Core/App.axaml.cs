@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.Views;
+using Ecliptix.Protobuf.CipherPayload;
 
 namespace Ecliptix.Core;
 
@@ -15,6 +16,11 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        CipherPayload p = new CipherPayload()
+        {
+            RequestId = 1
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow

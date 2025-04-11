@@ -17,11 +17,31 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)"/>
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)"/>
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)"/>
-        <PackageReference Include="Avalonia.ReactiveUI" Version="$(AvaloniaVersion)"/>
+        <PackageReference Include="Avalonia" Version="11.2.6" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.6" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.6" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.6" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)"/>
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.6" />
+        <PackageReference Include="Google.Protobuf" Version="3.30.2" />
+        <PackageReference Include="Grpc.Tools" Version="2.71.0">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="protobuf-net" Version="3.2.46" />
+        <PackageReference Include="protobuf-net.Grpc" Version="1.2.2" />
     </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="Protobuf\AppDevice.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\AppDeviceServiceActions.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\CipherPayload.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\PubKeyExchange.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+
+        <Protobuf Include="Protobuf\HealthCheck.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\Verification.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\VerificationServiceActions.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+    </ItemGroup>
+
 </Project>
