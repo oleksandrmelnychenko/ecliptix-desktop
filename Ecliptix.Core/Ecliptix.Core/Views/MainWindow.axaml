@@ -1,13 +1,153 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Ecliptix.Core.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:Ecliptix.Core.Views"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
         x:Class="Ecliptix.Core.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
-        x:CompileBindings="True"
-        Title="Ecliptix.Core">
-        <views:MainView />
+        Title="Ecliptix"
+        CanResize="True"
+        BorderThickness="0"
+        SystemDecorations="None"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}"
+        Background="Transparent" 
+        TransparencyLevelHint="Transparent" 
+        ExtendClientAreaToDecorationsHint="False">
+
+    <!-- Outermost Border defines shape and background -->
+    <Border Name="RootWindowBorder"
+            Background="#FFEFEFEF" 
+            CornerRadius="8"
+            Padding="0"
+            BoxShadow="0 0 10 2 #11000000">
+
+        <!-- Grid to layer resize grips and main content -->
+        <Grid>
+
+            <!-- Main Content Grid (Title bar + Content) -->
+            <Grid Name="MainContentGrid" RowDefinitions="Auto, *" Margin="1"> <!-- Margin for resize grips -->
+
+                <!-- Custom Title Bar Area -->
+                <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
+                    <!-- Buttons -->
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <Button Name="CloseButton" Classes="traffic-light close" Click="CloseButton_Click"/>
+                        <Button Name="MinimizeButton" Classes="traffic-light minimize" Click="MinimizeButton_Click"/>
+                        <Button Name="MaximizeButton" Classes="traffic-light maximize" Click="MaximizeButton_Click"/>
+                    </StackPanel>
+                    <!-- Title -->
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="#FF212121"
+                               FontWeight="Medium" FontSize="13"
+                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0"/>
+                    <!-- Draggable Background -->
+                    <Border Background="Transparent" IsHitTestVisible="True" PointerPressed="TitleBarArea_PointerPressed"/>
+                </DockPanel>
+
+                <!-- Main Content Area -->
+                <Border Grid.Row="1"
+                        Background="#FFFAFAFA" 
+                        Margin="5,0,5,5"
+                        CornerRadius="0,0,4,4">
+                   <views:MainView /> <!-- Hosting your main view -->
+                </Border>
+            </Grid>
+
+         
+                       <!-- *** Resize Grips *** -->
+            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeWestEast"
+                    HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.West}" />
+            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeWestEast"
+                    HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.East}" />
+            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeNorthSouth"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.North}" />
+            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeNorthSouth"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.South}" />
+
+            <!-- Corners using StandardCursorType enum names as strings -->
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopLeftCorner" 
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthWest}" />
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopRightCorner" 
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthEast}" />
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomLeftCorner" 
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthWest}" />
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomRightCorner" 
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthEast}" />
+
+        </Grid>
+    </Border>
+
+    <!-- Styles for macOS Traffic Light Buttons -->
+    <Window.Styles>
+        <Style Selector="Button.traffic-light">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <!-- Template to make it just a circle -->
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="PART_BackgroundBorder"
+                            Background="{TemplateBinding Background}"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <!-- Optional: Add inner content/icon here if needed -->
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Close Button -->
+        <Style Selector="Button.traffic-light.close">
+            <Setter Property="Background" Value="#FF5F57" /> <!-- Standard macOS red -->
+        </Style>
+        <Style Selector="Button.traffic-light.close:pointerover">
+            <Setter Property="Background" Value="#E0443E" /> <!-- Darker red on hover -->
+        </Style>
+        <Style Selector="Button.traffic-light.close:pressed">
+            <Setter Property="Background" Value="#C13934" /> <!-- Even darker red when pressed -->
+        </Style>
+
+        <!-- Minimize Button -->
+        <Style Selector="Button.traffic-light.minimize">
+            <Setter Property="Background" Value="#FFBD2E" /> <!-- Standard macOS yellow -->
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pointerover">
+            <Setter Property="Background" Value="#E0A72A" /> <!-- Darker yellow on hover -->
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pressed">
+            <Setter Property="Background" Value="#C19124" />
+        </Style>
+
+        <!-- Maximize Button -->
+        <Style Selector="Button.traffic-light.maximize">
+            <Setter Property="Background" Value="#28C940" /> <!-- Standard macOS green -->
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pointerover">
+            <Setter Property="Background" Value="#23AF38" /> <!-- Darker green on hover -->
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pressed">
+            <Setter Property="Background" Value="#1E952F" />
+        </Style>
+    </Window.Styles>
+
 </Window>

@@ -13,5 +13,5 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+  <TextBlock Text="{Binding StatusText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 </UserControl>
