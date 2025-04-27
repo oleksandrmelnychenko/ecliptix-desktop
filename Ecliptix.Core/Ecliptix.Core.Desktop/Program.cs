@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Net.Http;
+using System.Threading.Channels;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core;
+using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Protobuf.AppDeviceServices;
+using Grpc.Core;
+using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ReactiveUI;
 using Splat; 
 using Splat.Microsoft.Extensions.DependencyInjection;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -28,7 +34,12 @@ internal sealed class Program
             .Build();
 
         ServiceCollection services = new();
-
+        services.UseMicrosoftDependencyResolver();
+        var locator = Locator.CurrentMutable;
+        locator.InitializeSplat();
+        locator.InitializeReactiveUI();
+        
+        
         services.AddSingleton<IConfiguration>(configuration);
         services.AddOptions();
 #pragma warning disable IL2026 // Suppress trim warning
@@ -41,30 +52,37 @@ internal sealed class Program
         services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug)); // Added Debug provider
 
         services.AddHttpClient();
-        services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>((serviceProvider, options) =>
+        // Register gRPC client using Grpc.Core
+        services.AddSingleton(provider =>
+        {
+            AppSettings settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+            bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            string endpointUrl = isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl;
+            if (string.IsNullOrEmpty(endpointUrl))
+                throw new InvalidOperationException("Required endpoint URL not configured.");
+
+            GrpcChannel channel = GrpcChannel.ForAddress(endpointUrl, new GrpcChannelOptions
             {
-                AppSettings settings = serviceProvider.GetRequiredService<IOptions<AppSettings>>().Value;
-                bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
-                string? endpointUrl = (isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl);
-                if (string.IsNullOrEmpty(endpointUrl))
-                    throw new InvalidOperationException("Required endpoint URL not configured.");
-                options.Address = new Uri(endpointUrl);
-            })
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider =>
-            {
-                HttpClientHandler handler = new();
-                return handler;
+                UnsafeUseInsecureChannelCallCredentials = true,
             });
+            var interceptors = new Interceptor[]
+            {
+                new RequestMetaDataInterceptor(),
+            };
+            var interceptedChannel = channel.Intercept(interceptors);
+            return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
+        });
 
         services.AddTransient<MainViewModel>();
 
         services.AddSingleton<ILogManager>(new DefaultLogManager());
 
         Services = services.BuildServiceProvider();
-
+        Locator.CurrentMutable.RegisterConstant(Services, typeof(IServiceProvider));
+        
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-
-       // (Services as IDisposable)?.Dispose();
+        
+        (Services as IDisposable)?.Dispose();
     }
 
     private static AppBuilder BuildAvaloniaApp()

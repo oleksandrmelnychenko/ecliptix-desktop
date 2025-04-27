@@ -9,7 +9,6 @@
         CanResize="True"
         BorderThickness="0"
         SystemDecorations="None"
-        DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Background="Transparent" 
         TransparencyLevelHint="Transparent" 
         ExtendClientAreaToDecorationsHint="False">

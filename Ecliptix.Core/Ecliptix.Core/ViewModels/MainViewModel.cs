@@ -21,23 +21,10 @@ namespace Ecliptix.Core.ViewModels
         public bool ShowContent { get; set; }
         public ReactiveCommand<Unit, Unit> SendRequestCommand { get; }
 
-        public MainViewModel()
+        public MainViewModel(AppDeviceServiceActions.AppDeviceServiceActionsClient client)
         {
-            GrpcChannel grpcChannel = GrpcChannel.ForAddress("localhost:50051", new GrpcChannelOptions
-            {
-                UnsafeUseInsecureChannelCallCredentials = true,
-            });
-            Task t = grpcChannel.ConnectAsync();
+            _client = client;
             
-            var interceptors = new Interceptor[]
-            {
-                new RequestMetaDataInterceptor()
-            };
-
-            grpcChannel.Intercept(interceptors);
-            _client = new AppDeviceServiceActions.AppDeviceServiceActionsClient(grpcChannel);
-            
-            // Command to send gRPC request
             SendRequestCommand = ReactiveCommand.CreateFromTask(async () =>
             {
                 try
