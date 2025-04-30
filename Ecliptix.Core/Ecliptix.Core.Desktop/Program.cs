@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core;
 using Ecliptix.Core.Interceptors;
+using Ecliptix.Core.Network;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Protobuf.AppDeviceServices;
@@ -16,7 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
-using Splat; 
+using Splat;
 using Splat.Microsoft.Extensions.DependencyInjection;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
@@ -35,11 +36,11 @@ internal sealed class Program
 
         ServiceCollection services = new();
         services.UseMicrosoftDependencyResolver();
-        var locator = Locator.CurrentMutable;
+        IMutableDependencyResolver locator = Locator.CurrentMutable;
         locator.InitializeSplat();
         locator.InitializeReactiveUI();
-        
-        
+
+
         services.AddSingleton<IConfiguration>(configuration);
         services.AddOptions();
 #pragma warning disable IL2026 // Suppress trim warning
@@ -48,49 +49,53 @@ internal sealed class Program
 #pragma warning restore IL3050
 #pragma warning restore IL2026
         services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
-
-        services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug)); // Added Debug provider
+        services.AddSingleton<ApplicationController>();
+        
+        services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
 
         services.AddHttpClient();
-        // Register gRPC client using Grpc.Core
+
         services.AddSingleton(provider =>
         {
             AppSettings settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
+            ApplicationController applicationController = provider.GetRequiredService<ApplicationController>();
             bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            
             string endpointUrl = isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl;
             if (string.IsNullOrEmpty(endpointUrl))
+            {
                 throw new InvalidOperationException("Required endpoint URL not configured.");
+            }
 
             GrpcChannel channel = GrpcChannel.ForAddress(endpointUrl, new GrpcChannelOptions
             {
                 UnsafeUseInsecureChannelCallCredentials = true,
             });
-            var interceptors = new Interceptor[]
-            {
-                new RequestMetaDataInterceptor(),
-            };
-            var interceptedChannel = channel.Intercept(interceptors);
+
+            Interceptor[] interceptors =
+            [
+                new RequestMetaDataInterceptor(applicationController.AppInstanceId,applicationController.DeviceId)
+            ];
+
+            CallInvoker interceptedChannel = channel.Intercept(interceptors);
             return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
         });
 
         services.AddTransient<MainViewModel>();
-
         services.AddSingleton<ILogManager>(new DefaultLogManager());
 
         Services = services.BuildServiceProvider();
         Locator.CurrentMutable.RegisterConstant(Services, typeof(IServiceProvider));
-        
+
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-        
+
         (Services as IDisposable)?.Dispose();
     }
 
-    private static AppBuilder BuildAvaloniaApp()
-    {
-        return AppBuilder.Configure<App>()
+    private static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace()
-            .UseReactiveUI(); // Calls Splat initialization internally
-    }
+            .UseReactiveUI();
 }

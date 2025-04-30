@@ -1,26 +1,25 @@
-using System.Threading.Tasks;
-using Ecliptix.Core.Protocol.Utilities;
+using System;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 
 namespace Ecliptix.Core.Interceptors;
 
-public class RequestMetaDataInterceptor : Interceptor
+public class RequestMetaDataInterceptor(Guid appInstanceId, Guid deviceId) : Interceptor
 {
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
-        var headers = context.Options.Headers ?? new Metadata();
-        var newMetadata = GrpcMetadataHandler.GenerateMetadata();
-        foreach (var entry in newMetadata)
+        Metadata headers = context.Options.Headers ?? [];
+        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(appInstanceId, deviceId);
+        foreach (Metadata.Entry entry in newMetadata)
         {
             headers.Add(entry);
         }
-       
-        var newOptions = context.Options.WithHeaders(headers);
-        var newContext = new ClientInterceptorContext<TRequest, TResponse>(
+
+        CallOptions newOptions = context.Options.WithHeaders(headers);
+        ClientInterceptorContext<TRequest, TResponse> newContext = new(
             context.Method,
             context.Host,
             newOptions);
