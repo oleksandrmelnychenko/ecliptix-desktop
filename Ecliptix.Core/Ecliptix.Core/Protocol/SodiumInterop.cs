@@ -95,7 +95,8 @@ public static class SodiumInterop
                 InvalidOperationException opEx when opEx.Message.Contains("AddrOfPinnedObject returned IntPtr.Zero") =>
                     ShieldFailure.PinningFailure("Failed to get address of pinned buffer.", opEx),
                 not null => ShieldFailure.DataAccess(
-                    $"Unexpected error during secure wipe via sodium_memzero ({buffer.Length} bytes).", ex)
+                    $"Unexpected error during secure wipe via sodium_memzero ({buffer.Length} bytes).", ex),
+                _ => throw new ArgumentOutOfRangeException(nameof(ex), ex, null)
             },
             cleanup: () =>
             {

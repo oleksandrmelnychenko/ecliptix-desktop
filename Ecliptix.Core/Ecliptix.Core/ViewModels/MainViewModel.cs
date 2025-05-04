@@ -1,18 +1,12 @@
 ﻿using System;
-using System.Reactive.Linq;
-using System.Threading.Tasks;
-using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 
@@ -32,9 +26,8 @@ public class MainViewModel : ReactiveObject
     public MainViewModel(AppDeviceServiceActions.AppDeviceServiceActionsClient client,
         ApplicationController applicationController)
     {
-        EcliptixSystemIdentityKeys _aliceKeys = EcliptixSystemIdentityKeys.Create(5).Unwrap();
-        ShieldSessionManager aliceSessionManager = ShieldSessionManager.Create();
-        _ecliptixProtocolSystem = new EcliptixProtocolSystem(_aliceKeys, aliceSessionManager);
+        EcliptixSystemIdentityKeys aliceKeys = EcliptixSystemIdentityKeys.Create(5).Unwrap();
+        _ecliptixProtocolSystem = new EcliptixProtocolSystem(aliceKeys);
 
         _client = client;
         _applicationController = applicationController;
@@ -44,16 +37,16 @@ public class MainViewModel : ReactiveObject
             try
             {
                 StatusText = "Sending request...";
-                (uint SessionId, PubKeyExchange InitialMessage) keyExchange =
-                    await _ecliptixProtocolSystem.BeginDataCenterPubKeyExchangeAsync(PubKeyExchangeType
+
+                PubKeyExchange keyExchange =
+                    _ecliptixProtocolSystem.BeginDataCenterPubKeyExchange(1, PubKeyExchangeType
                         .AppDeviceEphemeralConnect);
 
                 PubKeyExchange? response =
-                    await _client.EstablishAppDeviceEphemeralConnectAsync(keyExchange.InitialMessage);
+                    await _client.EstablishAppDeviceEphemeralConnectAsync(keyExchange);
 
-                (uint SessionId, SodiumSecureMemoryHandle RootKeyHandle) rootKeyHandle =
-                    await _ecliptixProtocolSystem.CompleteDataCenterPubKeyExchangeAsync(keyExchange.SessionId,
-                        PubKeyExchangeType.AppDeviceEphemeralConnect, response);
+                _ecliptixProtocolSystem.CompleteDataCenterPubKeyExchange(1,
+                    PubKeyExchangeType.AppDeviceEphemeralConnect, response);
 
                 byte[] appDevice = new AppDevice()
                 {
@@ -62,13 +55,13 @@ public class MainViewModel : ReactiveObject
                     AppInstanceId = ByteString.CopyFrom(applicationController.AppInstanceId.ToByteArray()),
                 }.ToByteArray();
 
-                CipherPayload payload = await _ecliptixProtocolSystem.ProduceOutboundMessageAsync(
-                    keyExchange.SessionId, PubKeyExchangeType.AppDeviceEphemeralConnect, appDevice
+                CipherPayload payload = _ecliptixProtocolSystem.ProduceOutboundMessage(
+                    1, PubKeyExchangeType.AppDeviceEphemeralConnect, appDevice
                 );
 
                 CipherPayload? regResp = await _client.RegisterDeviceAppIfNotExistAsync(payload);
 
-                byte[] x = await _ecliptixProtocolSystem.ProcessInboundMessageAsync(keyExchange.SessionId,
+                byte[] x = _ecliptixProtocolSystem.ProcessInboundMessage(1,
                     PubKeyExchangeType.AppDeviceEphemeralConnect, regResp);
 
                 AppDeviceRegisteredStateReply t = ServiceUtilities.ParseFromBytes<AppDeviceRegisteredStateReply>(x);
