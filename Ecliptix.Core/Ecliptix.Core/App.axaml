@@ -9,11 +9,20 @@
 
     <Application.DataTemplates>
         <DataTemplate DataType="{x:Type vm:MainViewModel}">
-            <views:MainView /> <!-- Assuming MainView is your UserControl -->
+            <views:MainView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SignInViewModel}">
+            <views:SignInView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ForgotPasswordViewModel}">
+            <views:ForgotPasswordView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SignUpViewModel}">
+            <views:SignUpView/>
         </DataTemplate>
     </Application.DataTemplates>
 
     <Application.Styles>
-        <FluentTheme />
+        <SimpleTheme />
     </Application.Styles>
 </Application>

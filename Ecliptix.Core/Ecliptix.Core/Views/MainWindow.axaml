@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:Ecliptix.Core.Views"
+        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
         x:Class="Ecliptix.Core.Views.MainWindow"
         Title="Ecliptix"
@@ -11,7 +12,10 @@
         SystemDecorations="None"
         Background="Transparent" 
         TransparencyLevelHint="Transparent" 
-        ExtendClientAreaToDecorationsHint="False">
+        ExtendClientAreaToDecorationsHint="False"
+        x:DataType="vm:MainWindowViewModel"
+        WindowStartupLocation="CenterScreen"
+        >
 
     <!-- Outermost Border defines shape and background -->
     <Border Name="RootWindowBorder"

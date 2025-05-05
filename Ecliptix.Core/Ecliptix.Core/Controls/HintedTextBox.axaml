@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.HintedTextBox"
+             x:Name="control">
+    <Border
+      x:Name="MainBorder"
+      BorderThickness="1"
+      BorderBrush="Gray"
+      CornerRadius="4"
+      Padding="8"
+      MinHeight="60">
+    <Grid VerticalAlignment="Stretch">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      
+      <!-- Row 0 now contains a grid with two columns -->
+      <Grid Grid.Row="0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        
+              
+        <TextBox
+            x:Name="MainTextBox"
+            Grid.Column="1"
+            Watermark="{Binding Watermark, ElementName=control}"
+            Text="{Binding Text, ElementName=control, Mode=TwoWay}"
+            PasswordChar="{Binding PasswordChar, ElementName=control}"
+            Foreground="{Binding TextForeground, ElementName=control}"
+            Background="Transparent"
+            BorderThickness="0"
+            Padding="0"
+            VerticalAlignment="Stretch"
+            HorizontalAlignment="Stretch"
+            VerticalContentAlignment="Center"
+            FontSize="14"
+            MinHeight="0"
+            MinWidth="32"
+            Height="32"/>
+      </Grid>
+     
+     
+      <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0">
+        <StackPanel.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+          </Transitions>
+        </StackPanel.Transitions>
+        <Svg x:Name="IconElement"
+             Path="{Binding IconSource, ElementName=control}"
+             Height="12"
+             Width="12"
+             VerticalAlignment="Center"
+             HorizontalAlignment="Center"
+             Margin="0,0,5,0"
+             Css=".lamp { fill: {Binding HintForeground, ElementName=control}; }"
+        />
+        
+        <TextBlock x:Name="HintTextBlock"
+                   Text="{Binding Hint, ElementName=control}"
+                   Foreground="{Binding HintForeground, ElementName=control}"
+                   FontSize="10"
+                   IsHitTestVisible="False"/>
+      </StackPanel>
+  
+    </Grid>
+  </Border>
+</UserControl>

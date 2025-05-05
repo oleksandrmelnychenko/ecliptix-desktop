@@ -12,7 +12,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels;
 
-public class MainViewModel : ReactiveObject
+public class MainViewModel : ReactiveObject 
 {
     private readonly AppDeviceServiceActions.AppDeviceServiceActionsClient _client;
     private readonly ApplicationController _applicationController;
