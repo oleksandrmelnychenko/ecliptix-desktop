@@ -9,7 +9,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public class AuthorizationViewModel : ReactiveObject
+public class AuthenticationViewModel : ReactiveObject
 {
     private UserControl? _currentView;
     public UserControl? CurrentView
@@ -23,7 +23,7 @@ public class AuthorizationViewModel : ReactiveObject
 
     public ReactiveCommand<MembershipViewType, Unit> ShowView { get; }
 
-    public AuthorizationViewModel(MembershipViewFactory membershipViewFactory)
+    public AuthenticationViewModel(MembershipViewFactory membershipViewFactory)
     {
         ShowView = ReactiveCommand.Create<MembershipViewType>(type =>
         {

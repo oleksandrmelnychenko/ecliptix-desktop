@@ -5,9 +5,9 @@ using Avalonia.Markup.Xaml;
 
 namespace Ecliptix.Core.Views.Memberships;
 
-public partial class AuthorizationWindow : Window
+public partial class AuthenticationWindow : Window
 {
-    public AuthorizationWindow()
+    public AuthenticationWindow()
     {
         InitializeComponent();
     }
@@ -16,7 +16,6 @@ public partial class AuthorizationWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
     }
-    
     
     private void TitleBarArea_PointerPressed(object? sender, PointerPressedEventArgs e)
     {

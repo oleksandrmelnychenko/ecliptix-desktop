@@ -29,8 +29,8 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AuthorizationViewModel authViewModel = Locator.Current.GetService<AuthorizationViewModel>()!;
-            desktop.MainWindow = new AuthorizationWindow
+            AuthenticationViewModel authViewModel = Locator.Current.GetService<AuthenticationViewModel>()!;
+            desktop.MainWindow = new AuthenticationWindow
             {
                 DataContext = authViewModel
             };

@@ -6,14 +6,14 @@
         xmlns:data="clr-namespace:Ecliptix.Core.Data"
         xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
         mc:Ignorable="d"
-        x:Class="Ecliptix.Core.Views.Memberships.AuthorizationWindow"
+        x:Class="Ecliptix.Core.Views.Memberships.AuthenticationWindow"
         x:Name="AuthWindow"
         BorderThickness="0"
         SystemDecorations="None"
         Background="Transparent" 
         TransparencyLevelHint="Transparent" 
         ExtendClientAreaToDecorationsHint="False"
-        x:DataType="memberships:AuthorizationViewModel"
+        x:DataType="memberships:AuthenticationViewModel"
         Width="900" Height="700"
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/avalonia-logo.ico"
@@ -81,6 +81,8 @@
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
         <Grid>
+            <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
+                   Stretch="UniformToFill" />
             <Grid RowDefinitions="Auto,Auto,*" Margin="1">
                 <!-- Title Bar -->
                 <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
@@ -113,42 +115,7 @@
 
                 <!-- Menu and Navigation -->
                 <Grid Grid.Row="1" ColumnDefinitions="*,*">
-                    <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
-                           Stretch="UniformToFill" />
-                    <StackPanel Grid.Column="1"
-                                Spacing="20"
-                                Margin="0,0,10,0"
-                                Orientation="Vertical"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                        <StackPanel Spacing="10">
-                            <Button Background="Transparent"
-                                    BorderThickness="0"
-                                    Command="{Binding ShowView}"
-                                    CommandParameter="{x:Static data:MembershipViewType.SignUp}">
-                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
-                            </Button>
-                            <TextBlock HorizontalAlignment="Center">New account</TextBlock>
-                        </StackPanel>
-                        <StackPanel Spacing="10">
-                            <Button Background="Transparent"
-                                    BorderThickness="0"
-                                    Command="{Binding ShowView}"
-                                    CommandParameter="{x:Static data:MembershipViewType.ForgotPassword}">
-                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
-                            </Button>
-                            <TextBlock HorizontalAlignment="Center">Forgot password</TextBlock>
-                        </StackPanel>
-                        <StackPanel Spacing="10">
-                            <Button Background="Transparent"
-                                    BorderThickness="0"
-                                    Command="{Binding ShowView}"
-                                    CommandParameter="{x:Static data:MembershipViewType.SignIn}">
-                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
-                            </Button>
-                            <TextBlock HorizontalAlignment="Center">Sign in</TextBlock>
-                        </StackPanel>
-                    </StackPanel>
+                   
                 </Grid>
 
                 <!-- Content Area -->
@@ -163,7 +130,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="data:MembershipViewType">
                                     <Button Content="{Binding Converter={StaticResource EnumDisplayConverter}}"
-                                            Command="{Binding ShowView, RelativeSource={RelativeSource AncestorType={x:Type memberships:AuthorizationViewModel}}}"
+                                            Command="{Binding ShowView, RelativeSource={RelativeSource AncestorType={x:Type memberships:AuthenticationViewModel}}}"
                                             CommandParameter="{Binding}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

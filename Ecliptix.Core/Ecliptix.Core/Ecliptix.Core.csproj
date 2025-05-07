@@ -68,7 +68,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="Views\Memberships\AuthorizationWindow.axaml.cs">
+      <Compile Update="Views\Memberships\AuthenticationWindow.axaml.cs">
         <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>

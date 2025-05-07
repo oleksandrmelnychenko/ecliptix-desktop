@@ -53,7 +53,7 @@ internal sealed class Program
         services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
         services.AddSingleton<ApplicationController>();
         services.AddSingleton<MembershipViewFactory>();
-        services.AddTransient<AuthorizationViewModel>();
+        services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
         
         services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
