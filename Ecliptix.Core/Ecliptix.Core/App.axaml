@@ -3,6 +3,6 @@
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Default">
     <Application.Styles>
-        <FluentTheme />
+        <SimpleTheme />
     </Application.Styles>
 </Application>
