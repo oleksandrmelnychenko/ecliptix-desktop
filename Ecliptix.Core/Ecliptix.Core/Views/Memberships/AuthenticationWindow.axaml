@@ -24,16 +24,15 @@
         <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
     </Window.Resources>
 
-   
 
     <Border Name="RootWindowBorder"
-            Background="WhiteSmoke"
+            Background="White"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
         <Grid>
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
-                   Stretch="UniformToFill" />
+                   Stretch="Uniform" HorizontalAlignment="Left" />
             <Grid RowDefinitions="Auto,Auto,*" Margin="1">
                 <views:TitleBar />
 
@@ -43,11 +42,15 @@
 
                 <!-- Content Area -->
                 <Border Grid.Row="2"
-                        Background="#FFFAFAFA"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
-                    <Grid RowDefinitions="Auto,*">
-                        <ItemsControl Grid.Row="0"
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
+                               HorizontalAlignment="Center"
+                               Width="140"
+                               Height="140"
+                               VerticalAlignment="Center" />
+                        <!--<ItemsControl Grid.Row="1"
                                       x:Name="MenuItemsControl"
                                       ItemsSource="{Binding MenuItems}">
                             <ItemsControl.ItemTemplate>
@@ -57,8 +60,9 @@
                                             CommandParameter="{Binding}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <ContentControl Grid.Row="1"
+                        </ItemsControl>-->
+                        <ContentControl Grid.Row="2"
+                                        Background="Transparent"
                                         Content="{Binding CurrentView}" />
                     </Grid>
                 </Border>
