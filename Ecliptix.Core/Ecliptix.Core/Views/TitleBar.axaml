@@ -1,0 +1,90 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="Ecliptix.Core.Views.TitleBar"
+    Height="35">
+    <UserControl.Styles>
+        <!-- Traffic-light button base style -->
+        <Style Selector="Button.traffic-light">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        CornerRadius="{TemplateBinding CornerRadius}" />
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Close -->
+        <Style Selector="Button.traffic-light.close">
+            <Setter Property="Background" Value="#FF5F57" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pointerover">
+            <Setter Property="Background" Value="#E0443E" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pressed">
+            <Setter Property="Background" Value="#C13934" />
+        </Style>
+
+        <!-- Minimize -->
+        <Style Selector="Button.traffic-light.minimize">
+            <Setter Property="Background" Value="#FFBD2E" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pointerover">
+            <Setter Property="Background" Value="#E0A72A" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pressed">
+            <Setter Property="Background" Value="#C19124" />
+        </Style>
+
+        <!-- Maximize -->
+        <Style Selector="Button.traffic-light.maximize">
+            <Setter Property="Background" Value="#28C940" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pointerover">
+            <Setter Property="Background" Value="#23AF38" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pressed">
+            <Setter Property="Background" Value="#1E952F" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel Name="PART_Root" Background="Transparent">
+        <StackPanel
+            DockPanel.Dock="Left"
+            Orientation="Horizontal"
+            Spacing="8"
+            Margin="10,0,0,0"
+            VerticalAlignment="Center">
+            <Button Name="PART_Close"
+                    Classes="traffic-light close" />
+            <Button Name="PART_Minimize"
+                    Classes="traffic-light minimize" />
+            <Button Name="PART_Maximize"
+                    Classes="traffic-light maximize" />
+        </StackPanel>
+
+        <TextBlock
+            Text="{Binding Title, 
+           RelativeSource={RelativeSource AncestorType=Window}}"
+            Foreground="#FF212121"
+            FontWeight="Medium"
+            FontSize="13"
+            VerticalAlignment="Center"
+            HorizontalAlignment="Center" />
+    </DockPanel>
+</UserControl>

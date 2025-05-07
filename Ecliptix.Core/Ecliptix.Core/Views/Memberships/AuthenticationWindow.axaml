@@ -5,13 +5,14 @@
         xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         xmlns:data="clr-namespace:Ecliptix.Core.Data"
         xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
+        xmlns:views="clr-namespace:Ecliptix.Core.Views"
         mc:Ignorable="d"
         x:Class="Ecliptix.Core.Views.Memberships.AuthenticationWindow"
         x:Name="AuthWindow"
         BorderThickness="0"
         SystemDecorations="None"
-        Background="Transparent" 
-        TransparencyLevelHint="Transparent" 
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="memberships:AuthenticationViewModel"
         Width="900" Height="700"
@@ -23,57 +24,7 @@
         <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
     </Window.Resources>
 
-    <Window.Styles>
-        <Style Selector="Button.traffic-light">
-            <Setter Property="Width" Value="12" />
-            <Setter Property="Height" Value="12" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Background="{TemplateBinding Background}"
-                            Width="{TemplateBinding Width}"
-                            Height="{TemplateBinding Height}"
-                            CornerRadius="{TemplateBinding CornerRadius}" />
-                </ControlTemplate>
-            </Setter>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0.1" />
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Button.traffic-light.close">
-            <Setter Property="Background" Value="#FF5F57" />
-        </Style>
-        <Style Selector="Button.traffic-light.close:pointerover">
-            <Setter Property="Background" Value="#E0443E" />
-        </Style>
-        <Style Selector="Button.traffic-light.close:pressed">
-            <Setter Property="Background" Value="#C13934" />
-        </Style>
-        <Style Selector="Button.traffic-light.minimize">
-            <Setter Property="Background" Value="#FFBD2E" />
-        </Style>
-        <Style Selector="Button.traffic-light.minimize:pointerover">
-            <Setter Property="Background" Value="#E0A72A" />
-        </Style>
-        <Style Selector="Button.traffic-light.minimize:pressed">
-            <Setter Property="Background" Value="#C19124" />
-        </Style>
-        <Style Selector="Button.traffic-light.maximize">
-            <Setter Property="Background" Value="#28C940" />
-        </Style>
-        <Style Selector="Button.traffic-light.maximize:pointerover">
-            <Setter Property="Background" Value="#23AF38" />
-        </Style>
-        <Style Selector="Button.traffic-light.maximize:pressed">
-            <Setter Property="Background" Value="#1E952F" />
-        </Style>
-    </Window.Styles>
+   
 
     <Border Name="RootWindowBorder"
             Background="WhiteSmoke"
@@ -84,38 +35,10 @@
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
                    Stretch="UniformToFill" />
             <Grid RowDefinitions="Auto,Auto,*" Margin="1">
-                <!-- Title Bar -->
-                <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
-                    <StackPanel DockPanel.Dock="Left"
-                                Orientation="Horizontal"
-                                Spacing="8"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center">
-                        <Button Name="CloseButton"
-                                Classes="traffic-light close"
-                                Click="CloseButton_Click" />
-                        <Button Name="MinimizeButton"
-                                Classes="traffic-light minimize"
-                                Click="MinimizeButton_Click" />
-                        <Button Name="MaximizeButton"
-                                Classes="traffic-light maximize"
-                                Click="MaximizeButton_Click" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-                               Foreground="#FF212121"
-                               FontWeight="Medium"
-                               FontSize="13"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               Margin="10,0,10,0" />
-                    <Border Background="Transparent"
-                            IsHitTestVisible="True"
-                            PointerPressed="TitleBarArea_PointerPressed" />
-                </DockPanel>
+                <views:TitleBar />
 
-                <!-- Menu and Navigation -->
                 <Grid Grid.Row="1" ColumnDefinitions="*,*">
-                   
+
                 </Grid>
 
                 <!-- Content Area -->
