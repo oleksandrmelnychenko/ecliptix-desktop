@@ -15,6 +15,7 @@
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MainViewModel"
         WindowStartupLocation="CenterScreen"
+        
         >
 
     <!-- Outermost Border defines shape and background -->

@@ -12,7 +12,15 @@
       CornerRadius="4"
       Padding="8"
       MinHeight="60">
-    <Grid VerticalAlignment="Stretch">
+      <Border.Transitions>
+        <Transitions>
+          <ThicknessTransition Property="BorderThickness" Duration="0:0:0.2"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+        </Transitions>
+      </Border.Transitions>
+      
+      <Grid>
+           <Grid VerticalAlignment="Stretch">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
@@ -20,6 +28,9 @@
       
       <!-- Row 0 now contains a grid with two columns -->
       <Grid Grid.Row="0">
+          
+        <Grid>
+        
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="Auto"/>
           <ColumnDefinition Width="*"/>
@@ -43,7 +54,11 @@
             FontSize="14"
             MinHeight="0"
             MinWidth="32"
-            Height="32"/>
+            Height="32"> 
+            </TextBox>
+          
+          
+        </Grid>
       </Grid>
      
      
@@ -66,10 +81,45 @@
         <TextBlock x:Name="HintTextBlock"
                    Text="{Binding Hint, ElementName=control}"
                    Foreground="{Binding HintForeground, ElementName=control}"
-                   FontSize="10"
+                   FontSize="12"
                    IsHitTestVisible="False"/>
       </StackPanel>
   
     </Grid>
+        <Grid RowDefinitions="*, *">
+          <Ellipse Grid.Row="0" 
+                   Width="9"
+                   Height="9"
+                   Fill="#de1e31"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   Margin="0,0,0,0"
+                   Opacity="{Binding EllipseOpacity, ElementName=control}"
+                    >
+            <Ellipse.Transitions>
+              <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+              </Transitions>
+            </Ellipse.Transitions>
+          </Ellipse>
+          
+          <TextBlock Grid.Row="1" 
+                     FontSize="12"
+                     Foreground="#de1e31" 
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Bottom"
+                     Text="{Binding ErrorText, ElementName=control}"
+                     Opacity="{Binding EllipseOpacity, ElementName=control}">
+            <TextBlock.Transitions>
+              <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+              </Transitions>
+            </TextBlock.Transitions>          
+            </TextBlock>
+        </Grid>
+        
+    </Grid>
+   
+       
   </Border>
 </UserControl>
