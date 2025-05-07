@@ -1,12 +1,15 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 
-namespace Ecliptix.Core.Views;
+namespace Ecliptix.Core.Views.Memberships;
 
-public partial class AuthorizationWindow : Window
+public partial class ForgotPasswordView : UserControl
 {
-    public AuthorizationWindow()
+    public ForgotPasswordView()
     {
         InitializeComponent();
     }
@@ -15,5 +18,4 @@ public partial class AuthorizationWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
     }
-    
 }

@@ -8,6 +8,7 @@ using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
+using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -50,6 +51,8 @@ internal sealed class Program
 #pragma warning restore IL2026
         services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
         services.AddSingleton<ApplicationController>();
+        services.AddTransient<AuthorizationViewModel>();
+        services.AddTransient<SignInViewModel>();
         
         services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
 
@@ -82,6 +85,7 @@ internal sealed class Program
         });
 
         services.AddTransient<MainViewModel>();
+       
         services.AddSingleton<ILogManager>(new DefaultLogManager());
 
         Services = services.BuildServiceProvider();

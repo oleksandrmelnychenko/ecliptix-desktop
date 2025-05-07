@@ -1,0 +1,205 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+        xmlns:data="clr-namespace:Ecliptix.Core.Data"
+        mc:Ignorable="d"
+        x:Class="Ecliptix.Core.Views.Memberships.AuthorizationWindow"
+        x:Name="AuthWindow"
+        x:DataType="memberships:AuthorizationViewModel"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="AuthorizationWindow">
+
+    <Window.Resources>
+        <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
+    </Window.Resources>
+
+    <!-- 2) Traffic-light button styles -->
+    <Window.Styles>
+        <Style Selector="Button.traffic-light">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            CornerRadius="{TemplateBinding CornerRadius}" />
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Close -->
+        <Style Selector="Button.traffic-light.close">
+            <Setter Property="Background" Value="#FF5F57" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pointerover">
+            <Setter Property="Background" Value="#E0443E" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pressed">
+            <Setter Property="Background" Value="#C13934" />
+        </Style>
+
+        <!-- Minimize -->
+        <Style Selector="Button.traffic-light.minimize">
+            <Setter Property="Background" Value="#FFBD2E" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pointerover">
+            <Setter Property="Background" Value="#E0A72A" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pressed">
+            <Setter Property="Background" Value="#C19124" />
+        </Style>
+
+        <!-- Maximize -->
+        <Style Selector="Button.traffic-light.maximize">
+            <Setter Property="Background" Value="#28C940" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pointerover">
+            <Setter Property="Background" Value="#23AF38" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pressed">
+            <Setter Property="Background" Value="#1E952F" />
+        </Style>
+    </Window.Styles>
+
+    <!-- 3) Window chrome + content -->
+    <Border Name="RootWindowBorder"
+            Background="#FFEFEFEF"
+            CornerRadius="8"
+            Padding="0"
+            BoxShadow="0 0 10 2 #11000000">
+        <Grid>
+
+            <!-- Title bar + main content -->
+            <Grid RowDefinitions="Auto,*" Margin="1">
+
+                <!-- Custom Title Bar -->
+                <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
+                    <StackPanel DockPanel.Dock="Left"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center">
+                        <Button Name="CloseButton"
+                                Classes="traffic-light close"
+                                Click="CloseButton_Click" />
+                        <Button Name="MinimizeButton"
+                                Classes="traffic-light minimize"
+                                Click="MinimizeButton_Click" />
+                        <Button Name="MaximizeButton"
+                                Classes="traffic-light maximize"
+                                Click="MaximizeButton_Click" />
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="#FF212121"
+                               FontWeight="Medium"
+                               FontSize="13"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Margin="10,0,10,0" />
+
+                    <Border Background="Transparent"
+                            IsHitTestVisible="True"
+                            PointerPressed="TitleBarArea_PointerPressed" />
+                </DockPanel>
+
+                <!-- Content area -->
+                <Border Grid.Row="1"
+                        Background="#FFFAFAFA"
+                        Margin="5,0,5,5"
+                        CornerRadius="0,0,4,4">
+                    <Grid RowDefinitions="Auto,*">
+                        <ItemsControl Grid.Row="0"
+                                      x:Name="MenuItemsControl"
+                                      ItemsSource="{Binding MenuItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="data:MembershipViewType">
+                                    <Button Content="{Binding Converter={StaticResource EnumDisplayConverter}}"
+                                            Command="{Binding ShowView, RelativeSource={RelativeSource AncestorType={x:Type memberships:AuthorizationViewModel}}}"
+                                            CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ContentControl Grid.Row="1"
+                                        Content="{Binding CurrentView}" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- *** Resize grips *** -->
+            <Border BorderThickness="4"
+                    BorderBrush="Transparent"
+                    Cursor="SizeWestEast"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.West}" />
+            <Border BorderThickness="4"
+                    BorderBrush="Transparent"
+                    Cursor="SizeWestEast"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.East}" />
+            <Border BorderThickness="4"
+                    BorderBrush="Transparent"
+                    Cursor="SizeNorthSouth"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.North}" />
+            <Border BorderThickness="4"
+                    BorderBrush="Transparent"
+                    Cursor="SizeNorthSouth"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.South}" />
+
+            <Border Width="8" Height="8"
+                    BorderBrush="Transparent"
+                    Cursor="TopLeftCorner"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.NorthWest}" />
+            <Border Width="8" Height="8"
+                    BorderBrush="Transparent"
+                    Cursor="TopRightCorner"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.NorthEast}" />
+            <Border Width="8" Height="8"
+                    BorderBrush="Transparent"
+                    Cursor="BottomLeftCorner"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.SouthWest}" />
+            <Border Width="8" Height="8"
+                    BorderBrush="Transparent"
+                    Cursor="BottomRightCorner"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    PointerPressed="Resize_PointerPressed"
+                    Tag="{x:Static WindowEdge.SouthEast}" />
+        </Grid>
+    </Border>
+</Window>

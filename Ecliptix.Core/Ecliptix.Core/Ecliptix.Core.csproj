@@ -67,4 +67,27 @@
       <Content Include="Protocol\.DS_Store" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Views\Memberships\AuthorizationWindow.axaml.cs">
+        <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Memberships\ForgotPasswordView.axaml.cs">
+        <DependentUpon>ForgotPasswordView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Memberships\SignInView.axaml.cs">
+        <DependentUpon>SignInView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Views\Memberships\SignUpView.axaml.cs">
+        <DependentUpon>SignUpView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Services\" />
+    </ItemGroup>
+
 </Project>

@@ -13,7 +13,7 @@
         Background="Transparent" 
         TransparencyLevelHint="Transparent" 
         ExtendClientAreaToDecorationsHint="False"
-        x:DataType="vm:MainWindowViewModel"
+        x:DataType="vm:MainViewModel"
         WindowStartupLocation="CenterScreen"
         >
 
