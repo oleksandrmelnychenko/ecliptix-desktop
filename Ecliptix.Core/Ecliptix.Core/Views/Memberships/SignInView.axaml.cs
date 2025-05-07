@@ -1,17 +1,15 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
+using Ecliptix.Core.ViewModels.Memberships;
 
 namespace Ecliptix.Core.Views.Memberships;
 
 public partial class SignInView : UserControl
 {
-    public SignInView()
+    public SignInView(SignInViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
     
     private void InitializeComponent()

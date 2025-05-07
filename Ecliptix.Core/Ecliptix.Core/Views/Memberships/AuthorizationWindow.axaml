@@ -4,20 +4,25 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         xmlns:data="clr-namespace:Ecliptix.Core.Data"
+        xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
         mc:Ignorable="d"
         x:Class="Ecliptix.Core.Views.Memberships.AuthorizationWindow"
         x:Name="AuthWindow"
+        BorderThickness="0"
+        SystemDecorations="None"
+        Background="Transparent" 
+        TransparencyLevelHint="Transparent" 
+        ExtendClientAreaToDecorationsHint="False"
         x:DataType="memberships:AuthorizationViewModel"
-        Width="1200" Height="800"
+        Width="900" Height="700"
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/avalonia-logo.ico"
-        Title="AuthorizationWindow">
+        Title="Authentication">
 
     <Window.Resources>
         <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
     </Window.Resources>
 
-    <!-- 2) Traffic-light button styles -->
     <Window.Styles>
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />
@@ -41,8 +46,6 @@
                 </Transitions>
             </Setter>
         </Style>
-
-        <!-- Close -->
         <Style Selector="Button.traffic-light.close">
             <Setter Property="Background" Value="#FF5F57" />
         </Style>
@@ -52,8 +55,6 @@
         <Style Selector="Button.traffic-light.close:pressed">
             <Setter Property="Background" Value="#C13934" />
         </Style>
-
-        <!-- Minimize -->
         <Style Selector="Button.traffic-light.minimize">
             <Setter Property="Background" Value="#FFBD2E" />
         </Style>
@@ -63,8 +64,6 @@
         <Style Selector="Button.traffic-light.minimize:pressed">
             <Setter Property="Background" Value="#C19124" />
         </Style>
-
-        <!-- Maximize -->
         <Style Selector="Button.traffic-light.maximize">
             <Setter Property="Background" Value="#28C940" />
         </Style>
@@ -76,18 +75,14 @@
         </Style>
     </Window.Styles>
 
-    <!-- 3) Window chrome + content -->
     <Border Name="RootWindowBorder"
-            Background="#FFEFEFEF"
+            Background="WhiteSmoke"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
         <Grid>
-
-            <!-- Title bar + main content -->
-            <Grid RowDefinitions="Auto,*" Margin="1">
-
-                <!-- Custom Title Bar -->
+            <Grid RowDefinitions="Auto,Auto,*" Margin="1">
+                <!-- Title Bar -->
                 <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
                     <StackPanel DockPanel.Dock="Left"
                                 Orientation="Horizontal"
@@ -104,7 +99,6 @@
                                 Classes="traffic-light maximize"
                                 Click="MaximizeButton_Click" />
                     </StackPanel>
-
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
                                Foreground="#FF212121"
                                FontWeight="Medium"
@@ -112,14 +106,53 @@
                                VerticalAlignment="Center"
                                HorizontalAlignment="Center"
                                Margin="10,0,10,0" />
-
                     <Border Background="Transparent"
                             IsHitTestVisible="True"
                             PointerPressed="TitleBarArea_PointerPressed" />
                 </DockPanel>
 
-                <!-- Content area -->
-                <Border Grid.Row="1"
+                <!-- Menu and Navigation -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,*">
+                    <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
+                           Stretch="UniformToFill" />
+                    <StackPanel Grid.Column="1"
+                                Spacing="20"
+                                Margin="0,0,10,0"
+                                Orientation="Vertical"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <StackPanel Spacing="10">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding ShowView}"
+                                    CommandParameter="{x:Static data:MembershipViewType.SignUp}">
+                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
+                            </Button>
+                            <TextBlock HorizontalAlignment="Center">New account</TextBlock>
+                        </StackPanel>
+                        <StackPanel Spacing="10">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding ShowView}"
+                                    CommandParameter="{x:Static data:MembershipViewType.ForgotPassword}">
+                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
+                            </Button>
+                            <TextBlock HorizontalAlignment="Center">Forgot password</TextBlock>
+                        </StackPanel>
+                        <StackPanel Spacing="10">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Command="{Binding ShowView}"
+                                    CommandParameter="{x:Static data:MembershipViewType.SignIn}">
+                                <Image Source="/Assets/qr_code.jpeg" Height="50" Width="50" />
+                            </Button>
+                            <TextBlock HorizontalAlignment="Center">Sign in</TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Content Area -->
+                <Border Grid.Row="2"
                         Background="#FFFAFAFA"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
@@ -135,14 +168,13 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-
                         <ContentControl Grid.Row="1"
                                         Content="{Binding CurrentView}" />
                     </Grid>
                 </Border>
             </Grid>
 
-            <!-- *** Resize grips *** -->
+            <!-- Resize Grips -->
             <Border BorderThickness="4"
                     BorderBrush="Transparent"
                     Cursor="SizeWestEast"
@@ -171,7 +203,6 @@
                     VerticalAlignment="Bottom"
                     PointerPressed="Resize_PointerPressed"
                     Tag="{x:Static WindowEdge.South}" />
-
             <Border Width="8" Height="8"
                     BorderBrush="Transparent"
                     Cursor="TopLeftCorner"

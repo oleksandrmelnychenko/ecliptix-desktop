@@ -1,30 +1,8 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:Ecliptix.Core"
-             xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
-             xmlns:views="clr-namespace:Ecliptix.Core.Views"
-             xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
-             xmlns:vm1="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Default">
-    <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
-    <Application.DataTemplates>
-        <DataTemplate DataType="{x:Type vm:MainViewModel}">
-            <views:MainView/>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm1:SignInViewModel}">
-            <memberships:SignInView/>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm1:ForgotPasswordViewModel}">
-            <memberships:ForgotPasswordView/>
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm1:SignUpViewModel}">
-            <memberships:SignUpView/>
-        </DataTemplate>
-    </Application.DataTemplates>
-
     <Application.Styles>
-        <SimpleTheme />
+        <FluentTheme />
     </Application.Styles>
 </Application>

@@ -9,6 +9,7 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.ViewModels.Utilities;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -51,6 +52,7 @@ internal sealed class Program
 #pragma warning restore IL2026
         services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
         services.AddSingleton<ApplicationController>();
+        services.AddSingleton<MembershipViewFactory>();
         services.AddTransient<AuthorizationViewModel>();
         services.AddTransient<SignInViewModel>();
         

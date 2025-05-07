@@ -7,7 +7,6 @@ using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Memberships;
 using Splat;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core;
 

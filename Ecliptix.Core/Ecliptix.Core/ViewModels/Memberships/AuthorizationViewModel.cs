@@ -23,11 +23,11 @@ public class AuthorizationViewModel : ReactiveObject
 
     public ReactiveCommand<MembershipViewType, Unit> ShowView { get; }
 
-    public AuthorizationViewModel()
+    public AuthorizationViewModel(MembershipViewFactory membershipViewFactory)
     {
         ShowView = ReactiveCommand.Create<MembershipViewType>(type =>
         {
-            CurrentView = MembershipViewFactory.Create(type);
+            CurrentView = membershipViewFactory.Create(type);
         });
 
         ShowView.Execute(MembershipViewType.SignIn).Subscribe();
