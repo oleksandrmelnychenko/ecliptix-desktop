@@ -5,21 +5,37 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.HintedTextBox"
              x:Name="control">
+  <Grid >
+    <Border
+      x:Name="FocusBorder"
+      BorderThickness="2"
+      BorderBrush="#6a5acd"
+      Background="Transparent"
+      CornerRadius="4"
+      Opacity="0">
+      <Border.Transitions>
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+        </Transitions>
+      </Border.Transitions>
+    </Border>
+    
     <Border
       x:Name="MainBorder"
+      Margin="1"
       BorderThickness="1"
       BorderBrush="Gray"
       CornerRadius="4"
-      Padding="8"
-      MinHeight="60">
+      MinHeight="64"
+      >
       <Border.Transitions>
         <Transitions>
-          <ThicknessTransition Property="BorderThickness" Duration="0:0:0.2"/>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
         </Transitions>
       </Border.Transitions>
       
-      <Grid>
+    <Panel Margin="8">
            <Grid VerticalAlignment="Stretch">
       <Grid.RowDefinitions>
         <RowDefinition Height="*" />
@@ -118,8 +134,10 @@
             </TextBlock>
         </Grid>
         
-    </Grid>
+    </Panel>
    
        
+
   </Border>
+    </Grid>
 </UserControl>

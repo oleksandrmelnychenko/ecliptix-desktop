@@ -1,9 +1,12 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Ecliptix.Core.ViewModels.Memberships;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls;
 
@@ -35,7 +38,15 @@ public partial class HintedTextBox : UserControl
             AvaloniaProperty.Register<HintedTextBox, string>(nameof(ErrorText), string.Empty);
         public static readonly StyledProperty<double> EllipseOpacityProperty =
             AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity), 0.0);
+        public static readonly StyledProperty<bool> HasErrorProperty =
+            AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError), false);
 
+        public bool HasError
+        {
+            get => GetValue(HasErrorProperty);
+            set => SetValue(HasErrorProperty, value);
+        }
+        
         public double EllipseOpacity
         {
             get => GetValue(EllipseOpacityProperty);
@@ -99,93 +110,64 @@ public partial class HintedTextBox : UserControl
         {
             InitializeComponent();
             var mainTextBox = this.FindControl<TextBox>("MainTextBox");
-            var mainBorder = this.FindControl<Border>("MainBorder");
-    
-            if (mainTextBox != null && mainBorder != null)
+            var focusBorder = this.FindControl<Border>("FocusBorder");
+
+            if (mainTextBox != null && focusBorder != null)
             {
+                this.WhenAnyValue(x => x.ErrorText)
+                    .Subscribe(errorText =>
+                    {
+                        HasError = !string.IsNullOrEmpty(errorText);
+                        UpdateBorderState(mainTextBox, focusBorder);
+                    });
+
                 mainTextBox.GotFocus += (s, e) =>
                 {
-                    mainBorder.BorderBrush = new SolidColorBrush(Color.Parse("#6a5acd"));
-                    mainBorder.BorderThickness = new Thickness(2);
+                    UpdateBorderState(mainTextBox, focusBorder, true);
+                    if (DataContext is SignInViewModel vm)
+                    {
+                        if (Name == "MobileTextBox")
+                            vm.MobileFieldTouched = true;
+                        else if (Name == "PasswordTextBox")
+                            vm.PasswordFieldTouched = true;
+                    }
                 };
-        
+
                 mainTextBox.LostFocus += (s, e) =>
                 {
-                    mainBorder.BorderBrush = new SolidColorBrush(Colors.Gray);
-                    mainBorder.BorderThickness = new Thickness(1);
+                    UpdateBorderState(mainTextBox, focusBorder);
                 };
             }
         }
 
+        private void UpdateBorderState(TextBox mainTextBox, Border focusBorder, bool forceFocus = false)
+        {
+            var mainBorder = this.FindControl<Border>("MainBorder");
+    
+            if (HasError)
+            {
+                focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
+                focusBorder.Opacity = 1;
+                mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            }
+            else if (forceFocus || mainTextBox.IsFocused)
+            {
+                focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#6a5acd"));
+                focusBorder.Opacity = 1;
+                mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            }
+            else
+            {
+                focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#6a5acd"));
+                focusBorder.Opacity = 0;
+                mainBorder.BorderBrush = new SolidColorBrush(Color.Parse("#808080")); // Gray
+            }
+        }
+        
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
         }
         
-        // private void OnLoaded(object? sender, RoutedEventArgs e)
-        // {
-        //     _mainTextBox = this.FindControl<TextBox>("MainTextBox");
-        //     _hintStackPanel = this.FindControl<StackPanel>("HintStackPanel");
-        //     _mainBorder = this.FindControl<Border>("MainBorder");
-        //
-        //     if (_mainBorder != null)
-        //         _originalBorderBrush = _mainBorder.BorderBrush;
-        //
-        //     if (_mainTextBox != null)
-        //     {
-        //         _mainTextBox.GotFocus += MainTextBox_GotFocus;
-        //         _mainTextBox.LostFocus += MainTextBox_LostFocus;
-        //         _mainTextBox.PropertyChanged += MainTextBox_PropertyChanged;
-        //     }
-        //     UpdateHintVisibility();
-        // }
-
-        // protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        // {
-        //     base.OnPropertyChanged(change);
-        //     if (change.Property == TextProperty)
-        //         UpdateHintVisibility();
-        // }
-        //
-        // private void MainTextBox_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
-        // {
-        //     if (e.Property.Name == "Text")
-        //         UpdateHintVisibility();
-        // }
-
-        // private void MainTextBox_GotFocus(object? sender, GotFocusEventArgs e)
-        // {
-        //     if (_hintStackPanel != null)
-        //     {
-        //         _hintStackPanel.Opacity = 0;
-        //         _hintStackPanel.IsVisible = false;  // Hide after opacity animation
-        //     }
-        //     if (_mainBorder != null)
-        //         _mainBorder.BorderBrush = FocusBorderBrush;
-        // }
-
-        // private void MainTextBox_LostFocus(object? sender, RoutedEventArgs e)
-        // {
-        //     UpdateHintVisibility();
-        //     if (_mainBorder != null)
-        //         _mainBorder.BorderBrush = _originalBorderBrush;
-        // }
-
-        // private void UpdateHintVisibility()
-        // {
-        //     if (_hintStackPanel != null && _mainTextBox != null)
-        //     {
-        //         bool shouldShow = !string.IsNullOrEmpty(_mainTextBox.Text) == false && !_mainTextBox.IsFocused;
-        //         if (shouldShow)
-        //         {
-        //             _hintStackPanel.IsVisible = true;  // Show before starting opacity animation
-        //             _hintStackPanel.Opacity = 1;
-        //         }
-        //         else
-        //         {
-        //             _hintStackPanel.Opacity = 0;
-        //             _hintStackPanel.IsVisible = false;  // Hide after opacity animation
-        //         }
-        //     }
-        // }
+       
     }

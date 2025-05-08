@@ -17,9 +17,9 @@
                 <TextBlock Text="Sign in into account" FontSize="24" FontWeight="Bold" Foreground="Black" />
                 <TextBlock Text="Sign in to join conversation." FontSize="14" Margin="0,4,0,20" Foreground="Black" />
 
-                <StackPanel Spacing="10" Width="350">
+                <StackPanel Spacing="10" MinWidth="350">
                     <controls:HintedTextBox
-                        Height="60"
+                        x:Name="MobileTextBox"
                         Watermark="Mobile"
                         Hint="Include country code."
                         Text="{Binding Mobile, Mode=TwoWay}"
@@ -30,8 +30,8 @@
                         ErrorText="{Binding MobileError}"
                         EllipseOpacity="{Binding MobileEllipseOpacity}"
                         />
-                    <controls:HintedTextBox
-                        Height="60"
+                    <controls:HintedTextBox   
+                        x:Name="PasswordTextBox"
                         Watermark="Password"
                         Hint="Use 8+ chars."
                         PasswordChar="•"

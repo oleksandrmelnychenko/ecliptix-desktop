@@ -12,6 +12,20 @@ public class SignInViewModel : ReactiveObject
     private double _mobileEllipseOpacity = 0.0;
     private string _passwordError = string.Empty;
     private double _passwordEllipseOpacity = 0.0;
+    private bool _mobileFieldTouched = false;
+    private bool _passwordFieldTouched = false;
+    
+    public bool MobileFieldTouched
+    {
+        get => _mobileFieldTouched;
+        set => this.RaiseAndSetIfChanged(ref _mobileFieldTouched, value);
+    }
+
+    public bool PasswordFieldTouched
+    {
+        get => _passwordFieldTouched;
+        set => this.RaiseAndSetIfChanged(ref _passwordFieldTouched, value);
+    }
     
     public string Mobile
     {
@@ -53,34 +67,36 @@ public class SignInViewModel : ReactiveObject
 
     public SignInViewModel()
     {
-        // Watch Password changes
         this.WhenAnyValue(x => x.Password)
-            .Subscribe((password) =>
+            .Subscribe(password =>
             {
+                if (!PasswordFieldTouched) return;
+
                 if (string.IsNullOrEmpty(password))
                 {
-                    PasswordError = "Password cannot be empty";
+                    PasswordError = "Field cannot be empty";
                     PasswordEllipseOpacity = 1.0;
                 }
                 else
                 {
-                    PasswordError = "Password cannot be empty";
+                    PasswordError = string.Empty;
                     PasswordEllipseOpacity = 0.0;
                 }
             });
-        
-        // Watch Mobile changes
+
         this.WhenAnyValue(x => x.Mobile)
             .Subscribe(mobile =>
             {
+                if (!MobileFieldTouched) return;
+
                 if (string.IsNullOrEmpty(mobile))
                 {
-                    MobileError = "Mobile number cannot be empty";
+                    MobileError = "Field cannot be empty";
                     MobileEllipseOpacity = 1.0;
                 }
                 else
                 {
-                    MobileError = "Mobile number cannot be empty";
+                    MobileError = string.Empty;
                     MobileEllipseOpacity = 0.0;
                 }
             });
