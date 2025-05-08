@@ -1,4 +1,5 @@
-﻿using Avalonia;
+﻿using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -11,8 +12,22 @@ public partial class AuthenticationWindow : Window
     public AuthenticationWindow()
     {
         InitializeComponent();
+        this.Opacity = 0;
+        this.Loaded += OnLoaded;
     }
-    
+
+    private async void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        const double duration = 500; // milliseconds
+        const int steps = 30;
+
+        for (int i = 0; i <= steps; i++)
+        {
+            this.Opacity = i / (double)steps;
+            await Task.Delay((int)(duration / steps));
+        }
+    }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
