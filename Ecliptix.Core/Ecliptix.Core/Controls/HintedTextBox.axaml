@@ -5,139 +5,123 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.HintedTextBox"
              x:Name="control">
-  <Grid >
-    <Border
-      x:Name="FocusBorder"
-      BorderThickness="2"
-      BorderBrush="#6a5acd"
-      Background="Transparent"
-      CornerRadius="4"
-      Opacity="0">
-      <Border.Transitions>
-        <Transitions>
-          <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
-          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
-        </Transitions>
-      </Border.Transitions>
-    </Border>
-    
-    <Border
-      x:Name="MainBorder"
-      Margin="1"
-      BorderThickness="1"
-      BorderBrush="Gray"
-      CornerRadius="4"
-      MinHeight="64"
-      >
-      <Border.Transitions>
-        <Transitions>
-          <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
-        </Transitions>
-      </Border.Transitions>
-      
-    <Panel Margin="8">
-           <Grid VerticalAlignment="Stretch">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="*" />
-        <RowDefinition Height="Auto" />
-      </Grid.RowDefinitions>
-      
-      <!-- Row 0 now contains a grid with two columns -->
-      <Grid Grid.Row="0">
-          
-        <Grid>
-        
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto"/>
-          <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-
-        
-              
-        <TextBox
-            x:Name="MainTextBox"
-            Grid.Column="1"
-            Watermark="{Binding Watermark, ElementName=control}"
-            Text="{Binding Text, ElementName=control, Mode=TwoWay}"
-            PasswordChar="{Binding PasswordChar, ElementName=control}"
-            Foreground="{Binding TextForeground, ElementName=control}"
+    <Grid>
+        <Border
+            x:Name="FocusBorder"
+            BorderThickness="2"
+            BorderBrush="#6a5acd"
             Background="Transparent"
-            BorderThickness="0"
-            Padding="0"
-            VerticalAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            VerticalContentAlignment="Center"
-            FontSize="14"
-            MinHeight="0"
-            MinWidth="32"
-            Height="32"> 
-            </TextBox>
-          
-          
-        </Grid>
-      </Grid>
-     
-     
-      <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0">
-        <StackPanel.Transitions>
-          <Transitions>
-            <DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
-          </Transitions>
-        </StackPanel.Transitions>
-        <Svg x:Name="IconElement"
-             Path="{Binding IconSource, ElementName=control}"
-             Height="12"
-             Width="12"
-             VerticalAlignment="Center"
-             HorizontalAlignment="Center"
-             Margin="0,0,5,0"
-             Css=".lamp { fill: {Binding HintForeground, ElementName=control}; }"
-        />
-        
-        <TextBlock x:Name="HintTextBlock"
-                   Text="{Binding Hint, ElementName=control}"
-                   Foreground="{Binding HintForeground, ElementName=control}"
-                   FontSize="12"
-                   IsHitTestVisible="False"/>
-      </StackPanel>
-  
-    </Grid>
-        <Grid RowDefinitions="*, *">
-          <Ellipse Grid.Row="0" 
-                   Width="9"
-                   Height="9"
-                   Fill="#de1e31"
-                   HorizontalAlignment="Right"
-                   VerticalAlignment="Top"
-                   Margin="0,0,0,0"
-                   Opacity="{Binding EllipseOpacity, ElementName=control}"
-                    >
-            <Ellipse.Transitions>
-              <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-              </Transitions>
-            </Ellipse.Transitions>
-          </Ellipse>
-          
-          <TextBlock Grid.Row="1" 
-                     FontSize="12"
-                     Foreground="#de1e31" 
-                     HorizontalAlignment="Right"
-                     VerticalAlignment="Bottom"
-                     Text="{Binding ErrorText, ElementName=control}"
-                     Opacity="{Binding EllipseOpacity, ElementName=control}">
-            <TextBlock.Transitions>
-              <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
-              </Transitions>
-            </TextBlock.Transitions>          
-            </TextBlock>
-        </Grid>
-        
-    </Panel>
-   
-       
+            CornerRadius="4"
+            Opacity="0">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Border.Transitions>
+        </Border>
 
-  </Border>
+        <Border
+            x:Name="MainBorder"
+            Margin="1"
+            BorderThickness="1"
+            BorderBrush="Gray"
+            CornerRadius="4"
+            MinHeight="64">
+            <Border.Transitions>
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                </Transitions>
+            </Border.Transitions>
+
+            <Panel Margin="8">
+                <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
+                    <Grid Grid.Row="0">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBox
+                                x:Name="MainTextBox"
+                                Grid.Column="1"
+                                Watermark="{Binding Watermark, ElementName=control}"
+                                Text="{Binding Text, ElementName=control, Mode=TwoWay}"
+                                PasswordChar="{Binding PasswordChar, ElementName=control}"
+                                Foreground="{Binding TextForeground, ElementName=control}"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                VerticalContentAlignment="Center"
+                                FontSize="14"
+                                MinHeight="0"
+                                MinWidth="32"
+                                Height="32">
+                            </TextBox>
+                        </Grid>
+                    </Grid>
+
+
+                    <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0">
+                        <StackPanel.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                            </Transitions>
+                        </StackPanel.Transitions>
+                        <Svg x:Name="IconElement"
+                             Path="{Binding IconSource, ElementName=control}"
+                             Height="12"
+                             Width="12"
+                             VerticalAlignment="Center"
+                             HorizontalAlignment="Center"
+                             Margin="0,0,5,0">
+                            <Svg.Styles>
+                                <Style Selector="Path">
+                                    <Setter Property="Fill" Value="#6a5acd" />
+                                </Style>
+                            </Svg.Styles>
+                        </Svg>
+
+                        <TextBlock x:Name="HintTextBlock"
+                                   Text="{Binding Hint, ElementName=control}"
+                                   Foreground="{Binding HintForeground, ElementName=control}"
+                                   FontSize="12"
+                                   IsHitTestVisible="False" />
+                    </StackPanel>
+
+                </Grid>
+                <Grid RowDefinitions="*, *">
+                    <Ellipse Grid.Row="0"
+                             Width="9"
+                             Height="9"
+                             Fill="#ef3a3a"
+                             HorizontalAlignment="Right"
+                             VerticalAlignment="Top"
+                             Margin="0,0,0,0"
+                             Opacity="{Binding EllipseOpacity, ElementName=control}">
+                        <Ellipse.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                            </Transitions>
+                        </Ellipse.Transitions>
+                    </Ellipse>
+
+                    <TextBlock Grid.Row="1"
+                               FontSize="12"
+                               Foreground="#ef3a3a"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Bottom"
+                               Text="{Binding ErrorText, ElementName=control}"
+                               Opacity="{Binding EllipseOpacity, ElementName=control}">
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </Grid>
+
+            </Panel>
+
+
+        </Border>
     </Grid>
 </UserControl>

@@ -27,25 +27,19 @@
     <Border Name="RootWindowBorder"
             CornerRadius="8"
             Padding="0"
+            BorderThickness="1"
+            BorderBrush="#FFE8E8E8"
+            Background="#FFFAFAFA"
             BoxShadow="0 0 10 2 #11000000">
         
-        <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Offset="0" Color="#FFD6E9FF" />
-                <GradientStop Offset="0.33" Color="#FFE6F0FF" />
-                <GradientStop Offset="0.67" Color="#FFF3F7FF" />
-                <GradientStop Offset="1" Color="#FFFEFEFF" />
-            </LinearGradientBrush>
-        </Border.Background>
         <Grid>
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
                    Stretch="Uniform" HorizontalAlignment="Left" />
-            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="1">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
                 <views:TitleBar />
 
-                <!-- Updated StackPanel for Logo and Title -->
-                <StackPanel Grid.Row="1" 
-                            Orientation="Horizontal" 
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Margin="0,5,0,0">
@@ -53,8 +47,8 @@
                            Width="60"
                            Height="60"
                            VerticalAlignment="Center"
-                           Margin="0,0,10,0" /> 
-                   
+                           Margin="0,0,10,0" />
+
                 </StackPanel>
 
                 <ContentControl Grid.Row="2"
@@ -62,62 +56,11 @@
                                 Background="Transparent"
                                 Content="{Binding CurrentView}" />
 
-                <!-- Menu Items -->
-                <!--<Border Grid.Row="3" x:Name="MenuItems"
-                        Background="#FF1C1D1F"
-                        CornerRadius="20"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Spacing="20"
-                                Margin="10">
-                        ~1~ Sign In Button @1@
-                        <Button Background="Transparent" Padding="10">
-                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                                <Border CornerRadius="12"
-                                        Background="Transparent"
-                                        BorderBrush="#FFFEFEFE"
-                                        BorderThickness="1">
-                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
-                                           Width="24"
-                                           Height="24"
-                                           Margin="2" />
-                                </Border>
-                                <TextBlock Text="Sign in"
-                                           Foreground="#FFFEFEFE"
-                                           FontSize="12"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,5,0,0" />
-                            </StackPanel>
-                        </Button>
-                        ~1~ Sign Up Button @1@
-                        <Button Background="Transparent" Padding="10">
-                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                                <Border CornerRadius="12"
-                                        Background="Transparent"
-                                        BorderBrush="#FFFEFEFE"
-                                        BorderThickness="1">
-                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
-                                           Width="24"
-                                           Height="24"
-                                           Margin="2" />
-                                </Border>
-                                <TextBlock Text="Sign up"
-                                           Foreground="#FFFEFEFE"
-                                           FontSize="12"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,5,0,0" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Border>-->
                 <StackPanel Grid.Row="4" HorizontalAlignment="Center">
                     <TextBlock Padding="8" Text="© Horizon Dynamics LLC 2025"></TextBlock>
                 </StackPanel>
             </Grid>
 
-            <!-- Resize Grips -->
             <Border BorderThickness="4"
                     BorderBrush="Transparent"
                     Cursor="SizeWestEast"
