@@ -18,22 +18,27 @@
         Width="900" Height="700"
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/ecliptix.ico"
-        Title="Authentication">
+        Title="">
 
     <Window.Resources>
         <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
     </Window.Resources>
 
-
     <Border Name="RootWindowBorder"
-            Background="White"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
+        <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Offset="0" Color="#FFFFFF" />
+                <GradientStop Offset="0.7" Color="#FFFFFF" />
+                <GradientStop Offset="1" Color="#E6F0FF" />
+            </LinearGradientBrush>
+        </Border.Background>
         <Grid>
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
                    Stretch="Uniform" HorizontalAlignment="Left" />
-            <Grid RowDefinitions="Auto,Auto,*" Margin="1">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="1">
                 <views:TitleBar />
 
                 <Grid Grid.Row="1" ColumnDefinitions="*,*">
@@ -47,25 +52,88 @@
                     <Grid RowDefinitions="Auto,Auto,*">
                         <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
                                HorizontalAlignment="Center"
-                               Width="140"
-                               Height="140"
-                               VerticalAlignment="Center" />
-                        <!--<ItemsControl Grid.Row="1"
-                                      x:Name="MenuItemsControl"
-                                      ItemsSource="{Binding MenuItems}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="data:MembershipViewType">
-                                    <Button Content="{Binding Converter={StaticResource EnumDisplayConverter}}"
-                                            Command="{Binding ShowView, RelativeSource={RelativeSource AncestorType={x:Type memberships:AuthenticationViewModel}}}"
-                                            CommandParameter="{Binding}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>-->
+                               Width="120"
+                               Height="120"
+                               VerticalAlignment="Top" />
+                      
                         <ContentControl Grid.Row="2"
                                         Background="Transparent"
                                         Content="{Binding CurrentView}" />
                     </Grid>
                 </Border>
+
+                <!-- Menu Items -->
+                <Border Grid.Row="3" x:Name="MenuItems"
+                        Background="#FF1C1D1F"
+                        CornerRadius="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="20"
+                                Margin="10">
+                        <!-- Sign In Button -->
+                        <Button Background="Transparent" Padding="10">
+                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                                <Border CornerRadius="12"
+                                        Background="Transparent"
+                                        BorderBrush="#FFFEFEFE"
+                                        BorderThickness="1">
+                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
+                                           Width="24"
+                                           Height="24"
+                                           Margin="2" />
+                                </Border>
+                                <TextBlock Text="SIGN IN"
+                                           Foreground="#FFFEFEFE"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <!-- Sign Up Button -->
+                        <Button Background="Transparent" Padding="10">
+                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                                <Border CornerRadius="12"
+                                        Background="Transparent"
+                                        BorderBrush="#FFFEFEFE"
+                                        BorderThickness="1">
+                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
+                                           Width="24"
+                                           Height="24"
+                                           Margin="2" />
+                                </Border>
+                                <TextBlock Text="SIGN UP"
+                                           Foreground="#FFFEFEFE"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <!-- Forgot Password Button -->
+                        <Button Background="Transparent" Padding="10">
+                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
+                                <Border CornerRadius="12"
+                                        Background="Transparent"
+                                        BorderBrush="#FFFEFEFE"
+                                        BorderThickness="1">
+                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
+                                           Width="24"
+                                           Height="24"
+                                           Margin="2" />
+                                </Border>
+                                <TextBlock Text="FORGOT PASSWORD"
+                                           Foreground="#FFFEFEFE"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,5,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+                <StackPanel Grid.Row="4" HorizontalAlignment="Center">
+                    <TextBlock Padding="8" Text="© Horizon Dynamics LLC 2025"></TextBlock>
+                </StackPanel>
             </Grid>
 
             <!-- Resize Grips -->
