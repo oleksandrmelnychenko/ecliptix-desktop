@@ -13,7 +13,7 @@ public class EnumDisplayConverter : IValueConverter
             return viewType switch
             {
                 MembershipViewType.SignIn => "Sign In",
-                MembershipViewType.SignUp => "Sign Up",
+                MembershipViewType.SignUpHost => "Sign Up",
                 MembershipViewType.SignUpVerifyMobile => "Verify Mobile",
                 MembershipViewType.ForgotPassword => "Forgot Password",
                 _ => viewType.ToString()

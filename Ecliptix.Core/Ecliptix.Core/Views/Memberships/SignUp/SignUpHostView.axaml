@@ -6,7 +6,5 @@
              mc:Ignorable="d"
              x:DataType="memberships:SignUpHostViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignUp.SignUpHostView">
-    <Grid>
-        <ContentControl Content="{Binding ActiveView}"></ContentControl>
-    </Grid>
+    <ContentControl Content="{Binding CurrentView}"></ContentControl>
 </UserControl>

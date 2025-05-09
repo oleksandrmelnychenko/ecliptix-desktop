@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.ViewModels.Memberships;
@@ -10,6 +9,7 @@ public partial class SignUpHostView : UserControl
     public SignUpHostView(SignUpHostViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
     
     private void InitializeComponent()

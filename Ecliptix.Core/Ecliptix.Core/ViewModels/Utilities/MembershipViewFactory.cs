@@ -14,16 +14,28 @@ public class MembershipViewFactory
     private readonly Dictionary<MembershipViewType, Func<UserControl>> Views
         = new()
         {
-            { MembershipViewType.SignIn, () => new SignInView(Locator.Current.GetService<SignInViewModel>()!) },
-            { MembershipViewType.SignUp, () => new SignUpHostView(Locator.Current.GetService<SignUpHostViewModel>()!) },
-            { MembershipViewType.ForgotPassword, () => new ForgotPasswordView() },
+            {
+                MembershipViewType.SignIn,
+                () => new SignInView(Locator.Current.GetService<SignInViewModel>()!)
+            },
+            {
+                MembershipViewType.SignUpHost,
+                () => new SignUpHostView(Locator.Current.GetService<SignUpHostViewModel>()!)
+            },
+            {
+                MembershipViewType.SignUpVerifyMobile,
+                () => new VerifyMobileView(Locator.Current.GetService<VerifyMobileViewModel>()!)
+            },
+            {
+                MembershipViewType.ForgotPassword,
+                () => new ForgotPasswordView()
+            },
         };
-
 
     public MembershipViewFactory()
     {
     }
-    
+
     public UserControl Create(MembershipViewType type)
     {
         if (Views.TryGetValue(type, out Func<UserControl>? ctor))
