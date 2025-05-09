@@ -1,7 +1,9 @@
 using System;
+using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 
 namespace Ecliptix.Core.Network;
@@ -39,7 +41,7 @@ public static class ServiceUtilities
 
         return new Guid(bytes);
     }
-    
+
     public static uint GenerateRandomUInt32InRange(uint min, uint max)
     {
         using RandomNumberGenerator rng = RandomNumberGenerator.Create();
@@ -61,10 +63,49 @@ public static class ServiceUtilities
         MessageParser<T> parser = new(() => new T());
         return parser.ParseFrom(data);
     }
-    
+
+    public static uint ComputeUniqueConnectId(
+        Guid appInstanceId,
+        Guid appDeviceId,
+        PubKeyExchangeType contextType,
+        Guid? operationContextId = null)
+    {
+        byte[] appInstanceIdBytes = appInstanceId.ToByteArray();
+        byte[] appDeviceIdBytes = appDeviceId.ToByteArray();
+        uint contextTypeUint = (uint)contextType;
+        byte[] contextTypeBytes = BitConverter.GetBytes(contextTypeUint);
+        if (BitConverter.IsLittleEndian)
+        {
+            Array.Reverse(contextTypeBytes);
+        }
+
+        int totalLength = appInstanceIdBytes.Length + appDeviceIdBytes.Length + contextTypeBytes.Length;
+        if (operationContextId.HasValue)
+        {
+            totalLength += 16;
+        }
+
+        byte[] combined = new byte[totalLength];
+        int offset = 0;
+        Buffer.BlockCopy(appInstanceIdBytes, 0, combined, offset, appInstanceIdBytes.Length);
+        offset += appInstanceIdBytes.Length;
+        Buffer.BlockCopy(appDeviceIdBytes, 0, combined, offset, appDeviceIdBytes.Length);
+        offset += appDeviceIdBytes.Length;
+        Buffer.BlockCopy(contextTypeBytes, 0, combined, offset, contextTypeBytes.Length);
+        offset += contextTypeBytes.Length;
+        if (operationContextId.HasValue)
+        {
+            byte[] opContextBytes = operationContextId.Value.ToByteArray();
+            Buffer.BlockCopy(opContextBytes, 0, combined, offset, opContextBytes.Length);
+        }
+
+        byte[] hash = SHA256.HashData(combined);
+        return BinaryPrimitives.ReadUInt32BigEndian(hash.AsSpan(0, 4));
+    }
+
     public static uint GenerateRandomUInt32()
     {
-        using var rng = RandomNumberGenerator.Create();
+        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
         byte[] bytes = new byte[4];
         rng.GetBytes(bytes);
         return BitConverter.ToUInt32(bytes, 0);

@@ -33,7 +33,7 @@ public static class GrpcMetadataHandler
             { ApplicationInstanceIdKey, appInstanceId.ToString() },
             { AppDeviceId, appDeviceId.ToString() },
             { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
-            { ConnectionContextId, nameof(PubKeyExchangeType.AppDeviceEphemeralConnect) },
+            { ConnectionContextId, nameof(PubKeyExchangeType.DataCenterEphemeralConnect) },
             { OperationContextId, string.Empty }
         };
 

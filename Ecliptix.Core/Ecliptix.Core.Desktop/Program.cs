@@ -53,7 +53,7 @@ internal sealed class Program
 #pragma warning restore IL3050
 #pragma warning restore IL2026
         services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
-        services.AddSingleton<ApplicationController>();
+        services.AddSingleton<AppInstanceInfo>();
         services.AddSingleton<MembershipViewFactory>();
         services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
@@ -67,7 +67,7 @@ internal sealed class Program
         services.AddSingleton(provider =>
         {
             AppSettings settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            ApplicationController applicationController = provider.GetRequiredService<ApplicationController>();
+            AppInstanceInfo appInstanceInfo = provider.GetRequiredService<AppInstanceInfo>();
             bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
 
             string endpointUrl = isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl;
@@ -83,7 +83,7 @@ internal sealed class Program
 
             Interceptor[] interceptors =
             [
-                new RequestMetaDataInterceptor(applicationController.AppInstanceId, applicationController.DeviceId)
+                new RequestMetaDataInterceptor(appInstanceInfo.AppInstanceId, appInstanceInfo.DeviceId)
             ];
 
             CallInvoker interceptedChannel = channel.Intercept(interceptors);

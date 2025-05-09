@@ -1,61 +1,60 @@
+using System;
+using System.Reactive.Disposables;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Memberships;
+using Ecliptix.Protobuf.PubKeyExchange;
+using ReactiveUI;
 using Splat;
 
 namespace Ecliptix.Core;
 
+public record KeyExchangeCompletedMessage;
+
 public partial class App : Application
 {
+    private readonly CompositeDisposable _disposables = new();
+    
+    private readonly NetworkController _networkController;
+    
     public App()
     {
-        /*
-        EcliptixSystemIdentityKeys aliceKeys = EcliptixSystemIdentityKeys.Create(5).Unwrap();
-        EcliptixProtocolSystem ecliptixProtocolSystem = new(aliceKeys);
+        _networkController = Locator.Current.GetService<NetworkController>()!;
+        
+        uint connectId = CreateEcliptixConnectionContext();
 
-        PubKeyExchange keyExchange =
-            ecliptixProtocolSystem.BeginDataCenterPubKeyExchange(1, PubKeyExchangeType
-                .AppDeviceEphemeralConnect);
+        MessageBus.Current.Listen<KeyExchangeCompletedMessage>().Subscribe(message => { })
+            .DisposeWith(_disposables);
 
-        Task<PubKeyExchange> establishEphemeralConnectAsync =
-            _appDeviceServiceHandler.EstablishEphemeralConnectAsync(keyExchange);
-        establishEphemeralConnectAsync.Wait();
-
-        PubKeyExchange peerPubKeys =
-            establishEphemeralConnectAsync.Result;
-
-        ecliptixProtocolSystem.CompleteDataCenterPubKeyExchange(1,
-            PubKeyExchangeType.AppDeviceEphemeralConnect, peerPubKeys);
-
-        byte[] appDevice = new AppDevice
+        Task.Run(async () =>
         {
-            DeviceId = ByteString.CopyFrom(applicationController.DeviceId.ToByteArray()),
-            DeviceType = AppDevice.Types.DeviceType.Desktop,
-            AppInstanceId = ByteString.CopyFrom(applicationController.AppInstanceId.ToByteArray()),
-        }.ToByteArray();
+            Result<Unit, ShieldFailure> result =
+                await _networkController.DataCenterPubKeyExchange(connectId);
+            if (result.IsErr)
+            {
+                Console.WriteLine($"Key exchange failed: {result.UnwrapErr().Message}");
+            }
+        }).Wait();
+    }
+    
+    private uint CreateEcliptixConnectionContext()
+    {
+        AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
 
-        CipherPayload payload = ecliptixProtocolSystem.ProduceOutboundMessage(
-            1, PubKeyExchangeType.AppDeviceEphemeralConnect, appDevice
-        );
+        uint connectId = ServiceUtilities.ComputeUniqueConnectId(
+            appInstanceInfo.AppInstanceId,
+            appInstanceInfo.DeviceId, PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Task<CipherPayload> registeredDeviceAppTask = appDeviceServiceHandler.RegisterDeviceAppIfNotExistAsync(payload);
-        registeredDeviceAppTask.Wait();
-
-        CipherPayload regResp = registeredDeviceAppTask.Result;
-
-        byte[] x = ecliptixProtocolSystem.ProcessInboundMessage(1,
-            PubKeyExchangeType.AppDeviceEphemeralConnect, regResp);
-
-        AppDeviceRegisteredStateReply appDeviceRegisteredStateReply = ServiceUtilities.ParseFromBytes<AppDeviceRegisteredStateReply>(x);
-        Guid systemAppDevice = ServiceUtilities.FromByteStringToGuid(appDeviceRegisteredStateReply.UniqueId);
-
-        applicationController.SystemAppDeviceId = systemAppDevice;*/
+        _networkController.CreateEcliptixConnectionContext(connectId, 100, PubKeyExchangeType.DataCenterEphemeralConnect);
+        return connectId;
     }
 
     public override void Initialize()

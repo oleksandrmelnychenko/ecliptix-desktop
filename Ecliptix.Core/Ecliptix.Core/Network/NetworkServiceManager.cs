@@ -37,7 +37,7 @@ public class NetworkServiceManager
         {
             if (action.OnComplete != null)
             {
-                await action.OnComplete(beginPubkeyExchangeResult.Unwrap());
+                action.OnComplete(beginPubkeyExchangeResult.Unwrap());
             }
         }
     }

@@ -30,11 +30,6 @@ public class AuthenticationViewModel : ReactiveObject
         MembershipViewFactory membershipViewFactory,
         NetworkController networkController)
     {
-        Task.Run(() => networkController.InitiateKeyExchangeAsync(PubKeyExchangeType.AppDeviceEphemeralConnect));
-        
-        
-        
-        
         ShowView = ReactiveCommand.Create<MembershipViewType>(type =>
         {
             CurrentView = membershipViewFactory.Create(type);

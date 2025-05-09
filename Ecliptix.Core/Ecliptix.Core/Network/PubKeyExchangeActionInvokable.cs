@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.PubKeyExchange;
 
 namespace Ecliptix.Core.Network;
@@ -15,14 +14,14 @@ public class PubKeyExchangeActionInvokable
 
     public PubKeyExchange PubKeyExchange { get; }
 
-    public Func<PubKeyExchange, Task>? OnComplete { get; }
+    public Action<PubKeyExchange>? OnComplete { get; }
 
     private PubKeyExchangeActionInvokable(
         uint reqId,
         ServiceFlowType jobType,
         RcpServiceAction method,
         PubKeyExchange pubKeyExchange,
-        Func<PubKeyExchange, Task>? onComplete)
+        Action<PubKeyExchange>? onComplete)
     {
         ReqId = reqId;
         JobType = jobType;
@@ -35,7 +34,7 @@ public class PubKeyExchangeActionInvokable
         ServiceFlowType jobType,
         RcpServiceAction method,
         PubKeyExchange pubKeyExchange,
-        Func<PubKeyExchange, Task>? callback = null)
+        Action<PubKeyExchange>? callback = null)
     {
         uint reqId = ServiceUtilities.GenerateRandomUInt32();
         return new PubKeyExchangeActionInvokable(reqId, jobType, method, pubKeyExchange, callback);
@@ -46,13 +45,8 @@ public class PubKeyExchangeActionInvokable
         ServiceFlowType jobType,
         RcpServiceAction method,
         PubKeyExchange pubKeyExchange,
-        Func<PubKeyExchange, Task>? callback = null)
+        Action<PubKeyExchange>? callback = null)
     {
         return new PubKeyExchangeActionInvokable(reqId, jobType, method, pubKeyExchange, callback);
-    }
-
-    public ServiceRequest ToServiceRequest()
-    {
-        return ServiceRequest.NewWithId(ReqId,JobType, Method, new CipherPayload(), []);
     }
 }

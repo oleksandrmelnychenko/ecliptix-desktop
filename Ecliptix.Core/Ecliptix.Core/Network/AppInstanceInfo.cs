@@ -2,7 +2,7 @@ using System;
 
 namespace Ecliptix.Core.Network;
 
-public class ApplicationController
+public class AppInstanceInfo
 {
     public Guid AppInstanceId { get; } = Guid.NewGuid();
 
