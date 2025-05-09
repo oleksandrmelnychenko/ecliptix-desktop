@@ -80,10 +80,6 @@
         <DependentUpon>SignInView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
-      <Compile Update="Views\Memberships\SignUpView.axaml.cs">
-        <DependentUpon>SignUpView.axaml</DependentUpon>
-        <SubType>Code</SubType>
-      </Compile>
     </ItemGroup>
 
     <ItemGroup>

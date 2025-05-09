@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Ecliptix.Core.Data;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views.Memberships;
+using Ecliptix.Core.Views.Memberships.SignUp;
 using Splat;
 
 namespace Ecliptix.Core.ViewModels.Utilities;
@@ -14,7 +15,7 @@ public class MembershipViewFactory
         = new()
         {
             { MembershipViewType.SignIn, () => new SignInView(Locator.Current.GetService<SignInViewModel>()!) },
-            { MembershipViewType.SignUp, () => new SignUpView() },
+            { MembershipViewType.SignUp, () => new SignUpHostView(Locator.Current.GetService<SignUpHostViewModel>()!) },
             { MembershipViewType.ForgotPassword, () => new ForgotPasswordView() },
         };
 

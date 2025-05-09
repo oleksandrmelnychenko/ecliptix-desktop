@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             mc:Ignorable="d"
+             x:DataType="memberships:SignUpHostViewModel"
+             x:Class="Ecliptix.Core.Views.Memberships.SignUp.SignUpHostView">
+    <Grid>
+        <ContentControl Content="{Binding ActiveView}"></ContentControl>
+    </Grid>
+</UserControl>
