@@ -39,7 +39,7 @@
             BorderThickness="1"
             BorderBrush="#FFE8E8E8"
             Background="#FFFAFAFA"
-            Margin="10"
+            Margin="8"
             >
             <Border.Effect>
                     <DropShadowEffect BlurRadius="10"
