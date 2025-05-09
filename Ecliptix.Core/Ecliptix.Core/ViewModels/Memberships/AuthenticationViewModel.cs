@@ -22,7 +22,7 @@ public class AuthenticationViewModel : ReactiveObject
             CurrentView = membershipViewFactory.Create(type);
         });
 
-        ShowView.Execute(MembershipViewType.SignIn).Subscribe();
+        ShowView.Execute(MembershipViewType.SignUpHost).Subscribe();
     }
 
     public UserControl? CurrentView

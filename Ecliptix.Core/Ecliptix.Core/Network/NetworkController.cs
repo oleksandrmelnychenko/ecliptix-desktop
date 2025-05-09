@@ -9,16 +9,9 @@ using Ecliptix.Protobuf.PubKeyExchange;
 
 namespace Ecliptix.Core.Network;
 
-public sealed class NetworkController
+public sealed class NetworkController(NetworkServiceManager networkServiceManager)
 {
-    private readonly ConcurrentDictionary<uint, EcliptixConnectionContext> _connections;
-    private readonly NetworkServiceManager _networkServiceManager;
-
-    public NetworkController(NetworkServiceManager networkServiceManager)
-    {
-        _networkServiceManager = networkServiceManager;
-        _connections = new ConcurrentDictionary<uint, EcliptixConnectionContext>();
-    }
+    private readonly ConcurrentDictionary<uint, EcliptixConnectionContext> _connections = new();
 
     public void CreateEcliptixConnectionContext(uint connectId, uint oneTimeKeyCount,
         PubKeyExchangeType pubKeyExchangeType)
@@ -55,7 +48,7 @@ public sealed class NetworkController
 
         ServiceRequest request = ServiceRequest.New(flowType, serviceAction, outboundPayload, []);
         Result<RpcFlow, ShieldFailure> invokeResult =
-            await _networkServiceManager.InvokeServiceRequestAsync(request, token);
+            await networkServiceManager.InvokeServiceRequestAsync(request, token);
 
         if (invokeResult.IsErr) return Result<Unit, ShieldFailure>.Err(invokeResult.UnwrapErr());
 
@@ -124,8 +117,8 @@ public sealed class NetworkController
                 protocolSystem.CompleteDataCenterPubKeyExchange(connectId, pubKeyExchangeType, peerPubKeyExchange);
             });
 
-        await _networkServiceManager.BeginDataCenterPublicKeyExchange(action);
+        await networkServiceManager.BeginDataCenterPublicKeyExchange(action);
 
-        return Result<Unit, ShieldFailure>.Ok(new Unit());
+        return Result<Unit, ShieldFailure>.Ok(Unit.Value);
     }
 }

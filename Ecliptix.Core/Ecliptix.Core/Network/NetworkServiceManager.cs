@@ -7,27 +7,17 @@ using Ecliptix.Protobuf.PubKeyExchange;
 
 namespace Ecliptix.Core.Network;
 
-public class NetworkServiceManager
+public class NetworkServiceManager(
+    SingleCallExecutor singleCallExecutor,
+    ReceiveStreamExecutor receiveStreamExecutor,
+    KeyExchangeExecutor keyExchangeExecutor)
 {
-    private readonly ConcurrentDictionary<RcpServiceAction, Task> _activeStreamHandles;
-    private readonly KeyExchangeExecutor _keyExchangeExecutor;
-    private readonly ReceiveStreamExecutor _receiveStreamExecutor;
-    private readonly SingleCallExecutor _singleCallExecutor;
-
-    public NetworkServiceManager(
-        SingleCallExecutor singleCallExecutor, ReceiveStreamExecutor receiveStreamExecutor,
-        KeyExchangeExecutor keyExchangeExecutor)
-    {
-        _singleCallExecutor = singleCallExecutor;
-        _receiveStreamExecutor = receiveStreamExecutor;
-        _keyExchangeExecutor = keyExchangeExecutor;
-        _activeStreamHandles = new ConcurrentDictionary<RcpServiceAction, Task>();
-    }
+    private readonly ConcurrentDictionary<RcpServiceAction, Task> _activeStreamHandles = new();
 
     public async Task BeginDataCenterPublicKeyExchange(PubKeyExchangeActionInvokable action)
     {
         Result<PubKeyExchange, ShieldFailure> beginPubkeyExchangeResult =
-            await _keyExchangeExecutor.BeginDataCenterPublicKeyExchange(action.PubKeyExchange);
+            await keyExchangeExecutor.BeginDataCenterPublicKeyExchange(action.PubKeyExchange);
 
         if (beginPubkeyExchangeResult.IsOk)
             if (action.OnComplete != null)
@@ -43,10 +33,10 @@ public class NetworkServiceManager
         switch (request.ActionType)
         {
             case ServiceFlowType.Single:
-                result = await _singleCallExecutor.InvokeRequestAsync(request, token);
+                result = await singleCallExecutor.InvokeRequestAsync(request, token);
                 break;
             case ServiceFlowType.ReceiveStream:
-                result = await _receiveStreamExecutor.ProcessRequestAsync(request, token);
+                result = receiveStreamExecutor.ProcessRequestAsync(request, token);
                 break;
         }
 

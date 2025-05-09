@@ -1,22 +1,29 @@
 using System;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Verification;
+using Google.Protobuf;
 using Grpc.Core;
 using ReactiveUI;
+using Unit = System.Reactive.Unit;
+using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public class VerifyMobileViewModel : ReactiveObject
+public class VerifyMobileViewModel : ViewModelBase
 {
     private static readonly Regex InternationalPhoneNumberRegex =
         new(@"^\+(?:[0-9] ?){6,14}[0-9]$", RegexOptions.Compiled);
 
     private string _errorMessage = string.Empty;
     private bool _isVerifying;
-    private string _mobile = string.Empty;
+    private string _mobile = "+380970177443";
     private string _verificationStatus = string.Empty;
 
     public VerifyMobileViewModel(NetworkController networkController)
@@ -26,33 +33,35 @@ public class VerifyMobileViewModel : ReactiveObject
             .StartWith(ValidateMobileNumber(Mobile));
 
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(
-            () =>
+            async () =>
             {
                 IsVerifying = true;
                 ErrorMessage = string.Empty;
                 VerificationStatus = "Checking for existing verification session...";
 
-                try
-                {
-                }
-                catch (RpcException ex)
-                {
-                    ErrorMessage = $"Verification failed: {ex.Status.Detail}";
-                    Console.Error.WriteLine($"gRPC error: {ex.Message}");
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    ErrorMessage = $"An unexpected error occurred: {ex.Message}";
-                    Console.Error.WriteLine($"Unexpected error: {ex.Message}");
-                    throw;
-                }
-                finally
-                {
-                    IsVerifying = false;
-                }
+                CancellationTokenSource cancellationToken = new();
 
-                return null;
+                Guid? systemAppDeviceId = SystemAppDeviceId();
+
+                MembershipVerificationRequest membershipVerificationRequest = new()
+                {
+                    Mobile = Mobile,
+                    UniqueAppDeviceRec = Network.Utilities.GuidToByteString(systemAppDeviceId!.Value),
+                    VerificationType = VerificationType.Signup
+                };
+
+                uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+                await networkController.ExecuteServiceAction(
+                    connectId, RcpServiceAction.GetVerificationSessionIfExist,
+                    membershipVerificationRequest.ToByteArray(),
+                    ServiceFlowType.ReceiveStream,
+                    payload =>
+                    {
+                        TimerTick timerTick = Network.Utilities.ParseFromBytes<TimerTick>(payload);
+
+                        return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                    }, cancellationToken.Token
+                );
             },
             isMobileValid);
 
