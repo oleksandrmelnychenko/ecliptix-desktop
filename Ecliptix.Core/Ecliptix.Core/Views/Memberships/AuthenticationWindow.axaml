@@ -15,7 +15,7 @@
         TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="memberships:AuthenticationViewModel"
-        Width="900" Height="700"
+        Width="700" Height="600"
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/ecliptix.ico"
         Title="">
@@ -28,11 +28,13 @@
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
+        
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Offset="0" Color="#FFFFFF" />
-                <GradientStop Offset="0.7" Color="#FFFFFF" />
-                <GradientStop Offset="1" Color="#E6F0FF" />
+                <GradientStop Offset="0" Color="#FFD6E9FF" />
+                <GradientStop Offset="0.33" Color="#FFE6F0FF" />
+                <GradientStop Offset="0.67" Color="#FFF3F7FF" />
+                <GradientStop Offset="1" Color="#FFFEFEFF" />
             </LinearGradientBrush>
         </Border.Background>
         <Grid>
@@ -41,29 +43,27 @@
             <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="1">
                 <views:TitleBar />
 
-                <Grid Grid.Row="1" ColumnDefinitions="*,*">
+                <!-- Updated StackPanel for Logo and Title -->
+                <StackPanel Grid.Row="1" 
+                            Orientation="Horizontal" 
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="0,5,0,0">
+                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
+                           Width="60"
+                           Height="60"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0" /> 
+                   
+                </StackPanel>
 
-                </Grid>
-
-                <!-- Content Area -->
-                <Border Grid.Row="2"
-                        Margin="5,0,5,5"
-                        CornerRadius="0,0,4,4">
-                    <Grid RowDefinitions="Auto,Auto,*">
-                        <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
-                               HorizontalAlignment="Center"
-                               Width="120"
-                               Height="120"
-                               VerticalAlignment="Top" />
-                      
-                        <ContentControl Grid.Row="2"
-                                        Background="Transparent"
-                                        Content="{Binding CurrentView}" />
-                    </Grid>
-                </Border>
+                <ContentControl Grid.Row="2"
+                                Margin="0,20,0,0"
+                                Background="Transparent"
+                                Content="{Binding CurrentView}" />
 
                 <!-- Menu Items -->
-                <Border Grid.Row="3" x:Name="MenuItems"
+                <!--<Border Grid.Row="3" x:Name="MenuItems"
                         Background="#FF1C1D1F"
                         CornerRadius="20"
                         HorizontalAlignment="Center"
@@ -72,7 +72,7 @@
                                 HorizontalAlignment="Center"
                                 Spacing="20"
                                 Margin="10">
-                        <!-- Sign In Button -->
+                        ~1~ Sign In Button @1@
                         <Button Background="Transparent" Padding="10">
                             <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                                 <Border CornerRadius="12"
@@ -84,14 +84,14 @@
                                            Height="24"
                                            Margin="2" />
                                 </Border>
-                                <TextBlock Text="SIGN IN"
+                                <TextBlock Text="Sign in"
                                            Foreground="#FFFEFEFE"
                                            FontSize="12"
                                            HorizontalAlignment="Center"
                                            Margin="0,5,0,0" />
                             </StackPanel>
                         </Button>
-                        <!-- Sign Up Button -->
+                        ~1~ Sign Up Button @1@
                         <Button Background="Transparent" Padding="10">
                             <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
                                 <Border CornerRadius="12"
@@ -103,26 +103,7 @@
                                            Height="24"
                                            Margin="2" />
                                 </Border>
-                                <TextBlock Text="SIGN UP"
-                                           Foreground="#FFFEFEFE"
-                                           FontSize="12"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,5,0,0" />
-                            </StackPanel>
-                        </Button>
-                        <!-- Forgot Password Button -->
-                        <Button Background="Transparent" Padding="10">
-                            <StackPanel Orientation="Vertical" HorizontalAlignment="Center">
-                                <Border CornerRadius="12"
-                                        Background="Transparent"
-                                        BorderBrush="#FFFEFEFE"
-                                        BorderThickness="1">
-                                    <Image Source="avares://Ecliptix.Core/Assets/logo_160.png"
-                                           Width="24"
-                                           Height="24"
-                                           Margin="2" />
-                                </Border>
-                                <TextBlock Text="FORGOT PASSWORD"
+                                <TextBlock Text="Sign up"
                                            Foreground="#FFFEFEFE"
                                            FontSize="12"
                                            HorizontalAlignment="Center"
@@ -130,7 +111,7 @@
                             </StackPanel>
                         </Button>
                     </StackPanel>
-                </Border>
+                </Border>-->
                 <StackPanel Grid.Row="4" HorizontalAlignment="Center">
                     <TextBlock Padding="8" Text="© Horizon Dynamics LLC 2025"></TextBlock>
                 </StackPanel>
