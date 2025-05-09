@@ -55,6 +55,8 @@ internal sealed class Program
         services.AddSingleton<MembershipViewFactory>();
         services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
+        services.AddTransient<SignUpHostViewModel>();
+        services.AddTransient<VerifyMobileViewModel>();
         
         services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
 
