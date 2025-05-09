@@ -50,7 +50,16 @@ public partial class HintedTextBox : UserControl
     public static readonly StyledProperty<bool> HasErrorProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError), false);
 
-    // Properties (unchanged)
+    public static readonly StyledProperty<ValidationType> ValidationTypeProperty =
+        AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType), ValidationType.None);
+    
+    
+    public ValidationType ValidationType
+    {
+        get => GetValue(ValidationTypeProperty);
+        set => SetValue(ValidationTypeProperty, value);
+    }
+    
     public bool HasError
     {
         get => GetValue(HasErrorProperty);
@@ -121,7 +130,8 @@ public partial class HintedTextBox : UserControl
     private Border? _focusBorder;
     private Border? _mainBorder;
     private readonly CompositeDisposable _disposables = new();
-
+    private bool _isDirty = false;
+    
     public HintedTextBox()
     {
         InitializeComponent();
@@ -149,9 +159,18 @@ public partial class HintedTextBox : UserControl
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(_mainTextBox.Text))
+            if (!_isDirty)
             {
-                ErrorText = "Field cannot be empty";
+                _isDirty = true;
+                return;
+            }
+            
+            string input = _mainTextBox.Text ?? string.Empty;
+            string? validationMessage = InputValidator.Validate(input, ValidationType);
+            
+            if (!string.IsNullOrEmpty(validationMessage))
+            {
+                ErrorText = validationMessage;
                 EllipseOpacity = 1.0;
             }
             else
@@ -159,6 +178,7 @@ public partial class HintedTextBox : UserControl
                 ErrorText = string.Empty;
                 EllipseOpacity = 0.0;
             }
+
 
             UpdateBorderState();
         }
