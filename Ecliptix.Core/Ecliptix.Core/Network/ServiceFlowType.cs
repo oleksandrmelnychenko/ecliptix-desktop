@@ -5,5 +5,5 @@ public enum ServiceFlowType
     Single,
     ReceiveStream,
     SendStream,
-    BidirectionalStream,
+    BidirectionalStream
 }

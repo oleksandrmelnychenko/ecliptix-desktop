@@ -6,7 +6,6 @@
         xmlns:data="clr-namespace:Ecliptix.Core.Data"
         xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
         xmlns:views="clr-namespace:Ecliptix.Core.Views"
-        xmlns:effects="using:Avalonia.Media"
         mc:Ignorable="d"
         x:Class="Ecliptix.Core.Views.Memberships.AuthenticationWindow"
         x:Name="AuthWindow"
@@ -20,17 +19,16 @@
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/ecliptix.ico"
         Title="">
-        <Window.Effect>
-                <DropShadowEffect BlurRadius="10" 
-                                  Opacity="0.25" 
-                                  OffsetX="0" 
-                                  OffsetY="0" 
-                                  Color="Black"/>
-        </Window.Effect>
-        
+    <Window.Effect>
+        <DropShadowEffect BlurRadius="10"
+                          Opacity="0.25"
+                          OffsetX="0"
+                          OffsetY="0"
+                          Color="Black" />
+    </Window.Effect>
+
     <Window.Resources>
-        <data:EnumDisplayConverter x:Key="EnumDisplayConverter" />
-        
+
     </Window.Resources>
 
     <Border Name="RootWindowBorder"
@@ -39,17 +37,16 @@
             BorderThickness="1"
             BorderBrush="#FFE8E8E8"
             Background="#FFFAFAFA"
-            Margin="8"
-            >
-            <Border.Effect>
-                    <DropShadowEffect BlurRadius="10"
-                                      Opacity="0.25"
-                                      OffsetX="0"
-                                      OffsetY="0"
-                                      Color="Black"/>
-            </Border.Effect>
-        
-            <Grid>
+            Margin="8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="10"
+                              Opacity="0.25"
+                              OffsetX="0"
+                              OffsetY="0"
+                              Color="Black" />
+        </Border.Effect>
+
+        <Grid>
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
                    Stretch="Uniform" HorizontalAlignment="Left" />
             <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
@@ -74,7 +71,7 @@
                                 Content="{Binding CurrentView}" />
 
                 <StackPanel Grid.Row="4" HorizontalAlignment="Center">
-                    <TextBlock Padding="8" Text="© Horizon Dynamics LLC 2025"></TextBlock>
+                    <TextBlock Padding="8" Text="© Horizon Dynamics LLC 2025" />
                 </StackPanel>
             </Grid>
 

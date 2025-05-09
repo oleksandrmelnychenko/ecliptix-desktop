@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
@@ -28,15 +27,18 @@ public partial class TitleBar : UserControl
             .Click += (_, __) =>
         {
             if (Window != null)
-                Window.WindowState = (Window.WindowState == WindowState.Maximized)
+                Window.WindowState = Window.WindowState == WindowState.Maximized
                     ? WindowState.Normal
                     : WindowState.Maximized;
         };
     }
 
-    private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+    private Window? Window => VisualRoot as Window;
 
-    private Window? Window => this.VisualRoot as Window;
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
 
     private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
     {

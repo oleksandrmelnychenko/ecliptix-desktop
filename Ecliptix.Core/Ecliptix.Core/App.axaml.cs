@@ -1,5 +1,5 @@
 using System;
-using System.Reactive.Disposables;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -14,58 +14,17 @@ using Ecliptix.Core.Views.Memberships;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
-using ReactiveUI;
+using Microsoft.Extensions.Logging;
 using Splat;
 
 namespace Ecliptix.Core;
 
-public record KeyExchangeCompletedEvent;
-
-public partial class App : Application
+public class App : Application
 {
-    private readonly CompositeDisposable _disposables = new();
-
-    private readonly NetworkController _networkController;
-
     private const int DefaultOneTimeKeyCount = 10;
-
-    public App()
-    {
-        _networkController = Locator.Current.GetService<NetworkController>()!;
-
-        (uint connectId, AppDevice appDevice) = CreateEcliptixConnectionContext();
-
-        MessageBus.Current.Listen<KeyExchangeCompletedEvent>()
-            .Subscribe(_ =>
-            {
-                Task.Run(async () =>
-                {
-                    await _networkController.ExecuteServiceAction(
-                        connectId, RcpServiceAction.RegisterAppDeviceIfNotExist,
-                        appDevice.ToByteArray(), ServiceFlowType.Single,
-                        async decryptedPayload =>
-                        {
-                            AppDeviceRegisteredStateReply reply =
-                                Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
-
-                            Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
-
-                            return Result<Unit, ShieldFailure>.Ok(Unit.Value);
-                        });
-                });
-            })
-            .DisposeWith(_disposables);
-
-        Task.Run(async () =>
-        {
-            Result<Unit, ShieldFailure> result =
-                await _networkController.DataCenterPubKeyExchange(connectId);
-            if (result.IsErr)
-            {
-                Console.WriteLine($"Key exchange failed: {result.UnwrapErr().Message}");
-            }
-        }).Wait();
-    }
+    private readonly Lock _lock = new();
+    private readonly ILogger<App> _logger = Locator.Current.GetService<ILogger<App>>()!;
+    private readonly NetworkController _networkController = Locator.Current.GetService<NetworkController>()!;
 
     private (uint, AppDevice) CreateEcliptixConnectionContext()
     {
@@ -95,17 +54,22 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        base.OnFrameworkInitializationCompleted();
+
+        _ = InitializeApplicationAsync();
+
         AppSettings? appSettings = Locator.Current.GetService<AppSettings>();
         if (appSettings == null)
         {
-            //TODO: load store to get the settings.
+            // TODO: Load store to get the settings.
         }
 
         const bool isAuthorized = false;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AuthenticationViewModel authViewModel = Locator.Current.GetService<AuthenticationViewModel>()!;
+            AuthenticationViewModel authViewModel =
+                Locator.Current.GetService<AuthenticationViewModel>()!;
             desktop.MainWindow = new AuthenticationWindow
             {
                 DataContext = authViewModel
@@ -118,7 +82,41 @@ public partial class App : Application
                 DataContext = Locator.Current.GetService<MainViewModel>()
             };
         }
+    }
 
-        base.OnFrameworkInitializationCompleted();
+    private async Task InitializeApplicationAsync()
+    {
+        (uint connectId, AppDevice appDevice) = CreateEcliptixConnectionContext();
+
+        Result<Unit, ShieldFailure> result = await _networkController.DataCenterPubKeyExchange(connectId);
+        if (result.IsErr)
+            _logger.LogError("Key exchange failed: {Message}", result.UnwrapErr().Message);
+        else
+            await RegisterDeviceAsync(connectId, appDevice, CancellationToken.None);
+    }
+
+    private async Task RegisterDeviceAsync(
+        uint connectId,
+        AppDevice appDevice,
+        CancellationToken token)
+    {
+        await _networkController.ExecuteServiceAction(
+            connectId, RcpServiceAction.RegisterAppDeviceIfNotExist,
+            appDevice.ToByteArray(), ServiceFlowType.Single,
+            decryptedPayload =>
+            {
+                AppDeviceRegisteredStateReply reply =
+                    Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
+                Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
+                AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+                lock (_lock)
+                {
+                    appInstanceInfo.SystemAppDeviceId = appServerInstanceId;
+                }
+
+                _logger.LogInformation("Device registered with ID: {AppServerInstanceId}", appServerInstanceId);
+
+                return Task.FromResult(Result<Unit, ShieldFailure>.Ok(Unit.Value));
+            }, token);
     }
 }

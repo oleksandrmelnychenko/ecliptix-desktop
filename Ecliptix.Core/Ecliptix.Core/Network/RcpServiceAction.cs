@@ -6,5 +6,5 @@ public enum RcpServiceAction : short
     RegisterAppDeviceIfNotExist = 1,
     SendVerificationCode = 2,
     VerifyCode = 3,
-    GetVerificationSessionIfExist = 4,
+    GetVerificationSessionIfExist = 4
 }

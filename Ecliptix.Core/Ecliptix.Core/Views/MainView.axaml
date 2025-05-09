@@ -7,7 +7,7 @@
              x:Class="Ecliptix.Core.Views.MainView"
              x:CompileBindings="True"
              x:DataType="vm:MainViewModel">
-  
+
 
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
         <Button Content="Click me!" Command="{Binding SendRequestCommand}" />

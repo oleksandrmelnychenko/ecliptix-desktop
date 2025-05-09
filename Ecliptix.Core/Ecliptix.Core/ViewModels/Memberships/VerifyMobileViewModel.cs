@@ -11,50 +11,22 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public class VerifyMobileViewModel : ReactiveObject
 {
-    private string _mobile = string.Empty;
-    private string _errorMessage = string.Empty;
-    private bool _isVerifying;
-    private string _verificationStatus = string.Empty;
-
-    public string Mobile
-    {
-        get => _mobile;
-        set => this.RaiseAndSetIfChanged(ref _mobile, value);
-    }
-
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
-    }
-
-    public bool IsVerifying
-    {
-        get => _isVerifying;
-        private set => this.RaiseAndSetIfChanged(ref _isVerifying, value);
-    }
-
-    public string VerificationStatus
-    {
-        get => _verificationStatus;
-        private set => this.RaiseAndSetIfChanged(ref _verificationStatus, value);
-    }
-
-    public ReactiveCommand<Unit, Unit> VerifyMobileCommand { get; }
-    public ReactiveCommand<Unit, Unit> ResendCodeCommand { get; }
-
     private static readonly Regex InternationalPhoneNumberRegex =
         new(@"^\+(?:[0-9] ?){6,14}[0-9]$", RegexOptions.Compiled);
 
+    private string _errorMessage = string.Empty;
+    private bool _isVerifying;
+    private string _mobile = string.Empty;
+    private string _verificationStatus = string.Empty;
+
     public VerifyMobileViewModel(NetworkController networkController)
     {
-
         IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.Mobile)
             .Select(ValidateMobileNumber)
             .StartWith(ValidateMobileNumber(Mobile));
 
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(
-             () =>
+            () =>
             {
                 IsVerifying = true;
                 ErrorMessage = string.Empty;
@@ -62,7 +34,6 @@ public class VerifyMobileViewModel : ReactiveObject
 
                 try
                 {
-                    
                 }
                 catch (RpcException ex)
                 {
@@ -99,12 +70,36 @@ public class VerifyMobileViewModel : ReactiveObject
             Observable.Return(true));
     }
 
+    public string Mobile
+    {
+        get => _mobile;
+        set => this.RaiseAndSetIfChanged(ref _mobile, value);
+    }
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+    }
+
+    public bool IsVerifying
+    {
+        get => _isVerifying;
+        private set => this.RaiseAndSetIfChanged(ref _isVerifying, value);
+    }
+
+    public string VerificationStatus
+    {
+        get => _verificationStatus;
+        private set => this.RaiseAndSetIfChanged(ref _verificationStatus, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> VerifyMobileCommand { get; }
+    public ReactiveCommand<Unit, Unit> ResendCodeCommand { get; }
+
     private static bool ValidateMobileNumber(string? mobile)
     {
-        if (string.IsNullOrWhiteSpace(mobile))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(mobile)) return false;
 
         return InternationalPhoneNumberRegex.IsMatch(mobile);
     }

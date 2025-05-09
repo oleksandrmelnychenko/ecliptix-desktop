@@ -39,17 +39,6 @@ public record LocalPublicKeyBundle(
     {
     }
 
-    private readonly struct InternalBundleData
-    {
-        public required byte[] IdentityEd25519 { get; init; }
-        public required byte[] IdentityX25519 { get; init; }
-        public required uint SignedPreKeyId { get; init; }
-        public required byte[] SignedPreKeyPublic { get; init; }
-        public required byte[] SignedPreKeySignature { get; init; }
-        public required List<OneTimePreKeyRecord> OneTimePreKeys { get; init; }
-        public required byte[]? EphemeralX25519 { get; init; }
-    }
-
     public PublicKeyBundle ToProtobufExchange()
     {
         PublicKeyBundle proto = new()
@@ -61,19 +50,14 @@ public record LocalPublicKeyBundle(
             SignedPreKeySignature = ByteString.CopyFrom(SignedPreKeySignature)
         };
 
-        if (EphemeralX25519 != null)
-        {
-            proto.EphemeralX25519PublicKey = ByteString.CopyFrom(EphemeralX25519);
-        }
+        if (EphemeralX25519 != null) proto.EphemeralX25519PublicKey = ByteString.CopyFrom(EphemeralX25519);
 
         foreach (OneTimePreKeyRecord opkRecord in OneTimePreKeys)
-        {
             proto.OneTimePreKeys.Add(new PublicKeyBundle.Types.OneTimePreKey
             {
                 PreKeyId = opkRecord.PreKeyId,
                 PublicKey = ByteString.CopyFrom(opkRecord.PublicKey)
             });
-        }
 
         return proto;
     }
@@ -81,13 +65,11 @@ public record LocalPublicKeyBundle(
     public static Result<LocalPublicKeyBundle, ShieldFailure> FromProtobufExchange(PublicKeyBundle? proto)
     {
         if (proto == null)
-        {
             return Result<LocalPublicKeyBundle, ShieldFailure>.Err(
                 ShieldFailure.InvalidInput("Input Protobuf bundle cannot be null."));
-        }
 
         return Result<LocalPublicKeyBundle, ShieldFailure>.Try(
-            func: () =>
+            () =>
             {
                 byte[] identityEd25519 = proto.IdentityPublicKey.ToByteArray();
                 byte[] identityX25519 = proto.IdentityX25519PublicKey.ToByteArray();
@@ -115,12 +97,11 @@ public record LocalPublicKeyBundle(
                 foreach (PublicKeyBundle.Types.OneTimePreKey? pOpk in proto.OneTimePreKeys)
                 {
                     byte[] opkPublicKey = pOpk.PublicKey.ToByteArray();
-                    Result<OneTimePreKeyRecord, ShieldFailure> opkResult = OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
+                    Result<OneTimePreKeyRecord, ShieldFailure> opkResult =
+                        OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
                     if (opkResult.IsErr)
-                    {
                         throw new ArgumentException(
                             $"Invalid OneTimePreKey (ID: {pOpk.PreKeyId}): {opkResult.UnwrapErr().Message}");
-                    }
 
                     opkRecords.Add(opkResult.Unwrap());
                 }
@@ -135,9 +116,9 @@ public record LocalPublicKeyBundle(
                     OneTimePreKeys = opkRecords,
                     EphemeralX25519 = ephemeralX25519
                 };
-                return new LocalPublicKeyBundle(internalData); 
+                return new LocalPublicKeyBundle(internalData);
             },
-            errorMapper: ex => ex switch
+            ex => ex switch
             {
                 ArgumentException argEx => ShieldFailure.Decode(
                     $"Failed to create LocalPublicKeyBundle from Protobuf due to invalid data: {argEx.Message}", argEx),
@@ -147,4 +128,14 @@ public record LocalPublicKeyBundle(
         );
     }
 
+    private readonly struct InternalBundleData
+    {
+        public required byte[] IdentityEd25519 { get; init; }
+        public required byte[] IdentityX25519 { get; init; }
+        public required uint SignedPreKeyId { get; init; }
+        public required byte[] SignedPreKeyPublic { get; init; }
+        public required byte[] SignedPreKeySignature { get; init; }
+        public required List<OneTimePreKeyRecord> OneTimePreKeys { get; init; }
+        public required byte[]? EphemeralX25519 { get; init; }
+    }
 }

@@ -54,8 +54,8 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             }
 
             Result<byte[], ShieldFailure> deriveResult = Result<byte[], ShieldFailure>.Try(
-                func: () => ScalarMult.Base(tempPrivKeyCopy),
-                errorMapper: ex =>
+                () => ScalarMult.Base(tempPrivKeyCopy),
+                ex =>
                     ShieldFailure.DeriveKey($"Failed to derive public key for OPK ID {preKeyId} using ScalarMult.Base.",
                         ex)
             );
@@ -96,9 +96,6 @@ public readonly struct OneTimePreKeyLocal : IDisposable
 
     public void Dispose()
     {
-        if (PrivateKeyHandle is { IsInvalid: false })
-        {
-            PrivateKeyHandle.Dispose();
-        }
+        if (PrivateKeyHandle is { IsInvalid: false }) PrivateKeyHandle.Dispose();
     }
 }

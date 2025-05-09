@@ -54,8 +54,7 @@
                                 FontSize="14"
                                 MinHeight="0"
                                 MinWidth="32"
-                                Height="32">
-                            </TextBox>
+                                Height="32" />
                         </Grid>
                     </Grid>
 

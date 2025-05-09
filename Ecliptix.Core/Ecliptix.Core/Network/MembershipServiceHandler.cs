@@ -12,9 +12,6 @@ public class MembershipServiceHandler(VerificationServiceActions.VerificationSer
         using AsyncServerStreamingCall<CipherPayload>? streamingCall =
             verificationClient.GetVerificationSessionIfExist(request);
 
-        await foreach (CipherPayload response in streamingCall.ResponseStream.ReadAllAsync())
-        {
-            yield return response;
-        }
+        await foreach (CipherPayload response in streamingCall.ResponseStream.ReadAllAsync()) yield return response;
     }
 }

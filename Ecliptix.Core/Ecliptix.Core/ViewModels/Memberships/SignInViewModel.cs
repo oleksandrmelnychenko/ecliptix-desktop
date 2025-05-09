@@ -6,15 +6,10 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public class SignInViewModel : ReactiveObject
 {
-   
-    public ReactiveCommand<Unit, Unit> SignInCommand { get; }
-
     public SignInViewModel()
     {
-        
-        SignInCommand = ReactiveCommand.Create(() =>
-        {
-            System.Console.WriteLine($"Signing in with Mobile: , Password: ");
-        });
+        SignInCommand = ReactiveCommand.Create(() => { Console.WriteLine("Signing in with Mobile: , Password: "); });
     }
+
+    public ReactiveCommand<Unit, Unit> SignInCommand { get; }
 }

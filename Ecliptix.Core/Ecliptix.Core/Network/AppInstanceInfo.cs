@@ -7,7 +7,7 @@ public class AppInstanceInfo
     public Guid AppInstanceId { get; } = Guid.NewGuid();
 
     public Guid DeviceId { get; } = Guid.NewGuid();
-    
+
     /// <summary>
     ///     Server registration.
     /// </summary>

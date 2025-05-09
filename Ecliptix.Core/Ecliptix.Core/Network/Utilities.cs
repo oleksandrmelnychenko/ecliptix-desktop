@@ -15,9 +15,7 @@ public static class Utilities
     public static byte[] ReadMemoryToRetrieveBytes(ReadOnlyMemory<byte> readOnlyMemory)
     {
         if (!MemoryMarshal.TryGetArray(readOnlyMemory, out ArraySegment<byte> segment) || segment.Count == 0)
-        {
             throw new ArgumentException(InvalidPayloadDataLengthMessage);
-        }
 
         return segment.Array!;
     }
@@ -74,16 +72,10 @@ public static class Utilities
         byte[] appDeviceIdBytes = appDeviceId.ToByteArray();
         uint contextTypeUint = (uint)contextType;
         byte[] contextTypeBytes = BitConverter.GetBytes(contextTypeUint);
-        if (BitConverter.IsLittleEndian)
-        {
-            Array.Reverse(contextTypeBytes);
-        }
+        if (BitConverter.IsLittleEndian) Array.Reverse(contextTypeBytes);
 
         int totalLength = appInstanceIdBytes.Length + appDeviceIdBytes.Length + contextTypeBytes.Length;
-        if (operationContextId.HasValue)
-        {
-            totalLength += 16;
-        }
+        if (operationContextId.HasValue) totalLength += 16;
 
         byte[] combined = new byte[totalLength];
         int offset = 0;

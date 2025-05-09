@@ -7,14 +7,16 @@ namespace Ecliptix.Core.Protocol;
 
 public sealed class SodiumSecureMemoryHandle : SafeHandle
 {
-    public int Length { get; }
-
     private SodiumSecureMemoryHandle(IntPtr preexistingHandle, int length, bool ownsHandle)
-        : base(invalidHandleValue: IntPtr.Zero, ownsHandle: ownsHandle)
+        : base(IntPtr.Zero, ownsHandle)
     {
         SetHandle(preexistingHandle);
         Length = length;
     }
+
+    public int Length { get; }
+
+    public override bool IsInvalid => handle == IntPtr.Zero;
 
     public static Result<SodiumSecureMemoryHandle, ShieldFailure> Allocate(int length)
     {
@@ -55,8 +57,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
-    public override bool IsInvalid => handle == IntPtr.Zero;
-
     public Result<Unit, ShieldFailure> Write(ReadOnlySpan<byte> data)
     {
         if (IsInvalid || IsClosed)
@@ -83,10 +83,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             unsafe
             {
                 Buffer.MemoryCopy(
-                    source: Unsafe.AsPointer(ref MemoryMarshal.GetReference(data)),
-                    destination: (void*)handle,
-                    destinationSizeInBytes: (ulong)Length,
-                    sourceBytesToCopy: (ulong)data.Length);
+                    Unsafe.AsPointer(ref MemoryMarshal.GetReference(data)),
+                    (void*)handle,
+                    (ulong)Length,
+                    (ulong)data.Length);
             }
 
             return Result<Unit, ShieldFailure>.Ok(Unit.Value);
@@ -130,10 +130,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             unsafe
             {
                 Buffer.MemoryCopy(
-                    source: (void*)handle,
-                    destination: Unsafe.AsPointer(ref MemoryMarshal.GetReference(destination)),
-                    destinationSizeInBytes: (ulong)destination.Length,
-                    sourceBytesToCopy: (ulong)Length);
+                    (void*)handle,
+                    Unsafe.AsPointer(ref MemoryMarshal.GetReference(destination)),
+                    (ulong)destination.Length,
+                    (ulong)Length);
             }
 
             return Result<Unit, ShieldFailure>.Ok(Unit.Value);
@@ -181,10 +181,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             unsafe
             {
                 Buffer.MemoryCopy(
-                    source: (void*)handle,
-                    destination: Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer.AsSpan())),
-                    destinationSizeInBytes: (ulong)length,
-                    sourceBytesToCopy: (ulong)length);
+                    (void*)handle,
+                    Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer.AsSpan())),
+                    (ulong)length,
+                    (ulong)length);
             }
 
             return Result<byte[], ShieldFailure>.Ok(buffer);
@@ -203,15 +203,9 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
     protected override bool ReleaseHandle()
     {
-        if (IsInvalid)
-        {
-            return true;
-        }
+        if (IsInvalid) return true;
 
-        if (!SodiumInterop.IsInitialized)
-        {
-            return false;
-        }
+        if (!SodiumInterop.IsInitialized) return false;
 
         SodiumInterop.sodium_free(handle);
         SetHandleAsInvalid();

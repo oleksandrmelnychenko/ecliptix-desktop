@@ -1,7 +1,7 @@
-using Ecliptix.Protobuf.PubKeyExchange;
 using System;
-using Grpc.Core;
 using System.Globalization;
+using Ecliptix.Protobuf.PubKeyExchange;
+using Grpc.Core;
 
 namespace Ecliptix.Core.Interceptors;
 

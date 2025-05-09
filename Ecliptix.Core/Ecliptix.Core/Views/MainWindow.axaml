@@ -10,17 +10,15 @@
         CanResize="True"
         BorderThickness="0"
         SystemDecorations="None"
-        Background="Transparent" 
-        TransparencyLevelHint="Transparent" 
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MainViewModel"
-        WindowStartupLocation="CenterScreen"
-        
-        >
+        WindowStartupLocation="CenterScreen">
 
     <!-- Outermost Border defines shape and background -->
     <Border Name="RootWindowBorder"
-            Background="#FFEFEFEF" 
+            Background="#FFEFEFEF"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
@@ -34,31 +32,33 @@
                 <!-- Custom Title Bar Area -->
                 <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
                     <!-- Buttons -->
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <Button Name="CloseButton" Classes="traffic-light close" Click="CloseButton_Click"/>
-                        <Button Name="MinimizeButton" Classes="traffic-light minimize" Click="MinimizeButton_Click"/>
-                        <Button Name="MaximizeButton" Classes="traffic-light maximize" Click="MaximizeButton_Click"/>
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0"
+                                VerticalAlignment="Center">
+                        <Button Name="CloseButton" Classes="traffic-light close" Click="CloseButton_Click" />
+                        <Button Name="MinimizeButton" Classes="traffic-light minimize" Click="MinimizeButton_Click" />
+                        <Button Name="MaximizeButton" Classes="traffic-light maximize" Click="MaximizeButton_Click" />
                     </StackPanel>
                     <!-- Title -->
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
                                Foreground="#FF212121"
                                FontWeight="Medium" FontSize="13"
-                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0"/>
+                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0" />
                     <!-- Draggable Background -->
-                    <Border Background="Transparent" IsHitTestVisible="True" PointerPressed="TitleBarArea_PointerPressed"/>
+                    <Border Background="Transparent" IsHitTestVisible="True"
+                            PointerPressed="TitleBarArea_PointerPressed" />
                 </DockPanel>
 
                 <!-- Main Content Area -->
                 <Border Grid.Row="1"
-                        Background="#FFFAFAFA" 
+                        Background="#FFFAFAFA"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
-                   <views:MainView /> <!-- Hosting your main view -->
+                    <views:MainView /> <!-- Hosting your main view -->
                 </Border>
             </Grid>
 
-         
-                       <!-- *** Resize Grips *** -->
+
+            <!-- *** Resize Grips *** -->
             <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeWestEast"
                     HorizontalAlignment="Left" VerticalAlignment="Stretch"
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.West}" />
@@ -73,16 +73,16 @@
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.South}" />
 
             <!-- Corners using StandardCursorType enum names as strings -->
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopLeftCorner" 
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopLeftCorner"
                     HorizontalAlignment="Left" VerticalAlignment="Top"
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthWest}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopRightCorner" 
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopRightCorner"
                     HorizontalAlignment="Right" VerticalAlignment="Top"
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthEast}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomLeftCorner" 
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomLeftCorner"
                     HorizontalAlignment="Left" VerticalAlignment="Bottom"
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthWest}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomRightCorner" 
+            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomRightCorner"
                     HorizontalAlignment="Right" VerticalAlignment="Bottom"
                     PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthEast}" />
 

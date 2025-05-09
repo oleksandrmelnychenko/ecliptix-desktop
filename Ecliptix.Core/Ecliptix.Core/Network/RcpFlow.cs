@@ -8,110 +8,12 @@ using Ecliptix.Protobuf.CipherPayload;
 namespace Ecliptix.Core.Network;
 
 /// <summary>
-/// Represents different modes of RPC operations in the network service layer.
+///     Represents different modes of RPC operations in the network service layer.
 /// </summary>
 public abstract class RpcFlow
 {
     /// <summary>
-    /// Represents a single-call response containing a single payload or an error.
-    /// </summary>
-    public class SingleCall : RpcFlow
-    {
-        /// <summary>
-        /// The result of the single call, wrapped in a task for consistency with other variants.
-        /// </summary>
-        public Task<Result<CipherPayload, ShieldFailure>> Result { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the SingleCall class.
-        /// </summary>
-        /// <param name="result">The result task.</param>
-        public SingleCall(Task<Result<CipherPayload, ShieldFailure>> result)
-        {
-            Result = result;
-        }
-
-        /// <summary>
-        /// Convenience constructor for immediate results.
-        /// </summary>
-        /// <param name="result">The immediate result.</param>
-        public SingleCall(Result<CipherPayload, ShieldFailure> result)
-            : this(Task.FromResult(result))
-        {
-        }
-    }
-
-    /// <summary>
-    /// Represents an inbound stream providing payloads from the server.
-    /// </summary>
-    public class InboundStream : RpcFlow
-    {
-        /// <summary>
-        /// The asynchronous stream of payloads or errors.
-        /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Stream { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the InboundStream class.
-        /// </summary>
-        /// <param name="stream">The inbound stream.</param>
-        public InboundStream(IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream)
-        {
-            Stream = stream;
-        }
-    }
-
-    /// <summary>
-    /// Represents an outbound sink accepting payloads to be sent to the server.
-    /// </summary>
-    public class OutboundSink : RpcFlow
-    {
-        /// <summary>
-        /// The sink for sending payloads.
-        /// </summary>
-        public IOutboundSink Sink { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the OutboundSink class.
-        /// </summary>
-        /// <param name="sink">The outbound sink.</param>
-        public OutboundSink(IOutboundSink sink)
-        {
-            Sink = sink;
-        }
-    }
-
-    /// <summary>
-    /// Represents a bidirectional streaming channel with an inbound stream and an outbound sink.
-    /// </summary>
-    public class BidirectionalStream : RpcFlow
-    {
-        /// <summary>
-        /// The inbound stream of received payloads.
-        /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Inbound { get; }
-
-        /// <summary>
-        /// The outbound sink for transmitting payloads.
-        /// </summary>
-        public IOutboundSink OutboundSink { get; }
-
-        /// <summary>
-        /// Initializes a new instance of the BidirectionalStream class.
-        /// </summary>
-        /// <param name="inbound">The inbound stream.</param>
-        /// <param name="outboundSink">The outbound sink.</param>
-        public BidirectionalStream(
-            IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> inbound,
-            IOutboundSink outboundSink)
-        {
-            Inbound = inbound;
-            OutboundSink = outboundSink;
-        }
-    }
-
-    /// <summary>
-    /// Creates an empty inbound stream that yields no payloads.
+    ///     Creates an empty inbound stream that yields no payloads.
     /// </summary>
     /// <returns>An RpcFlow.InboundStream with an empty stream.</returns>
     public static RpcFlow NewEmptyInboundStream()
@@ -125,7 +27,7 @@ public abstract class RpcFlow
     }
 
     /// <summary>
-    /// Creates a draining outbound sink that discards all sent payloads.
+    ///     Creates a draining outbound sink that discards all sent payloads.
     /// </summary>
     /// <returns>An RpcFlow.OutboundSink that discards all data.</returns>
     public static RpcFlow NewDrainOutboundSink()
@@ -134,14 +36,14 @@ public abstract class RpcFlow
     }
 
     /// <summary>
-    /// Creates a new bidirectional streaming channel with an unbounded buffer.
+    ///     Creates a new bidirectional streaming channel with an unbounded buffer.
     /// </summary>
     /// <returns>An RpcFlow.BidirectionalStream with an inbound stream and an outbound sink.</returns>
     public static RpcFlow NewBidirectionalStream()
     {
         Channel<CipherPayload> channel = Channel.CreateUnbounded<CipherPayload>();
         IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> inbound = ToOkStream(channel.Reader);
-        ChannelSink outboundSink = new ChannelSink(channel.Writer);
+        ChannelSink outboundSink = new(channel.Writer);
         return new BidirectionalStream(inbound, outboundSink);
     }
 
@@ -150,19 +52,115 @@ public abstract class RpcFlow
         ChannelReader<CipherPayload> reader)
     {
         await foreach (CipherPayload payload in reader.ReadAllAsync())
-        {
             yield return Result<CipherPayload, ShieldFailure>.Ok(payload);
+    }
+
+    /// <summary>
+    ///     Represents a single-call response containing a single payload or an error.
+    /// </summary>
+    public class SingleCall : RpcFlow
+    {
+        /// <summary>
+        ///     Initializes a new instance of the SingleCall class.
+        /// </summary>
+        /// <param name="result">The result task.</param>
+        public SingleCall(Task<Result<CipherPayload, ShieldFailure>> result)
+        {
+            Result = result;
         }
+
+        /// <summary>
+        ///     Convenience constructor for immediate results.
+        /// </summary>
+        /// <param name="result">The immediate result.</param>
+        public SingleCall(Result<CipherPayload, ShieldFailure> result)
+            : this(Task.FromResult(result))
+        {
+        }
+
+        /// <summary>
+        ///     The result of the single call, wrapped in a task for consistency with other variants.
+        /// </summary>
+        public Task<Result<CipherPayload, ShieldFailure>> Result { get; }
+    }
+
+    /// <summary>
+    ///     Represents an inbound stream providing payloads from the server.
+    /// </summary>
+    public class InboundStream : RpcFlow
+    {
+        /// <summary>
+        ///     Initializes a new instance of the InboundStream class.
+        /// </summary>
+        /// <param name="stream">The inbound stream.</param>
+        public InboundStream(IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream)
+        {
+            Stream = stream;
+        }
+
+        /// <summary>
+        ///     The asynchronous stream of payloads or errors.
+        /// </summary>
+        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Stream { get; }
+    }
+
+    /// <summary>
+    ///     Represents an outbound sink accepting payloads to be sent to the server.
+    /// </summary>
+    public class OutboundSink : RpcFlow
+    {
+        /// <summary>
+        ///     Initializes a new instance of the OutboundSink class.
+        /// </summary>
+        /// <param name="sink">The outbound sink.</param>
+        public OutboundSink(IOutboundSink sink)
+        {
+            Sink = sink;
+        }
+
+        /// <summary>
+        ///     The sink for sending payloads.
+        /// </summary>
+        public IOutboundSink Sink { get; }
+    }
+
+    /// <summary>
+    ///     Represents a bidirectional streaming channel with an inbound stream and an outbound sink.
+    /// </summary>
+    public class BidirectionalStream : RpcFlow
+    {
+        /// <summary>
+        ///     Initializes a new instance of the BidirectionalStream class.
+        /// </summary>
+        /// <param name="inbound">The inbound stream.</param>
+        /// <param name="outboundSink">The outbound sink.</param>
+        public BidirectionalStream(
+            IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> inbound,
+            IOutboundSink outboundSink)
+        {
+            Inbound = inbound;
+            OutboundSink = outboundSink;
+        }
+
+        /// <summary>
+        ///     The inbound stream of received payloads.
+        /// </summary>
+        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Inbound { get; }
+
+        /// <summary>
+        ///     The outbound sink for transmitting payloads.
+        /// </summary>
+        public IOutboundSink OutboundSink { get; }
     }
 }
 
 /// <summary>
-/// A sink that discards all payloads and always succeeds.
+///     A sink that discards all payloads and always succeeds.
 /// </summary>
 internal class DrainSink : IOutboundSink
 {
     /// <summary>
-    /// Discards the payload and returns a successful result.
+    ///     Discards the payload and returns a successful result.
     /// </summary>
     /// <param name="payload">The payload to discard.</param>
     /// <returns>A task with a successful result.</returns>
@@ -173,14 +171,14 @@ internal class DrainSink : IOutboundSink
 }
 
 /// <summary>
-/// A sink that writes payloads to a channel.
+///     A sink that writes payloads to a channel.
 /// </summary>
 internal class ChannelSink : IOutboundSink
 {
     private readonly ChannelWriter<CipherPayload> _writer;
 
     /// <summary>
-    /// Initializes a new instance of the ChannelSink class.
+    ///     Initializes a new instance of the ChannelSink class.
     /// </summary>
     /// <param name="writer">The channel writer to send payloads to.</param>
     public ChannelSink(ChannelWriter<CipherPayload> writer)
@@ -189,7 +187,7 @@ internal class ChannelSink : IOutboundSink
     }
 
     /// <summary>
-    /// Sends a payload to the channel.
+    ///     Sends a payload to the channel.
     /// </summary>
     /// <param name="payload">The payload to send.</param>
     /// <returns>A task representing the result of the send operation.</returns>

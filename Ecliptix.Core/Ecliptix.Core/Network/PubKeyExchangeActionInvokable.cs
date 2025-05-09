@@ -1,21 +1,10 @@
 using System;
-using System.Threading.Tasks;
 using Ecliptix.Protobuf.PubKeyExchange;
 
 namespace Ecliptix.Core.Network;
 
 public class PubKeyExchangeActionInvokable
 {
-    public uint ReqId { get; }
-
-    public ServiceFlowType JobType { get; }
-
-    public RcpServiceAction Method { get; }
-
-    public PubKeyExchange PubKeyExchange { get; }
-
-    public Action<PubKeyExchange>? OnComplete { get; }
-
     private PubKeyExchangeActionInvokable(
         uint reqId,
         ServiceFlowType jobType,
@@ -29,6 +18,16 @@ public class PubKeyExchangeActionInvokable
         PubKeyExchange = pubKeyExchange ?? throw new ArgumentNullException(nameof(pubKeyExchange));
         OnComplete = onComplete;
     }
+
+    public uint ReqId { get; }
+
+    public ServiceFlowType JobType { get; }
+
+    public RcpServiceAction Method { get; }
+
+    public PubKeyExchange PubKeyExchange { get; }
+
+    public Action<PubKeyExchange>? OnComplete { get; }
 
     public static PubKeyExchangeActionInvokable New(
         ServiceFlowType jobType,

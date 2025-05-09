@@ -1,22 +1,18 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Channels;
+using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Protobuf.VerificationServices;
 using Ecliptix.Core.Protocol.Utilities;
-using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.PubKeyExchange;
-using ReactiveUI;
 
 namespace Ecliptix.Core.Network;
 
 public class NetworkServiceManager
 {
-    private readonly SingleCallExecutor _singleCallExecutor;
-    private readonly ReceiveStreamExecutor _receiveStreamExecutor;
-    private readonly KeyExchangeExecutor _keyExchangeExecutor;
     private readonly ConcurrentDictionary<RcpServiceAction, Task> _activeStreamHandles;
+    private readonly KeyExchangeExecutor _keyExchangeExecutor;
+    private readonly ReceiveStreamExecutor _receiveStreamExecutor;
+    private readonly SingleCallExecutor _singleCallExecutor;
 
     public NetworkServiceManager(
         SingleCallExecutor singleCallExecutor, ReceiveStreamExecutor receiveStreamExecutor,
@@ -34,15 +30,12 @@ public class NetworkServiceManager
             await _keyExchangeExecutor.BeginDataCenterPublicKeyExchange(action.PubKeyExchange);
 
         if (beginPubkeyExchangeResult.IsOk)
-        {
             if (action.OnComplete != null)
-            {
                 action.OnComplete(beginPubkeyExchangeResult.Unwrap());
-            }
-        }
     }
 
-    public async Task<Result<RpcFlow, ShieldFailure>> InvokeServiceRequestAsync(ServiceRequest request)
+    public async Task<Result<RpcFlow, ShieldFailure>> InvokeServiceRequestAsync(ServiceRequest request,
+        CancellationToken token)
     {
         RcpServiceAction action = request.RcpServiceMethod;
 
@@ -50,10 +43,10 @@ public class NetworkServiceManager
         switch (request.ActionType)
         {
             case ServiceFlowType.Single:
-                result = await _singleCallExecutor.InvokeRequestAsync(request);
+                result = await _singleCallExecutor.InvokeRequestAsync(request, token);
                 break;
             case ServiceFlowType.ReceiveStream:
-                result = await _receiveStreamExecutor.ProcessRequestAsync(request);
+                result = await _receiveStreamExecutor.ProcessRequestAsync(request, token);
                 break;
         }
 

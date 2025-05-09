@@ -1,4 +1,5 @@
 using System;
+using System.Reactive.Disposables;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,7 +7,6 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using ReactiveUI;
-using System.Reactive.Disposables;
 
 namespace Ecliptix.Core.Controls;
 
@@ -22,7 +22,7 @@ public partial class HintedTextBox : UserControl
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
 
     public static readonly StyledProperty<char> PasswordCharProperty =
-        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordChar), '\0');
+        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordChar));
 
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(FocusBorderBrush),
@@ -45,29 +45,43 @@ public partial class HintedTextBox : UserControl
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(ErrorText), string.Empty);
 
     public static readonly StyledProperty<double> EllipseOpacityProperty =
-        AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity), 0.0);
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity));
 
     public static readonly StyledProperty<bool> HasErrorProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError), false);
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError));
 
     public static readonly StyledProperty<ValidationType> ValidationTypeProperty =
-        AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType), ValidationType.None);
+        AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType));
+
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
+
+    private readonly CompositeDisposable _disposables = new();
+    private Border? _focusBorder;
+    private bool _isDirty;
+    private Border? _mainBorder;
+
+    private TextBox? _mainTextBox;
+
+    public HintedTextBox()
+    {
+        InitializeComponent();
+        Initialize();
+    }
 
     public IBrush MainBorderBrush
     {
         get => GetValue(MainBorderBrushProperty);
         set => SetValue(MainBorderBrushProperty, value);
     }
-    
+
     public ValidationType ValidationType
     {
         get => GetValue(ValidationTypeProperty);
         set => SetValue(ValidationTypeProperty, value);
     }
-    
+
     public bool HasError
     {
         get => GetValue(HasErrorProperty);
@@ -134,18 +148,6 @@ public partial class HintedTextBox : UserControl
         set => SetValue(ErrorTextProperty, value);
     }
 
-    private TextBox? _mainTextBox;
-    private Border? _focusBorder;
-    private Border? _mainBorder;
-    private readonly CompositeDisposable _disposables = new();
-    private bool _isDirty = false;
-    
-    public HintedTextBox()
-    {
-        InitializeComponent();
-        Initialize();
-    }
-
     private void Initialize()
     {
         // Set initial state
@@ -159,10 +161,8 @@ public partial class HintedTextBox : UserControl
         _mainBorder = this.FindControl<Border>("MainBorder");
 
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
-        {
             // Log or handle missing controls (for debugging purposes)
             return;
-        }
 
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
@@ -172,10 +172,10 @@ public partial class HintedTextBox : UserControl
                 _isDirty = true;
                 return;
             }
-            
+
             string input = _mainTextBox.Text ?? string.Empty;
             string? validationMessage = InputValidator.Validate(input, ValidationType);
-            
+
             if (!string.IsNullOrEmpty(validationMessage))
             {
                 ErrorText = validationMessage;
@@ -225,10 +225,7 @@ public partial class HintedTextBox : UserControl
 
     private void UpdateBorderState(bool forceFocus = false)
     {
-        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
-        {
-            return;
-        }
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
 
         if (HasError)
         {

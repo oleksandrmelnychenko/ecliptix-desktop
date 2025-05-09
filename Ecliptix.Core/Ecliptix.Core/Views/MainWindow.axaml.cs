@@ -15,25 +15,20 @@ public partial class MainWindow : Window
     {
         // Basic check to avoid dragging via buttons (might need refinement)
         if (e.Source is Border && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            this.BeginMoveDrag(e);
-        }
+            BeginMoveDrag(e);
         // Handle if source is DockPanel background etc. if needed
-        else if (e.Source is DockPanel && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-        {
-            this.BeginMoveDrag(e);
-        }
+        else if (e.Source is DockPanel && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
     }
 
     // --- Traffic Light Buttons ---
     private void MinimizeButton_Click(object? sender, RoutedEventArgs e)
     {
-        this.WindowState = WindowState.Minimized;
+        WindowState = WindowState.Minimized;
     }
 
     private void MaximizeButton_Click(object? sender, RoutedEventArgs e)
     {
-        WindowState = (WindowState == WindowState.Maximized) ? WindowState.Normal : WindowState.Maximized;
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
     private void CloseButton_Click(object? sender, RoutedEventArgs e)
@@ -47,9 +42,6 @@ public partial class MainWindow : Window
         if (sender is Border border &&
             border.Tag is WindowEdge edge &&
             e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) // Only resize on left-click
-        {
-            this.BeginResizeDrag(edge, e);
-        }
+            BeginResizeDrag(edge, e);
     }
 }
-

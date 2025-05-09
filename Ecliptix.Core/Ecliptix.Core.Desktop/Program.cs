@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
+using Serilog;
 using Splat;
 using Splat.Microsoft.Extensions.DependencyInjection;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
@@ -60,7 +61,10 @@ internal sealed class Program
         services.AddTransient<SignUpHostViewModel>();
         services.AddTransient<VerifyMobileViewModel>();
 
-        services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
+        services.AddLogging(builder => builder.AddSerilog(new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.File("logs/app.log")
+            .CreateLogger()));
 
         services.AddHttpClient();
 

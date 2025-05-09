@@ -11,7 +11,7 @@ public partial class SignUpHostView : UserControl
         InitializeComponent();
         DataContext = viewModel;
     }
-    
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);

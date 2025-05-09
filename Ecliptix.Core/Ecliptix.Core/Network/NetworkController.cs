@@ -1,19 +1,18 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.PubKeyExchange;
-using ReactiveUI;
 
 namespace Ecliptix.Core.Network;
 
 public sealed class NetworkController
 {
-    private readonly NetworkServiceManager _networkServiceManager;
     private readonly ConcurrentDictionary<uint, EcliptixConnectionContext> _connections;
+    private readonly NetworkServiceManager _networkServiceManager;
 
     public NetworkController(NetworkServiceManager networkServiceManager)
     {
@@ -21,7 +20,8 @@ public sealed class NetworkController
         _connections = new ConcurrentDictionary<uint, EcliptixConnectionContext>();
     }
 
-    public void CreateEcliptixConnectionContext(uint connectId, uint oneTimeKeyCount, PubKeyExchangeType pubKeyExchangeType)
+    public void CreateEcliptixConnectionContext(uint connectId, uint oneTimeKeyCount,
+        PubKeyExchangeType pubKeyExchangeType)
     {
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(oneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
@@ -40,13 +40,12 @@ public sealed class NetworkController
         RcpServiceAction serviceAction,
         byte[] plainBuffer,
         ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, ShieldFailure>>> onSuccessCallback)
+        Func<byte[], Task<Result<Unit, ShieldFailure>>> onSuccessCallback,
+        CancellationToken token = default)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixConnectionContext? context))
-        {
             return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.Generic("Connection not found", null));
-        }
+                ShieldFailure.Generic("Connection not found"));
 
         EcliptixProtocolSystem protocolSystem = context.EcliptixProtocolSystem;
         PubKeyExchangeType pubKeyExchangeType = context.PubKeyExchangeType;
@@ -56,31 +55,22 @@ public sealed class NetworkController
 
         ServiceRequest request = ServiceRequest.New(flowType, serviceAction, outboundPayload, []);
         Result<RpcFlow, ShieldFailure> invokeResult =
-            await _networkServiceManager.InvokeServiceRequestAsync(request);
+            await _networkServiceManager.InvokeServiceRequestAsync(request, token);
 
-        if (invokeResult.IsErr)
-        {
-            return Result<Unit, ShieldFailure>.Err(invokeResult.UnwrapErr());
-        }
+        if (invokeResult.IsErr) return Result<Unit, ShieldFailure>.Err(invokeResult.UnwrapErr());
 
         RpcFlow flow = invokeResult.Unwrap();
         switch (flow)
         {
             case RpcFlow.SingleCall singleCall:
                 Result<CipherPayload, ShieldFailure> callResult = await singleCall.Result;
-                if (callResult.IsErr)
-                {
-                    return Result<Unit, ShieldFailure>.Err(callResult.UnwrapErr());
-                }
+                if (callResult.IsErr) return Result<Unit, ShieldFailure>.Err(callResult.UnwrapErr());
 
                 CipherPayload inboundPayload = callResult.Unwrap();
                 byte[] decryptedData =
                     protocolSystem.ProcessInboundMessage(connectId, pubKeyExchangeType, inboundPayload);
                 Result<Unit, ShieldFailure> callbackOutcome = await onSuccessCallback(decryptedData);
-                if (callbackOutcome.IsErr)
-                {
-                    return callbackOutcome;
-                }
+                if (callbackOutcome.IsErr) return callbackOutcome;
 
                 break;
 
@@ -98,9 +88,7 @@ public sealed class NetworkController
                         protocolSystem.ProcessInboundMessage(connectId, pubKeyExchangeType, streamPayload);
                     Result<Unit, ShieldFailure> streamCallbackOutcome = await onSuccessCallback(streamDecryptedData);
                     if (streamCallbackOutcome.IsErr)
-                    {
                         Console.WriteLine($"Callback error: {streamCallbackOutcome.UnwrapErr().Message}");
-                    }
                 }
 
                 break;
@@ -108,7 +96,7 @@ public sealed class NetworkController
             case RpcFlow.OutboundSink _:
             case RpcFlow.BidirectionalStream _:
                 return Result<Unit, ShieldFailure>.Err(
-                    ShieldFailure.Generic("Unsupported stream type", null));
+                    ShieldFailure.Generic("Unsupported stream type"));
         }
 
         return Result<Unit, ShieldFailure>.Ok(new Unit());
@@ -118,10 +106,8 @@ public sealed class NetworkController
         uint connectId)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixConnectionContext? context))
-        {
             return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.Generic("Connection not found", null));
-        }
+                ShieldFailure.Generic("Connection not found"));
 
         EcliptixProtocolSystem protocolSystem = context.EcliptixProtocolSystem;
         PubKeyExchangeType pubKeyExchangeType = context.PubKeyExchangeType;
@@ -136,7 +122,6 @@ public sealed class NetworkController
             peerPubKeyExchange =>
             {
                 protocolSystem.CompleteDataCenterPubKeyExchange(connectId, pubKeyExchangeType, peerPubKeyExchange);
-                MessageBus.Current.SendMessage(new KeyExchangeCompletedEvent());
             });
 
         await _networkServiceManager.BeginDataCenterPublicKeyExchange(action);

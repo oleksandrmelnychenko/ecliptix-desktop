@@ -6,16 +6,6 @@ namespace Ecliptix.Core.Network;
 
 public class ServiceRequest
 {
-    public uint ReqId { get; }
-
-    public ServiceFlowType ActionType { get; }
-
-    public RcpServiceAction RcpServiceMethod { get; }
-
-    public CipherPayload Payload { get; }
-
-    public List<CipherPayload> EncryptedChunks { get; }
-
     private ServiceRequest(uint reqId, ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)
     {
@@ -25,6 +15,16 @@ public class ServiceRequest
         Payload = payload ?? throw new ArgumentNullException(nameof(payload));
         EncryptedChunks = encryptedChunks;
     }
+
+    public uint ReqId { get; }
+
+    public ServiceFlowType ActionType { get; }
+
+    public RcpServiceAction RcpServiceMethod { get; }
+
+    public CipherPayload Payload { get; }
+
+    public List<CipherPayload> EncryptedChunks { get; }
 
     public static ServiceRequest New(ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)

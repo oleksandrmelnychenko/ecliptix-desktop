@@ -17,15 +17,13 @@ public static class Helpers
             Rng.GetBytes(buffer);
             value = BitConverter.ToUInt32(buffer, 0);
         } while (excludeZero && value == 0);
+
         return value;
     }
 
     public static byte[] GenerateSecureRandomTag(int tagLengthBytes)
     {
-        if (tagLengthBytes < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(tagLengthBytes));
-        }
+        if (tagLengthBytes < 1) throw new ArgumentOutOfRangeException(nameof(tagLengthBytes));
         byte[] tagBytes = new byte[tagLengthBytes];
         Rng.GetBytes(tagBytes);
         return tagBytes;
@@ -33,10 +31,7 @@ public static class Helpers
 
     internal static void GenerateSecureRandomTag(Span<byte> destination)
     {
-        if (destination.IsEmpty)
-        {
-            throw new ArgumentException(null, nameof(destination));
-        }
+        if (destination.IsEmpty) throw new ArgumentException(null, nameof(destination));
         Rng.GetBytes(destination);
     }
 

@@ -13,7 +13,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 {
     private ConnectSession? _connectSession;
 
-    private static Timestamp GetProtoTimestamp() => Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
+    private static Timestamp GetProtoTimestamp()
+    {
+        return Timestamp.FromDateTimeOffset(DateTimeOffset.UtcNow);
+    }
 
     public PubKeyExchange BeginDataCenterPubKeyExchange(
         uint connectId,
@@ -27,27 +30,21 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         Result<LocalPublicKeyBundle, ShieldFailure>
             localBundleResult = ecliptixSystemIdentityKeys.CreatePublicBundle();
         if (!localBundleResult.IsOk)
-        {
             throw new ShieldChainStepException(
                 $"Failed to create local public bundle: {localBundleResult.UnwrapErr()}");
-        }
 
         LocalPublicKeyBundle localBundle = localBundleResult.Unwrap();
         PublicKeyBundle protoBundle = localBundle.ToProtobufExchange();
 
         Result<ConnectSession, ShieldFailure> sessionResult = ConnectSession.Create(connectId, localBundle, true);
         if (!sessionResult.IsOk)
-        {
             throw new ShieldChainStepException($"Failed to create session: {sessionResult.UnwrapErr()}");
-        }
 
         _connectSession = sessionResult.Unwrap();
 
         Result<byte[]?, ShieldFailure> dhPublicKeyResult = _connectSession.GetCurrentSenderDhPublicKey();
         if (!dhPublicKeyResult.IsOk)
-        {
             throw new ShieldChainStepException($"Sender DH key not initialized: {dhPublicKeyResult.UnwrapErr()}");
-        }
 
         byte[]? dhPublicKey = dhPublicKeyResult.Unwrap();
 
@@ -63,12 +60,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     }
 
     public PubKeyExchange ProcessAndRespondToPubKeyExchange(
-        uint connectId,PubKeyExchange peerInitialMessageProto)
+        uint connectId, PubKeyExchange peerInitialMessageProto)
     {
         if (peerInitialMessageProto.State != PubKeyExchangeState.Init)
-        {
             throw new ArgumentException("Expected peer message state to be Init.", nameof(peerInitialMessageProto));
-        }
 
         PubKeyExchangeType exchangeType = peerInitialMessageProto.OfType;
         Debug.WriteLine($"[ShieldPro] Processing exchange request {exchangeType}, generated Session ID: {connectId}");
@@ -82,9 +77,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<LocalPublicKeyBundle, ShieldFailure> peerBundleResult =
                 LocalPublicKeyBundle.FromProtobufExchange(peerBundleProto);
             if (!peerBundleResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to convert peer bundle: {peerBundleResult.UnwrapErr()}");
-            }
 
             LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
@@ -94,10 +87,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 peerBundle.SignedPreKeySignature);
 
             if (!spkValidResult.IsOk || !spkValidResult.Unwrap())
-            {
                 throw new ShieldChainStepException(
                     $"SPK signature validation failed: {(spkValidResult.IsOk ? "Invalid signature" : spkValidResult.UnwrapErr())}");
-            }
 
             Debug.WriteLine("[ShieldPro] Generating ephemeral key for response.");
             ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
@@ -105,19 +96,15 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<LocalPublicKeyBundle, ShieldFailure> localBundleResult =
                 ecliptixSystemIdentityKeys.CreatePublicBundle();
             if (!localBundleResult.IsOk)
-            {
                 throw new ShieldChainStepException(
                     $"Failed to create local public bundle: {localBundleResult.UnwrapErr()}");
-            }
 
             LocalPublicKeyBundle localBundle = localBundleResult.Unwrap();
             PublicKeyBundle protoBundle = localBundle.ToProtobufExchange();
 
             Result<ConnectSession, ShieldFailure> sessionResult = ConnectSession.Create(connectId, localBundle, false);
             if (!sessionResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to create session: {sessionResult.UnwrapErr()}");
-            }
 
             _connectSession = sessionResult.Unwrap();
 
@@ -131,9 +118,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     first?.PreKeyId,
                     Constants.X3dhInfo);
             if (!deriveResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Shared secret derivation failed: {deriveResult.UnwrapErr()}");
-            }
 
             rootKeyHandle = deriveResult.Unwrap();
 
@@ -150,23 +135,17 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<Unit, ShieldFailure> finalizeResult =
                 _connectSession.FinalizeChainAndDhKeys(rootKeyBytes, peerDhKey);
             if (!finalizeResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to finalize chain keys: {finalizeResult.UnwrapErr()}");
-            }
 
             Result<Unit, ShieldFailure> stateResult = _connectSession.SetConnectionState(PubKeyExchangeState.Complete);
             if (!stateResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to set Complete state: {stateResult.UnwrapErr()}");
-            }
 
             SodiumInterop.SecureWipe(rootKeyBytes);
 
             Result<byte[]?, ShieldFailure> dhPublicKeyResult = _connectSession.GetCurrentSenderDhPublicKey();
             if (!dhPublicKeyResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to get sender DH key: {dhPublicKeyResult.UnwrapErr()}");
-            }
 
             byte[]? dhPublicKey = dhPublicKeyResult.Unwrap();
 
@@ -200,9 +179,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         Result<LocalPublicKeyBundle, ShieldFailure> peerBundleResult =
             LocalPublicKeyBundle.FromProtobufExchange(peerBundleProto);
         if (!peerBundleResult.IsOk)
-        {
             throw new ShieldChainStepException($"Failed to convert peer bundle: {peerBundleResult.UnwrapErr()}");
-        }
 
         LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
@@ -212,18 +189,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             peerBundle.SignedPreKeyPublic,
             peerBundle.SignedPreKeySignature);
         if (!spkValidResult.IsOk || !spkValidResult.Unwrap())
-        {
             throw new ShieldChainStepException(
                 $"SPK signature validation failed: {(spkValidResult.IsOk ? "Invalid signature" : spkValidResult.UnwrapErr())}");
-        }
 
         Debug.WriteLine("[ShieldPro] Deriving X3DH shared secret.");
         Result<SodiumSecureMemoryHandle, ShieldFailure> deriveResult =
             ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
         if (!deriveResult.IsOk)
-        {
             throw new ShieldChainStepException($"Shared secret derivation failed: {deriveResult.UnwrapErr()}");
-        }
 
         SodiumSecureMemoryHandle rootKeyHandle = deriveResult.Unwrap();
 
@@ -234,16 +207,12 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         Result<Unit, ShieldFailure> finalizeResult =
             _connectSession!.FinalizeChainAndDhKeys(rootKeyBytes, peerMessage.InitialDhPublicKey.ToByteArray());
         if (!finalizeResult.IsOk)
-        {
             throw new ShieldChainStepException($"Failed to finalize chain keys: {finalizeResult.UnwrapErr()}");
-        }
 
         _connectSession.SetPeerBundle(peerBundle);
         Result<Unit, ShieldFailure> stateResult = _connectSession.SetConnectionState(PubKeyExchangeState.Complete);
         if (!stateResult.IsOk)
-        {
             throw new ShieldChainStepException($"Failed to set Complete state: {stateResult.UnwrapErr()}");
-        }
 
         SodiumInterop.SecureWipe(rootKeyBytes);
     }
@@ -264,18 +233,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<(ShieldMessageKey MessageKey, bool IncludeDhKey), ShieldFailure> prepResult =
                 _connectSession!.PrepareNextSendMessage();
             if (!prepResult.IsOk)
-            {
                 throw new ShieldChainStepException(
                     $"Failed to prepare outgoing message key: {prepResult.UnwrapErr()}");
-            }
 
             (ShieldMessageKey messageKey, bool includeDhKey) = prepResult.Unwrap();
 
             Result<byte[], ShieldFailure> nonceResult = _connectSession.GenerateNextNonce();
             if (!nonceResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to generate nonce: {nonceResult.UnwrapErr()}");
-            }
 
             byte[] nonce = nonceResult.Unwrap();
 
@@ -287,10 +252,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     err => throw new ShieldChainStepException($"Failed to get sender DH key: {err.Message}"))
                 : null;
             if (newSenderDhPublicKey != null)
-            {
                 Debug.WriteLine(
                     $"[ShieldPro] Including new DH Public Key: {Convert.ToHexString(newSenderDhPublicKey)}");
-            }
 
             byte[] messageKeyBytes = new byte[Constants.AesKeySize];
             messageKey.ReadKeyMaterial(messageKeyBytes);
@@ -299,9 +262,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<ShieldMessageKey, ShieldFailure> cloneResult =
                 ShieldMessageKey.New(messageKey.Index, messageKeyBytes);
             if (!cloneResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to clone message key: {cloneResult.UnwrapErr()}");
-            }
 
             messageKeyClone = cloneResult.Unwrap();
 
@@ -309,9 +270,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             Result<LocalPublicKeyBundle, ShieldFailure> peerBundleResult = _connectSession.GetPeerBundle();
             if (!peerBundleResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to get peer bundle: {peerBundleResult.UnwrapErr()}");
-            }
 
             LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
@@ -380,7 +339,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (receivedDhKey != null)
             {
                 Result<byte[]?, ShieldFailure> currentPeerDhResult = _connectSession!.GetCurrentPeerDhPublicKey();
-                if (currentPeerDhResult.IsOk)
+                if (currentPeerDhResult.IsOk && currentPeerDhResult.Unwrap() is not null)
                 {
                     byte[] currentPeerDh = currentPeerDhResult.Unwrap();
                     Debug.WriteLine($"[ShieldPro][Decrypt] Received DH Key: {Convert.ToHexString(receivedDhKey)}");
@@ -389,7 +348,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     if (!receivedDhKey.SequenceEqual(currentPeerDh))
                     {
                         Debug.WriteLine("[ShieldPro] Performing DH ratchet due to new peer DH key.");
-                        Result<Unit, ShieldFailure> ratchetResult = _connectSession.PerformReceivingRatchet(receivedDhKey);
+                        Result<Unit, ShieldFailure> ratchetResult =
+                            _connectSession.PerformReceivingRatchet(receivedDhKey);
                         if (!ratchetResult.IsOk)
                             throw new ShieldChainStepException(
                                 $"Failed to perform DH ratchet: {ratchetResult.UnwrapErr()}");
@@ -405,9 +365,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<ShieldMessageKey, ShieldFailure> messageKeyResult =
                 _connectSession!.ProcessReceivedMessage(cipherPayloadProto.RatchetIndex, receivedDhKey);
             if (!messageKeyResult.IsOk)
-            {
                 throw new ShieldChainStepException($"Failed to process message: {messageKeyResult.UnwrapErr()}");
-            }
 
             ShieldMessageKey originalMessageKey = messageKeyResult.Unwrap();
 
@@ -415,7 +373,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             originalMessageKey.ReadKeyMaterial(messageKeyBytes);
             Debug.WriteLine($"[ShieldPro][Decrypt] Message Key: {Convert.ToHexString(messageKeyBytes)}");
 
-            var cloneResult = ShieldMessageKey.New(originalMessageKey.Index, messageKeyBytes);
+            Result<ShieldMessageKey, ShieldFailure> cloneResult =
+                ShieldMessageKey.New(originalMessageKey.Index, messageKeyBytes);
             if (!cloneResult.IsOk)
                 throw new ShieldChainStepException(
                     $"Failed to clone message key for decryption: {cloneResult.UnwrapErr()}");

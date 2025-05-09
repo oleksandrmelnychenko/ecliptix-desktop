@@ -9,7 +9,6 @@ public class EnumDisplayConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is MembershipViewType viewType)
-        {
             return viewType switch
             {
                 MembershipViewType.SignIn => "Sign In",
@@ -18,7 +17,6 @@ public class EnumDisplayConverter : IValueConverter
                 MembershipViewType.ForgotPassword => "Forgot Password",
                 _ => viewType.ToString()
             };
-        }
 
         return value?.ToString() ?? string.Empty;
     }

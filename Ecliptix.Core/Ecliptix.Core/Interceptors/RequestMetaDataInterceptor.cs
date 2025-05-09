@@ -13,10 +13,7 @@ public class RequestMetaDataInterceptor(Guid appInstanceId, Guid deviceId) : Int
     {
         Metadata headers = context.Options.Headers ?? [];
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(appInstanceId, deviceId);
-        foreach (Metadata.Entry entry in newMetadata)
-        {
-            headers.Add(entry);
-        }
+        foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
         ClientInterceptorContext<TRequest, TResponse> newContext = new(

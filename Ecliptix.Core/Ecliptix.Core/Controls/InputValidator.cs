@@ -54,5 +54,4 @@ public static class InputValidator
 
         return null;
     }
-
 }

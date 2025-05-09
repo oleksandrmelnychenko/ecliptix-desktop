@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,30 +14,30 @@ namespace Ecliptix.Core.Protocol;
 public sealed class ConnectSession : IDisposable
 {
     private const int DhRotationInterval = 10;
+    private const int AesGcmNonceSize = 12;
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromHours(24);
     private static readonly byte[] InitialSenderChainInfo = "ShieldInitSend"u8.ToArray();
     private static readonly byte[] InitialReceiverChainInfo = "ShieldInitRecv"u8.ToArray();
     private static readonly byte[] DhRatchetInfo = "ShieldDhRatchet"u8.ToArray();
-    private const int AesGcmNonceSize = 12;
+    private readonly DateTimeOffset _createdAt;
 
     private readonly uint _id;
-    private LocalPublicKeyBundle? _peerBundle;
-    private readonly ShieldChainStep? _sendingStep;
-    private ShieldChainStep? _receivingStep;
-    private SodiumSecureMemoryHandle? _rootKeyHandle;
-    private readonly SortedDictionary<uint, ShieldMessageKey> _messageKeys;
-    private PubKeyExchangeState _state;
-    private ulong _nonceCounter;
-    private readonly DateTimeOffset _createdAt;
-    private byte[]? _peerDhPublicKey;
+    private readonly bool _isFirstReceivingRatchet;
     private readonly bool _isInitiator;
-    private bool _receivedNewDhKey;
-    private SodiumSecureMemoryHandle? _persistentDhPrivateKeyHandle;
-    private byte[]? _persistentDhPublicKey;
-    private SodiumSecureMemoryHandle? _initialSendingDhPrivateKeyHandle;
+    private readonly SortedDictionary<uint, ShieldMessageKey> _messageKeys;
+    private readonly ShieldChainStep? _sendingStep;
     private SodiumSecureMemoryHandle? _currentSendingDhPrivateKeyHandle;
     private volatile bool _disposed;
-    private readonly bool _isFirstReceivingRatchet;
+    private SodiumSecureMemoryHandle? _initialSendingDhPrivateKeyHandle;
+    private ulong _nonceCounter;
+    private LocalPublicKeyBundle? _peerBundle;
+    private byte[]? _peerDhPublicKey;
+    private SodiumSecureMemoryHandle? _persistentDhPrivateKeyHandle;
+    private byte[]? _persistentDhPublicKey;
+    private bool _receivedNewDhKey;
+    private ShieldChainStep? _receivingStep;
+    private SodiumSecureMemoryHandle? _rootKeyHandle;
+    private PubKeyExchangeState _state;
 
     private ConnectSession(
         uint id,
@@ -67,6 +66,12 @@ public sealed class ConnectSession : IDisposable
         _disposed = false;
         _isFirstReceivingRatchet = true;
         Debug.WriteLine($"[ShieldSession] Created session {id}, Initiator: {isInitiator}");
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public static Result<ConnectSession, ShieldFailure> Create(uint connectId, LocalPublicKeyBundle localBundle,
@@ -118,7 +123,7 @@ public sealed class ConnectSession : IDisposable
                 {
                     sendingStep = createdSendingStep;
                     Debug.WriteLine($"[ShieldSession] Sending step created for session {connectId}");
-                    ConnectSession session = new ConnectSession(
+                    ConnectSession session = new(
                         connectId,
                         isInitiator,
                         initialSendingDhPrivateKeyHandle!,
@@ -167,10 +172,8 @@ public sealed class ConnectSession : IDisposable
             Result<SodiumSecureMemoryHandle, ShieldFailure> allocResult =
                 SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize);
             if (allocResult.IsErr)
-            {
                 return Result<(SodiumSecureMemoryHandle, byte[]), ShieldFailure>.Err(allocResult.UnwrapErr());
-            }
-            
+
             skHandle = allocResult.Unwrap();
             skBytes = SodiumCore.GetRandomBytes(Constants.X25519PrivateKeySize);
             Result<Unit, ShieldFailure> writeResult = skHandle.Write(skBytes);
@@ -225,31 +228,34 @@ public sealed class ConnectSession : IDisposable
         }
     }
 
-    public Result<LocalPublicKeyBundle, ShieldFailure> GetPeerBundle() =>
-        CheckDisposed().Bind(_ =>
+    public Result<LocalPublicKeyBundle, ShieldFailure> GetPeerBundle()
+    {
+        return CheckDisposed().Bind(_ =>
             _peerBundle != null
                 ? Result<LocalPublicKeyBundle, ShieldFailure>.Ok(_peerBundle)
                 : Result<LocalPublicKeyBundle, ShieldFailure>.Err(
                     ShieldFailure.Generic("Peer bundle has not been set.")));
+    }
 
-    public Result<bool, ShieldFailure> GetIsInitiator() =>
-        CheckDisposed().Map(_ => _isInitiator);
+    public Result<bool, ShieldFailure> GetIsInitiator()
+    {
+        return CheckDisposed().Map(_ => _isInitiator);
+    }
 
-    internal Result<Unit, ShieldFailure> SetConnectionState(PubKeyExchangeState newState) =>
-        CheckDisposed().Map(u =>
+    internal Result<Unit, ShieldFailure> SetConnectionState(PubKeyExchangeState newState)
+    {
+        return CheckDisposed().Map(u =>
         {
             Debug.WriteLine($"[ShieldSession] Setting state for session {_id} to {newState}");
             _state = newState;
             return u;
         });
+    }
 
     internal void SetPeerBundle(LocalPublicKeyBundle peerBundle)
     {
-        if (peerBundle == null)
-        {
-            throw new ArgumentNullException(nameof(peerBundle));
-        }
-        
+        if (peerBundle == null) throw new ArgumentNullException(nameof(peerBundle));
+
         Debug.WriteLine($"[ShieldSession] Setting peer bundle for session {_id}");
         _peerBundle = peerBundle;
     }
@@ -333,26 +339,24 @@ public sealed class ConnectSession : IDisposable
         }
     }
 
-    private Result<Unit, ShieldFailure> CheckIfNotFinalized() =>
-        CheckDisposed().Bind(_ =>
+    private Result<Unit, ShieldFailure> CheckIfNotFinalized()
+    {
+        return CheckDisposed().Bind(_ =>
             (_rootKeyHandle != null || _receivingStep != null)
                 ? Result<Unit, ShieldFailure>.Err(ShieldFailure.Generic("Session has already been finalized."))
                 : Result<Unit, ShieldFailure>.Ok(Unit.Value));
+    }
 
     private static Result<Unit, ShieldFailure> ValidateInitialKeys(byte[] rootKey, byte[] peerDhKey)
     {
         if (rootKey.Length != Constants.X25519KeySize)
-        {
             return Result<Unit, ShieldFailure>.Err(
                 ShieldFailure.InvalidInput($"Initial root key must be {Constants.X25519KeySize} bytes."));
-        }
 
         if (peerDhKey.Length != Constants.X25519PublicKeySize)
-        {
             return Result<Unit, ShieldFailure>.Err(
                 ShieldFailure.InvalidInput(
                     $"Initial peer DH public key must be {Constants.X25519PublicKeySize} bytes."));
-        }
 
         return Result<Unit, ShieldFailure>.Ok(Unit.Value);
     }
@@ -497,19 +501,23 @@ public sealed class ConnectSession : IDisposable
         }
     }
 
-    private Result<ShieldChainStep, ShieldFailure> EnsureSendingStepInitialized() =>
-        CheckDisposed().Bind(_ =>
+    private Result<ShieldChainStep, ShieldFailure> EnsureSendingStepInitialized()
+    {
+        return CheckDisposed().Bind(_ =>
             _sendingStep != null
                 ? Result<ShieldChainStep, ShieldFailure>.Ok(_sendingStep)
                 : Result<ShieldChainStep, ShieldFailure>.Err(
                     ShieldFailure.Generic("Sending chain step not initialized.")));
+    }
 
-    private Result<ShieldChainStep, ShieldFailure> EnsureReceivingStepInitialized() =>
-        CheckDisposed().Bind(_ =>
+    private Result<ShieldChainStep, ShieldFailure> EnsureReceivingStepInitialized()
+    {
+        return CheckDisposed().Bind(_ =>
             _receivingStep != null
                 ? Result<ShieldChainStep, ShieldFailure>.Ok(_receivingStep)
                 : Result<ShieldChainStep, ShieldFailure>.Err(
                     ShieldFailure.Generic("Receiving chain step not initialized.")));
+    }
 
     private Result<(bool performedRatchet, bool receivedNewKey), ShieldFailure> MaybePerformSendingDhRatchet(
         ShieldChainStep sendingStep)
@@ -521,15 +529,13 @@ public sealed class ConnectSession : IDisposable
             Debug.WriteLine(
                 $"[ShieldSession] Checking if DH ratchet needed. Current Index: {currentIndex}, Received New DH Key: {_receivedNewDhKey}, Should Ratchet: {shouldRatchet}");
             if (shouldRatchet)
-            {
-                return PerformDhRatchet(isSender: true)
+                return PerformDhRatchet(true)
                     .Map(_ =>
                     {
                         _receivedNewDhKey = false;
                         Debug.WriteLine("[ShieldSession] DH ratchet performed for sending.");
                         return (performedRatchet: true, receivedNewKey: currentReceivedNewDhKey);
                     });
-            }
 
             return Result<(bool, bool), ShieldFailure>.Ok((false, currentReceivedNewDhKey));
         });
@@ -538,40 +544,31 @@ public sealed class ConnectSession : IDisposable
     private Result<Unit, ShieldFailure> MaybePerformReceivingDhRatchet(ShieldChainStep receivingStep,
         byte[]? receivedDhPublicKeyBytes)
     {
-        if (receivedDhPublicKeyBytes == null)
-        {
-            return Result<Unit, ShieldFailure>.Ok(Unit.Value);
-        }
+        if (receivedDhPublicKeyBytes == null) return Result<Unit, ShieldFailure>.Ok(Unit.Value);
 
         bool keysDiffer = _peerDhPublicKey == null || !receivedDhPublicKeyBytes.SequenceEqual(_peerDhPublicKey);
         Debug.WriteLine(
             $"[ShieldSession] Checking DH key difference. Peer DH Key: {Convert.ToHexString(_peerDhPublicKey)}, Received: {Convert.ToHexString(receivedDhPublicKeyBytes)}");
-        if (!keysDiffer)
-        {
-            return Result<Unit, ShieldFailure>.Ok(Unit.Value);
-        }
+        if (!keysDiffer) return Result<Unit, ShieldFailure>.Ok(Unit.Value);
 
         Result<uint, ShieldFailure> currentIndexResult = receivingStep.GetCurrentIndex();
         if (currentIndexResult.IsErr)
             return Result<Unit, ShieldFailure>.Err(currentIndexResult.UnwrapErr());
         uint currentIndex = currentIndexResult.Unwrap();
         bool shouldRatchet = _isFirstReceivingRatchet || (currentIndex + 1) % DhRotationInterval == 0;
-        if (shouldRatchet)
-        {
-            return PerformDhRatchet(isSender: false, receivedDhPublicKeyBytes);
-        }
+        if (shouldRatchet) return PerformDhRatchet(false, receivedDhPublicKeyBytes);
 
         WipeIfNotNull(_peerDhPublicKey).IgnoreResult();
         _peerDhPublicKey = (byte[])receivedDhPublicKeyBytes.Clone();
         _receivedNewDhKey = true;
-        Debug.WriteLine($"[ShieldSession] Deferred DH ratchet: New key received but waiting for interval.");
+        Debug.WriteLine("[ShieldSession] Deferred DH ratchet: New key received but waiting for interval.");
         return Result<Unit, ShieldFailure>.Ok(Unit.Value);
     }
 
     public Result<Unit, ShieldFailure> PerformReceivingRatchet(byte[] receivedDhKey)
     {
         Debug.WriteLine($"[ShieldSession] Performing receiving ratchet for session {_id}");
-        return PerformDhRatchet(isSender: false, receivedDhPublicKeyBytes: receivedDhKey);
+        return PerformDhRatchet(false, receivedDhKey);
     }
 
     private Result<Unit, ShieldFailure> PerformDhRatchet(bool isSender, byte[]? receivedDhPublicKeyBytes = null)
@@ -600,23 +597,16 @@ public sealed class ConnectSession : IDisposable
             if (isSender)
             {
                 if (_sendingStep == null)
-                {
                     return Result<Unit, ShieldFailure>.Err(
                         ShieldFailure.Generic("Sending step not initialized for DH ratchet."));
-                }
 
                 if (_peerDhPublicKey == null)
-                {
                     return Result<Unit, ShieldFailure>.Err(
                         ShieldFailure.Generic("Peer DH public key not available for sender DH ratchet."));
-                }
 
                 Result<(SodiumSecureMemoryHandle skHandle, byte[] pk), ShieldFailure> ephResult =
                     GenerateX25519KeyPair("Ephemeral DH Ratchet");
-                if (ephResult.IsErr)
-                {
-                    return Result<Unit, ShieldFailure>.Err(ephResult.UnwrapErr());
-                }
+                if (ephResult.IsErr) return Result<Unit, ShieldFailure>.Err(ephResult.UnwrapErr());
 
                 (newEphemeralSkHandle, newEphemeralPublicKey) = ephResult.Unwrap();
                 Debug.WriteLine(
@@ -636,17 +626,13 @@ public sealed class ConnectSession : IDisposable
             else
             {
                 if (_receivingStep == null)
-                {
                     return Result<Unit, ShieldFailure>.Err(
                         ShieldFailure.Generic("Receiving step not initialized for DH ratchet."));
-                }
 
                 if (receivedDhPublicKeyBytes is not { Length: Constants.X25519PublicKeySize })
-                {
                     return Result<Unit, ShieldFailure>.Err(
                         ShieldFailure.InvalidInput(
                             "Received DH public key is missing or invalid for receiver DH ratchet."));
-                }
 
                 Debug.WriteLine("[ShieldSession] Using current sending DH private key for receiver ratchet.");
                 dhResult = _currentSendingDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize)
@@ -747,38 +733,48 @@ public sealed class ConnectSession : IDisposable
         }
     }
 
-    internal Result<byte[], ShieldFailure> GenerateNextNonce() => CheckDisposed().Map(_ =>
+    internal Result<byte[], ShieldFailure> GenerateNextNonce()
     {
-        Span<byte> nonceBuffer = stackalloc byte[AesGcmNonceSize];
-        RandomNumberGenerator.Fill(nonceBuffer[..8]);
-        uint currentNonce = (uint)Interlocked.Increment(ref _nonceCounter) - 1;
-        BinaryPrimitives.WriteUInt32LittleEndian(nonceBuffer[8..], currentNonce);
-        byte[] nonce = nonceBuffer.ToArray();
-        Debug.WriteLine($"[ShieldSession] Generated nonce: {Convert.ToHexString(nonce)} for counter: {currentNonce}");
-        nonceBuffer.Clear();
-        return nonce;
-    });
+        return CheckDisposed().Map(_ =>
+        {
+            Span<byte> nonceBuffer = stackalloc byte[AesGcmNonceSize];
+            RandomNumberGenerator.Fill(nonceBuffer[..8]);
+            uint currentNonce = (uint)Interlocked.Increment(ref _nonceCounter) - 1;
+            BinaryPrimitives.WriteUInt32LittleEndian(nonceBuffer[8..], currentNonce);
+            byte[] nonce = nonceBuffer.ToArray();
+            Debug.WriteLine(
+                $"[ShieldSession] Generated nonce: {Convert.ToHexString(nonce)} for counter: {currentNonce}");
+            nonceBuffer.Clear();
+            return nonce;
+        });
+    }
 
-    public Result<byte[]?, ShieldFailure> GetCurrentPeerDhPublicKey() =>
-        CheckDisposed().Map(_ => _peerDhPublicKey != null ? (byte[])_peerDhPublicKey.Clone() : null);
-
-    public Result<byte[]?, ShieldFailure> GetCurrentSenderDhPublicKey() =>
-        CheckDisposed().Bind(_ => EnsureSendingStepInitialized()).Bind(step => step.ReadDhPublicKey());
-
-    private Result<Unit, ShieldFailure> EnsureNotExpired() => CheckDisposed().Bind(_ =>
+    public Result<byte[]?, ShieldFailure> GetCurrentPeerDhPublicKey()
     {
-        bool expired = DateTimeOffset.UtcNow - _createdAt > SessionTimeout;
-        Debug.WriteLine($"[ShieldSession] Checking expiration for session {_id}. Expired: {expired}");
-        return expired
-            ? Result<Unit, ShieldFailure>.Err(ShieldFailure.Generic($"Session {_id} has expired."))
-            : Result<Unit, ShieldFailure>.Ok(Unit.Value);
-    });
+        return CheckDisposed().Map(_ => _peerDhPublicKey != null ? (byte[])_peerDhPublicKey.Clone() : null);
+    }
+
+    public Result<byte[]?, ShieldFailure> GetCurrentSenderDhPublicKey()
+    {
+        return CheckDisposed().Bind(_ => EnsureSendingStepInitialized()).Bind(step => step.ReadDhPublicKey());
+    }
+
+    private Result<Unit, ShieldFailure> EnsureNotExpired()
+    {
+        return CheckDisposed().Bind(_ =>
+        {
+            bool expired = DateTimeOffset.UtcNow - _createdAt > SessionTimeout;
+            Debug.WriteLine($"[ShieldSession] Checking expiration for session {_id}. Expired: {expired}");
+            return expired
+                ? Result<Unit, ShieldFailure>.Err(ShieldFailure.Generic($"Session {_id} has expired."))
+                : Result<Unit, ShieldFailure>.Ok(Unit.Value);
+        });
+    }
 
     private void ClearMessageKeyCache()
     {
         Debug.WriteLine($"[ShieldSession] Clearing message key cache for session {_id}");
         foreach (KeyValuePair<uint, ShieldMessageKey> kvp in _messageKeys.ToList())
-        {
             try
             {
                 kvp.Value?.Dispose();
@@ -787,39 +783,30 @@ public sealed class ConnectSession : IDisposable
             {
                 Debug.WriteLine($"[ShieldSession] Message key {kvp.Key} already disposed.");
             }
-        }
 
         _messageKeys.Clear();
     }
 
-    private Result<Unit, ShieldFailure> CheckDisposed() =>
-        _disposed
+    private Result<Unit, ShieldFailure> CheckDisposed()
+    {
+        return _disposed
             ? Result<Unit, ShieldFailure>.Err(ShieldFailure.ObjectDisposed(nameof(ConnectSession)))
             : Result<Unit, ShieldFailure>.Ok(Unit.Value);
+    }
 
-    private static Result<Unit, ShieldFailure> WipeIfNotNull(byte[]? data) =>
-        data == null ? Result<Unit, ShieldFailure>.Ok(Unit.Value) : SodiumInterop.SecureWipe(data);
-
-    public void Dispose()
+    private static Result<Unit, ShieldFailure> WipeIfNotNull(byte[]? data)
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        return data == null ? Result<Unit, ShieldFailure>.Ok(Unit.Value) : SodiumInterop.SecureWipe(data);
     }
 
     private void Dispose(bool disposing)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         Debug.WriteLine($"[ShieldSession] Disposing session {_id}");
         _disposed = true;
 
-        if (disposing)
-        {
-            SecureCleanupLogic();
-        }
+        if (disposing) SecureCleanupLogic();
     }
 
     private void SecureCleanupLogic()

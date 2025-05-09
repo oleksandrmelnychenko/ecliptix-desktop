@@ -5,10 +5,9 @@ namespace Ecliptix.Core.Protocol;
 
 public sealed class ShieldMessageKey : IDisposable, IEquatable<ShieldMessageKey>
 {
-    public uint Index { get; }
+    private bool _disposed;
 
     private SodiumSecureMemoryHandle _keyHandle;
-    private bool _disposed;
 
     private ShieldMessageKey(uint index, SodiumSecureMemoryHandle keyHandle)
     {
@@ -17,21 +16,33 @@ public sealed class ShieldMessageKey : IDisposable, IEquatable<ShieldMessageKey>
         _disposed = false;
     }
 
+    public uint Index { get; }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    public bool Equals(ShieldMessageKey? other)
+    {
+        if (other is null) return false;
+        return
+            Index == other.Index &&
+            _disposed ==
+            other._disposed;
+    }
+
     public static Result<ShieldMessageKey, ShieldFailure> New(uint index, ReadOnlySpan<byte> keyMaterial)
     {
         if (keyMaterial.Length != Constants.X25519KeySize)
-        {
             return Result<ShieldMessageKey, ShieldFailure>.Err(
                 ShieldFailure.InvalidInput(
                     $"Key material must be exactly {Constants.X25519KeySize} bytes long, but was {keyMaterial.Length}."));
-        }
 
         Result<SodiumSecureMemoryHandle, ShieldFailure> allocateResult =
             SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
-        if (allocateResult.IsErr)
-        {
-            return Result<ShieldMessageKey, ShieldFailure>.Err(allocateResult.UnwrapErr());
-        }
+        if (allocateResult.IsErr) return Result<ShieldMessageKey, ShieldFailure>.Err(allocateResult.UnwrapErr());
 
         SodiumSecureMemoryHandle keyHandle = allocateResult.Unwrap();
 
@@ -59,12 +70,6 @@ public sealed class ShieldMessageKey : IDisposable, IEquatable<ShieldMessageKey>
         return _keyHandle.Read(destination[..Constants.X25519KeySize]);
     }
 
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     private void Dispose(bool disposing)
     {
         if (!_disposed)
@@ -84,20 +89,15 @@ public sealed class ShieldMessageKey : IDisposable, IEquatable<ShieldMessageKey>
         Dispose(false);
     }
 
-    public bool Equals(ShieldMessageKey? other)
+    public override bool Equals(object? obj)
     {
-        if (other is null) return false;
-        return
-            Index == other.Index &&
-            _disposed ==
-            other._disposed;
+        return obj is ShieldMessageKey other && Equals(other);
     }
 
-    public override bool Equals(object? obj) =>
-        obj is ShieldMessageKey other && Equals(other);
-
-    public override int GetHashCode() =>
-        Index.GetHashCode();
+    public override int GetHashCode()
+    {
+        return Index.GetHashCode();
+    }
 
     public static bool operator ==(ShieldMessageKey? left, ShieldMessageKey? right)
     {

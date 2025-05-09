@@ -6,11 +6,12 @@ using Ecliptix.Core.Protocol.Utilities;
 
 // For Constants, ShieldChainStepException
 
-namespace Ecliptix.Core.Protocol; // Or your preferred namespace
+namespace Ecliptix.Core.Protocol;
+// Or your preferred namespace
 
 /// <summary>
-/// Provides AES-256-GCM authenticated encryption and decryption services using the built-in .NET API.
-/// WARNING: Nonce uniqueness per key is CRITICAL for AES-GCM security.
+///     Provides AES-256-GCM authenticated encryption and decryption services using the built-in .NET API.
+///     WARNING: Nonce uniqueness per key is CRITICAL for AES-GCM security.
 /// </summary>
 public static class AesGcmService
 {
@@ -23,7 +24,7 @@ public static class AesGcmService
 
 
     /// <summary>
-    /// Encrypts plaintext using AES-256-GCM.
+    ///     Encrypts plaintext using AES-256-GCM.
     /// </summary>
     /// <param name="key">The 32-byte AES key.</param>
     /// <param name="nonce">The 12-byte nonce (MUST be unique per key).</param>
@@ -31,7 +32,10 @@ public static class AesGcmService
     /// <param name="ciphertextDestination">The buffer to write the ciphertext to. Must be >= plaintext.Length.</param>
     /// <param name="tagDestination">The buffer to write the 16-byte authentication tag to.</param>
     /// <param name="associatedData">Optional associated data (can be ReadOnlySpan<byte>.Empty).</param>
-    /// <exception cref="ArgumentNullException">Thrown if key, nonce, plaintext, ciphertextDestination, or tagDestination is implicitly null via default span.</exception>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown if key, nonce, plaintext, ciphertextDestination, or tagDestination is
+    ///     implicitly null via default span.
+    /// </exception>
     /// <exception cref="ArgumentException">Thrown for invalid key/nonce/tag lengths or if ciphertextDestination is too small.</exception>
     /// <exception cref="CryptographicException">Thrown for other cryptographic errors during encryption.</exception>
     /// <exception cref="ShieldChainStepException">Wrapped cryptographic exceptions.</exception>
@@ -60,14 +64,14 @@ public static class AesGcmService
         {
             throw new ShieldChainStepException(ErrEncryptFail, cryptoEx);
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             throw new ShieldChainStepException(ErrEncryptFail, ex);
         }
     }
 
     /// <summary>
-    /// Decrypts ciphertext using AES-256-GCM and verifies the authentication tag.
+    ///     Decrypts ciphertext using AES-256-GCM and verifies the authentication tag.
     /// </summary>
     /// <param name="key">The 32-byte AES key.</param>
     /// <param name="nonce">The 12-byte nonce used during encryption.</param>
@@ -104,11 +108,11 @@ public static class AesGcmService
         {
             throw new ShieldChainStepException(ErrDecryptFail, authEx);
         }
-        catch (CryptographicException cryptoEx) 
+        catch (CryptographicException cryptoEx)
         {
-            throw new ShieldChainStepException(ErrDecryptFail, cryptoEx); 
+            throw new ShieldChainStepException(ErrDecryptFail, cryptoEx);
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             throw new ShieldChainStepException(ErrDecryptFail, ex);
         }
@@ -118,8 +122,8 @@ public static class AesGcmService
     // --- Convenience methods returning byte[] (less performant due to allocations) ---
 
     /// <summary>
-    /// Encrypts plaintext using AES-256-GCM, allocating and returning ciphertext and tag.
-    /// Less performant than the Span-based overload due to allocations.
+    ///     Encrypts plaintext using AES-256-GCM, allocating and returning ciphertext and tag.
+    ///     Less performant than the Span-based overload due to allocations.
     /// </summary>
     /// <returns>A tuple containing the ciphertext and the tag.</returns>
     public static (byte[] Ciphertext, byte[] Tag) EncryptAllocating(
@@ -135,8 +139,8 @@ public static class AesGcmService
     }
 
     /// <summary>
-    /// Decrypts ciphertext using AES-256-GCM, allocating and returning plaintext.
-    /// Less performant than the Span-based overload due to allocations.
+    ///     Decrypts ciphertext using AES-256-GCM, allocating and returning plaintext.
+    ///     Less performant than the Span-based overload due to allocations.
     /// </summary>
     /// <returns>The decrypted plaintext.</returns>
     public static byte[] DecryptAllocating(

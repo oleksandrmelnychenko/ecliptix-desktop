@@ -29,12 +29,8 @@ public class MembershipViewFactory
             {
                 MembershipViewType.ForgotPassword,
                 () => new ForgotPasswordView()
-            },
+            }
         };
-
-    public MembershipViewFactory()
-    {
-    }
 
     public UserControl Create(MembershipViewType type)
     {
