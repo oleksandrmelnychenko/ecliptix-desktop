@@ -52,7 +52,15 @@ public partial class HintedTextBox : UserControl
 
     public static readonly StyledProperty<ValidationType> ValidationTypeProperty =
         AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType), ValidationType.None);
-    
+    public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
+
+    public IBrush MainBorderBrush
+    {
+        get => GetValue(MainBorderBrushProperty);
+        set => SetValue(MainBorderBrushProperty, value);
+    }
     
     public ValidationType ValidationType
     {
@@ -238,7 +246,8 @@ public partial class HintedTextBox : UserControl
         {
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#6a5acd"));
             _focusBorder.Opacity = 0;
-            _mainBorder.BorderBrush = new SolidColorBrush(Color.Parse("#808080"));
+            // Use the new custom property for the main border brush.
+            _mainBorder.BorderBrush = MainBorderBrush;
         }
     }
 
