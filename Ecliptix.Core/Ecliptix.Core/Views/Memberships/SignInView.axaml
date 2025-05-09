@@ -29,7 +29,10 @@
                     BorderBrush="#FFE8E8E8"
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
-                    IconSource="/Assets/lamp.svg" />
+                    IconSource="/Assets/lamp.svg"
+                    ValidationType="PhoneNumber"
+                    MainBorderBrush="LightGray"
+                    />
                 <controls:HintedTextBox
                     x:Name="PasswordTextBox"
                     Watermark="Password"
@@ -39,7 +42,9 @@
                     Margin="0,0,0,10"
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
-                    IconSource="/Assets/lamp.svg" />
+                    IconSource="/Assets/lamp.svg"
+                    ValidationType="Password"
+                    MainBorderBrush="LightGray"/>
                 <Button
                     Classes="SubmitButton"
                     Content="Sign in"

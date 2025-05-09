@@ -25,7 +25,7 @@
             x:Name="MainBorder"
             Margin="1"
             BorderThickness="1"
-            BorderBrush="Gray"
+            BorderBrush="{Binding MainBorderBrush, ElementName=control}"
             CornerRadius="4"
             MinHeight="64">
             <Border.Transitions>
