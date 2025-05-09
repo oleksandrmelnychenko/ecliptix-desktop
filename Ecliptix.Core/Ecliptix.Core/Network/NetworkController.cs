@@ -136,7 +136,7 @@ public sealed class NetworkController
             peerPubKeyExchange =>
             {
                 protocolSystem.CompleteDataCenterPubKeyExchange(connectId, pubKeyExchangeType, peerPubKeyExchange);
-                //MessageBus.Current
+                MessageBus.Current.SendMessage(new KeyExchangeCompletedEvent());
             });
 
         await _networkServiceManager.BeginDataCenterPublicKeyExchange(action);

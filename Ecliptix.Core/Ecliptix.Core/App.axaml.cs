@@ -11,27 +11,49 @@ using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Memberships;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Google.Protobuf;
 using ReactiveUI;
 using Splat;
 
 namespace Ecliptix.Core;
 
-public record KeyExchangeCompletedMessage;
+public record KeyExchangeCompletedEvent;
 
 public partial class App : Application
 {
     private readonly CompositeDisposable _disposables = new();
-    
+
     private readonly NetworkController _networkController;
-    
+
+    private const int DefaultOneTimeKeyCount = 10;
+
     public App()
     {
         _networkController = Locator.Current.GetService<NetworkController>()!;
-        
-        uint connectId = CreateEcliptixConnectionContext();
 
-        MessageBus.Current.Listen<KeyExchangeCompletedMessage>().Subscribe(message => { })
+        (uint connectId, AppDevice appDevice) = CreateEcliptixConnectionContext();
+
+        MessageBus.Current.Listen<KeyExchangeCompletedEvent>()
+            .Subscribe(_ =>
+            {
+                Task.Run(async () =>
+                {
+                    await _networkController.ExecuteServiceAction(
+                        connectId, RcpServiceAction.RegisterAppDeviceIfNotExist,
+                        appDevice.ToByteArray(), ServiceFlowType.Single,
+                        async decryptedPayload =>
+                        {
+                            AppDeviceRegisteredStateReply reply =
+                                Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
+
+                            Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
+
+                            return Result<Unit, ShieldFailure>.Ok(Unit.Value);
+                        });
+                });
+            })
             .DisposeWith(_disposables);
 
         Task.Run(async () =>
@@ -44,17 +66,26 @@ public partial class App : Application
             }
         }).Wait();
     }
-    
-    private uint CreateEcliptixConnectionContext()
+
+    private (uint, AppDevice) CreateEcliptixConnectionContext()
     {
         AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+        AppDevice appDevice = new()
+        {
+            AppInstanceId = Utilities.GuidToByteString(appInstanceInfo.AppInstanceId),
+            DeviceId = Utilities.GuidToByteString(appInstanceInfo.DeviceId),
+            DeviceType = AppDevice.Types.DeviceType.Desktop
+        };
 
-        uint connectId = ServiceUtilities.ComputeUniqueConnectId(
+        uint connectId = Utilities.ComputeUniqueConnectId(
             appInstanceInfo.AppInstanceId,
-            appInstanceInfo.DeviceId, PubKeyExchangeType.DataCenterEphemeralConnect);
+            appInstanceInfo.DeviceId,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        _networkController.CreateEcliptixConnectionContext(connectId, 100, PubKeyExchangeType.DataCenterEphemeralConnect);
-        return connectId;
+        _networkController.CreateEcliptixConnectionContext(connectId, DefaultOneTimeKeyCount,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        return (connectId, appDevice);
     }
 
     public override void Initialize()

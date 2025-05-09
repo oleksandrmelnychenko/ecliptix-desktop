@@ -29,7 +29,7 @@ public class ServiceRequest
     public static ServiceRequest New(ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)
     {
-        uint reqId = ServiceUtilities.GenerateRandomUInt32InRange(0, uint.MaxValue);
+        uint reqId = Utilities.GenerateRandomUInt32InRange(10, uint.MaxValue);
         return new ServiceRequest(reqId, actionType, rcpServiceMethod, payload, encryptedChunks);
     }
 

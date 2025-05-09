@@ -8,7 +8,7 @@ using Google.Protobuf;
 
 namespace Ecliptix.Core.Network;
 
-public static class ServiceUtilities
+public static class Utilities
 {
     private const string InvalidPayloadDataLengthMessage = "Invalid payload data length.";
 

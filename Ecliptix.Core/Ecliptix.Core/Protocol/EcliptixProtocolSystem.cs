@@ -191,10 +191,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
     }
 
-    public void CompleteDataCenterPubKeyExchange(uint sessionId, PubKeyExchangeType exchangeType,
+    public void CompleteDataCenterPubKeyExchange(uint connectId, PubKeyExchangeType exchangeType,
         PubKeyExchange peerMessage)
     {
-        Debug.WriteLine($"[ShieldPro] Completing exchange for session {sessionId} ({exchangeType}).");
+        Debug.WriteLine($"[ShieldPro] Completing exchange for session {connectId} ({exchangeType}).");
 
         PublicKeyBundle peerBundleProto = Helpers.ParseFromBytes<PublicKeyBundle>(peerMessage.Payload.ToByteArray());
         Result<LocalPublicKeyBundle, ShieldFailure> peerBundleResult =

@@ -36,7 +36,7 @@ public class PubKeyExchangeActionInvokable
         PubKeyExchange pubKeyExchange,
         Action<PubKeyExchange>? callback = null)
     {
-        uint reqId = ServiceUtilities.GenerateRandomUInt32();
+        uint reqId = Utilities.GenerateRandomUInt32();
         return new PubKeyExchangeActionInvokable(reqId, jobType, method, pubKeyExchange, callback);
     }
 
