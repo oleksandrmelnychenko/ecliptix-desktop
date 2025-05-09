@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Google.Protobuf;
 
@@ -38,6 +39,15 @@ public static class ServiceUtilities
 
         return new Guid(bytes);
     }
+    
+    public static uint GenerateRandomUInt32InRange(uint min, uint max)
+    {
+        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
+        byte[] bytes = new byte[4];
+        rng.GetBytes(bytes);
+        uint value = BitConverter.ToUInt32(bytes, 0);
+        return min + value % (max - min + 1);
+    }
 
     public static async Task<byte[]> ExtractCipherPayload(ByteString requestedEncryptedPayload, string connectionId,
         Func<byte[], string, int, Task<byte[]>> decryptPayloadFun)
@@ -46,33 +56,17 @@ public static class ServiceUtilities
         return await decryptPayloadFun(encryptedPayload, connectionId, 0);
     }
 
-    /*public static async Task ProcessSingleCallRequest(Func<string, string, Task> func, ServerCallContext context)
-    {
-        try
-        {
-            string appDeviceId = GrpcMetadataHandler.GetAppDeviceId(context.RequestHeaders);
-            string connectionContextId = GrpcMetadataHandler.GetConnectionContextId(context.RequestHeaders);
-            var operationContextId = GrpcMetadataHandler.GetOperationContextId(context.RequestHeaders);
-
-            await func(appDeviceId, connectionContextId);
-        }
-        catch (RpcException exc)
-        {
-            context.Status = exc.StatusCode == StatusCode.PermissionDenied
-                ? new Status(StatusCode.PermissionDenied, exc.Message)
-                : new Status(StatusCode.InvalidArgument, exc.Message);
-            throw new RpcException(context.Status);
-        }
-        catch (Exception exc)
-        {
-            context.Status = new Status(StatusCode.InvalidArgument, exc.Message);
-            throw new RpcException(context.Status);
-        }
-    }*/
-
     public static T ParseFromBytes<T>(byte[] data) where T : IMessage<T>, new()
     {
         MessageParser<T> parser = new(() => new T());
         return parser.ParseFrom(data);
+    }
+    
+    public static uint GenerateRandomUInt32()
+    {
+        using var rng = RandomNumberGenerator.Create();
+        byte[] bytes = new byte[4];
+        rng.GetBytes(bytes);
+        return BitConverter.ToUInt32(bytes, 0);
     }
 }

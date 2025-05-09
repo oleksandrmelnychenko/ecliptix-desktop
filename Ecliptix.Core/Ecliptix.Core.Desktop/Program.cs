@@ -6,6 +6,8 @@ using Avalonia.ReactiveUI;
 using Ecliptix.Core;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Protobuf.VerificationServices;
+using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Memberships;
@@ -57,7 +59,7 @@ internal sealed class Program
         services.AddTransient<SignInViewModel>();
         services.AddTransient<SignUpHostViewModel>();
         services.AddTransient<VerifyMobileViewModel>();
-        
+
         services.AddLogging(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
 
         services.AddHttpClient();
@@ -67,7 +69,7 @@ internal sealed class Program
             AppSettings settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
             ApplicationController applicationController = provider.GetRequiredService<ApplicationController>();
             bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
-            
+
             string endpointUrl = isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl;
             if (string.IsNullOrEmpty(endpointUrl))
             {
@@ -81,17 +83,45 @@ internal sealed class Program
 
             Interceptor[] interceptors =
             [
-                new RequestMetaDataInterceptor(applicationController.AppInstanceId,applicationController.DeviceId)
+                new RequestMetaDataInterceptor(applicationController.AppInstanceId, applicationController.DeviceId)
             ];
 
             CallInvoker interceptedChannel = channel.Intercept(interceptors);
-            return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
+            return new Func<Type, object>(clientType =>
+            {
+                if (clientType == typeof(AppDeviceServiceActions.AppDeviceServiceActionsClient))
+                {
+                    return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
+                }
+
+                if (clientType == typeof(VerificationServiceActions.VerificationServiceActionsClient))
+                {
+                    return new VerificationServiceActions.VerificationServiceActionsClient(interceptedChannel);
+                }
+
+                throw new InvalidOperationException($"Unsupported client type: {clientType}");
+            });
         });
 
-        services.AddTransient<MainViewModel>();
-       
-        services.AddSingleton<ILogManager>(new DefaultLogManager());
+        services.AddSingleton(provider =>
+            provider.GetRequiredService<Func<Type, object>>()(
+                    typeof(AppDeviceServiceActions.AppDeviceServiceActionsClient))
+                as AppDeviceServiceActions.AppDeviceServiceActionsClient);
+        services.AddSingleton(provider =>
+            provider.GetRequiredService<Func<Type, object>>()(
+                    typeof(VerificationServiceActions.VerificationServiceActionsClient))
+                as VerificationServiceActions.VerificationServiceActionsClient);
 
+        services.AddTransient<MainViewModel>();
+
+        services.AddSingleton<ILogManager>(new DefaultLogManager());
+        services.AddSingleton<NetworkController>();
+        services.AddSingleton<NetworkServiceManager>();
+        
+        services.AddSingleton<SingleCallExecutor>();
+        services.AddSingleton<ReceiveStreamExecutor>();
+        services.AddSingleton<KeyExchangeExecutor>();
+        
         Services = services.BuildServiceProvider();
         Locator.CurrentMutable.RegisterConstant(Services, typeof(IServiceProvider));
 
