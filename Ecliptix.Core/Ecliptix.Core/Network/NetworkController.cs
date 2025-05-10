@@ -68,7 +68,7 @@ public sealed class NetworkController(NetworkServiceManager networkServiceManage
                 break;
 
             case RpcFlow.InboundStream inboundStream:
-                await foreach (Result<CipherPayload, ShieldFailure> streamItem in inboundStream.Stream)
+                await foreach (Result<CipherPayload, ShieldFailure> streamItem in inboundStream.Stream.WithCancellation(token))
                 {
                     if (streamItem.IsErr)
                     {
@@ -92,7 +92,7 @@ public sealed class NetworkController(NetworkServiceManager networkServiceManage
                     ShieldFailure.Generic("Unsupported stream type"));
         }
 
-        return Result<Unit, ShieldFailure>.Ok(new Unit());
+        return Result<Unit, ShieldFailure>.Ok(Unit.Value);
     }
 
     public async Task<Result<Unit, ShieldFailure>> DataCenterPubKeyExchange(

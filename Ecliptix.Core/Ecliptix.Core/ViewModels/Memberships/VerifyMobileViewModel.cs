@@ -25,7 +25,14 @@ public class VerifyMobileViewModel : ViewModelBase
     private bool _isVerifying;
     private string _mobile = "+380970177443";
     private string _verificationStatus = string.Empty;
+    private string _remainingTime = "01:00"; // Initial value
 
+    public string RemainingTime
+    {
+        get => _remainingTime;
+        private set => this.RaiseAndSetIfChanged(ref _remainingTime, value);
+    }
+    
     public VerifyMobileViewModel(NetworkController networkController)
     {
         IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.Mobile)
@@ -58,7 +65,7 @@ public class VerifyMobileViewModel : ViewModelBase
                     payload =>
                     {
                         TimerTick timerTick = Network.Utilities.ParseFromBytes<TimerTick>(payload);
-
+                        RemainingTime = FormatRemainingTime(timerTick.RemainingSeconds);
                         return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
                     }, cancellationToken.Token
                 );
@@ -77,6 +84,12 @@ public class VerifyMobileViewModel : ViewModelBase
         // ResendCodeCommand (unchanged)
         ResendCodeCommand = ReactiveCommand.Create(() => { Console.WriteLine("Resend code requested."); },
             Observable.Return(true));
+    }
+    
+    private string FormatRemainingTime(ulong seconds)
+    {
+        TimeSpan time = TimeSpan.FromSeconds(seconds);
+        return time.ToString(@"mm\:ss");
     }
 
     public string Mobile
