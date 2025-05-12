@@ -54,9 +54,10 @@
                                 HorizontalAlignment="Stretch"
                                 VerticalContentAlignment="Center"
                                 FontSize="14"
-                                MinHeight="0"
+                                MinHeight="32"
                                 MinWidth="32"
-                                Height="32" />
+                                TextWrapping="{Binding TextWrapping, ElementName=control}"
+                                />
                         </Grid>
                     </Grid>
 
@@ -86,7 +87,8 @@
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
                                    FontSize="12"
-                                   IsHitTestVisible="False" />
+                                   IsHitTestVisible="False"
+                                   />
                     </StackPanel>
 
                 </Grid>
@@ -126,4 +128,7 @@
 
         </Border>
     </Grid>
+    
+   
+   
 </UserControl>

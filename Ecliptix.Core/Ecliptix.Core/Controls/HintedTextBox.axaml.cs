@@ -57,6 +57,17 @@ public partial class HintedTextBox : UserControl
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
 
+    public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
+        AvaloniaProperty.Register<HintedTextBox, TextWrapping>(
+            nameof(TextWrapping),
+            TextWrapping.NoWrap);
+
+    public TextWrapping TextWrapping
+    {
+        get => GetValue(TextWrappingProperty);
+        set => SetValue(TextWrappingProperty, value);
+    }
+    
     private readonly CompositeDisposable _disposables = new();
     private Border? _focusBorder;
     private bool _isDirty;
