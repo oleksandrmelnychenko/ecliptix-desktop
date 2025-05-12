@@ -9,12 +9,6 @@
              x:DataType="memberships:SignInViewModel">
 
     <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
-        <!--<Border.Effect>
-            <DropShadowEffect OffsetX="0"
-                              OffsetY="0"
-                              BlurRadius="15"
-                              Color="#20000000" />
-        </Border.Effect>-->
         <StackPanel VerticalAlignment="Center">
             <TextBlock Text="Sign in into account" FontSize="24" FontWeight="Bold" Foreground="Black" />
             <TextBlock Text="Sign in to join conversation." FontSize="14" Margin="0,4,0,10" Foreground="Black" />
@@ -44,29 +38,9 @@
                     IconSource="/Assets/lamp.svg"
                     ValidationType="Password"
                     MainBorderBrush="LightGray" />
-                <Button
-                    Classes="SubmitButton"
-                    Content="Sign in"
-                    Height="45"
-                    Foreground="White"
-                    HorizontalAlignment="Stretch"
-                    CornerRadius="6"
-                    FontSize="15"
-                    Command="{Binding SignInCommand}">
-                    <Button.Styles>
-                        <Style Selector="Button.SubmitButton">
-                            <Setter Property="Background" Value="#6a5acd" />
-                            <Setter Property="Transitions">
-                                <Transitions>
-                                    <BrushTransition Property="Background" Duration="0:0:0.1" />
-                                </Transitions>
-                            </Setter>
-                        </Style>
-                        <Style Selector="Button.SubmitButton:pointerover">
-                            <Setter Property="Background" Value="#0a1c2b" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
+                <Button Classes="SubmitButton"
+                        Content="Sign in"
+                        Command="{Binding SignInCommand}" />
             </StackPanel>
         </StackPanel>
     </Border>

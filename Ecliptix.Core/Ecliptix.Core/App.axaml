@@ -1,8 +1,15 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Ecliptix.Core.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Light">
     <Application.Styles>
         <SimpleTheme />
+        <StyleInclude Source="/Styles/Buttons.axaml" />
+        
     </Application.Styles>
+   <Application.Resources>
+       <SolidColorBrush x:Key="PrimaryButtonColorBrush">#4e37d6</SolidColorBrush>
+       <SolidColorBrush x:Key="PrimaryHoverButtonColorBrush">#0a1c2b</SolidColorBrush>
+       <SolidColorBrush x:Key="PrimaryButtonForeground">#FFFFFF</SolidColorBrush>
+   </Application.Resources>
 </Application>

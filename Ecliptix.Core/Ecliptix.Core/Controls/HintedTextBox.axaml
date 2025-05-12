@@ -8,11 +8,12 @@
     <Grid>
         <Border
             x:Name="FocusBorder"
-            BorderThickness="1"
+            BorderThickness="2"
             BorderBrush="#6a5acd"
             Background="Transparent"
             CornerRadius="15"
-            Opacity="0">
+            Opacity="0"
+            >
             <Border.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
@@ -27,7 +28,8 @@
             BorderThickness="1"
             BorderBrush="{Binding MainBorderBrush, ElementName=control}"
             CornerRadius="15"
-            MinHeight="64">
+            MinHeight="64"
+            Background="White">
             <Border.Transitions>
                 <Transitions>
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
@@ -71,12 +73,13 @@
                              Width="12"
                              VerticalAlignment="Center"
                              HorizontalAlignment="Center"
-                             Margin="0,0,5,0">
-                            <Svg.Styles>
-                                <Style Selector="Path">
-                                    <Setter Property="Fill" Value="#6a5acd" />
-                                </Style>
-                            </Svg.Styles>
+                             Margin="0,0,5,0"
+                             Css=".Purple { fill: #6a5acd; }">
+                            <!-- <Svg.Styles> -->
+                            <!--     <Style Selector="Path"> -->
+                            <!--         <Setter Property="Fill" Value="#6a5acd" /> -->
+                            <!--     </Style> -->
+                            <!-- </Svg.Styles> -->
                         </Svg>
 
                         <TextBlock x:Name="HintTextBlock"

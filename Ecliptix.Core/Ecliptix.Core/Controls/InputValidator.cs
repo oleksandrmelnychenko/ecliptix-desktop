@@ -26,8 +26,9 @@ public static class InputValidator
         if (!Regex.IsMatch(input, @"^\+\d+$"))
             return "Digits only";
 
-        if (input.Length < 11 || input.Length > 16)
-            return "Length 11–16";
+        if (input.Length < 8 || input.Length > 16)
+            return "Length 7–15";
+        
 
         return null; // Valid
     }

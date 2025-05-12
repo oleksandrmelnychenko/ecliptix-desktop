@@ -94,4 +94,8 @@
         </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+      <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />
+    </ItemGroup>
+
 </Project>

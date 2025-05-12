@@ -15,7 +15,6 @@
             <StackPanel Spacing="10" MinWidth="350">
                 <controls:HintedTextBox
                     x:Name="MobileTextBox"
-                    Background="#FFFFFF"
                     Watermark="Mobile"
                     Hint="Include country code."
                     Text="{Binding Mobile, Mode=TwoWay}"
@@ -24,31 +23,13 @@
                     BorderBrush="#E0E0E0"
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
-                    IconSource="/Assets/lamp.svg" />
+                    IconSource="/Assets/lamp.svg"
+                    ValidationType="PhoneNumber"/>
 
                 <Button
                     Classes="SubmitButton"
                     Content="Sign in"
-                    Height="45"
-                    Foreground="White"
-                    HorizontalAlignment="Stretch"
-                    CornerRadius="6"
-                    FontSize="15"
-                    Command="{Binding VerifyMobileCommand}">
-                    <Button.Styles>
-                        <Style Selector="Button.SubmitButton">
-                            <Setter Property="Background" Value="#6a5acd" />
-                            <Setter Property="Transitions">
-                                <Transitions>
-                                    <BrushTransition Property="Background" Duration="0:0:0.1" />
-                                </Transitions>
-                            </Setter>
-                        </Style>
-                        <Style Selector="Button.SubmitButton:pointerover">
-                            <Setter Property="Background" Value="#0a1c2b" />
-                        </Style>
-                    </Button.Styles>
-                </Button>
+                    Command="{Binding VerifyMobileCommand}"/>
             </StackPanel>
         </StackPanel>
     </Border>
