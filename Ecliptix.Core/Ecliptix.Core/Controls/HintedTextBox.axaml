@@ -8,10 +8,10 @@
     <Grid>
         <Border
             x:Name="FocusBorder"
-            BorderThickness="2"
+            BorderThickness="1"
             BorderBrush="#6a5acd"
             Background="Transparent"
-            CornerRadius="4"
+            CornerRadius="15"
             Opacity="0">
             <Border.Transitions>
                 <Transitions>
@@ -26,7 +26,7 @@
             Margin="1"
             BorderThickness="1"
             BorderBrush="{Binding MainBorderBrush, ElementName=control}"
-            CornerRadius="4"
+            CornerRadius="15"
             MinHeight="64">
             <Border.Transitions>
                 <Transitions>

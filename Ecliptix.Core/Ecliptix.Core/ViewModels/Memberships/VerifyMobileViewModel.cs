@@ -72,7 +72,6 @@ public class VerifyMobileViewModel : ViewModelBase
             },
             isMobileValid);
 
-        // Update ErrorMessage reactively based on Mobile validity
         isMobileValid
             .Where(_ => !IsVerifying)
             .Select(isValid =>
@@ -81,7 +80,6 @@ public class VerifyMobileViewModel : ViewModelBase
                     : "Invalid format. Use +countrycode followed by number (e.g., +12025550123).")
             .Subscribe(error => ErrorMessage = error);
 
-        // ResendCodeCommand (unchanged)
         ResendCodeCommand = ReactiveCommand.Create(() => { Console.WriteLine("Resend code requested."); },
             Observable.Return(true));
     }

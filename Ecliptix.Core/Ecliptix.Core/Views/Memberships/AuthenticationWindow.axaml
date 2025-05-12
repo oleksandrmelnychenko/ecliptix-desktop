@@ -3,7 +3,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
-        xmlns:data="clr-namespace:Ecliptix.Core.Data"
         xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
         xmlns:views="clr-namespace:Ecliptix.Core.Views"
         mc:Ignorable="d"
@@ -36,7 +35,7 @@
             Padding="0"
             BorderThickness="1"
             BorderBrush="#FFE8E8E8"
-            Background="#FFFAFAFA"
+            Background="#F5F5F5"
             Margin="8">
         <Border.Effect>
             <DropShadowEffect BlurRadius="10"
