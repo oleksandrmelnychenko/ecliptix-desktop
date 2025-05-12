@@ -60,7 +60,9 @@ internal sealed class Program
         services.AddTransient<SignInViewModel>();
         services.AddTransient<SignUpHostViewModel>();
         services.AddTransient<VerifyMobileViewModel>();
-
+        services.AddTransient<ApplyVerificationCodeViewModel>();
+        
+        
         services.AddLogging(builder => builder.AddSerilog(new LoggerConfiguration()
             .MinimumLevel.Information()
             .WriteTo.File("logs/app.log")

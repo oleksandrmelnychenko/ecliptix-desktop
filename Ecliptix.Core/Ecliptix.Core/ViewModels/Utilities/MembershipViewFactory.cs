@@ -27,6 +27,10 @@ public class MembershipViewFactory
                 () => new VerifyMobileView(Locator.Current.GetService<VerifyMobileViewModel>()!)
             },
             {
+                MembershipViewType.VerifyCode,
+                () => new ApplyVerificationCodeView(Locator.Current.GetService<ApplyVerificationCodeViewModel>()!)
+            },
+            {
                 MembershipViewType.ForgotPassword,
                 () => new ForgotPasswordView()
             }

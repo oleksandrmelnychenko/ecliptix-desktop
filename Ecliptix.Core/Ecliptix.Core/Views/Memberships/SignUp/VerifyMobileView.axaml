@@ -25,9 +25,7 @@
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
                     IconSource="/Assets/lamp.svg" />
-                
-                <TextBlock Text="{Binding RemainingTime}" />
-                
+
                 <Button
                     Classes="SubmitButton"
                     Content="Sign in"

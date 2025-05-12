@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="memberships:ApplyVerificationCodeViewModel"
+             x:Class="Ecliptix.Core.Views.Memberships.SignUp.ApplyVerificationCodeView">
+    <StackPanel Orientation="Vertical" Spacing="10" Margin="20">
+        <TextBlock Text="Enter the 6-digit verification code sent to your email." />
+        <TextBox Text="{Binding VerificationCode, UpdateSourceTrigger=PropertyChanged}"
+                 Watermark="######"
+                 MaxLength="6" />
+        <TextBlock Text="{Binding RemainingTime}" />
+      
+        <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" />
+        <TextBlock Text="{Binding ErrorMessage}"
+                   Foreground="Red"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}" />
+        <!--<Button Content="Verify"
+                Command="{Binding SendCommand}"
+                IsEnabled="{Binding SendCommand.CanExecute}" />-->
+    </StackPanel>
+</UserControl>
