@@ -5,6 +5,48 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.HintedTextBox"
              x:Name="control">
+    
+    <UserControl.Styles>
+        <!-- Vertical ScrollBar -->
+        <Style Selector="TextBox#MainTextBox ScrollBar:vertical">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="0"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid>
+                        <!-- Transparent track background -->
+                        <Border Name="TrackBackground" Background="Black"/>
+
+                        <!-- Visible thumb area -->
+                        <Track Name="PART_Track"
+                               IsDirectionReversed="True"
+                               Margin="0,3,0,3"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                        >
+                            <Track.Thumb>
+                                <Thumb Name="PART_Thumb"
+                                       MinHeight="10"
+                                       MaxHeight="20"
+                                       Width="12"
+                                       Background="Red"
+                                       CornerRadius="2">
+                                    <Thumb.Styles>
+                                        <Style Selector="Thumb:hover">
+                                            <Setter Property="Background" Value="#CC0000"/>
+                                        </Style>
+                                    </Thumb.Styles>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+    
     <Grid>
         <Border
             x:Name="FocusBorder"
@@ -50,6 +92,7 @@
                                 Background="Transparent"
                                 BorderThickness="0"
                                 Padding="0"
+                                Margin="0 0 10 0"
                                 VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
                                 VerticalContentAlignment="Center"
@@ -57,6 +100,7 @@
                                 MinHeight="32"
                                 MinWidth="32"
                                 TextWrapping="{Binding TextWrapping, ElementName=control}"
+                                
                                 />
                         </Grid>
                     </Grid>
@@ -129,6 +173,6 @@
         </Border>
     </Grid>
     
-   
+    
    
 </UserControl>
