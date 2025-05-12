@@ -15,8 +15,7 @@
       
         <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" />
         <TextBlock Text="{Binding ErrorMessage}"
-                   Foreground="Red"
-                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}" />
+                   Foreground="Red" />
         <!--<Button Content="Verify"
                 Command="{Binding SendCommand}"
                 IsEnabled="{Binding SendCommand.CanExecute}" />-->
