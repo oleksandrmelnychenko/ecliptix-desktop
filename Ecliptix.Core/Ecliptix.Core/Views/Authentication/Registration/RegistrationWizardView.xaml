@@ -3,8 +3,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              mc:Ignorable="d"
-             x:DataType="memberships:SignUpHostViewModel"
-             x:Class="Ecliptix.Core.Views.Authentication.SignUp.RegistrationHostView">
+             x:DataType="registration:RegistrationWizardViewModel"
+             x:Class="Ecliptix.Core.Views.Authentication.Registration.RegistrationWizardView">
     <ContentControl Content="{Binding CurrentView}" />
 </UserControl>

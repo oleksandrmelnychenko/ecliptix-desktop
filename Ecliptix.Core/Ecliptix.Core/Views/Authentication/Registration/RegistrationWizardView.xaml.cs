@@ -4,7 +4,7 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 
 namespace Ecliptix.Core.Views.Authentication.Registration;
 
-public class RegistrationWizardView : UserControl
+public partial class RegistrationWizardView : UserControl
 {
     public RegistrationWizardView(RegistrationWizardViewModel viewModel)
     {

@@ -8,7 +8,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class RegistrationWizardViewModel : ViewModelBase
+public  class RegistrationWizardViewModel : ViewModelBase
 {
     private UserControl? _currentView;
 

@@ -4,9 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="memberships:VerifyMobileViewModel"
-             x:Class="Ecliptix.Core.Views.Authentication.SignUp.VerifyPhoneNumberView">
+             x:DataType="registration:PhoneVerificationViewModel"
+             x:Class="Ecliptix.Core.Views.Authentication.Registration.PhoneVerificationView">
     <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
         <StackPanel VerticalAlignment="Center">
             <TextBlock Text="Mobile number verification" FontSize="24" FontWeight="Light" Foreground="#333333" />

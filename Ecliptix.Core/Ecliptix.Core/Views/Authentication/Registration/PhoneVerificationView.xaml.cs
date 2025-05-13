@@ -4,7 +4,7 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 
 namespace Ecliptix.Core.Views.Authentication.Registration;
 
-public class PhoneVerificationView : UserControl
+public partial class PhoneVerificationView : UserControl
 {
     public PhoneVerificationView(PhoneVerificationViewModel viewModel)
     {

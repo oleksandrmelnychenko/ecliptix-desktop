@@ -37,7 +37,7 @@ public sealed class Program
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-        serviceProvider.UseMicrosoftDependencyResolver();
+        //serviceProvider.UseMicrosoftDependencyResolver();
 
         BuildAvaloniaApp()
             .UseReactiveUI() 

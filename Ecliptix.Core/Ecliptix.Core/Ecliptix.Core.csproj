@@ -17,6 +17,10 @@
         <AvaloniaResource Include="Assets\**"/>
         <None Remove="Fonts\suisse-intl-regular.ttf"/>
         <None Remove="Fonts\suisseintl-bold.otf"/>
+        <None Remove="Views\Authentication\Registration\PhoneVerificationView.xaml" />
+        <AvaloniaXaml Include="Views\Authentication\Registration\PhoneVerificationView.xaml" />
+        <None Remove="Views\Authentication\Registration\RegistrationWizardView.xaml" />
+        <AvaloniaXaml Include="Views\Authentication\Registration\RegistrationWizardView.xaml" />
     </ItemGroup>
 
     <ItemGroup>
