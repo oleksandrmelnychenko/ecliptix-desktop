@@ -100,9 +100,9 @@ internal sealed class Program
                     return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
                 }
 
-                if (clientType == typeof(VerificationServiceActions.VerificationServiceActionsClient))
+                if (clientType == typeof(AuthenticationServices.AuthenticationServicesClient))
                 {
-                    return new VerificationServiceActions.VerificationServiceActionsClient(interceptedChannel);
+                    return new AuthenticationServices.AuthenticationServicesClient(interceptedChannel);
                 }
 
                 throw new InvalidOperationException($"Unsupported client type: {clientType}");
@@ -115,8 +115,8 @@ internal sealed class Program
                 as AppDeviceServiceActions.AppDeviceServiceActionsClient);
         services.AddSingleton(provider =>
             provider.GetRequiredService<Func<Type, object>>()(
-                    typeof(VerificationServiceActions.VerificationServiceActionsClient))
-                as VerificationServiceActions.VerificationServiceActionsClient);
+                    typeof(AuthenticationServices.AuthenticationServicesClient))
+                as AuthenticationServices.AuthenticationServicesClient);
 
         services.AddTransient<MainViewModel>();
 

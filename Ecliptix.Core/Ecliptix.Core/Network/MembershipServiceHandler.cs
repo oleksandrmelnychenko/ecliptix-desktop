@@ -5,12 +5,12 @@ using Grpc.Core;
 
 namespace Ecliptix.Core.Network;
 
-public class MembershipServiceHandler(VerificationServiceActions.VerificationServiceActionsClient verificationClient)
+public class MembershipServiceHandler(AuthenticationServices.AuthenticationServicesClient verificationClient)
 {
     public async IAsyncEnumerable<CipherPayload> GetVerificationSessionIfExist(CipherPayload request)
     {
         using AsyncServerStreamingCall<CipherPayload>? streamingCall =
-            verificationClient.GetVerificationSessionIfExist(request);
+            verificationClient.InitiateVerification(request);
 
         await foreach (CipherPayload response in streamingCall.ResponseStream.ReadAllAsync()) yield return response;
     }

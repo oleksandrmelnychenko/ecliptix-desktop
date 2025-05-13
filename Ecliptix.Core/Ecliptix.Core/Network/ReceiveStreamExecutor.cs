@@ -11,15 +11,15 @@ using Grpc.Core;
 namespace Ecliptix.Core.Network;
 
 public class ReceiveStreamExecutor(
-    VerificationServiceActions.VerificationServiceActionsClient verificationServiceActionsClient)
+    AuthenticationServices.AuthenticationServicesClient authenticationServicesClient)
 {
     public Result<RpcFlow, ShieldFailure> ProcessRequestAsync(ServiceRequest request,
         CancellationToken token)
     {
         switch (request.RcpServiceMethod)
         {
-            case RcpServiceAction.GetVerificationSessionIfExist:
-                return GetVerificationSessionIfExistStreamAsync(request.Payload, token);
+            case RcpServiceAction.InitiateVerification:
+                return InitiateVerificationAsync(request.Payload, token);
             default:
                 return Result<RpcFlow, ShieldFailure>.Err(
                     ShieldFailure.Generic("Unsupported service method")
@@ -27,12 +27,12 @@ public class ReceiveStreamExecutor(
         }
     }
 
-    private Result<RpcFlow, ShieldFailure> GetVerificationSessionIfExistStreamAsync(
+    private Result<RpcFlow, ShieldFailure> InitiateVerificationAsync(
         CipherPayload payload,
         CancellationToken token)
     {
         AsyncServerStreamingCall<CipherPayload> streamingCall =
-            verificationServiceActionsClient.GetVerificationSessionIfExist(payload);
+            authenticationServicesClient.InitiateVerification(payload);
 
         IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream =
             streamingCall.ResponseStream.ReadAllAsync(cancellationToken: token)

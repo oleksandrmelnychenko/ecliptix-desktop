@@ -79,7 +79,7 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
             });
     }
 
-    private async Task Foo(string mobile)
+    private async Task Foo(string phoneNumber)
     {
         using CancellationTokenSource cancellationTokenSource = new();
         try
@@ -91,25 +91,25 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
                 return;
             }
 
-            MembershipVerificationRequest membershipVerificationRequest = new()
+            InitiateVerificationRequest membershipVerificationRequest = new()
             {
-                Mobile = mobile,
-                UniqueAppDeviceRec = Network.Utilities.GuidToByteString(systemAppDeviceId.Value),
-                VerificationType = VerificationType.Signup
+                PhoneNumber = phoneNumber,
+                DeviceIdentifier = Network.Utilities.GuidToByteString(systemAppDeviceId.Value),
+                Purpose = VerificationPurpose.Registration
             };
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
             _ = await _networkController.ExecuteServiceAction(
                 connectId,
-                RcpServiceAction.GetVerificationSessionIfExist,
+                RcpServiceAction.InitiateVerification,
                 membershipVerificationRequest.ToByteArray(),
                 ServiceFlowType.ReceiveStream,
                 payload =>
                 {
                     try
                     {
-                        TimerTick timerTick = Network.Utilities.ParseFromBytes<TimerTick>(payload);
-                        RemainingTime = FormatRemainingTime(timerTick.RemainingSeconds);
+                        VerificationCountdownUpdate timerTick = Network.Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                        RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
                         return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
                     }
                     catch (Exception ex)
@@ -138,25 +138,25 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
             VerifyCodeRequest verifyCodeRequest = new()
             {
                 Code = VerificationCode,
-                VerificationType = VerificationType.Signup
+                Purpose = VerificationPurpose.Registration
             };
 
             await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.SendVerificationCode,
+                RcpServiceAction.VerifyCode,
                 verifyCodeRequest.ToByteArray(),
                 ServiceFlowType.Single,
                 payload =>
                 {
-                    VerifyCodeReply verifyCodeReply = Network.Utilities.ParseFromBytes<VerifyCodeReply>(payload);
+                    VerifyCodeResponse verifyCodeReply = Network.Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
 
-                    if (verifyCodeReply.Status == VerificationStatus.Success)
+                    if (verifyCodeReply.Result == VerificationResult.Succeeded)
                     {
                         //dispose and send to the next page.    
                     }
                     else
                     {
-                        if (verifyCodeReply.Status == VerificationStatus.InvalidCode)
+                        if (verifyCodeReply.Result == VerificationResult.InvalidCode)
                         {
                         }
                     }

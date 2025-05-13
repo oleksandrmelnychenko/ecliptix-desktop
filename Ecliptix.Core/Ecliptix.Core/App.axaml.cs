@@ -101,7 +101,7 @@ public class App : Application
         CancellationToken token)
     {
         await _networkController.ExecuteServiceAction(
-            connectId, RcpServiceAction.RegisterAppDeviceIfNotExist,
+            connectId, RcpServiceAction.RegisterAppDevice,
             appDevice.ToByteArray(), ServiceFlowType.Single,
             decryptedPayload =>
             {

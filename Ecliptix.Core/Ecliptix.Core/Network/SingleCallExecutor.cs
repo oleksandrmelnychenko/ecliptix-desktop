@@ -10,19 +10,18 @@ namespace Ecliptix.Core.Network;
 
 public sealed class SingleCallExecutor(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
-    VerificationServiceActions.VerificationServiceActionsClient verificationServiceActionsClient)
+    AuthenticationServices.AuthenticationServicesClient authenticationServicesClient)
 {
     public Task<Result<RpcFlow, ShieldFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
     {
         switch (request.RcpServiceMethod)
         {
-            case RcpServiceAction.RegisterAppDeviceIfNotExist:
+            case RcpServiceAction.RegisterAppDevice:
                 Task<Result<CipherPayload, ShieldFailure>> result = RegisterDeviceAsync(request.Payload, token);
                 return Task.FromResult(Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(result)));
-            case RcpServiceAction.SendVerificationCode:
             case RcpServiceAction.VerifyCode:
                 Task<Result<CipherPayload, ShieldFailure>> verifyWithCodeResult =
-                    VerifyWithCodeAsync(request.Payload, token);
+                    VerifyCodeAsync(request.Payload, token);
                 return Task.FromResult(Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
             default:
                 return Task.FromResult(Result<RpcFlow, ShieldFailure>.Err(
@@ -31,13 +30,13 @@ public sealed class SingleCallExecutor(
         }
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> VerifyWithCodeAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, ShieldFailure>> VerifyCodeAsync(CipherPayload payload,
         CancellationToken token)
     {
         return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
-                await verificationServiceActionsClient.VerifyWithCodeAsync(payload,
+                await authenticationServicesClient.VerifyCodeAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;

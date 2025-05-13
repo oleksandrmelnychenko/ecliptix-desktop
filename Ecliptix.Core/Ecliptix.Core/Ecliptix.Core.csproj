@@ -63,8 +63,8 @@
 
         <Protobuf Include="Protobuf\HealthCheck.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\Verification.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\VerificationServiceActions.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\AuthVerification.proto" GrpcServices="Client" ProtoRoot="Protobuf\" />
+        <Protobuf Include="Protobuf\AuthenticationServices.proto" GrpcServices="Client" ProtoRoot="Protobuf\" />
     </ItemGroup>
 
     <ItemGroup>
