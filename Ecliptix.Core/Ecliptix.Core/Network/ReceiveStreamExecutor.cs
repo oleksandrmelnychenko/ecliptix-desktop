@@ -35,7 +35,7 @@ public class ReceiveStreamExecutor(
             authenticationServicesClient.InitiateVerification(payload);
 
         IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream =
-            streamingCall.ResponseStream.ReadAllAsync(cancellationToken: token)
+            streamingCall.ResponseStream.ReadAllAsync(token)
                 .ToObservable()
                 .Select(Result<CipherPayload, ShieldFailure>.Ok)
                 .Catch<Result<CipherPayload, ShieldFailure>, Exception>(ex =>

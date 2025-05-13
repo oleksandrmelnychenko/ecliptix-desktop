@@ -5,7 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Memberships;
+namespace Ecliptix.Core.Views.Authentication;
 
 public partial class AuthenticationWindow : Window
 {

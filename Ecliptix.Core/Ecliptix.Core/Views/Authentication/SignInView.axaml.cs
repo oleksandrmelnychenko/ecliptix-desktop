@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.ViewModels.Memberships;
 
-namespace Ecliptix.Core.Views.Memberships;
+namespace Ecliptix.Core.Views.Authentication;
 
 public partial class SignInView : UserControl
 {

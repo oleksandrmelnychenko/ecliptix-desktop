@@ -473,7 +473,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
     private static Result<Unit, ShieldFailure> ValidateHkdfInfo(byte[]? infoCopy)
     {
-        return (infoCopy == null || infoCopy.Length == 0)
+        return infoCopy == null || infoCopy.Length == 0
             ? Result<Unit, ShieldFailure>.Err(ShieldFailure.DeriveKey("HKDF info cannot be empty."))
             : Result<Unit, ShieldFailure>.Ok(Unit.Value);
     }

@@ -3,16 +3,17 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="memberships:ApplyVerificationCodeViewModel"
-             x:Class="Ecliptix.Core.Views.Memberships.SignUp.ApplyVerificationCodeView">
+             x:DataType="registration:VerificationCodeEntryViewModel"
+             x:Class="Ecliptix.Core.Views.Authentication.Registration.VerificationCodeEntryView">
     <StackPanel Orientation="Vertical" Spacing="10" Margin="20">
         <TextBlock Text="Enter the 6-digit verification code sent to your email." />
         <TextBox Text="{Binding VerificationCode, UpdateSourceTrigger=PropertyChanged}"
                  Watermark="######"
                  MaxLength="6" />
         <TextBlock Text="{Binding RemainingTime}" />
-      
+
         <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" />
         <TextBlock Text="{Binding ErrorMessage}"
                    Foreground="Red" />

@@ -4,7 +4,8 @@ using System.Reactive;
 using Avalonia.Controls;
 using Ecliptix.Core.Data;
 using Ecliptix.Core.Network;
-using Ecliptix.Core.ViewModels.Utilities;
+using Ecliptix.Core.ViewModels.Authentication;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
@@ -14,15 +15,15 @@ public class AuthenticationViewModel : ReactiveObject
     private UserControl? _currentView;
 
     public AuthenticationViewModel(
-        MembershipViewFactory membershipViewFactory,
+        AuthenticationViewFactory authenticationViewFactory,
         NetworkController networkController)
     {
-        ShowView = ReactiveCommand.Create<MembershipViewType>(type =>
+        ShowView = ReactiveCommand.Create<AuthViewType>(type =>
         {
-            CurrentView = membershipViewFactory.Create(type);
+            CurrentView = authenticationViewFactory.Create(type);
         });
 
-        ShowView.Execute(MembershipViewType.SignUpHost).Subscribe();
+        ShowView.Execute(AuthViewType.RegistrationWizard).Subscribe();
     }
 
     public UserControl? CurrentView
@@ -31,8 +32,8 @@ public class AuthenticationViewModel : ReactiveObject
         private set => this.RaiseAndSetIfChanged(ref _currentView, value);
     }
 
-    public IReadOnlyList<MembershipViewType> MenuItems { get; }
-        = Enum.GetValues<MembershipViewType>();
+    public IReadOnlyList<AuthViewType> MenuItems { get; }
+        = Enum.GetValues<AuthViewType>();
 
-    public ReactiveCommand<MembershipViewType, Unit> ShowView { get; }
+    public ReactiveCommand<AuthViewType, Unit> ShowView { get; }
 }

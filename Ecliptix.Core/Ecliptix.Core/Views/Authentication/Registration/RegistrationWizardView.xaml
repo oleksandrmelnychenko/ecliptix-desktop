@@ -5,6 +5,6 @@
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
              mc:Ignorable="d"
              x:DataType="memberships:SignUpHostViewModel"
-             x:Class="Ecliptix.Core.Views.Memberships.SignUp.SignUpHostView">
+             x:Class="Ecliptix.Core.Views.Authentication.SignUp.RegistrationHostView">
     <ContentControl Content="{Binding CurrentView}" />
 </UserControl>

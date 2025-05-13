@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Sodium;
+
 // For CryptographicException
 
 namespace Ecliptix.Core.Protocol;

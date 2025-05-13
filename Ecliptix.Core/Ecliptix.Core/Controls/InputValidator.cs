@@ -28,7 +28,7 @@ public static class InputValidator
 
         if (input.Length < 8 || input.Length > 16)
             return "Length 7–15";
-        
+
 
         return null; // Valid
     }

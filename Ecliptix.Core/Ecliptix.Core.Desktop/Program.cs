@@ -1,145 +1,134 @@
 ﻿using System;
-using System.Net.Http;
-using System.Threading.Channels;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protobuf.VerificationServices;
-using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
+using Ecliptix.Core.ViewModels.Authentication.Registration;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
-using Ecliptix.Core.ViewModels.Utilities;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ReactiveUI;
 using Serilog;
 using Splat;
 using Splat.Microsoft.Extensions.DependencyInjection;
-using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-internal sealed class Program
+public sealed class Program
 {
-    private static IServiceProvider? Services { get; set; }
-
     [STAThread]
     public static void Main(string[] args)
     {
-        IConfigurationRoot configuration = new ConfigurationBuilder()
+        IConfigurationRoot configuration = BuildConfiguration();
+
+        ServiceCollection services = new();
+
+        services.UseMicrosoftDependencyResolver();
+
+        ConfigureServices(services, configuration);
+
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+
+        serviceProvider.UseMicrosoftDependencyResolver();
+
+        BuildAvaloniaApp()
+            .UseReactiveUI() 
+            .StartWithClassicDesktopLifetime(args);
+
+        if (serviceProvider is IDisposable disposable)
+            disposable.Dispose();
+    }
+
+    private static IConfigurationRoot BuildConfiguration() =>
+        new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile("appsettings.json", false)
             .AddEnvironmentVariables()
             .Build();
 
-        ServiceCollection services = new();
-        services.UseMicrosoftDependencyResolver();
-        IMutableDependencyResolver locator = Locator.CurrentMutable;
-        locator.InitializeSplat();
-        locator.InitializeReactiveUI();
-
-
-        services.AddSingleton<IConfiguration>(configuration);
-        services.AddOptions();
-#pragma warning disable IL2026 // Suppress trim warning
-#pragma warning disable IL3050 // Suppress AOT warning
+    private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton(configuration);
         services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
-#pragma warning restore IL3050
-#pragma warning restore IL2026
-        services.AddSingleton<AppSettings>(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
+
         services.AddSingleton<AppInstanceInfo>();
-        services.AddSingleton<MembershipViewFactory>();
+
         services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
-        services.AddTransient<SignUpHostViewModel>();
-        services.AddTransient<VerifyMobileViewModel>();
-        services.AddTransient<ApplyVerificationCodeViewModel>();
-        
-        
-        services.AddLogging(builder => builder.AddSerilog(new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .WriteTo.File("logs/app.log")
-            .CreateLogger()));
+        services.AddTransient<RegistrationWizardViewModel>();
+        services.AddTransient<PhoneVerificationViewModel>();
+        services.AddTransient<VerificationCodeEntryViewModel>();
+        services.AddTransient<MainViewModel>();
+
+        services.AddSingleton<AuthenticationViewFactory>();
+
+        services.AddLogging(builder =>
+            builder.AddSerilog(new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.File("logs/app.log", rollingInterval: RollingInterval.Day)
+                .CreateLogger()));
 
         services.AddHttpClient();
 
+        ConfigureGrpcClients(services);
+        ConfigureNetworkServices(services);
+    }
+
+    private static void ConfigureGrpcClients(IServiceCollection services)
+    {
         services.AddSingleton(provider =>
         {
-            AppSettings settings = provider.GetRequiredService<IOptions<AppSettings>>().Value;
-            AppInstanceInfo appInstanceInfo = provider.GetRequiredService<AppInstanceInfo>();
-            bool isDevelopment = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            AppSettings settings = provider.GetRequiredService<AppSettings>();
+            AppInstanceInfo appInfo = provider.GetRequiredService<AppInstanceInfo>();
+            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+                ? settings.LocalHostUrl
+                : settings.CloudHostUrl;
 
-            string endpointUrl = isDevelopment ? settings.LocalHostUrl : settings.CloudHostUrl;
-            if (string.IsNullOrEmpty(endpointUrl))
-            {
-                throw new InvalidOperationException("Required endpoint URL not configured.");
-            }
+            if (string.IsNullOrEmpty(endpoint))
+                throw new InvalidOperationException("gRPC endpoint URL is not configured.");
 
-            GrpcChannel channel = GrpcChannel.ForAddress(endpointUrl, new GrpcChannelOptions
+            GrpcChannel channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions
             {
-                UnsafeUseInsecureChannelCallCredentials = true,
+                UnsafeUseInsecureChannelCallCredentials = true
             });
 
-            Interceptor[] interceptors =
-            [
-                new RequestMetaDataInterceptor(appInstanceInfo.AppInstanceId, appInstanceInfo.DeviceId)
-            ];
+            CallInvoker interceptedInvoker = channel.Intercept(
+                new RequestMetaDataInterceptor(appInfo.AppInstanceId, appInfo.DeviceId));
 
-            CallInvoker interceptedChannel = channel.Intercept(interceptors);
-            return new Func<Type, object>(clientType =>
-            {
-                if (clientType == typeof(AppDeviceServiceActions.AppDeviceServiceActionsClient))
-                {
-                    return new AppDeviceServiceActions.AppDeviceServiceActionsClient(interceptedChannel);
-                }
-
-                if (clientType == typeof(AuthenticationServices.AuthenticationServicesClient))
-                {
-                    return new AuthenticationServices.AuthenticationServicesClient(interceptedChannel);
-                }
-
-                throw new InvalidOperationException($"Unsupported client type: {clientType}");
-            });
+            return new GrpcClients(interceptedInvoker);
         });
 
-        services.AddSingleton(provider =>
-            provider.GetRequiredService<Func<Type, object>>()(
-                    typeof(AppDeviceServiceActions.AppDeviceServiceActionsClient))
-                as AppDeviceServiceActions.AppDeviceServiceActionsClient);
-        services.AddSingleton(provider =>
-            provider.GetRequiredService<Func<Type, object>>()(
-                    typeof(AuthenticationServices.AuthenticationServicesClient))
-                as AuthenticationServices.AuthenticationServicesClient);
+        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().AppDeviceServiceClient);
+        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().AuthenticationServiceClient);
+    }
 
-        services.AddTransient<MainViewModel>();
-
-        services.AddSingleton<ILogManager>(new DefaultLogManager());
+    private static void ConfigureNetworkServices(IServiceCollection services)
+    {
         services.AddSingleton<NetworkController>();
         services.AddSingleton<NetworkServiceManager>();
-        
         services.AddSingleton<SingleCallExecutor>();
         services.AddSingleton<ReceiveStreamExecutor>();
         services.AddSingleton<KeyExchangeExecutor>();
-        
-        Services = services.BuildServiceProvider();
-        Locator.CurrentMutable.RegisterConstant(Services, typeof(IServiceProvider));
-
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-
-        (Services as IDisposable)?.Dispose();
     }
 
     private static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
-            .LogToTrace()
-            .UseReactiveUI();
+            .LogToTrace();
+}
+
+internal sealed class GrpcClients(CallInvoker callInvoker)
+{
+    public AppDeviceServiceActions.AppDeviceServiceActionsClient AppDeviceServiceClient { get; } = new(callInvoker);
+    public AuthenticationServices.AuthenticationServicesClient AuthenticationServiceClient { get; } = new(callInvoker);
 }

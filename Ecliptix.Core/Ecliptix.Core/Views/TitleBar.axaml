@@ -75,7 +75,7 @@
             Margin="10,0,0,0"
             VerticalAlignment="Center">
             <Button Name="PART_Close"
-                    
+
                     Classes="traffic-light close"
                     IsEnabled="{Binding DisableCloseButton, RelativeSource={RelativeSource AncestorType=views:TitleBar}}" />
             <Button Name="PART_Minimize"

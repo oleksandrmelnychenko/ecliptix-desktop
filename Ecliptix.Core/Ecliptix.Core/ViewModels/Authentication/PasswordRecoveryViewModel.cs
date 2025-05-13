@@ -2,7 +2,7 @@
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public class ForgotPasswordViewModel : ReactiveObject
+public class PasswordRecoveryViewModel : ReactiveObject
 {
     private readonly ObservableAsPropertyHelper<string> _mobile;
     public string Mobile => _mobile.Value;

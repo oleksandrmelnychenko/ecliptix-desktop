@@ -9,7 +9,7 @@ public class MainViewModel : ReactiveObject
 {
     public MainViewModel()
     {
-        SendRequestCommand = ReactiveCommand.Create( () =>
+        SendRequestCommand = ReactiveCommand.Create(() =>
         {
             try
             {

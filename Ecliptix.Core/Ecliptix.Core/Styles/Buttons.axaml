@@ -22,6 +22,6 @@
     <Style Selector="Button.SubmitButton:pointerover">
         <Setter Property="Background" Value="{DynamicResource PrimaryHoverButtonColorBrush}" />
     </Style>
-    
-    
+
+
 </Styles>

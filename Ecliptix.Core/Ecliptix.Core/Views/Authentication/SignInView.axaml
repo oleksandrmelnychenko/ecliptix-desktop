@@ -5,7 +5,7 @@
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
              mc:Ignorable="d"
-             x:Class="Ecliptix.Core.Views.Memberships.SignInView"
+             x:Class="Ecliptix.Core.Views.Authentication.SignInView"
              x:DataType="memberships:SignInViewModel">
 
     <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">

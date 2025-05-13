@@ -10,30 +10,12 @@ public partial class TitleBar : UserControl
     public static readonly StyledProperty<bool> DisableCloseButtonProperty =
         AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableCloseButton), true);
 
-    public bool DisableCloseButton
-    {
-        get => GetValue(DisableCloseButtonProperty);
-        set => SetValue(DisableCloseButtonProperty, value);
-    }
-
     public static readonly StyledProperty<bool> DisableMinimizeButtonProperty =
         AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableMinimizeButton), true);
-
-    public bool DisableMinimizeButton
-    {
-        get => GetValue(DisableMinimizeButtonProperty);
-        set => SetValue(DisableMinimizeButtonProperty, value);
-    }
 
     public static readonly StyledProperty<bool> DisableMaximizeButtonProperty =
         AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableMaximizeButton), true);
 
-    public bool DisableMaximizeButton
-    {
-        get => GetValue(DisableMaximizeButtonProperty);
-        set => SetValue(DisableMaximizeButtonProperty, value);
-    }
-    
     public TitleBar()
     {
         InitializeComponent();
@@ -59,6 +41,24 @@ public partial class TitleBar : UserControl
                     ? WindowState.Normal
                     : WindowState.Maximized;
         };
+    }
+
+    public bool DisableCloseButton
+    {
+        get => GetValue(DisableCloseButtonProperty);
+        set => SetValue(DisableCloseButtonProperty, value);
+    }
+
+    public bool DisableMinimizeButton
+    {
+        get => GetValue(DisableMinimizeButtonProperty);
+        set => SetValue(DisableMinimizeButtonProperty, value);
+    }
+
+    public bool DisableMaximizeButton
+    {
+        get => GetValue(DisableMaximizeButtonProperty);
+        set => SetValue(DisableMaximizeButtonProperty, value);
     }
 
     private Window? Window => VisualRoot as Window;

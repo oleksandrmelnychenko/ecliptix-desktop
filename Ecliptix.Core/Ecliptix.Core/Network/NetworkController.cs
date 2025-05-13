@@ -68,7 +68,8 @@ public sealed class NetworkController(NetworkServiceManager networkServiceManage
                 break;
 
             case RpcFlow.InboundStream inboundStream:
-                await foreach (Result<CipherPayload, ShieldFailure> streamItem in inboundStream.Stream.WithCancellation(token))
+                await foreach (Result<CipherPayload, ShieldFailure> streamItem in
+                               inboundStream.Stream.WithCancellation(token))
                 {
                     if (streamItem.IsErr)
                     {

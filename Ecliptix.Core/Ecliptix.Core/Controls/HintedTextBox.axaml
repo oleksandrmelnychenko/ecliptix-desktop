@@ -9,7 +9,7 @@
     <UserControl.Styles>
         <Style Selector="TextBox#MainTextBox ScrollBar:vertical">
             <Setter Property="Width" Value="0" />
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
@@ -25,7 +25,7 @@
                                        CornerRadius="5">
                                     <Thumb.Styles>
                                         <Style Selector="Thumb:hover">
-                                            <Setter Property="Background" Value="#AA0000"/>
+                                            <Setter Property="Background" Value="#AA0000" />
                                         </Style>
                                     </Thumb.Styles>
                                 </Thumb>
@@ -37,7 +37,7 @@
         </Style>
 
     </UserControl.Styles>
-    
+
     <Grid>
         <Border
             x:Name="FocusBorder"
@@ -45,8 +45,7 @@
             BorderBrush="#6a5acd"
             Background="Transparent"
             CornerRadius="15"
-            Opacity="0"
-            >
+            Opacity="0">
             <Border.Transitions>
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
@@ -91,18 +90,17 @@
                                 MinHeight="32"
                                 MinWidth="32"
                                 TextWrapping="{Binding TextWrapping, ElementName=control}"
-                                MaxLength="{Binding MaxLength, ElementName=control}" 
-                                />
+                                MaxLength="{Binding MaxLength, ElementName=control}" />
                         </Grid>
                     </Grid>
 
-                    <StackPanel Grid.Row="0" x:Name="CounterPanel" 
+                    <StackPanel Grid.Row="0" x:Name="CounterPanel"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 Margin="0,10,0,0"
-                                IsVisible="{Binding ShowCharacterCounter, ElementName=control}"
-                                >
-                        <TextBlock Text="{Binding RemainingCharacters, ElementName=control}" FontSize="12" Foreground="Gray"/>
+                                IsVisible="{Binding ShowCharacterCounter, ElementName=control}">
+                        <TextBlock Text="{Binding RemainingCharacters, ElementName=control}" FontSize="12"
+                                   Foreground="Gray" />
                     </StackPanel>
                     <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0">
                         <StackPanel.Transitions>
@@ -129,8 +127,7 @@
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
                                    FontSize="12"
-                                   IsHitTestVisible="False"
-                                   />
+                                   IsHitTestVisible="False" />
                     </StackPanel>
 
                 </Grid>
@@ -170,7 +167,6 @@
 
         </Border>
     </Grid>
-    
-    
-   
+
+
 </UserControl>

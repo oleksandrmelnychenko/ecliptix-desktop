@@ -1,23 +1,14 @@
 using System;
-using System.Linq;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecliptix.Core.Protocol.Utilities;
-using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protobuf.Verification;
-using Google.Protobuf;
-using Grpc.Core;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
-using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
-namespace Ecliptix.Core.ViewModels.Memberships;
+namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
 public record VerifyCodeNavigateToView(string Mobile);
 
-public class VerifyMobileViewModel : ViewModelBase
+public class PhoneVerificationViewModel : ViewModelBase
 {
     private static readonly Regex InternationalPhoneNumberRegex =
         new(@"^\+(?:[0-9] ?){6,14}[0-9]$", RegexOptions.Compiled);
@@ -25,7 +16,7 @@ public class VerifyMobileViewModel : ViewModelBase
     private string _errorMessage = string.Empty;
     private string _mobile = "+380970177443";
 
-    public VerifyMobileViewModel()
+    public PhoneVerificationViewModel()
     {
         IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.Mobile)
             .Select(ValidateMobileNumber)
@@ -47,7 +38,7 @@ public class VerifyMobileViewModel : ViewModelBase
         ResendCodeCommand = ReactiveCommand.Create(() => { Console.WriteLine("Resend code requested."); },
             Observable.Return(true));
     }
-    
+
 
     public string Mobile
     {
@@ -60,7 +51,7 @@ public class VerifyMobileViewModel : ViewModelBase
         get => _errorMessage;
         private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
     }
- 
+
     public ReactiveCommand<Unit, Unit> VerifyMobileCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendCodeCommand { get; }
 
@@ -70,5 +61,4 @@ public class VerifyMobileViewModel : ViewModelBase
 
         return InternationalPhoneNumberRegex.IsMatch(mobile);
     }
-
 }

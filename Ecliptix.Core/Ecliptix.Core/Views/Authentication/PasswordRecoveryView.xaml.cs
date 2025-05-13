@@ -1,11 +1,11 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Memberships;
+namespace Ecliptix.Core.Views.Authentication;
 
-public partial class ForgotPasswordView : UserControl
+public class PasswordRecoveryView : UserControl
 {
-    public ForgotPasswordView()
+    public PasswordRecoveryView()
     {
         InitializeComponent();
     }

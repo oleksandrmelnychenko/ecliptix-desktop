@@ -6,7 +6,7 @@
         xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
         xmlns:views="clr-namespace:Ecliptix.Core.Views"
         mc:Ignorable="d"
-        x:Class="Ecliptix.Core.Views.Memberships.AuthenticationWindow"
+        x:Class="Ecliptix.Core.Views.Authentication.AuthenticationWindow"
         x:Name="AuthWindow"
         BorderThickness="0"
         SystemDecorations="None"

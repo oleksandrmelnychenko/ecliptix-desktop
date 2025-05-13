@@ -6,8 +6,8 @@
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="memberships:VerifyMobileViewModel"
-             x:Class="Ecliptix.Core.Views.Memberships.SignUp.VerifyMobileView">
-    <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15" >
+             x:Class="Ecliptix.Core.Views.Authentication.SignUp.VerifyPhoneNumberView">
+    <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
         <StackPanel VerticalAlignment="Center">
             <TextBlock Text="Mobile number verification" FontSize="24" FontWeight="Light" Foreground="#333333" />
             <TextBlock Text="We will send sms to you mobile" FontSize="14" Margin="0,4,0,10" Foreground="#B0B0B0" />
@@ -24,12 +24,12 @@
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
                     IconSource="/Assets/lamp.svg"
-                    ValidationType="PhoneNumber"/>
+                    ValidationType="PhoneNumber" />
 
                 <Button
                     Classes="SubmitButton"
                     Content="Send verification code"
-                    Command="{Binding VerifyMobileCommand}"/>
+                    Command="{Binding VerifyMobileCommand}" />
             </StackPanel>
         </StackPanel>
     </Border>

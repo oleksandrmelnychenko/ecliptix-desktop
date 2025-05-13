@@ -10,7 +10,7 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
-using Ecliptix.Core.Views.Memberships;
+using Ecliptix.Core.Views.Authentication;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;

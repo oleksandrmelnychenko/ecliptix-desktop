@@ -342,7 +342,7 @@ public sealed class ConnectSession : IDisposable
     private Result<Unit, ShieldFailure> CheckIfNotFinalized()
     {
         return CheckDisposed().Bind(_ =>
-            (_rootKeyHandle != null || _receivingStep != null)
+            _rootKeyHandle != null || _receivingStep != null
                 ? Result<Unit, ShieldFailure>.Err(ShieldFailure.Generic("Session has already been finalized."))
                 : Result<Unit, ShieldFailure>.Ok(Unit.Value));
     }

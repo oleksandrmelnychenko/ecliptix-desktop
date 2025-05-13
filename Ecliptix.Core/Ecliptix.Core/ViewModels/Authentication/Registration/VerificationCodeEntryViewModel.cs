@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
@@ -13,44 +13,18 @@ using ReactiveUI;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
-namespace Ecliptix.Core.ViewModels.Memberships;
+namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class ApplyVerificationCodeViewModel : ViewModelBase
+public class VerificationCodeEntryViewModel : ViewModelBase
 {
-    private readonly NetworkController _networkController;
-    private string _verificationCode;
-    private bool _isSent;
-    private string _errorMessage = string.Empty;
-    private string _remainingTime = "01:00";
     private readonly IDisposable _mobileSubscription;
+    private readonly NetworkController _networkController;
+    private string _errorMessage = string.Empty;
+    private bool _isSent;
+    private string _remainingTime = "01:00";
+    private string _verificationCode;
 
-    public string VerificationCode
-    {
-        get => _verificationCode;
-        set => this.RaiseAndSetIfChanged(ref _verificationCode, value);
-    }
-
-    public bool IsSent
-    {
-        get => _isSent;
-        private set => this.RaiseAndSetIfChanged(ref _isSent, value);
-    }
-
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
-    }
-
-    public string RemainingTime
-    {
-        get => _remainingTime;
-        private set => this.RaiseAndSetIfChanged(ref _remainingTime, value);
-    }
-
-    public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
-
-    public ApplyVerificationCodeViewModel(NetworkController networkController)
+    public VerificationCodeEntryViewModel(NetworkController networkController)
     {
         _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
         _verificationCode = string.Empty;
@@ -78,6 +52,32 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
                 });
             });
     }
+
+    public string VerificationCode
+    {
+        get => _verificationCode;
+        set => this.RaiseAndSetIfChanged(ref _verificationCode, value);
+    }
+
+    public bool IsSent
+    {
+        get => _isSent;
+        private set => this.RaiseAndSetIfChanged(ref _isSent, value);
+    }
+
+    public string ErrorMessage
+    {
+        get => _errorMessage;
+        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+    }
+
+    public string RemainingTime
+    {
+        get => _remainingTime;
+        private set => this.RaiseAndSetIfChanged(ref _remainingTime, value);
+    }
+
+    public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
 
     private async Task Foo(string phoneNumber)
     {
@@ -108,7 +108,8 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
                 {
                     try
                     {
-                        VerificationCountdownUpdate timerTick = Network.Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                        VerificationCountdownUpdate timerTick =
+                            Network.Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
                         RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
                         return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
                     }
@@ -181,9 +182,6 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
 
     protected void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            _mobileSubscription?.Dispose();
-        }
+        if (disposing) _mobileSubscription?.Dispose();
     }
 }

@@ -59,9 +59,8 @@ public partial class HintedTextBox : UserControl
 
     public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
         AvaloniaProperty.Register<HintedTextBox, TextWrapping>(
-            nameof(TextWrapping),
-            TextWrapping.NoWrap);
-   
+            nameof(TextWrapping));
+
     public static readonly StyledProperty<int> MaxLengthProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
 
@@ -69,20 +68,33 @@ public partial class HintedTextBox : UserControl
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(RemainingCharacters), int.MaxValue);
 
     public static readonly StyledProperty<bool> ShowCharacterCounterProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter), false);
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter));
+
+    private readonly CompositeDisposable _disposables = new();
+    private Panel? _counterPanel;
+    private Border? _focusBorder;
+    private bool _isDirty;
+    private Border? _mainBorder;
+    private TextBox? _mainTextBox;
+
+    public HintedTextBox()
+    {
+        InitializeComponent();
+        Initialize();
+    }
 
     public bool ShowCharacterCounter
     {
         get => GetValue(ShowCharacterCounterProperty);
         set => SetValue(ShowCharacterCounterProperty, value);
     }
-    
+
     public int RemainingCharacters
     {
         get => GetValue(RemainingCharactersProperty);
         set => SetValue(RemainingCharactersProperty, value);
     }
-    
+
     public int MaxLength
     {
         get => GetValue(MaxLengthProperty);
@@ -92,13 +104,13 @@ public partial class HintedTextBox : UserControl
             RemainingCharacters = value - (Text?.Length ?? 0);
         }
     }
-    
+
     public TextWrapping TextWrapping
     {
         get => GetValue(TextWrappingProperty);
         set => SetValue(TextWrappingProperty, value);
     }
-    
+
     public IBrush MainBorderBrush
     {
         get => GetValue(MainBorderBrushProperty);
@@ -180,19 +192,6 @@ public partial class HintedTextBox : UserControl
         get => GetValue(ErrorTextProperty);
         set => SetValue(ErrorTextProperty, value);
     }
-    
-    private readonly CompositeDisposable _disposables = new();
-    private Border? _focusBorder;
-    private bool _isDirty;
-    private Border? _mainBorder;
-    private Panel? _counterPanel;
-    private TextBox? _mainTextBox;
-
-    public HintedTextBox()
-    {
-        InitializeComponent();
-        Initialize();
-    }
 
     private void Initialize()
     {
@@ -207,7 +206,7 @@ public partial class HintedTextBox : UserControl
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
         _counterPanel = this.FindControl<Panel>("CounterPanel");
-        
+
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
             // Log or handle missing controls (for debugging purposes)
             return;
@@ -220,7 +219,7 @@ public partial class HintedTextBox : UserControl
         // {
         //     _counterPanel.IsVisible = true;
         // }
-        
+
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
         {
@@ -317,6 +316,4 @@ public partial class HintedTextBox : UserControl
         base.OnDetachedFromVisualTree(e);
         _disposables.Dispose();
     }
-    
-
 }

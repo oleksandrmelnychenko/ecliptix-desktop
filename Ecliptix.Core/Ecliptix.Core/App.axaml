@@ -3,23 +3,22 @@
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
     <Application.Styles>
-    
+
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
-        <StyleInclude Source="/Styles/Fonts.axaml"/>
-       
+        <StyleInclude Source="/Styles/Fonts.axaml" />
 
-        
+
     </Application.Styles>
-   
+
     <Application.Resources>
-        
+
         <FontFamily x:Key="SuisseintlRegular">avares://Ecliptix.Core/Assets/Fonts/suisse-intl-regular.ttf#Suisse Intl</FontFamily>
         <FontFamily x:Key="SuisseintlBold">avares://Ecliptix.Core/Assets/Fonts/suisseintl-bold.otf#Suisse Int'l Bold</FontFamily>
-       <SolidColorBrush x:Key="PrimaryButtonColorBrush">#4e37d6</SolidColorBrush>
-       <SolidColorBrush x:Key="PrimaryHoverButtonColorBrush">#0a1c2b</SolidColorBrush>
-       <SolidColorBrush x:Key="PrimaryButtonForeground">#FFFFFF</SolidColorBrush>
-        
+        <SolidColorBrush x:Key="PrimaryButtonColorBrush">#4e37d6</SolidColorBrush>
+        <SolidColorBrush x:Key="PrimaryHoverButtonColorBrush">#0a1c2b</SolidColorBrush>
+        <SolidColorBrush x:Key="PrimaryButtonForeground">#FFFFFF</SolidColorBrush>
+
     </Application.Resources>
-    
+
 </Application>
