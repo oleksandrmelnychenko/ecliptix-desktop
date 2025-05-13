@@ -11,5 +11,5 @@ public class AppInstanceInfo
     /// <summary>
     ///     Server registration.
     /// </summary>
-    public Guid? SystemAppDeviceId { get; set; }
+    public Guid? SystemDeviceIdentifier { get; set; }
 }

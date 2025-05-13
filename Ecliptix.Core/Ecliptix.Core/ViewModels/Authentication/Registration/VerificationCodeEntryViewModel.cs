@@ -84,8 +84,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase
         using CancellationTokenSource cancellationTokenSource = new();
         try
         {
-            Guid? systemAppDeviceId = SystemAppDeviceId();
-            if (!systemAppDeviceId.HasValue)
+            Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
+            if (!systemDeviceIdentifier.HasValue)
             {
                 ErrorMessage = "Invalid device ID";
                 return;
@@ -94,7 +94,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             InitiateVerificationRequest membershipVerificationRequest = new()
             {
                 PhoneNumber = phoneNumber,
-                DeviceIdentifier = Network.Utilities.GuidToByteString(systemAppDeviceId.Value),
+                SystemDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
                 Purpose = VerificationPurpose.Registration
             };
 
@@ -133,13 +133,21 @@ public class VerificationCodeEntryViewModel : ViewModelBase
     {
         try
         {
+            Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
+            if (!systemDeviceIdentifier.HasValue)
+            {
+                ErrorMessage = "Invalid device ID";
+                return;
+            }
+            
             IsSent = true;
             ErrorMessage = string.Empty;
 
             VerifyCodeRequest verifyCodeRequest = new()
             {
                 Code = VerificationCode,
-                Purpose = VerificationPurpose.Registration
+                Purpose = VerificationPurpose.Registration,
+                SystemDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
             };
 
             await _networkController.ExecuteServiceAction(

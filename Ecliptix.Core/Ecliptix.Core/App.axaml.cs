@@ -111,7 +111,7 @@ public class App : Application
                 AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
                 lock (_lock)
                 {
-                    appInstanceInfo.SystemAppDeviceId = appServerInstanceId;
+                    appInstanceInfo.SystemDeviceIdentifier = appServerInstanceId;
                 }
 
                 _logger.LogInformation("Device registered with ID: {AppServerInstanceId}", appServerInstanceId);

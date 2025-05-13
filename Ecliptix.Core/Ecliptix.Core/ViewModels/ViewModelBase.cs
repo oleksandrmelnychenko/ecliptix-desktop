@@ -8,20 +8,20 @@ namespace Ecliptix.Core.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {
-    protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
+    protected static uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
         AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
 
-        uint connectId = Network.Utilities.ComputeUniqueConnectId(
+        uint connectId = Utilities.ComputeUniqueConnectId(
             appInstanceInfo.AppInstanceId,
             appInstanceInfo.DeviceId, pubKeyExchangeType);
 
         return connectId;
     }
 
-    protected Guid? SystemAppDeviceId()
+    protected static Guid? SystemDeviceIdentifier()
     {
         AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
-        return appInstanceInfo.SystemAppDeviceId;
+        return appInstanceInfo.SystemDeviceIdentifier;
     }
 }
