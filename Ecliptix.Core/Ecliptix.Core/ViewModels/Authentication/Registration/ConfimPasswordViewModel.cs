@@ -6,7 +6,7 @@ using System.Reactive.Linq;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class ConfirmPasswordViewModel : ReactiveObject
+public class PasswordConfirmationViewModel : ReactiveObject
 {
     private string _password = string.Empty;
     private string _verifyPassword = string.Empty;
@@ -14,7 +14,7 @@ public class ConfirmPasswordViewModel : ReactiveObject
     private bool _isPasswordErrorVisible;
     private bool _canSubmit;
 
-    public ConfirmPasswordViewModel()
+    public PasswordConfirmationViewModel()
     {
         this.WhenAnyValue(
                 x => x.Password,
