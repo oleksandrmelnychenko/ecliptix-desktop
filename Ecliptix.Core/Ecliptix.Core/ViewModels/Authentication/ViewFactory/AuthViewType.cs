@@ -6,6 +6,7 @@ public enum AuthViewType
     RegistrationWizard,
     PhoneVerification,
     VerificationCodeEntry,
-    PasswordRecovery
+    PasswordRecovery,
+    ConfirmPassword
 }
 

@@ -68,6 +68,7 @@ public sealed class Program
         services.AddTransient<PhoneVerificationViewModel>();
         services.AddTransient<VerificationCodeEntryViewModel>();
         services.AddTransient<MainViewModel>();
+        services.AddTransient<ConfirmPasswordViewModel>();
 
         services.AddSingleton<AuthenticationViewFactory>();
 
