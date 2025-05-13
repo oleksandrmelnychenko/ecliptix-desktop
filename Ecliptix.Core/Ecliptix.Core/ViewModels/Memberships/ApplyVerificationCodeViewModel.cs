@@ -134,6 +134,37 @@ public class ApplyVerificationCodeViewModel : ViewModelBase
         {
             IsSent = true;
             ErrorMessage = string.Empty;
+
+            VerifyCodeRequest verifyCodeRequest = new()
+            {
+                Code = VerificationCode,
+                VerificationType = VerificationType.Signup
+            };
+
+            await _networkController.ExecuteServiceAction(
+                ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                RcpServiceAction.SendVerificationCode,
+                verifyCodeRequest.ToByteArray(),
+                ServiceFlowType.Single,
+                payload =>
+                {
+                    VerifyCodeReply verifyCodeReply = Network.Utilities.ParseFromBytes<VerifyCodeReply>(payload);
+
+                    if (verifyCodeReply.Status == VerificationStatus.Success)
+                    {
+                        //dispose and send to the next page.    
+                    }
+                    else
+                    {
+                        if (verifyCodeReply.Status == VerificationStatus.InvalidCode)
+                        {
+                        }
+                    }
+
+                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                },
+                CancellationToken.None
+            );
         }
         catch (Exception ex)
         {

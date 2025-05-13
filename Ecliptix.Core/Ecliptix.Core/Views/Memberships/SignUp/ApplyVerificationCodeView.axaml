@@ -16,8 +16,8 @@
         <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" />
         <TextBlock Text="{Binding ErrorMessage}"
                    Foreground="Red" />
-        <!--<Button Content="Verify"
-                Command="{Binding SendCommand}"
-                IsEnabled="{Binding SendCommand.CanExecute}" />-->
+        <Button Content="Verify"
+                Command="{Binding SendVerificationCodeCommand}"
+                IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
     </StackPanel>
 </UserControl>
