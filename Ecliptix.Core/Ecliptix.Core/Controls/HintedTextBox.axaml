@@ -102,7 +102,7 @@
                         <TextBlock Text="{Binding RemainingCharacters, ElementName=control}" FontSize="12"
                                    Foreground="Gray" />
                     </StackPanel>
-                    <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0">
+                    <StackPanel x:Name="HintStackPanel" Grid.Row="1" Orientation="Horizontal" Margin="2,4,0,0" VerticalAlignment="Center">
                         <StackPanel.Transitions>
                             <Transitions>
                                 <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
@@ -127,7 +127,9 @@
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
                                    FontSize="12"
-                                   IsHitTestVisible="False" />
+                                   IsHitTestVisible="False"
+                                   
+                                   />
                     </StackPanel>
 
                 </Grid>

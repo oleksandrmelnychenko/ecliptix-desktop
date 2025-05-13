@@ -4,21 +4,44 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
              xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="registration:VerificationCodeEntryViewModel"
              x:Class="Ecliptix.Core.Views.Authentication.Registration.VerificationCodeEntryView">
-    <StackPanel Orientation="Vertical" Spacing="10" Margin="20">
-        <TextBlock Text="Enter the 6-digit verification code sent to your email." />
-        <TextBox Text="{Binding VerificationCode, UpdateSourceTrigger=PropertyChanged}"
-                 Watermark="######"
-                 MaxLength="6" />
-        <TextBlock Text="{Binding RemainingTime}" />
-
-        <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" />
-        <TextBlock Text="{Binding ErrorMessage}"
-                   Foreground="Red" />
-        <Button Content="Verify"
+    <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
+        
+    <StackPanel Orientation="Vertical" Spacing="10" Margin="20" >
+        <TextBlock TextWrapping="Wrap" FontSize="24"  Foreground="#333333" Text="Enter the 6-digit verification code sent to your email." />
+        
+        <controls:HintedTextBox x:Name="VerificationCodeTextBox"
+                                    Text="{Binding VerificationCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Watermark="######"
+                                    Hint="Enter verification code"
+                                    MaxLength="6"
+                                    BorderBrush="#FFE8E8E8"
+                                    Margin="0,5,0,5"
+                                    TextForeground="#333333"
+                                    HintForeground="#6a5acd"
+                                    IconSource="/Assets/lamp.svg"
+                                    MainBorderBrush="LightGray"
+                                    />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
+            <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
+            <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
+        </Grid>
+        
+        <Button Content="Verify" Classes="SubmitButton"
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
     </StackPanel>
+    </Border>
 </UserControl>
