@@ -49,7 +49,7 @@
             <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
                    Stretch="Uniform" HorizontalAlignment="Left" />
             <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
-                <views:TitleBar />
+                <views:TitleBar DisableMaximizeButton="False" />
 
                 <StackPanel Grid.Row="1"
                             Orientation="Horizontal"

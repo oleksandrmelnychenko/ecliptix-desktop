@@ -1,6 +1,7 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="clr-namespace:Ecliptix.Core.Views"
     x:Class="Ecliptix.Core.Views.TitleBar"
     Height="35">
     <UserControl.Styles>
@@ -61,6 +62,9 @@
         <Style Selector="Button.traffic-light.maximize:pressed">
             <Setter Property="Background" Value="#1E952F" />
         </Style>
+        <Style Selector="Button.traffic-light:disabled">
+            <Setter Property="Background" Value="Gray" />
+        </Style>
     </UserControl.Styles>
 
     <DockPanel Name="PART_Root" Background="Transparent">
@@ -71,11 +75,16 @@
             Margin="10,0,0,0"
             VerticalAlignment="Center">
             <Button Name="PART_Close"
-                    Classes="traffic-light close" />
+                    
+                    Classes="traffic-light close"
+                    IsEnabled="{Binding DisableCloseButton, RelativeSource={RelativeSource AncestorType=views:TitleBar}}" />
             <Button Name="PART_Minimize"
-                    Classes="traffic-light minimize" />
+                    Classes="traffic-light minimize"
+                    IsEnabled="{Binding DisableMinimizeButton, RelativeSource={RelativeSource AncestorType=views:TitleBar}}" />
             <Button Name="PART_Maximize"
-                    Classes="traffic-light maximize" />
+                    Classes="traffic-light maximize"
+                    IsEnabled="{Binding DisableMaximizeButton, RelativeSource={RelativeSource AncestorType=views:TitleBar}}" />
+
         </StackPanel>
 
         <TextBlock
