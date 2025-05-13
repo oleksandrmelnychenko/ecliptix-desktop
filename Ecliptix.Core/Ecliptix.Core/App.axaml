@@ -6,6 +6,7 @@
     
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
+        <StyleInclude Source="/Styles/Fonts.axaml"/>
        
 
         

@@ -99,19 +99,6 @@ public partial class HintedTextBox : UserControl
         set => SetValue(TextWrappingProperty, value);
     }
     
-    private readonly CompositeDisposable _disposables = new();
-    private Border? _focusBorder;
-    private bool _isDirty;
-    private Border? _mainBorder;
-    private Panel? _counterPanel;
-    private TextBox? _mainTextBox;
-
-    public HintedTextBox()
-    {
-        InitializeComponent();
-        Initialize();
-    }
-
     public IBrush MainBorderBrush
     {
         get => GetValue(MainBorderBrushProperty);
@@ -192,6 +179,19 @@ public partial class HintedTextBox : UserControl
     {
         get => GetValue(ErrorTextProperty);
         set => SetValue(ErrorTextProperty, value);
+    }
+    
+    private readonly CompositeDisposable _disposables = new();
+    private Border? _focusBorder;
+    private bool _isDirty;
+    private Border? _mainBorder;
+    private Panel? _counterPanel;
+    private TextBox? _mainTextBox;
+
+    public HintedTextBox()
+    {
+        InitializeComponent();
+        Initialize();
     }
 
     private void Initialize()
