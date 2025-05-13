@@ -61,7 +61,38 @@ public partial class HintedTextBox : UserControl
         AvaloniaProperty.Register<HintedTextBox, TextWrapping>(
             nameof(TextWrapping),
             TextWrapping.NoWrap);
+   
+    public static readonly StyledProperty<int> MaxLengthProperty =
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
 
+    public static readonly StyledProperty<int> RemainingCharactersProperty =
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(RemainingCharacters), int.MaxValue);
+
+    public static readonly StyledProperty<bool> ShowCharacterCounterProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter), false);
+
+    public bool ShowCharacterCounter
+    {
+        get => GetValue(ShowCharacterCounterProperty);
+        set => SetValue(ShowCharacterCounterProperty, value);
+    }
+    
+    public int RemainingCharacters
+    {
+        get => GetValue(RemainingCharactersProperty);
+        set => SetValue(RemainingCharactersProperty, value);
+    }
+    
+    public int MaxLength
+    {
+        get => GetValue(MaxLengthProperty);
+        set
+        {
+            SetValue(MaxLengthProperty, value);
+            RemainingCharacters = value - (Text?.Length ?? 0);
+        }
+    }
+    
     public TextWrapping TextWrapping
     {
         get => GetValue(TextWrappingProperty);
@@ -72,7 +103,7 @@ public partial class HintedTextBox : UserControl
     private Border? _focusBorder;
     private bool _isDirty;
     private Border? _mainBorder;
-
+    private Panel? _counterPanel;
     private TextBox? _mainTextBox;
 
     public HintedTextBox()
@@ -126,7 +157,11 @@ public partial class HintedTextBox : UserControl
     public string Text
     {
         get => GetValue(TextProperty);
-        set => SetValue(TextProperty, value);
+        set
+        {
+            SetValue(TextProperty, value);
+            RemainingCharacters = MaxLength - (value?.Length ?? 0);
+        }
     }
 
     public string Watermark
@@ -161,6 +196,7 @@ public partial class HintedTextBox : UserControl
 
     private void Initialize()
     {
+        RemainingCharacters = MaxLength;
         // Set initial state
         ErrorText = string.Empty;
         HasError = false;
@@ -170,11 +206,21 @@ public partial class HintedTextBox : UserControl
         _mainTextBox = this.FindControl<TextBox>("MainTextBox");
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
-
+        _counterPanel = this.FindControl<Panel>("CounterPanel");
+        
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
             // Log or handle missing controls (for debugging purposes)
             return;
 
+        // if (MaxLength == int.MaxValue)
+        // {
+        //     _counterPanel.IsVisible = true;
+        // }
+        // else
+        // {
+        //     _counterPanel.IsVisible = true;
+        // }
+        
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
         {
@@ -184,9 +230,12 @@ public partial class HintedTextBox : UserControl
                 return;
             }
 
+            // Update countdown logic
             string input = _mainTextBox.Text ?? string.Empty;
-            string? validationMessage = InputValidator.Validate(input, ValidationType);
+            RemainingCharacters = MaxLength - input.Length;
 
+            // Validate input as before
+            string? validationMessage = InputValidator.Validate(input, ValidationType);
             if (!string.IsNullOrEmpty(validationMessage))
             {
                 ErrorText = validationMessage;
@@ -197,7 +246,6 @@ public partial class HintedTextBox : UserControl
                 ErrorText = string.Empty;
                 EllipseOpacity = 0.0;
             }
-
 
             UpdateBorderState();
         }
@@ -269,4 +317,6 @@ public partial class HintedTextBox : UserControl
         base.OnDetachedFromVisualTree(e);
         _disposables.Dispose();
     }
+    
+
 }
