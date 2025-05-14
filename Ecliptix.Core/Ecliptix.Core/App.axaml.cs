@@ -68,12 +68,17 @@ public class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            AuthenticationViewModel authViewModel =
+            desktop.MainWindow = new MainWindow
+            {
+                DataContext = Locator.Current.GetService<MainViewModel>()
+            };
+            
+            /*AuthenticationViewModel authViewModel =
                 Locator.Current.GetService<AuthenticationViewModel>()!;
             desktop.MainWindow = new AuthenticationWindow
             {
                 DataContext = authViewModel
-            };
+            };*/
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
