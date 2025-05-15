@@ -7,5 +7,9 @@
              mc:Ignorable="d"
              x:DataType="registration:RegistrationWizardViewModel"
              x:Class="Ecliptix.Core.Views.Authentication.Registration.RegistrationWizardView">
-    <ContentControl Content="{Binding CurrentView}" />
+    
+    <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
+        <ContentControl Content="{Binding CurrentView}" />
+    </Border>
+    
 </UserControl>

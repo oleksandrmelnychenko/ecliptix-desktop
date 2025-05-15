@@ -8,7 +8,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="registration:VerificationCodeEntryViewModel"
              x:Class="Ecliptix.Core.Views.Authentication.Registration.VerificationCodeEntryView">
-    <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
+    
         
     <StackPanel Orientation="Vertical" Spacing="10" Margin="20" >
         <TextBlock TextWrapping="Wrap" FontSize="24"  Foreground="#333333" Text="Enter the 6-digit verification code sent to your email." />
@@ -43,5 +43,5 @@
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
     </StackPanel>
-    </Border>
+   
 </UserControl>
