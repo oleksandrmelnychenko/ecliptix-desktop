@@ -35,22 +35,10 @@ public class VerificationCodeEntryViewModel : ViewModelBase
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canExecute);
 
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(mobile =>
-            {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Foo(mobile);
-                    }
-                    catch (Exception ex)
-                    {
-                        RxApp.MainThreadScheduler.Schedule(() =>
-                            ErrorMessage = $"Failed to process mobile number: {ex.Message}");
-                    }
-                });
-            });
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(mobile =>
+                    Task.Run(async () => await ValidatePhoneNumber(mobile))
+            );
     }
 
     public string VerificationCode
@@ -79,7 +67,53 @@ public class VerificationCodeEntryViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
 
-    private async Task Foo(string phoneNumber)
+    private async Task ValidatePhoneNumber(string phoneNumber)
+    {
+        using CancellationTokenSource cancellationTokenSource = new();
+
+        ValidatePhoneNumberRequest request = new()
+        {
+            PhoneNumber = phoneNumber
+        };
+
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        _ = await _networkController.ExecuteServiceAction(
+            connectId,
+            RcpServiceAction.ValidatePhoneNumber,
+            request.ToByteArray(),
+            ServiceFlowType.SendStream,
+            payload =>
+            {
+                try
+                {
+                    ValidatePhoneNumberResponse validatePhoneNumberResponse =
+                        Utilities.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
+
+                    if (validatePhoneNumberResponse.Result == VerificationResult.InvalidPhone)
+                    {
+                        ErrorMessage = validatePhoneNumberResponse.Message;
+                    }
+                    else
+                    {
+                        Task.Run(
+                            async () => await InitiateVerification(validatePhoneNumberResponse.PhoneNumberIdentifier),
+                            cancellationTokenSource.Token);
+                    }
+
+                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                }
+                catch (Exception ex)
+                {
+                    ErrorMessage = $"Failed to process timer tick: {ex.Message}";
+                    return Task.FromResult(
+                        Result<ShieldUnit, ShieldFailure>.Err(ShieldFailure.Generic(ex.Message, ex)));
+                }
+            },
+            cancellationTokenSource.Token
+        );
+    }
+
+    private async Task InitiateVerification(ByteString phoneNumberIdentifier)
     {
         using CancellationTokenSource cancellationTokenSource = new();
         try
@@ -93,7 +127,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase
 
             InitiateVerificationRequest membershipVerificationRequest = new()
             {
-                PhoneNumber = phoneNumber,
+                PhoneNumberIdentifier = phoneNumberIdentifier,
                 SystemDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
                 Purpose = VerificationPurpose.Registration
             };
@@ -139,7 +173,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase
                 ErrorMessage = "Invalid device ID";
                 return;
             }
-            
+
             IsSent = true;
             ErrorMessage = string.Empty;
 

@@ -27,7 +27,7 @@ enum VerificationResult {
 // specific phone number, device, and purpose (e.g., registration, login). If the session cannot be initiated or resumed
 // (e.g., invalid phone number or expired session), the server returns an appropriate result code.
 message InitiateVerificationRequest {
-  string phone_number = 1;
+  bytes phone_number_identifier = 1;
   bytes system_device_identifier = 2;
   VerificationPurpose purpose = 3;
 }
@@ -51,6 +51,7 @@ message InitiateVerificationResponse {
   VerificationResult result = 1;
   string message = 2;
   bytes session_identifier = 3;
+  VerificationPurpose purpose = 4;
 }
 
 // Requests validation of a user-provided verification code during an active verification session.
@@ -79,7 +80,7 @@ message ValidatePhoneNumberRequest {
 }
 
 message ValidatePhoneNumberResponse {
-  string phone_number = 1;
+  bytes phone_number_identifier = 1;
   VerificationResult result = 2;
   optional string message = 3;
 }

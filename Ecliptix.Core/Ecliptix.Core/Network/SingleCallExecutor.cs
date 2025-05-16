@@ -19,6 +19,11 @@ public sealed class SingleCallExecutor(
             case RcpServiceAction.RegisterAppDevice:
                 Task<Result<CipherPayload, ShieldFailure>> result = RegisterDeviceAsync(request.Payload, token);
                 return Task.FromResult(Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(result)));
+            case RcpServiceAction.ValidatePhoneNumber:
+                Task<Result<CipherPayload, ShieldFailure>> validatePhoneNumberResult =
+                    ValidatePhoneNumberAsync(request.Payload, token);
+                return Task.FromResult(
+                    Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(validatePhoneNumberResult)));
             case RcpServiceAction.VerifyCode:
                 Task<Result<CipherPayload, ShieldFailure>> verifyWithCodeResult =
                     VerifyCodeAsync(request.Payload, token);
@@ -28,6 +33,19 @@ public sealed class SingleCallExecutor(
                     ShieldFailure.Generic()
                 ));
         }
+    }
+
+    private async Task<Result<CipherPayload, ShieldFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
+        CancellationToken token)
+    {
+        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        {
+            CipherPayload? response =
+                await authenticationServicesClient.ValidatePhoneNumberAsync(payload,
+                    new CallOptions(cancellationToken: token)
+                );
+            return response;
+        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
     }
 
     private async Task<Result<CipherPayload, ShieldFailure>> VerifyCodeAsync(CipherPayload payload,

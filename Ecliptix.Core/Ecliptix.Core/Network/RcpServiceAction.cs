@@ -4,6 +4,7 @@ public enum RcpServiceAction : short
 {
     DataCenterPubKeyExchange,
     RegisterAppDevice,
+    ValidatePhoneNumber,
     VerifyCode,
     InitiateVerification
 }
