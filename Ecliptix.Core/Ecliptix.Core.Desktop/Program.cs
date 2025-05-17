@@ -7,6 +7,7 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Protobuf.VerificationServices;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
+using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;

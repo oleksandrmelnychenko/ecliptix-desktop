@@ -81,7 +81,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             connectId,
             RcpServiceAction.ValidatePhoneNumber,
             request.ToByteArray(),
-            ServiceFlowType.SendStream,
+            ServiceFlowType.Single,
             payload =>
             {
                 try

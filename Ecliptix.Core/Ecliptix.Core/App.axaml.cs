@@ -8,6 +8,7 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
+using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Authentication;

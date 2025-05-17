@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Reactive;
 using Avalonia.Controls;
-using Ecliptix.Core.Data;
 using Ecliptix.Core.Network;
-using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
 
-namespace Ecliptix.Core.ViewModels.Memberships;
+namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class AuthenticationViewModel : ReactiveObject
 {
