@@ -43,9 +43,8 @@
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
         
-        <Button Content="ResentCode" Classes="SubmitButton"
-                Command="{Binding ResendSendVerificationCodeCommand}"
-                IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}" />
+        <Button Content="ResentCode"  IsEnabled="True"
+                Command="{Binding ResendSendVerificationCodeCommand}" />
     </StackPanel>
    
 </UserControl>

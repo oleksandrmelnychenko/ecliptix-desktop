@@ -43,7 +43,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             );
 
 
-        ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canExecute);
+        ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode);
     }
 
     public string VerificationCode
