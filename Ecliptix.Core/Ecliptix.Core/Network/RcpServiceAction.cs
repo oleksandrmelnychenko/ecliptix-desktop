@@ -6,5 +6,6 @@ public enum RcpServiceAction : short
     RegisterAppDevice,
     ValidatePhoneNumber,
     VerifyCode,
-    InitiateVerification
+    InitiateVerification,
+    InitiateResendVerification
 }

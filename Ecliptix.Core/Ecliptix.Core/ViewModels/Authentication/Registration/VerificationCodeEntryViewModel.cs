@@ -24,6 +24,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase
     private string _remainingTime = "01:00";
     private string _verificationCode;
 
+    private Guid? VerificationSessionIdentifier { get; set; } = null;
+
     public VerificationCodeEntryViewModel(NetworkController networkController)
     {
         _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
@@ -35,10 +37,13 @@ public class VerificationCodeEntryViewModel : ViewModelBase
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canExecute);
 
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(mobile =>
-                    Task.Run(async () => await ValidatePhoneNumber(mobile))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(mobile =>
+                Task.Run(async () => await ValidatePhoneNumber(mobile))
             );
+
+
+        ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canExecute);
     }
 
     public string VerificationCode
@@ -66,6 +71,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase
     }
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
 
     private async Task ValidatePhoneNumber(string phoneNumber)
     {
@@ -143,7 +150,10 @@ public class VerificationCodeEntryViewModel : ViewModelBase
                     try
                     {
                         VerificationCountdownUpdate timerTick =
-                            Network.Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                            Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+
+                        VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
+
                         RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
                         return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
                     }
@@ -214,6 +224,38 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             ErrorMessage = $"Failed to send verification code: {ex.Message}";
             IsSent = false;
         }
+    }
+
+    private async Task ReSendVerificationCode()
+    {
+        IsSent = true;
+        ErrorMessage = string.Empty;
+
+        if (!VerificationSessionIdentifier.HasValue) return;
+
+        InitiateResendVerificationRequest initiateResendVerificationRequest = new()
+        {
+            SessionIdentifier = Utilities.GuidToByteString(VerificationSessionIdentifier.Value)
+        };
+
+        await _networkController.ExecuteServiceAction(
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            RcpServiceAction.InitiateResendVerification,
+            initiateResendVerificationRequest.ToByteArray(),
+            ServiceFlowType.Single,
+            payload =>
+            {
+                ResendOtpResponse resendOtpResponse = Network.Utilities.ParseFromBytes<ResendOtpResponse>(payload);
+
+                if (resendOtpResponse.Result == VerificationResult.Succeeded)
+                {
+                    
+                }
+
+                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+            },
+            CancellationToken.None
+        );
     }
 
     private string FormatRemainingTime(ulong seconds)
