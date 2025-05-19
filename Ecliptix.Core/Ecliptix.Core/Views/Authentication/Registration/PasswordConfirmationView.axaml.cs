@@ -43,29 +43,28 @@ public partial class PasswordConfirmationView : UserControl
     {
         if (DataContext is not PasswordConfirmationViewModel vm) return;
 
-        HintedTextBox? passwordBox = this.FindControl<HintedTextBox>("PasswordAvaloniaBox");
-        if (passwordBox != null)
+        HintedTextBox? passwordBox = this.FindControl<HintedTextBox>("PasswordTextBox");
+        if (passwordBox?.MainTextBox != null)
         {
             passwordBox.MainTextBox.TextChanged += PasswordBox_TextChanged;
         }
 
-        HintedTextBox? verifyPasswordBox = this.FindControl<HintedTextBox>("VerifyPasswordAvaloniaBox");
-        if (verifyPasswordBox != null)
+        HintedTextBox? verifyPasswordBox = this.FindControl<HintedTextBox>("VerifyPasswordTextBox");
+        if (verifyPasswordBox?.MainTextBox != null)
         {
             verifyPasswordBox.MainTextBox.TextChanged += VerifyPasswordBox_TextChanged;
         }
     }
-
     private void TeardownEventHandlers()
     {
         HintedTextBox? passwordBox = this.FindControl<HintedTextBox>("PasswordTextBox");
-        if (passwordBox != null)
+        if (passwordBox?.MainTextBox != null)
         {
             passwordBox.MainTextBox.TextChanged -= PasswordBox_TextChanged;
         }
 
         HintedTextBox? verifyPasswordBox = this.FindControl<HintedTextBox>("VerifyPasswordTextBox");
-        if (verifyPasswordBox != null)
+        if (verifyPasswordBox?.MainTextBox != null)
         {
             verifyPasswordBox.MainTextBox.TextChanged -= VerifyPasswordBox_TextChanged;
         }
