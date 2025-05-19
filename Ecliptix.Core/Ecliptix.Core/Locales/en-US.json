@@ -1,0 +1,41 @@
+{
+  "Authentication": {
+    "Registration": {
+      "nicknameInput": {
+        "title": "Enter your nickname",
+        "description": "This nickname will be visible to other users",
+        "hint": "Enter your nickname",
+        "watermark" : "Nickname",
+        "button": "Confirm Nickname"
+      },
+      "passwordConfirmation": {
+        "title": "Enter your password",
+        "description": "Make sure you have verified it",
+        "passwordHint": "Enter your password",
+        "verifyPasswordHint": "Re-enter your password",
+        "error": {
+          "passwordMismatch": "Passwords do not match"
+        },
+        "button": "Send verification code"
+      },
+      "phoneVerification": {
+        "title": "Mobile number verification",
+        "description": "We will send an SMS to your mobile",
+        "hint": "Include country code",
+        "button": "Send verification code"
+      },
+      "verificationCodeEntry": {
+        "title": "Enter the 6-digit verification code",
+        "hint": "Enter verification code",
+        "expiration": "Code expires in: {time}",
+        "error": {
+          "invalidCode": "Invalid code"
+        },
+        "button": {
+          "verify": "Verify",
+          "resend": "Resend code"
+        }
+      }
+    }
+  }
+}

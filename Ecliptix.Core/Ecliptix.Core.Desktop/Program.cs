@@ -5,6 +5,7 @@ using Ecliptix.Core;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protobuf.VerificationServices;
+using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
@@ -73,6 +74,9 @@ public sealed class Program
         services.AddTransient<NicknameInputViewModel>();
 
         services.AddSingleton<AuthenticationViewFactory>();
+        
+        services.AddSingleton<ILocalizationService, LocalizationService>();
+        
 
         services.AddLogging(builder =>
             builder.AddSerilog(new LoggerConfiguration()

@@ -1,0 +1,41 @@
+{
+  "Authentication": {
+    "Registration": {
+      "nicknameInput": {
+        "title": "Введіть ваш нікнейм",
+        "description": "Цей нікнейм буде видимий для інших користувачів",
+        "hint": "Введіть ваш нікнейм",
+        "watermark" : "Нікнейм",
+        "button": "Підтвердити нікнейм"
+      },
+      "passwordConfirmation": {
+        "title": "Введіть ваш пароль",
+        "description": "Переконайтесь, що ви його перевірили",
+        "passwordHint": "Введіть ваш пароль",
+        "verifyPasswordHint": "Повторно введіть ваш пароль",
+        "error": {
+          "passwordMismatch": "Паролі не співпадають"
+        },
+        "button": "Надіслати код підтвердження"
+      },
+      "phoneVerification": {
+        "title": "Перевірка мобільного номера",
+        "description": "Ми надішлемо SMS на ваш мобільний",
+        "hint": "Включіть код країни",
+        "button": "Надіслати код підтвердження"
+      },
+      "verificationCodeEntry": {
+        "title": "Введіть 6-значний код підтвердження",
+        "hint": "Введіть код підтвердження",
+        "expiration": "Код закінчується через: {time}",
+        "error": {
+          "invalidCode": "Невірний код"
+        },
+        "button": {
+          "verify": "Підтвердити",
+          "resend": "Повторно надіслати код"
+        }
+      }
+    }
+  }
+}

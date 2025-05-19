@@ -12,6 +12,7 @@ public partial class NicknameInputView : UserControl
     public NicknameInputView(NicknameInputViewModel viewModel)
     {
         InitializeComponent();
+        DataContext = viewModel;
     }
     
     private void InitializeComponent()

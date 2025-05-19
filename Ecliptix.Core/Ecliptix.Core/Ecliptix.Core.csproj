@@ -91,7 +91,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Services\"/>
         <Folder Include="ViewModels\Utilities\" />
     </ItemGroup>
 
@@ -103,6 +102,13 @@
 
     <ItemGroup>
         <UpToDateCheckInput Remove="Styles\BaseColors.axaml"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Locales\en-US.json" />
+      <EmbeddedResource Include="Locales\en-US.json" />
+      <None Remove="Locales\uk-UA.json" />
+      <EmbeddedResource Include="Locales\uk-UA.json" />
     </ItemGroup>
 
 </Project>

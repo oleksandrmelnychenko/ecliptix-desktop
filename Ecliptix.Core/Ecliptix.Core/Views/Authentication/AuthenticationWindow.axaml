@@ -27,9 +27,110 @@
                           Color="Black" />
     </Window.Effect>
 
-    <Window.Resources>
-
-    </Window.Resources>
+   <Window.Styles>
+        <!-- Custom ComboBox Style -->
+        <Style Selector="ComboBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid>
+                        <Border x:Name="Background"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <ContentPresenter x:Name="ContentPresenter"
+                                                  Grid.Column="0"
+                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                  ContentTemplate="{TemplateBinding ItemTemplate}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                
+                                <!-- Customized dropdown button -->
+                                <Border Grid.Column="1"
+                                        Name="DropDownGlyph"
+                                        Width="30"
+                                        Margin="0,1,1,1"
+                                        Background="Transparent">
+                                    <Path Fill="DimGray"
+                                          Width="9"
+                                          Height="5"
+                                          Stretch="Uniform"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Data="M0,0 L4.5,5 L9,0 Z"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <Popup Name="PART_Popup"
+                               IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                               MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                               MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                               PlacementTarget="{TemplateBinding}"
+                               Placement="Bottom"
+                               IsLightDismissEnabled="True"
+                               WindowManagerAddShadowHint="False"
+                               Topmost="False">
+                            <Border Background="White"
+                                    BorderBrush="#CCCCCC"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="4">
+                                <ScrollViewer>
+                                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                                   ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        
+        <!-- Style for ComboBoxItem -->
+        <Style Selector="ComboBoxItem">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="ItemBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderThickness="0"
+                            CornerRadius="3"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                         ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        
+        <!-- Hover state for ComboBoxItem -->
+        <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
+            <Setter Property="Background" Value="#EAD9FF"/><!-- Light purple for hover -->
+        </Style>
+        
+        <!-- Selected state for ComboBoxItem -->
+        <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
+            <Setter Property="Background" Value="#9966CC"/><!-- Deeper purple for selected -->
+            <Setter Property="TextBlock.Foreground" Value="White"/><!-- White text for better contrast -->
+        </Style>
+        
+        <!-- Pressed state for dropdown glyph -->
+        <Style Selector="ComboBox:pressed /template/ Border#DropDownGlyph">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <!-- Open state for ComboBox -->
+        <Style Selector="ComboBox:dropdownopen /template/ Border#Background">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+    </Window.Styles>
 
     <Border Name="RootWindowBorder"
             CornerRadius="8"
@@ -75,6 +176,27 @@
                 </StackPanel>
             </Grid>
 
+            <ComboBox ItemsSource="{Binding Languages}"
+                      SelectedItem="{Binding SelectedLanguage}"
+                      Width="80"
+                      Margin="0,16,16,0"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Top">
+                    <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <Svg x:Name="IconElement"
+                                                 Path="{Binding FlagIcon}"
+                                                 Height="20"
+                                                 Width="20"
+                                                 VerticalAlignment="Center"
+                                                 HorizontalAlignment="Center" />
+                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                            </DataTemplate>
+                    </ComboBox.ItemTemplate>
+            </ComboBox>
+            
             <Border BorderThickness="4"
                     BorderBrush="Transparent"
                     Cursor="SizeWestEast"
