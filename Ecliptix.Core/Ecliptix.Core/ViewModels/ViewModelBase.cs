@@ -6,8 +6,10 @@ using Splat;
 
 namespace Ecliptix.Core.ViewModels;
 
-public class ViewModelBase : ReactiveObject
+public class ViewModelBase : ReactiveObject, IDisposable
 {
+    private bool _disposedValue;
+
     protected static uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
         AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
@@ -23,5 +25,23 @@ public class ViewModelBase : ReactiveObject
     {
         AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
         return appInstanceInfo.SystemDeviceIdentifier;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+            }
+
+            _disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
