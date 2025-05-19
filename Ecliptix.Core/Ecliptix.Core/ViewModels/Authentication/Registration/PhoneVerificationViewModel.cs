@@ -1,12 +1,13 @@
 using System;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public record VerifyCodeNavigateToView(string Mobile);
+public record VerifyCodeNavigateToView(string Mobile, AuthViewType ViewTypeToNav);
 
 public class PhoneVerificationViewModel : ViewModelBase
 {
@@ -25,7 +26,8 @@ public class PhoneVerificationViewModel : ViewModelBase
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             ErrorMessage = string.Empty;
-            MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(Mobile), "VerifyCodeNavigateToView");
+            MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(Mobile, AuthViewType.VerificationCodeEntry),
+                "VerifyCodeNavigateToView");
         });
 
         isMobileValid

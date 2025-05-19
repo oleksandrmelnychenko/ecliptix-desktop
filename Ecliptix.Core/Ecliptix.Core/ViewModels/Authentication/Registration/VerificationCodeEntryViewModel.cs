@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protobuf.Verification;
 using Google.Protobuf;
@@ -201,11 +202,13 @@ public class VerificationCodeEntryViewModel : ViewModelBase
                 ServiceFlowType.Single,
                 payload =>
                 {
-                    VerifyCodeResponse verifyCodeReply = Network.Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
+                    VerifyCodeResponse verifyCodeReply = Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
 
                     if (verifyCodeReply.Result == VerificationResult.Succeeded)
                     {
-                        //dispose and send to the next page.    
+                        MessageBus.Current.SendMessage(
+                            new VerifyCodeNavigateToView(string.Empty, AuthViewType.ConfirmPassword),
+                            "VerifyCodeNavigateToView");
                     }
                     else
                     {
@@ -245,11 +248,10 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             ServiceFlowType.Single,
             payload =>
             {
-                ResendOtpResponse resendOtpResponse = Network.Utilities.ParseFromBytes<ResendOtpResponse>(payload);
+                ResendOtpResponse resendOtpResponse = Utilities.ParseFromBytes<ResendOtpResponse>(payload);
 
                 if (resendOtpResponse.Result == VerificationResult.Succeeded)
                 {
-                    
                 }
 
                 return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));

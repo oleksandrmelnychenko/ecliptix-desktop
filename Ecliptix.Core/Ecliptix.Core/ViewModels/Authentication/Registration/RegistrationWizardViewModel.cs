@@ -17,7 +17,8 @@ public  class RegistrationWizardViewModel : ViewModelBase
         MessageBus.Current.Listen<VerifyCodeNavigateToView>("VerifyCodeNavigateToView")
             .Subscribe(c =>
             {
-                CurrentView = authenticationViewFactory.Create(AuthViewType.VerificationCodeEntry);
+                
+                CurrentView = authenticationViewFactory.Create(c.ViewTypeToNav);
                 MessageBus.Current.SendMessage(c.Mobile, "Mobile");
             });
 
