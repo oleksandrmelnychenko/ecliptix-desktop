@@ -13,6 +13,7 @@
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/Registration/PhoneVerificationView.xaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/Registration/RegistrationWizardView.xaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/Registration/VerificationCodeEntryView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/SignInView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/MainView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/MainWindow.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/AuthenticationWindow.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
