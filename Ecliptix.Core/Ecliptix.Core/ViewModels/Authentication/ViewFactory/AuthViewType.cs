@@ -7,6 +7,7 @@ public enum AuthViewType
     PhoneVerification,
     VerificationCodeEntry,
     PasswordRecovery,
-    ConfirmPassword
+    ConfirmPassword,
+    NicknameInput,
 }
 

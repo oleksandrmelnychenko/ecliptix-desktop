@@ -70,6 +70,7 @@ public sealed class Program
         services.AddTransient<VerificationCodeEntryViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<PasswordConfirmationViewModel>();
+        services.AddTransient<NicknameInputViewModel>();
 
         services.AddSingleton<AuthenticationViewFactory>();
 

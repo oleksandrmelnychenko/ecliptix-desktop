@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="registration:NicknameInputViewModel"
+             x:Class="Ecliptix.Core.Views.Authentication.Registration.NicknameInputView">
+    
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" MinWidth="350" Margin="0,10,0,0" VerticalAlignment="Center">
+        <TextBlock Grid.Row="0" Text="Enter your nickname" FontSize="24" FontWeight="Light" Foreground="#333333" />
+        <TextBlock Grid.Row="1" Text="This nickname will be visible for other users" FontSize="14" Margin="0,4,0,10" Foreground="#B0B0B0" />
+
+        <controls:HintedTextBox
+            Grid.Row="2"
+            x:Name="NicknameTextBox"
+            Watermark="Nickname"
+            Hint="Enter your nickname"
+            Text="{Binding Nickname, Mode=TwoWay}"
+            Margin="0,10"
+            CornerRadius="15"
+            BorderBrush="#E0E0E0"
+            TextForeground="#333333"
+            HintForeground="#6a5acd"
+            IconSource="/Assets/lamp.svg" />
+
+        <Button
+            Grid.Row="3"
+            Content="Confirm Nickname"
+            Classes="SubmitButton"
+            Command="{Binding SubmitCommand}"
+            Margin="0,10" />
+    </Grid>
+</UserControl>

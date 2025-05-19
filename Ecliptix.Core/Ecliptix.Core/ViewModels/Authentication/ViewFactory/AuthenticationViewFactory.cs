@@ -28,6 +28,9 @@ public sealed class AuthenticationViewFactory(IReadonlyDependencyResolver? resol
         
         AuthViewType.ConfirmPassword => new PasswordConfirmationView(
             _resolver.GetRequiredService<PasswordConfirmationViewModel>()),
+        
+        AuthViewType.NicknameInput => new NicknameInputView(
+            _resolver.GetRequiredService<NicknameInputViewModel>()),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(screenType), screenType, "Unregistered authentication view type.")

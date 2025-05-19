@@ -6,7 +6,7 @@ using System.Reactive.Linq;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class PasswordConfirmationViewModel : ReactiveObject
+public class PasswordConfirmationViewModel : ViewModelBase
 {
     private string _password = string.Empty;
     private string _verifyPassword = string.Empty;
