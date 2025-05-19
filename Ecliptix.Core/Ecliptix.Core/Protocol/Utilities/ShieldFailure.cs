@@ -164,6 +164,10 @@ public class ShieldFailure
     {
         return new ShieldFailure(ShieldFailureType.SessionExpired, details, inner);
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ShieldFailure AuthFailed(string details) =>
+        new(ShieldFailureType.AuthenticationFailed, details);
 
     public override string ToString()
     {

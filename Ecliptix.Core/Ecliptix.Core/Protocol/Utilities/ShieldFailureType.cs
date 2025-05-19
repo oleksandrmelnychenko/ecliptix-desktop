@@ -28,5 +28,6 @@ public enum ShieldFailureType
     BufferTooSmall,
     DataTooLarge,
     SessionExpired,
-    DataAccessError
+    DataAccessError,
+    AuthenticationFailed
 }

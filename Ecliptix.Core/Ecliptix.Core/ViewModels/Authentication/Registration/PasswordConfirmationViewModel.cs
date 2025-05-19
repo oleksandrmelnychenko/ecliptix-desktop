@@ -4,6 +4,7 @@ using ReactiveUI;
 using System.Text;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Domain.Memberships;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
@@ -11,6 +12,8 @@ public class PasswordConfirmationViewModel : ViewModelBase
 {
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private SodiumSecureMemoryHandle? _secureVerifyPasswordHandle;
+
+    private PasswordManager? _passwordManager;
 
     private string _passwordErrorMessage = string.Empty;
 
@@ -47,7 +50,7 @@ public class PasswordConfirmationViewModel : ViewModelBase
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            var result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, ShieldFailure> result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _securePasswordHandle = result.Unwrap();
@@ -112,7 +115,6 @@ public class PasswordConfirmationViewModel : ViewModelBase
             if (!writeResult.IsOk) return Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(newHandle);
             newHandle.Dispose();
             return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(writeResult.UnwrapErr());
-
         }
         catch (Exception ex)
         {
@@ -132,54 +134,96 @@ public class PasswordConfirmationViewModel : ViewModelBase
         }
     }
 
+
     private void ValidatePasswords()
     {
-        bool isPasswordPresent = _securePasswordHandle is { Length: > 0 };
-        bool isVerifyPasswordPresent = _secureVerifyPasswordHandle is { Length: > 0 };
-
         PasswordErrorMessage = string.Empty;
         IsPasswordErrorVisible = false;
+        CanSubmit = false;
 
-        switch (isPasswordPresent)
+        bool isPasswordEntered = _securePasswordHandle is { IsInvalid: false, Length: > 0 };
+        bool isVerifyPasswordEntered = _secureVerifyPasswordHandle is { IsInvalid: false, Length: > 0 };
+
+        if (!isPasswordEntered)
         {
-            case false when !isVerifyPasswordPresent:
-                CanSubmit = false;
-                return;
-            case false:
-                PasswordErrorMessage = "Please enter your password.";
+            if (!isVerifyPasswordEntered) return;
+            PasswordErrorMessage = "Please enter your password in the first field.";
+            IsPasswordErrorVisible = true;
+
+            return;
+        }
+
+        byte[]? passwordBytes = null;
+
+        try
+        {
+            Result<byte[], ShieldFailure> readResult = _securePasswordHandle!.ReadBytes(_securePasswordHandle.Length);
+            if (readResult.IsErr)
+            {
+                PasswordErrorMessage = $"Error processing password: {readResult.UnwrapErr().Message}";
                 IsPasswordErrorVisible = true;
-                CanSubmit = false;
                 return;
-        }
+            }
 
-        if (!isVerifyPasswordPresent)
-        {
-            PasswordErrorMessage = "Please verify your password.";
-            IsPasswordErrorVisible = true;
-            CanSubmit = false;
-            return;
-        }
+            passwordBytes = readResult.Unwrap();
+            string? passwordString = Encoding.UTF8.GetString(passwordBytes);
 
-        Result<bool, ShieldFailure> comparisonResult =
-            CompareSodiumHandles(_securePasswordHandle!, _secureVerifyPasswordHandle!);
-        if (comparisonResult.IsErr)
-        {
-            PasswordErrorMessage = "Error comparing passwords.";
-            IsPasswordErrorVisible = true;
-            CanSubmit = false;
-            return;
-        }
+            if (_passwordManager == null)
+            {
+                Result<PasswordManager, ShieldFailure> pmCreateResult = PasswordManager.Create();
+                if (pmCreateResult.IsErr)
+                {
+                    PasswordErrorMessage = $"Password manager error: {pmCreateResult.UnwrapErr().Message}";
+                    IsPasswordErrorVisible = true;
+                    return;
+                }
 
-        if (!comparisonResult.Unwrap())
-        {
-            PasswordErrorMessage = "Passwords do not match";
-            IsPasswordErrorVisible = true;
-            CanSubmit = false;
-        }
-        else
-        {
+                _passwordManager = pmCreateResult.Unwrap();
+            }
+
+            Result<Unit, ShieldFailure> complianceResult =
+                _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
+            if (complianceResult.IsErr)
+            {
+                PasswordErrorMessage = complianceResult.UnwrapErr().Message;
+                IsPasswordErrorVisible = true;
+                return;
+            }
+
+            if (!isVerifyPasswordEntered)
+            {
+                PasswordErrorMessage = "Please verify your password.";
+                IsPasswordErrorVisible = true;
+                return;
+            }
+
+            Result<bool, ShieldFailure> comparisonResult =
+                CompareSodiumHandles(_securePasswordHandle!, _secureVerifyPasswordHandle!);
+
+            if (comparisonResult.IsErr)
+            {
+                PasswordErrorMessage = $"Error comparing passwords: {comparisonResult.UnwrapErr().Message}";
+                IsPasswordErrorVisible = true;
+                return;
+            }
+
+            if (!comparisonResult.Unwrap())
+            {
+                PasswordErrorMessage = "Passwords do not match.";
+                IsPasswordErrorVisible = true;
+                return;
+            }
+
             IsPasswordErrorVisible = false;
+            PasswordErrorMessage = string.Empty;
             CanSubmit = true;
+        }
+        finally
+        {
+            if (passwordBytes != null)
+            {
+                SodiumInterop.SecureWipe(passwordBytes);
+            }
         }
     }
 
@@ -246,4 +290,3 @@ public class PasswordConfirmationViewModel : ViewModelBase
         base.Dispose(disposing);
     }
 }
-

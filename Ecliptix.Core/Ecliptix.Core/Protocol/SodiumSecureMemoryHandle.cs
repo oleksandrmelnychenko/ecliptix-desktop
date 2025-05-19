@@ -164,7 +164,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 ShieldFailure.BufferTooSmall($"Requested read length ({length}) exceeds allocated size ({Length})."));
 
         if (length == 0)
-            return Result<byte[], ShieldFailure>.Ok(Array.Empty<byte>());
+            return Result<byte[], ShieldFailure>.Ok([]);
 
         byte[] buffer = new byte[length];
         bool success = false;
