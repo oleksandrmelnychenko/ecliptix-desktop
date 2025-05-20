@@ -32,7 +32,7 @@ public class NicknameInputViewModel : ViewModelBase, IActivatableViewModel
         ILocalizationService localizationService,
         IScheduler? mainThreadScheduler = null) 
     {
-        _localizationService = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        _localizationService = localizationService;
             
         IScheduler scheduler = mainThreadScheduler ?? RxApp.MainThreadScheduler;
 
