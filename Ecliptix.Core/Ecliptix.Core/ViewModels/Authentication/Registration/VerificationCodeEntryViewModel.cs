@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protobuf.Verification;
@@ -16,8 +18,10 @@ using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class VerificationCodeEntryViewModel : ViewModelBase
+public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel
 {
+    private readonly ILocalizationService _localizationService;
+    
     private readonly IDisposable _mobileSubscription;
     private readonly NetworkController _networkController;
     private string _errorMessage = string.Empty;
@@ -25,10 +29,20 @@ public class VerificationCodeEntryViewModel : ViewModelBase
     private string _remainingTime = "01:00";
     private string _verificationCode;
 
+    public string Title => _localizationService["Authentication.Registration.verificationCodeEntry.title"];
+    public string Hint => _localizationService["Authentication.Registration.verificationCodeEntry.hint"];
+    public string Expiration => _localizationService["Authentication.Registration.verificationCodeEntry.expiration"];
+    public string InvalidCodeError => _localizationService["Authentication.Registration.verificationCodeEntry.error.invalidCode"];
+    public string VerifyButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.verify"];
+    public string ResendButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.resend"];
+
+    
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
-    public VerificationCodeEntryViewModel(NetworkController networkController)
+    public VerificationCodeEntryViewModel(NetworkController networkController, ILocalizationService localizationService)
     {
+        _localizationService = localizationService;
+        
         _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
         _verificationCode = string.Empty;
 
@@ -44,6 +58,26 @@ public class VerificationCodeEntryViewModel : ViewModelBase
             );
 
 
+        this.WhenActivated(disposables =>
+        {
+            Observable.FromEvent(
+                    handler => _localizationService.LanguageChanged += handler,
+                    handler => _localizationService.LanguageChanged -= handler
+                )
+                .Subscribe(_ =>
+                {
+                    this.RaisePropertyChanged(nameof(Title));
+                    this.RaisePropertyChanged(nameof(Hint));
+                    this.RaisePropertyChanged(nameof(Expiration));
+                    this.RaisePropertyChanged(nameof(InvalidCodeError));
+                    this.RaisePropertyChanged(nameof(VerifyButtonContent));
+                    this.RaisePropertyChanged(nameof(ResendButtonContent));
+                })
+                .DisposeWith(disposables);
+
+            
+        });
+    
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode);
     }
 
@@ -72,8 +106,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase
     }
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
-
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
+    public ViewModelActivator Activator { get; } = new();
 
     private async Task ValidatePhoneNumber(string phoneNumber)
     {

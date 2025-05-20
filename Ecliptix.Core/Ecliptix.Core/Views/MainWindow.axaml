@@ -13,7 +13,9 @@
         TransparencyLevelHint="Transparent"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MainViewModel"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/ecliptix.ico"
+        >
 
     <Window.Resources>
         <vm:BooleanToBackgroundConverter x:Key="BackgroundConverter" />

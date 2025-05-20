@@ -40,7 +40,7 @@ public class NicknameInputViewModel : ViewModelBase, IActivatableViewModel
         {
             Console.WriteLine($"Nickname submitted: {Nickname}");
         });
-
+        
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(

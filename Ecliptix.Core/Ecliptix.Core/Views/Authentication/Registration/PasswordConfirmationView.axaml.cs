@@ -2,12 +2,13 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 
 namespace Ecliptix.Core.Views.Authentication.Registration;
 
-public partial class PasswordConfirmationView : UserControl
+public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConfirmationViewModel>
 {
     public PasswordConfirmationView(PasswordConfirmationViewModel viewModel)
     {

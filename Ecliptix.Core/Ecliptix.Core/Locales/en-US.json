@@ -22,7 +22,10 @@
         "title": "Mobile number verification",
         "description": "We will send an SMS to your mobile",
         "hint": "Include country code",
-        "button": "Send verification code"
+        "button": "Send verification code",
+        "error": {
+          "invalidFormat": "Invalid format. Use +countrycode followed by number (e.g., +12025550123)."
+        }
       },
       "verificationCodeEntry": {
         "title": "Enter the 6-digit verification code",

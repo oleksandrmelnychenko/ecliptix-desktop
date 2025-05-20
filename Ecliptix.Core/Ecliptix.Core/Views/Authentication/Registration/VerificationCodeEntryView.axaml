@@ -10,13 +10,13 @@
              x:Class="Ecliptix.Core.Views.Authentication.Registration.VerificationCodeEntryView">
     
         
-    <StackPanel Orientation="Vertical" Spacing="10" Margin="20" >
-        <TextBlock TextWrapping="Wrap" FontSize="24"  Foreground="#333333" Text="Enter the 6-digit verification code sent to your email." />
+    <StackPanel Orientation="Vertical" Spacing="10" >
+        <TextBlock TextWrapping="Wrap" FontSize="24"  Foreground="#333333" Text="{Binding Title} " />
         
         <controls:HintedTextBox x:Name="VerificationCodeTextBox"
                                     Text="{Binding VerificationCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     Watermark="######"
-                                    Hint="Enter verification code"
+                                    Hint="{Binding Hint}"
                                     MaxLength="6"
                                     BorderBrush="#FFE8E8E8"
                                     Margin="0,5,0,5"
@@ -35,15 +35,15 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
-            <TextBlock x:Name="ExpirationTextBlock" Text="Code expires in: 5:00" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
+            <TextBlock x:Name="ExpirationTextBlock" Text="{Binding Expiration}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
             <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
         </Grid>
         
-        <Button Content="Verify" Classes="SubmitButton"
+        <Button Content="{Binding VerifyButtonContent}" Classes="SubmitButton"
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
         
-        <Button Content="ResentCode"  IsEnabled="True"
+        <Button Content="{Binding ResendButtonContent}"  IsEnabled="True"
                 Command="{Binding ResendSendVerificationCodeCommand}" />
     </StackPanel>
    

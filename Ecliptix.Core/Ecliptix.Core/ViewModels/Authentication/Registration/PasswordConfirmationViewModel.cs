@@ -1,17 +1,23 @@
 using System;
 using System.Buffers;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using ReactiveUI;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
 using System.Security.Cryptography;
+using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class PasswordConfirmationViewModel : ViewModelBase
+public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewModel
 {
+    
+    public ViewModelActivator Activator { get; } = new();
+    
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private SodiumSecureMemoryHandle? _secureVerifyPasswordHandle;
 
@@ -51,20 +57,53 @@ public class PasswordConfirmationViewModel : ViewModelBase
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
 
-    public PasswordConfirmationViewModel()
+    private readonly ILocalizationService _localizationService;
+    public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
+    public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
+    public string PasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.passwordHint"];
+    public string VerifyPasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.verifyPasswordHint"];
+    public string ButtonContent => _localizationService["Authentication.Registration.passwordConfirmation.button"];
+    public string PasswordMismatchError => _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
+    
+    public PasswordConfirmationViewModel(ILocalizationService localizationService)
     {
+        _localizationService = localizationService;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
             x => x.IsBusy,
             (cs, busy) => cs && !busy);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
-        SubmitCommand.ThrownExceptions.Subscribe(ex =>
+       
+        this.WhenActivated(disposables =>
         {
-            PasswordErrorMessage = $"An unexpected error occurred: {ex.Message}";
-            IsPasswordErrorVisible = true;
-            IsBusy = false;
+            Observable.FromEvent(
+                    handler => _localizationService.LanguageChanged += handler,
+                    handler => _localizationService.LanguageChanged -= handler
+                )
+                .Subscribe(_ =>
+                {
+                    this.RaisePropertyChanged(nameof(Title));
+                    this.RaisePropertyChanged(nameof(Description));
+                    this.RaisePropertyChanged(nameof(PasswordHint));
+                    this.RaisePropertyChanged(nameof(VerifyPasswordHint));
+                    this.RaisePropertyChanged(nameof(ButtonContent));
+                    this.RaisePropertyChanged(nameof(PasswordMismatchError));
+                })
+                .DisposeWith(disposables);
+
+            SubmitCommand.ThrownExceptions
+                .Subscribe(ex =>
+                {
+                    PasswordErrorMessage = $"An unexpected error occurred: {ex.Message}";
+                    IsPasswordErrorVisible = true;
+                    IsBusy = false;
+                })
+                .DisposeWith(disposables);
         });
+    
+        
+        
     }
 
     public void UpdatePassword(string? passwordText)

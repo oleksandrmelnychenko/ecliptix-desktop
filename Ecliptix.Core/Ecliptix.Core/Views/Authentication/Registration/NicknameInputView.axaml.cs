@@ -20,4 +20,4 @@ public partial class NicknameInputView :  ReactiveUserControl<NicknameInputViewM
     {
         AvaloniaXamlLoader.Load(this);
     }
-}
+} 
