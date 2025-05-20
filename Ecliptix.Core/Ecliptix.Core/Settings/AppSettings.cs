@@ -7,4 +7,6 @@ public class AppSettings
     public string? LocalHostUrl { get; set; }
     public string? CloudHostUrl { get; set; }
     public string? DomainName { get; set; }
+    
+    public LocalizationSettings Localization { get; set; } = new();
 }

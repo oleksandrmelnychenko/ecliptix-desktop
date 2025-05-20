@@ -4,11 +4,12 @@
         <Nullable>enable</Nullable>
         <LangVersion>latest</LangVersion>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-
         <PublishAot>true</PublishAot>
         <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
         <TrimMode>link</TrimMode>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
     </PropertyGroup>
     <ItemGroup>
         <TrimmerRootAssembly Include="Avalonia.Themes.Fluent"/>
@@ -103,12 +104,15 @@
     <ItemGroup>
         <UpToDateCheckInput Remove="Styles\BaseColors.axaml"/>
     </ItemGroup>
-
+    
     <ItemGroup>
-      <None Remove="Locales\en-US.json" />
-      <EmbeddedResource Include="Locales\en-US.json" />
-      <None Remove="Locales\uk-UA.json" />
-      <EmbeddedResource Include="Locales\uk-UA.json" />
+      <ProjectReference OutputItemType="Analyzer"
+                        ReferenceOutputAssembly="false" Include="..\..\Ecliptix.Core.Localization.Generator\Ecliptix.Core.Localization.Generator.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <AdditionalFiles Include="Locales\en-US.json" />
+      <AdditionalFiles Include="Locales\uk-UA.json" />
     </ItemGroup>
 
 </Project>

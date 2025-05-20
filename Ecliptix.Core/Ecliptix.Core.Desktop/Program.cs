@@ -39,8 +39,6 @@ public sealed class Program
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-        //serviceProvider.UseMicrosoftDependencyResolver();
-
         BuildAvaloniaApp()
             .UseReactiveUI() 
             .StartWithClassicDesktopLifetime(args);
@@ -76,7 +74,6 @@ public sealed class Program
         services.AddSingleton<AuthenticationViewFactory>();
         
         services.AddSingleton<ILocalizationService, LocalizationService>();
-        
 
         services.AddLogging(builder =>
             builder.AddSerilog(new LoggerConfiguration()

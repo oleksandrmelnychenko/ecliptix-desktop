@@ -1,9 +1,11 @@
 using System;
-using System.Linq;
+using System.Buffers;
 using ReactiveUI;
 using System.Text;
+using System.Threading.Tasks;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
+using System.Security.Cryptography;
 using Ecliptix.Domain.Memberships;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -39,8 +41,30 @@ public class PasswordConfirmationViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _canSubmit, value);
     }
 
+    private bool _isBusy;
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
+    }
+
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
+
     public PasswordConfirmationViewModel()
     {
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
+            x => x.CanSubmit,
+            x => x.IsBusy,
+            (cs, busy) => cs && !busy);
+
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
+        SubmitCommand.ThrownExceptions.Subscribe(ex =>
+        {
+            PasswordErrorMessage = $"An unexpected error occurred: {ex.Message}";
+            IsPasswordErrorVisible = true;
+            IsBusy = false;
+        });
     }
 
     public void UpdatePassword(string? passwordText)
@@ -57,7 +81,8 @@ public class PasswordConfirmationViewModel : ViewModelBase
             }
             else
             {
-                PasswordErrorMessage = "Error processing password.";
+                _securePasswordHandle = null;
+                PasswordErrorMessage = $"Error processing password: {result.UnwrapErr().Message}";
                 IsPasswordErrorVisible = true;
             }
         }
@@ -79,7 +104,8 @@ public class PasswordConfirmationViewModel : ViewModelBase
             }
             else
             {
-                PasswordErrorMessage = "Error processing verification password.";
+                _secureVerifyPasswordHandle = null;
+                PasswordErrorMessage = $"Error processing confirmation password: {result.UnwrapErr().Message}";
                 IsPasswordErrorVisible = true;
             }
         }
@@ -89,32 +115,45 @@ public class PasswordConfirmationViewModel : ViewModelBase
 
     private static Result<SodiumSecureMemoryHandle, ShieldFailure> ConvertStringToSodiumHandle(string text)
     {
-        byte[]? utf8Bytes = null;
+        if (string.IsNullOrEmpty(text))
+        {
+            return SodiumSecureMemoryHandle.Allocate(0);
+        }
+
+        byte[]? rentedBuffer = null;
         SodiumSecureMemoryHandle? newHandle = null;
+        int bytesWritten = 0;
+
         try
         {
-            if (string.IsNullOrEmpty(text))
-            {
-                Result<SodiumSecureMemoryHandle, ShieldFailure> emptyResult = SodiumSecureMemoryHandle.Allocate(0);
-                return emptyResult.IsOk
-                    ? emptyResult
-                    : Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(emptyResult.Unwrap());
-            }
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(text.Length);
+            rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteCount);
+            bytesWritten = Encoding.UTF8.GetBytes(text, rentedBuffer);
 
-            utf8Bytes = Encoding.UTF8.GetBytes(text);
             Result<SodiumSecureMemoryHandle, ShieldFailure> allocateResult =
-                SodiumSecureMemoryHandle.Allocate(utf8Bytes.Length);
-            if (allocateResult.IsOk)
+                SodiumSecureMemoryHandle.Allocate(bytesWritten);
+
+            if (allocateResult.IsErr)
             {
                 return allocateResult;
             }
 
             newHandle = allocateResult.Unwrap();
 
-            Result<Unit, ShieldFailure> writeResult = newHandle.Write(utf8Bytes);
-            if (!writeResult.IsOk) return Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(newHandle);
-            newHandle.Dispose();
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(writeResult.UnwrapErr());
+            Result<Unit, ShieldFailure> writeResult = newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten));
+            if (writeResult.IsErr)
+            {
+                newHandle.Dispose();
+                return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(writeResult.UnwrapErr());
+            }
+
+            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(newHandle);
+        }
+        catch (EncoderFallbackException ex)
+        {
+            newHandle?.Dispose();
+            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(
+                ShieldFailure.Decode("Failed to encode password string to UTF-8 bytes.", ex));
         }
         catch (Exception ex)
         {
@@ -124,16 +163,13 @@ public class PasswordConfirmationViewModel : ViewModelBase
         }
         finally
         {
-            if (utf8Bytes != null)
+            if (rentedBuffer != null)
             {
-                Result<Unit, ShieldFailure> wipeResult = SodiumInterop.SecureWipe(utf8Bytes);
-                if (wipeResult.IsOk)
-                {
-                }
+                rentedBuffer.AsSpan(0, bytesWritten).Clear();
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
             }
         }
     }
-
 
     private void ValidatePasswords()
     {
@@ -146,18 +182,22 @@ public class PasswordConfirmationViewModel : ViewModelBase
 
         if (!isPasswordEntered)
         {
-            if (!isVerifyPasswordEntered) return;
-            PasswordErrorMessage = "Please enter your password in the first field.";
-            IsPasswordErrorVisible = true;
+            if (isVerifyPasswordEntered)
+            {
+                PasswordErrorMessage = "Please enter your password in the first field.";
+                IsPasswordErrorVisible = true;
+            }
 
             return;
         }
 
-        byte[]? passwordBytes = null;
-
+        byte[]? rentedPasswordBytes = null;
         try
         {
-            Result<byte[], ShieldFailure> readResult = _securePasswordHandle!.ReadBytes(_securePasswordHandle.Length);
+            rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle!.Length);
+            Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
+
+            Result<Unit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
                 PasswordErrorMessage = $"Error processing password: {readResult.UnwrapErr().Message}";
@@ -165,24 +205,17 @@ public class PasswordConfirmationViewModel : ViewModelBase
                 return;
             }
 
-            passwordBytes = readResult.Unwrap();
-            string? passwordString = Encoding.UTF8.GetString(passwordBytes);
+            string passwordString = Encoding.UTF8.GetString(passwordSpan);
 
-            if (_passwordManager == null)
-            {
-                Result<PasswordManager, ShieldFailure> pmCreateResult = PasswordManager.Create();
-                if (pmCreateResult.IsErr)
-                {
-                    PasswordErrorMessage = $"Password manager error: {pmCreateResult.UnwrapErr().Message}";
-                    IsPasswordErrorVisible = true;
-                    return;
-                }
-
-                _passwordManager = pmCreateResult.Unwrap();
-            }
+            _passwordManager ??= PasswordManager.Create().Unwrap();
 
             Result<Unit, ShieldFailure> complianceResult =
                 _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
+
+            passwordSpan.Clear();
+            ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
+            rentedPasswordBytes = null;
+
             if (complianceResult.IsErr)
             {
                 PasswordErrorMessage = complianceResult.UnwrapErr().Message;
@@ -198,7 +231,7 @@ public class PasswordConfirmationViewModel : ViewModelBase
             }
 
             Result<bool, ShieldFailure> comparisonResult =
-                CompareSodiumHandles(_securePasswordHandle!, _secureVerifyPasswordHandle!);
+                CompareSodiumHandles(_securePasswordHandle, _secureVerifyPasswordHandle!);
 
             if (comparisonResult.IsErr)
             {
@@ -218,18 +251,39 @@ public class PasswordConfirmationViewModel : ViewModelBase
             PasswordErrorMessage = string.Empty;
             CanSubmit = true;
         }
+        catch (DecoderFallbackException ex)
+        {
+            PasswordErrorMessage = "Password contains invalid characters for string conversion.";
+            IsPasswordErrorVisible = true;
+        }
+        catch (Exception ex)
+        {
+            PasswordErrorMessage = $"An unexpected error occurred during validation: {ex.Message}";
+            IsPasswordErrorVisible = true;
+        }
         finally
         {
-            if (passwordBytes != null)
+            if (rentedPasswordBytes != null)
             {
-                SodiumInterop.SecureWipe(passwordBytes);
+                // Ensure clear and return if an exception happened before explicit return
+                var spanToClear =
+                    rentedPasswordBytes.AsSpan(0, _securePasswordHandle?.Length ?? rentedPasswordBytes.Length);
+                spanToClear.Clear();
+                ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
             }
         }
     }
 
-    private static Result<bool, ShieldFailure> CompareSodiumHandles(SodiumSecureMemoryHandle handle1,
+    private static Result<bool, ShieldFailure> CompareSodiumHandles(
+        SodiumSecureMemoryHandle handle1,
         SodiumSecureMemoryHandle handle2)
     {
+        if (handle1.IsInvalid || handle2.IsInvalid)
+        {
+            return Result<bool, ShieldFailure>.Err(
+                ShieldFailure.ObjectDisposed("Password handles are invalid for comparison."));
+        }
+
         if (handle1.Length != handle2.Length)
         {
             return Result<bool, ShieldFailure>.Ok(false);
@@ -240,41 +294,139 @@ public class PasswordConfirmationViewModel : ViewModelBase
             return Result<bool, ShieldFailure>.Ok(true);
         }
 
-        byte[]? bytes1 = null;
-        byte[]? bytes2 = null;
+        byte[]? rentedBytes1 = null;
+        byte[]? rentedBytes2 = null;
         try
         {
-            Result<byte[], ShieldFailure> read1Result = handle1.ReadBytes(handle1.Length);
+            rentedBytes1 = ArrayPool<byte>.Shared.Rent(handle1.Length);
+            Span<byte> span1 = rentedBytes1.AsSpan(0, handle1.Length);
+            Result<Unit, ShieldFailure> read1Result = handle1.Read(span1);
             if (read1Result.IsErr) return Result<bool, ShieldFailure>.Err(read1Result.UnwrapErr());
-            bytes1 = read1Result.Unwrap();
 
-            Result<byte[], ShieldFailure> read2Result = handle2.ReadBytes(handle2.Length);
+            rentedBytes2 = ArrayPool<byte>.Shared.Rent(handle2.Length);
+            Span<byte> span2 = rentedBytes2.AsSpan(0, handle2.Length);
+            Result<Unit, ShieldFailure> read2Result = handle2.Read(span2);
             if (read2Result.IsErr) return Result<bool, ShieldFailure>.Err(read2Result.UnwrapErr());
-            bytes2 = read2Result.Unwrap();
 
-            bool areEqual = bytes1.SequenceEqual(bytes2);
+            bool areEqual = CryptographicOperations.FixedTimeEquals(span1, span2);
             return Result<bool, ShieldFailure>.Ok(areEqual);
         }
         finally
         {
-            if (bytes1 != null)
+            if (rentedBytes1 != null)
             {
-                Result<Unit, ShieldFailure> wipe1Result = SodiumInterop.SecureWipe(bytes1);
-                if (wipe1Result.IsErr)
-                {
-                }
-
-                if (bytes2 != null)
-                {
-                    Result<Unit, ShieldFailure> wipe2Result = SodiumInterop.SecureWipe(bytes2);
-                    if (wipe2Result.IsErr)
-                    {
-                    }
-                }
+                rentedBytes1.AsSpan(0, handle1.Length).Clear();
+                ArrayPool<byte>.Shared.Return(rentedBytes1);
             }
 
-            handle1.Dispose();
+            if (rentedBytes2 != null)
+            {
+                rentedBytes2.AsSpan(0, handle2.Length).Clear();
+                ArrayPool<byte>.Shared.Return(rentedBytes2);
+            }
         }
+    }
+
+    private async Task SubmitRegistrationPasswordAsync()
+    {
+        if (!CanSubmit || _securePasswordHandle is null || _securePasswordHandle.IsInvalid ||
+            _securePasswordHandle.Length == 0)
+        {
+            PasswordErrorMessage = "Submission requirements not met.";
+            IsPasswordErrorVisible = true;
+            return;
+        }
+
+        IsBusy = true;
+        PasswordErrorMessage = string.Empty;
+        IsPasswordErrorVisible = false;
+
+        byte[]? rentedPasswordBytes = null;
+        byte[]? localSaltForEncryption = null;
+        byte[]? localDataEncryptionKey = null;
+
+        try
+        {
+            rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle.Length);
+            Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
+            Result<Unit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            if (readResult.IsErr)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to read password for submission: {readResult.UnwrapErr().Message}");
+            }
+
+            string passwordString = Encoding.UTF8.GetString(passwordSpan);
+
+            Result<string, ShieldFailure> verifierResult = _passwordManager!.HashPassword(passwordString);
+            if (verifierResult.IsErr)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to hash password for server: {verifierResult.UnwrapErr().Message}");
+            }
+
+            string passwordVerifierForServer = verifierResult.Unwrap();
+
+          
+        
+
+            localSaltForEncryption = GenerateAndPersistLocalSalt("",16);
+            localDataEncryptionKey = DeriveLocalKeyFromPassword(passwordString, localSaltForEncryption);
+
+          
+        }
+        catch (Exception ex)
+        {
+            PasswordErrorMessage = $"Submission failed: {ex.Message}";
+            IsPasswordErrorVisible = true;
+        }
+        finally
+        {
+            if (rentedPasswordBytes != null)
+            {
+                rentedPasswordBytes.AsSpan(0, _securePasswordHandle?.Length ?? 0).Clear();
+                ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
+            }
+
+            if (localSaltForEncryption != null)
+                Array.Clear(localSaltForEncryption, 0,
+                    localSaltForEncryption.Length); // If it was just for derivation and not the persisted one
+            if (localDataEncryptionKey != null) Array.Clear(localDataEncryptionKey, 0, localDataEncryptionKey.Length);
+
+            IsBusy = false;
+        }
+    }
+
+    private byte[] DeriveLocalKeyFromPassword(string password, ReadOnlySpan<byte> salt)
+    {
+        const int localKeyIterations = 100000;
+        const int derivedKeyLength = 32; // For AES-256
+        HashAlgorithmName hashAlgo = HashAlgorithmName.SHA256;
+
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt.ToArray(), localKeyIterations, hashAlgo);
+        return pbkdf2.GetBytes(derivedKeyLength);
+    }
+
+    private byte[] GenerateAndPersistLocalSalt(string userId, int saltSize)
+    {
+        // IMPORTANT: This salt MUST be persisted securely and be retrievable
+        // next time the user logs in on THIS device to decrypt their E2EE keys.
+        // It should not be easily guessable or derivable from public info if possible.
+        // Storing it in platform-specific secure storage (Keychain, Keystore) is ideal.
+        // This is a placeholder for actual secure salt generation and persistence.
+        // For a given user on a given device, this salt should be STABLE.
+        byte[] salt = new byte[saltSize];
+        // Example: Try to retrieve existing salt first. If not found, generate and store.
+        // if (TryRetrieveLocalSalt(userId, out salt)) { return salt; }
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(salt);
+        }
+
+        // PersistSaltForUserDevice(userId, salt);
+        Console.WriteLine(
+            $"[DEBUG] Generated/Retrieved local salt for {userId}: {Convert.ToBase64String(salt)} (NEEDS ACTUAL PERSISTENCE & RETRIEVAL)");
+        return salt;
     }
 
     protected override void Dispose(bool disposing)
@@ -290,3 +442,27 @@ public class PasswordConfirmationViewModel : ViewModelBase
         base.Dispose(disposing);
     }
 }
+
+// Dummy Proto messages for compilation - replace with your actual generated classes
+// Ensure these namespaces match your actual project structure if they exist elsewhere.
+/*namespace Protobuf.Registration
+{
+    public class FinalizeRegistrationRequestProto
+    {
+        public string? PasswordVerifier { get; set; }
+        public Ecliptix.Core.ViewModels.Authentication.Registration.Protobuf.PubKeyExchange.PublicKeyBundle? PublicKeyBundle { get; set; }
+        public byte[] ToByteArray() { return Array.Empty<byte>(); /* Implement actual serialization #1# }
+    }
+    public class FinalizeRegistrationResponseProto
+    {
+        public string? UserId { get; set; }
+    }
+}
+namespace Protobuf.PubKeyExchange
+{
+    public class PublicKeyBundle
+    {
+        public Google.Protobuf.ByteString? IdentityPublicKey { get; set; }
+        public int CalculateSize() => IdentityPublicKey?.Length ?? 0;
+    }
+}*/

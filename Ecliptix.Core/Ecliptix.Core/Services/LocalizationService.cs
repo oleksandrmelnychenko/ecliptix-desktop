@@ -1,110 +1,172 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+using System.Globalization;
+using System.Threading;
+using Ecliptix.Core.Settings;
+using Ecliptix.Core.Services.Generated;
+using Microsoft.Extensions.Logging;
 
 namespace Ecliptix.Core.Services;
 
-public interface ILocalizationService
+public sealed class LocalizationService : ILocalizationService
 {
-    string this[string key] { get; }
-    void SetCulture(string cultureName);
-    string CurrentCulture { get; }
-    
-    event Action? LanguageChanged;
-}
+    private IReadOnlyDictionary<string, string> _localizedStrings;
+    private CultureInfo _currentCultureInfo;
+    private readonly string _defaultCultureName;
+    private readonly IReadOnlyDictionary<string, string> _defaultCultureStrings;
 
-public class LocalizationService : ILocalizationService
-{
-    private Dictionary<string, string> _localizedStrings = new();
-    private string _currentCulture = "en-US";
+    private readonly ILogger<LocalizationService> _logger;
+    private readonly Lock _cultureChangeLock = new();
+    private bool _disposed;
+
     public event Action? LanguageChanged;
-    public string CurrentCulture => _currentCulture;
 
-    public LocalizationService()
+    public CultureInfo CurrentCultureInfo => _currentCultureInfo;
+    public string CurrentCultureName => _currentCultureInfo.Name;
+
+    public LocalizationService(ILogger<LocalizationService> logger, AppSettings appSettings)
     {
-        LoadCulture(_currentCulture);
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        LocalizationSettings locSettings = appSettings?.Localization ?? new LocalizationSettings();
+
+        _defaultCultureName = locSettings.DefaultCulture;
+        string initialCultureName = locSettings.InitialCulture;
+
+        _logger.LogInformation(
+            "LocalizationService initializing. Configured InitialCulture: {InitialCulture}, Configured DefaultCulture: {DefaultCulture}",
+            initialCultureName, _defaultCultureName);
+
+        if (GeneratedLocales.AllCultures.TryGetValue(_defaultCultureName, out var defaultStrings))
+        {
+            _defaultCultureStrings = defaultStrings;
+            _logger.LogInformation("Default culture '{DefaultCulture}' loaded. Strings: {Count}", _defaultCultureName,
+                defaultStrings.Count);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Default culture '{DefaultCulture}' not found in generated locales. Default fallback will be empty.",
+                _defaultCultureName);
+            _defaultCultureStrings = new Dictionary<string, string>(); // Ensure not null
+        }
+
+        if (GeneratedLocales.AllCultures.TryGetValue(initialCultureName, out var initialStrings))
+        {
+            _localizedStrings = initialStrings;
+            _currentCultureInfo = CreateCultureInfo(initialCultureName);
+            _logger.LogInformation("Initial culture '{InitialCulture}' loaded successfully.", initialCultureName);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "Initial culture '{InitialCulture}' not found in generated locales. Falling back to default culture '{DefaultCulture}'.",
+                initialCultureName, _defaultCultureName);
+            _localizedStrings = _defaultCultureStrings;
+            _currentCultureInfo = CreateCultureInfo(_defaultCultureName);
+        }
+    }
+
+    private CultureInfo CreateCultureInfo(string cultureName)
+    {
+        try
+        {
+            return CultureInfo.GetCultureInfo(cultureName);
+        }
+        catch (CultureNotFoundException ex)
+        {
+            _logger.LogError(ex, "Culture '{CultureName}' is not a valid culture. Using InvariantCulture as fallback.",
+                cultureName);
+            return CultureInfo.InvariantCulture;
+        }
     }
 
     public string this[string key]
     {
         get
         {
-            if (_localizedStrings.TryGetValue(key, out var value))
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                _logger.LogWarning("Attempted to retrieve a localization string with a null or empty key.");
+                return "[INVALID_KEY]"; // Or throw ArgumentNullException
+            }
+
+            if (_localizedStrings.TryGetValue(key, out string? value))
+            {
                 return value;
-            return $"!{key}!";
+            }
+
+            if (_defaultCultureStrings.TryGetValue(key, out var defaultValue))
+            {
+                _logger.LogDebug(
+                    "Key '{Key}' not found in current culture '{CurrentCulture}', using from default '{DefaultCulture}'.",
+                    key, _currentCultureInfo.Name, _defaultCultureName);
+                return defaultValue;
+            }
+
+            _logger.LogWarning(
+                "Localization key not found: '{Key}' for culture '{CurrentCulture}' and no default value exists.", key,
+                _currentCultureInfo.Name);
+            return $"!{key}!"; // Key not found marker
+        }
+    }
+
+    public string GetString(string key, params object[] args)
+    {
+        string formatString = this[key];
+        if (formatString.StartsWith("!") && formatString.EndsWith("!") || args.Length == 0)
+        {
+            return formatString;
+        }
+
+        try
+        {
+            return string.Format(_currentCultureInfo, formatString, args);
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex,
+                "Error formatting localization key '{Key}' for culture '{CurrentCulture}'. Args count: {ArgCount}. Format string: '{FormatString}'",
+                key, _currentCultureInfo.Name, args.Length, formatString);
+            return formatString;
         }
     }
 
     public void SetCulture(string cultureName)
     {
-        if (_currentCulture != cultureName)
-        {
-            LoadCulture(cultureName);
-            _currentCulture = cultureName;
-            LanguageChanged?.Invoke();
-        }
-    }
+        ArgumentException.ThrowIfNullOrWhiteSpace(cultureName, nameof(cultureName));
 
-    private void LoadCulture(string cultureName)
-    {
-        var assembly = typeof(LocalizationService).Assembly;
-        var projectName = assembly.GetName().Name;
-        var resourceName = $"{projectName}.Locales.{cultureName}.json";
-        
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream == null)
-        {
-            _localizedStrings = new();
-            return;
-        }
+        CultureInfo newCultureInfo = CreateCultureInfo(cultureName);
 
-        using var reader = new StreamReader(stream);
-        var json = reader.ReadToEnd();
-        
-        // Deserialize into JsonDocument for dynamic traversal
-        using var document = JsonDocument.Parse(json);
-        var root = document.RootElement;
-        
-        _localizedStrings = new Dictionary<string, string>();
-        ProcessJsonElement(root, string.Empty, _localizedStrings);
-    }
-
-    private void ProcessJsonElement(JsonElement element, string path, Dictionary<string, string> result)
-    {
-        if (element.ValueKind == JsonValueKind.Object)
+        lock (_cultureChangeLock)
         {
-            foreach (JsonProperty property in element.EnumerateObject())
+            if (_currentCultureInfo.Name.Equals(newCultureInfo.Name, StringComparison.OrdinalIgnoreCase))
             {
-                string newPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
-                ProcessJsonElement(property.Value, newPath, result);
+                _logger.LogDebug("Requested culture '{CultureName}' is already the current culture. No change made.",
+                    newCultureInfo.Name);
+                return;
+            }
+
+            _logger.LogInformation("Attempting to set culture from '{OldCulture}' to '{NewCulture}'",
+                _currentCultureInfo.Name, newCultureInfo.Name);
+            if (GeneratedLocales.AllCultures.TryGetValue(newCultureInfo.Name, out var newCultureStrings))
+            {
+                _localizedStrings = newCultureStrings;
+                _currentCultureInfo = newCultureInfo;
+
+                _logger.LogInformation(
+                    "Culture changed successfully to '{NewCulture}'. Invoking LanguageChanged event.",
+                    newCultureInfo.Name);
+                OnLanguageChanged();
+            }
+            else
+            {
+                _logger.LogError(
+                    "Failed to set culture to '{CultureName}'. Data not found in generated locales. Current culture '{CurrentCulture}' remains unchanged.",
+                    newCultureInfo.Name, _currentCultureInfo.Name);
             }
         }
-        else if (element.ValueKind == JsonValueKind.String)
-        {
-            result[path] = element.GetString() ?? string.Empty;
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-        {
-            int index = 0;
-            foreach (JsonElement item in element.EnumerateArray())
-            {
-                string newPath = $"{path}[{index}]";
-                ProcessJsonElement(item, newPath, result);
-                index++;
-            }
-        }
-        else if (element.ValueKind == JsonValueKind.Number)
-        {
-            result[path] = element.GetRawText();
-        }
-        else if (element.ValueKind == JsonValueKind.True || element.ValueKind == JsonValueKind.False)
-        {
-            result[path] = element.GetBoolean().ToString().ToLower();
-        }
-        else if (element.ValueKind == JsonValueKind.Null)
-        {
-            result[path] = string.Empty;
-        }
     }
+
+    private void OnLanguageChanged() =>
+        LanguageChanged?.Invoke();
 }

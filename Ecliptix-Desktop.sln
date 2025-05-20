@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core", "Ecliptix.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core.Desktop", "Ecliptix.Core\Ecliptix.Core.Desktop\Ecliptix.Core.Desktop.csproj", "{EECCED89-B23E-468B-AE2F-23613DFCE343}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core.Localization.Generator", "Ecliptix.Core.Localization.Generator\Ecliptix.Core.Localization.Generator.csproj", "{BAED28A0-C768-46AD-A58C-869B9B6FEA75}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EECCED89-B23E-468B-AE2F-23613DFCE343}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAED28A0-C768-46AD-A58C-869B9B6FEA75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAED28A0-C768-46AD-A58C-869B9B6FEA75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAED28A0-C768-46AD-A58C-869B9B6FEA75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAED28A0-C768-46AD-A58C-869B9B6FEA75}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

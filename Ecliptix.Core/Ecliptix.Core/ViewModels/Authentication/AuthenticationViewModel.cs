@@ -5,7 +5,6 @@ using System.Reactive;
 using System.Windows.Input;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.Input;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
@@ -15,8 +14,8 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 public class AuthenticationViewModel : ReactiveObject
 {
     private UserControl? _currentView;
-    
-    ILocalizationService _localizationService;
+
+    private readonly ILocalizationService _localizationService;
     
     public ICommand SwitchToEnglishCommand { get; }
     public ICommand SwitchToUkrainianCommand { get; }
@@ -34,25 +33,34 @@ public class AuthenticationViewModel : ReactiveObject
                 _localizationService.SetCulture(value.Culture);
         }
     }
+        
+    public UserControl? CurrentView
+    {
+        get => _currentView;
+        private set => this.RaiseAndSetIfChanged(ref _currentView, value);
+    }
+
+    public IReadOnlyList<AuthViewType> MenuItems { get; }
+        = Enum.GetValues<AuthViewType>();
+
+    public ReactiveCommand<AuthViewType, Unit> ShowView { get; }
 
     public AuthenticationViewModel(
         AuthenticationViewFactory authenticationViewFactory,
-        NetworkController networkController,
         ILocalizationService localizationService)
     {
         _localizationService = localizationService;
         
-        SwitchToEnglishCommand = new RelayCommand(() => SwitchToEnglish());
-        SwitchToUkrainianCommand = new RelayCommand(() => SwitchToUkrainian());
+        SwitchToEnglishCommand = new RelayCommand(SwitchToEnglish);
+        SwitchToUkrainianCommand = new RelayCommand(SwitchToUkrainian);
         
-        Languages = new ObservableCollection<LanguageOption>
-        {
+        Languages =
+        [
             new LanguageOption("EN", "en-US", "/Assets/us.svg"),
             new LanguageOption("UA", "uk-UA", "/Assets/ua.svg")
-        };
+        ];
         
         SelectedLanguage = Languages[0];
-        
         
         ShowView = ReactiveCommand.Create<AuthViewType>(type =>
         {
@@ -64,17 +72,7 @@ public class AuthenticationViewModel : ReactiveObject
 
     private void SwitchToUkrainian() => _localizationService.SetCulture("uk-UA");
     private void SwitchToEnglish() => _localizationService.SetCulture("en-US");
-    
-    public UserControl? CurrentView
-    {
-        get => _currentView;
-        private set => this.RaiseAndSetIfChanged(ref _currentView, value);
-    }
 
-    public IReadOnlyList<AuthViewType> MenuItems { get; }
-        = Enum.GetValues<AuthViewType>();
-
-    public ReactiveCommand<AuthViewType, Unit> ShowView { get; }
 }
 
 public class LanguageOption(string displayName, string culture, string flagIcon)
