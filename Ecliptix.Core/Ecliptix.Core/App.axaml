@@ -7,10 +7,9 @@
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
         <StyleInclude Source="/Styles/Fonts.axaml" />
-
-
+        
     </Application.Styles>
-
+    
     <Application.Resources>
 
         <FontFamily x:Key="SuisseintlRegular">avares://Ecliptix.Core/Assets/Fonts/suisse-intl-regular.ttf#Suisse Intl</FontFamily>

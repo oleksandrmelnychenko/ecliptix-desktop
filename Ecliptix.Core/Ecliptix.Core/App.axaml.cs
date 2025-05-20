@@ -1,9 +1,12 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Settings;
@@ -71,7 +74,7 @@ public class App : Application
         {
             desktop.MainWindow = new AuthenticationWindow
             {
-                DataContext = Locator.Current.GetService<AuthenticationViewModel>()
+               DataContext = Locator.Current.GetService<AuthenticationViewModel>()
             };
             
             /*AuthenticationViewModel authViewModel =
@@ -125,4 +128,7 @@ public class App : Application
                 return Task.FromResult(Result<Unit, ShieldFailure>.Ok(Unit.Value));
             }, token);
     }
+    
+    
+    
 }

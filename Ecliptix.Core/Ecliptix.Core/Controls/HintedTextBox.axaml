@@ -38,6 +38,12 @@
 
     </UserControl.Styles>
 
+    <UserControl.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Opacity" Duration="0:0:0.5" />
+        </Transitions>
+    </UserControl.Transitions>
+    
     <Grid>
         <Border
             x:Name="FocusBorder"
