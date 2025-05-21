@@ -66,6 +66,9 @@
         <Protobuf Include="Protobuf\CipherPayload.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\PubKeyExchange.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
 
+        <Protobuf Include="Protobuf\Membership.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        <Protobuf Include="Protobuf\MembershipServices.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+        
         <Protobuf Include="Protobuf\HealthCheck.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\AuthVerification.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>

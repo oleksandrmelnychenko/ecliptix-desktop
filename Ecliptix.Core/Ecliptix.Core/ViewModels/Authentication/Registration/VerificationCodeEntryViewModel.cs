@@ -231,7 +231,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
             await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.VerifyCode,
+                RcpServiceAction.VerifyOtp,
                 verifyCodeRequest.ToByteArray(),
                 ServiceFlowType.Single,
                 payload =>
