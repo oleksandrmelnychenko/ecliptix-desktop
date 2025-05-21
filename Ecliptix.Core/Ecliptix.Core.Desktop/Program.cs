@@ -71,8 +71,11 @@ public sealed class Program
         services.AddTransient<MainViewModel>();
         services.AddTransient<PasswordConfirmationViewModel>();
         services.AddTransient<NicknameInputViewModel>();
-
+        services.AddTransient<PassPhaseViewModel>();
+        
         services.AddSingleton<AuthenticationViewFactory>();
+        
+        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().MembershipServicesClient);
         
         services.AddSingleton<ILocalizationService, LocalizationService>();
 

@@ -9,5 +9,6 @@ public enum AuthViewType
     PasswordRecovery,
     ConfirmPassword,
     NicknameInput,
+    PassPhase,
 }
 

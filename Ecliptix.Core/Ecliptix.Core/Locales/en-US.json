@@ -38,6 +38,13 @@
           "verify": "Verify",
           "resend": "Resend code"
         }
+      },
+      "passPhase": {
+        "title": "Enter your passphrase",
+        "description": "Please provide a secure pin code for authentication.",
+        "hint": "Enter your pin code",
+        "watermark": "####",
+        "button": "Accept pin code"
       }
     }
   }

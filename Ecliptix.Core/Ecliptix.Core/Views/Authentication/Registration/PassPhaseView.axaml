@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Views.Authentication.Registration.PassPhaseView"
+             x:DataType="registration:PassPhaseViewModel">
+    <StackPanel Orientation="Vertical" Spacing="10">
+        <TextBlock TextWrapping="Wrap" FontSize="24" Foreground="#333333" Text="{Binding Title}" />
+        <TextBlock TextWrapping="Wrap" FontSize="14" Foreground="#B0B0B0" Text="{Binding Description}" Margin="0,4,0,10" />
+        
+        <controls:HintedTextBox x:Name="PassPhaseTextBox"
+                                Text="{Binding PassPhase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Watermark="{Binding Watermark}"
+                                Hint="{Binding Hint}"
+                                BorderBrush="#FFE8E8E8"
+                                Margin="0,5,0,5"
+                                TextForeground="#333333"
+                                HintForeground="#6a5acd"
+                                IconSource="/Assets/key.svg"
+                                MainBorderBrush="LightGray" 
+                                MaxLength="4"
+                                />
+        
+        <Button Content="{Binding ButtonContent}" Classes="SubmitButton"
+                Command="{Binding SubmitCommand}" />
+    </StackPanel>
+</UserControl>
