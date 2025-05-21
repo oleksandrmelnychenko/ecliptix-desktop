@@ -127,7 +127,4 @@ public class App : Application
                 return Task.FromResult(Result<Unit, ShieldFailure>.Ok(Unit.Value));
             }, token);
     }
-    
-    
-    
 }

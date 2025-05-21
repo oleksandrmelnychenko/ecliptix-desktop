@@ -11,14 +11,10 @@ namespace Ecliptix.Core.Views.Authentication;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
-    public SignInView()
-    {
-        InitializeComponent();
-    }
-
-    public SignInView(SignInViewModel viewModel) : this()
+    public SignInView(SignInViewModel viewModel) 
     {
         DataContext = viewModel;
+        InitializeComponent();
     }
 
     private void InitializeComponent()

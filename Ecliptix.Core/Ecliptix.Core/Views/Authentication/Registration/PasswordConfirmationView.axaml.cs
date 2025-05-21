@@ -35,14 +35,6 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
         TeardownEventHandlers();
     }
 
-    protected override void OnDataContextChanged(EventArgs e)
-    {
-        base.OnDataContextChanged(e);
-        // Teardown the previous handlers when DataContext changes.
-        TeardownEventHandlers();
-        SetupEventHandlers();
-    }
-
     private void SetupEventHandlers()
     {
         if (_handlersAttached)
