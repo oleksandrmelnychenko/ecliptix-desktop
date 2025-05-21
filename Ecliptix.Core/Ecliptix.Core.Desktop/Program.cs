@@ -12,6 +12,7 @@ using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -135,4 +136,6 @@ internal sealed class GrpcClients(CallInvoker callInvoker)
 {
     public AppDeviceServiceActions.AppDeviceServiceActionsClient AppDeviceServiceClient { get; } = new(callInvoker);
     public AuthVerificationServices.AuthVerificationServicesClient AuthenticationServiceClient { get; } = new(callInvoker);
+    
+    public MembershipServices.MembershipServicesClient MembershipServicesClient { get; } = new(callInvoker);
 }
