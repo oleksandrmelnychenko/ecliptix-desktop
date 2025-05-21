@@ -35,7 +35,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     public string InvalidCodeError => _localizationService["Authentication.Registration.verificationCodeEntry.error.invalidCode"];
     public string VerifyButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.verify"];
     public string ResendButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.resend"];
-
     
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 

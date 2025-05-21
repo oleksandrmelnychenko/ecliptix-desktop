@@ -1,7 +1,6 @@
 using System;
 using Avalonia.Controls;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
-using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views.Authentication;
 using Ecliptix.Core.Views.Authentication.Registration;
 using Splat;

@@ -13,7 +13,6 @@ public record VerifyCodeNavigateToView(string Mobile, AuthViewType ViewTypeToNav
 
 public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel
 {
-    
     public ViewModelActivator Activator { get; } = new();
     
     private static readonly Regex InternationalPhoneNumberRegex =
@@ -69,9 +68,6 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel
                 .Subscribe(error => ErrorMessage = error)
                 .DisposeWith(disposables);
         });
-        
-        
-        
     }
 
 
