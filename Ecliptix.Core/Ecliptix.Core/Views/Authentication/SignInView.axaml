@@ -4,9 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             xmlns:authentication="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
              mc:Ignorable="d"
              x:Class="Ecliptix.Core.Views.Authentication.SignInView"
-             x:DataType="memberships:SignInViewModel">
+             x:DataType="authentication:SignInViewModel">
 
    
         <StackPanel VerticalAlignment="Center">

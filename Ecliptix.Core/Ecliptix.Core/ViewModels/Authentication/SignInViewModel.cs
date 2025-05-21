@@ -2,7 +2,7 @@ using System;
 using System.Reactive;
 using ReactiveUI;
 
-namespace Ecliptix.Core.ViewModels.Memberships;
+namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class SignInViewModel : ReactiveObject
 {

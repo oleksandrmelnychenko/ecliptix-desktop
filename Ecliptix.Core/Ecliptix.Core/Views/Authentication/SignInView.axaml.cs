@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Memberships;
 
 namespace Ecliptix.Core.Views.Authentication;

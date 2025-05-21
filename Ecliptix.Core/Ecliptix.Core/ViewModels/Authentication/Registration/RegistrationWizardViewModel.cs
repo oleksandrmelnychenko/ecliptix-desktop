@@ -1,8 +1,6 @@
 using System;
 using Avalonia.Controls;
-using Ecliptix.Core.Data;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
-using Ecliptix.Core.ViewModels.Memberships;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 
@@ -27,7 +25,7 @@ public  class RegistrationWizardViewModel : ViewModelBase
             CurrentView = authenticationViewFactory.Create(type);
         });
 
-        ShowView.Execute(AuthViewType.NicknameInput)
+        ShowView.Execute(AuthViewType.PhoneVerification)
             .Subscribe();
     }
 

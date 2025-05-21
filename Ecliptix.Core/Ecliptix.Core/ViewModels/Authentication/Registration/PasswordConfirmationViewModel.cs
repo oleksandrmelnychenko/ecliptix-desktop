@@ -10,14 +10,14 @@ using Ecliptix.Core.Protocol.Utilities;
 using System.Security.Cryptography;
 using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;
+using Ecliptix.Protobuf.AppDevice;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
 public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewModel
 {
-    
     public ViewModelActivator Activator { get; } = new();
-    
+
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private SodiumSecureMemoryHandle? _secureVerifyPasswordHandle;
 
@@ -61,10 +61,15 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
     public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
     public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
     public string PasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.passwordHint"];
-    public string VerifyPasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.verifyPasswordHint"];
+
+    public string VerifyPasswordHint =>
+        _localizationService["Authentication.Registration.passwordConfirmation.verifyPasswordHint"];
+
     public string ButtonContent => _localizationService["Authentication.Registration.passwordConfirmation.button"];
-    public string PasswordMismatchError => _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
-    
+
+    public string PasswordMismatchError =>
+        _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
+
     public PasswordConfirmationViewModel(ILocalizationService localizationService)
     {
         _localizationService = localizationService;
@@ -74,7 +79,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             (cs, busy) => cs && !busy);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
-       
+
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
@@ -101,9 +106,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                 })
                 .DisposeWith(disposables);
         });
-    
-        
-        
     }
 
     public void UpdatePassword(string? passwordText)
@@ -304,8 +306,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             if (rentedPasswordBytes != null)
             {
-                // Ensure clear and return if an exception happened before explicit return
-                var spanToClear =
+                Span<byte> spanToClear =
                     rentedPasswordBytes.AsSpan(0, _securePasswordHandle?.Length ?? rentedPasswordBytes.Length);
                 spanToClear.Clear();
                 ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
@@ -406,13 +407,14 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             string passwordVerifierForServer = verifierResult.Unwrap();
 
-          
-        
+            /*CreateMembershipRequest request = new CreateMembershipRequest()
+            {
+                SessionIdentifier = 
+            };*/
 
-            localSaltForEncryption = GenerateAndPersistLocalSalt("",16);
+
+            localSaltForEncryption = GenerateAndPersistLocalSalt("", 16);
             localDataEncryptionKey = DeriveLocalKeyFromPassword(passwordString, localSaltForEncryption);
-
-          
         }
         catch (Exception ex)
         {
