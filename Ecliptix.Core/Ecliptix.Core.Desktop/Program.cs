@@ -134,5 +134,5 @@ public sealed class Program
 internal sealed class GrpcClients(CallInvoker callInvoker)
 {
     public AppDeviceServiceActions.AppDeviceServiceActionsClient AppDeviceServiceClient { get; } = new(callInvoker);
-    public AuthenticationServices.AuthenticationServicesClient AuthenticationServiceClient { get; } = new(callInvoker);
+    public AuthVerificationServices.AuthVerificationServicesClient AuthenticationServiceClient { get; } = new(callInvoker);
 }

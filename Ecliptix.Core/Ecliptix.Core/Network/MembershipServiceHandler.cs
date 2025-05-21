@@ -5,7 +5,7 @@ using Grpc.Core;
 
 namespace Ecliptix.Core.Network;
 
-public class MembershipServiceHandler(AuthenticationServices.AuthenticationServicesClient verificationClient)
+public class MembershipServiceHandler(AuthVerificationServices.AuthVerificationServicesClient verificationClient)
 {
     public async IAsyncEnumerable<CipherPayload> GetVerificationSessionIfExist(CipherPayload request)
     {

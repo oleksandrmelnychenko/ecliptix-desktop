@@ -170,7 +170,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             InitiateVerificationRequest membershipVerificationRequest = new()
             {
                 PhoneNumberIdentifier = phoneNumberIdentifier,
-                SystemDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+                AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
                 Purpose = VerificationPurpose.Registration
             };
 
@@ -226,7 +226,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             {
                 Code = VerificationCode,
                 Purpose = VerificationPurpose.Registration,
-                SystemDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+                AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
             };
 
             await _networkController.ExecuteServiceAction(
@@ -246,7 +246,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     }
                     else
                     {
-                        if (verifyCodeReply.Result == VerificationResult.InvalidCode)
+                        if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
                         {
                         }
                     }
@@ -270,7 +270,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
         if (!VerificationSessionIdentifier.HasValue) return;
 
-        InitiateResendVerificationRequest initiateResendVerificationRequest = new()
+        InitiateResendOtpRequest initiateResendVerificationRequest = new()
         {
             SessionIdentifier = Utilities.GuidToByteString(VerificationSessionIdentifier.Value)
         };
@@ -298,10 +298,5 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     {
         TimeSpan time = TimeSpan.FromSeconds(seconds);
         return time.ToString(@"mm\:ss");
-    }
-
-    protected void Dispose(bool disposing)
-    {
-        if (disposing) _mobileSubscription?.Dispose();
     }
 }

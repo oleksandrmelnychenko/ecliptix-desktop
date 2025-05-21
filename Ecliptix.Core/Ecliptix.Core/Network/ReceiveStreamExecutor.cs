@@ -11,7 +11,7 @@ using Grpc.Core;
 namespace Ecliptix.Core.Network;
 
 public class ReceiveStreamExecutor(
-    AuthenticationServices.AuthenticationServicesClient authenticationServicesClient)
+    AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
     public Result<RpcFlow, ShieldFailure> ProcessRequestAsync(ServiceRequest request,
         CancellationToken token)

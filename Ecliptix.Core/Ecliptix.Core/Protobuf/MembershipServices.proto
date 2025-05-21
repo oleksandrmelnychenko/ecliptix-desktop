@@ -1,0 +1,10 @@
+syntax = "proto3";
+import "CipherPayload.proto";
+
+package ecliptix.proto.app_device;
+option csharp_namespace = "Ecliptix.Protobuf.AppDevice";
+
+service MembershipServices {
+  rpc CreateMembership(CipherPayload) returns (CipherPayload);
+  rpc SignInMembership(CipherPayload) returns (CipherPayload);
+}

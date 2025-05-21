@@ -10,7 +10,7 @@ namespace Ecliptix.Core.Network;
 
 public sealed class SingleCallExecutor(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
-    AuthenticationServices.AuthenticationServicesClient authenticationServicesClient)
+    AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
     public Task<Result<RpcFlow, ShieldFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
     {
@@ -73,7 +73,7 @@ public sealed class SingleCallExecutor(
         return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
-                await authenticationServicesClient.VerifyCodeAsync(payload,
+                await authenticationServicesClient.VerifyOtpAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
