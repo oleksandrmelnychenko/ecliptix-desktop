@@ -75,13 +75,18 @@ public partial class HintedTextBox : UserControl
     private Border? _focusBorder;
     private bool _isDirty;
     private Border? _mainBorder;
+    
+    
     private TextBox? _mainTextBox;
 
+    public event EventHandler<TextChangedEventArgs>? TextChanged;
+    
     public HintedTextBox()
     {
         InitializeComponent();
         Initialize();
     }
+    
 
     public bool ShowCharacterCounter
     {
@@ -210,15 +215,7 @@ public partial class HintedTextBox : UserControl
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
             // Log or handle missing controls (for debugging purposes)
             return;
-
-        // if (MaxLength == int.MaxValue)
-        // {
-        //     _counterPanel.IsVisible = true;
-        // }
-        // else
-        // {
-        //     _counterPanel.IsVisible = true;
-        // }
+        
 
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
@@ -229,8 +226,11 @@ public partial class HintedTextBox : UserControl
                 return;
             }
 
-            // Update countdown logic
             string input = _mainTextBox.Text ?? string.Empty;
+    
+            // Update the Text property without raising the event again
+            SetValue(TextProperty, input);
+    
             RemainingCharacters = MaxLength - input.Length;
 
             // Validate input as before
@@ -247,6 +247,9 @@ public partial class HintedTextBox : UserControl
             }
 
             UpdateBorderState();
+
+            // Raise the event only once
+            TextChanged?.Invoke(this, new TextChangedEventArgs(TextBox.TextChangedEvent));
         }
 
         void OnGotFocus(object? sender, GotFocusEventArgs e)

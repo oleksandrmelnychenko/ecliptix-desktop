@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecliptix.Core.Services;
 
-public sealed class LocalizationService : ILocalizationService
+public sealed class  LocalizationService : ILocalizationService
 {
     private IReadOnlyDictionary<string, string> _localizedStrings;
     private CultureInfo _currentCultureInfo;

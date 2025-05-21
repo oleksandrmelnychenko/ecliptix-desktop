@@ -10,6 +10,8 @@ namespace Ecliptix.Core.Views.Authentication.Registration;
 
 public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConfirmationViewModel>
 {
+    private bool _handlersAttached;
+
     public PasswordConfirmationView(PasswordConfirmationViewModel viewModel)
     {
         InitializeComponent();
@@ -36,54 +38,56 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
+        // Teardown the previous handlers when DataContext changes.
         TeardownEventHandlers();
         SetupEventHandlers();
     }
 
     private void SetupEventHandlers()
     {
-        if (DataContext is not PasswordConfirmationViewModel vm) return;
-
-        HintedTextBox? passwordBox = this.FindControl<HintedTextBox>("PasswordTextBox");
-        if (passwordBox?.MainTextBox != null)
+        if (_handlersAttached)
+            return;
+            
+        if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
-            passwordBox.MainTextBox.TextChanged += PasswordBox_TextChanged;
+            passwordBox.TextChanged += PasswordBox_TextChanged;
         }
-
-        HintedTextBox? verifyPasswordBox = this.FindControl<HintedTextBox>("VerifyPasswordTextBox");
-        if (verifyPasswordBox?.MainTextBox != null)
+        if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
-            verifyPasswordBox.MainTextBox.TextChanged += VerifyPasswordBox_TextChanged;
+            verifyPasswordBox.TextChanged += VerifyPasswordBox_TextChanged;
         }
+        _handlersAttached = true;
     }
+
     private void TeardownEventHandlers()
     {
-        HintedTextBox? passwordBox = this.FindControl<HintedTextBox>("PasswordTextBox");
-        if (passwordBox?.MainTextBox != null)
+        if (!_handlersAttached)
+            return;
+            
+        if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
-            passwordBox.MainTextBox.TextChanged -= PasswordBox_TextChanged;
+            passwordBox.TextChanged -= PasswordBox_TextChanged;
         }
-
-        HintedTextBox? verifyPasswordBox = this.FindControl<HintedTextBox>("VerifyPasswordTextBox");
-        if (verifyPasswordBox?.MainTextBox != null)
+        if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
-            verifyPasswordBox.MainTextBox.TextChanged -= VerifyPasswordBox_TextChanged;
+            verifyPasswordBox.TextChanged -= VerifyPasswordBox_TextChanged;
         }
+        _handlersAttached = false;
     }
 
     private void PasswordBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox pb)
+        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox tb)
         {
-            vm.UpdatePassword(pb.MainTextBox.Text);
+            vm.UpdatePassword(tb.Text);
         }
     }
 
     private void VerifyPasswordBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox pb)
+        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox tb)
         {
-            vm.UpdateVerifyPassword(pb.MainTextBox.Text);
+            vm.UpdateVerifyPassword(tb.Text);
         }
     }
 }
