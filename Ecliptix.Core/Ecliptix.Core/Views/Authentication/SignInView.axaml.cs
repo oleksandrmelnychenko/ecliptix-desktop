@@ -16,6 +16,8 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         DataContext = viewModel;
         InitializeComponent();
     }
+    
+    
 
     private void InitializeComponent()
     {

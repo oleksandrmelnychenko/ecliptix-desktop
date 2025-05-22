@@ -18,13 +18,14 @@
                     x:Name="MobileTextBox"
                     Watermark="Mobile"
                     Hint="Include country code."
-                    Margin="0,10"
+                    Margin="0,0"
                     BorderBrush="#FFE8E8E8"
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
                     IconSource="/Assets/lamp.svg"
                     ValidationType="PhoneNumber"
                     MainBorderBrush="LightGray" 
+                    Text="{Binding PhoneNumber}"
                     />
                 <controls:HintedTextBox
                     Grid.Row="0"
