@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reactive.Disposables;
 using Avalonia;
 using Avalonia.Controls;
@@ -70,6 +71,16 @@ public partial class HintedTextBox : UserControl
     public static readonly StyledProperty<bool> ShowCharacterCounterProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter));
 
+    public static readonly StyledProperty<bool> IsNumericOnlyProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsNumericOnly));
+
+    public bool IsNumericOnly
+    {
+        get => GetValue(IsNumericOnlyProperty);
+        set => SetValue(IsNumericOnlyProperty, value);
+    }
+    
+    
     private readonly CompositeDisposable _disposables = new();
     private Panel? _counterPanel;
     private Border? _focusBorder;
@@ -228,6 +239,16 @@ public partial class HintedTextBox : UserControl
 
             string input = _mainTextBox.Text ?? string.Empty;
     
+            if (IsNumericOnly)
+            {
+                string numeric = string.Concat(input.Where(char.IsDigit));
+                if (numeric != input)
+                {
+                    _mainTextBox.Text = numeric;
+                    input = numeric;
+                }
+            }
+            
             // Update the Text property without raising the event again
             SetValue(TextProperty, input);
     
@@ -265,7 +286,7 @@ public partial class HintedTextBox : UserControl
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
-
+        
         _disposables.Add(Disposable.Create(() =>
         {
             _mainTextBox.TextChanged -= OnTextChanged;
@@ -283,7 +304,8 @@ public partial class HintedTextBox : UserControl
 
         UpdateBorderState();
     }
-
+    
+    
     private void UpdateBorderState(bool forceFocus = false)
     {
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
