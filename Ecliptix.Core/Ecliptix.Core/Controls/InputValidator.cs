@@ -41,6 +41,7 @@ public static class InputValidator
         if (input.Length < 8)
             return "Too short";
 
+        /*
         if (input.Contains(' '))
             return "No spaces";
 
@@ -51,7 +52,7 @@ public static class InputValidator
             return "Need uppercase";
 
         if (!Regex.IsMatch(input, @"[!@#$%^&*(),.?""{}|<>/]"))
-            return "Need special char";
+            return "Need special char";*/
 
         return null;
     }

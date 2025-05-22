@@ -11,17 +11,15 @@ using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
-using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
+using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using ReactiveUI;
 using Serilog;
-using Splat;
 using Splat.Microsoft.Extensions.DependencyInjection;
 
 public sealed class Program

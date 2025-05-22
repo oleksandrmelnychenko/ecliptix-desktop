@@ -5,6 +5,7 @@ using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Network;
@@ -69,13 +70,14 @@ public sealed class SingleCallExecutor(
         CancellationToken token)
     {
         return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
-        {
-            CipherPayload? response =
-                await membershipServicesClient.SignInMembershipAsync(payload,
-                    new CallOptions(cancellationToken: token)
-                );
-            return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+            {
+                CipherPayload? response =
+                    await membershipServicesClient.SignInMembershipAsync(payload,
+                        new CallOptions(cancellationToken: token)
+                    );
+                return response;
+            },
+            err => err);
     }
 
     private async Task<Result<CipherPayload, ShieldFailure>> InitiateResendVerificationAsync(CipherPayload payload,

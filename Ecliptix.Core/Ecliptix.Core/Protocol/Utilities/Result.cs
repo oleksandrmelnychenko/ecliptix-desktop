@@ -70,25 +70,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
     }
 
-    public static Result<T, TE> Try(Func<T> func, Func<Exception, bool> exceptionFilter,
-        Func<Exception, TE> errorMapper)
-    {
-        ArgumentNullException.ThrowIfNull(func, nameof(func));
-        ArgumentNullException.ThrowIfNull(exceptionFilter, nameof(exceptionFilter));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
-        try
-        {
-            return Ok(func());
-        }
-        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException && exceptionFilter(ex))
-        {
-            TE error = errorMapper(ex);
-            if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TE : notnull");
-            return Err(error);
-        }
-    }
-
     public static Result<Unit, TE> Try(Action action, Func<Exception, TE> errorMapper, Action? cleanup = null)
     {
         ArgumentNullException.ThrowIfNull(action, nameof(action));
@@ -111,36 +92,10 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
     }
 
-    public static async ValueTask<Result<Unit, TError>> TryAsync<TError>(
-        Func<ValueTask> action,
-        Func<Exception, TError> errorMapper,
-        Action? cleanup = null)
-    {
-        ArgumentNullException.ThrowIfNull(action, nameof(action));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
-
-        try
-        {
-            await action().ConfigureAwait(false);
-            return Result<Unit, TError>.Ok(Unit.Value);
-        }
-        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
-        {
-            TError? error = errorMapper(ex);
-            if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TError : notnull");
-            return Result<Unit, TError>.Err(error);
-        }
-        finally
-        {
-            cleanup?.Invoke();
-        }
-    }
-
     public static async ValueTask<Result<T, TError>> TryAsync<T, TError>(
         Func<ValueTask<T>> action,
         Func<ShieldFailure, TError> errorMapper,
-        Action? cleanup = null)
+        Action? cleanup = null) where TError : ShieldFailure
     {
         ArgumentNullException.ThrowIfNull(action, nameof(action));
         ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
@@ -149,6 +104,14 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             T result = await action().ConfigureAwait(false);
             return Result<T, TError>.Ok(result);
+        }
+        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
+        {
+            ShieldFailure failure = ShieldFailure.Generic(ex.Message, ex);
+            TError error = errorMapper(failure);
+            if (error == null)
+                throw new InvalidOperationException("Error mapper returned null, violating TError : notnull");
+            return Result<T, TError>.Err(error);
         }
         finally
         {

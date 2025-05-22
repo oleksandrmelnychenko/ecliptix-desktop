@@ -8,6 +8,7 @@ using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 using ReactiveUI;
@@ -21,7 +22,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
     private readonly NetworkController _networkController;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
-    private string _phoneNumber = string.Empty;
+    private string _phoneNumber = "+380970177443";
     private readonly PasswordManager? _passwordManager;
     private readonly bool _isPasswordManagerInitialized;
 
@@ -31,6 +32,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         set => this.RaiseAndSetIfChanged(ref _phoneNumber, value);
     }
 
+    public string PasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.passwordHint"];
     private string _errorMessage = string.Empty;
 
     public string ErrorMessage
@@ -88,15 +90,12 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
         IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
             x => x.PhoneNumber,
-            x => x.IsPasswordSet,
-            x => x.IsBusy,
-            (phone, passSet, busy) =>
+            (phone) =>
                 !string.IsNullOrWhiteSpace(phone) &&
-                passSet &&
-                !busy &&
                 _isPasswordManagerInitialized);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecuteSignIn);
+        PhoneNumber = "+380970177443";
     }
 
     public void UpdatePassword(string? passwordText)
@@ -164,6 +163,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             string passwordString = Encoding.UTF8.GetString(passwordSpan);
             Result<string, ShieldFailure> hashPasswordResult = _passwordManager.HashPassword(passwordString);
+            _ = passwordString.Remove(0, passwordString.Length);
 
             if (hashPasswordResult.IsErr)
             {
@@ -182,7 +182,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 SecureKey = ByteString.CopyFrom(secretKey, Encoding.ASCII)
             };
 
-            await _networkController.ExecuteServiceAction(
+           Result<Protocol.Utilities.Unit, ShieldFailure> t = await _networkController.ExecuteServiceAction(
                 connectId,
                 RcpServiceAction.SignIn,
                 request.ToByteArray(),
@@ -211,6 +211,11 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                     return Task.FromResult(new Result<Protocol.Utilities.Unit, ShieldFailure>());
                 }
             );
+
+            if (t.IsErr)
+            {
+                
+            }
         }
         catch (Exception ex)
         {

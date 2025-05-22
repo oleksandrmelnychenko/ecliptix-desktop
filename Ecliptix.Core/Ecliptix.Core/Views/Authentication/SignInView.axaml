@@ -27,16 +27,18 @@
                     ValidationType="PhoneNumber"
                     MainBorderBrush="LightGray" />
                 <controls:HintedTextBox
+                    Grid.Row="0"
                     x:Name="PasswordTextBox"
-                    Watermark="Password"
-                    Hint="Use 8+ chars."
-                    PasswordChar="•"
-                    BorderBrush="#FFE8E8E8"
-                    Margin="0,0,0,10"
+                    Watermark="{Binding PasswordHint}"
+                    Hint="{Binding PasswordHint}"
+                    Margin="0,10"
+                    CornerRadius="15"
+                    BorderBrush="#E0E0E0"
                     TextForeground="#333333"
                     HintForeground="#6a5acd"
                     IconSource="/Assets/lamp.svg"
-                    MainBorderBrush="LightGray" />
+                    ValidationType="Password" 
+                    PasswordChar="*"/>
                 <Button Classes="SubmitButton"
                         Content="Sign in"
                         Command="{Binding SignInCommand}" />

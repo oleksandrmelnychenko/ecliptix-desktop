@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Views.Authentication;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
-    public SignInView(SignInViewModel viewModel) 
+    public SignInView(SignInViewModel viewModel)
     {
         DataContext = viewModel;
         InitializeComponent();
@@ -36,13 +36,6 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         TeardownEventHandlers();
     }
 
-    protected override void OnDataContextChanged(EventArgs e)
-    {
-        base.OnDataContextChanged(e);
-        TeardownEventHandlers(); 
-        SetupEventHandlers();
-    }
-
     private void SetupEventHandlers()
     {
         if (PasswordTextBox != null)
@@ -57,32 +50,20 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             HintedTextBox? passwordBoxViaFind = this.FindControl<HintedTextBox>("PasswordTextBox");
             if (passwordBoxViaFind != null)
             {
-                if (passwordBoxViaFind.MainTextBox != null)
-                {
-                    passwordBoxViaFind.MainTextBox.TextChanged += PasswordBox_MainTextBox_TextChanged;
-                }
+                passwordBoxViaFind.TextChanged += PasswordBox_MainTextBox_TextChanged;
             }
         }
     }
 
     private void TeardownEventHandlers()
     {
-        if (PasswordTextBox != null && PasswordTextBox.MainTextBox != null)
-        {
-            PasswordTextBox.MainTextBox.TextChanged -= PasswordBox_MainTextBox_TextChanged;
-            Debug.WriteLine("SignInView: Detached TextChanged from this.PasswordTextBox.MainTextBox.");
-        }
-
         HintedTextBox? passwordBoxViaFind = this.FindControl<HintedTextBox>("PasswordTextBox");
-        if (passwordBoxViaFind is { MainTextBox: not null })
-        {
-            passwordBoxViaFind.MainTextBox.TextChanged -= PasswordBox_MainTextBox_TextChanged;
-        }
+        passwordBoxViaFind.TextChanged -= PasswordBox_MainTextBox_TextChanged;
     }
 
     private void PasswordBox_MainTextBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (DataContext is SignInViewModel vm && sender is TextBox mainPasswordTextBox)
+        if (DataContext is SignInViewModel vm && sender is HintedTextBox mainPasswordTextBox)
         {
             vm.UpdatePassword(mainPasswordTextBox.Text);
         }
