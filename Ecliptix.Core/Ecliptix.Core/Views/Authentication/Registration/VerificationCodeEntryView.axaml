@@ -9,25 +9,27 @@
              x:Class="Ecliptix.Core.Views.Authentication.Registration.VerificationCodeEntryView">
     
         
-    <StackPanel Orientation="Vertical" Spacing="10" >
-        <TextBlock TextWrapping="Wrap" FontSize="24"  Foreground="#333333" Text="{Binding Title} " />
-        
-        <controls:HintedTextBox x:Name="VerificationCodeTextBox"
-                                    Text="{Binding VerificationCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Watermark="######"
-                                    Hint="{Binding Hint}"
-                                    MaxLength="6"
-                                    BorderBrush="#FFE8E8E8"
-                                    Margin="0,5,0,5"
-                                    TextForeground="#333333"
-                                    HintForeground="#6a5acd"
-                                    IconSource="/Assets/lamp.svg"
-                                    MainBorderBrush="LightGray"
-                                    />
-        <Grid>
+   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" FontSize="24" Foreground="#333333" Text="{Binding Title}" />
+
+        <controls:HintedTextBox Grid.Row="1"
+                                x:Name="VerificationCodeTextBox"
+                                Text="{Binding VerificationCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Watermark="######"
+                                Hint="{Binding Hint}"
+                                MaxLength="6"
+                                BorderBrush="#FFE8E8E8"
+                                Margin="0,5,0,5"
+                                TextForeground="#333333"
+                                HintForeground="#6a5acd"
+                                IconSource="/Assets/lamp.svg"
+                                MainBorderBrush="LightGray" />
+
+        <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -35,15 +37,15 @@
             </Grid.ColumnDefinitions>
             <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
             <TextBlock x:Name="ExpirationTextBlock" Text="{Binding Expiration}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
-            <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
         </Grid>
-        
-        <Button Content="{Binding VerifyButtonContent}" Classes="SubmitButton"
+
+        <Button Grid.Row="3" Content="{Binding VerifyButtonContent}" Classes="SubmitButton"
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
-        
-        <Button Content="{Binding ResendButtonContent}"  IsEnabled="True"
+
+        <Button Grid.Row="4" Content="{Binding ResendButtonContent}" IsEnabled="True"
                 Command="{Binding ResendSendVerificationCodeCommand}" />
-    </StackPanel>
+    </Grid>
    
 </UserControl>

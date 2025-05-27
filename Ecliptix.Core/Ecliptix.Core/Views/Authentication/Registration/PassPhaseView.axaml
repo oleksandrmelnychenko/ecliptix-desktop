@@ -7,24 +7,26 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Views.Authentication.Registration.PassPhaseView"
              x:DataType="registration:PassPhaseViewModel">
-    <StackPanel Orientation="Vertical" Spacing="10">
-        <TextBlock TextWrapping="Wrap" FontSize="24" Foreground="#333333" Text="{Binding Title}" />
-        <TextBlock TextWrapping="Wrap" FontSize="14" Foreground="#B0B0B0" Text="{Binding Description}" Margin="0,4,0,10" />
-        
-        <controls:HintedTextBox x:Name="PassPhaseTextBox"
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+        <Grid RowDefinitions="Auto Auto">
+            
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" FontSize="24" Foreground="#333333" Margin="0 0 0 5" Text="{Binding Title}" />
+        <TextBlock Grid.Row="1" TextWrapping="Wrap" FontSize="14" Foreground="#B0B0B0" Text="{Binding Description}"  />
+        </Grid>
+
+        <controls:HintedTextBox Grid.Row="2"
+                                x:Name="PassPhaseTextBox"
                                 Text="{Binding PassPhase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 Watermark="{Binding Watermark}"
                                 Hint="{Binding Hint}"
                                 BorderBrush="#FFE8E8E8"
-                                Margin="0,5,0,5"
                                 TextForeground="#333333"
                                 HintForeground="#6a5acd"
                                 IconSource="/Assets/key.svg"
-                                MainBorderBrush="LightGray" 
-                                MaxLength="4"
-                                />
-        
-        <Button Content="{Binding ButtonContent}" Classes="SubmitButton"
+                                MainBorderBrush="LightGray"
+                                MaxLength="4" />
+
+        <Button Grid.Row="3" Content="{Binding ButtonContent}" Classes="SubmitButton"
                 Command="{Binding SubmitCommand}" />
-    </StackPanel>
+    </Grid>
 </UserControl>
