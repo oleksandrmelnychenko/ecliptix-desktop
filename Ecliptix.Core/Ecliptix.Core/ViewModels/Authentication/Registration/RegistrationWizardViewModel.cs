@@ -25,7 +25,7 @@ public  class RegistrationWizardViewModel : ViewModelBase
             CurrentView = authenticationViewFactory.Create(type);
         });
 
-        ShowView.Execute(AuthViewType.ConfirmPassword)
+        ShowView.Execute(AuthViewType.PhoneVerification)
             .Subscribe();
     }
 

@@ -16,7 +16,7 @@
         "error": {
           "passwordMismatch": "Passwords do not match"
         },
-        "button": "Send verification code"
+        "button": "Confirm Password"
       },
       "phoneVerification": {
         "title": "Mobile number verification",

@@ -221,6 +221,15 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             IsSent = true;
             ErrorMessage = string.Empty;
 
+            // Dummy server validation logic
+            if (VerificationCode == "123456") // Simulate a valid code
+            {
+                MessageBus.Current.SendMessage(
+                    new VerifyCodeNavigateToView(string.Empty, AuthViewType.ConfirmPassword),
+                    "VerifyCodeNavigateToView");
+            }
+            
+            
             VerifyCodeRequest verifyCodeRequest = new()
             {
                 Code = VerificationCode,
