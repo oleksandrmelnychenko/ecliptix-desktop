@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
-using Ecliptix.Core.Protobuf.VerificationServices;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Network;

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Ecliptix.Core.Protobuf.VerificationServices;
 using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Network;

@@ -9,8 +9,8 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protobuf.Verification;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -186,6 +186,11 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                         VerificationCountdownUpdate timerTick =
                             Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
 
+                        if (timerTick.AlreadyVerified)
+                        {
+                            
+                        }
+                        
                         VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
 
                         RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
@@ -220,15 +225,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
             IsSent = true;
             ErrorMessage = string.Empty;
-
-            // Dummy server validation logic
-            if (VerificationCode == "123456") // Simulate a valid code
-            {
-                MessageBus.Current.SendMessage(
-                    new VerifyCodeNavigateToView(string.Empty, AuthViewType.ConfirmPassword),
-                    "VerifyCodeNavigateToView");
-            }
-            
             
             VerifyCodeRequest verifyCodeRequest = new()
             {
@@ -249,7 +245,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     if (verifyCodeReply.Result == VerificationResult.Succeeded)
                     {
                         MessageBus.Current.SendMessage(
-                            new VerifyCodeNavigateToView(string.Empty, AuthViewType.ConfirmPassword),
+                            new VerifyCodeNavigateToView(VerificationSessionIdentifier.ToString(), AuthViewType.ConfirmPassword),
                             "VerifyCodeNavigateToView");
                     }
                     else

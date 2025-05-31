@@ -8,9 +8,14 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
 using System.Security.Cryptography;
+using System.Threading;
+using Ecliptix.Core.Network;
 using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;
-using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.PubKeyExchange;
+using Google.Protobuf;
+using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
@@ -57,6 +62,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
 
+    private readonly NetworkController _networkController;
     private readonly ILocalizationService _localizationService;
     public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
     public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
@@ -69,9 +75,13 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public string PasswordMismatchError =>
         _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
+    private readonly IDisposable _mobileSubscription;
 
-    public PasswordConfirmationViewModel(ILocalizationService localizationService)
+    private string VerificationSessionId { get; set; }
+    
+    public PasswordConfirmationViewModel(NetworkController networkController, ILocalizationService localizationService)
     {
+        _networkController = networkController;
         _localizationService = localizationService;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
@@ -80,6 +90,14 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
 
+        _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(mobile =>
+                {
+                    VerificationSessionId = mobile;
+                }
+            );
+        
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
@@ -407,14 +425,31 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             string passwordVerifierForServer = verifierResult.Unwrap();
 
-            /*CreateMembershipRequest request = new CreateMembershipRequest()
+            UpdateMembershipWithSecureKeyRequest request = new()
             {
-                SessionIdentifier = 
-            };*/
+                VerificationSessionIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
+                SecureKey = ByteString.CopyFrom(passwordVerifierForServer, Encoding.UTF8)
+            };
 
+            _ = await _networkController.ExecuteServiceAction(
+                ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                RcpServiceAction.CreateMembership,
+                request.ToByteArray(),
+                ServiceFlowType.Single,
+                payload =>
+                {
+                    UpdateMembershipWithSecureKeyResponse createMembershipResponse =
+                        Utilities.ParseFromBytes<UpdateMembershipWithSecureKeyResponse>(payload);
 
-            localSaltForEncryption = GenerateAndPersistLocalSalt("", 16);
-            localDataEncryptionKey = DeriveLocalKeyFromPassword(passwordString, localSaltForEncryption);
+                    if (createMembershipResponse.Result ==
+                        UpdateMembershipWithSecureKeyResponse.Types.UpdateResult.Succeeded)
+                    {
+                    }
+
+                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                },
+                CancellationToken.None
+            );
         }
         catch (Exception ex)
         {
@@ -431,7 +466,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             if (localSaltForEncryption != null)
                 Array.Clear(localSaltForEncryption, 0,
-                    localSaltForEncryption.Length); // If it was just for derivation and not the persisted one
+                    localSaltForEncryption.Length);
             if (localDataEncryptionKey != null) Array.Clear(localDataEncryptionKey, 0, localDataEncryptionKey.Length);
 
             IsBusy = false;
@@ -441,32 +476,19 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
     private byte[] DeriveLocalKeyFromPassword(string password, ReadOnlySpan<byte> salt)
     {
         const int localKeyIterations = 100000;
-        const int derivedKeyLength = 32; // For AES-256
+        const int derivedKeyLength = 32;
         HashAlgorithmName hashAlgo = HashAlgorithmName.SHA256;
 
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt.ToArray(), localKeyIterations, hashAlgo);
+        using Rfc2898DeriveBytes pbkdf2 = new(password, salt.ToArray(), localKeyIterations, hashAlgo);
         return pbkdf2.GetBytes(derivedKeyLength);
     }
 
-    private byte[] GenerateAndPersistLocalSalt(string userId, int saltSize)
+    private static byte[] GenerateAndPersistLocalSalt(int saltSize)
     {
-        // IMPORTANT: This salt MUST be persisted securely and be retrievable
-        // next time the user logs in on THIS device to decrypt their E2EE keys.
-        // It should not be easily guessable or derivable from public info if possible.
-        // Storing it in platform-specific secure storage (Keychain, Keystore) is ideal.
-        // This is a placeholder for actual secure salt generation and persistence.
-        // For a given user on a given device, this salt should be STABLE.
         byte[] salt = new byte[saltSize];
-        // Example: Try to retrieve existing salt first. If not found, generate and store.
-        // if (TryRetrieveLocalSalt(userId, out salt)) { return salt; }
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(salt);
-        }
+        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
+        rng.GetBytes(salt);
 
-        // PersistSaltForUserDevice(userId, salt);
-        Console.WriteLine(
-            $"[DEBUG] Generated/Retrieved local salt for {userId}: {Convert.ToBase64String(salt)} (NEEDS ACTUAL PERSISTENCE & RETRIEVAL)");
         return salt;
     }
 

@@ -1,8 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Protobuf.VerificationServices;
 using Ecliptix.Core.Protocol.Utilities;
-using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
@@ -34,7 +32,7 @@ public sealed class SingleCallExecutor(
                     Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
             case RcpServiceAction.CreateMembership:
                 Task<Result<CipherPayload, ShieldFailure>> createMembershipResult =
-                    CreateMembershipAsync(request.Payload, token);
+                    UpdateMembershipWithSecureKeyAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(createMembershipResult)));
             case RcpServiceAction.InitiateResendVerification:
@@ -53,13 +51,13 @@ public sealed class SingleCallExecutor(
         }
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> CreateMembershipAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, ShieldFailure>> UpdateMembershipWithSecureKeyAsync(CipherPayload payload,
         CancellationToken token)
     {
         return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
-                await membershipServicesClient.CreateMembershipAsync(payload,
+                await membershipServicesClient.UpdateMembershipWithSecureKeyAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
