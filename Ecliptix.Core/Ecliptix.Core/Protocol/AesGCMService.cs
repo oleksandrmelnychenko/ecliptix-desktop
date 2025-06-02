@@ -62,10 +62,12 @@ public static class AesGcmService
         }
         catch (CryptographicException cryptoEx)
         {
+            Console.WriteLine(cryptoEx.Message);
             throw new ShieldChainStepException(ErrEncryptFail, cryptoEx);
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
             throw new ShieldChainStepException(ErrEncryptFail, ex);
         }
     }
@@ -106,14 +108,17 @@ public static class AesGcmService
         }
         catch (AuthenticationTagMismatchException authEx)
         {
+            Console.WriteLine(authEx.Message);
             throw new ShieldChainStepException(ErrDecryptFail, authEx);
         }
         catch (CryptographicException cryptoEx)
         {
+            Console.WriteLine(cryptoEx.Message);
             throw new ShieldChainStepException(ErrDecryptFail, cryptoEx);
         }
         catch (Exception ex)
         {
+            Console.WriteLine(ex.Message);
             throw new ShieldChainStepException(ErrDecryptFail, ex);
         }
     }
