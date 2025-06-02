@@ -21,7 +21,6 @@ namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
-
     private readonly IDisposable _mobileSubscription;
     private readonly NetworkController _networkController;
     private string _errorMessage = string.Empty;
@@ -47,21 +46,26 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     public VerificationCodeEntryViewModel(NetworkController networkController, ILocalizationService localizationService)
     {
         _localizationService = localizationService;
-
         _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
         _verificationCode = string.Empty;
 
-        IObservable<bool> canExecute = this.WhenAnyValue(x => x.VerificationCode)
-            .Select(code => code?.Length == 6 && code.All(char.IsDigit));
+        // "VERIFY" button enabled only when code is 6 digits and timer is not zero
+        IObservable<bool> canVerify = this.WhenAnyValue(
+            x => x.VerificationCode,
+            x => x.RemainingTime,
+            (code, time) => code?.Length == 6 && code.All(char.IsDigit) && time != "00:00"
+        );
+        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
-        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canExecute);
+        // "RESEND" button enabled only when timer is zero
+        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
+        canResend.Subscribe(value => Console.WriteLine($"canResend: {value}")); // For debugging
+        ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
+
 
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(mobile =>
-                Task.Run(async () => await ValidatePhoneNumber(mobile))
-            );
-
+            .Subscribe(mobile => Task.Run(async () => await ValidatePhoneNumber(mobile)));
 
         this.WhenActivated(disposables =>
         {
@@ -80,8 +84,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 })
                 .DisposeWith(disposables);
         });
-
-        ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode);
     }
 
     public string VerificationCode
@@ -105,22 +107,35 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     public string RemainingTime
     {
         get => _remainingTime;
-        private set => this.RaiseAndSetIfChanged(ref _remainingTime, value);
+        private set
+        {
+            Console.WriteLine($"Setting RemainingTime to: '{value}'");
+            this.RaiseAndSetIfChanged(ref _remainingTime, value);
+        }
     }
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
     public ViewModelActivator Activator { get; } = new();
 
+    private ValidatePhoneNumberResponse _validatePhoneNumberResponse;
+
+    private ulong _secondsRemaining;
+
+    public ulong SecondsRemaining
+    {
+        get => _secondsRemaining;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _secondsRemaining, value);
+            RemainingTime = FormatRemainingTime(value);
+        }
+    }
+
     private async Task ValidatePhoneNumber(string phoneNumber)
     {
         using CancellationTokenSource cancellationTokenSource = new();
-
-        ValidatePhoneNumberRequest request = new()
-        {
-            PhoneNumber = phoneNumber
-        };
-
+        ValidatePhoneNumberRequest request = new() { PhoneNumber = phoneNumber };
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
         _ = await _networkController.ExecuteServiceAction(
             connectId,
@@ -129,173 +144,105 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             ServiceFlowType.Single,
             payload =>
             {
-                try
+                _validatePhoneNumberResponse = Utilities.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
+                if (_validatePhoneNumberResponse.Result == VerificationResult.InvalidPhone)
                 {
-                    ValidatePhoneNumberResponse validatePhoneNumberResponse =
-                        Utilities.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
-
-                    if (validatePhoneNumberResponse.Result == VerificationResult.InvalidPhone)
-                    {
-                        ErrorMessage = validatePhoneNumberResponse.Message;
-                    }
-                    else
-                    {
-                        Task.Run(
-                            async () => await InitiateVerification(validatePhoneNumberResponse.PhoneNumberIdentifier),
-                            cancellationTokenSource.Token);
-                    }
-
-                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                    ErrorMessage = _validatePhoneNumberResponse.Message;
                 }
-                catch (Exception ex)
+                else
                 {
-                    ErrorMessage = $"Failed to process timer tick: {ex.Message}";
-                    return Task.FromResult(
-                        Result<ShieldUnit, ShieldFailure>.Err(ShieldFailure.Generic(ex.Message, ex)));
+                    Task.Run(async () => await InitiateVerification(_validatePhoneNumberResponse.PhoneNumberIdentifier,
+                        InitiateVerificationRequest.Types.Type.SendOtp), cancellationTokenSource.Token);
                 }
+
+                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
             },
             cancellationTokenSource.Token
         );
     }
 
-    private async Task InitiateVerification(ByteString phoneNumberIdentifier)
+    private async Task InitiateVerification(ByteString phoneNumberIdentifier,
+        InitiateVerificationRequest.Types.Type type)
     {
         using CancellationTokenSource cancellationTokenSource = new();
-        try
+
+        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
+        if (!systemDeviceIdentifier.HasValue)
         {
-            Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
-            if (!systemDeviceIdentifier.HasValue)
-            {
-                ErrorMessage = "Invalid device ID";
-                return;
-            }
+            ErrorMessage = "Invalid device ID";
+            return;
+        }
 
-            InitiateVerificationRequest membershipVerificationRequest = new()
-            {
-                PhoneNumberIdentifier = phoneNumberIdentifier,
-                AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
-                Purpose = VerificationPurpose.Registration
-            };
+        InitiateVerificationRequest membershipVerificationRequest = new()
+        {
+            PhoneNumberIdentifier = phoneNumberIdentifier,
+            AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+            Purpose = VerificationPurpose.Registration,
+            Type = type
+        };
 
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-            _ = await _networkController.ExecuteServiceAction(
-                connectId,
-                RcpServiceAction.InitiateVerification,
-                membershipVerificationRequest.ToByteArray(),
-                ServiceFlowType.ReceiveStream,
-                payload =>
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        _ = await _networkController.ExecuteServiceAction(
+            connectId,
+            RcpServiceAction.InitiateVerification,
+            membershipVerificationRequest.ToByteArray(),
+            ServiceFlowType.ReceiveStream,
+            payload =>
+            {
+                VerificationCountdownUpdate timerTick =
+                    Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                if (timerTick.AlreadyVerified)
                 {
-                    try
-                    {
-                        VerificationCountdownUpdate timerTick =
-                            Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                }
 
-                        if (timerTick.AlreadyVerified)
-                        {
-                        }
+                VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
+                RxApp.MainThreadScheduler.Schedule(() => SecondsRemaining = timerTick.SecondsRemaining);
+                RxApp.MainThreadScheduler.Schedule(() =>
+                    RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
-                        VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
-
-                        RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
-                        return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
-                    }
-                    catch (Exception ex)
-                    {
-                        ErrorMessage = $"Failed to process timer tick: {ex.Message}";
-                        return Task.FromResult(
-                            Result<ShieldUnit, ShieldFailure>.Err(ShieldFailure.Generic(ex.Message, ex)));
-                    }
-                },
-                cancellationTokenSource.Token
-            );
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Verification request failed: {ex.Message}";
-        }
+                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+            },
+            cancellationTokenSource.Token
+        );
     }
 
     private async Task SendVerificationCode()
     {
-        try
+        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
+        if (!systemDeviceIdentifier.HasValue)
         {
-            Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
-            if (!systemDeviceIdentifier.HasValue)
-            {
-                ErrorMessage = "Invalid device ID";
-                return;
-            }
-
-            IsSent = true;
-            ErrorMessage = string.Empty;
-
-            VerifyCodeRequest verifyCodeRequest = new()
-            {
-                Code = VerificationCode,
-                Purpose = VerificationPurpose.Registration,
-                AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
-            };
-
-            await _networkController.ExecuteServiceAction(
-                ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.VerifyOtp,
-                verifyCodeRequest.ToByteArray(),
-                ServiceFlowType.Single,
-                payload =>
-                {
-                    VerifyCodeResponse verifyCodeReply = Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
-
-                    if (verifyCodeReply.Result == VerificationResult.Succeeded)
-                    {
-                        Membership membership = verifyCodeReply.Membership;
-
-                        MessageBus.Current.SendMessage(
-                            new VerifyCodeNavigateToView(
-                                Utilities.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
-                                AuthViewType.ConfirmPassword),
-                            "VerifyCodeNavigateToView");
-                    }
-                    else
-                    {
-                        if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
-                        {
-                        }
-                    }
-
-                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
-                },
-                CancellationToken.None
-            );
+            ErrorMessage = "Invalid device ID";
+            return;
         }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to send verification code: {ex.Message}";
-            IsSent = false;
-        }
-    }
 
-    private async Task ReSendVerificationCode()
-    {
         IsSent = true;
         ErrorMessage = string.Empty;
 
-        if (!VerificationSessionIdentifier.HasValue) return;
-
-        InitiateResendOtpRequest initiateResendVerificationRequest = new()
+        VerifyCodeRequest verifyCodeRequest = new()
         {
-            SessionIdentifier = Utilities.GuidToByteString(VerificationSessionIdentifier.Value)
+            Code = VerificationCode,
+            Purpose = VerificationPurpose.Registration,
+            AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
         };
 
         await _networkController.ExecuteServiceAction(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceAction.InitiateResendVerification,
-            initiateResendVerificationRequest.ToByteArray(),
+            RcpServiceAction.VerifyOtp,
+            verifyCodeRequest.ToByteArray(),
             ServiceFlowType.Single,
             payload =>
             {
-                ResendOtpResponse resendOtpResponse = Utilities.ParseFromBytes<ResendOtpResponse>(payload);
-
-                if (resendOtpResponse.Result == VerificationResult.Succeeded)
+                VerifyCodeResponse verifyCodeReply = Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
+                if (verifyCodeReply.Result == VerificationResult.Succeeded)
+                {
+                    Membership membership = verifyCodeReply.Membership;
+                    MessageBus.Current.SendMessage(
+                        new VerifyCodeNavigateToView(
+                            Utilities.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
+                            AuthViewType.ConfirmPassword),
+                        "VerifyCodeNavigateToView");
+                }
+                else if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
                 {
                 }
 
@@ -305,9 +252,17 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         );
     }
 
+    private void ReSendVerificationCode()
+    {
+        Task.Run(async () => await InitiateVerification(_validatePhoneNumberResponse.PhoneNumberIdentifier,
+            InitiateVerificationRequest.Types.Type.ResendOtp));
+    }
+
     private string FormatRemainingTime(ulong seconds)
     {
         TimeSpan time = TimeSpan.FromSeconds(seconds);
-        return time.ToString(@"mm\:ss");
+        string t = time.ToString(@"mm\:ss");
+        Console.WriteLine(t);
+        return t;
     }
 }

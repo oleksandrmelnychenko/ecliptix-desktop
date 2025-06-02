@@ -35,11 +35,6 @@ public sealed class SingleCallExecutor(
                     UpdateMembershipWithSecureKeyAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(createMembershipResult)));
-            case RcpServiceAction.InitiateResendVerification:
-                Task<Result<CipherPayload, ShieldFailure>> initiateResendVerificationResult =
-                    InitiateResendVerificationAsync(request.Payload, token);
-                return Task.FromResult(
-                    Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(initiateResendVerificationResult)));
             case RcpServiceAction.VerifyOtp:
                 Task<Result<CipherPayload, ShieldFailure>> verifyWithCodeResult =
                     VerifyCodeAsync(request.Payload, token);
@@ -76,19 +71,6 @@ public sealed class SingleCallExecutor(
                 return response;
             },
             err => err);
-    }
-
-    private async Task<Result<CipherPayload, ShieldFailure>> InitiateResendVerificationAsync(CipherPayload payload,
-        CancellationToken token)
-    {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
-        {
-            CipherPayload? response =
-                await authenticationServicesClient.InitiateResendVerificationAsync(payload,
-                    new CallOptions(cancellationToken: token)
-                );
-            return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
     }
 
     private async Task<Result<CipherPayload, ShieldFailure>> ValidatePhoneNumberAsync(CipherPayload payload,

@@ -7,7 +7,6 @@ public enum RcpServiceAction : short
     ValidatePhoneNumber,
     VerifyOtp,
     InitiateVerification,
-    InitiateResendVerification,
     SignIn,
     UpdateMembershipWithSecureKey
 }

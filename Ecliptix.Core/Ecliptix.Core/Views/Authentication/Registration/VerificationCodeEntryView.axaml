@@ -44,7 +44,8 @@
                 Command="{Binding SendVerificationCodeCommand}"
                 IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" />
 
-        <Button Grid.Row="4" Content="{Binding ResendButtonContent}" IsEnabled="True"
+        <Button Grid.Row="4" Content="{Binding ResendButtonContent}"
+                IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
                 Command="{Binding ResendSendVerificationCodeCommand}" />
     </Grid>
    

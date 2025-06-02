@@ -141,11 +141,10 @@ public sealed class PasswordManager
 
         try
         {
-            byte[] salt = GenerateSalt();
-            using Rfc2898DeriveBytes pbkdf2 = new(password, salt, _iterations, _hashAlgorithmName);
+            using Rfc2898DeriveBytes pbkdf2 = new(password, [], _iterations, _hashAlgorithmName);
             byte[] hash = pbkdf2.GetBytes(GetHashSizeForAlgorithm(_hashAlgorithmName));
             return Result<string, ShieldFailure>.Ok(
-                $"{Convert.ToBase64String(salt)}{HashSeparator}{Convert.ToBase64String(hash)}");
+                $"{HashSeparator}{Convert.ToBase64String(hash)}");
         }
         catch (Exception ex)
         {
