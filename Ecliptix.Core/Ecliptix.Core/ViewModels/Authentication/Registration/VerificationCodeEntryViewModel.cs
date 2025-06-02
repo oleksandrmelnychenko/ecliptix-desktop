@@ -21,7 +21,7 @@ namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
-    
+
     private readonly IDisposable _mobileSubscription;
     private readonly NetworkController _networkController;
     private string _errorMessage = string.Empty;
@@ -32,16 +32,22 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     public string Title => _localizationService["Authentication.Registration.verificationCodeEntry.title"];
     public string Hint => _localizationService["Authentication.Registration.verificationCodeEntry.hint"];
     public string Expiration => _localizationService["Authentication.Registration.verificationCodeEntry.expiration"];
-    public string InvalidCodeError => _localizationService["Authentication.Registration.verificationCodeEntry.error.invalidCode"];
-    public string VerifyButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.verify"];
-    public string ResendButtonContent => _localizationService["Authentication.Registration.verificationCodeEntry.button.resend"];
-    
+
+    public string InvalidCodeError =>
+        _localizationService["Authentication.Registration.verificationCodeEntry.error.invalidCode"];
+
+    public string VerifyButtonContent =>
+        _localizationService["Authentication.Registration.verificationCodeEntry.button.verify"];
+
+    public string ResendButtonContent =>
+        _localizationService["Authentication.Registration.verificationCodeEntry.button.resend"];
+
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
     public VerificationCodeEntryViewModel(NetworkController networkController, ILocalizationService localizationService)
     {
         _localizationService = localizationService;
-        
+
         _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
         _verificationCode = string.Empty;
 
@@ -73,10 +79,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     this.RaisePropertyChanged(nameof(ResendButtonContent));
                 })
                 .DisposeWith(disposables);
-
-            
         });
-    
+
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode);
     }
 
@@ -188,9 +192,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
                         if (timerTick.AlreadyVerified)
                         {
-                            
                         }
-                        
+
                         VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
 
                         RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining);
@@ -225,7 +228,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
             IsSent = true;
             ErrorMessage = string.Empty;
-            
+
             VerifyCodeRequest verifyCodeRequest = new()
             {
                 Code = VerificationCode,
@@ -244,8 +247,12 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
                     if (verifyCodeReply.Result == VerificationResult.Succeeded)
                     {
+                        Membership membership = verifyCodeReply.Membership;
+
                         MessageBus.Current.SendMessage(
-                            new VerifyCodeNavigateToView(VerificationSessionIdentifier.ToString(), AuthViewType.ConfirmPassword),
+                            new VerifyCodeNavigateToView(
+                                Utilities.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
+                                AuthViewType.ConfirmPassword),
                             "VerifyCodeNavigateToView");
                     }
                     else

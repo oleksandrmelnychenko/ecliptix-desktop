@@ -199,7 +199,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             newHandle = allocateResult.Unwrap();
 
-            Result<Unit, ShieldFailure> writeResult = newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten));
+            Result<ShieldUnit, ShieldFailure> writeResult = newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten));
             if (writeResult.IsErr)
             {
                 newHandle.Dispose();
@@ -256,7 +256,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle!.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
 
-            Result<Unit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            Result<ShieldUnit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
                 PasswordErrorMessage = $"Error processing password: {readResult.UnwrapErr().Message}";
@@ -268,7 +268,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             _passwordManager ??= PasswordManager.Create().Unwrap();
 
-            Result<Unit, ShieldFailure> complianceResult =
+            Result<ShieldUnit, ShieldFailure> complianceResult =
                 _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
 
             passwordSpan.Clear();
@@ -358,12 +358,12 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedBytes1 = ArrayPool<byte>.Shared.Rent(handle1.Length);
             Span<byte> span1 = rentedBytes1.AsSpan(0, handle1.Length);
-            Result<Unit, ShieldFailure> read1Result = handle1.Read(span1);
+            Result<ShieldUnit, ShieldFailure> read1Result = handle1.Read(span1);
             if (read1Result.IsErr) return Result<bool, ShieldFailure>.Err(read1Result.UnwrapErr());
 
             rentedBytes2 = ArrayPool<byte>.Shared.Rent(handle2.Length);
             Span<byte> span2 = rentedBytes2.AsSpan(0, handle2.Length);
-            Result<Unit, ShieldFailure> read2Result = handle2.Read(span2);
+            Result<ShieldUnit, ShieldFailure> read2Result = handle2.Read(span2);
             if (read2Result.IsErr) return Result<bool, ShieldFailure>.Err(read2Result.UnwrapErr());
 
             bool areEqual = CryptographicOperations.FixedTimeEquals(span1, span2);
@@ -407,7 +407,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
-            Result<Unit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            Result<ShieldUnit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
                 throw new InvalidOperationException(
@@ -427,13 +427,13 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             UpdateMembershipWithSecureKeyRequest request = new()
             {
-                VerificationSessionIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
+                MembershipIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
                 SecureKey = ByteString.CopyFrom(passwordVerifierForServer, Encoding.UTF8)
             };
 
             _ = await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.CreateMembership,
+                RcpServiceAction.UpdateMembershipWithSecureKey,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
                 payload =>
@@ -473,25 +473,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         }
     }
 
-    private byte[] DeriveLocalKeyFromPassword(string password, ReadOnlySpan<byte> salt)
-    {
-        const int localKeyIterations = 100000;
-        const int derivedKeyLength = 32;
-        HashAlgorithmName hashAlgo = HashAlgorithmName.SHA256;
-
-        using Rfc2898DeriveBytes pbkdf2 = new(password, salt.ToArray(), localKeyIterations, hashAlgo);
-        return pbkdf2.GetBytes(derivedKeyLength);
-    }
-
-    private static byte[] GenerateAndPersistLocalSalt(int saltSize)
-    {
-        byte[] salt = new byte[saltSize];
-        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-        rng.GetBytes(salt);
-
-        return salt;
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -505,27 +486,3 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         base.Dispose(disposing);
     }
 }
-
-// Dummy Proto messages for compilation - replace with your actual generated classes
-// Ensure these namespaces match your actual project structure if they exist elsewhere.
-/*namespace Protobuf.Registration
-{
-    public class FinalizeRegistrationRequestProto
-    {
-        public string? PasswordVerifier { get; set; }
-        public Ecliptix.Core.ViewModels.Authentication.Registration.Protobuf.PubKeyExchange.PublicKeyBundle? PublicKeyBundle { get; set; }
-        public byte[] ToByteArray() { return Array.Empty<byte>(); /* Implement actual serialization #1# }
-    }
-    public class FinalizeRegistrationResponseProto
-    {
-        public string? UserId { get; set; }
-    }
-}
-namespace Protobuf.PubKeyExchange
-{
-    public class PublicKeyBundle
-    {
-        public Google.Protobuf.ByteString? IdentityPublicKey { get; set; }
-        public int CalculateSize() => IdentityPublicKey?.Length ?? 0;
-    }
-}*/

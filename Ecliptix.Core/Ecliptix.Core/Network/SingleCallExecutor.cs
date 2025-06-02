@@ -30,7 +30,7 @@ public sealed class SingleCallExecutor(
                     SignInAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
-            case RcpServiceAction.CreateMembership:
+            case RcpServiceAction.UpdateMembershipWithSecureKey:
                 Task<Result<CipherPayload, ShieldFailure>> createMembershipResult =
                     UpdateMembershipWithSecureKeyAsync(request.Payload, token);
                 return Task.FromResult(

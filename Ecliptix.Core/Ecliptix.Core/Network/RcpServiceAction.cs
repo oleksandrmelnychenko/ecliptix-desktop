@@ -9,5 +9,5 @@ public enum RcpServiceAction : short
     InitiateVerification,
     InitiateResendVerification,
     SignIn,
-    CreateMembership
+    UpdateMembershipWithSecureKey
 }
