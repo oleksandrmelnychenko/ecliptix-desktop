@@ -28,7 +28,7 @@ public static class GrpcMetadataHandler
             { DateTimeKey, DateTimeOffset.UtcNow.ToString("O") },
             { LocalIpAddressKey, GetLocalIpAddress() },
             { PublicIpAddressKey, GetPublicIpAddress() },
-            { LocaleKey, CultureInfo.CurrentCulture.Name },
+            { LocaleKey, "uk-ua" },
             { LinkIdKey, "fetch-link-placeholder" },
             { ApplicationInstanceIdKey, appInstanceId.ToString() },
             { AppDeviceId, appDeviceId.ToString() },

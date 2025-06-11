@@ -135,7 +135,18 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     private async Task ValidatePhoneNumber(string phoneNumber)
     {
         using CancellationTokenSource cancellationTokenSource = new();
-        ValidatePhoneNumberRequest request = new() { PhoneNumber = phoneNumber };
+        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
+        if (!systemDeviceIdentifier.HasValue)
+        {
+            ErrorMessage = "Invalid device ID";
+            return;
+        }
+        
+        ValidatePhoneNumberRequest request = new()
+        {
+            PhoneNumber = phoneNumber, AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+        };
+        
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
         _ = await _networkController.ExecuteServiceAction(
             connectId,
