@@ -141,12 +141,17 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             ErrorMessage = "Invalid device ID";
             return;
         }
+
+        if(Guid.TryParse(phoneNumber, out Guid parsedGuid))
+        {
+            return;
+        }
         
         ValidatePhoneNumberRequest request = new()
         {
             PhoneNumber = phoneNumber, AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
         };
-        
+
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
         _ = await _networkController.ExecuteServiceAction(
             connectId,
