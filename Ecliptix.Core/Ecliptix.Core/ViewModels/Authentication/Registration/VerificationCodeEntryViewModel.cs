@@ -209,6 +209,27 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
                 if (timerTick.AlreadyVerified)
                 {
+                    
+                }
+
+                if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed)
+                {
+                    
+                }
+
+                if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
+                {
+                    //Redirect to the Phone verification view
+                }
+
+                if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached)
+                {
+                    //Redirect to the Phone verification view
+                }
+
+                if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+                {
+                    
                 }
 
                 VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
