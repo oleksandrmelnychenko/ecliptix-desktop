@@ -42,39 +42,13 @@ public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
         AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
         byte[] clientStaticPrivateKey = ((ECPrivateKeyParameters)clientStaticKeyPair.Private).D.ToByteArrayUnsigned();
         byte[] clientStaticPublicKey = ((ECPublicKeyParameters)clientStaticKeyPair.Public).Q.GetEncoded(true);
-        byte[] ad = password;
 
-        var encryptResult = OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, ad);
+        Result<byte[], OpaqueFailure> encryptResult = OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, password);
         if (encryptResult.IsErr)
             return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
 
         byte[] envelope = encryptResult.Unwrap();
         return Result<byte[], OpaqueFailure>.Ok(clientStaticPublicKey.Concat(envelope).ToArray());
-    }
-
-    public async Task<Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>>
-        InitiateRegistrationAsync(
-            string phoneNumber, byte[] password,
-            Func<OprfRegistrationRecordRequest, Task<OprfRegistrationRecordResponse>> serverRegistrationCallback)
-    {
-        var oprfResult = CreateOprfRequest(password);
-        if (oprfResult.IsErr)
-            return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Err(
-                $"Failed to create OPRF request: {oprfResult.UnwrapErr()}");
-
-        var (oprfRequest, blind) = oprfResult.Unwrap();
-        var request = new OprfRegistrationRecordRequest
-        {
-            PeerOprf = Google.Protobuf.ByteString.CopyFrom(oprfRequest),
-            MembershipIdentifier = Google.Protobuf.ByteString.CopyFromUtf8(phoneNumber)
-        };
-
-        var response = await serverRegistrationCallback(request);
-        if (response.Result != OprfRegistrationRecordResponse.Types.UpdateResult.Succeeded)
-            return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Err(response.Message ??
-                "Registration failed.");
-
-        return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Ok((request, blind));
     }
 
     public async Task<Result<OpaqueSignInFinalizeRequest, string>> FinalizeSignInAsync(

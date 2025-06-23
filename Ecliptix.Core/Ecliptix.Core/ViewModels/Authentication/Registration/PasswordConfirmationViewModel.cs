@@ -136,7 +136,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>
+                result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _securePasswordHandle = result.Unwrap();
@@ -159,7 +160,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>
+                result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _secureVerifyPasswordHandle = result.Unwrap();
@@ -433,7 +435,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             byte[] secretKeySeed = Convert.FromBase64String("8p3jZ9kX2Q7vL4mPqRtYcF2nW8Bx5zK9hG3aT0uV6jw=");
 
-
             ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
             ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
             OpaqueProtocolService opaqueProtocolService = new(serverStaticPublicKey);
@@ -449,28 +450,53 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
 
-            OprfRegistrationRecordRequest request = new()
+            OprfRegistrationInitRequest request = new()
             {
                 MembershipIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
+            byte[] pas = passwordSpan.ToArray();
+
             _ = await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.OpaqueRegistrationRecord,
+                RcpServiceAction.OpaqueRegistrationInit,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
-                payload =>
+                async payload =>
                 {
-                    OprfRegistrationRecordResponse createMembershipResponse =
-                        Utilities.ParseFromBytes<OprfRegistrationRecordResponse>(payload);
+                    OprfRegistrationInitResponse createMembershipResponse =
+                        Utilities.ParseFromBytes<OprfRegistrationInitResponse>(payload);
 
                     if (createMembershipResponse.Result ==
-                        OprfRegistrationRecordResponse.Types.UpdateResult.Succeeded)
+                        OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
+                        Result<byte[], OpaqueFailure> envelope = opaqueProtocolService.CreateRegistrationRecord(pas,
+                            createMembershipResponse.PeerOprf.ToByteArray(), opfr.Blind);
+
+                        OprfRegistrationCompleteRequest r = new()
+                        {
+                            MembershipIdentifier = createMembershipResponse.Membership.UniqueIdentifier,
+                            PeerOprf = ByteString.CopyFrom(envelope.Unwrap())
+                        };
+
+                        _ = await _networkController.ExecuteServiceAction(
+                            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                            RcpServiceAction.OpaqueRegistrationComplete,
+                            r.ToByteArray(),
+                            ServiceFlowType.Single,
+                            payload =>
+                            {
+                                OprfRegistrationCompleteResponse createMembershipResponse =
+                                    Utilities.ParseFromBytes<OprfRegistrationCompleteResponse>(payload);
+
+
+                                return Task.FromResult(
+                                    Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                            });
                     }
 
-                    return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                    return Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value);
                 },
                 CancellationToken.None
             );

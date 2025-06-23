@@ -13,12 +13,14 @@ public sealed class SingleCallExecutor(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
     AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
-    public Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
+    public Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeRequestAsync(ServiceRequest request,
+        CancellationToken token)
     {
         switch (request.RcpServiceMethod)
         {
             case RcpServiceAction.RegisterAppDevice:
-                Task<Result<CipherPayload, EcliptixProtocolFailure>> result = RegisterDeviceAsync(request.Payload, token);
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> result =
+                    RegisterDeviceAsync(request.Payload, token);
                 return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(result)));
             case RcpServiceAction.ValidatePhoneNumber:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> validatePhoneNumberResult =
@@ -30,7 +32,7 @@ public sealed class SingleCallExecutor(
                     SignInAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
-            case RcpServiceAction.OpaqueRegistrationRecord:
+            case RcpServiceAction.OpaqueRegistrationInit:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> createMembershipResult =
                     OpaqueRegistrationRecordRequestAsync(request.Payload, token);
                 return Task.FromResult(
@@ -38,7 +40,15 @@ public sealed class SingleCallExecutor(
             case RcpServiceAction.VerifyOtp:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> verifyWithCodeResult =
                     VerifyCodeAsync(request.Payload, token);
-                return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
+                return Task.FromResult(
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
+            case RcpServiceAction.OpaqueRegistrationComplete:
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueRegistrationCompleteResult =
+                    OpaqueRegistrationCompleteRequestAsync(request.Payload, token);
+                return Task.FromResult(
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(
+                        new RpcFlow.SingleCall(opaqueRegistrationCompleteResult)));
+
             default:
                 return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic("")
@@ -46,13 +56,28 @@ public sealed class SingleCallExecutor(
         }
     }
 
-    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationRecordRequestAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationRecordRequestAsync(
+        CipherPayload payload,
         CancellationToken token)
     {
         return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
-                await membershipServicesClient.OpaqueRegistrationRecordRequestAsync(payload,
+                await membershipServicesClient.OpaqueRegistrationInitRequestAsync(payload,
+                    new CallOptions(cancellationToken: token)
+                );
+            return response;
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
+    }
+
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationCompleteRequestAsync(
+        CipherPayload payload,
+        CancellationToken token)
+    {
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
+        {
+            CipherPayload? response =
+                await membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;

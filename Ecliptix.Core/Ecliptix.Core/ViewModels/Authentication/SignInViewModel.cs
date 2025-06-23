@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Protocol.Utilities;
@@ -12,6 +13,8 @@ using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math.EC;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 using Utilities = Ecliptix.Core.Network.Utilities;
@@ -177,12 +180,18 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             string secretKey = hashPasswordResult.Unwrap();
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-            SignInMembershipRequest request = new()
+
+          
+            
+            OpaqueSignInInitRequest request = new OpaqueSignInInitRequest()
             {
                 PhoneNumber = PhoneNumber,
-                SecureKey = ByteString.CopyFrom(secretKey, Encoding.ASCII)
+                PeerOprf = ByteString.CopyFrom(secretKey, Encoding.ASCII)
             };
+            
 
+            
+            
            Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> t = await _networkController.ExecuteServiceAction(
                 connectId,
                 RcpServiceAction.SignIn,
