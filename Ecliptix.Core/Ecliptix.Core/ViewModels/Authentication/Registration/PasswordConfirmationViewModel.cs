@@ -437,10 +437,10 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
             ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
-            OpaqueProtocolService opaqueProtocolService = new(serverStaticPublicKey);
+            ClientOpaqueProtocolService clientOpaqueProtocolService = new(serverStaticPublicKey);
 
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
-                opaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
+                clientOpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
 
             if (opfrResult.IsErr)
             {
@@ -471,13 +471,13 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                     if (createMembershipResponse.Result ==
                         OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
-                        Result<byte[], OpaqueFailure> envelope = opaqueProtocolService.CreateRegistrationRecord(pas,
+                        Result<byte[], OpaqueFailure> envelope = clientOpaqueProtocolService.CreateRegistrationRecord(pas,
                             createMembershipResponse.PeerOprf.ToByteArray(), opfr.Blind);
 
                         OprfRegistrationCompleteRequest r = new()
                         {
                             MembershipIdentifier = createMembershipResponse.Membership.UniqueIdentifier,
-                            PeerOprf = ByteString.CopyFrom(envelope.Unwrap())
+                            PeerRegistrationRecord = ByteString.CopyFrom(envelope.Unwrap())
                         };
 
                         _ = await _networkController.ExecuteServiceAction(

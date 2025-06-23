@@ -7,7 +7,8 @@ public enum RcpServiceAction : short
     ValidatePhoneNumber,
     VerifyOtp,
     InitiateVerification,
-    SignIn,
     OpaqueRegistrationInit,
     OpaqueRegistrationComplete,
+    OpaqueSignInInitRequest,
+    OpaqueSignInCompleteRequest,
 }

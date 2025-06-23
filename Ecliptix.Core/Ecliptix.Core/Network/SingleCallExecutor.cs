@@ -27,11 +27,6 @@ public sealed class SingleCallExecutor(
                     ValidatePhoneNumberAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(validatePhoneNumberResult)));
-            case RcpServiceAction.SignIn:
-                Task<Result<CipherPayload, EcliptixProtocolFailure>> signInResult =
-                    SignInAsync(request.Payload, token);
-                return Task.FromResult(
-                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
             case RcpServiceAction.OpaqueRegistrationInit:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> createMembershipResult =
                     OpaqueRegistrationRecordRequestAsync(request.Payload, token);
@@ -48,6 +43,20 @@ public sealed class SingleCallExecutor(
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(
                         new RpcFlow.SingleCall(opaqueRegistrationCompleteResult)));
+
+            case RcpServiceAction.OpaqueSignInInitRequest:
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueSignInInitResult =
+                    OpaqueSignInInitRequestAsync(request.Payload, token);
+                return Task.FromResult(
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(
+                        new RpcFlow.SingleCall(opaqueSignInInitResult)));
+
+            case RcpServiceAction.OpaqueSignInCompleteRequest:
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueSignInCompleteRequest =
+                    OpaqueSignInCompleteRequestAsync(request.Payload, token);
+                return Task.FromResult(
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(
+                        new RpcFlow.SingleCall(opaqueSignInCompleteRequest)));
 
             default:
                 return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Err(
@@ -84,18 +93,32 @@ public sealed class SingleCallExecutor(
         }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 
-    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> SignInAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueSignInInitRequestAsync(
+        CipherPayload payload,
         CancellationToken token)
     {
         return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
-            {
-                CipherPayload? response =
-                    await membershipServicesClient.SignInMembershipAsync(payload,
-                        new CallOptions(cancellationToken: token)
-                    );
-                return response;
-            },
-            err => err);
+        {
+            CipherPayload? response =
+                await membershipServicesClient.OpaqueSignInInitRequestAsync(payload,
+                    new CallOptions(cancellationToken: token)
+                );
+            return response;
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
+    }
+
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueSignInCompleteRequestAsync(
+        CipherPayload payload,
+        CancellationToken token)
+    {
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
+        {
+            CipherPayload? response =
+                await membershipServicesClient.OpaqueSignInCompleteRequestAsync(payload,
+                    new CallOptions(cancellationToken: token)
+                );
+            return response;
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 
     private async Task<Result<CipherPayload, EcliptixProtocolFailure>> ValidatePhoneNumberAsync(CipherPayload payload,

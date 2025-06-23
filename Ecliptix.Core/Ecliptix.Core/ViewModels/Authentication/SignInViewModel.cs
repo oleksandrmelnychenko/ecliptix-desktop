@@ -14,6 +14,7 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Math.EC;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -112,7 +113,8 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>
+                result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _securePasswordHandle = result.Unwrap();
@@ -180,51 +182,102 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             string secretKey = hashPasswordResult.Unwrap();
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
+            ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
+            ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
+            ClientOpaqueProtocolService clientOpaqueProtocolService = new(serverStaticPublicKey);
 
-          
-            
-            OpaqueSignInInitRequest request = new OpaqueSignInInitRequest()
+            var h = passwordSpan.ToArray();
+
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
+                clientOpaqueProtocolService.CreateOprfRequest(h);
+
+            OpaqueSignInInitRequest request = new()
             {
                 PhoneNumber = PhoneNumber,
-                PeerOprf = ByteString.CopyFrom(secretKey, Encoding.ASCII)
+                PeerOprf = ByteString.CopyFrom(opfrResult.Unwrap().OprfRequest)
             };
-            
 
-            
-            
-           Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> t = await _networkController.ExecuteServiceAction(
+            Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> t = await _networkController.ExecuteServiceAction(
                 connectId,
-                RcpServiceAction.SignIn,
+                RcpServiceAction.OpaqueSignInInitRequest,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
-                payload =>
+                async payload =>
                 {
-                    SignInMembershipResponse response = Utilities.ParseFromBytes<SignInMembershipResponse>(payload);
+                    OpaqueSignInInitResponse response = Utilities.ParseFromBytes<OpaqueSignInInitResponse>(payload);
+                    Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
+                            TranscriptHash), OpaqueFailure>
+                        finalization = clientOpaqueProtocolService.ComputeSignInFinalization(PhoneNumber, h, response,
+                            opfrResult.Unwrap().Blind);
 
-                    if (response.Result == SignInMembershipResponse.Types.SignInResult.Succeeded)
+                    if (finalization.IsOk)
                     {
-                        IsErrorVisible = false;
-                        ErrorMessage = string.Empty;
-                        // Navigate to the PassPhase.
-                    }
-                    else if (response.Result == SignInMembershipResponse.Types.SignInResult.InvalidCredentials)
-                    {
-                        ErrorMessage = response.HasMessage ? response.Message : "Invalid phone number or password.";
-                        IsErrorVisible = true;
+                        (OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
+                            TranscriptHash)
+                            tttt = finalization.Unwrap();
+
+
+                        _ = await _networkController.ExecuteServiceAction(
+                            connectId,
+                            RcpServiceAction.OpaqueSignInCompleteRequest,
+                            tttt.Request.ToByteArray(),
+                            ServiceFlowType.Single,
+                            payload =>
+                            {
+                                OpaqueSignInFinalizeResponse opaqueSignInFinalizeResponse =
+                                    Utilities.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload);
+                                if (opaqueSignInFinalizeResponse.Result ==
+                                    OpaqueSignInFinalizeResponse.Types.SignInResult.Succeeded)
+                                {
+                                    Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey), string> r =
+                                        clientOpaqueProtocolService.VerifySignInResponseAsync(tttt.Request,
+                                            opaqueSignInFinalizeResponse,
+                                            tttt.ServerMacKey, tttt.TranscriptHash);
+
+                                    if (r.IsOk)
+                                    {
+                                        IsErrorVisible = false;
+                                        ErrorMessage = string.Empty;
+                                    }
+                                    else
+                                    {
+                                        ErrorMessage = r.UnwrapErr();
+                                    }
+
+
+                                    // Navigate to the PassPhase.
+                                }
+                                else if (opaqueSignInFinalizeResponse.Result ==
+                                         OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+                                {
+                                    ErrorMessage = response.HasMessage
+                                        ? response.Message
+                                        : "Invalid phone number or password.";
+                                    IsErrorVisible = true;
+                                }
+                                else
+                                {
+                                    ErrorMessage = response.HasMessage
+                                        ? response.Message
+                                        : "Sign-in failed. Please try again.";
+                                    IsErrorVisible = true;
+                                }
+
+                                return Task.FromResult(new Result<Protocol.Utilities.Unit, EcliptixProtocolFailure>());
+                            });
                     }
                     else
                     {
-                        ErrorMessage = response.HasMessage ? response.Message : "Sign-in failed. Please try again.";
-                        IsErrorVisible = true;
+                        
                     }
 
-                    return Task.FromResult(new Result<Protocol.Utilities.Unit, EcliptixProtocolFailure>());
+
+                    return new Result<Protocol.Utilities.Unit, EcliptixProtocolFailure>();
                 }
             );
 
             if (t.IsErr)
             {
-                
             }
         }
         catch (Exception ex)
@@ -262,7 +315,8 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             bytesWritten = Encoding.UTF8.GetBytes(text, 0, text.Length, rentedBuffer, 0);
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocateResult =
-                SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();;
+                SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();
+            ;
 
             if (allocateResult.IsErr)
             {
@@ -271,7 +325,8 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             newHandle = allocateResult.Unwrap();
             Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> writeResult =
-                newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten)).MapSodiumFailure();;
+                newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten)).MapSodiumFailure();
+            ;
 
             if (writeResult.IsErr)
             {

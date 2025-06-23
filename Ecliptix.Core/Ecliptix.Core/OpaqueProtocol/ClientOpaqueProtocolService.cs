@@ -16,9 +16,10 @@ using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
 
 namespace Ecliptix.Core.OpaqueProtocol;
 
-public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
+public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
 {
-    private readonly AsymmetricKeyParameter _serverStaticPublicKey = serverStaticPublicKey ?? throw new ArgumentNullException(nameof(serverStaticPublicKey));
+    private readonly AsymmetricKeyParameter _serverStaticPublicKey =
+        serverStaticPublicKey ?? throw new ArgumentNullException(nameof(serverStaticPublicKey));
 
     public Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] password)
     {
@@ -38,12 +39,13 @@ public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
     {
         byte[] oprfKey = RecoverOprfKey(oprfResponse, blind);
         byte[] credentialKey =
-            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, Encoding.UTF8.GetBytes("credential_key"), 32);
+            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, "oprf_key"u8.ToArray(), 32);
         AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
         byte[] clientStaticPrivateKey = ((ECPrivateKeyParameters)clientStaticKeyPair.Private).D.ToByteArrayUnsigned();
         byte[] clientStaticPublicKey = ((ECPublicKeyParameters)clientStaticKeyPair.Public).Q.GetEncoded(true);
 
-        Result<byte[], OpaqueFailure> encryptResult = OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, password);
+        Result<byte[], OpaqueFailure> encryptResult =
+            OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, password);
         if (encryptResult.IsErr)
             return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
 
@@ -51,31 +53,31 @@ public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
         return Result<byte[], OpaqueFailure>.Ok(clientStaticPublicKey.Concat(envelope).ToArray());
     }
 
-    public async Task<Result<OpaqueSignInFinalizeRequest, string>> FinalizeSignInAsync(
-        string phoneNumber,
-        byte[] password,
-        OpaqueSignInInitResponse signInResponse,
-        BigInteger blind,
-        Func<OpaqueSignInFinalizeRequest, Task<Result<OpaqueSignInFinalizeResponse, string>>> serverFinalizeCallback)
+    public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[] transcriptHash), OpaqueFailure>
+        ComputeSignInFinalization(
+            string phoneNumber, byte[] passwordBytes, OpaqueSignInInitResponse signInResponse, BigInteger blind)
     {
         byte[] oprfKey = RecoverOprfKey(signInResponse.ServerOprfResponse.ToByteArray(), blind);
         byte[] credentialKey =
-            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, Encoding.UTF8.GetBytes("credential_key"), 32);
+            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, Encoding.UTF8.GetBytes("oprf_key"), 32);
 
-        const int expectedPublicKeyLength = 33; // secp256r1 compressed public key
+        const int expectedPublicKeyLength = 33;
         if (signInResponse.RegistrationRecord.Length < expectedPublicKeyLength)
-            return Result<OpaqueSignInFinalizeRequest, string>.Err("Invalid registration record: too short.");
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[]), OpaqueFailure>
+                .Err(OpaqueFailure.InvalidInput("Invalid registration record: too short."));
 
         byte[] clientStaticPublicKeyBytes = signInResponse.RegistrationRecord.Take(expectedPublicKeyLength).ToArray();
         byte[] envelope = signInResponse.RegistrationRecord.Skip(expectedPublicKeyLength).ToArray();
 
-        var decryptResult = OpaqueCryptoUtilities.Decrypt(envelope, credentialKey, password);
+        Result<byte[], OpaqueFailure> decryptResult =
+            OpaqueCryptoUtilities.Decrypt(envelope, credentialKey, passwordBytes);
         if (decryptResult.IsErr)
-            return Result<OpaqueSignInFinalizeRequest, string>.Err($"Decryption failed: {decryptResult.UnwrapErr()}");
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[]), OpaqueFailure>
+                .Err(decryptResult.UnwrapErr());
 
-        byte[] clientStaticPrivateKeyBytes = decryptResult.Unwrap();
         try
         {
+            byte[] clientStaticPrivateKeyBytes = decryptResult.Unwrap();
             ECPrivateKeyParameters clientStaticPrivateKey = new(new BigInteger(1, clientStaticPrivateKeyBytes),
                 OpaqueCryptoUtilities.DomainParams);
 
@@ -95,41 +97,50 @@ public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
                 clientStaticPublicKeyBytes, clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes,
                 signInResponse.ServerEphemeralPublicKey.ToByteArray());
 
+            
             var keysResult = DeriveFinalKeys(akeResult, transcriptHash);
             if (keysResult.IsErr)
-                return Result<OpaqueSignInFinalizeRequest, string>.Err(
-                    $"Key derivation failed: {keysResult.UnwrapErr()}");
+                return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[]),
+                        OpaqueFailure>
+                    .Err(keysResult.UnwrapErr());
 
             var (sessionKey, clientMacKey, serverMacKey) = keysResult.Unwrap();
             byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
 
             var request = new OpaqueSignInFinalizeRequest
             {
-                PhoneNumber = ByteString.CopyFrom(Encoding.UTF8.GetBytes(phoneNumber)),
+                PhoneNumber = phoneNumber,
                 ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
                 ClientMac = ByteString.CopyFrom(clientMac),
                 ServerStateToken = signInResponse.ServerStateToken
             };
 
-            var loginResult = await serverFinalizeCallback(request);
-            if (!loginResult.IsOk)
-                return Result<OpaqueSignInFinalizeRequest, string>.Err(
-                    $"Sign-in finalization failed: {loginResult.UnwrapErr()}");
-
-            var serverResponse = loginResult.Unwrap();
-            if (serverResponse.Result != OpaqueSignInFinalizeResponse.Types.SignInResult.Succeeded)
-                return Result<OpaqueSignInFinalizeRequest, string>.Err(serverResponse.ErrorMessage ??
-                                                                       "Sign-in failed.");
-
-            byte[] expectedServerMac = CreateMac(serverMacKey, transcriptHash);
-            if (!CryptographicOperations.FixedTimeEquals(expectedServerMac, serverResponse.ServerMac.ToByteArray()))
-                return Result<OpaqueSignInFinalizeRequest, string>.Err("Server MAC verification failed.");
-
-            return Result<OpaqueSignInFinalizeRequest, string>.Ok(request);
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[] transcriptHash), OpaqueFailure>
+                .Ok((request, sessionKey, serverMacKey,transcriptHash));
         }
-        catch (ArgumentException ex)
+        catch (Exception ex)
         {
-            return Result<OpaqueSignInFinalizeRequest, string>.Err($"Invalid private key format: {ex.Message}");
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey,byte[]), OpaqueFailure>
+                .Err(OpaqueFailure.OprfHashingFailed($"Sign-in finalization failed: {ex.Message}"));
+        }
+    }
+
+    public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey), string> VerifySignInResponseAsync(
+        OpaqueSignInFinalizeRequest request, OpaqueSignInFinalizeResponse response, byte[] serverMacKey,byte[] transcriptHash)
+    {
+        try
+        {
+            byte[] expectedServerMac = CreateMac(serverMacKey, transcriptHash);
+            if (!CryptographicOperations.FixedTimeEquals(expectedServerMac, response.ServerMac.ToByteArray()))
+                return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey), string>.Err(
+                    "Server MAC verification failed.");
+
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey), string>.Ok((request, null));
+        }
+        catch (Exception ex)
+        {
+            return Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey), string>.Err(
+                $"Sign-in verification failed: {ex.Message}");
         }
     }
 
