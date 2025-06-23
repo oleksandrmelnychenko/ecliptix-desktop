@@ -18,7 +18,7 @@ public abstract class RpcFlow
     /// <returns>An RpcFlow.InboundStream with an empty stream.</returns>
     public static RpcFlow NewEmptyInboundStream()
     {
-        async IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> EmptyStream()
+        async IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> EmptyStream()
         {
             yield break; // Produces an empty async enumerable
         }
@@ -42,17 +42,17 @@ public abstract class RpcFlow
     public static RpcFlow NewBidirectionalStream()
     {
         Channel<CipherPayload> channel = Channel.CreateUnbounded<CipherPayload>();
-        IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> inbound = ToOkStream(channel.Reader);
+        IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> inbound = ToOkStream(channel.Reader);
         ChannelSink outboundSink = new(channel.Writer);
         return new BidirectionalStream(inbound, outboundSink);
     }
 
     // Helper method to convert ChannelReader payloads to Result.Ok
-    private static async IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> ToOkStream(
+    private static async IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> ToOkStream(
         ChannelReader<CipherPayload> reader)
     {
         await foreach (CipherPayload payload in reader.ReadAllAsync())
-            yield return Result<CipherPayload, ShieldFailure>.Ok(payload);
+            yield return Result<CipherPayload, EcliptixProtocolFailure>.Ok(payload);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public abstract class RpcFlow
         ///     Initializes a new instance of the SingleCall class.
         /// </summary>
         /// <param name="result">The result task.</param>
-        public SingleCall(Task<Result<CipherPayload, ShieldFailure>> result)
+        public SingleCall(Task<Result<CipherPayload, EcliptixProtocolFailure>> result)
         {
             Result = result;
         }
@@ -73,7 +73,7 @@ public abstract class RpcFlow
         ///     Convenience constructor for immediate results.
         /// </summary>
         /// <param name="result">The immediate result.</param>
-        public SingleCall(Result<CipherPayload, ShieldFailure> result)
+        public SingleCall(Result<CipherPayload, EcliptixProtocolFailure> result)
             : this(Task.FromResult(result))
         {
         }
@@ -81,7 +81,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The result of the single call, wrapped in a task for consistency with other variants.
         /// </summary>
-        public Task<Result<CipherPayload, ShieldFailure>> Result { get; }
+        public Task<Result<CipherPayload, EcliptixProtocolFailure>> Result { get; }
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public abstract class RpcFlow
         ///     Initializes a new instance of the InboundStream class.
         /// </summary>
         /// <param name="stream">The inbound stream.</param>
-        public InboundStream(IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream)
+        public InboundStream(IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> stream)
         {
             Stream = stream;
         }
@@ -101,7 +101,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The asynchronous stream of payloads or errors.
         /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Stream { get; }
+        public IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> Stream { get; }
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public abstract class RpcFlow
         /// <param name="inbound">The inbound stream.</param>
         /// <param name="outboundSink">The outbound sink.</param>
         public BidirectionalStream(
-            IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> inbound,
+            IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> inbound,
             IOutboundSink outboundSink)
         {
             Inbound = inbound;
@@ -145,7 +145,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The inbound stream of received payloads.
         /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> Inbound { get; }
+        public IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> Inbound { get; }
 
         /// <summary>
         ///     The outbound sink for transmitting payloads.
@@ -164,9 +164,9 @@ internal class DrainSink : IOutboundSink
     /// </summary>
     /// <param name="payload">The payload to discard.</param>
     /// <returns>A task with a successful result.</returns>
-    public Task<Result<Unit, ShieldFailure>> SendAsync(CipherPayload payload)
+    public Task<Result<Unit, EcliptixProtocolFailure>> SendAsync(CipherPayload payload)
     {
-        return Task.FromResult(Result<Unit, ShieldFailure>.Ok(Unit.Value));
+        return Task.FromResult(Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value));
     }
 }
 
@@ -191,17 +191,17 @@ internal class ChannelSink : IOutboundSink
     /// </summary>
     /// <param name="payload">The payload to send.</param>
     /// <returns>A task representing the result of the send operation.</returns>
-    public async Task<Result<Unit, ShieldFailure>> SendAsync(CipherPayload payload)
+    public async Task<Result<Unit, EcliptixProtocolFailure>> SendAsync(CipherPayload payload)
     {
         try
         {
             await _writer.WriteAsync(payload);
-            return Result<Unit, ShieldFailure>.Ok(new Unit());
+            return Result<Unit, EcliptixProtocolFailure>.Ok(new Unit());
         }
         catch (Exception ex)
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.Generic(ex.Message, ex));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic(ex.Message, ex));
         }
     }
 }

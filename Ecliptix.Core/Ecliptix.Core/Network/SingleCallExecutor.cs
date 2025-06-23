@@ -13,56 +13,56 @@ public sealed class SingleCallExecutor(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
     AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
-    public Task<Result<RpcFlow, ShieldFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
+    public Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
     {
         switch (request.RcpServiceMethod)
         {
             case RcpServiceAction.RegisterAppDevice:
-                Task<Result<CipherPayload, ShieldFailure>> result = RegisterDeviceAsync(request.Payload, token);
-                return Task.FromResult(Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(result)));
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> result = RegisterDeviceAsync(request.Payload, token);
+                return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(result)));
             case RcpServiceAction.ValidatePhoneNumber:
-                Task<Result<CipherPayload, ShieldFailure>> validatePhoneNumberResult =
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> validatePhoneNumberResult =
                     ValidatePhoneNumberAsync(request.Payload, token);
                 return Task.FromResult(
-                    Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(validatePhoneNumberResult)));
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(validatePhoneNumberResult)));
             case RcpServiceAction.SignIn:
-                Task<Result<CipherPayload, ShieldFailure>> signInResult =
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> signInResult =
                     SignInAsync(request.Payload, token);
                 return Task.FromResult(
-                    Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
-            case RcpServiceAction.UpdateMembershipWithSecureKey:
-                Task<Result<CipherPayload, ShieldFailure>> createMembershipResult =
-                    UpdateMembershipWithSecureKeyAsync(request.Payload, token);
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(signInResult)));
+            case RcpServiceAction.OpaqueRegistrationRecord:
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> createMembershipResult =
+                    OpaqueRegistrationRecordRequestAsync(request.Payload, token);
                 return Task.FromResult(
-                    Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(createMembershipResult)));
+                    Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(createMembershipResult)));
             case RcpServiceAction.VerifyOtp:
-                Task<Result<CipherPayload, ShieldFailure>> verifyWithCodeResult =
+                Task<Result<CipherPayload, EcliptixProtocolFailure>> verifyWithCodeResult =
                     VerifyCodeAsync(request.Payload, token);
-                return Task.FromResult(Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
+                return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
             default:
-                return Task.FromResult(Result<RpcFlow, ShieldFailure>.Err(
-                    ShieldFailure.Generic()
+                return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.Generic("")
                 ));
         }
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> UpdateMembershipWithSecureKeyAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationRecordRequestAsync(CipherPayload payload,
         CancellationToken token)
     {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
-                await membershipServicesClient.UpdateMembershipWithSecureKeyAsync(payload,
+                await membershipServicesClient.OpaqueRegistrationRecordRequestAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> SignInAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> SignInAsync(CipherPayload payload,
         CancellationToken token)
     {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
             {
                 CipherPayload? response =
                     await membershipServicesClient.SignInMembershipAsync(payload,
@@ -73,42 +73,42 @@ public sealed class SingleCallExecutor(
             err => err);
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
         CancellationToken token)
     {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
                 await authenticationServicesClient.ValidatePhoneNumberAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> VerifyCodeAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> VerifyCodeAsync(CipherPayload payload,
         CancellationToken token)
     {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
                 await authenticationServicesClient.VerifyOtpAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 
-    private async Task<Result<CipherPayload, ShieldFailure>> RegisterDeviceAsync(CipherPayload payload,
+    private async Task<Result<CipherPayload, EcliptixProtocolFailure>> RegisterDeviceAsync(CipherPayload payload,
         CancellationToken token)
     {
-        return await Result<CipherPayload, ShieldFailure>.TryAsync(async () =>
+        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(async () =>
         {
             CipherPayload? response =
                 await appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(payload,
                     new CallOptions(cancellationToken: token)
                 );
             return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+        }, err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 }

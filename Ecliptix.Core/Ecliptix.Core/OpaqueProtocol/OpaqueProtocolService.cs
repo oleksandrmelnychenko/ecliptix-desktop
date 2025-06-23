@@ -1,0 +1,240 @@
+using System;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Protobuf.Membership;
+using Google.Protobuf;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Digests;
+using Org.BouncyCastle.Crypto.Macs;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using Org.BouncyCastle.Security;
+using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
+
+namespace Ecliptix.Core.OpaqueProtocol;
+
+public class OpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
+{
+    private readonly AsymmetricKeyParameter _serverStaticPublicKey = serverStaticPublicKey ?? throw new ArgumentNullException(nameof(serverStaticPublicKey));
+
+    public Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] password)
+    {
+        BigInteger blind = OpaqueCryptoUtilities.GenerateRandomScalar();
+        Result<ECPoint, OpaqueFailure> hashResult = OpaqueCryptoUtilities.HashToPoint(password);
+        if (hashResult.IsErr)
+            return Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure>.Err(hashResult.UnwrapErr());
+
+        ECPoint p = hashResult.Unwrap();
+        ECPoint oprfRequestPoint = p.Multiply(blind);
+        return Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure>.Ok((oprfRequestPoint.GetEncoded(true),
+            blind));
+    }
+
+    public Result<byte[], OpaqueFailure> CreateRegistrationRecord(byte[] password, byte[] oprfResponse,
+        BigInteger blind)
+    {
+        byte[] oprfKey = RecoverOprfKey(oprfResponse, blind);
+        byte[] credentialKey =
+            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, Encoding.UTF8.GetBytes("credential_key"), 32);
+        AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
+        byte[] clientStaticPrivateKey = ((ECPrivateKeyParameters)clientStaticKeyPair.Private).D.ToByteArrayUnsigned();
+        byte[] clientStaticPublicKey = ((ECPublicKeyParameters)clientStaticKeyPair.Public).Q.GetEncoded(true);
+        byte[] ad = password;
+
+        var encryptResult = OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, ad);
+        if (encryptResult.IsErr)
+            return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
+
+        byte[] envelope = encryptResult.Unwrap();
+        return Result<byte[], OpaqueFailure>.Ok(clientStaticPublicKey.Concat(envelope).ToArray());
+    }
+
+    public async Task<Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>>
+        InitiateRegistrationAsync(
+            string phoneNumber, byte[] password,
+            Func<OprfRegistrationRecordRequest, Task<OprfRegistrationRecordResponse>> serverRegistrationCallback)
+    {
+        var oprfResult = CreateOprfRequest(password);
+        if (oprfResult.IsErr)
+            return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Err(
+                $"Failed to create OPRF request: {oprfResult.UnwrapErr()}");
+
+        var (oprfRequest, blind) = oprfResult.Unwrap();
+        var request = new OprfRegistrationRecordRequest
+        {
+            PeerOprf = Google.Protobuf.ByteString.CopyFrom(oprfRequest),
+            MembershipIdentifier = Google.Protobuf.ByteString.CopyFromUtf8(phoneNumber)
+        };
+
+        var response = await serverRegistrationCallback(request);
+        if (response.Result != OprfRegistrationRecordResponse.Types.UpdateResult.Succeeded)
+            return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Err(response.Message ??
+                "Registration failed.");
+
+        return Result<(OprfRegistrationRecordRequest Request, BigInteger Blind), string>.Ok((request, blind));
+    }
+
+    public async Task<Result<OpaqueSignInFinalizeRequest, string>> FinalizeSignInAsync(
+        string phoneNumber,
+        byte[] password,
+        OpaqueSignInInitResponse signInResponse,
+        BigInteger blind,
+        Func<OpaqueSignInFinalizeRequest, Task<Result<OpaqueSignInFinalizeResponse, string>>> serverFinalizeCallback)
+    {
+        byte[] oprfKey = RecoverOprfKey(signInResponse.ServerOprfResponse.ToByteArray(), blind);
+        byte[] credentialKey =
+            OpaqueCryptoUtilities.DeriveKey(oprfKey, null, Encoding.UTF8.GetBytes("credential_key"), 32);
+
+        const int expectedPublicKeyLength = 33; // secp256r1 compressed public key
+        if (signInResponse.RegistrationRecord.Length < expectedPublicKeyLength)
+            return Result<OpaqueSignInFinalizeRequest, string>.Err("Invalid registration record: too short.");
+
+        byte[] clientStaticPublicKeyBytes = signInResponse.RegistrationRecord.Take(expectedPublicKeyLength).ToArray();
+        byte[] envelope = signInResponse.RegistrationRecord.Skip(expectedPublicKeyLength).ToArray();
+
+        var decryptResult = OpaqueCryptoUtilities.Decrypt(envelope, credentialKey, password);
+        if (decryptResult.IsErr)
+            return Result<OpaqueSignInFinalizeRequest, string>.Err($"Decryption failed: {decryptResult.UnwrapErr()}");
+
+        byte[] clientStaticPrivateKeyBytes = decryptResult.Unwrap();
+        try
+        {
+            ECPrivateKeyParameters clientStaticPrivateKey = new(new BigInteger(1, clientStaticPrivateKeyBytes),
+                OpaqueCryptoUtilities.DomainParams);
+
+            AsymmetricCipherKeyPair clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
+            ECPoint serverStaticPublicKey = ((ECPublicKeyParameters)_serverStaticPublicKey).Q;
+            ECPoint serverEphemeralPublicKey =
+                OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(
+                    signInResponse.ServerEphemeralPublicKey.ToByteArray());
+            byte[] akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
+                serverEphemeralPublicKey);
+
+            byte[] clientEphemeralPublicKeyBytes =
+                ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(true);
+            byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)_serverStaticPublicKey).Q.GetEncoded(true);
+
+            byte[] transcriptHash = HashTranscript(phoneNumber, signInResponse.ServerOprfResponse.ToByteArray(),
+                clientStaticPublicKeyBytes, clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes,
+                signInResponse.ServerEphemeralPublicKey.ToByteArray());
+
+            var keysResult = DeriveFinalKeys(akeResult, transcriptHash);
+            if (keysResult.IsErr)
+                return Result<OpaqueSignInFinalizeRequest, string>.Err(
+                    $"Key derivation failed: {keysResult.UnwrapErr()}");
+
+            var (sessionKey, clientMacKey, serverMacKey) = keysResult.Unwrap();
+            byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
+
+            var request = new OpaqueSignInFinalizeRequest
+            {
+                PhoneNumber = ByteString.CopyFrom(Encoding.UTF8.GetBytes(phoneNumber)),
+                ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
+                ClientMac = ByteString.CopyFrom(clientMac),
+                ServerStateToken = signInResponse.ServerStateToken
+            };
+
+            var loginResult = await serverFinalizeCallback(request);
+            if (!loginResult.IsOk)
+                return Result<OpaqueSignInFinalizeRequest, string>.Err(
+                    $"Sign-in finalization failed: {loginResult.UnwrapErr()}");
+
+            var serverResponse = loginResult.Unwrap();
+            if (serverResponse.Result != OpaqueSignInFinalizeResponse.Types.SignInResult.Succeeded)
+                return Result<OpaqueSignInFinalizeRequest, string>.Err(serverResponse.ErrorMessage ??
+                                                                       "Sign-in failed.");
+
+            byte[] expectedServerMac = CreateMac(serverMacKey, transcriptHash);
+            if (!CryptographicOperations.FixedTimeEquals(expectedServerMac, serverResponse.ServerMac.ToByteArray()))
+                return Result<OpaqueSignInFinalizeRequest, string>.Err("Server MAC verification failed.");
+
+            return Result<OpaqueSignInFinalizeRequest, string>.Ok(request);
+        }
+        catch (ArgumentException ex)
+        {
+            return Result<OpaqueSignInFinalizeRequest, string>.Err($"Invalid private key format: {ex.Message}");
+        }
+    }
+
+    private byte[] RecoverOprfKey(byte[] oprfResponse, BigInteger blind)
+    {
+        if (oprfResponse == null || blind == null)
+            throw new ArgumentNullException("Invalid OPRF response or blind.");
+
+        ECPoint oprfResponsePoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(oprfResponse);
+        BigInteger blindInverse = blind.ModInverse(OpaqueCryptoUtilities.DomainParams.N);
+        return oprfResponsePoint.Multiply(blindInverse).GetEncoded(true);
+    }
+
+    private byte[] PerformClientAke(AsymmetricCipherKeyPair eph_c, ECPrivateKeyParameters stat_c, ECPoint stat_s_pub,
+        ECPoint eph_s_pub)
+    {
+        ECPoint dh1 = eph_s_pub.Multiply(((ECPrivateKeyParameters)eph_c.Private).D).Normalize();
+        ECPoint dh2 = stat_s_pub.Multiply(((ECPrivateKeyParameters)eph_c.Private).D).Normalize();
+        ECPoint dh3 = eph_s_pub.Multiply(stat_c.D).Normalize();
+        return dh1.GetEncoded(true).Concat(dh2.GetEncoded(true)).Concat(dh3.GetEncoded(true)).ToArray();
+    }
+
+    private byte[] HashTranscript(string phoneNumber, byte[] oprfResponse, byte[] clientStaticPublicKey,
+        byte[] clientEphemeralPublicKey, byte[] serverStaticPublicKey, byte[] serverEphemeralPublicKey)
+    {
+        var digest = new Sha256Digest();
+
+        void Update(byte[] data)
+        {
+            if (data != null)
+                digest.BlockUpdate(data, 0, data.Length);
+        }
+
+        Update(Encoding.UTF8.GetBytes("Ecliptix-OPAQUE-v1"));
+        Update(Encoding.UTF8.GetBytes(phoneNumber));
+        Update(oprfResponse);
+        Update(clientStaticPublicKey);
+        Update(clientEphemeralPublicKey);
+        Update(serverStaticPublicKey);
+        Update(serverEphemeralPublicKey);
+
+        byte[] hash = new byte[digest.GetDigestSize()];
+        digest.DoFinal(hash, 0);
+        return hash;
+    }
+
+    private Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> DeriveFinalKeys(
+        byte[] akeResult, byte[] transcriptHash)
+    {
+        if (akeResult == null || transcriptHash == null)
+            return Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure>.Err(
+                OpaqueFailure.InvalidInput("Input parameters cannot be null."));
+
+        var prkResult = OpaqueCryptoUtilities.HkdfExtract(akeResult, Encoding.UTF8.GetBytes("OPAQUE-AKE-Salt"));
+        if (prkResult.IsErr)
+            return Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure>.Err(
+                prkResult.UnwrapErr());
+
+        byte[] prk = prkResult.Unwrap();
+        byte[] sessionKey = OpaqueCryptoUtilities.HkdfExpand(prk,
+            Encoding.UTF8.GetBytes("session_key").Concat(transcriptHash).ToArray(), 32);
+        byte[] clientMacKey = OpaqueCryptoUtilities.HkdfExpand(prk,
+            Encoding.UTF8.GetBytes("client_mac_key").Concat(transcriptHash).ToArray(), 32);
+        byte[] serverMacKey = OpaqueCryptoUtilities.HkdfExpand(prk,
+            Encoding.UTF8.GetBytes("server_mac_key").Concat(transcriptHash).ToArray(), 32);
+        return Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure>.Ok((sessionKey,
+            clientMacKey, serverMacKey));
+    }
+
+    private byte[] CreateMac(byte[] key, byte[] data)
+    {
+        if (key == null || data == null)
+            throw new ArgumentNullException("Key or data cannot be null.");
+
+        HMac hmac = new(new Sha256Digest());
+        hmac.Init(new KeyParameter(key));
+        hmac.BlockUpdate(data, 0, data.Length);
+        byte[] mac = new byte[hmac.GetMacSize()];
+        hmac.DoFinal(mac, 0);
+        return mac;
+    }
+}

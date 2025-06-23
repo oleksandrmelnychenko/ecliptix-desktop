@@ -10,15 +10,15 @@
         x:Name="AuthWindow"
         BorderThickness="0"
         SystemDecorations="None"
-        Background="Transparent"
-        TransparencyLevelHint="Transparent"
+        Background="White"
+        CornerRadius="12"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="authentication:AuthenticationViewModel"
-        Width="700" Height="600"
+        Width="446" Height="948"
         WindowStartupLocation="CenterScreen"
         Icon="/Assets/ecliptix.png"
         Title="">
-    
+
     <Window.Effect>
         <DropShadowEffect BlurRadius="10"
                           Opacity="0.25"
@@ -27,12 +27,12 @@
                           Color="Black" />
     </Window.Effect>
 
-   <Window.Styles>
+    <Window.Styles>
         <!-- Custom ComboBox Style -->
         <Style Selector="ComboBox">
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="4"/>
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="4" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
@@ -48,8 +48,8 @@
                                                   ContentTemplate="{TemplateBinding ItemTemplate}"
                                                   Margin="{TemplateBinding Padding}"
                                                   HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                                
+                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+
                                 <!-- Customized dropdown button -->
                                 <Border Grid.Column="1"
                                         Name="DropDownGlyph"
@@ -62,7 +62,7 @@
                                           Stretch="Uniform"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
-                                          Data="M0,0 L4.5,5 L9,0 Z"/>
+                                          Data="M0,0 L4.5,5 L9,0 Z" />
                                 </Border>
                             </Grid>
                         </Border>
@@ -82,7 +82,7 @@
                                     Padding="4">
                                 <ScrollViewer>
                                     <ItemsPresenter Name="PART_ItemsPresenter"
-                                                   ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
                                 </ScrollViewer>
                             </Border>
                         </Popup>
@@ -90,11 +90,11 @@
                 </ControlTemplate>
             </Setter>
         </Style>
-        
+
         <!-- Style for ComboBoxItem -->
         <Style Selector="ComboBoxItem">
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Name="ItemBorder"
@@ -103,53 +103,73 @@
                             CornerRadius="3"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter Content="{TemplateBinding Content}"
-                                         ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
                     </Border>
                 </ControlTemplate>
             </Setter>
         </Style>
-        
+
         <!-- Hover state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#EAD9FF"/><!-- Light purple for hover -->
+            <Setter Property="Background" Value="#EAD9FF" /><!-- Light purple for hover -->
         </Style>
-        
+
         <!-- Selected state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#9966CC"/><!-- Deeper purple for selected -->
-            <Setter Property="TextBlock.Foreground" Value="White"/><!-- White text for better contrast -->
+            <Setter Property="Background" Value="#9966CC" /><!-- Deeper purple for selected -->
+            <Setter Property="TextBlock.Foreground" Value="White" /><!-- White text for better contrast -->
         </Style>
-        
+
         <!-- Pressed state for dropdown glyph -->
         <Style Selector="ComboBox:pressed /template/ Border#DropDownGlyph">
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent" />
         </Style>
-        
+
         <!-- Open state for ComboBox -->
         <Style Selector="ComboBox:dropdownopen /template/ Border#Background">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
     </Window.Styles>
+    <Grid>
 
-    <Border Name="RootWindowBorder"
-            CornerRadius="8"
-            Padding="0"
-            BorderThickness="1"
-            BorderBrush="#FFE8E8E8"
-            Background="#F5F5F5"
-            Margin="8">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="10"
-                              Opacity="0.25"
-                              OffsetX="0"
-                              OffsetY="0"
-                              Color="Black" />
-        </Border.Effect>
 
-        <Grid>
-            <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/wavecycl.gif"
-                   Stretch="Uniform" HorizontalAlignment="Left" />
+        <Rectangle>
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0,0" RadiusX="0.9" RadiusY="0.9">
+                    <GradientStop Color="#89CFF0" Offset="0.0" />
+                    <GradientStop Color="Transparent" Offset="1.0" />
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <Rectangle>
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="1,1" RadiusX="0.9" RadiusY="0.9">
+                    <GradientStop Color="#FAE7B5" Offset="0.0" />
+                    <GradientStop Color="Transparent" Offset="1.0" />
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+
+        <!--<Border.Background>
+                ~1~ A beautiful diagonal gradient from a cool hint to a warm hint @1@
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    ~1~ Cool hint: A very light, airy blue (AliceBlue) @1@
+                    <GradientStop Color="#F0F8FF" Offset="0.0" />
+
+                    ~1~ Warm hint: The subtle ivory/cream you liked @1@
+                    <GradientStop Color="#FFFFF0" Offset="1.0" />
+                </LinearGradientBrush>
+            </Border.Background>-->
+
+
+        <!--<Border.BorderBrush>
+                <SolidColorBrush Color="#404366" />
+            </Border.BorderBrush>-->
+
+        <Grid Margin="8" ClipToBounds="True">
             <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
                 <views:TitleBar DisableMaximizeButton="False" />
 
@@ -159,8 +179,8 @@
                             VerticalAlignment="Center"
                             Margin="0,5,0,0">
                     <Image Source="avares://Ecliptix.Core/Assets/ecliptix.png"
-                           Width="60"
-                           Height="60"
+                           Width="160"
+                           Height="160"
                            VerticalAlignment="Center"
                            Margin="0,0,10,0" />
 
@@ -182,21 +202,21 @@
                       Margin="0,16,16,0"
                       HorizontalAlignment="Right"
                       VerticalAlignment="Top">
-                    <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <Svg x:Name="IconElement"
-                                                 Path="{Binding FlagIcon}"
-                                                 Height="20"
-                                                 Width="20"
-                                                 VerticalAlignment="Center"
-                                                 HorizontalAlignment="Center" />
-                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                            </DataTemplate>
-                    </ComboBox.ItemTemplate>
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Svg x:Name="IconElement"
+                                 Path="{Binding FlagIcon}"
+                                 Height="20"
+                                 Width="20"
+                                 VerticalAlignment="Center"
+                                 HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
             </ComboBox>
-            
+
             <Border BorderThickness="4"
                     BorderBrush="Transparent"
                     Cursor="SizeWestEast"
@@ -254,5 +274,5 @@
                     PointerPressed="Resize_PointerPressed"
                     Tag="{x:Static WindowEdge.SouthEast}" />
         </Grid>
-    </Border>
+    </Grid>
 </Window>

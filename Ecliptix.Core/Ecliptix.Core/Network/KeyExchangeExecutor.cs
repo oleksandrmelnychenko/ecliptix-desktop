@@ -8,13 +8,14 @@ namespace Ecliptix.Core.Network;
 public sealed class KeyExchangeExecutor(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient)
 {
-    public async Task<Result<PubKeyExchange, ShieldFailure>> BeginDataCenterPublicKeyExchange(PubKeyExchange request)
+    public async Task<Result<PubKeyExchange, EcliptixProtocolFailure>> BeginDataCenterPublicKeyExchange(PubKeyExchange request)
     {
-        return await Result<PubKeyExchange, ShieldFailure>.TryAsync(async () =>
+        return await Result<PubKeyExchange, EcliptixProtocolFailure>.TryAsync(async () =>
         {
-            PubKeyExchange? response =
+            var response =
                 await appDeviceServiceActionsClient.EstablishAppDeviceEphemeralConnectAsync(request);
             return response;
-        }, err => ShieldFailure.Generic(err.Message, err.InnerException));
+        }, err => 
+            EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
     }
 }

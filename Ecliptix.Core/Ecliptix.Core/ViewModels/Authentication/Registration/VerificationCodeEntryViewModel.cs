@@ -142,11 +142,11 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             return;
         }
 
-        if(Guid.TryParse(phoneNumber, out Guid parsedGuid))
+        if (Guid.TryParse(phoneNumber, out Guid parsedGuid))
         {
             return;
         }
-        
+
         ValidatePhoneNumberRequest request = new()
         {
             PhoneNumber = phoneNumber, AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
@@ -171,7 +171,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                         InitiateVerificationRequest.Types.Type.SendOtp), cancellationTokenSource.Token);
                 }
 
-                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
             },
             cancellationTokenSource.Token
         );
@@ -209,12 +209,10 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
                 if (timerTick.AlreadyVerified)
                 {
-                    
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed)
                 {
-                    
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
@@ -229,7 +227,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
                 {
-                    
                 }
 
                 VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
@@ -237,7 +234,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 RxApp.MainThreadScheduler.Schedule(() =>
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
-                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
             },
             cancellationTokenSource.Token
         );
@@ -283,7 +280,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 {
                 }
 
-                return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
             },
             CancellationToken.None
         );

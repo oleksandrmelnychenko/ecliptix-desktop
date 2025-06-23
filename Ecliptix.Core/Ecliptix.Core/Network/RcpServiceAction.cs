@@ -8,5 +8,5 @@ public enum RcpServiceAction : short
     VerifyOtp,
     InitiateVerification,
     SignIn,
-    UpdateMembershipWithSecureKey
+    OpaqueRegistrationRecord
 }

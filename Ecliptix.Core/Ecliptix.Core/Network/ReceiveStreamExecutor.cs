@@ -13,7 +13,7 @@ namespace Ecliptix.Core.Network;
 public class ReceiveStreamExecutor(
     AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
-    public Result<RpcFlow, ShieldFailure> ProcessRequestAsync(ServiceRequest request,
+    public Result<RpcFlow, EcliptixProtocolFailure> ProcessRequestAsync(ServiceRequest request,
         CancellationToken token)
     {
         switch (request.RcpServiceMethod)
@@ -21,28 +21,28 @@ public class ReceiveStreamExecutor(
             case RcpServiceAction.InitiateVerification:
                 return InitiateVerificationAsync(request.Payload, token);
             default:
-                return Result<RpcFlow, ShieldFailure>.Err(
-                    ShieldFailure.Generic("Unsupported service method")
+                return Result<RpcFlow, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.Generic("Unsupported service method")
                 );
         }
     }
 
-    private Result<RpcFlow, ShieldFailure> InitiateVerificationAsync(
+    private Result<RpcFlow, EcliptixProtocolFailure> InitiateVerificationAsync(
         CipherPayload payload,
         CancellationToken token)
     {
         AsyncServerStreamingCall<CipherPayload> streamingCall =
             authenticationServicesClient.InitiateVerification(payload);
 
-        IAsyncEnumerable<Result<CipherPayload, ShieldFailure>> stream =
+        IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> stream =
             streamingCall.ResponseStream.ReadAllAsync(token)
                 .ToObservable()
-                .Select(Result<CipherPayload, ShieldFailure>.Ok)
-                .Catch<Result<CipherPayload, ShieldFailure>, Exception>(ex =>
-                    Observable.Return(Result<CipherPayload, ShieldFailure>.Err(
-                        ShieldFailure.Generic(ex.Message, ex))))
+                .Select(Result<CipherPayload, EcliptixProtocolFailure>.Ok)
+                .Catch<Result<CipherPayload, EcliptixProtocolFailure>, Exception>(ex =>
+                    Observable.Return(Result<CipherPayload, EcliptixProtocolFailure>.Err(
+                        EcliptixProtocolFailure.Generic(ex.Message, ex))))
                 .ToAsyncEnumerable();
 
-        return Result<RpcFlow, ShieldFailure>.Ok(new RpcFlow.InboundStream(stream));
+        return Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.InboundStream(stream));
     }
 }

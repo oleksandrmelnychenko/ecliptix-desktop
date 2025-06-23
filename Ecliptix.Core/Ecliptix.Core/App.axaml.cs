@@ -8,6 +8,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
@@ -18,6 +19,8 @@ using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math.EC;
 using Splat;
 
 namespace Ecliptix.Core;
@@ -96,7 +99,7 @@ public class App : Application
     {
         (uint connectId, AppDevice appDevice) = CreateEcliptixConnectionContext();
 
-        Result<Unit, ShieldFailure> result = await _networkController.DataCenterPubKeyExchange(connectId);
+        Result<Unit, EcliptixProtocolFailure> result = await _networkController.DataCenterPubKeyExchange(connectId);
         if (result.IsErr)
             _logger.LogError("Key exchange failed: {Message}", result.UnwrapErr().Message);
         else
@@ -117,14 +120,16 @@ public class App : Application
                     Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
                 Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
                 AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+                
                 lock (_lock)
                 {
                     appInstanceInfo.SystemDeviceIdentifier = appServerInstanceId;
+                    appInstanceInfo.ServerPublicKey = reply.ServerPublicKey.ToByteArray();
                 }
 
                 _logger.LogInformation("Device registered with ID: {AppServerInstanceId}", appServerInstanceId);
 
-                return Task.FromResult(Result<Unit, ShieldFailure>.Ok(Unit.Value));
+                return Task.FromResult(Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value));
             }, token);
     }
 }

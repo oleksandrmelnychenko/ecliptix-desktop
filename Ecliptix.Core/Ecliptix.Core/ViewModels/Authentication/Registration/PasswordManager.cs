@@ -31,21 +31,21 @@ public sealed class PasswordManager
         _saltSize = saltSize;
     }
 
-    public static Result<PasswordManager, ShieldFailure> Create(
+    public static Result<PasswordManager, EcliptixProtocolFailure> Create(
         int iterations = DefaultIterations,
         HashAlgorithmName? hashAlgorithmName = null,
         int saltSize = DefaultSaltSize)
     {
         if (iterations <= 0)
         {
-            return Result<PasswordManager, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput("PasswordManager configuration: Iterations must be a positive integer."));
+            return Result<PasswordManager, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("PasswordManager configuration: Iterations must be a positive integer."));
         }
 
         if (saltSize <= 0)
         {
-            return Result<PasswordManager, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput("PasswordManager configuration: Salt size must be a positive integer."));
+            return Result<PasswordManager, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("PasswordManager configuration: Salt size must be a positive integer."));
         }
 
         HashAlgorithmName effectiveHashAlgorithm = hashAlgorithmName ?? HashAlgorithmName.SHA256;
@@ -55,16 +55,16 @@ public sealed class PasswordManager
             effectiveHashAlgorithm != HashAlgorithmName.SHA384 &&
             effectiveHashAlgorithm != HashAlgorithmName.SHA512)
         {
-            return Result<PasswordManager, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput(
+            return Result<PasswordManager, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput(
                     $"PasswordManager configuration: Unsupported hash algorithm '{effectiveHashAlgorithm.Name}'. Supported for PBKDF2 are SHA1, SHA256, SHA384, SHA512."));
         }
 
-        return Result<PasswordManager, ShieldFailure>.Ok(new PasswordManager(iterations, effectiveHashAlgorithm,
+        return Result<PasswordManager, EcliptixProtocolFailure>.Ok(new PasswordManager(iterations, effectiveHashAlgorithm,
             saltSize));
     }
 
-    public Result<Unit, ShieldFailure> CheckPasswordCompliance(
+    public Result<Unit, EcliptixProtocolFailure> CheckPasswordCompliance(
         string password,
         PasswordPolicy policy)
     {
@@ -116,11 +116,11 @@ public sealed class PasswordManager
         if (validationErrorMessages.Count != 0)
         {
             string combinedReasons = string.Join("; ", validationErrorMessages);
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput($"Password does not meet complexity requirements: {combinedReasons}"));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput($"Password does not meet complexity requirements: {combinedReasons}"));
         }
 
-        return Result<Unit, ShieldFailure>.Ok(Unit.Value);
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private byte[] GenerateSalt()
@@ -131,47 +131,47 @@ public sealed class PasswordManager
         return salt;
     }
 
-    public Result<string, ShieldFailure> HashPassword(string password)
+    public Result<string, EcliptixProtocolFailure> HashPassword(string password)
     {
         if (string.IsNullOrEmpty(password))
         {
-            return Result<string, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput("Password to hash cannot be null or empty."));
+            return Result<string, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Password to hash cannot be null or empty."));
         }
 
         try
         {
             using Rfc2898DeriveBytes pbkdf2 = new(password, [], _iterations, _hashAlgorithmName);
             byte[] hash = pbkdf2.GetBytes(GetHashSizeForAlgorithm(_hashAlgorithmName));
-            return Result<string, ShieldFailure>.Ok(
+            return Result<string, EcliptixProtocolFailure>.Ok(
                 $"{HashSeparator}{Convert.ToBase64String(hash)}");
         }
         catch (Exception ex)
         {
-            return Result<string, ShieldFailure>.Err(
-                ShieldFailure.DeriveKey("An unexpected error occurred during PBKDF2 password hashing.", ex));
+            return Result<string, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.DeriveKey("An unexpected error occurred during PBKDF2 password hashing.", ex));
         }
     }
 
-    public Result<Unit, ShieldFailure> VerifyPassword(string password, string hashedPasswordWithSalt)
+    public Result<Unit, EcliptixProtocolFailure> VerifyPassword(string password, string hashedPasswordWithSalt)
     {
         if (string.IsNullOrEmpty(password))
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput("Input password for verification cannot be null or empty."));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Input password for verification cannot be null or empty."));
         }
 
         if (string.IsNullOrEmpty(hashedPasswordWithSalt))
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput("Stored hash for verification cannot be null or empty."));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput("Stored hash for verification cannot be null or empty."));
         }
 
         string[] parts = hashedPasswordWithSalt.Split(HashSeparator);
         if (parts.Length != 2)
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.Decode("Stored hash is not in the expected 'salt:hash' format."));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Decode("Stored hash is not in the expected 'salt:hash' format."));
         }
 
         byte[] salt;
@@ -184,14 +184,14 @@ public sealed class PasswordManager
         }
         catch (FormatException ex)
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.Decode("Failed to decode Base64 components from stored hash.", ex));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Decode("Failed to decode Base64 components from stored hash.", ex));
         }
 
         if (salt.Length != _saltSize)
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.InvalidInput(
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput(
                     $"Stored salt size ({salt.Length} bytes) does not match configured salt size ({_saltSize} bytes)."));
         }
 
@@ -202,8 +202,8 @@ public sealed class PasswordManager
 
             if (storedHash.Length != expectedHashSize)
             {
-                return Result<Unit, ShieldFailure>.Err(
-                    ShieldFailure.InvalidInput(
+                return Result<Unit, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.InvalidInput(
                         $"Stored hash size ({storedHash.Length} bytes) does not match expected size for {_hashAlgorithmName.Name} ({expectedHashSize} bytes)."));
             }
 
@@ -211,16 +211,16 @@ public sealed class PasswordManager
 
             if (CryptographicOperations.FixedTimeEquals(testHash, storedHash))
             {
-                return Result<Unit, ShieldFailure>.Ok(Unit.Value);
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
             }
 
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.AuthFailed("Password verification failed: Hashes do not match."));
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Password verification failed: Hashes do not match."));
         }
         catch (Exception ex)
         {
-            return Result<Unit, ShieldFailure>.Err(
-                ShieldFailure.DeriveKey(
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.DeriveKey(
                     "An unexpected error occurred during PBKDF2 derivation or comparison for verification.", ex));
         }
     }

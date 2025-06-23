@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Protocol;
+using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -22,7 +23,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
     private readonly NetworkController _networkController;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
-    private string _phoneNumber = "+380970177443";
+    private string _phoneNumber = "+38097017744";
     private readonly PasswordManager? _passwordManager;
     private readonly bool _isPasswordManagerInitialized;
 
@@ -72,7 +73,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         _networkController = networkController;
         _localizationService = localizationService;
 
-        Result<PasswordManager, ShieldFailure> passwordManagerCreationResult = PasswordManager.Create();
+        Result<PasswordManager, EcliptixProtocolFailure> passwordManagerCreationResult = PasswordManager.Create();
 
         if (passwordManagerCreationResult.IsOk)
         {
@@ -95,7 +96,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 _isPasswordManagerInitialized);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecuteSignIn);
-        PhoneNumber = "+380970177443";
+        PhoneNumber = "+380970177443"; // Default phone number for testing purposes
     }
 
     public void UpdatePassword(string? passwordText)
@@ -108,7 +109,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, ShieldFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _securePasswordHandle = result.Unwrap();
@@ -151,7 +152,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         {
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(passwordBytesLength);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, passwordBytesLength);
-            Result<Protocol.Utilities.Unit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            var readResult = _securePasswordHandle.Read(passwordSpan);
 
             if (readResult.IsErr)
             {
@@ -162,7 +163,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             }
 
             string passwordString = Encoding.UTF8.GetString(passwordSpan);
-            Result<string, ShieldFailure> hashPasswordResult = _passwordManager.HashPassword(passwordString);
+            Result<string, EcliptixProtocolFailure> hashPasswordResult = _passwordManager.HashPassword(passwordString);
             _ = passwordString.Remove(0, passwordString.Length);
 
             if (hashPasswordResult.IsErr)
@@ -182,7 +183,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 SecureKey = ByteString.CopyFrom(secretKey, Encoding.ASCII)
             };
 
-           Result<Protocol.Utilities.Unit, ShieldFailure> t = await _networkController.ExecuteServiceAction(
+           Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> t = await _networkController.ExecuteServiceAction(
                 connectId,
                 RcpServiceAction.SignIn,
                 request.ToByteArray(),
@@ -208,7 +209,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                         IsErrorVisible = true;
                     }
 
-                    return Task.FromResult(new Result<Protocol.Utilities.Unit, ShieldFailure>());
+                    return Task.FromResult(new Result<Protocol.Utilities.Unit, EcliptixProtocolFailure>());
                 }
             );
 
@@ -234,11 +235,11 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         }
     }
 
-    private static Result<SodiumSecureMemoryHandle, ShieldFailure> ConvertStringToSodiumHandle(string text)
+    private static Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> ConvertStringToSodiumHandle(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
-            return SodiumSecureMemoryHandle.Allocate(0);
+            return SodiumSecureMemoryHandle.Allocate(0).MapSodiumFailure();
         }
 
         byte[]? rentedBuffer = null;
@@ -251,8 +252,8 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteCount);
             bytesWritten = Encoding.UTF8.GetBytes(text, 0, text.Length, rentedBuffer, 0);
 
-            Result<SodiumSecureMemoryHandle, ShieldFailure> allocateResult =
-                SodiumSecureMemoryHandle.Allocate(bytesWritten);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocateResult =
+                SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();;
 
             if (allocateResult.IsErr)
             {
@@ -260,28 +261,28 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             }
 
             newHandle = allocateResult.Unwrap();
-            Result<Protocol.Utilities.Unit, ShieldFailure> writeResult =
-                newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten));
+            Result<Protocol.Utilities.Unit, EcliptixProtocolFailure> writeResult =
+                newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten)).MapSodiumFailure();;
 
             if (writeResult.IsErr)
             {
                 newHandle.Dispose();
-                return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(writeResult.UnwrapErr());
+                return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
             }
 
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(newHandle);
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(newHandle);
         }
         catch (EncoderFallbackException ex)
         {
             newHandle?.Dispose();
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(
-                ShieldFailure.Decode("Failed to encode password string to UTF-8 bytes.", ex));
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Decode("Failed to encode password string to UTF-8 bytes.", ex));
         }
         catch (Exception ex)
         {
             newHandle?.Dispose();
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(
-                ShieldFailure.Generic("Failed to convert string to secure handle.", ex));
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to convert string to secure handle.", ex));
         }
         finally
         {

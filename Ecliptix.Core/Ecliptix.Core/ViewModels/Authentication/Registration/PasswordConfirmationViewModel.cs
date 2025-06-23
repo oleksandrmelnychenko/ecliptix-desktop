@@ -2,19 +2,24 @@ using System;
 using System.Buffers;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Security.Cryptography;
 using ReactiveUI;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
-using System.Security.Cryptography;
 using System.Threading;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.OpaqueProtocol;
+using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
+using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
 using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -75,10 +80,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public string PasswordMismatchError =>
         _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
+
     private readonly IDisposable _mobileSubscription;
 
     private string VerificationSessionId { get; set; }
-    
+
     public PasswordConfirmationViewModel(NetworkController networkController, ILocalizationService localizationService)
     {
         _networkController = networkController;
@@ -92,12 +98,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(mobile =>
-                {
-                    VerificationSessionId = mobile;
-                }
+            .Subscribe(mobile => { VerificationSessionId = mobile; }
             );
-        
+
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
@@ -133,7 +136,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, ShieldFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _securePasswordHandle = result.Unwrap();
@@ -156,7 +159,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         if (!string.IsNullOrEmpty(passwordText))
         {
-            Result<SodiumSecureMemoryHandle, ShieldFailure> result = ConvertStringToSodiumHandle(passwordText);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result = ConvertStringToSodiumHandle(passwordText);
             if (result.IsOk)
             {
                 _secureVerifyPasswordHandle = result.Unwrap();
@@ -172,11 +175,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         ValidatePasswords();
     }
 
-    private static Result<SodiumSecureMemoryHandle, ShieldFailure> ConvertStringToSodiumHandle(string text)
+    private static Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> ConvertStringToSodiumHandle(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
-            return SodiumSecureMemoryHandle.Allocate(0);
+            return SodiumSecureMemoryHandle.Allocate(0).MapSodiumFailure();
         }
 
         byte[]? rentedBuffer = null;
@@ -189,8 +192,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteCount);
             bytesWritten = Encoding.UTF8.GetBytes(text, rentedBuffer);
 
-            Result<SodiumSecureMemoryHandle, ShieldFailure> allocateResult =
-                SodiumSecureMemoryHandle.Allocate(bytesWritten);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocateResult =
+                SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();
 
             if (allocateResult.IsErr)
             {
@@ -199,26 +202,27 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             newHandle = allocateResult.Unwrap();
 
-            Result<ShieldUnit, ShieldFailure> writeResult = newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten));
+            Result<ShieldUnit, EcliptixProtocolFailure> writeResult =
+                newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten)).MapSodiumFailure();
             if (writeResult.IsErr)
             {
                 newHandle.Dispose();
-                return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(writeResult.UnwrapErr());
+                return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
             }
 
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Ok(newHandle);
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(newHandle);
         }
         catch (EncoderFallbackException ex)
         {
             newHandle?.Dispose();
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(
-                ShieldFailure.Decode("Failed to encode password string to UTF-8 bytes.", ex));
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Decode("Failed to encode password string to UTF-8 bytes.", ex));
         }
         catch (Exception ex)
         {
             newHandle?.Dispose();
-            return Result<SodiumSecureMemoryHandle, ShieldFailure>.Err(
-                ShieldFailure.Generic("Failed to convert string to secure handle.", ex));
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to convert string to secure handle.", ex));
         }
         finally
         {
@@ -256,7 +260,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle!.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
 
-            Result<ShieldUnit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            Result<ShieldUnit, EcliptixProtocolFailure> readResult =
+                _securePasswordHandle.Read(passwordSpan).MapSodiumFailure();
             if (readResult.IsErr)
             {
                 PasswordErrorMessage = $"Error processing password: {readResult.UnwrapErr().Message}";
@@ -268,7 +273,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             _passwordManager ??= PasswordManager.Create().Unwrap();
 
-            Result<ShieldUnit, ShieldFailure> complianceResult =
+            Result<ShieldUnit, EcliptixProtocolFailure> complianceResult =
                 _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
 
             passwordSpan.Clear();
@@ -289,7 +294,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                 return;
             }
 
-            Result<bool, ShieldFailure> comparisonResult =
+            Result<bool, EcliptixProtocolFailure> comparisonResult =
                 CompareSodiumHandles(_securePasswordHandle, _secureVerifyPasswordHandle!);
 
             if (comparisonResult.IsErr)
@@ -332,24 +337,24 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         }
     }
 
-    private static Result<bool, ShieldFailure> CompareSodiumHandles(
+    private static Result<bool, EcliptixProtocolFailure> CompareSodiumHandles(
         SodiumSecureMemoryHandle handle1,
         SodiumSecureMemoryHandle handle2)
     {
         if (handle1.IsInvalid || handle2.IsInvalid)
         {
-            return Result<bool, ShieldFailure>.Err(
-                ShieldFailure.ObjectDisposed("Password handles are invalid for comparison."));
+            return Result<bool, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed("Password handles are invalid for comparison."));
         }
 
         if (handle1.Length != handle2.Length)
         {
-            return Result<bool, ShieldFailure>.Ok(false);
+            return Result<bool, EcliptixProtocolFailure>.Ok(false);
         }
 
         if (handle1.Length == 0)
         {
-            return Result<bool, ShieldFailure>.Ok(true);
+            return Result<bool, EcliptixProtocolFailure>.Ok(true);
         }
 
         byte[]? rentedBytes1 = null;
@@ -358,16 +363,16 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedBytes1 = ArrayPool<byte>.Shared.Rent(handle1.Length);
             Span<byte> span1 = rentedBytes1.AsSpan(0, handle1.Length);
-            Result<ShieldUnit, ShieldFailure> read1Result = handle1.Read(span1);
-            if (read1Result.IsErr) return Result<bool, ShieldFailure>.Err(read1Result.UnwrapErr());
+            Result<ShieldUnit, EcliptixProtocolFailure> read1Result = handle1.Read(span1).MapSodiumFailure();
+            if (read1Result.IsErr) return Result<bool, EcliptixProtocolFailure>.Err(read1Result.UnwrapErr());
 
             rentedBytes2 = ArrayPool<byte>.Shared.Rent(handle2.Length);
             Span<byte> span2 = rentedBytes2.AsSpan(0, handle2.Length);
-            Result<ShieldUnit, ShieldFailure> read2Result = handle2.Read(span2);
-            if (read2Result.IsErr) return Result<bool, ShieldFailure>.Err(read2Result.UnwrapErr());
+            Result<ShieldUnit, EcliptixProtocolFailure> read2Result = handle2.Read(span2).MapSodiumFailure();
+            if (read2Result.IsErr) return Result<bool, EcliptixProtocolFailure>.Err(read2Result.UnwrapErr());
 
             bool areEqual = CryptographicOperations.FixedTimeEquals(span1, span2);
-            return Result<bool, ShieldFailure>.Ok(areEqual);
+            return Result<bool, EcliptixProtocolFailure>.Ok(areEqual);
         }
         finally
         {
@@ -407,7 +412,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
-            Result<ShieldUnit, ShieldFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            Result<ShieldUnit, EcliptixProtocolFailure> readResult =
+                _securePasswordHandle.Read(passwordSpan).MapSodiumFailure();
             if (readResult.IsErr)
             {
                 throw new InvalidOperationException(
@@ -416,7 +422,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             string passwordString = Encoding.UTF8.GetString(passwordSpan);
 
-            Result<string, ShieldFailure> verifierResult = _passwordManager!.HashPassword(passwordString);
+            Result<string, EcliptixProtocolFailure> verifierResult = _passwordManager!.HashPassword(passwordString);
             if (verifierResult.IsErr)
             {
                 throw new InvalidOperationException(
@@ -425,28 +431,46 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             string passwordVerifierForServer = verifierResult.Unwrap();
 
-            UpdateMembershipWithSecureKeyRequest request = new()
+            byte[] secretKeySeed = Convert.FromBase64String("8p3jZ9kX2Q7vL4mPqRtYcF2nW8Bx5zK9hG3aT0uV6jw=");
+
+
+            ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
+            ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
+            OpaqueProtocolService opaqueProtocolService = new(serverStaticPublicKey);
+
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
+                opaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
+
+            if (opfrResult.IsErr)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to create OPRF request: {opfrResult.UnwrapErr().Message}");
+            }
+
+            (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
+
+            OprfRegistrationRecordRequest request = new()
             {
                 MembershipIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
-                SecureKey = ByteString.CopyFrom(passwordVerifierForServer, Encoding.UTF8)
+                PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
             _ = await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.UpdateMembershipWithSecureKey,
+                RcpServiceAction.OpaqueRegistrationRecord,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
                 payload =>
                 {
-                    UpdateMembershipWithSecureKeyResponse createMembershipResponse =
-                        Utilities.ParseFromBytes<UpdateMembershipWithSecureKeyResponse>(payload);
+                    OprfRegistrationRecordResponse createMembershipResponse =
+                        Utilities.ParseFromBytes<OprfRegistrationRecordResponse>(payload);
 
                     if (createMembershipResponse.Result ==
-                        UpdateMembershipWithSecureKeyResponse.Types.UpdateResult.Succeeded)
+                        OprfRegistrationRecordResponse.Types.UpdateResult.Succeeded)
                     {
                     }
 
-                    return Task.FromResult(Result<ShieldUnit, ShieldFailure>.Ok(ShieldUnit.Value));
+                    return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
                 },
                 CancellationToken.None
             );

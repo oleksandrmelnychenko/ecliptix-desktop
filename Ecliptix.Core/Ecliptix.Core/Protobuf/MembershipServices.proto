@@ -3,8 +3,7 @@ import "CipherPayload.proto";
 
 package ecliptix.proto.membership;
 option csharp_namespace = "Ecliptix.Protobuf.Membership";
-
 service MembershipServices {
-  rpc UpdateMembershipWithSecureKey(CipherPayload) returns (CipherPayload);
   rpc SignInMembership(CipherPayload) returns (CipherPayload);
+  rpc OpaqueRegistrationRecordRequest(CipherPayload) returns (CipherPayload);
 }

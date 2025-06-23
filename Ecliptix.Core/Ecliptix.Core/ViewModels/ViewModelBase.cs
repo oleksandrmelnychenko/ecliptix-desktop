@@ -20,6 +20,12 @@ public class ViewModelBase : ReactiveObject, IDisposable
 
         return connectId;
     }
+    
+    protected static byte[] ServerPublicKey()
+    {
+        AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+        return appInstanceInfo.ServerPublicKey;
+    }
 
     protected static Guid? SystemDeviceIdentifier()
     {

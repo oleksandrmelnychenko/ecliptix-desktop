@@ -16,7 +16,7 @@ public class NetworkServiceManager(
 
     public async Task BeginDataCenterPublicKeyExchange(PubKeyExchangeActionInvokable action)
     {
-        Result<PubKeyExchange, ShieldFailure> beginPubkeyExchangeResult =
+        Result<PubKeyExchange, EcliptixProtocolFailure> beginPubkeyExchangeResult =
             await keyExchangeExecutor.BeginDataCenterPublicKeyExchange(action.PubKeyExchange);
 
         if (beginPubkeyExchangeResult.IsOk)
@@ -24,12 +24,12 @@ public class NetworkServiceManager(
                 action.OnComplete(beginPubkeyExchangeResult.Unwrap());
     }
 
-    public async Task<Result<RpcFlow, ShieldFailure>> InvokeServiceRequestAsync(ServiceRequest request,
+    public async Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeServiceRequestAsync(ServiceRequest request,
         CancellationToken token)
     {
         RcpServiceAction action = request.RcpServiceMethod;
 
-        Result<RpcFlow, ShieldFailure> result = default;
+        Result<RpcFlow, EcliptixProtocolFailure> result = default;
         switch (request.ActionType)
         {
             case ServiceFlowType.Single:

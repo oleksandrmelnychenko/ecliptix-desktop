@@ -38,7 +38,7 @@ public static class AesGcmService
     /// </exception>
     /// <exception cref="ArgumentException">Thrown for invalid key/nonce/tag lengths or if ciphertextDestination is too small.</exception>
     /// <exception cref="CryptographicException">Thrown for other cryptographic errors during encryption.</exception>
-    /// <exception cref="ShieldChainStepException">Wrapped cryptographic exceptions.</exception>
+    /// <exception cref="ProtocolChainStepException">Wrapped cryptographic exceptions.</exception>
     public static void Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
@@ -62,13 +62,11 @@ public static class AesGcmService
         }
         catch (CryptographicException cryptoEx)
         {
-            Console.WriteLine(cryptoEx.Message);
-            throw new ShieldChainStepException(ErrEncryptFail, cryptoEx);
+            throw new ProtocolChainStepException(ErrEncryptFail, cryptoEx);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
-            throw new ShieldChainStepException(ErrEncryptFail, ex);
+            throw new ProtocolChainStepException(ErrEncryptFail, ex);
         }
     }
 
@@ -85,7 +83,7 @@ public static class AesGcmService
     /// <exception cref="ArgumentException">Thrown for invalid key/nonce/tag lengths or if plaintextDestination is too small.</exception>
     /// <exception cref="AuthenticationTagMismatchException">(Subclass of CryptographicException) Thrown if the tag is invalid.</exception>
     /// <exception cref="CryptographicException">Thrown for other cryptographic errors during decryption.</exception>
-    /// <exception cref="ShieldChainStepException">Wrapped cryptographic exceptions.</exception>
+    /// <exception cref="ProtocolChainStepException">Wrapped cryptographic exceptions.</exception>
     public static void Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
@@ -108,18 +106,15 @@ public static class AesGcmService
         }
         catch (AuthenticationTagMismatchException authEx)
         {
-            Console.WriteLine(authEx.Message);
-            throw new ShieldChainStepException(ErrDecryptFail, authEx);
+            throw new ProtocolChainStepException(ErrDecryptFail, authEx);
         }
         catch (CryptographicException cryptoEx)
         {
-            Console.WriteLine(cryptoEx.Message);
-            throw new ShieldChainStepException(ErrDecryptFail, cryptoEx);
+            throw new ProtocolChainStepException(ErrDecryptFail, cryptoEx);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
-            throw new ShieldChainStepException(ErrDecryptFail, ex);
+            throw new ProtocolChainStepException(ErrDecryptFail, ex);
         }
     }
 
