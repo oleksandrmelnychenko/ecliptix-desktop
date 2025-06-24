@@ -38,8 +38,8 @@
             <controls:HintedTextBox
                 Grid.Row="2"
                 x:Name="PasswordTextBox"
-                Watermark="{Binding PasswordHint}"
-                Hint="{Binding PasswordHint}"
+                Watermark=""
+                Hint=""
                 Margin="0 0 0 10"
                 CornerRadius="15"
                 BorderBrush="#E0E0E0"

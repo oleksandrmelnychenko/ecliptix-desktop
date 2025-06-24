@@ -1,5 +1,4 @@
 using System;
-using Ecliptix.Domain.Memberships.OPAQUE;
 
 namespace Ecliptix.Core.OpaqueProtocol;
 
@@ -14,6 +13,12 @@ public sealed record OpaqueFailure
         Type = type;
         Message = message;
         InnerException = innerException;
+    }
+    
+    public static OpaqueFailure MacVerificationFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.MacVerificationFailed,
+            string.IsNullOrEmpty(details) ? OpaqueMessageKeys.MacVerificationFailed : details, inner);
     }
     
     public static OpaqueFailure TokenExpired(string? details = null, Exception? inner = null)

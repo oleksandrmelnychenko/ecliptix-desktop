@@ -431,9 +431,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                     $"Failed to hash password for server: {verifierResult.UnwrapErr().Message}");
             }
 
-            string passwordVerifierForServer = verifierResult.Unwrap();
+            //string passwordVerifierForServer = verifierResult.Unwrap();
 
-            byte[] secretKeySeed = Convert.FromBase64String("8p3jZ9kX2Q7vL4mPqRtYcF2nW8Bx5zK9hG3aT0uV6jw=");
+            //byte[] secretKeySeed = Convert.FromBase64String("8p3jZ9kX2Q7vL4mPqRtYcF2nW8Bx5zK9hG3aT0uV6jw=");
 
             ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
             ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
