@@ -23,7 +23,6 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 {
-    // --- Member Fields & Properties (Unchanged from previous fix) ---
     private readonly NetworkController _networkController;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
@@ -78,7 +77,6 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecuteSignIn);
     }
 
-    // --- Core Sign-In Logic ---
     private async Task SignInAsync()
     {
         IsBusy = true;
@@ -105,26 +103,21 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 return;
             }
 
-            // --- OPAQUE Flow Start ---
-
-            // Setup
-            var serverStaticPublicKeyParam = new ECPublicKeyParameters(
+            ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey()),
                 OpaqueCryptoUtilities.DomainParams);
             var clientOpaqueService = new ClientOpaqueProtocolService(serverStaticPublicKeyParam);
 
-            // OPAQUE Step 1: Create OPRF Request
-            var oprfResult = clientOpaqueService.CreateOprfRequest(passwordSpan.ToArray());
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = clientOpaqueService.CreateOprfRequest(passwordSpan.ToArray());
             if (oprfResult.IsErr)
             {
                 SetError($"Failed to create OPAQUE request: {oprfResult.UnwrapErr().Message}");
                 return;
             }
 
-            var (oprfRequest, blind) = oprfResult.Unwrap();
+            (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
 
-            // OPAQUE Step 2: Send Init Request and process the entire remaining flow inside the callback.
-            var initRequest = new OpaqueSignInInitRequest
+            OpaqueSignInInitRequest initRequest = new()
             {
                 PhoneNumber = this.PhoneNumber,
                 PeerOprf = ByteString.CopyFrom(oprfRequest)
@@ -132,13 +125,12 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             byte[] passwordBytes = passwordSpan.ToArray();
 
-            // This is the restored nested async invocation structure.
             var overallResult = await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceAction.OpaqueSignInInitRequest,
                 initRequest.ToByteArray(),
                 ServiceFlowType.Single,
-                async payload => // First nested async lambda
+                async payload => 
                 {
                     OpaqueSignInInitResponse initResponse = Utilities.ParseFromBytes<OpaqueSignInInitResponse>(payload);
 
@@ -156,17 +148,16 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                             EcliptixProtocolFailure.Generic("Failed to process server response."));
                     }
 
-                    var (finalizeRequest, sessionKey, serverMacKey, transcriptHash) = finalizationResult.Unwrap();
+                    (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey, byte[] transcriptHash) = finalizationResult.Unwrap();
 
-                    // OPAQUE Step 4: Send Finalization Request
                     var finalizeResult = await _networkController.ExecuteServiceAction(
                         ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                         RcpServiceAction.OpaqueSignInCompleteRequest,
                         finalizeRequest.ToByteArray(),
                         ServiceFlowType.Single,
-                        async payload2 => // Second nested async lambda
+                        async payload2 => 
                         {
-                            var finalizeResponse = Utilities.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
+                            OpaqueSignInFinalizeResponse finalizeResponse = Utilities.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
 
                             if (finalizeResponse.Result ==
                                 OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
@@ -178,8 +169,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                                     EcliptixProtocolFailure.Generic("Invalid credentials."));
                             }
 
-                            // OPAQUE Step 5: Verify Server's MAC
-                            var verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
+                            Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
                                 finalizeResponse, sessionKey, serverMacKey, transcriptHash);
 
                             if (verificationResult.IsErr)
@@ -190,12 +180,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                                 return Result<ShieldUnit, EcliptixProtocolFailure>.Err(failure);
                             }
 
-                            // --- Success ---
-                            var finalSessionKey = verificationResult.Unwrap();
-                            // TODO: Store session key and navigate.
+                            byte[] finalSessionKey = verificationResult.Unwrap();
                             System.Diagnostics.Debug.WriteLine("Sign-in successful! Session key established.");
 
-                            // Return success for the inner network call
                             return await Task.FromResult(
                                 Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
                         });

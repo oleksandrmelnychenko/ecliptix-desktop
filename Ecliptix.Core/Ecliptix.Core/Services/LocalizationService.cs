@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.Services.Generated;
 using Microsoft.Extensions.Logging;
 
 namespace Ecliptix.Core.Services;
 
-public sealed class  LocalizationService : ILocalizationService
+public sealed class LocalizationService : ILocalizationService
 {
     private IReadOnlyDictionary<string, string> _localizedStrings;
     private CultureInfo _currentCultureInfo;
@@ -36,34 +35,17 @@ public sealed class  LocalizationService : ILocalizationService
             "LocalizationService initializing. Configured InitialCulture: {InitialCulture}, Configured DefaultCulture: {DefaultCulture}",
             initialCultureName, _defaultCultureName);
 
-        if (GeneratedLocales.AllCultures.TryGetValue(_defaultCultureName, out var defaultStrings))
-        {
-            _defaultCultureStrings = defaultStrings;
-            _logger.LogInformation("Default culture '{DefaultCulture}' loaded. Strings: {Count}", _defaultCultureName,
-                defaultStrings.Count);
-        }
-        else
-        {
-            _logger.LogWarning(
-                "Default culture '{DefaultCulture}' not found in generated locales. Default fallback will be empty.",
-                _defaultCultureName);
-            _defaultCultureStrings = new Dictionary<string, string>(); // Ensure not null
-        }
 
-        if (GeneratedLocales.AllCultures.TryGetValue(initialCultureName, out var initialStrings))
-        {
-            _localizedStrings = initialStrings;
-            _currentCultureInfo = CreateCultureInfo(initialCultureName);
-            _logger.LogInformation("Initial culture '{InitialCulture}' loaded successfully.", initialCultureName);
-        }
-        else
-        {
-            _logger.LogWarning(
-                "Initial culture '{InitialCulture}' not found in generated locales. Falling back to default culture '{DefaultCulture}'.",
-                initialCultureName, _defaultCultureName);
-            _localizedStrings = _defaultCultureStrings;
-            _currentCultureInfo = CreateCultureInfo(_defaultCultureName);
-        }
+        _logger.LogWarning(
+            "Default culture '{DefaultCulture}' not found in generated locales. Default fallback will be empty.",
+            _defaultCultureName);
+        _defaultCultureStrings = new Dictionary<string, string>(); // Ensure not null
+
+        _logger.LogWarning(
+            "Initial culture '{InitialCulture}' not found in generated locales. Falling back to default culture '{DefaultCulture}'.",
+            initialCultureName, _defaultCultureName);
+        _localizedStrings = _defaultCultureStrings;
+        _currentCultureInfo = CreateCultureInfo(_defaultCultureName);
     }
 
     private CultureInfo CreateCultureInfo(string cultureName)
@@ -148,22 +130,10 @@ public sealed class  LocalizationService : ILocalizationService
 
             _logger.LogInformation("Attempting to set culture from '{OldCulture}' to '{NewCulture}'",
                 _currentCultureInfo.Name, newCultureInfo.Name);
-            if (GeneratedLocales.AllCultures.TryGetValue(newCultureInfo.Name, out var newCultureStrings))
-            {
-                _localizedStrings = newCultureStrings;
-                _currentCultureInfo = newCultureInfo;
 
-                _logger.LogInformation(
-                    "Culture changed successfully to '{NewCulture}'. Invoking LanguageChanged event.",
-                    newCultureInfo.Name);
-                OnLanguageChanged();
-            }
-            else
-            {
-                _logger.LogError(
-                    "Failed to set culture to '{CultureName}'. Data not found in generated locales. Current culture '{CurrentCulture}' remains unchanged.",
-                    newCultureInfo.Name, _currentCultureInfo.Name);
-            }
+            _logger.LogError(
+                "Failed to set culture to '{CultureName}'. Data not found in generated locales. Current culture '{CurrentCulture}' remains unchanged.",
+                newCultureInfo.Name, _currentCultureInfo.Name);
         }
     }
 

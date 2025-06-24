@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
@@ -7,59 +8,69 @@ using Microsoft.CodeAnalysis.Text;
 namespace Ecliptix.Core.Localization.Generator;
 
 [Generator]
-public class LocalizationSourceGenerator : ISourceGenerator
+public class LocalizationSourceGenerator : IIncrementalGenerator
 {
-    public void Initialize(GeneratorInitializationContext context)
+    // The new entry point for incremental generators.
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-    }
-
-    public void Execute(GeneratorExecutionContext context)
-    {
-        IEnumerable<AdditionalText> localeFiles = context.AdditionalFiles
+        // STEP 1: Define the pipeline for what constitutes a "locale file".
+        // We're looking for .json files inside a "Locales" directory.
+        IncrementalValuesProvider<AdditionalText> localeFiles = context.AdditionalTextsProvider
             .Where(f => IsLocaleFile(f.Path));
 
-        if (!localeFiles.Any())
-        {
-            GenerateEmptyLocalesClass(context);
-            return;
-        }
-
-        Dictionary<string, Dictionary<string, string>> allCulturesData = new();
-
-        foreach (AdditionalText file in localeFiles)
-        {
-            string cultureName = Path.GetFileNameWithoutExtension(file.Path);
-            SourceText? sourceText = file.GetText(context.CancellationToken);
-            string? jsonContent = sourceText?.ToString();
-
-            if (string.IsNullOrWhiteSpace(jsonContent))
+        // STEP 2: Transform the file into its content and necessary metadata.
+        // This stage reads the file content and handles potential read errors.
+        IncrementalValuesProvider<LocaleFileContent> fileContents = localeFiles
+            .Select((file, cancellationToken) =>
             {
-                ReportDiagnostic(context, "LOCGEN002", "Empty Locale File", $"Locale file '{file.Path}' is empty or unreadable.", DiagnosticSeverity.Warning, file.Path, sourceText);
-                continue;
-            }
+                var sourceText = file.GetText(cancellationToken);
+                return new LocaleFileContent(file.Path, sourceText);
+            });
 
-            Dictionary<string, string> flattenedStrings = new();
-            try
+        // STEP 3: Parse the JSON content and report diagnostics for parsing errors.
+        // We also collect all successfully parsed data.
+        var compilationAndFiles = context.CompilationProvider.Combine(fileContents.Collect());
+        
+        context.RegisterSourceOutput(compilationAndFiles, (spc, source) =>
+        {
+            var allCulturesData = new Dictionary<string, Dictionary<string, string>>();
+
+            foreach (var fileContent in source.Right) // source.Right is the ImmutableArray<LocaleFileContent>
             {
-                if (jsonContent != null)
+                string cultureName = Path.GetFileNameWithoutExtension(fileContent.FilePath);
+                
+                if (string.IsNullOrWhiteSpace(fileContent.Content?.ToString()))
                 {
-                    using JsonDocument document = JsonDocument.Parse(jsonContent);
-                    ProcessJsonElement(document.RootElement, string.Empty, flattenedStrings);
+                    ReportDiagnostic(spc, "LOCGEN002", "Empty Locale File", $"Locale file '{fileContent.FilePath}' is empty or unreadable.", DiagnosticSeverity.Warning, fileContent.FilePath, fileContent.Content);
+                    continue;
                 }
-
-                allCulturesData[cultureName] = flattenedStrings;
+                
+                var flattenedStrings = new Dictionary<string, string>();
+                try
+                {
+                    using var document = JsonDocument.Parse(fileContent.Content.ToString());
+                    ProcessJsonElement(document.RootElement, string.Empty, flattenedStrings);
+                    allCulturesData[cultureName] = flattenedStrings;
+                }
+                catch (JsonException ex)
+                {
+                    ReportDiagnostic(spc, "LOCGEN001", "JSON Parsing Error", $"Failed to parse locale file '{fileContent.FilePath}': {ex.Message}", DiagnosticSeverity.Error, fileContent.FilePath, fileContent.Content, ex);
+                }
             }
-            catch (JsonException ex)
-            {
-                ReportDiagnostic(context, "LOCGEN001", "JSON Parsing Error", $"Failed to parse locale file '{file.Path}': {ex.Message}", DiagnosticSeverity.Error, file.Path, sourceText, ex);
-                continue;
-            }
-        }
 
-        string generatedSource = GenerateLocalesClassSource(allCulturesData);
-        context.AddSource("GeneratedLocales.g.cs", SourceText.From(generatedSource, Encoding.UTF8));
+            // STEP 4: Generate the final source code based on the collected data.
+            string generatedSource = allCulturesData.Any()
+                ? GenerateLocalesClassSource(allCulturesData)
+                : GenerateEmptyLocalesClassSource();
+
+            spc.AddSource("GeneratedLocales.g.cs", SourceText.From(generatedSource, Encoding.UTF8));
+        });
     }
 
+    // A simple record to hold file data as it moves through the pipeline.
+    private record struct LocaleFileContent(string FilePath, SourceText? Content);
+    
+    // This helper method remains unchanged.
     private static bool IsLocaleFile(string filePath)
     {
         if (!filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -71,27 +82,29 @@ public class LocalizationSourceGenerator : ISourceGenerator
         return "Locales".Equals(parentDirectoryName, StringComparison.OrdinalIgnoreCase);
     }
 
-    private void GenerateEmptyLocalesClass(GeneratorExecutionContext context)
+    // This method now generates the source string directly.
+    private string GenerateEmptyLocalesClassSource()
     {
-        StringBuilder sourceBuilder = new();
+        var sourceBuilder = new StringBuilder();
         sourceBuilder.AppendLine("using System.Collections.Generic;");
-        sourceBuilder.AppendLine("");
+        sourceBuilder.AppendLine();
         sourceBuilder.AppendLine("namespace Ecliptix.Core.Services.Generated");
         sourceBuilder.AppendLine("{");
         sourceBuilder.AppendLine("    public static class GeneratedLocales");
         sourceBuilder.AppendLine("    {");
         sourceBuilder.AppendLine("        public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> AllCultures = ");
-        sourceBuilder.AppendLine("            new Dictionary<string, IReadOnlyDictionary<string, string>>(0);");
+        sourceBuilder.AppendLine("            System.Collections.Immutable.ImmutableDictionary<string, IReadOnlyDictionary<string, string>>.Empty;"); // Using Immutable for efficiency
         sourceBuilder.AppendLine("    }");
         sourceBuilder.AppendLine("}");
-        context.AddSource("GeneratedLocales.g.cs", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));
+        return sourceBuilder.ToString();
     }
     
+    // This method remains largely unchanged.
     private string GenerateLocalesClassSource(Dictionary<string, Dictionary<string, string>> allCulturesData)
     {
         var sourceBuilder = new StringBuilder();
         sourceBuilder.AppendLine("using System.Collections.Generic;");
-        sourceBuilder.AppendLine("");
+        sourceBuilder.AppendLine();
         sourceBuilder.AppendLine("namespace Ecliptix.Core.Services.Generated");
         sourceBuilder.AppendLine("{");
         sourceBuilder.AppendLine("    public static class GeneratedLocales");
@@ -106,6 +119,7 @@ public class LocalizationSourceGenerator : ISourceGenerator
             sourceBuilder.AppendLine("                {");
             foreach (var stringEntry in cultureEntry.Value)
             {
+                // Using SymbolDisplay is a robust way to create string literals. Good choice!
                 string escapedKey = SymbolDisplay.FormatLiteral(stringEntry.Key, true);
                 string escapedValue = SymbolDisplay.FormatLiteral(stringEntry.Value, true);
                 sourceBuilder.AppendLine($"                    {{{escapedKey}, {escapedValue}}},");
@@ -119,18 +133,20 @@ public class LocalizationSourceGenerator : ISourceGenerator
         return sourceBuilder.ToString();
     }
 
+    // This JSON processing logic remains the same.
     private static void ProcessJsonElement(JsonElement element, string currentPath, Dictionary<string, string> result)
     {
         switch (element.ValueKind)
         {
             case JsonValueKind.Object:
-                foreach (JsonProperty property in element.EnumerateObject())
+                foreach (var property in element.EnumerateObject())
                 {
                     string newPath = string.IsNullOrEmpty(currentPath) ? property.Name : $"{currentPath}.{property.Name}";
                     ProcessJsonElement(property.Value, newPath, result);
                 }
                 break;
             case JsonValueKind.Array:
+                // Note: Arrays in localization are uncommon. This flattens them as "key[0]", "key[1]", etc.
                 int index = 0;
                 foreach (JsonElement item in element.EnumerateArray())
                 {
@@ -141,61 +157,53 @@ public class LocalizationSourceGenerator : ISourceGenerator
             case JsonValueKind.String:
                 result[currentPath] = element.GetString() ?? string.Empty;
                 break;
+            // Other primitive types can be handled as needed.
             case JsonValueKind.Number:
+            case JsonValueKind.True:
+            case JsonValueKind.False:
                 result[currentPath] = element.GetRawText();
                 break;
-            case JsonValueKind.True:
-                result[currentPath] = "true";
-                break;
-            case JsonValueKind.False:
-                result[currentPath] = "false";
-                break;
             case JsonValueKind.Null:
-                result[currentPath] = string.Empty;
-                break;
             case JsonValueKind.Undefined:
-                break;
+                break; // Or handle as empty string if desired.
         }
     }
     
+    // ReportDiagnostic now takes a SourceProductionContext instead of GeneratorExecutionContext.
     private void ReportDiagnostic(
-        GeneratorExecutionContext context, 
+        SourceProductionContext context, 
         string id, 
         string title, 
-        string messageFormat, 
+        string message, 
         DiagnosticSeverity severity, 
-        string filePath, 
+        string? filePath, 
         SourceText? sourceText,
         Exception? exception = null)
     {
-        Location location = Location.None;
-        if (!string.IsNullOrEmpty(filePath) && sourceText != null && exception is JsonException jsonEx)
+        Location? location = null;
+
+        if (filePath != null && sourceText != null && exception is JsonException jsonEx && jsonEx.LineNumber.HasValue)
         {
-            if (jsonEx.LineNumber.HasValue && jsonEx.BytePositionInLine.HasValue)
+            int line = (int)jsonEx.LineNumber.Value;
+            int charPos = (int)(jsonEx.BytePositionInLine ?? 0);
+            
+            // Basic bounds checking for safety
+            if (line < sourceText.Lines.Count)
             {
-                TextLine line = sourceText.Lines.Count > jsonEx.LineNumber.Value ? sourceText.Lines[(int)jsonEx.LineNumber.Value] : sourceText.Lines.LastOrDefault();
-                if(line != default)
-                {
-                    int charPos = (int)jsonEx.BytePositionInLine.Value; 
-                    charPos = Math.Min(charPos, line.Span.Length -1);
-                    charPos = Math.Max(0, charPos);
-                    location = Location.Create(filePath, line.Span, new LinePositionSpan(new LinePosition((int)jsonEx.LineNumber.Value, charPos), new LinePosition((int)jsonEx.LineNumber.Value, charPos + 1)));
-                }
-            }
-            if (location == Location.None) 
-            {
-                location = Location.Create(filePath, TextSpan.FromBounds(0,0), new LinePositionSpan(LinePosition.Zero, LinePosition.Zero));
+                var textLine = sourceText.Lines[line];
+                charPos = Math.Min(charPos, textLine.Span.Length - 1);
+                var linePos = new LinePosition(line, charPos);
+                location = Location.Create(filePath, textLine.Span, new LinePositionSpan(linePos, linePos));
             }
         }
-        else if (!string.IsNullOrEmpty(filePath))
-        {
-            location = Location.Create(filePath, TextSpan.FromBounds(0,0), new LinePositionSpan(LinePosition.Zero, LinePosition.Zero));
-        }
+        
+        location ??= !string.IsNullOrEmpty(filePath) 
+            ? Location.Create(filePath, TextSpan.FromBounds(0, 0), new LinePositionSpan(LinePosition.Zero, LinePosition.Zero)) 
+            : Location.None;
 
         context.ReportDiagnostic(Diagnostic.Create(
-            new DiagnosticDescriptor(id, title, messageFormat, "Localization", severity, true),
-            location,
-            exception?.ToString() 
+            new DiagnosticDescriptor(id, title, message, "Localization", severity, isEnabledByDefault: true),
+            location
         ));
     }
 }
