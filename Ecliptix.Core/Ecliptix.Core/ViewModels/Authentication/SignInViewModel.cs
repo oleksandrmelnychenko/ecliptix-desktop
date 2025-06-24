@@ -106,9 +106,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey()),
                 OpaqueCryptoUtilities.DomainParams);
-            var clientOpaqueService = new ClientOpaqueProtocolService(serverStaticPublicKeyParam);
+            var clientOpaqueService = new OpaqueProtocolService(serverStaticPublicKeyParam);
 
-            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = clientOpaqueService.CreateOprfRequest(passwordSpan.ToArray());
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
             if (oprfResult.IsErr)
             {
                 SetError($"Failed to create OPAQUE request: {oprfResult.UnwrapErr().Message}");

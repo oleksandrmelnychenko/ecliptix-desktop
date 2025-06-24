@@ -6,8 +6,6 @@ public enum OpaqueCryptoFailureType
     DecryptFailure,
     EncryptFailure,
     InvalidInput,
-    HashingFailure,
     InvalidKeySignature,
-    TokenExpired,
     MacVerificationFailed
 }

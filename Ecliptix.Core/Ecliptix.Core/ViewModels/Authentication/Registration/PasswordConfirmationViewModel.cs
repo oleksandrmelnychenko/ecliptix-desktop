@@ -437,10 +437,10 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
             ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
-            ClientOpaqueProtocolService clientOpaqueProtocolService = new(serverStaticPublicKey);
+            OpaqueProtocolService opaqueProtocolService = new(serverStaticPublicKey);
 
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
-                clientOpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
+                OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
 
             if (opfrResult.IsErr)
             {
@@ -471,7 +471,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                     if (createMembershipResponse.Result ==
                         OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
-                        Result<byte[], OpaqueFailure> envelope = clientOpaqueProtocolService.CreateRegistrationRecord(pas,
+                        Result<byte[], OpaqueFailure> envelope = OpaqueProtocolService.CreateRegistrationRecord(pas,
                             createMembershipResponse.PeerOprf.ToByteArray(), opfr.Blind);
 
                         OprfRegistrationCompleteRequest r = new()

@@ -20,12 +20,6 @@ public sealed record OpaqueFailure
         return new OpaqueFailure(OpaqueCryptoFailureType.MacVerificationFailed,
             string.IsNullOrEmpty(details) ? OpaqueMessageKeys.MacVerificationFailed : details, inner);
     }
-    
-    public static OpaqueFailure TokenExpired(string? details = null, Exception? inner = null)
-    {
-        return new OpaqueFailure(OpaqueCryptoFailureType.TokenExpired,
-            string.IsNullOrEmpty(details) ? OpaqueMessageKeys.TokenExpired : details, inner);
-    }
 
     public static OpaqueFailure InvalidKeySignature(string details, Exception? inner = null)
     {
@@ -54,10 +48,5 @@ public sealed record OpaqueFailure
     {
         return new OpaqueFailure(OpaqueCryptoFailureType.InvalidInput,
             string.IsNullOrEmpty(details) ? OpaqueMessageKeys.InputKeyingMaterialCannotBeNullOrEmpty : details, inner);
-    }
-
-    public static OpaqueFailure OprfHashingFailed(string details, Exception? inner = null)
-    {
-        return new OpaqueFailure(OpaqueCryptoFailureType.HashingFailure, details, inner);
     }
 }

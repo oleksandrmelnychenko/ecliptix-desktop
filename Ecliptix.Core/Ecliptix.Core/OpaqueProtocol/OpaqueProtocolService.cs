@@ -1,7 +1,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
-using Ecliptix.Core.Protocol.Utilities; // Your Result type
+using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto;
@@ -9,19 +9,14 @@ using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
-// Import our shared constants for consistency and security
 using static Ecliptix.Core.OpaqueProtocol.OpaqueConstants;
 using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
 
 namespace Ecliptix.Core.OpaqueProtocol;
 
-public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPublicKey)
+public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
 {
-    private readonly AsymmetricKeyParameter _serverStaticPublicKey = serverStaticPublicKey
-                                                                     ?? throw new ArgumentNullException(
-                                                                         nameof(serverStaticPublicKey));
-
-    public Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] password)
+    public static Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] password)
     {
         BigInteger blind = OpaqueCryptoUtilities.GenerateRandomScalar();
         Result<ECPoint, OpaqueFailure> hashResult = OpaqueCryptoUtilities.HashToPoint(password);
@@ -31,11 +26,10 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         return Result<(byte[], BigInteger), OpaqueFailure>.Ok((oprfRequestPoint.GetEncoded(true), blind));
     }
 
-    public Result<byte[], OpaqueFailure> CreateRegistrationRecord(byte[] password, byte[] oprfResponse,
+    public static Result<byte[], OpaqueFailure> CreateRegistrationRecord(byte[] password, byte[] oprfResponse,
         BigInteger blind)
     {
         byte[] oprfKey = RecoverOprfKey(oprfResponse, blind);
-        // [FIX] Use the correct, distinct info constant from our shared file.
         byte[] credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
 
         AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
@@ -46,7 +40,6 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
             OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, password);
         if (encryptResult.IsErr) return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
 
-        // [PERF] More efficient concatenation
         byte[] envelope = encryptResult.Unwrap();
         byte[] registrationRecord = new byte[clientStaticPublicKey.Length + envelope.Length];
         clientStaticPublicKey.CopyTo(registrationRecord, 0);
@@ -78,25 +71,25 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
                 decryptResult.UnwrapErr());
 
         byte[] clientStaticPrivateKeyBytes = decryptResult.Unwrap();
-        var clientStaticPrivateKey = new ECPrivateKeyParameters(new BigInteger(1, clientStaticPrivateKeyBytes),
+        ECPrivateKeyParameters clientStaticPrivateKey = new(new BigInteger(1, clientStaticPrivateKeyBytes),
             OpaqueCryptoUtilities.DomainParams);
 
-        var clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
-        var serverStaticPublicKey = ((ECPublicKeyParameters)_serverStaticPublicKey).Q;
-        var serverEphemeralPublicKey =
+        AsymmetricCipherKeyPair clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
+        ECPoint? serverStaticPublicKey = ((ECPublicKeyParameters)staticPublicKey).Q;
+        ECPoint? serverEphemeralPublicKey =
             OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(signInResponse.ServerEphemeralPublicKey.ToByteArray());
         byte[] akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
             serverEphemeralPublicKey);
 
         byte[] clientEphemeralPublicKeyBytes = ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(true);
-        byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)_serverStaticPublicKey).Q.GetEncoded(true);
+        byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)staticPublicKey).Q.GetEncoded(true);
 
         byte[] transcriptHash = HashTranscript(phoneNumber, signInResponse.ServerOprfResponse.ToByteArray(),
             clientStaticPublicKeyBytes,
             clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes,
             signInResponse.ServerEphemeralPublicKey.ToByteArray());
 
-        var keysResult = DeriveFinalKeys(akeResult, transcriptHash);
+        Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> keysResult = DeriveFinalKeys(akeResult, transcriptHash);
         if (keysResult.IsErr)
             return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
                 keysResult.UnwrapErr());
@@ -104,7 +97,7 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         (byte[] sessionKey, byte[] clientMacKey, byte[] serverMacKey) = keysResult.Unwrap();
         byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
 
-        var request = new OpaqueSignInFinalizeRequest
+        OpaqueSignInFinalizeRequest request = new()
         {
             PhoneNumber = phoneNumber,
             ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
@@ -127,9 +120,7 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         return Result<byte[], OpaqueFailure>.Ok(sessionKey);
     }
 
-    // --- Private Helper Methods (Now Implemented) ---
-
-    private byte[] RecoverOprfKey(byte[] oprfResponse, BigInteger blind)
+    private static byte[] RecoverOprfKey(byte[] oprfResponse, BigInteger blind)
     {
         ECPoint oprfResponsePoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(oprfResponse);
         BigInteger blindInverse = blind.ModInverse(OpaqueCryptoUtilities.DomainParams.N);
@@ -137,15 +128,13 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         return finalPoint.GetEncoded(true);
     }
 
-    private byte[] PerformClientAke(AsymmetricCipherKeyPair ephC, ECPrivateKeyParameters statC, ECPoint statSPub,
+    private static byte[] PerformClientAke(AsymmetricCipherKeyPair ephC, ECPrivateKeyParameters statC, ECPoint statSPub,
         ECPoint ephSPub)
     {
-        // 3-DH Key Exchange: (ephC, ephS), (ephC, statS), (statC, ephS)
         ECPoint dh1 = ephSPub.Multiply(((ECPrivateKeyParameters)ephC.Private).D).Normalize();
         ECPoint dh2 = statSPub.Multiply(((ECPrivateKeyParameters)ephC.Private).D).Normalize();
         ECPoint dh3 = ephSPub.Multiply(statC.D).Normalize();
 
-        // [PERF] Efficient concatenation into a pre-allocated array.
         byte[] result = new byte[CompressedPublicKeyLength * 3];
         dh1.GetEncoded(true).CopyTo(result, 0);
         dh2.GetEncoded(true).CopyTo(result, CompressedPublicKeyLength);
@@ -158,8 +147,7 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         ReadOnlySpan<byte> clientEphemeralPublicKey, ReadOnlySpan<byte> serverStaticPublicKey,
         ReadOnlySpan<byte> serverEphemeralPublicKey)
     {
-        // This implementation MUST be identical to the server-side version.
-        var digest = new Sha256Digest();
+        Sha256Digest digest = new();
 
         Update(digest, ProtocolVersion);
         Update(digest, Encoding.UTF8.GetBytes(phoneNumber));
@@ -174,23 +162,21 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         return hash;
     }
 
-    private void Update(IDigest digest, ReadOnlySpan<byte> data)
+    private static void Update(IDigest digest, ReadOnlySpan<byte> data)
     {
         digest.BlockUpdate(data.ToArray(), 0, data.Length);
     }
 
-    private Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> DeriveFinalKeys(
+    private static Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> DeriveFinalKeys(
         byte[] akeResult, byte[] transcriptHash)
     {
-        // This implementation MUST be identical to the server-side version.
-        var prkResult = OpaqueCryptoUtilities.HkdfExtract(akeResult, AkeSalt);
+        Result<byte[], OpaqueFailure> prkResult = OpaqueCryptoUtilities.HkdfExtract(akeResult, AkeSalt);
         if (prkResult.IsErr) return Result<(byte[], byte[], byte[]), OpaqueFailure>.Err(prkResult.UnwrapErr());
 
         byte[] prk = prkResult.Unwrap();
 
-        // [PERF] Use stackalloc to create the HKDF info parameter without heap allocation.
         Span<byte> infoBuffer = stackalloc byte[SessionKeyInfo.Length + transcriptHash.Length];
-        transcriptHash.CopyTo(infoBuffer[SessionKeyInfo.Length..]); // Copy transcript once
+        transcriptHash.CopyTo(infoBuffer[SessionKeyInfo.Length..]);
 
         SessionKeyInfo.CopyTo(infoBuffer[..SessionKeyInfo.Length]);
         byte[] sessionKey = OpaqueCryptoUtilities.HkdfExpand(prk, infoBuffer, MacKeyLength);
@@ -204,9 +190,8 @@ public class ClientOpaqueProtocolService(AsymmetricKeyParameter serverStaticPubl
         return Result<(byte[], byte[], byte[]), OpaqueFailure>.Ok((sessionKey, clientMacKey, serverMacKey));
     }
 
-    private byte[] CreateMac(byte[] key, byte[] data)
+    private static byte[] CreateMac(byte[] key, byte[] data)
     {
-        // This implementation MUST be identical to the server-side version.
         HMac hmac = new(new Sha256Digest());
         hmac.Init(new KeyParameter(key));
         hmac.BlockUpdate(data, 0, data.Length);
