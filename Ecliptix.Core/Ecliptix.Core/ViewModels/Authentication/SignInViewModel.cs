@@ -96,7 +96,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(passwordLength);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, passwordLength);
 
-            var readResult = _securePasswordHandle.Read(passwordSpan);
+            Result<ShieldUnit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
                 SetError($"System error: Failed to read password securely. {readResult.UnwrapErr().Message}");
@@ -106,7 +106,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey()),
                 OpaqueCryptoUtilities.DomainParams);
-            var clientOpaqueService = new OpaqueProtocolService(serverStaticPublicKeyParam);
+            OpaqueProtocolService clientOpaqueService = new OpaqueProtocolService(serverStaticPublicKeyParam);
 
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
             if (oprfResult.IsErr)
@@ -125,7 +125,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             byte[] passwordBytes = passwordSpan.ToArray();
 
-            var overallResult = await _networkController.ExecuteServiceAction(
+            Result<ShieldUnit, EcliptixProtocolFailure> overallResult = await _networkController.ExecuteServiceAction(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceAction.OpaqueSignInInitRequest,
                 initRequest.ToByteArray(),
@@ -141,7 +141,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
                     if (finalizationResult.IsErr)
                     {
-                        var failure = EcliptixProtocolFailure.Generic(
+                        EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(
                             $"Failed to process server response: {finalizationResult.UnwrapErr().Message}");
                         SetError(failure.Message);
                         return Result<ShieldUnit, EcliptixProtocolFailure>.Err(
@@ -150,7 +150,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
                     (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey, byte[] transcriptHash) = finalizationResult.Unwrap();
 
-                    var finalizeResult = await _networkController.ExecuteServiceAction(
+                    Result<ShieldUnit, EcliptixProtocolFailure> finalizeResult = await _networkController.ExecuteServiceAction(
                         ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                         RcpServiceAction.OpaqueSignInCompleteRequest,
                         finalizeRequest.ToByteArray(),
@@ -174,7 +174,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
                             if (verificationResult.IsErr)
                             {
-                                var failure = EcliptixProtocolFailure.Generic(
+                                EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(
                                     $"Server authentication failed: {verificationResult.UnwrapErr().Message}");
                                 SetError(failure.Message);
                                 return Result<ShieldUnit, EcliptixProtocolFailure>.Err(failure);
@@ -187,11 +187,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                                 Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
                         });
 
-                    // Propagate the result from the second network call
                     return finalizeResult;
                 });
 
-            // Handle failure of the *first* network call (e.g., transport error)
             if (overallResult.IsErr)
             {
                 SetError($"Sign-in network request failed: {overallResult.UnwrapErr().Message}");
