@@ -2,9 +2,6 @@ namespace Ecliptix.Core.OpaqueProtocol;
 
 public static class OpaqueConstants
 {
-    public static readonly byte[] OprfKeyInfo = "Ecliptix-OPAQUE-OPRFKey"u8.ToArray();
-    public static readonly byte[] TokenKeyInfo = "Ecliptix-OPAQUE-TokenKey"u8.ToArray();
-    public static readonly byte[] ServerStaticKeyInfo = "Ecliptix-OPAQUE-ServerStaticKey"u8.ToArray();
     public static readonly byte[] CredentialKeyInfo = "Ecliptix-OPAQUE-CredentialKey"u8.ToArray();
     public static readonly byte[] AkeSalt = "OPAQUE-AKE-Salt"u8.ToArray();
     public static readonly byte[] SessionKeyInfo = "session_key"u8.ToArray();
