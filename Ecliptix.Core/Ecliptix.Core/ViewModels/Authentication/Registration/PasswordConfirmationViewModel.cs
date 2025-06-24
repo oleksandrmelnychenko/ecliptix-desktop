@@ -431,10 +431,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                     $"Failed to hash password for server: {verifierResult.UnwrapErr().Message}");
             }
 
-            /*ECPoint? publicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(ServerPublicKey());
-            ECPublicKeyParameters serverStaticPublicKey = new(publicKeyPoint, OpaqueCryptoUtilities.DomainParams);
-            OpaqueProtocolService opaqueProtocolService = new(serverStaticPublicKey);*/
-
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
                 OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
 
