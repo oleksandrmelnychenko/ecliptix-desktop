@@ -54,6 +54,7 @@
         <PackageReference Include="Polly.Extensions.Http" Version="3.0.0"/>
         <PackageReference Include="protobuf-net" Version="3.2.52" />
         <PackageReference Include="protobuf-net.Grpc" Version="1.2.2"/>
+        <PackageReference Include="SecureStore" Version="1.2.2" />
         <PackageReference Include="Sodium.Core" Version="1.4.0"/>
         <PackageReference Include="Splat" Version="15.3.1"/>
         <PackageReference Include="Splat.Microsoft.Extensions.DependencyInjection" Version="15.3.1"/>

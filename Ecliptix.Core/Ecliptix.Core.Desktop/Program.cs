@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core;
@@ -59,6 +60,39 @@ public sealed class Program
 
         services.AddSingleton<AppInstanceInfo>();
 
+        services.Configure<SecureStoreOptions>(options => 
+        {
+            options.StorePath = "data/secure_store.bin";
+            options.KeyPath = "data/secure_store.key";
+            options.UsePassword = false; // Use false for key file, true for password
+            options.Password = ""; // Only needed if UsePassword is true
+        });
+
+        // Register the SecureStoreManager as a singleton
+        services.AddSingleton(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<SecureStoreOptions>>().Value;
+    
+            if (File.Exists(options.StorePath))
+            {
+                if (options.UsePassword)
+                {
+                    return new SecureStoreManager(options.StorePath, options.Password, StoreLoadMethod.ByPassword);
+                }
+                else
+                {
+                    return new SecureStoreManager(options.StorePath, options.KeyPath, StoreLoadMethod.ByKeyFile);
+                }
+            }
+            else
+            {
+                var store = SecureStoreManager.CreateNewStore();
+                store.SaveStore(options.StorePath);
+                store.ExportKey(options.KeyPath);
+                return store;
+            }
+        });
+        
         services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
         services.AddTransient<RegistrationWizardViewModel>();
