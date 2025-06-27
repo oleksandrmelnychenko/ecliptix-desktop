@@ -60,8 +60,15 @@ public sealed class Program
 
         services.AddSingleton<AppInstanceInfo>();
 
-        services.Configure<SecureStoreOptions>(options => 
+        services.Configure<SecureStoreOptions>(options =>
         {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string appFolder = Path.Combine(appData, "Ecliptix");
+
+            // Ensure the directory exists
+            if (!Directory.Exists(appFolder))
+                Directory.CreateDirectory(appFolder);
+                
             options.StorePath = "data/secure_store.bin";
             options.KeyPath = "data/secure_store.key";
             options.UsePassword = false; // Use false for key file, true for password
