@@ -1,18 +1,17 @@
-using System;
 using System.Collections.Generic;
 using Ecliptix.Protobuf.CipherPayload;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.ServiceActions;
 
 public class ServiceRequest
 {
-    private ServiceRequest(uint reqId, ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
+    private ServiceRequest(uint reqId, ServiceFlowType actionType, RcpServiceType rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)
     {
         ReqId = reqId;
         ActionType = actionType;
         RcpServiceMethod = rcpServiceMethod;
-        Payload = payload ?? throw new ArgumentNullException(nameof(payload));
+        Payload = payload;
         EncryptedChunks = encryptedChunks;
     }
 
@@ -20,22 +19,16 @@ public class ServiceRequest
 
     public ServiceFlowType ActionType { get; }
 
-    public RcpServiceAction RcpServiceMethod { get; }
+    public RcpServiceType RcpServiceMethod { get; }
 
     public CipherPayload Payload { get; }
 
     public List<CipherPayload> EncryptedChunks { get; }
 
-    public static ServiceRequest New(ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
+    public static ServiceRequest New(ServiceFlowType actionType, RcpServiceType rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)
     {
         uint reqId = Utilities.GenerateRandomUInt32InRange(10, uint.MaxValue);
-        return new ServiceRequest(reqId, actionType, rcpServiceMethod, payload, encryptedChunks);
-    }
-
-    public static ServiceRequest NewWithId(uint reqId, ServiceFlowType actionType, RcpServiceAction rcpServiceMethod,
-        CipherPayload payload, List<CipherPayload> encryptedChunks)
-    {
         return new ServiceRequest(reqId, actionType, rcpServiceMethod, payload, encryptedChunks);
     }
 }

@@ -1,14 +1,15 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.RpcServices;
 
-public sealed class SingleCallExecutor(
+public sealed class UnaryRpcServices(
     MembershipServices.MembershipServicesClient membershipServicesClient,
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
     AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
@@ -18,40 +19,40 @@ public sealed class SingleCallExecutor(
     {
         switch (request.RcpServiceMethod)
         {
-            case RcpServiceAction.RegisterAppDevice:
+            case RcpServiceType.RegisterAppDevice:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> result =
                     RegisterDeviceAsync(request.Payload, token);
                 return Task.FromResult(Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(result)));
-            case RcpServiceAction.ValidatePhoneNumber:
+            case RcpServiceType.ValidatePhoneNumber:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> validatePhoneNumberResult =
                     ValidatePhoneNumberAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(validatePhoneNumberResult)));
-            case RcpServiceAction.OpaqueRegistrationInit:
+            case RcpServiceType.OpaqueRegistrationInit:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> createMembershipResult =
                     OpaqueRegistrationRecordRequestAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(createMembershipResult)));
-            case RcpServiceAction.VerifyOtp:
+            case RcpServiceType.VerifyOtp:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> verifyWithCodeResult =
                     VerifyCodeAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(verifyWithCodeResult)));
-            case RcpServiceAction.OpaqueRegistrationComplete:
+            case RcpServiceType.OpaqueRegistrationComplete:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueRegistrationCompleteResult =
                     OpaqueRegistrationCompleteRequestAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(
                         new RpcFlow.SingleCall(opaqueRegistrationCompleteResult)));
 
-            case RcpServiceAction.OpaqueSignInInitRequest:
+            case RcpServiceType.OpaqueSignInInitRequest:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueSignInInitResult =
                     OpaqueSignInInitRequestAsync(request.Payload, token);
                 return Task.FromResult(
                     Result<RpcFlow, EcliptixProtocolFailure>.Ok(
                         new RpcFlow.SingleCall(opaqueSignInInitResult)));
 
-            case RcpServiceAction.OpaqueSignInCompleteRequest:
+            case RcpServiceType.OpaqueSignInCompleteRequest:
                 Task<Result<CipherPayload, EcliptixProtocolFailure>> opaqueSignInCompleteRequest =
                     OpaqueSignInCompleteRequestAsync(request.Payload, token);
                 return Task.FromResult(

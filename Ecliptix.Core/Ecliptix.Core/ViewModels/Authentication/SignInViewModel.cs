@@ -23,7 +23,7 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 {
-    private readonly NetworkController _networkController;
+    private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private string _phoneNumber = "+380970177443";
@@ -65,9 +65,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
     public ReactiveCommand<Unit, Unit> SignInCommand { get; }
     public ViewModelActivator Activator { get; } = new();
 
-    public SignInViewModel(NetworkController networkController, ILocalizationService localizationService)
+    public SignInViewModel(NetworkProvider networkProvider, ILocalizationService localizationService)
     {
-        _networkController = networkController;
+        _networkProvider = networkProvider;
         _localizationService = localizationService;
 
         IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
@@ -125,9 +125,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             byte[] passwordBytes = passwordSpan.ToArray();
 
-            Result<ShieldUnit, EcliptixProtocolFailure> overallResult = await _networkController.ExecuteServiceAction(
+            Result<ShieldUnit, EcliptixProtocolFailure> overallResult = await _networkProvider.ExecuteServiceRequest(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.OpaqueSignInInitRequest,
+                RcpServiceType.OpaqueSignInInitRequest,
                 initRequest.ToByteArray(),
                 ServiceFlowType.Single,
                 async payload => 
@@ -150,9 +150,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
                     (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey, byte[] transcriptHash) = finalizationResult.Unwrap();
 
-                    Result<ShieldUnit, EcliptixProtocolFailure> finalizeResult = await _networkController.ExecuteServiceAction(
+                    Result<ShieldUnit, EcliptixProtocolFailure> finalizeResult = await _networkProvider.ExecuteServiceRequest(
                         ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                        RcpServiceAction.OpaqueSignInCompleteRequest,
+                        RcpServiceType.OpaqueSignInCompleteRequest,
                         finalizeRequest.ToByteArray(),
                         ServiceFlowType.Single,
                         async payload2 => 

@@ -67,7 +67,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
 
-    private readonly NetworkController _networkController;
+    private readonly NetworkProvider _networkProvider;
+    private readonly ISecureStorageProvider _secureStorageProvider;
     private readonly ILocalizationService _localizationService;
     public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
     public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
@@ -85,9 +86,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     private string VerificationSessionId { get; set; }
 
-    public PasswordConfirmationViewModel(NetworkController networkController, ILocalizationService localizationService)
+    public PasswordConfirmationViewModel(NetworkProvider networkProvider, ISecureStorageProvider secureStorageProvider,
+        ILocalizationService localizationService)
     {
-        _networkController = networkController;
+        _networkProvider = networkProvider;
+        _secureStorageProvider = secureStorageProvider;
         _localizationService = localizationService;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
@@ -450,9 +453,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             byte[] pas = passwordSpan.ToArray();
 
-            _ = await _networkController.ExecuteServiceAction(
+            _ = await _networkProvider.ExecuteServiceRequest(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                RcpServiceAction.OpaqueRegistrationInit,
+                RcpServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
                 async payload =>
@@ -472,9 +475,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                             PeerRegistrationRecord = ByteString.CopyFrom(envelope.Unwrap())
                         };
 
-                        _ = await _networkController.ExecuteServiceAction(
+                        _ = await _networkProvider.ExecuteServiceRequest(
                             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                            RcpServiceAction.OpaqueRegistrationComplete,
+                            RcpServiceType.OpaqueRegistrationComplete,
                             r.ToByteArray(),
                             ServiceFlowType.Single,
                             payload =>
@@ -482,7 +485,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                                 OprfRegistrationCompleteResponse createMembershipResponse =
                                     Utilities.ParseFromBytes<OprfRegistrationCompleteResponse>(payload);
 
-
+                                //SAFE the STATE with a KEY
+                                
                                 return Task.FromResult(
                                     Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
                             });

@@ -17,6 +17,12 @@ public readonly struct OneTimePreKeyLocal : IDisposable
         PrivateKeyHandle = privateKeyHandle;
         PublicKey = publicKey;
     }
+    
+    public static OneTimePreKeyLocal CreateFromParts(uint preKeyId, SodiumSecureMemoryHandle privateKeyHandle,
+        byte[] publicKey)
+    {
+        return new OneTimePreKeyLocal(preKeyId, privateKeyHandle, publicKey);
+    }
 
     public static Result<OneTimePreKeyLocal, EcliptixProtocolFailure> Generate(uint preKeyId)
     {

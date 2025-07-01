@@ -1,8 +1,9 @@
 namespace Ecliptix.Core.Network;
 
-public enum RcpServiceAction : short
+public enum RcpServiceType : short
 {
-    DataCenterPubKeyExchange,
+    EstablishSecrecyChannel,
+    RestoreSecrecyChannelState,
     RegisterAppDevice,
     ValidatePhoneNumber,
     VerifyOtp,

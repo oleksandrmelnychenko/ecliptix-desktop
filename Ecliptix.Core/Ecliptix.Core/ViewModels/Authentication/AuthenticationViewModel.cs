@@ -67,7 +67,7 @@ public class AuthenticationViewModel : ReactiveObject
             CurrentView = authenticationViewFactory.Create(type);
         });
 
-        ShowView.Execute(AuthViewType.SignIn).Subscribe();
+        ShowView.Execute(AuthViewType.RegistrationWizard).Subscribe();
     }
 
     private void SwitchToUkrainian() => _localizationService.SetCulture("uk-UA");

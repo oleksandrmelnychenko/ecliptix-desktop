@@ -20,7 +20,7 @@ public static class GrpcMetadataHandler
     private const string ConnectionContextId = "c-context-id";
     private const string OperationContextId = "o-context-id";
 
-    public static Metadata GenerateMetadata(Guid appInstanceId, Guid appDeviceId, Guid operationId = default)
+    public static Metadata GenerateMetadata(string appInstanceId, string appDeviceId, Guid operationId = default)
     {
         Metadata metadata = new()
         {
@@ -30,8 +30,8 @@ public static class GrpcMetadataHandler
             { PublicIpAddressKey, GetPublicIpAddress() },
             { LocaleKey, "uk-ua" },
             { LinkIdKey, "fetch-link-placeholder" },
-            { ApplicationInstanceIdKey, appInstanceId.ToString() },
-            { AppDeviceId, appDeviceId.ToString() },
+            { ApplicationInstanceIdKey, appInstanceId },
+            { AppDeviceId, appDeviceId },
             { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
             { ConnectionContextId, nameof(PubKeyExchangeType.DataCenterEphemeralConnect) },
             { OperationContextId, string.Empty }

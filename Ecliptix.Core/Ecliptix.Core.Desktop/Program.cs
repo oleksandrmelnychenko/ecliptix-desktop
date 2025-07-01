@@ -1,21 +1,23 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.Membership;
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
+using Google.Protobuf;
+using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -25,74 +27,113 @@ using Splat.Microsoft.Extensions.DependencyInjection;
 public sealed class Program
 {
     [STAThread]
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-        IConfigurationRoot configuration = BuildConfiguration();
+        try
+        {
+            IConfigurationRoot configuration = BuildConfiguration();
+            ServiceCollection services = new();
 
-        ServiceCollection services = new();
+            services.AddLogging(builder => builder.AddSerilog());
+            services.Configure<SecureStoreOptions>(options =>
+            {
+                options.StorePath = Path.Combine(AppContext.BaseDirectory, "secure_data.bin");
+                options.KeyPath = Path.Combine(AppContext.BaseDirectory, "secure_data.key");
+            });
 
-        services.UseMicrosoftDependencyResolver();
 
-        ConfigureServices(services, configuration);
+            services.AddSingleton<ISecureStorageProvider, SecureSecureStorageProvider>();
 
-        ServiceProvider serviceProvider = services.BuildServiceProvider();
+            ConfigureServices(services, configuration);
+            services.AddSingleton<NetworkRpcServiceManager>();
 
-        BuildAvaloniaApp()
-            .UseReactiveUI() 
-            .StartWithClassicDesktopLifetime(args);
+            services.UseMicrosoftDependencyResolver();
 
-        if (serviceProvider is IDisposable disposable)
-            disposable.Dispose();
+            Log.Information("Initialization complete. Starting Avalonia application...");
+
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception e)
+        {
+            Log.Fatal(e, "Application terminated unexpectedly during startup or runtime.");
+        }
+        finally
+        {
+            Log.Information("Application shutting down.");
+            await Log.CloseAndFlushAsync();
+        }
     }
 
     private static IConfigurationRoot BuildConfiguration() =>
         new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", false)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
 
+
     private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddLogging(builder => builder.AddSerilog());
+
         services.AddSingleton(configuration);
         services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
 
-        services.AddSingleton<AppInstanceInfo>();
+        services.AddSingleton<ApplicationInstanceSettings>();
+        services.AddSingleton<ISecureStorageProvider, SecureSecureStorageProvider>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
 
-        services.Configure<SecureStoreOptions>(options => 
+        services.Configure<SecureStoreOptions>(options =>
         {
-            options.StorePath = "data/secure_store.bin";
-            options.KeyPath = "data/secure_store.key";
-            options.UsePassword = false; // Use false for key file, true for password
-            options.Password = ""; // Only needed if UsePassword is true
+            options.StorePath = Path.Combine(AppContext.BaseDirectory, "secure_data.bin");
+            options.KeyPath = Path.Combine(AppContext.BaseDirectory, "secure_data.key");
         });
 
-        // Register the SecureStoreManager as a singleton
-        services.AddSingleton(serviceProvider =>
+        ConfigureNetworkServices(services);
+        ConfigureGrpc(services);
+
+        ConfigureViewModels(services);
+    }
+
+    private static void ConfigureNetworkServices(IServiceCollection services)
+    {
+        services.AddSingleton<NetworkProvider>();
+        services.AddSingleton<UnaryRpcServices>();
+        services.AddSingleton<SecrecyChannelRpcServices>();
+        services.AddSingleton<ReceiveStreamRpcServices>();
+    }
+
+    private static void ConfigureGrpc(IServiceCollection services)
+    {
+        services.AddSingleton<IClientStateProvider, ClientStateProvider>();
+        services.AddSingleton<RequestMetaDataInterceptor>();
+
+        Action<IServiceProvider, GrpcClientFactoryOptions> configureGrpcClient = (provider, options) =>
         {
-            var options = serviceProvider.GetRequiredService<IOptions<SecureStoreOptions>>().Value;
-    
-            if (File.Exists(options.StorePath))
-            {
-                if (options.UsePassword)
-                {
-                    return new SecureStoreManager(options.StorePath, options.Password, StoreLoadMethod.ByPassword);
-                }
-                else
-                {
-                    return new SecureStoreManager(options.StorePath, options.KeyPath, StoreLoadMethod.ByKeyFile);
-                }
-            }
-            else
-            {
-                var store = SecureStoreManager.CreateNewStore();
-                store.SaveStore(options.StorePath);
-                store.ExportKey(options.KeyPath);
-                return store;
-            }
-        });
-        
+            AppSettings settings = provider.GetRequiredService<AppSettings>();
+            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+                ? settings.LocalHostUrl
+                : settings.CloudHostUrl;
+
+            if (string.IsNullOrEmpty(endpoint))
+                throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
+
+            options.Address = new Uri(endpoint);
+        };
+
+        services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(configureGrpcClient)
+            .AddInterceptor<RequestMetaDataInterceptor>();
+
+        services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(configureGrpcClient)
+            .AddInterceptor<RequestMetaDataInterceptor>();
+
+        services.AddGrpcClient<MembershipServices.MembershipServicesClient>(configureGrpcClient)
+            .AddInterceptor<RequestMetaDataInterceptor>();
+    }
+
+    private static void ConfigureViewModels(IServiceCollection services)
+    {
         services.AddTransient<AuthenticationViewModel>();
         services.AddTransient<SignInViewModel>();
         services.AddTransient<RegistrationWizardViewModel>();
@@ -102,73 +143,13 @@ public sealed class Program
         services.AddTransient<PasswordConfirmationViewModel>();
         services.AddTransient<NicknameInputViewModel>();
         services.AddTransient<PassPhaseViewModel>();
-        
         services.AddSingleton<AuthenticationViewFactory>();
-        
-        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().MembershipServicesClient);
-        
-        services.AddSingleton<ILocalizationService, LocalizationService>();
-
-        services.AddLogging(builder =>
-            builder.AddSerilog(new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .WriteTo.File("logs/app.log", rollingInterval: RollingInterval.Day)
-                .CreateLogger()));
-
-        services.AddHttpClient();
-
-        ConfigureGrpcClients(services);
-        ConfigureNetworkServices(services);
-    }
-
-    private static void ConfigureGrpcClients(IServiceCollection services)
-    {
-        services.AddSingleton(provider =>
-        {
-            AppSettings settings = provider.GetRequiredService<AppSettings>();
-            AppInstanceInfo appInfo = provider.GetRequiredService<AppInstanceInfo>();
-            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
-                ? settings.LocalHostUrl
-                : settings.CloudHostUrl;
-
-            if (string.IsNullOrEmpty(endpoint))
-                throw new InvalidOperationException("gRPC endpoint URL is not configured.");
-
-            GrpcChannel channel = GrpcChannel.ForAddress(endpoint, new GrpcChannelOptions
-            {
-                UnsafeUseInsecureChannelCallCredentials = true
-            });
-
-            CallInvoker interceptedInvoker = channel.Intercept(
-                new RequestMetaDataInterceptor(appInfo.AppInstanceId, appInfo.DeviceId));
-
-            return new GrpcClients(interceptedInvoker);
-        });
-
-        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().AppDeviceServiceClient);
-        services.AddSingleton(sp => sp.GetRequiredService<GrpcClients>().AuthenticationServiceClient);
-    }
-
-    private static void ConfigureNetworkServices(IServiceCollection services)
-    {
-        services.AddSingleton<NetworkController>();
-        services.AddSingleton<NetworkServiceManager>();
-        services.AddSingleton<SingleCallExecutor>();
-        services.AddSingleton<ReceiveStreamExecutor>();
-        services.AddSingleton<KeyExchangeExecutor>();
     }
 
     private static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
-            .LogToTrace();
-}
-
-internal sealed class GrpcClients(CallInvoker callInvoker)
-{
-    public AppDeviceServiceActions.AppDeviceServiceActionsClient AppDeviceServiceClient { get; } = new(callInvoker);
-    public AuthVerificationServices.AuthVerificationServicesClient AuthenticationServiceClient { get; } = new(callInvoker);
-    
-    public MembershipServices.MembershipServicesClient MembershipServicesClient { get; } = new(callInvoker);
+            .LogToTrace()
+            .UseReactiveUI();
 }

@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Protobuf.ProtocolState;
+using Google.Protobuf;
 
 namespace Ecliptix.Core.Protocol;
 
@@ -298,6 +300,78 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         {
             WipeIfNotNull(chainKey).IgnoreResult();
         }
+    }
+
+    public Result<Unit, EcliptixProtocolFailure> SkipKeysUntil(uint targetIndex,
+        SortedDictionary<uint, EcliptixMessageKey> messageKeyCache)
+    {
+        if (_currentIndex >= targetIndex)
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
+
+        for (uint i = _currentIndex + 1; i <= targetIndex; i++)
+        {
+            Result<EcliptixMessageKey, EcliptixProtocolFailure> keyResult = GetOrDeriveKeyFor(i, messageKeyCache);
+            if (keyResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
+            }
+        }
+
+        return SetCurrentIndex(targetIndex);
+    }
+
+    internal SodiumSecureMemoryHandle? GetDhPrivateKeyHandle() => _dhPrivateKeyHandle;
+
+    public Result<ChainStepState, EcliptixProtocolFailure> ToProtoState()
+    {
+        if (_disposed)
+            return Result<ChainStepState, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+
+        try
+        {
+            byte[] chainKey = _chainKeyHandle.ReadBytes(Constants.X25519KeySize).Unwrap();
+            byte[]? dhPrivKey = _dhPrivateKeyHandle?.ReadBytes(Constants.X25519PrivateKeySize).Unwrap();
+
+            ChainStepState proto = new()
+            {
+                CurrentIndex = _currentIndex,
+                ChainKey = ByteString.CopyFrom(chainKey),
+            };
+
+            if (dhPrivKey != null) proto.DhPrivateKey = ByteString.CopyFrom(dhPrivKey);
+            if (_dhPublicKey != null) proto.DhPublicKey = ByteString.CopyFrom(_dhPublicKey);
+
+            return Result<ChainStepState, EcliptixProtocolFailure>.Ok(proto);
+        }
+        catch (Exception ex)
+        {
+            return Result<ChainStepState, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to export chain step to proto state.", ex));
+        }
+    }
+
+    public static Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> FromProtoState(ChainStepType stepType,
+        ChainStepState proto)
+    {
+        byte[]? chainKeyBytes = proto.ChainKey.ToByteArray();
+        byte[]? dhPrivKeyBytes = proto.DhPrivateKey.ToByteArray();
+        byte[]? dhPubKeyBytes = proto.DhPublicKey.ToByteArray();
+
+        Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> createResult =
+            Create(stepType, chainKeyBytes, dhPrivKeyBytes, dhPubKeyBytes);
+        if (createResult.IsErr)
+        {
+            return createResult;
+        }
+
+        EcliptixProtocolChainStep chainStep = createResult.Unwrap();
+        chainStep.SetCurrentIndex(proto.CurrentIndex)
+            .Unwrap();
+
+        return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Ok(chainStep);
     }
 
     internal Result<Unit, EcliptixProtocolFailure> UpdateKeysAfterDhRatchet(byte[] newChainKey,

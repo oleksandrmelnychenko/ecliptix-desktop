@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
@@ -22,7 +23,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 {
     private readonly ILocalizationService _localizationService;
     private readonly IDisposable _mobileSubscription;
-    private readonly NetworkController _networkController;
+    private readonly NetworkProvider _networkProvider;
+    private readonly ISecureStorageProvider _secureStorageProvider;
     private string _errorMessage = string.Empty;
     private bool _isSent;
     private string _remainingTime = "01:00";
@@ -43,10 +45,13 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
-    public VerificationCodeEntryViewModel(NetworkController networkController, ILocalizationService localizationService)
+    public VerificationCodeEntryViewModel(NetworkProvider networkProvider,
+        ISecureStorageProvider secureStorageProvider, ILocalizationService localizationService)
     {
         _localizationService = localizationService;
-        _networkController = networkController ?? throw new ArgumentNullException(nameof(networkController));
+        _networkProvider =
+            networkProvider ?? throw new ArgumentNullException(nameof(networkProvider));
+        _secureStorageProvider = secureStorageProvider;
         _verificationCode = string.Empty;
 
         // "VERIFY" button enabled only when code is 6 digits and timer is not zero
@@ -135,12 +140,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     private async Task ValidatePhoneNumber(string phoneNumber)
     {
         using CancellationTokenSource cancellationTokenSource = new();
-        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
-        if (!systemDeviceIdentifier.HasValue)
-        {
-            ErrorMessage = "Invalid device ID";
-            return;
-        }
+        string? systemDeviceIdentifier = SystemDeviceIdentifier();
 
         if (Guid.TryParse(phoneNumber, out Guid parsedGuid))
         {
@@ -149,13 +149,13 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
         ValidatePhoneNumberRequest request = new()
         {
-            PhoneNumber = phoneNumber, AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+            PhoneNumber = phoneNumber, AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8),
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkController.ExecuteServiceAction(
+        _ = await _networkProvider.ExecuteServiceRequest(
             connectId,
-            RcpServiceAction.ValidatePhoneNumber,
+            RcpServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
             ServiceFlowType.Single,
             payload =>
@@ -182,25 +182,20 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     {
         using CancellationTokenSource cancellationTokenSource = new();
 
-        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
-        if (!systemDeviceIdentifier.HasValue)
-        {
-            ErrorMessage = "Invalid device ID";
-            return;
-        }
+        string? systemDeviceIdentifier = SystemDeviceIdentifier();
 
         InitiateVerificationRequest membershipVerificationRequest = new()
         {
             PhoneNumberIdentifier = phoneNumberIdentifier,
-            AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+            AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8),
             Purpose = VerificationPurpose.Registration,
             Type = type
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkController.ExecuteServiceAction(
+        _ = await _networkProvider.ExecuteServiceRequest(
             connectId,
-            RcpServiceAction.InitiateVerification,
+            RcpServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
             ServiceFlowType.ReceiveStream,
             payload =>
@@ -242,12 +237,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
     private async Task SendVerificationCode()
     {
-        Guid? systemDeviceIdentifier = SystemDeviceIdentifier();
-        if (!systemDeviceIdentifier.HasValue)
-        {
-            ErrorMessage = "Invalid device ID";
-            return;
-        }
+        string? systemDeviceIdentifier = SystemDeviceIdentifier();
 
         IsSent = true;
         ErrorMessage = string.Empty;
@@ -256,12 +246,12 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         {
             Code = VerificationCode,
             Purpose = VerificationPurpose.Registration,
-            AppDeviceIdentifier = Utilities.GuidToByteString(systemDeviceIdentifier.Value),
+            AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8)
         };
 
-        await _networkController.ExecuteServiceAction(
+        await _networkProvider.ExecuteServiceRequest(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceAction.VerifyOtp,
+            RcpServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
             ServiceFlowType.Single,
             payload =>

@@ -28,9 +28,10 @@ message AppDeviceRegisteredStateReply {
   bytes server_public_key = 3;
 }
 
-message AppDeviceSettings {
-  bytes app_id = 1;
+message ApplicationInstanceSettings{
+  bytes app_instance_id = 1;
   bytes device_id = 2;
-  string language = 3;
-  bytes server_unique_id = 4;
+  bytes server_public_key = 3;
+  string system_device_identifier = 4;
+  AppDevice.DeviceType device_type = 5;
 }

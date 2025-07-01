@@ -70,6 +70,8 @@
 
         <Protobuf Include="Protobuf\Membership.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\MembershipServices.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
+
+        <Protobuf Include="Protobuf\EcliptixProtocolState.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         
         <Protobuf Include="Protobuf\HealthCheck.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
         <Protobuf Include="Protobuf\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>

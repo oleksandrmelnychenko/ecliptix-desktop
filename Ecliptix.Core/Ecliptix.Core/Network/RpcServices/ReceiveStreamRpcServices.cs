@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
+using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
 using Grpc.Core;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.RpcServices;
 
-public class ReceiveStreamExecutor(
+public class ReceiveStreamRpcServices(
     AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
 {
     public Result<RpcFlow, EcliptixProtocolFailure> ProcessRequestAsync(ServiceRequest request,
@@ -18,7 +19,7 @@ public class ReceiveStreamExecutor(
     {
         switch (request.RcpServiceMethod)
         {
-            case RcpServiceAction.InitiateVerification:
+            case RcpServiceType.InitiateVerification:
                 return InitiateVerificationAsync(request.Payload, token);
             default:
                 return Result<RpcFlow, EcliptixProtocolFailure>.Err(

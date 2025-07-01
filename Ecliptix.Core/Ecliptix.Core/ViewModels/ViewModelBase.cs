@@ -1,5 +1,6 @@
 ﻿using System;
 using Ecliptix.Core.Network;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using ReactiveUI;
 using Splat;
@@ -12,24 +13,24 @@ public class ViewModelBase : ReactiveObject, IDisposable
 
     protected static uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
-        AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
 
         uint connectId = Utilities.ComputeUniqueConnectId(
-            appInstanceInfo.AppInstanceId,
-            appInstanceInfo.DeviceId, pubKeyExchangeType);
+            appInstanceInfo.AppInstanceId.Span,
+            appInstanceInfo.DeviceId.Span, pubKeyExchangeType);
 
         return connectId;
     }
-    
+
     protected static byte[] ServerPublicKey()
     {
-        AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
-        return appInstanceInfo.ServerPublicKey;
+        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
+        return appInstanceInfo.ServerPublicKey.ToByteArray();
     }
 
-    protected static Guid? SystemDeviceIdentifier()
+    protected static string? SystemDeviceIdentifier()
     {
-        AppInstanceInfo appInstanceInfo = Locator.Current.GetService<AppInstanceInfo>()!;
+        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
         return appInstanceInfo.SystemDeviceIdentifier;
     }
 

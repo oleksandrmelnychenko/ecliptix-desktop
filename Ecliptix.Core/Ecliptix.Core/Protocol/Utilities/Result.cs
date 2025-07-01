@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Protobuf.AppDevice;
 
 namespace Ecliptix.Core.Protocol.Utilities;
 

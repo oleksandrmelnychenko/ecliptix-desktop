@@ -2,6 +2,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
@@ -22,22 +23,40 @@ public static class Utilities
 
     public static ByteString GuidToByteString(Guid guid)
     {
-        byte[] bytes = guid.ToByteArray();
-        Array.Reverse(bytes, 0, 4);
-        Array.Reverse(bytes, 4, 2);
-        Array.Reverse(bytes, 6, 2);
+        Span<byte> bytes = stackalloc byte[16];
+
+        guid.TryWriteBytes(bytes);
+
+        SwapBytes(bytes, 0, 3);
+        SwapBytes(bytes, 1, 2);
+        SwapBytes(bytes, 4, 5);
+        SwapBytes(bytes, 6, 7);
+
         return ByteString.CopyFrom(bytes);
     }
 
     public static Guid FromByteStringToGuid(ByteString byteString)
     {
-        byte[] bytes = byteString.ToByteArray();
+        if (byteString.Length != 16)
+            throw new ArgumentException("ByteString must be 16 bytes long.", nameof(byteString));
 
-        Array.Reverse(bytes, 0, 4);
-        Array.Reverse(bytes, 4, 2);
-        Array.Reverse(bytes, 6, 2);
+        Span<byte> bytes = stackalloc byte[16];
+
+        byte[] tempArray = new byte[16];
+        byteString.CopyTo(tempArray, 0);
+        tempArray.CopyTo(bytes);
+
+        SwapBytes(bytes, 0, 3);
+        SwapBytes(bytes, 1, 2);
+        SwapBytes(bytes, 4, 5);
+        SwapBytes(bytes, 6, 7);
 
         return new Guid(bytes);
+    }
+
+    private static void SwapBytes(Span<byte> bytes, int i, int j)
+    {
+        (bytes[i], bytes[j]) = (bytes[j], bytes[i]);
     }
 
     public static uint GenerateRandomUInt32InRange(uint min, uint max)
@@ -63,36 +82,33 @@ public static class Utilities
     }
 
     public static uint ComputeUniqueConnectId(
-        Guid appInstanceId,
-        Guid appDeviceId,
+        ReadOnlySpan<byte> appInstanceId,
+        ReadOnlySpan<byte> appDeviceId,
         PubKeyExchangeType contextType,
         Guid? operationContextId = null)
     {
-        byte[] appInstanceIdBytes = appInstanceId.ToByteArray();
-        byte[] appDeviceIdBytes = appDeviceId.ToByteArray();
-        uint contextTypeUint = (uint)contextType;
-        byte[] contextTypeBytes = BitConverter.GetBytes(contextTypeUint);
-        if (BitConverter.IsLittleEndian) Array.Reverse(contextTypeBytes);
-
-        int totalLength = appInstanceIdBytes.Length + appDeviceIdBytes.Length + contextTypeBytes.Length;
-        if (operationContextId.HasValue) totalLength += 16;
-
-        byte[] combined = new byte[totalLength];
-        int offset = 0;
-        Buffer.BlockCopy(appInstanceIdBytes, 0, combined, offset, appInstanceIdBytes.Length);
-        offset += appInstanceIdBytes.Length;
-        Buffer.BlockCopy(appDeviceIdBytes, 0, combined, offset, appDeviceIdBytes.Length);
-        offset += appDeviceIdBytes.Length;
-        Buffer.BlockCopy(contextTypeBytes, 0, combined, offset, contextTypeBytes.Length);
-        offset += contextTypeBytes.Length;
+        int totalLength = appInstanceId.Length + appDeviceId.Length + sizeof(uint);
         if (operationContextId.HasValue)
-        {
-            byte[] opContextBytes = operationContextId.Value.ToByteArray();
-            Buffer.BlockCopy(opContextBytes, 0, combined, offset, opContextBytes.Length);
-        }
+            totalLength += 16;
 
-        byte[] hash = SHA256.HashData(combined);
-        return BinaryPrimitives.ReadUInt32BigEndian(hash.AsSpan(0, 4));
+        Span<byte> buffer = totalLength <= 512 ? stackalloc byte[totalLength] : new byte[totalLength];
+
+        int offset = 0;
+
+        appInstanceId.CopyTo(buffer[offset..]);
+        offset += appInstanceId.Length;
+
+        appDeviceId.CopyTo(buffer[offset..]);
+        offset += appDeviceId.Length;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[offset..], (uint)contextType);
+        offset += sizeof(uint);
+
+        operationContextId?.TryWriteBytes(buffer[offset..]);
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.TryHashData(buffer, hash, out _);
+
+        return BinaryPrimitives.ReadUInt32BigEndian(hash[..4]);
     }
 
     public static uint GenerateRandomUInt32()
