@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Protocol.Utilities;
 
@@ -7,7 +8,6 @@ namespace Ecliptix.Core.Protocol;
 public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessageKey>
 {
     private bool _disposed;
-
     private SodiumSecureMemoryHandle _keyHandle;
 
     private EcliptixMessageKey(uint index, SodiumSecureMemoryHandle keyHandle)
@@ -56,6 +56,19 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
         }
 
         EcliptixMessageKey messageKey = new(index, keyHandle);
+
+        // Debug logging
+        Console.WriteLine($"EcliptixMessageKey Created [Index: {index}, Disposed: {messageKey._disposed}]");
+        byte[] tempBuffer = new byte[Constants.X25519KeySize];
+        if (messageKey.ReadKeyMaterial(tempBuffer).IsOk)
+        {
+            Console.WriteLine($"  Key Material: {Convert.ToHexString(tempBuffer)}");
+        }
+        else
+        {
+            Console.WriteLine("  Key Material: <Error reading key>");
+        }
+
         return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(messageKey);
     }
 
