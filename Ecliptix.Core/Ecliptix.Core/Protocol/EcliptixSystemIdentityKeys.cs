@@ -84,7 +84,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             };
             proto.OneTimePreKeys.AddRange(opkProtos);
 
-            // Log keys when exporting to proto state
             Console.WriteLine($"[EcliptixSystemIdentityKeys] Exporting to Proto State:");
             Console.WriteLine($"  Ed25519 Secret Key: {Convert.ToHexString(edSk)}");
             Console.WriteLine($"  Ed25519 Public Key: {Convert.ToHexString(_ed25519PublicKey)}");
@@ -95,7 +94,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             Console.WriteLine($"  Signed PreKey Public Key: {Convert.ToHexString(_signedPreKeyPublic)}");
             Console.WriteLine($"  Signed PreKey Signature: {Convert.ToHexString(_signedPreKeySignature)}");
             Console.WriteLine($"  One-Time PreKeys (Count: {opkProtos.Count}):");
-            foreach (var opk in opkProtos)
+            foreach (OneTimePreKeySecret opk in opkProtos)
             {
                 Console.WriteLine($"    ID {opk.PreKeyId}: Private Key: {Convert.ToHexString(opk.PrivateKey.ToByteArray())}, Public Key: {Convert.ToHexString(opk.PublicKey.ToByteArray())}");
             }
@@ -147,7 +146,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 opks.Add(opk);
             }
 
-            // Log keys after restoring from proto state
             Console.WriteLine($"[EcliptixSystemIdentityKeys] Restored from Proto State:");
             Console.WriteLine($"  Ed25519 Secret Key: {Convert.ToHexString(edSkBytes)}");
             Console.WriteLine($"  Ed25519 Public Key: {Convert.ToHexString(edPk)}");
@@ -158,7 +156,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             Console.WriteLine($"  Signed PreKey Public Key: {Convert.ToHexString(spkPk)}");
             Console.WriteLine($"  Signed PreKey Signature: {Convert.ToHexString(spkSig)}");
             Console.WriteLine($"  One-Time PreKeys (Count: {opks.Count}):");
-            foreach (var opk in opks)
+            foreach (OneTimePreKeyLocal opk in opks)
             {
                 byte[] opkSkBytes = opk.PrivateKeyHandle.ReadBytes(Constants.X25519PrivateKeySize).Unwrap();
                 Console.WriteLine($"    ID {opk.PreKeyId}: Private Key: {Convert.ToHexString(opkSkBytes)}, Public Key: {Convert.ToHexString(opk.PublicKey)}");
@@ -212,7 +210,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(edKeys =>
                     {
                         (edSkHandle, edPk) = edKeys;
-                        // Log Ed25519 keys
+                       
                         byte[] tempEdSk = new byte[Constants.Ed25519SecretKeySize];
                         if (edSkHandle.Read(tempEdSk).IsOk)
                         {
@@ -224,7 +222,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(idKeys =>
                     {
                         (idXSkHandle, idXPk) = idKeys;
-                        // Log Identity X25519 keys
+                       
                         byte[] tempIdSk = new byte[Constants.X25519PrivateKeySize];
                         if (idXSkHandle.Read(tempIdSk).IsOk)
                         {
@@ -237,7 +235,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(spkKeys =>
                     {
                         (spkSkHandle, spkPk) = spkKeys;
-                        // Log Signed PreKey
+                     
                         byte[] tempSpkSk = new byte[Constants.X25519PrivateKeySize];
                         if (spkSkHandle.Read(tempSpkSk).IsOk)
                         {
@@ -249,7 +247,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(signature =>
                     {
                         spkSig = signature;
-                        // Log Signed PreKey Signature
                         Console.WriteLine($"[EcliptixSystemIdentityKeys] Generated Signed PreKey Signature: {Convert.ToHexString(spkSig)}");
                         return GenerateOneTimePreKeys(oneTimeKeyCount);
                     })
@@ -388,7 +385,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 }
 
                 OneTimePreKeyLocal opk = opkResult.Unwrap();
-                // Log One-Time PreKey
+               
                 byte[] tempOpkSk = new byte[Constants.X25519PrivateKeySize];
                 if (opk.PrivateKeyHandle.Read(tempOpkSk).IsOk)
                 {
@@ -456,7 +453,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             {
                 _ephemeralSecretKeyHandle = keys.skHandle;
                 _ephemeralX25519PublicKey = keys.pk;
-                // Log Ephemeral Keys
+               
                 byte[] tempEphSk = new byte[Constants.X25519PrivateKeySize];
                 if (_ephemeralSecretKeyHandle.Read(tempEphSk).IsOk)
                 {
@@ -544,7 +541,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 hkdf.Expand(info.ToArray(), hkdfOutputSpan);
             }
 
-            // Log X3DH Shared Secret
             Console.WriteLine($"[EcliptixSystemIdentityKeys] X3DH Shared Secret: {Convert.ToHexString(hkdfOutputSpan.ToArray())}");
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =
@@ -666,7 +662,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 hkdf.Expand(info.ToArray(), hkdfOutputSpan);
             }
 
-            // Log Recipient Shared Secret
             Console.WriteLine($"[EcliptixSystemIdentityKeys] Recipient Shared Secret: {Convert.ToHexString(hkdfOutputSpan.ToArray())}");
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =

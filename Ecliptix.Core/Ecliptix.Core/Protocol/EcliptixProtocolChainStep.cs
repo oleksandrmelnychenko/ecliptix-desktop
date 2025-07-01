@@ -106,7 +106,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                             dhInfo.dhPrivateKeyHandle,
                             dhInfo.dhPublicKeyCloned,
                             actualCacheWindow);
-                        // Log chain key after creation
+                       
                         byte[] chainKeyTemp = new byte[Constants.X25519KeySize];
                         if (chainKeyHandle.Read(chainKeyTemp).IsOk)
                         {
@@ -285,7 +285,6 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
                 nextChainKey.CopyTo(currentChainKey);
 
-                // Log the new chain key after update
                 byte[] chainKeyTemp = new byte[Constants.X25519KeySize];
                 if (_chainKeyHandle.Read(chainKeyTemp).IsOk)
                 {
@@ -299,9 +298,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
             PruneOldKeys(messageKeys);
 
-            // Log all message keys in the cache
             Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after derivation (Count: {messageKeys.Count}):");
-            foreach (var kvp in messageKeys)
+            foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in messageKeys)
             {
                 byte[] msgKeyTemp = new byte[Constants.AesKeySize];
                 if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)
@@ -373,7 +371,6 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             if (dhPrivKey != null) proto.DhPrivateKey = ByteString.CopyFrom(dhPrivKey);
             if (_dhPublicKey != null) proto.DhPublicKey = ByteString.CopyFrom(_dhPublicKey);
 
-            // Log keys when exporting to proto state
             Console.WriteLine($"[EcliptixProtocolChainStep] Exporting to Proto State:");
             Console.WriteLine($"  Chain Key: {Convert.ToHexString(chainKey)}");
             Console.WriteLine($"  DH Private Key: {(dhPrivKey != null ? Convert.ToHexString(dhPrivKey) : "<null>")}");
@@ -422,7 +419,6 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             .Map(_ =>
             {
                 _isNewChain = _stepType == ChainStepType.Sender;
-                // Log chain key after update
                 Console.WriteLine($"[EcliptixProtocolChainStep] Updated Chain Key after DH Ratchet: {Convert.ToHexString(newChainKey)}");
                 return Unit.Value;
             });
@@ -460,7 +456,6 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             WipeIfNotNull(_dhPublicKey).IgnoreResult();
             _dhPublicKey = (byte[])newDhPublicKey!.Clone();
 
-            // Log DH keys after update
             Console.WriteLine($"[EcliptixProtocolChainStep] Updated DH Private Key: {Convert.ToHexString(newDhPrivateKey)}");
             Console.WriteLine($"[EcliptixProtocolChainStep] Updated DH Public Key: {Convert.ToHexString(newDhPublicKey)}");
 
@@ -557,9 +552,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             }
         }
 
-        // Log message keys after pruning
         Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after pruning (Count: {messageKeys.Count}):");
-        foreach (var kvp in messageKeys)
+        foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in messageKeys)
         {
             byte[] msgKeyTemp = new byte[Constants.AesKeySize];
             if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)

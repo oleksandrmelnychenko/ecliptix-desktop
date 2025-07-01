@@ -57,7 +57,6 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
 
         EcliptixMessageKey messageKey = new(index, keyHandle);
 
-        // Debug logging
         Console.WriteLine($"EcliptixMessageKey Created [Index: {index}, Disposed: {messageKey._disposed}]");
         byte[] tempBuffer = new byte[Constants.X25519KeySize];
         if (messageKey.ReadKeyMaterial(tempBuffer).IsOk)
