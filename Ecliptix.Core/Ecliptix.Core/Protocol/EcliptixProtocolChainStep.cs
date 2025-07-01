@@ -22,6 +22,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
     private SodiumSecureMemoryHandle _chainKeyHandle;
 
+    private readonly SortedDictionary<uint, EcliptixMessageKey> _messageKeys;
+    
     private uint _currentIndex;
 
     private SodiumSecureMemoryHandle? _dhPrivateKeyHandle;
@@ -47,6 +49,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         _currentIndex = 0;
         _isNewChain = false;
         _disposed = false;
+        _messageKeys = new SortedDictionary<uint, EcliptixMessageKey>();
     }
 
     public void Dispose()
@@ -203,14 +206,13 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             });
     }
 
-    internal Result<EcliptixMessageKey, EcliptixProtocolFailure> GetOrDeriveKeyFor(uint targetIndex,
-        SortedDictionary<uint, EcliptixMessageKey> messageKeys)
+    internal Result<EcliptixMessageKey, EcliptixProtocolFailure> GetOrDeriveKeyFor(uint targetIndex)
     {
         if (_disposed)
             return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
 
-        if (messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? cachedKey))
+        if (_messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? cachedKey))
         {
             Console.WriteLine($"[EcliptixProtocolChainStep] Retrieved cached message key for index {targetIndex}");
             return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(cachedKey);
@@ -266,7 +268,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
                 EcliptixMessageKey messageKey = keyResult.Unwrap();
 
-                if (!messageKeys.TryAdd(idx, messageKey))
+                if (!_messageKeys.TryAdd(idx, messageKey))
                 {
                     messageKey.Dispose();
                     return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
@@ -278,7 +280,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                     _chainKeyHandle.Write(nextChainKey).MapSodiumFailure();
                 if (writeResult.IsErr)
                 {
-                    messageKeys.Remove(idx, out EcliptixMessageKey? removedKey);
+                    _messageKeys.Remove(idx, out EcliptixMessageKey? removedKey);
                     removedKey?.Dispose();
                     return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
                 }
@@ -296,10 +298,10 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             if (setIndexResult.IsErr)
                 return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(setIndexResult.UnwrapErr());
 
-            PruneOldKeys(messageKeys);
+            PruneOldKeys();
 
-            Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after derivation (Count: {messageKeys.Count}):");
-            foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in messageKeys)
+            Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after derivation (Count: {_messageKeys.Count}):");
+            foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys)
             {
                 byte[] msgKeyTemp = new byte[Constants.AesKeySize];
                 if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)
@@ -312,7 +314,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                 }
             }
 
-            if (messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? finalKey))
+            if (_messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? finalKey))
             {
                 return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(finalKey);
             }
@@ -329,8 +331,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         }
     }
 
-    public Result<Unit, EcliptixProtocolFailure> SkipKeysUntil(uint targetIndex,
-        SortedDictionary<uint, EcliptixMessageKey> messageKeyCache)
+    public Result<Unit, EcliptixProtocolFailure> SkipKeysUntil(uint targetIndex)
     {
         if (_currentIndex >= targetIndex)
         {
@@ -339,7 +340,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
         for (uint i = _currentIndex + 1; i <= targetIndex; i++)
         {
-            Result<EcliptixMessageKey, EcliptixProtocolFailure> keyResult = GetOrDeriveKeyFor(i, messageKeyCache);
+            Result<EcliptixMessageKey, EcliptixProtocolFailure> keyResult = GetOrDeriveKeyFor(i);
             if (keyResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
@@ -530,9 +531,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         });
     }
 
-    internal void PruneOldKeys(SortedDictionary<uint, EcliptixMessageKey> messageKeys)
+    internal void PruneOldKeys()
     {
-        if (_disposed || _cacheWindow == 0 || messageKeys.Count == 0) return;
+        if (_disposed || _cacheWindow == 0 || _messageKeys.Count == 0) return;
 
         Result<uint, EcliptixProtocolFailure> currentIndexResult = GetCurrentIndex();
         if (currentIndexResult.IsErr) return;
@@ -540,20 +541,20 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
         uint minIndexToKeep = indexToPruneAgainst >= _cacheWindow ? indexToPruneAgainst - _cacheWindow + 1 : 0;
 
-        List<uint> keysToRemove = messageKeys.Keys.Where(k => k < minIndexToKeep).ToList();
+        List<uint> keysToRemove = _messageKeys.Keys.Where(k => k < minIndexToKeep).ToList();
         if (keysToRemove.Count != 0)
         {
             foreach (uint keyIndex in keysToRemove)
             {
-                if (messageKeys.Remove(keyIndex, out EcliptixMessageKey? messageKeyToDispose))
+                if (_messageKeys.Remove(keyIndex, out EcliptixMessageKey? messageKeyToDispose))
                 {
                     messageKeyToDispose.Dispose();
                 }
             }
         }
 
-        Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after pruning (Count: {messageKeys.Count}):");
-        foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in messageKeys)
+        Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after pruning (Count: {_messageKeys.Count}):");
+        foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys)
         {
             byte[] msgKeyTemp = new byte[Constants.AesKeySize];
             if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)

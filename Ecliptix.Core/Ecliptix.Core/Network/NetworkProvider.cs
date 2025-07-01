@@ -197,7 +197,7 @@ public sealed class NetworkProvider(
         EcliptixProtocolSystem system = systemResult.Unwrap();
         EcliptixProtocolConnection connection = system.GetConnection();
 
-        system.CompleteDataCenterPubKeyExchange(currentState.PeerHandshakeMessage);
+        //system.CompleteDataCenterPubKeyExchange(currentState.PeerHandshakeMessage);
         
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
             serverResponse.SendingChainLength,

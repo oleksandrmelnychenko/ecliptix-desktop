@@ -30,7 +30,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
     private readonly uint _id;
     private bool _isFirstReceivingRatchet;
     private readonly bool _isInitiator;
-    private readonly SortedDictionary<uint, EcliptixMessageKey> _messageKeys;
     private readonly EcliptixProtocolChainStep _sendingStep;
     private SodiumSecureMemoryHandle? _currentSendingDhPrivateKeyHandle;
     private volatile bool _disposed;
@@ -57,7 +56,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _peerBundle = null;
         _receivingStep = null;
         _rootKeyHandle = null;
-        _messageKeys = new SortedDictionary<uint, EcliptixMessageKey>();
         _nonceCounter = 0;
         _createdAt = DateTimeOffset.UtcNow;
         _peerDhPublicKey = null;
@@ -82,7 +80,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _initialSendingDhPrivateKeyHandle = null;
         _persistentDhPrivateKeyHandle = null;
         _persistentDhPublicKey = null;
-        _messageKeys = new SortedDictionary<uint, EcliptixMessageKey>();
         _receivedNewDhKey = false;
         _disposed = false;
         _lock = new Lock();
@@ -409,7 +406,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     .Bind(_ => EnsureSendingStepInitialized())
                     .Bind(sendingStep => MaybePerformSendingDhRatchet(sendingStep)
                         .Bind(includeDhKey => sendingStep.GetCurrentIndex()
-                            .Bind(currentIndex => sendingStep.GetOrDeriveKeyFor(currentIndex + 1, _messageKeys)
+                            .Bind(currentIndex => sendingStep.GetOrDeriveKeyFor(currentIndex + 1)
                                 .Bind(derivedKey =>
                                     sendingStep.SetCurrentIndex(currentIndex + 1)
                                         .Map(_ => (derivedKey, includeDhKey))))))
@@ -425,21 +422,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     })
                     .Map(finalResult =>
                     {
-                        _sendingStep.PruneOldKeys(_messageKeys);
-                        
-                        Console.WriteLine($"[EcliptixProtocolConnection] Message Keys Cache after sending (Count: {_messageKeys.Count}):");
-                        foreach (var kvp in _messageKeys)
-                        {
-                            byte[] msgKeyTemp = new byte[Constants.AesKeySize];
-                            if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)
-                            {
-                                Console.WriteLine($"  Index {kvp.Key}: {Convert.ToHexString(msgKeyTemp)}");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"  Index {kvp.Key}: <Error reading key or disposed>");
-                            }
-                        }
+                        _sendingStep.PruneOldKeys();
                         return finalResult;
                     });
             }
@@ -459,25 +442,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 .Bind(_ => EnsureNotExpired())
                 .Bind(_ => EnsureReceivingStepInitialized())
                 .Bind(receivingStep => MaybePerformReceivingDhRatchet(receivingStep, receivedDhPublicKeyBytes)
-                    .Bind(_ => receivingStep.GetOrDeriveKeyFor(receivedIndex, _messageKeys))
+                    .Bind(_ => receivingStep.GetOrDeriveKeyFor(receivedIndex))
                     .Bind(derivedKey => receivingStep.SetCurrentIndex(derivedKey.Index).Map(_ => derivedKey)))
                 .Map(finalKey =>
                 {
-                    _receivingStep!.PruneOldKeys(_messageKeys);
-                   
-                    Console.WriteLine($"[EcliptixProtocolConnection] Message Keys Cache after receiving (Count: {_messageKeys.Count}):");
-                    foreach (var kvp in _messageKeys)
-                    {
-                        byte[] msgKeyTemp = new byte[Constants.AesKeySize];
-                        if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)
-                        {
-                            Console.WriteLine($"  Index {kvp.Key}: {Convert.ToHexString(msgKeyTemp)}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"  Index {kvp.Key}: <Error reading key or disposed>");
-                        }
-                    }
+                    _receivingStep!.PruneOldKeys();
                     return finalKey;
                 });
         }
@@ -579,7 +548,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
             if (updateResult.IsErr) return updateResult;
 
             _receivedNewDhKey = false;
-            ClearMessageKeyCache();
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
         finally
@@ -645,11 +613,20 @@ public sealed class EcliptixProtocolConnection : IDisposable
     {
         lock (_lock)
         {
+            Console.WriteLine($"Syncing: remoteSending={remoteSendingChainLength}, remoteReceiving={remoteReceivingChainLength}");
             return CheckDisposed()
                 .Bind(_ => EnsureReceivingStepInitialized())
-                .Bind(receivingStep => receivingStep.SkipKeysUntil(remoteSendingChainLength, _messageKeys))
+                .Bind(receivingStep => 
+                {
+                    Console.WriteLine($"Receiving chain current index: {receivingStep.GetCurrentIndex().Unwrap()}");
+                    return receivingStep.SkipKeysUntil(remoteSendingChainLength);
+                })
                 .Bind(_ => EnsureSendingStepInitialized())
-                .Bind(sendingStep => sendingStep.SkipKeysUntil(remoteReceivingChainLength, _messageKeys));
+                .Bind(sendingStep => 
+                {
+                    Console.WriteLine($"Sending chain current index: {sendingStep.GetCurrentIndex().Unwrap()}");
+                    return sendingStep.SkipKeysUntil(remoteReceivingChainLength);
+                });
         }
     }
 
@@ -663,7 +640,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _rootKeyHandle?.Dispose();
         _sendingStep.Dispose();
         _receivingStep?.Dispose();
-        ClearMessageKeyCache();
         _persistentDhPrivateKeyHandle?.Dispose();
         if (_currentSendingDhPrivateKeyHandle != _initialSendingDhPrivateKeyHandle)
             _currentSendingDhPrivateKeyHandle?.Dispose();
@@ -685,30 +661,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         return data == null
             ? Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
             : SodiumInterop.SecureWipe(data).MapSodiumFailure();
-    }
-
-    private void ClearMessageKeyCache()
-    {
-        Console.WriteLine($"[EcliptixProtocolConnection] Clearing Message Keys Cache (Count: {_messageKeys.Count}):");
-        foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys)
-        {
-            byte[] msgKeyTemp = new byte[Constants.AesKeySize];
-            if (kvp.Value.ReadKeyMaterial(msgKeyTemp).IsOk)
-            {
-                Console.WriteLine($"  Index {kvp.Key}: {Convert.ToHexString(msgKeyTemp)}");
-            }
-            else
-            {
-                Console.WriteLine($"  Index {kvp.Key}: <Error reading key or disposed>");
-            }
-        }
-
-        foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys.ToList())
-        {
-            kvp.Value.Dispose();
-        }
-
-        _messageKeys.Clear();
     }
 
     private Result<Unit, EcliptixProtocolFailure> EnsureNotExpired()
