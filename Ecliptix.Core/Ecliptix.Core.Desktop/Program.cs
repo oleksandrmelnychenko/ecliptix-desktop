@@ -144,7 +144,7 @@ public static class Program
 
         services.AddDataProtection()
             .SetApplicationName("Ecliptix")
-            .PersistKeysToFileSystem(new DirectoryInfo(ResolvePath("%APPDATA%/Ecliptix/Storage/DataProtection-Keys")))
+            .PersistKeysToFileSystem(new DirectoryInfo(ResolvePath("%APPDATA%/Storage/DataProtection-Keys")))
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
