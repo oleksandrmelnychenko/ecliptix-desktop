@@ -1,4 +1,4 @@
-namespace Ecliptix.Core.Services;
+namespace Ecliptix.Core.Persistors;
 
 public class SecureStoreOptions
 {

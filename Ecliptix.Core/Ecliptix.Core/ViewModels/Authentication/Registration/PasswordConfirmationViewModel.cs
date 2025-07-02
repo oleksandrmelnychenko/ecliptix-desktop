@@ -12,6 +12,7 @@ using System.Threading;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.OpaqueProtocol;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;

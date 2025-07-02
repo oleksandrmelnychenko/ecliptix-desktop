@@ -5,11 +5,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Core.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Serilog;
 
-namespace Ecliptix.Core.Services;
+namespace Ecliptix.Core.Persistors;
 
 public sealed class SecureStorageProvider : ISecureStorageProvider
 {

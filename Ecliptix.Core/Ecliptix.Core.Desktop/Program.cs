@@ -11,6 +11,7 @@ using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Network.RpcServices;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
