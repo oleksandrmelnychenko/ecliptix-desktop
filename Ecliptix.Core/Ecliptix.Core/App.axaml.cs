@@ -31,7 +31,7 @@ public class App : Application
     private ILogger<App> Logger => Locator.Current.GetService<ILogger<App>>()!;
     private NetworkProvider NetworkProvider => Locator.Current.GetService<NetworkProvider>()!;
     private ISecureStorageProvider SecureStorageProvider => Locator.Current.GetService<ISecureStorageProvider>()!;
-
+    
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -40,9 +40,9 @@ public class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         base.OnFrameworkInitializationCompleted();
-
+        
         Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure> applicationInstanceSettingsResult
-            = SetApplicationInstanceSettings();
+            = SetApplicationInstanceSettings().GetAwaiter().GetResult();
 
         if (applicationInstanceSettingsResult.IsErr)
         {
@@ -71,13 +71,13 @@ public class App : Application
         }
     }
 
-    private Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure>
+    private async Task<Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure>>
         SetApplicationInstanceSettings()
     {
         const string settingsKey = "ApplicationInstanceSettings";
 
         Result<Option<byte[]>, InternalServiceApiFailure> applicationInstanceSettingsResult =
-            SecureStorageProvider.TryGetByKey(settingsKey);
+          await  SecureStorageProvider.TryGetByKeyAsync(settingsKey);
 
         if (applicationInstanceSettingsResult.IsErr)
             return Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure>.Err(
@@ -90,7 +90,7 @@ public class App : Application
                 AppInstanceId = Utilities.GuidToByteString(Guid.NewGuid()),
                 DeviceId = Utilities.GuidToByteString(Guid.NewGuid())
             };
-            SecureStorageProvider.Store(settingsKey, applicationInstanceSettings.ToByteArray());
+            await SecureStorageProvider.StoreAsync(settingsKey, applicationInstanceSettings.ToByteArray());
             return Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure>.Ok(
                 (applicationInstanceSettings, true));
         }
@@ -114,7 +114,10 @@ public class App : Application
                 DefaultOneTimeKeyCount, connectId);
 
             await NetworkProvider.EstablishSecrecyChannel(connectId,
-                state => { SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray()); },
+                async state =>
+                {
+                   await SecureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
+                },
                 failure => { ShutdownApplication("Failed to establish secrecy channel."); });
 
             AppDevice appDevice = new()
@@ -128,9 +131,8 @@ public class App : Application
         }
         else
         {
-            //SecureStorageProvider.Delete(connectId.ToString());
             Result<Option<byte[]>, InternalServiceApiFailure> ecliptixSecrecyChannelStateResult =
-                SecureStorageProvider.TryGetByKey(connectId.ToString());
+              await  SecureStorageProvider.TryGetByKeyAsync(connectId.ToString());
 
             if (ecliptixSecrecyChannelStateResult.IsErr)
             {
@@ -160,7 +162,10 @@ public class App : Application
                 if (!isSynchronized)
                 {
                     await NetworkProvider.EstablishSecrecyChannel(connectId,
-                        state => { SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray()); },
+                        state =>
+                        {
+                            //SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray());
+                        },
                         failure =>
                         {
                             ShutdownApplication("Failed to establish secrecy channel after failed restoration.");
@@ -195,8 +200,14 @@ public class App : Application
                     connectId);
 
                 await NetworkProvider.EstablishSecrecyChannel(connectId,
-                    state => { SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray()); },
-                    failure => { ShutdownApplication("Failed to establish secrecy channel."); });
+                    state =>
+                    {
+                        //SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray());
+                    },
+                    failure =>
+                    {
+                        ShutdownApplication("Failed to establish secrecy channel.");
+                    });
 
                 AppDevice appDevice = new()
                 {
@@ -226,7 +237,7 @@ public class App : Application
                 AppDeviceRegisteredStateReply reply =
                     Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
                 Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
-
+                
                 lock (_lock)
                 {
                     applicationInstanceSettings.SystemDeviceIdentifier = appServerInstanceId.ToString();

@@ -26,13 +26,13 @@
 
     <ItemGroup>
         <PackageReference Include="AnimatedImage.Avalonia" Version="2.0.0"/>
-        <PackageReference Include="Avalonia" Version="11.3.1" />
+        <PackageReference Include="Avalonia" Version="11.3.2" />
         <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.1" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.1" />
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.1" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.1" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
         <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0"/>
         <PackageReference Include="Google.Protobuf" Version="3.31.1" />
@@ -42,6 +42,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.6" />
@@ -56,8 +57,8 @@
         <PackageReference Include="protobuf-net.Grpc" Version="1.2.2"/>
         <PackageReference Include="SecureStore" Version="1.2.2" />
         <PackageReference Include="Sodium.Core" Version="1.4.0"/>
-        <PackageReference Include="Splat" Version="15.3.1"/>
-        <PackageReference Include="Splat.Microsoft.Extensions.DependencyInjection" Version="15.3.1"/>
+        <PackageReference Include="Splat" Version="15.4.1" />
+        <PackageReference Include="Splat.Microsoft.Extensions.DependencyInjection" Version="15.4.1" />
         <PackageReference Include="System.Interactive.Async" Version="6.0.3" />
         <PackageReference Include="System.Linq.Async" Version="6.0.3" />
     </ItemGroup>

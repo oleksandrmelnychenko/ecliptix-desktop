@@ -6,7 +6,7 @@ namespace Ecliptix.Core.Services;
 
 public interface ISecureStorageProvider : IAsyncDisposable, IDisposable
 {
-    bool Store(string key, byte[] data);
-    Result<Option<byte[]>, InternalServiceApiFailure> TryGetByKey(string key);
-    Result<bool, InternalServiceApiFailure> Delete(string key);
+    Task<bool> StoreAsync(string key, byte[] data);
+    Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key);
+    Task<bool> DeleteAsync(string key);
 }
