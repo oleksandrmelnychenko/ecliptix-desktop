@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Protocol.Utilities;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 
@@ -14,109 +14,71 @@ namespace Ecliptix.Core.Services;
 public sealed class SecureStorageProvider : ISecureStorageProvider
 {
     private readonly IDataProtector _protector;
-    private readonly string _encryptedStatePath;
+    private readonly string _storagePath;
+    
     private bool _disposed;
 
     public SecureStorageProvider(
         IOptions<SecureStoreOptions> options,
         IDataProtectionProvider dataProtectionProvider)
     {
-        SecureStoreOptions opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        opts.Validate();
+        SecureStoreOptions opts = options.Value;
+        
+        _storagePath = opts.EncryptedStatePath;
+        _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
 
-        _encryptedStatePath = opts.EncryptedStatePath;
-        _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage");
-
-        try
-        {
-            EnsureDirectoryExists(_encryptedStatePath);
-            Log.Debug("Initialized SecureStorageProvider with state path {Path}", _encryptedStatePath);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to initialize secure storage at {Path}", _encryptedStatePath);
-            throw new InvalidOperationException($"Could not initialize secure storage at {_encryptedStatePath}.", ex);
-        }
+        InitializeStorageDirectory();
     }
 
-    public async Task<bool> StoreAsync(string key, byte[] data)
+    public async Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(SecureStorageProvider));
-        if (string.IsNullOrEmpty(key))
-        {
-            Log.Error("Storage key cannot be null or empty");
-            return false;
-        }
-
-        if (data == null)
-        {
-            Log.Error("Data to store cannot be null for key {Key}", key);
-            return false;
-        }
-
         try
         {
-            var protectedData = _protector.Protect(data);
-            var filePath = GetFilePath(key);
+            string filePath = GetHashedFilePath(key);
+            byte[] protectedData = _protector.Protect(data);
 
-            // Перевіряємо та створюємо директорію
-            EnsureDirectoryExists(filePath);
-            Log.Debug("Ensured directory exists for {Path}", Path.GetDirectoryName(filePath));
+            await File.WriteAllBytesAsync(filePath, protectedData).ConfigureAwait(false);
+            SetSecureFilePermissions(filePath);
 
-            await File.WriteAllBytesAsync(filePath, protectedData);
-            SetSecurePermissions(filePath);
-            Log.Debug("Stored data for key {Key} at {Path}", key, filePath);
-            return true;
+            Log.Debug("Successfully stored data for key {Key}", key);
+            return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to store data for key {Key} at {Path}", key, GetFilePath(key));
-            return false;
+            Log.Error(ex, "Failed to store data for key {Key}", key);
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to write to secure storage.", ex));
         }
     }
 
     public async Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(SecureStorageProvider));
-        if (string.IsNullOrEmpty(key))
-        {
-            Log.Error("Storage key cannot be null or empty");
-            return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreKeyNotFound("Storage key cannot be null or empty."));
-        }
+        string filePath = GetHashedFilePath(key);
 
-        string filePath = GetFilePath(key);
+        if (!File.Exists(filePath))
+        {
+            Log.Debug("No data found for key {Key}, as file does not exist at {Path}", key, filePath);
+            return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
+        }
 
         try
         {
-            if (!File.Exists(filePath))
-            {
-                Log.Debug("No data found for key {Key} at {Path}", key, filePath);
-                return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
-            }
-
-            Log.Debug("Starting read for key {Key} at {Path}", key, filePath);
             byte[] protectedData = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
             if (protectedData.Length == 0)
             {
-                Log.Warning("Empty or null protected data read for key {Key} at {Path}", key, filePath);
-                return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                    InternalServiceApiFailure.SecureStoreNotFound("No valid data to decrypt."));
+                Log.Warning("File for key {Key} at {Path} is empty. Treating as non-existent", key, filePath);
+                return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
             }
 
-            Log.Debug("Attempting to unprotect {Length} bytes for key {Key} from {Path}", protectedData.Length, key,
-                filePath);
             byte[] data = _protector.Unprotect(protectedData);
-            Log.Debug("Retrieved data for key {Key} from {Path}", key, filePath);
+            Log.Debug("Successfully retrieved and decrypted data for key {Key}", key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.Some(data));
         }
         catch (CryptographicException ex)
         {
-            Log.Error(ex, "Failed to decrypt data for key {Key} at {Path}. Error: {ErrorMessage}", key, filePath,
-                ex.Message);
+            Log.Error(ex, "Failed to decrypt data for key {Key}. The data might be corrupt or the protection keys have changed", key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreNotFound(
-                    $"Failed to decrypt data: {ex.Message}. The key may not exist or the data may be corrupted."));
+                InternalServiceApiFailure.SecureStoreAccessDenied($"Failed to decrypt data: {ex.Message}"));
         }
         catch (IOException ex)
         {
@@ -124,86 +86,85 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied("Failed to access secure storage.", ex));
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Unexpected error reading file for key {Key} at {Path}", key, filePath);
-            return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Unexpected error reading file.", ex));
-        }
     }
-
-    public async Task<bool> DeleteAsync(string key)
+    
+    public Task<Result<Unit, InternalServiceApiFailure>> DeleteAsync(string key)
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(SecureStorageProvider));
-        if (string.IsNullOrEmpty(key))
-        {
-            Log.Error("Storage key cannot be null or empty");
-            return false;
-        }
-
         try
         {
-            var filePath = GetFilePath(key);
-            if (!File.Exists(filePath))
+            string filePath = GetHashedFilePath(key);
+            if (File.Exists(filePath))
             {
-                Log.Debug("No data to delete for key {Key} at {Path}", key, filePath);
-                return false;
+                File.Delete(filePath);
+                Log.Debug("Successfully deleted data for key {Key}", key);
             }
-
-            File.Delete(filePath);
-            Log.Debug("Deleted data for key {Key} from {Path}", key, filePath);
-            return true;
+            else
+            {
+                Log.Debug("No data to delete for key {Key} as file does not exist", key);
+            }
+            return Task.FromResult(Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value));
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to delete data for key {Key} from {Path}", key, GetFilePath(key));
-            return false;
+            Log.Error(ex, "Failed to delete data for key {Key}", key);
+            return Task.FromResult(Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to delete from secure storage.", ex)));
         }
     }
 
-    public async ValueTask DisposeAsync()
+    private string GetHashedFilePath(string key)
     {
-        if (!_disposed)
-        {
-            _disposed = true;
-            Log.Debug("SecureStorageProvider disposed");
-            GC.SuppressFinalize(this);
-        }
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+        string safeFilename = Convert.ToHexString(hashBytes);
+        return Path.Combine(_storagePath, $"{safeFilename}.enc");
     }
 
-    public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
-
-    private string GetFilePath(string key) => Path.Combine(_encryptedStatePath, $"{key}.enc");
-
-    private static void EnsureDirectoryExists(string path)
+    private void InitializeStorageDirectory()
     {
-        var directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
+        try
         {
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(_storagePath))
             {
-                Directory.CreateDirectory(directory);
-                Log.Information("Created directory: {Directory}", directory, 0);
+                Directory.CreateDirectory(_storagePath);
+                Log.Information("Created secure storage directory: {Path}", _storagePath);
+                
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    File.SetUnixFileMode(_storagePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); // 700
+                }
             }
+            Log.Debug("SecureStorageProvider initialized with path {Path}", _storagePath);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to initialize secure storage directory at {Path}", _storagePath);
+            throw new InvalidOperationException($"Could not create or access the secure storage directory: {_storagePath}", ex);
         }
     }
 
-    private void SetSecurePermissions(string path)
+    private void SetSecureFilePermissions(string filePath)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             try
             {
-                if (File.Exists(path))
-                {
-                    File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                    Log.Debug("Set secure permissions (600) on {Path}", path);
-                }
+                File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite); // 600
+                Log.Debug("Set secure file permissions on {Path}", filePath);
             }
             catch (IOException ex)
             {
-                Log.Warning(ex, "Failed to set permissions for {Path}; will retry on file creation", path);
+                Log.Warning(ex, "Failed to set secure permissions for file {Path}", filePath);
             }
+        }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            GC.SuppressFinalize(this);
+            await Task.CompletedTask;
         }
     }
 }

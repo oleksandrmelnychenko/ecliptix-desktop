@@ -154,7 +154,6 @@ public static class Program
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
             options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
-            options.Validate();
         });
         
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();

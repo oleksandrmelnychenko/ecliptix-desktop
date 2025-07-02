@@ -4,9 +4,11 @@ using Ecliptix.Core.Protocol.Utilities;
 
 namespace Ecliptix.Core.Services;
 
-public interface ISecureStorageProvider : IAsyncDisposable, IDisposable
+public interface ISecureStorageProvider : IAsyncDisposable
 {
-    Task<bool> StoreAsync(string key, byte[] data);
+    Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data);
+
     Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key);
-    Task<bool> DeleteAsync(string key);
+
+    Task<Result<Unit, InternalServiceApiFailure>> DeleteAsync(string key);
 }
