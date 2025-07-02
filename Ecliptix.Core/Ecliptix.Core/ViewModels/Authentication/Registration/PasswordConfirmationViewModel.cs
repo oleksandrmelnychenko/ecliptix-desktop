@@ -10,6 +10,7 @@ using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
 using System.Threading;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Services;

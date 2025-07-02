@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;

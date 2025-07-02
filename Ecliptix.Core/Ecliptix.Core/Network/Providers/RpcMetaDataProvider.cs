@@ -1,13 +1,13 @@
 using System;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.Providers;
 
-public sealed class ClientStateProvider : IClientStateProvider
+public sealed class RpcMetaDataProvider : IRpcMetaDataProvider
 {
     public required Guid AppInstanceId { get; set; }
     public required Guid DeviceId { get; set; }
 
-    public void SetClientInfo(Guid appInstanceId, Guid deviceId)
+    public void SetAppInfo(Guid appInstanceId, Guid deviceId)
     {
         AppInstanceId = appInstanceId;
         DeviceId = deviceId;

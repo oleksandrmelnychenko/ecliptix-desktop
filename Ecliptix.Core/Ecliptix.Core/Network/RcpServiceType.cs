@@ -3,7 +3,7 @@ namespace Ecliptix.Core.Network;
 public enum RcpServiceType : short
 {
     EstablishSecrecyChannel,
-    RestoreSecrecyChannelState,
+    RestoreSecrecyChannel,
     RegisterAppDevice,
     ValidatePhoneNumber,
     VerifyOtp,

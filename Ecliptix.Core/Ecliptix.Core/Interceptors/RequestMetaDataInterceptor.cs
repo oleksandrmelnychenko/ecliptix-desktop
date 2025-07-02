@@ -1,11 +1,12 @@
 using System;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 
 namespace Ecliptix.Core.Interceptors;
 
-public class RequestMetaDataInterceptor(IClientStateProvider clientStateProvider) : Interceptor
+public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
         TRequest request,
@@ -13,8 +14,8 @@ public class RequestMetaDataInterceptor(IClientStateProvider clientStateProvider
         AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
     {
         Metadata headers = context.Options.Headers ?? [];
-        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(clientStateProvider.AppInstanceId.ToString(),
-            clientStateProvider.DeviceId.ToString());
+        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
+            rpcMetaDataProvider.DeviceId.ToString());
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
@@ -33,8 +34,8 @@ public class RequestMetaDataInterceptor(IClientStateProvider clientStateProvider
     {
         Metadata headers = context.Options.Headers ?? [];
         Metadata newMetadata =
-            GrpcMetadataHandler.GenerateMetadata(clientStateProvider.AppInstanceId.ToString(),
-                clientStateProvider.DeviceId.ToString());
+            GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
+                rpcMetaDataProvider.DeviceId.ToString());
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);

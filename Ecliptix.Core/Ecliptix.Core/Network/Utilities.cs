@@ -1,9 +1,7 @@
 using System;
 using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 
@@ -11,16 +9,6 @@ namespace Ecliptix.Core.Network;
 
 public static class Utilities
 {
-    private const string InvalidPayloadDataLengthMessage = "Invalid payload data length.";
-
-    public static byte[] ReadMemoryToRetrieveBytes(ReadOnlyMemory<byte> readOnlyMemory)
-    {
-        if (!MemoryMarshal.TryGetArray(readOnlyMemory, out ArraySegment<byte> segment) || segment.Count == 0)
-            throw new ArgumentException(InvalidPayloadDataLengthMessage);
-
-        return segment.Array!;
-    }
-
     public static ByteString GuidToByteString(Guid guid)
     {
         Span<byte> bytes = stackalloc byte[16];
@@ -50,7 +38,7 @@ public static class Utilities
         SwapBytes(bytes, 1, 2);
         SwapBytes(bytes, 4, 5);
         SwapBytes(bytes, 6, 7);
-
+        
         return new Guid(bytes);
     }
 
@@ -66,13 +54,6 @@ public static class Utilities
         rng.GetBytes(bytes);
         uint value = BitConverter.ToUInt32(bytes, 0);
         return min + value % (max - min + 1);
-    }
-
-    public static async Task<byte[]> ExtractCipherPayload(ByteString requestedEncryptedPayload, string connectionId,
-        Func<byte[], string, int, Task<byte[]>> decryptPayloadFun)
-    {
-        byte[] encryptedPayload = ReadMemoryToRetrieveBytes(requestedEncryptedPayload.Memory);
-        return await decryptPayloadFun(encryptedPayload, connectionId, 0);
     }
 
     public static T ParseFromBytes<T>(byte[] data) where T : IMessage<T>, new()

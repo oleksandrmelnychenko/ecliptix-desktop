@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
@@ -10,24 +11,27 @@ using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.Providers;
 
 public sealed class NetworkProvider(
-    NetworkRpcServiceManager networkRpcServiceManager,
-    IClientStateProvider clientStateProvider)
+    RpcServiceManager rpcServiceManager,
+    IRpcMetaDataProvider rpcMetaDataProvider)
 {
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
 
-    public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings,
-        uint oneTimeKeyCount, uint connectId)
+    private const int DefaultOneTimeKeyCount = 5;
+
+    public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
-        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(oneTimeKeyCount).Unwrap();
+        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
         _connections.TryAdd(connectId, protocolSystem);
 
-        clientStateProvider.SetClientInfo(Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
-            Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
+        Guid appInstanceId = Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
+        Guid deviceId = Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+
+        rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId);
     }
 
     public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
@@ -54,7 +58,7 @@ public sealed class NetworkProvider(
 
         ServiceRequest request = ServiceRequest.New(flowType, serviceType, outboundPayload.Unwrap(), []);
         Result<RpcFlow, EcliptixProtocolFailure> invokeResult =
-            await networkRpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await rpcServiceManager.InvokeServiceRequestAsync(request, token);
 
         if (invokeResult.IsErr) return Result<Unit, EcliptixProtocolFailure>.Err(invokeResult.UnwrapErr());
 
@@ -79,7 +83,6 @@ public sealed class NetworkProvider(
                 {
                     if (streamItem.IsErr)
                     {
-                        Console.WriteLine($"Stream error: {streamItem.UnwrapErr().Message}");
                         continue;
                     }
 
@@ -89,7 +92,7 @@ public sealed class NetworkProvider(
                     Result<Unit, EcliptixProtocolFailure> streamCallbackOutcome =
                         await onSuccessCallback(streamDecryptedData.Unwrap());
                     if (streamCallbackOutcome.IsErr)
-                        Console.WriteLine($"Callback error: {streamCallbackOutcome.UnwrapErr().Message}");
+                    {}
                 }
 
                 break;
@@ -107,20 +110,20 @@ public sealed class NetworkProvider(
         EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        clientStateProvider.SetClientInfo(Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
+        rpcMetaDataProvider.SetAppInfo(Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
 
         RestoreSecrecyChannelRequest request = new();
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest =
             SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse>.New(
                 ServiceFlowType.Single,
-                RcpServiceType.RestoreSecrecyChannelState,
+                RcpServiceType.RestoreSecrecyChannel,
                 request,
                 onComplete: _ => { },
                 onFailure: _ => { });
 
         Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure> responseResult =
-            await networkRpcServiceManager.RestoreAppDeviceSecrecyChannel(serviceRequest);
+            await rpcServiceManager.RestoreAppDeviceSecrecyChannel(serviceRequest);
 
         if (responseResult.IsErr) return responseResult.Map(_ => false);
 
@@ -181,7 +184,7 @@ public sealed class NetworkProvider(
                 },
                 onFailure: onFailure);
 
-        await networkRpcServiceManager.EstablishAppDeviceSecrecyChannel(action);
+        await rpcServiceManager.EstablishAppDeviceSecrecyChannel(action);
     }
 
     private Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> SyncSecrecyChannel(
@@ -197,8 +200,6 @@ public sealed class NetworkProvider(
         EcliptixProtocolSystem system = systemResult.Unwrap();
         EcliptixProtocolConnection connection = system.GetConnection();
 
-        //system.CompleteDataCenterPubKeyExchange(currentState.PeerHandshakeMessage);
-        
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
             serverResponse.SendingChainLength,
             serverResponse.ReceivingChainLength

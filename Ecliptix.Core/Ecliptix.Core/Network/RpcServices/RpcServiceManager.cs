@@ -2,14 +2,13 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.PubKeyExchange;
 
-namespace Ecliptix.Core.Network;
+namespace Ecliptix.Core.Network.RpcServices;
 
-public class NetworkRpcServiceManager(
+public class RpcServiceManager(
     UnaryRpcServices unaryRpcServices,
     ReceiveStreamRpcServices receiveStreamRpcServices,
     SecrecyChannelRpcServices secrecyChannelRpcServices)

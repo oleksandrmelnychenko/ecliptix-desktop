@@ -9,6 +9,7 @@ using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
@@ -162,12 +163,12 @@ public static class Program
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>());
         services.AddSingleton<ISecureStorageProvider, SecureStorageProvider>();
-        services.AddSingleton<NetworkRpcServiceManager>();
+        services.AddSingleton<RpcServiceManager>();
         services.AddSingleton<NetworkProvider>();
         services.AddSingleton<UnaryRpcServices>();
         services.AddSingleton<SecrecyChannelRpcServices>();
         services.AddSingleton<ReceiveStreamRpcServices>();
-        services.AddSingleton<IClientStateProvider, ClientStateProvider>();
+        services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
 
         ConfigureGrpc(services);

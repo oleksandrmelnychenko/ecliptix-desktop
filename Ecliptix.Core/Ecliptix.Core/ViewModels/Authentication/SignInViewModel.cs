@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Failures;

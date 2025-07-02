@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels;
@@ -23,8 +24,6 @@ namespace Ecliptix.Core;
 public class App : Application
 {
     private const int DefaultOneTimeKeyCount = 10;
-
-    private const string AppDeviceSecrecyChannelStateKey = "Ecliptix.SessionState.v1";
 
     private readonly Lock _lock = new();
 
@@ -110,8 +109,7 @@ public class App : Application
 
         if (isNewInstance)
         {
-            NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings,
-                DefaultOneTimeKeyCount, connectId);
+            NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
 
             await NetworkProvider.EstablishSecrecyChannel(connectId,
                 async state =>
@@ -196,7 +194,7 @@ public class App : Application
             }
             else
             {
-                NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, DefaultOneTimeKeyCount,
+                NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings,
                     connectId);
 
                 await NetworkProvider.EstablishSecrecyChannel(connectId,
