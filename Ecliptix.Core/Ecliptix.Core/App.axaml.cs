@@ -266,7 +266,6 @@ public class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            // Handle single view platform shutdown if necessary
         }
     }
 }

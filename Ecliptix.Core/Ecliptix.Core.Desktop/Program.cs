@@ -38,8 +38,8 @@ public static class Program
     public static async Task Main(string[] args)
     {
         IConfiguration configuration = BuildConfiguration();
-        Log.Logger = ConfigureSerilog(configuration);
         Env.Load();
+        Log.Logger = ConfigureSerilog(configuration);
         
         try
         {
@@ -69,7 +69,7 @@ public static class Program
 #if DEBUG
         environment ??= "Development";
 #else
-        environment ??= "Production"; // Default to Production in release mode
+        environment ??= "Production"; 
 #endif
 
         return new ConfigurationBuilder()
@@ -180,7 +180,6 @@ public static class Program
     {
         Action<IServiceProvider, GrpcClientFactoryOptions> configureGrpcClient = (provider, options) =>
         {
-            var t = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
             AppSettings settings = provider.GetRequiredService<AppSettings>();
             string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
