@@ -93,10 +93,10 @@ public class ApplicationInitializer(
     }
 
     private async Task<Result<uint, EcliptixProtocolFailure>> EnsureSecrecyChannelAsync(
-        ApplicationInstanceSettings settings, bool isNewInstance)
+        ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
         uint connectId =
-            NetworkProvider.ComputeUniqueConnectId(settings, PubKeyExchangeType.DataCenterEphemeralConnect);
+            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings, PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (!isNewInstance)
         {
@@ -107,7 +107,7 @@ public class ApplicationInitializer(
                 EcliptixSecrecyChannelState? state =
                     EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
                 Result<bool, EcliptixProtocolFailure> restoreResult =
-                    await networkProvider.RestoreSecrecyChannel(state, settings);
+                    await networkProvider.RestoreSecrecyChannel(state, applicationInstanceSettings);
 
                 if (restoreResult.IsOk && restoreResult.Unwrap())
                 {
@@ -120,7 +120,8 @@ public class ApplicationInitializer(
             }
         }
 
-        networkProvider.InitiateEcliptixProtocolSystem(settings, connectId);
+        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings,connectId);
+        
         Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> establishResult =
             await networkProvider.EstablishSecrecyChannel(connectId);
 

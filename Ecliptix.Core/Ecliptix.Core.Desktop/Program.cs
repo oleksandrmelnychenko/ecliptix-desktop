@@ -8,19 +8,16 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Interceptors;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
-using Ecliptix.Protobuf.AppDevice;
-using Ecliptix.Protobuf.AppDeviceServices;
-using Ecliptix.Protobuf.Membership;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -42,7 +39,7 @@ public static class Program
         IConfiguration configuration = BuildConfiguration();
         Env.Load();
         Log.Logger = ConfigureSerilog(configuration);
-        
+
         try
         {
             Log.Information("Starting Ecliptix application...");
@@ -55,12 +52,12 @@ public static class Program
         {
             Log.Fatal(ex, "Application terminated unexpectedly during startup or runtime");
             if (configuration.GetValue<string>("AppSettings:Environment") != "Development")
-                Environment.Exit(1); 
+                Environment.Exit(1);
             throw;
         }
         finally
         {
-            Log.Information("Application shutting down.");
+            Log.Information("Application shutting down");
             await Log.CloseAndFlushAsync();
         }
     }
@@ -71,7 +68,7 @@ public static class Program
 #if DEBUG
         environment ??= "Development";
 #else
-        environment ??= "Production"; 
+        environment ??= "Production";
 #endif
 
         return new ConfigurationBuilder()
@@ -156,10 +153,9 @@ public static class Program
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
             options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
         });
-        
+
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
-        services.AddSingleton<ApplicationInstanceSettings>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>());
@@ -180,9 +176,9 @@ public static class Program
 
     private static void ConfigureGrpc(IServiceCollection services)
     {
-        Action<IServiceProvider, GrpcClientFactoryOptions> configureGrpcClient = (provider, options) =>
+        Action<GrpcClientFactoryOptions> configureClientOptions = (options) =>
         {
-            AppSettings settings = provider.GetRequiredService<AppSettings>();
+            AppSettings settings = services.BuildServiceProvider().GetRequiredService<AppSettings>();
             string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
                 : string.Empty;
@@ -193,12 +189,8 @@ public static class Program
             options.Address = new Uri(endpoint);
         };
 
-        services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(configureGrpcClient)
-            .AddInterceptor<RequestMetaDataInterceptor>();
-        services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(configureGrpcClient)
-            .AddInterceptor<RequestMetaDataInterceptor>();
-        services.AddGrpcClient<MembershipServices.MembershipServicesClient>(configureGrpcClient)
-            .AddInterceptor<RequestMetaDataInterceptor>();
+        services.AddSingleton(configureClientOptions);
+        services.AddResilientGrpcClients(configureClientOptions);
     }
 
     private static void ConfigureViewModels(IServiceCollection services)

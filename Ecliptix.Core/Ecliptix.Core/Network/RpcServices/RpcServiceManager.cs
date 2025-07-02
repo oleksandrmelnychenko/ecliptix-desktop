@@ -15,20 +15,16 @@ public class RpcServiceManager(
 {
     private readonly ConcurrentDictionary<RcpServiceType, Task> _activeStreamHandles = new();
 
-    public async Task<Result<PubKeyExchange, EcliptixProtocolFailure>> EstablishAppDeviceSecrecyChannel(
+    public async Task<PubKeyExchange> EstablishAppDeviceSecrecyChannel(
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
     {
-        Result<PubKeyExchange, EcliptixProtocolFailure> establishAppDeviceSecrecyChannelResult =
-            await secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(serviceRequest.PubKeyExchange);
-        return establishAppDeviceSecrecyChannelResult;
+        return await secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(serviceRequest.PubKeyExchange);
     }
 
-    public async Task<Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure>> RestoreAppDeviceSecrecyChannel(
+    public async Task<RestoreSecrecyChannelResponse> RestoreAppDeviceSecrecyChannel(
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest)
     {
-        Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure> restoreSecrecyChannelResult =
-            await secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(serviceRequest.PubKeyExchange);
-        return restoreSecrecyChannelResult;
+        return await secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(serviceRequest.PubKeyExchange);
     }
 
     public async Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeServiceRequestAsync(ServiceRequest request,

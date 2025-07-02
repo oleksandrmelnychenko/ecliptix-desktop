@@ -4,25 +4,38 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Protocol;
 using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Core.ResilienceStrategy;
+using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Google.Protobuf;
+using Serilog;
 
 namespace Ecliptix.Core.Network.Providers;
 
 public sealed class NetworkProvider(
     RpcServiceManager rpcServiceManager,
-    IRpcMetaDataProvider rpcMetaDataProvider)
+    ISecureStorageProvider secureStorageProvider,
+    IRpcMetaDataProvider rpcMetaDataProvider) : ISessionManager
 {
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
 
     private const int DefaultOneTimeKeyCount = 5;
 
+    private static readonly SemaphoreSlim SessionRecoveryLock = new(1, 1);
+    private volatile bool _isSessionConsideredHealthy;
+
+    private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
+    
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
+        _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
+        
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
@@ -32,6 +45,83 @@ public sealed class NetworkProvider(
         Guid deviceId = Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
 
         rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId);
+    }
+
+    public void MarkSessionAsUnhealthy()
+    {
+        _isSessionConsideredHealthy = false;
+        Log.Warning("Session has been programmatically marked as unhealthy");
+    }
+
+    public async Task<Result<Unit, EcliptixProtocolFailure>> ReEstablishSessionAsync()
+    {
+        await SessionRecoveryLock.WaitAsync();
+        try
+        {
+            if (_isSessionConsideredHealthy)
+            {
+                Log.Information("Session was already recovered by another thread. Skipping redundant recovery");
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+            }
+
+            Log.Information("Starting session recovery process...");
+            Result<Unit, EcliptixProtocolFailure> result = await PerformFullRecoveryLogic();
+
+            _isSessionConsideredHealthy = result.IsOk;
+            if (result.IsErr)
+            {
+                Log.Error(result.UnwrapErr().Message, "Session recovery failed.");
+            }
+
+            return result;
+        }
+        finally
+        {
+            SessionRecoveryLock.Release();
+        }
+    }
+
+    private async Task<Result<Unit, EcliptixProtocolFailure>> PerformFullRecoveryLogic()
+    {
+        uint connectId =
+            ComputeUniqueConnectId(_applicationInstanceSettings.Value!, PubKeyExchangeType.DataCenterEphemeralConnect);
+        _connections.TryRemove(connectId, out _);
+
+        Result<Option<byte[]>, InternalServiceApiFailure> storedStateResult =
+            await secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
+        if (storedStateResult.IsOk && storedStateResult.Unwrap().HasValue)
+        {
+            EcliptixSecrecyChannelState? state =
+                EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
+            Result<bool, EcliptixProtocolFailure> restoreResult =
+                await RestoreSecrecyChannel(state, _applicationInstanceSettings.Value!);
+            if (restoreResult.IsOk && restoreResult.Unwrap())
+            {
+                Log.Information("Session successfully restored from storage");
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+            }
+
+            Log.Warning("Failed to restore session from storage, will attempt full re-establishment");
+        }
+
+        InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
+
+        Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> establishResult =
+            await EstablishSecrecyChannel(connectId);
+        if (establishResult.IsErr)
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Err(establishResult.UnwrapErr());
+        }
+
+        Result<Unit, InternalServiceApiFailure> storeResult =
+            await secureStorageProvider.StoreAsync(connectId.ToString(), establishResult.Unwrap().ToByteArray());
+        if (storeResult.IsErr)
+        {
+            Log.Error("Failed to store newly established session state: {Error}", storeResult.UnwrapErr());
+        }
+
+        Log.Information("Session successfully established via new key exchange");
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
@@ -113,6 +203,11 @@ public sealed class NetworkProvider(
         EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
+        if (!_applicationInstanceSettings.HasValue)
+        {
+            _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
+        }
+        
         rpcMetaDataProvider.SetAppInfo(Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
 
@@ -123,12 +218,8 @@ public sealed class NetworkProvider(
                 RcpServiceType.RestoreSecrecyChannel,
                 request);
 
-        Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure> responseResult =
+        RestoreSecrecyChannelResponse response =
             await rpcServiceManager.RestoreAppDeviceSecrecyChannel(serviceRequest);
-
-        if (responseResult.IsErr) return responseResult.Map(_ => false);
-
-        RestoreSecrecyChannelResponse response = responseResult.Unwrap();
 
         if (response.Status == RestoreSecrecyChannelResponse.Types.RestoreStatus.SessionResumed)
         {
@@ -159,13 +250,9 @@ public sealed class NetworkProvider(
                 RcpServiceType.EstablishSecrecyChannel,
                 pubKeyExchangeRequest.Unwrap());
 
-        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeResponseResult =
+        PubKeyExchange peerPubKeyExchange =
             await rpcServiceManager.EstablishAppDeviceSecrecyChannel(action);
-        if (pubKeyExchangeResponseResult.IsErr)
-        {
-        }
-
-        PubKeyExchange peerPubKeyExchange = pubKeyExchangeResponseResult.Unwrap();
+       
         protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
 
         EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
@@ -182,7 +269,7 @@ public sealed class NetworkProvider(
                         RatchetState = ratchetStateProto
                     })
                 );
-        
+
         return ecliptixSecrecyChannelStateResult;
     }
 

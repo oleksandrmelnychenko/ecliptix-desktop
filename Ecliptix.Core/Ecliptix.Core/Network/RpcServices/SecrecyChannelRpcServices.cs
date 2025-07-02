@@ -1,33 +1,31 @@
 using System.Threading.Tasks;
-using Ecliptix.Core.Interceptors;
-using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Grpc.Core;
+using Polly.Retry;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
 public sealed class SecrecyChannelRpcServices(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient)
 {
-    public async Task<Result<PubKeyExchange, EcliptixProtocolFailure>> EstablishAppDeviceSecrecyChannel(
+    public async Task<PubKeyExchange> EstablishAppDeviceSecrecyChannel(
         PubKeyExchange request)
     {
-        return await Result<PubKeyExchange, EcliptixProtocolFailure>.TryAsync(async () =>
-        {
-            PubKeyExchange? response =
-                await appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request);
-            return response;
-        }, err => err);
+        return await appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request);
     }
 
-    public async Task<Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure>>
-        RestoreAppDeviceSecrecyChannelAsync(RestoreSecrecyChannelRequest request)
+    public async Task<RestoreSecrecyChannelResponse> RestoreAppDeviceSecrecyChannelAsync(
+        RestoreSecrecyChannelRequest request)
     {
-        return await Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure>.TryAsync(async () =>
+        AsyncRetryPolicy<RestoreSecrecyChannelResponse> policy =
+            GrpcResiliencePolicies.GetRestoreSecrecyChannelRetryPolicy();
+        return await policy.ExecuteAsync(async () =>
         {
-            RestoreSecrecyChannelResponse? response =
-                await appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request);
-            return response;
-        }, err => err);
+            AsyncUnaryCall<RestoreSecrecyChannelResponse>? call =
+                appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request);
+            return await call.ResponseAsync;
+        });
     }
 }
