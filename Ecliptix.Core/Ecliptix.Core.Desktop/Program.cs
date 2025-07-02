@@ -153,7 +153,7 @@ public static class Program
         services.Configure<SecureStoreOptions>(options =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
-            options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/ecliptix.state");
+            options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
             options.Validate();
         });
 
