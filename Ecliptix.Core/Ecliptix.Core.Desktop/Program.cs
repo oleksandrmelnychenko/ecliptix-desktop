@@ -156,7 +156,8 @@ public static class Program
             options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
             options.Validate();
         });
-
+        
+        services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
         services.AddSingleton<ApplicationInstanceSettings>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
