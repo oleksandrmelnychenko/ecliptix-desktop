@@ -17,20 +17,16 @@ using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Google.Protobuf;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using Splat;
 
 namespace Ecliptix.Core;
 
 public class App : Application
 {
-    private const int DefaultOneTimeKeyCount = 10;
-
-    private readonly Lock _lock = new();
-
-    private ILogger<App> Logger => Locator.Current.GetService<ILogger<App>>()!;
     private NetworkProvider NetworkProvider => Locator.Current.GetService<NetworkProvider>()!;
     private ISecureStorageProvider SecureStorageProvider => Locator.Current.GetService<ISecureStorageProvider>()!;
-    
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -39,7 +35,7 @@ public class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         base.OnFrameworkInitializationCompleted();
-        
+
         Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure> applicationInstanceSettingsResult
             = SetApplicationInstanceSettings().GetAwaiter().GetResult();
 
@@ -76,11 +72,13 @@ public class App : Application
         const string settingsKey = "ApplicationInstanceSettings";
 
         Result<Option<byte[]>, InternalServiceApiFailure> applicationInstanceSettingsResult =
-          await  SecureStorageProvider.TryGetByKeyAsync(settingsKey);
+            await SecureStorageProvider.TryGetByKeyAsync(settingsKey);
 
         if (applicationInstanceSettingsResult.IsErr)
+        {
             return Result<(ApplicationInstanceSettings, bool), InternalServiceApiFailure>.Err(
                 applicationInstanceSettingsResult.UnwrapErr());
+        }
 
         if (!applicationInstanceSettingsResult.Unwrap().HasValue)
         {
@@ -111,26 +109,22 @@ public class App : Application
         {
             NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
 
-            await NetworkProvider.EstablishSecrecyChannel(connectId,
-                async state =>
-                {
-                   await SecureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
-                },
-                failure => { ShutdownApplication("Failed to establish secrecy channel."); });
+            Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> establishSecrecyChannelResult =
+                await NetworkProvider.EstablishSecrecyChannel(connectId);
 
-            AppDevice appDevice = new()
+            if (establishSecrecyChannelResult.IsErr)
             {
-                AppInstanceId = applicationInstanceSettings.AppInstanceId,
-                DeviceId = applicationInstanceSettings.DeviceId,
-                DeviceType = AppDevice.Types.DeviceType.Desktop
-            };
+            }
 
-            await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings, CancellationToken.None);
+            EcliptixSecrecyChannelState ecliptixSecrecyChannelState = establishSecrecyChannelResult.Unwrap();
+
+            await SecureStorageProvider.StoreAsync(connectId.ToString(), ecliptixSecrecyChannelState.ToByteArray());
+            await RegisterAppDevice(applicationInstanceSettings, connectId);
         }
         else
         {
             Result<Option<byte[]>, InternalServiceApiFailure> ecliptixSecrecyChannelStateResult =
-              await  SecureStorageProvider.TryGetByKeyAsync(connectId.ToString());
+                await SecureStorageProvider.TryGetByKeyAsync(connectId.ToString());
 
             if (ecliptixSecrecyChannelStateResult.IsErr)
             {
@@ -150,7 +144,7 @@ public class App : Application
 
                 if (restoreSecrecyChannelResult.IsErr)
                 {
-                    Logger.LogError("Failed to restore secrecy channel: {Error}",
+                    Log.Error("Failed to restore secrecy channel: {Error}",
                         restoreSecrecyChannelResult.UnwrapErr().Message);
                     ShutdownApplication("Failed to restore secrecy channel.");
                     return;
@@ -159,15 +153,7 @@ public class App : Application
                 bool isSynchronized = restoreSecrecyChannelResult.Unwrap();
                 if (!isSynchronized)
                 {
-                    await NetworkProvider.EstablishSecrecyChannel(connectId,
-                        state =>
-                        {
-                            //SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray());
-                        },
-                        failure =>
-                        {
-                            ShutdownApplication("Failed to establish secrecy channel after failed restoration.");
-                        });
+                    await NetworkProvider.EstablishSecrecyChannel(connectId);
 
                     AppDevice appDevice = new()
                     {
@@ -176,8 +162,7 @@ public class App : Application
                         DeviceType = AppDevice.Types.DeviceType.Desktop
                     };
 
-                    await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings,
-                        CancellationToken.None);
+                    await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings);
                 }
                 else
                 {
@@ -188,8 +173,7 @@ public class App : Application
                         DeviceType = AppDevice.Types.DeviceType.Desktop
                     };
 
-                    await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings,
-                        CancellationToken.None);
+                    await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings);
                 }
             }
             else
@@ -197,15 +181,20 @@ public class App : Application
                 NetworkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings,
                     connectId);
 
-                await NetworkProvider.EstablishSecrecyChannel(connectId,
-                    state =>
-                    {
-                        //SecureStorageProvider.Store(connectId.ToString(), state.ToByteArray());
-                    },
-                    failure =>
-                    {
-                        ShutdownApplication("Failed to establish secrecy channel.");
-                    });
+                Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> secrecyChannelStateResult =
+                    await NetworkProvider.EstablishSecrecyChannel(connectId);
+
+                if (secrecyChannelStateResult.IsErr)
+                { 
+                    Log.Error("Failed to establish secrecy channel: {Error}",
+                        secrecyChannelStateResult.UnwrapErr().Message);
+                    ShutdownApplication("Failed to establish secrecy channel.");
+                    return;
+                }
+
+                EcliptixSecrecyChannelState ecliptixSecrecyChannelState = secrecyChannelStateResult.Unwrap();
+
+                await SecureStorageProvider.StoreAsync(connectId.ToString(), ecliptixSecrecyChannelState.ToByteArray());
 
                 AppDevice appDevice = new()
                 {
@@ -214,16 +203,28 @@ public class App : Application
                     DeviceType = AppDevice.Types.DeviceType.Desktop
                 };
 
-                await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings, CancellationToken.None);
+                await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings);
             }
         }
+    }
+
+    private async Task RegisterAppDevice(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
+    {
+        AppDevice appDevice = new()
+        {
+            AppInstanceId = applicationInstanceSettings.AppInstanceId,
+            DeviceId = applicationInstanceSettings.DeviceId,
+            DeviceType = AppDevice.Types.DeviceType.Desktop
+        };
+
+        await RegisterDeviceAsync(connectId, appDevice, applicationInstanceSettings);
     }
 
     private async Task RegisterDeviceAsync(
         uint connectId,
         AppDevice appDevice,
-        ApplicationInstanceSettings applicationInstanceSettings,
-        CancellationToken token)
+        ApplicationInstanceSettings applicationInstanceSettings
+    )
     {
         Result<Unit, EcliptixProtocolFailure> result = await NetworkProvider.ExecuteServiceRequest(
             connectId,
@@ -235,35 +236,33 @@ public class App : Application
                 AppDeviceRegisteredStateReply reply =
                     Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
                 Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
-                
-                lock (_lock)
-                {
-                    applicationInstanceSettings.SystemDeviceIdentifier = appServerInstanceId.ToString();
-                    applicationInstanceSettings.ServerPublicKey =
-                        ByteString.CopyFrom(reply.ServerPublicKey.ToByteArray());
-                }
 
-                Logger.LogInformation("Device successfully registered with server ID: {AppServerInstanceId}",
+                applicationInstanceSettings.SystemDeviceIdentifier = appServerInstanceId.ToString();
+                applicationInstanceSettings.ServerPublicKey =
+                    ByteString.CopyFrom(reply.ServerPublicKey.ToByteArray());
+
+                Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);
                 return Task.FromResult(Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value));
-            }, token);
+            }, CancellationToken.None);
 
         if (result.IsErr)
         {
-            Logger.LogError("Device registration failed: {Error}", result.UnwrapErr().Message);
+            Log.Error("Device registration failed: {Error}", result.UnwrapErr().Message);
             ShutdownApplication("Device registration failed.");
         }
     }
 
     private void ShutdownApplication(string reason)
     {
-        Logger.LogError("Shutting down application: {Reason}", reason);
+        Log.Error("Shutting down application: {Reason}", reason);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.Shutdown();
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
+            
         }
     }
 }

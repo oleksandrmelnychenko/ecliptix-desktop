@@ -46,12 +46,14 @@ public sealed class NetworkProvider(
         RcpServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, EcliptixProtocolFailure>>> onSuccessCallback,
+        Func<byte[], Task<Result<Unit, EcliptixProtocolFailure>>> onCompleted,
         CancellationToken token = default)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Connection not found"));
+        }
 
         Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundMessage(plainBuffer);
@@ -72,7 +74,7 @@ public sealed class NetworkProvider(
                 CipherPayload inboundPayload = callResult.Unwrap();
                 Result<byte[], EcliptixProtocolFailure> decryptedData =
                     protocolSystem.ProcessInboundMessage(inboundPayload);
-                Result<Unit, EcliptixProtocolFailure> callbackOutcome = await onSuccessCallback(decryptedData.Unwrap());
+                Result<Unit, EcliptixProtocolFailure> callbackOutcome = await onCompleted(decryptedData.Unwrap());
                 if (callbackOutcome.IsErr) return callbackOutcome;
 
                 break;
@@ -90,9 +92,10 @@ public sealed class NetworkProvider(
                     Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
                         protocolSystem.ProcessInboundMessage(streamPayload);
                     Result<Unit, EcliptixProtocolFailure> streamCallbackOutcome =
-                        await onSuccessCallback(streamDecryptedData.Unwrap());
+                        await onCompleted(streamDecryptedData.Unwrap());
                     if (streamCallbackOutcome.IsErr)
-                    {}
+                    {
+                    }
                 }
 
                 break;
@@ -118,9 +121,7 @@ public sealed class NetworkProvider(
             SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse>.New(
                 ServiceFlowType.Single,
                 RcpServiceType.RestoreSecrecyChannel,
-                request,
-                onComplete: _ => { },
-                onFailure: _ => { });
+                request);
 
         Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure> responseResult =
             await rpcServiceManager.RestoreAppDeviceSecrecyChannel(serviceRequest);
@@ -140,51 +141,49 @@ public sealed class NetworkProvider(
         return Result<bool, EcliptixProtocolFailure>.Ok(false);
     }
 
-    public async Task EstablishSecrecyChannel(uint connectId, Action<EcliptixSecrecyChannelState> onComplete,
-        Action<EcliptixProtocolFailure> onFailure)
+    public async Task<Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>> EstablishSecrecyChannel(
+        uint connectId)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
-            Result<Unit, EcliptixProtocolFailure>.Err(
+            return Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Connection not found"));
-            return;
         }
 
-        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchange =
+        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId, PubKeyExchangeType.DataCenterEphemeralConnect);
 
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
             SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
                 ServiceFlowType.Single,
                 RcpServiceType.EstablishSecrecyChannel,
-                pubKeyExchange.Unwrap(),
-                peerPubKeyExchange =>
-                {
-                    protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+                pubKeyExchangeRequest.Unwrap());
 
-                    EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                    EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeResponseResult =
+            await rpcServiceManager.EstablishAppDeviceSecrecyChannel(action);
+        if (pubKeyExchangeResponseResult.IsErr)
+        {
+        }
 
-                    Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
-                        idKeys.ToProtoState()
-                            .AndThen(identityKeysProto => connection.ToProtoState()
-                                .Map(ratchetStateProto => new EcliptixSecrecyChannelState
-                                {
-                                    ConnectId = connectId,
-                                    IdentityKeys = identityKeysProto,
-                                    PeerHandshakeMessage = peerPubKeyExchange,
-                                    RatchetState = ratchetStateProto
-                                })
-                            );
+        PubKeyExchange peerPubKeyExchange = pubKeyExchangeResponseResult.Unwrap();
+        protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
 
-                    if (ecliptixSecrecyChannelStateResult.IsOk)
+        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+
+        Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
+            idKeys.ToProtoState()
+                .AndThen(identityKeysProto => connection.ToProtoState()
+                    .Map(ratchetStateProto => new EcliptixSecrecyChannelState
                     {
-                        onComplete(ecliptixSecrecyChannelStateResult.Unwrap());
-                    }
-                },
-                onFailure: onFailure);
-
-        await rpcServiceManager.EstablishAppDeviceSecrecyChannel(action);
+                        ConnectId = connectId,
+                        IdentityKeys = identityKeysProto,
+                        PeerHandshakeMessage = peerPubKeyExchange,
+                        RatchetState = ratchetStateProto
+                    })
+                );
+        
+        return ecliptixSecrecyChannelStateResult;
     }
 
     private Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> SyncSecrecyChannel(

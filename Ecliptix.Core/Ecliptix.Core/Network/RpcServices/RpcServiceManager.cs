@@ -15,18 +15,12 @@ public class RpcServiceManager(
 {
     private readonly ConcurrentDictionary<RcpServiceType, Task> _activeStreamHandles = new();
 
-    public async Task EstablishAppDeviceSecrecyChannel(SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
+    public async Task<Result<PubKeyExchange, EcliptixProtocolFailure>> EstablishAppDeviceSecrecyChannel(
+        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
     {
         Result<PubKeyExchange, EcliptixProtocolFailure> establishAppDeviceSecrecyChannelResult =
             await secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(serviceRequest.PubKeyExchange);
-        if (establishAppDeviceSecrecyChannelResult.IsOk)
-        {
-            serviceRequest.OnComplete(establishAppDeviceSecrecyChannelResult.Unwrap());
-        }
-        else
-        {
-            serviceRequest.OnFailure(establishAppDeviceSecrecyChannelResult.UnwrapErr());
-        }
+        return establishAppDeviceSecrecyChannelResult;
     }
 
     public async Task<Result<RestoreSecrecyChannelResponse, EcliptixProtocolFailure>> RestoreAppDeviceSecrecyChannel(
