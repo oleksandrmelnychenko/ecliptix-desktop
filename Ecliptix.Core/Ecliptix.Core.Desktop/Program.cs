@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
+using DotNetEnv;
 using Ecliptix.Core.Interceptors;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.RpcServices;
@@ -38,7 +39,8 @@ public static class Program
     {
         IConfiguration configuration = BuildConfiguration();
         Log.Logger = ConfigureSerilog(configuration);
-
+        Env.Load();
+        
         try
         {
             Log.Information("Starting Ecliptix application...");
@@ -63,11 +65,17 @@ public static class Program
 
     private static IConfiguration BuildConfiguration()
     {
+        string? environment = Env.GetString("DOTNET_ENVIRONMENT");
+#if DEBUG
+        environment ??= "Development";
+#else
+        environment ??= "Production"; // Default to Production in release mode
+#endif
+
         return new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production"}.json",
-                optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
     }
@@ -140,7 +148,7 @@ public static class Program
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
-        services.Configure<AppSettings>(_ => configuration.GetSection("AppSettings"));
+        services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
         services.Configure<SecureStoreOptions>(options =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
@@ -172,10 +180,11 @@ public static class Program
     {
         Action<IServiceProvider, GrpcClientFactoryOptions> configureGrpcClient = (provider, options) =>
         {
+            var t = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
             AppSettings settings = provider.GetRequiredService<AppSettings>();
             string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
-                ? settings.LocalHostUrl
-                : settings.CloudHostUrl;
+                ? settings.DataCenterConnectionString
+                : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))
                 throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
