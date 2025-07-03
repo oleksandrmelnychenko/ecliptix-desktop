@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Network.ServiceActions;
 
@@ -28,7 +29,7 @@ public class ServiceRequest
     public static ServiceRequest New(ServiceFlowType actionType, RcpServiceType rcpServiceMethod,
         CipherPayload payload, List<CipherPayload> encryptedChunks)
     {
-        uint reqId = Utilities.GenerateRandomUInt32InRange(10, uint.MaxValue);
+        uint reqId = Helpers.GenerateRandomUInt32InRange(10, uint.MaxValue);
         return new ServiceRequest(reqId, actionType, rcpServiceMethod, payload, encryptedChunks);
     }
 }

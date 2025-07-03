@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Network.RpcServices

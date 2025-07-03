@@ -1,15 +1,16 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Macs;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
-using static Ecliptix.Core.OpaqueProtocol.OpaqueConstants;
+using static Ecliptix.Opaque.Protocol.OpaqueConstants;
 using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
 
 namespace Ecliptix.Core.OpaqueProtocol;

@@ -7,18 +7,20 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Services;
+using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Sodium.Failures;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 using Utilities = Ecliptix.Core.Network.Utilities;
-using ShieldUnit = Ecliptix.Protocol.System.Utilities.Unit;
+using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
 
@@ -133,7 +135,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 ServiceFlowType.Single,
                 async payload => 
                 {
-                    OpaqueSignInInitResponse initResponse = Utilities.ParseFromBytes<OpaqueSignInInitResponse>(payload);
+                    OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
 
                     Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
                         TranscriptHash), OpaqueFailure> finalizationResult =
@@ -158,7 +160,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                         ServiceFlowType.Single,
                         async payload2 => 
                         {
-                            OpaqueSignInFinalizeResponse finalizeResponse = Utilities.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
+                            OpaqueSignInFinalizeResponse finalizeResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
 
                             if (finalizeResponse.Result ==
                                 OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)

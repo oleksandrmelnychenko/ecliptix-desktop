@@ -1,6 +1,6 @@
-namespace Ecliptix.Protocol.System.Sodium.Failures;
+namespace Ecliptix.Utilities.Failures.Sodium;
 
-internal static class SodiumFailureMessages
+public static class SodiumFailureMessages
 {
     public const string SodiumInitFailed = "sodium_init() returned an error code.";
 

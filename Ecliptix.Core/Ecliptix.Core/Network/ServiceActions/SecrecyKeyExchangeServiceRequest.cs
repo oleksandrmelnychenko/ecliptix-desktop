@@ -1,4 +1,5 @@
 using System;
+using Ecliptix.Utilities;
 using Google.Protobuf;
 
 namespace Ecliptix.Core.Network.ServiceActions;
@@ -18,7 +19,7 @@ public class SecrecyKeyExchangeServiceRequest<TRequest, TResponse> where TReques
         RcpServiceType method,
         TRequest pubKeyExchange)
     {
-        uint reqId = Utilities.GenerateRandomUInt32();
+        uint reqId = Helpers.GenerateRandomUInt32();
         return new SecrecyKeyExchangeServiceRequest<TRequest, TResponse>(reqId, jobType, method, pubKeyExchange);
     }
 

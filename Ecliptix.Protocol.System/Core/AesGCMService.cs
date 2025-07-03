@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 // Required for AesGcm
 

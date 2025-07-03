@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Ecliptix.Protocol.System.Sodium.Failures;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Sodium;
 

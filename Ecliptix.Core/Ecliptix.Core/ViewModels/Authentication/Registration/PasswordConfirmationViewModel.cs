@@ -16,13 +16,14 @@ using Ecliptix.Domain.Memberships;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Sodium.Failures;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
-using ShieldUnit = Ecliptix.Protocol.System.Utilities.Unit;
+using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
@@ -449,7 +450,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             OprfRegistrationInitRequest request = new()
             {
-                MembershipIdentifier = Utilities.GuidToByteString(Guid.Parse(VerificationSessionId)),
+                MembershipIdentifier = Helpers.GuidToByteString(Guid.Parse(VerificationSessionId)),
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
@@ -463,7 +464,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                 async payload =>
                 {
                     OprfRegistrationInitResponse createMembershipResponse =
-                        Utilities.ParseFromBytes<OprfRegistrationInitResponse>(payload);
+                        Helpers.ParseFromBytes<OprfRegistrationInitResponse>(payload);
 
                     if (createMembershipResponse.Result ==
                         OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
@@ -485,7 +486,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                             payload =>
                             {
                                 OprfRegistrationCompleteResponse createMembershipResponse =
-                                    Utilities.ParseFromBytes<OprfRegistrationCompleteResponse>(payload);
+                                    Helpers.ParseFromBytes<OprfRegistrationCompleteResponse>(payload);
 
                                 //SAFE the STATE with a KEY
                                 

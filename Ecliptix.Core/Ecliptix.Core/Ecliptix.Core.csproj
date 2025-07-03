@@ -81,6 +81,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="OpaqueProtocol\" />
         <Folder Include="Protobuf\" />
         <Folder Include="ViewModels\Utilities\" />
     </ItemGroup>
@@ -96,6 +97,7 @@
     </ItemGroup>
     
     <ItemGroup>
+      <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
       <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
     </ItemGroup>
 

@@ -13,11 +13,12 @@ using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
-using ShieldUnit = Ecliptix.Protocol.System.Utilities.Unit;
+using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
@@ -162,7 +163,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             ServiceFlowType.Single,
             payload =>
             {
-                _validatePhoneNumberResponse = Utilities.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
+                _validatePhoneNumberResponse = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
                 if (_validatePhoneNumberResponse.Result == VerificationResult.InvalidPhone)
                 {
                     ErrorMessage = _validatePhoneNumberResponse.Message;
@@ -203,7 +204,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             payload =>
             {
                 VerificationCountdownUpdate timerTick =
-                    Utilities.ParseFromBytes<VerificationCountdownUpdate>(payload);
+                    Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
                 if (timerTick.AlreadyVerified)
                 {
                 }
@@ -226,7 +227,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 {
                 }
 
-                VerificationSessionIdentifier ??= Utilities.FromByteStringToGuid(timerTick.SessionIdentifier);
+                VerificationSessionIdentifier ??= Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
                 RxApp.MainThreadScheduler.Schedule(() => SecondsRemaining = timerTick.SecondsRemaining);
                 RxApp.MainThreadScheduler.Schedule(() =>
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
@@ -258,13 +259,13 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             ServiceFlowType.Single,
             payload =>
             {
-                VerifyCodeResponse verifyCodeReply = Utilities.ParseFromBytes<VerifyCodeResponse>(payload);
+                VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
                 if (verifyCodeReply.Result == VerificationResult.Succeeded)
                 {
                     Membership membership = verifyCodeReply.Membership;
                     MessageBus.Current.SendMessage(
                         new VerifyCodeNavigateToView(
-                            Utilities.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
+                            Helpers.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
                             AuthViewType.ConfirmPassword),
                         "VerifyCodeNavigateToView");
                 }

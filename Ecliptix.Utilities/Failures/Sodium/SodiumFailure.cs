@@ -1,4 +1,4 @@
-namespace Ecliptix.Protocol.System.Sodium.Failures;
+namespace Ecliptix.Utilities.Failures.Sodium;
 
 public class SodiumFailure
 {

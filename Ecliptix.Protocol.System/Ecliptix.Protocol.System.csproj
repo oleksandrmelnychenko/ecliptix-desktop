@@ -20,6 +20,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
+      <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Utilities\" />
     </ItemGroup>
 
 </Project>

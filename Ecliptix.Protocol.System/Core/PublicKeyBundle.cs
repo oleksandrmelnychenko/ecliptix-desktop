@@ -1,4 +1,5 @@
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
 
 namespace Ecliptix.Protocol.System.Core;

@@ -5,7 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Core.Network.RpcServices;
 

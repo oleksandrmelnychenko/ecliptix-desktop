@@ -7,7 +7,8 @@ using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Grpc.Core;
 using Polly.Retry;
 

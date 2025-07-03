@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Protobuf.CipherPayload;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Core.Network;
 

@@ -2,6 +2,7 @@
 using Ecliptix.Core.Network;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using Splat;
 
@@ -15,7 +16,7 @@ public class ViewModelBase : ReactiveObject, IDisposable
     {
         ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
 
-        uint connectId = Utilities.ComputeUniqueConnectId(
+        uint connectId = Helpers.ComputeUniqueConnectId(
             appInstanceInfo.AppInstanceId.Span,
             appInstanceInfo.DeviceId.Span, pubKeyExchangeType);
 

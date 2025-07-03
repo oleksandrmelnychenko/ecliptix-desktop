@@ -1,6 +1,6 @@
 using Grpc.Core;
 
-namespace Ecliptix.Protocol.System.Utilities;
+namespace Ecliptix.Utilities.Failures;
 
 public interface IFailureBase
 {

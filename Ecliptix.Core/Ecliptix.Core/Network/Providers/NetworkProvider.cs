@@ -12,7 +12,8 @@ using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Core;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
 using Serilog;
 
@@ -41,8 +42,8 @@ public sealed class NetworkProvider(
 
         _connections.TryAdd(connectId, protocolSystem);
 
-        Guid appInstanceId = Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
-        Guid deviceId = Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+        Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
+        Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
 
         rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId);
     }
@@ -126,7 +127,7 @@ public sealed class NetworkProvider(
 
     public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
         PubKeyExchangeType pubKeyExchangeType) =>
-        Utilities.ComputeUniqueConnectId(
+        Helpers.ComputeUniqueConnectId(
             applicationInstanceSettings.AppInstanceId.Span,
             applicationInstanceSettings.DeviceId.Span,
             pubKeyExchangeType);
@@ -208,8 +209,8 @@ public sealed class NetworkProvider(
             _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
         }
         
-        rpcMetaDataProvider.SetAppInfo(Utilities.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
-            Utilities.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
+        rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
+            Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
 
         RestoreSecrecyChannelRequest request = new();
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest =

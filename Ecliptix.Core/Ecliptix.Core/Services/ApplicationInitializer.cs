@@ -7,7 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
 using Serilog;
 
@@ -84,8 +85,8 @@ public class ApplicationInitializer(
 
         ApplicationInstanceSettings newSettings = new()
         {
-            AppInstanceId = Utilities.GuidToByteString(Guid.NewGuid()),
-            DeviceId = Utilities.GuidToByteString(Guid.NewGuid())
+            AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
+            DeviceId = Helpers.GuidToByteString(Guid.NewGuid())
         };
         await secureStorageProvider.StoreAsync(settingsKey, newSettings.ToByteArray());
         return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
@@ -155,8 +156,8 @@ public class ApplicationInitializer(
             decryptedPayload =>
             {
                 AppDeviceRegisteredStateReply reply =
-                    Utilities.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
-                Guid appServerInstanceId = Utilities.FromByteStringToGuid(reply.UniqueId);
+                    Helpers.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
+                Guid appServerInstanceId = Helpers.FromByteStringToGuid(reply.UniqueId);
 
                 settings.SystemDeviceIdentifier = appServerInstanceId.ToString();
                 settings.ServerPublicKey = ByteString.CopyFrom(reply.ServerPublicKey.ToByteArray());

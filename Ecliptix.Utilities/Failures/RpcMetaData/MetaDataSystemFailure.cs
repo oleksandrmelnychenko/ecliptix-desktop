@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Ecliptix.Protocol.System.Utilities;
+namespace Ecliptix.Utilities.Failures.RpcMetaData;
 
 public class MetaDataSystemFailure
 {

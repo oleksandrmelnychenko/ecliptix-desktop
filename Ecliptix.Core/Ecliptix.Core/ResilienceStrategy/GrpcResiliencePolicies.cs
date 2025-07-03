@@ -1,7 +1,8 @@
 using System;
 using System.Net.Http;
 using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Grpc.Core;
 using Polly;
 using Polly.CircuitBreaker;

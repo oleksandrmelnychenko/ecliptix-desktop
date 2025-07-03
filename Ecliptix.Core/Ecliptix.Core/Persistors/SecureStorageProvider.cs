@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
-using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Serilog;

@@ -1,4 +1,4 @@
-namespace Ecliptix.Protocol.System.Utilities;
+namespace Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 public enum EcliptixProtocolFailureType
 {

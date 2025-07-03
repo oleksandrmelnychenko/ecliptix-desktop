@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-namespace Ecliptix.Protocol.System.Utilities;
+namespace Ecliptix.Utilities;
 
 public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 {

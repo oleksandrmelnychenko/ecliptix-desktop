@@ -1,4 +1,4 @@
-namespace Ecliptix.Core.OpaqueProtocol;
+namespace Ecliptix.Opaque.Protocol;
 
 public static class OpaqueConstants
 {

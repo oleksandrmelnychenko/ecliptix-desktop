@@ -1,5 +1,5 @@
 
-namespace Ecliptix.Protocol.System.Utilities;
+namespace Ecliptix.Utilities;
 
 public readonly record struct Option<T>
 {
