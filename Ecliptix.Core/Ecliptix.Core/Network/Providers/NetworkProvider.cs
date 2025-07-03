@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Protocol;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protocol.System.Core;
+using Ecliptix.Protocol.System.Utilities;
 using Google.Protobuf;
 using Serilog;
 

@@ -66,27 +66,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Protobuf Include="Protobuf\AppDevice.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\AppDeviceServiceActions.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\CipherPayload.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\PubKeyExchange.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-
-        <Protobuf Include="Protobuf\Membership.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\MembershipServices.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-
-        <Protobuf Include="Protobuf\EcliptixProtocolState.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        
-        <Protobuf Include="Protobuf\HealthCheck.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\AuthVerification.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-        <Protobuf Include="Protobuf\AuthenticationServices.proto" GrpcServices="Client" ProtoRoot="Protobuf\"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="Protocol\.DS_Store"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <Compile Update="Views\Memberships\AuthenticationWindow.axaml.cs">
             <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
             <SubType>Code</SubType>
@@ -102,6 +81,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Folder Include="Protobuf\" />
         <Folder Include="ViewModels\Utilities\" />
     </ItemGroup>
 
@@ -113,6 +93,10 @@
     <ItemGroup>
       <AdditionalFiles Include="Locales\en-US.json" />
       <AdditionalFiles Include="Locales\uk-UA.json" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
     </ItemGroup>
 
 </Project>

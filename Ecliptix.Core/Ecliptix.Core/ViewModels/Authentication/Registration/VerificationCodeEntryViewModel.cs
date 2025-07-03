@@ -9,15 +9,15 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protocol.System.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
-using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
+using ShieldUnit = Ecliptix.Protocol.System.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 

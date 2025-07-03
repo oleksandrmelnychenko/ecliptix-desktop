@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Core.Services;
+using Ecliptix.Protocol.System.Utilities;
 
 namespace Ecliptix.Core.Persistors;
 

@@ -1,7 +1,7 @@
 using System;
 using System.Net.Http;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protocol.System.Utilities;
 using Grpc.Core;
 using Polly;
 using Polly.CircuitBreaker;
@@ -14,11 +14,10 @@ public static class GrpcResiliencePolicies
 {
     public static IAsyncPolicy<HttpResponseMessage> GetAuthenticatedPolicy(ISessionManager sessionManager)
     {
-        var transientRetryPolicy = Policy<HttpResponseMessage>
+        AsyncRetryPolicy<HttpResponseMessage>? transientRetryPolicy = Policy<HttpResponseMessage>
             .Handle<HttpRequestException>()
-            .Or<RpcException>(ex => ex.StatusCode == StatusCode.Unavailable ||
-                                    ex.StatusCode == StatusCode.DeadlineExceeded ||
-                                    ex.StatusCode == StatusCode.ResourceExhausted)
+            .Or<RpcException>(ex =>
+                ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
             .OrResult(r => !r.IsSuccessStatusCode)
             .WaitAndRetryAsync(
                 3,
@@ -29,7 +28,7 @@ public static class GrpcResiliencePolicies
                         timespan.TotalSeconds, retryAttempt);
                 });
 
-        var circuitBreakerPolicy = Policy<HttpResponseMessage>
+        AsyncCircuitBreakerPolicy<HttpResponseMessage>? circuitBreakerPolicy = Policy<HttpResponseMessage>
             .Handle<RpcException>(ex => ex.StatusCode == StatusCode.Unauthenticated)
             .OrResult(r => r.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             .CircuitBreakerAsync(
@@ -44,7 +43,7 @@ public static class GrpcResiliencePolicies
                 onReset: () => Log.Information("Circuit breaker reset")
             );
 
-        var sessionRecoveryPolicy = Policy<HttpResponseMessage>
+        AsyncRetryPolicy<HttpResponseMessage>? sessionRecoveryPolicy = Policy<HttpResponseMessage>
             .Handle<BrokenCircuitException>()
             .WaitAndRetryAsync(
                 2,
@@ -52,7 +51,8 @@ public static class GrpcResiliencePolicies
                 onRetryAsync: async (outcome, timespan, retryAttempt, context) =>
                 {
                     Log.Warning("Circuit broken. Attempting session recovery ({RetryAttempt}/2)", retryAttempt);
-                    var recoveryResult = await sessionManager.ReEstablishSessionAsync();
+                    Result<Unit, EcliptixProtocolFailure> recoveryResult =
+                        await sessionManager.ReEstablishSessionAsync();
                     if (recoveryResult.IsErr)
                     {
                         Log.Error("Session recovery failed: {Error}", recoveryResult.UnwrapErr().Message);
@@ -63,7 +63,6 @@ public static class GrpcResiliencePolicies
                     Log.Information("Session recovered on attempt {RetryAttempt}", retryAttempt);
                 });
 
-        // Adjusted order: circuit breaker first
         return Policy.WrapAsync(circuitBreakerPolicy, sessionRecoveryPolicy, transientRetryPolicy);
     }
 
@@ -89,23 +88,19 @@ public static class GrpcResiliencePolicies
                         timespan.TotalSeconds, retryAttempt);
                 });
     }
-    
-    public static AsyncRetryPolicy<RestoreSecrecyChannelResponse> GetRestoreSecrecyChannelRetryPolicy()
-    {
-        return Policy<RestoreSecrecyChannelResponse>
-            .Handle<RpcException>(ex => ex.StatusCode == StatusCode.Unavailable ||
-                                        ex.StatusCode == StatusCode.DeadlineExceeded ||
-                                        ex.StatusCode == StatusCode.ResourceExhausted)
+
+    public static AsyncRetryPolicy<TResult> GetSecrecyChannelRetryPolicy<TResult>() =>
+        Policy<TResult>
+            .Handle<RpcException>(ex =>
+                ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
             .WaitAndRetryAsync(
                 retryCount: 3,
-                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt * 2),
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt * 4),
                 onRetry: (exception, timespan, retryAttempt, context) =>
                 {
-                    Log.Warning(
-                        "gRPC call failed . Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
+                    Log.Warning("gRPC call failed . Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
                         timespan.TotalSeconds, retryAttempt);
                 });
-    }
 }
 
 public class SessionRecoveryException : Exception

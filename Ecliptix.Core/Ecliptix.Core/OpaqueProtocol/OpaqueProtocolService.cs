@@ -1,8 +1,8 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protocol.System.Utilities;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;

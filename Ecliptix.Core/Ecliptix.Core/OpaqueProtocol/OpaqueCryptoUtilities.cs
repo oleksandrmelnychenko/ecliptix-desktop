@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using Ecliptix.Core.Protocol.Utilities;
+using Ecliptix.Protocol.System.Utilities;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Digests;

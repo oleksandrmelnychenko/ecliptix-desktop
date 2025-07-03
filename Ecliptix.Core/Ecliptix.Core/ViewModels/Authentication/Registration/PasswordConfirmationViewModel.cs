@@ -6,23 +6,23 @@ using System.Security.Cryptography;
 using ReactiveUI;
 using System.Text;
 using System.Threading.Tasks;
-using Ecliptix.Core.Protocol;
-using Ecliptix.Core.Protocol.Utilities;
 using System.Threading;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Protocol.Failures;
 using Ecliptix.Core.Services;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Sodium.Failures;
+using Ecliptix.Protocol.System.Utilities;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
-using ShieldUnit = Ecliptix.Core.Protocol.Utilities.Unit;
+using ShieldUnit = Ecliptix.Protocol.System.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 

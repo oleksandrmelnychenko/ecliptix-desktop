@@ -1,5 +1,4 @@
 using Ecliptix.Core.Network;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -8,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Protocol.System.Utilities;
 using Google.Protobuf;
 using Serilog;
 

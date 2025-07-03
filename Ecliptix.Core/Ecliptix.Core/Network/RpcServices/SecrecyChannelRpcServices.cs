@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Protobuf.AppDeviceServices;
@@ -10,21 +11,21 @@ namespace Ecliptix.Core.Network.RpcServices;
 public sealed class SecrecyChannelRpcServices(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient)
 {
-    public async Task<PubKeyExchange> EstablishAppDeviceSecrecyChannel(
-        PubKeyExchange request)
-    {
-        return await appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request);
-    }
+    public async Task<PubKeyExchange> EstablishAppDeviceSecrecyChannel(PubKeyExchange request) =>
+        await ExecuteWithRetryAsync(() => appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request));
 
     public async Task<RestoreSecrecyChannelResponse> RestoreAppDeviceSecrecyChannelAsync(
-        RestoreSecrecyChannelRequest request)
+        RestoreSecrecyChannelRequest request) =>
+        await ExecuteWithRetryAsync(() =>
+            appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request));
+
+    private static async Task<TResponse> ExecuteWithRetryAsync<TResponse>(
+        Func<AsyncUnaryCall<TResponse>> grpcCallFactory)
     {
-        AsyncRetryPolicy<RestoreSecrecyChannelResponse> policy =
-            GrpcResiliencePolicies.GetRestoreSecrecyChannelRetryPolicy();
+        AsyncRetryPolicy<TResponse> policy = GrpcResiliencePolicies.GetSecrecyChannelRetryPolicy<TResponse>();
         return await policy.ExecuteAsync(async () =>
         {
-            AsyncUnaryCall<RestoreSecrecyChannelResponse>? call =
-                appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request);
+            AsyncUnaryCall<TResponse> call = grpcCallFactory();
             return await call.ResponseAsync;
         });
     }

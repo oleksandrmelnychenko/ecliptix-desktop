@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Domain.Memberships;
+using Ecliptix.Protocol.System.Utilities;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 

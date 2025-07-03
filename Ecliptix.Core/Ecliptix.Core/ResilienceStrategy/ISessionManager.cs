@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
-using Ecliptix.Core.Protocol.Utilities;
 using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protocol.System.Utilities;
 
 namespace Ecliptix.Core.ResilienceStrategy;
 
