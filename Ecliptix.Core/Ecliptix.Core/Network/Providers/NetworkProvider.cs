@@ -22,7 +22,7 @@ namespace Ecliptix.Core.Network.Providers;
 public sealed class NetworkProvider(
     RpcServiceManager rpcServiceManager,
     ISecureStorageProvider secureStorageProvider,
-    IRpcMetaDataProvider rpcMetaDataProvider) : ISessionManager
+    IRpcMetaDataProvider rpcMetaDataProvider) : INetworkProvider
 {
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
 
@@ -48,13 +48,13 @@ public sealed class NetworkProvider(
         rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId);
     }
 
-    public void MarkSessionAsUnhealthy()
+    public void SetSecrecyChannelAsUnhealthy()
     {
         _isSessionConsideredHealthy = false;
         Log.Warning("Session has been programmatically marked as unhealthy");
     }
 
-    public async Task<Result<Unit, EcliptixProtocolFailure>> ReEstablishSessionAsync()
+    public async Task<Result<Unit, EcliptixProtocolFailure>> RestoreSecrecyChannelAsync()
     {
         await SessionRecoveryLock.WaitAsync();
         try

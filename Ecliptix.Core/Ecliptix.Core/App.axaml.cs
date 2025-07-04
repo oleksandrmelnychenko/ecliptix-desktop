@@ -42,10 +42,13 @@ public class App : Application
         bool success = await initializer.InitializeAsync();
         if (success)
         {
-            desktop.MainWindow = new AuthenticationWindow
+            if (!initializer.IsMembershipConfirmed)
             {
-                DataContext = Locator.Current.GetService<AuthenticationViewModel>()
-            };
+                desktop.MainWindow = new AuthenticationWindow
+                {
+                    DataContext = Locator.Current.GetService<AuthenticationViewModel>()
+                };
+            }
         }
         else
         {

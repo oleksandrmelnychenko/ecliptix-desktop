@@ -5,4 +5,6 @@ namespace Ecliptix.Core.Services;
 public interface IApplicationInitializer
 {
     Task<bool> InitializeAsync();
+
+    bool IsMembershipConfirmed { get; }
 }

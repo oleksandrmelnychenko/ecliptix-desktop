@@ -21,15 +21,15 @@ public static class ResilienceExtensions
 
         services.AddGrpcClient<MembershipServices.MembershipServicesClient>(configureClientOptions)
         .AddPolicyHandler((sp, _) => {
-            ISessionManager sessionManager = sp.GetRequiredService<ISessionManager>();
-            return GrpcResiliencePolicies.GetAuthenticatedPolicy(sessionManager);
+            INetworkProvider networkProvider = sp.GetRequiredService<INetworkProvider>();
+            return GrpcResiliencePolicies.GetAuthenticatedPolicy(networkProvider);
         })
         .AddInterceptor<RequestMetaDataInterceptor>();
 
         services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(configureClientOptions)
         .AddPolicyHandler((sp, _) => {
-            ISessionManager sessionManager = sp.GetRequiredService<ISessionManager>();
-            return GrpcResiliencePolicies.GetAuthenticatedPolicy(sessionManager);
+            INetworkProvider networkProvider = sp.GetRequiredService<INetworkProvider>();
+            return GrpcResiliencePolicies.GetAuthenticatedPolicy(networkProvider);
         })
         .AddInterceptor<RequestMetaDataInterceptor>();
 

@@ -1,7 +1,5 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
-using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
@@ -13,14 +11,14 @@ using Org.BouncyCastle.Math;
 using static Ecliptix.Opaque.Protocol.OpaqueConstants;
 using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
 
-namespace Ecliptix.Core.OpaqueProtocol;
+namespace Ecliptix.Opaque.Protocol;
 
 public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
 {
-    public static Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] password)
+    public static Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> CreateOprfRequest(byte[] secureKey)
     {
         BigInteger blind = OpaqueCryptoUtilities.GenerateRandomScalar();
-        Result<ECPoint, OpaqueFailure> hashResult = OpaqueCryptoUtilities.HashToPoint(password);
+        Result<ECPoint, OpaqueFailure> hashResult = OpaqueCryptoUtilities.HashToPoint(secureKey);
         if (hashResult.IsErr) return Result<(byte[], BigInteger), OpaqueFailure>.Err(hashResult.UnwrapErr());
 
         ECPoint oprfRequestPoint = hashResult.Unwrap().Multiply(blind);

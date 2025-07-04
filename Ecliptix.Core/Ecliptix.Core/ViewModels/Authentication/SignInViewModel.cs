@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
-using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Core.Services;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;

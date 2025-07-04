@@ -1,4 +1,3 @@
-using Ecliptix.Core.OpaqueProtocol;
 using Ecliptix.Utilities;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;

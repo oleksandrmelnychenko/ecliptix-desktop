@@ -81,12 +81,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="OpaqueProtocol\" />
-        <Folder Include="Protobuf\" />
-        <Folder Include="ViewModels\Utilities\" />
-    </ItemGroup>
-
-    <ItemGroup>
         <UpToDateCheckInput Remove="Styles\BaseColors.axaml"/>
         <UpToDateCheckInput Remove="Themes\Generic.axaml" />
     </ItemGroup>

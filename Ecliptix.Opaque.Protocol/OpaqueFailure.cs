@@ -1,6 +1,4 @@
-using System;
-
-namespace Ecliptix.Core.OpaqueProtocol;
+namespace Ecliptix.Opaque.Protocol;
 
 public sealed record OpaqueFailure
 {

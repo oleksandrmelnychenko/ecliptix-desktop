@@ -27,6 +27,7 @@ public class ApplicationInitializer(
         {
             Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
                 await GetOrCreateInstanceSettingsAsync();
+            
             if (settingsResult.IsErr)
             {
                 Log.Error("Failed to get or create application instance settings: {Error}", settingsResult.UnwrapErr());
@@ -61,6 +62,8 @@ public class ApplicationInitializer(
             return false;
         }
     }
+
+    public bool IsMembershipConfirmed { get; } = false;
 
     private async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> GetOrCreateInstanceSettingsAsync()
     {
