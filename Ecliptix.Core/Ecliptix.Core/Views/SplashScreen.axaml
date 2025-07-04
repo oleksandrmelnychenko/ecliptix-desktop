@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Ecliptix.Core.Views.SplashScreen"
+        Title="SplashScreen"
+        Width="400" Height="300"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="White"
+        x:DataType="vm:SplashScreenViewModel">
+    <Grid RowDefinitions="*,Auto,Auto" Margin="32">
+        <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+            <Image Source="/Assets/ecliptix.png" Width="96" Height="96"/>
+            <ProgressBar Foreground="DarkOrchid" IsIndeterminate="True" Height="8" Width="200"/>
+        </StackPanel>
+        <TextBlock Grid.Row="1"
+                   Text="{Binding Status}"
+                   FontSize="16"
+                   HorizontalAlignment="Center"
+                   Margin="0,24,0,0"/>
+        <TextBlock Grid.Row="2"
+                   Text="© Horizon Dynamics LLC 2025"
+                   FontSize="12"
+                   Foreground="#B0B0B0"
+                   HorizontalAlignment="Center"
+                   Margin="0,24,0,0"/>
+    </Grid>
+</Window>

@@ -2,8 +2,11 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
+using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Authentication;
 using Serilog;
 using Splat;
@@ -17,45 +20,60 @@ public class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+  public override void OnFrameworkInitializationCompleted()
     {
         base.OnFrameworkInitializationCompleted();
 
-        _ = StartupAsync();
-    }
-
-    private async Task StartupAsync()
-    {
-        if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            return;
-        }
+            var splashVM = new SplashScreenViewModel();
+            var splash = new SplashScreen { DataContext = splashVM };
+            desktop.MainWindow = splash;
+            splash.Show();
 
-        IApplicationInitializer? initializer = Locator.Current.GetService<IApplicationInitializer>();
-        if (initializer is null)
-        {
-            Log.Error("Application Initializer service is not registered. Shutting down");
-            ShutdownApplication(desktop, "Critical service missing.");
-            return;
-        }
-
-        bool success = await initializer.InitializeAsync();
-        if (success)
-        {
-            if (!initializer.IsMembershipConfirmed)
+            // Schedule the async startup after splash is shown
+            Dispatcher.UIThread.Post(async () =>
             {
-                desktop.MainWindow = new AuthenticationWindow
+                IApplicationInitializer? initializer = Locator.Current.GetService<IApplicationInitializer>();
+                if (initializer is null)
                 {
-                    DataContext = Locator.Current.GetService<AuthenticationViewModel>()
-                };
-            }
-        }
-        else
-        {
-            Log.Error("Application initialization failed. The application will now exit");
-            ShutdownApplication(desktop, "Initialization failed.");
+                    Log.Error("Application Initializer service is not registered. Shutting down");
+                    ShutdownApplication(desktop, "Critical service missing.");
+                    return;
+                }
+
+                splashVM.Status = "Initializing application...";
+
+                // Run initialization on a background thread, marshal status updates to UI thread
+                bool success = await Task.Run(() =>
+                    initializer.InitializeAsync(status =>
+                        Dispatcher.UIThread.Post(() => splashVM.Status = status)
+                    )
+                );
+
+                if (success)
+                {
+                    splashVM.Status = "Initialization complete!";
+                    var authWindow = new AuthenticationWindow
+                    {
+                        DataContext = Locator.Current.GetService<AuthenticationViewModel>()
+                    };
+                    desktop.MainWindow = authWindow;
+                    authWindow.Show();
+                    splash.Close();
+                }
+                else
+                {
+                    splashVM.Status = "Initialization failed. Exiting...";
+                    Log.Error("Application initialization failed. The application will now exit");
+                    await Task.Delay(2000); // Let user see the error
+                    ShutdownApplication(desktop, "Initialization failed.");
+                }
+            }, DispatcherPriority.Background);
         }
     }
+
+    
 
     private void ShutdownApplication(IClassicDesktopStyleApplicationLifetime desktop, string reason)
     {
