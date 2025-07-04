@@ -54,13 +54,17 @@ public class App : Application
                 if (success)
                 {
                     splashVM.Status = "Initialization complete!";
-                    var authWindow = new AuthenticationWindow
+
+                    if (!initializer.IsMembershipConfirmed)
                     {
-                        DataContext = Locator.Current.GetService<AuthenticationViewModel>()
-                    };
-                    desktop.MainWindow = authWindow;
-                    authWindow.Show();
-                    splash.Close();
+                        desktop.MainWindow = new AuthenticationWindow
+                        {
+                            DataContext = Locator.Current.GetService<AuthenticationViewModel>()
+                        };
+                        desktop.MainWindow.Show();
+                        splash.Close();
+                    }
+                    
                 }
                 else
                 {
