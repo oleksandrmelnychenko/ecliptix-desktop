@@ -10,6 +10,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+        <AssemblyVersion>0.0.1.0</AssemblyVersion>
     </PropertyGroup>
     <ItemGroup>
         <TrimmerRootAssembly Include="Avalonia.Themes.Fluent"/>

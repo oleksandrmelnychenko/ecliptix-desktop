@@ -109,7 +109,7 @@ public sealed class UnaryRpcServices
     private static async Task<Result<CipherPayload, EcliptixProtocolFailure>> ExecuteGrpcCallAsync(
         Func<AsyncUnaryCall<CipherPayload>> grpcCallFactory)
     {
-        AsyncRetryPolicy<CipherPayload> policy = GrpcResiliencePolicies.GetSecrecyChannelRetryPolicy<CipherPayload>();
+        AsyncRetryPolicy<CipherPayload> policy = RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<CipherPayload>();
         return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(
             async () => await policy.ExecuteAsync(async () =>
             {

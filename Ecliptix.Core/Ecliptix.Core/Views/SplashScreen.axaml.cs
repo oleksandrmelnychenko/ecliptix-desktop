@@ -1,13 +1,20 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.ReactiveUI;
+using Ecliptix.Core.ViewModels;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Views;
 
-public partial class SplashScreen : Window
+public partial class SplashScreen :  ReactiveWindow<SplashScreenViewModel>
 {
     public SplashScreen()
     {
-        InitializeComponent();
+        this.WhenActivated(disposables =>
+        {
+            
+        });
+        AvaloniaXamlLoader.Load(this);
     }
 }

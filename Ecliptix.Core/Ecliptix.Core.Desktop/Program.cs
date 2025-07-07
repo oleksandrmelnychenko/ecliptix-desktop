@@ -168,6 +168,9 @@ public static class Program
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
 
+        
+        
+        
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -205,6 +208,7 @@ public static class Program
         services.AddTransient<NicknameInputViewModel>();
         services.AddTransient<PassPhaseViewModel>();
         services.AddSingleton<AuthenticationViewFactory>();
+        services.AddTransient<SplashScreenViewModel>();
     }
 
     private static string ResolvePath(string path)

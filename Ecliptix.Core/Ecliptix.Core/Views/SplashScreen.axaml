@@ -5,29 +5,65 @@
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.SplashScreen"
-        Title="SplashScreen"
+        Title="Ecliptix"
         Width="400" Height="300"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
         SystemDecorations="None"
-        Background="White"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        x:CompileBindings="True"
         x:DataType="vm:SplashScreenViewModel">
-    <Grid RowDefinitions="*,Auto,Auto" Margin="32">
-        <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
-            <Image Source="/Assets/ecliptix.png" Width="96" Height="96"/>
-            <ProgressBar Foreground="DarkOrchid" IsIndeterminate="True" Height="8" Width="200"/>
-        </StackPanel>
-        <TextBlock Grid.Row="1"
-                   Text="{Binding Status}"
-                   FontSize="16"
-                   HorizontalAlignment="Center"
-                   Margin="0,24,0,0"/>
-        <TextBlock Grid.Row="2"
-                   Text="© Horizon Dynamics LLC 2025"
-                   FontSize="12"
-                   Foreground="#B0B0B0"
-                   HorizontalAlignment="Center"
-                   Margin="0,24,0,0"/>
-    </Grid>
+    <Border Background="White"
+            CornerRadius="16"
+            BoxShadow="0 4 16 0 #20000000"
+            Margin="0">
+        <Grid RowDefinitions="*,Auto,Auto" Margin="24">
+            <!-- Logo and Progress Bar -->
+            <StackPanel Grid.Row="0"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="16">
+                <Image Source="/Assets/ecliptix.png"
+                       Width="96"
+                       Height="96" />
+                <ProgressBar Foreground="DarkOrchid"
+                             IsIndeterminate="True"
+                             Height="8"
+                             Width="200" />
+            </StackPanel>
+
+            <!-- Status -->
+            <TextBlock Grid.Row="1"
+                       Text="{CompiledBinding Status}"
+                       FontSize="16"
+                       HorizontalAlignment="Center"
+                       Margin="0,16,0,0" />
+
+            <!-- Version and Copyright -->
+            <Grid Grid.Row="2" Margin="0,16,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Copyright (Bottom-Left) -->
+                <TextBlock Grid.Column="0"
+                           Text="© Horizon Dynamics LLC 2025"
+                           FontSize="12"
+                           Foreground="#B0B0B0"
+                           VerticalAlignment="Bottom"
+                           HorizontalAlignment="Left" />
+
+                <!-- Version (Bottom-Right) -->
+                <TextBlock Grid.Column="1"
+                           Text="{CompiledBinding ApplicationVersion}"
+                           FontSize="12"
+                           Foreground="#B0B0B0"
+                           VerticalAlignment="Bottom"
+                           HorizontalAlignment="Right" />
+            </Grid>
+        </Grid>
+    </Border>
 </Window>

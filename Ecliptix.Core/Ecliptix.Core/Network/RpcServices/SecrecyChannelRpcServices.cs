@@ -4,7 +4,9 @@ using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Grpc.Core;
+using Polly;
 using Polly.Retry;
+using Serilog;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -22,11 +24,19 @@ public sealed class SecrecyChannelRpcServices(
     private static async Task<TResponse> ExecuteWithRetryAsync<TResponse>(
         Func<AsyncUnaryCall<TResponse>> grpcCallFactory)
     {
-        AsyncRetryPolicy<TResponse> policy = GrpcResiliencePolicies.GetSecrecyChannelRetryPolicy<TResponse>();
-        return await policy.ExecuteAsync(async () =>
+        try
         {
-            AsyncUnaryCall<TResponse> call = grpcCallFactory();
-            return await call.ResponseAsync;
-        });
+            AsyncRetryPolicy<TResponse> policy = RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<TResponse>();
+            return await policy.ExecuteAsync(async () =>
+            {
+                AsyncUnaryCall<TResponse> call = grpcCallFactory();
+                return await call.ResponseAsync;
+            });
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }

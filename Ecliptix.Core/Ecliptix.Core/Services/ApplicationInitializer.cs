@@ -21,11 +21,10 @@ public class ApplicationInitializer(
 {
     private record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
 
-    public async Task<bool> InitializeAsync(Action<string>? statusCallback = null)
+    public async Task<bool> InitializeAsync()
     {
         try
         {
-            statusCallback?.Invoke("Loading instance settings...");
             Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
                 await GetOrCreateInstanceSettingsAsync();
             if (settingsResult.IsErr)
@@ -36,7 +35,6 @@ public class ApplicationInitializer(
 
             (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
-            statusCallback?.Invoke("Establishing secure channel...");
             Result<uint, EcliptixProtocolFailure> connectIdResult =
                 await EnsureSecrecyChannelAsync(settings, isNewInstance);
             if (connectIdResult.IsErr)
@@ -47,7 +45,6 @@ public class ApplicationInitializer(
 
             uint connectId = connectIdResult.Unwrap();
 
-            statusCallback?.Invoke("Registering device...");
             Result<Unit, EcliptixProtocolFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
             if (registrationResult.IsErr)
             {
@@ -55,7 +52,6 @@ public class ApplicationInitializer(
                 return false;
             }
 
-            statusCallback?.Invoke("Initialization complete!");
             Log.Information("Application initialized successfully");
             return true;
         }

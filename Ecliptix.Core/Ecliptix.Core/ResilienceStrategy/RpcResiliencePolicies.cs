@@ -1,17 +1,17 @@
 using System;
 using System.Net.Http;
-using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Grpc.Core;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+using Polly.Wrap;
 using Serilog;
 
 namespace Ecliptix.Core.ResilienceStrategy;
 
-public static class GrpcResiliencePolicies
+public static class RpcResiliencePolicies
 {
     public static IAsyncPolicy<HttpResponseMessage> GetAuthenticatedPolicy(INetworkProvider networkProvider)
     {
@@ -87,7 +87,7 @@ public static class GrpcResiliencePolicies
                         timespan.TotalSeconds, retryAttempt);
                 });
     }
-
+   
     public static AsyncRetryPolicy<TResult> GetSecrecyChannelRetryPolicy<TResult>() =>
         Policy<TResult>
             .Handle<RpcException>(ex =>
