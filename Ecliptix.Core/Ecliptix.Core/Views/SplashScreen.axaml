@@ -1,69 +1,78 @@
+<!-- Ecliptix.Core/Views/SplashScreen.axaml (FINAL - Visual Studio Style Glow) -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="340"
         x:Class="Ecliptix.Core.Views.SplashScreen"
+        x:DataType="vm:SplashScreenViewModel"
+        x:CompileBindings="True"
         Title="Ecliptix"
-        Width="400" Height="300"
+        Width="480" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
         SystemDecorations="None"
-        TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
-        x:CompileBindings="True"
-        x:DataType="vm:SplashScreenViewModel">
-    <Border Background="White"
-            CornerRadius="16"
-            BoxShadow="0 4 16 0 #20000000"
-            Margin="0">
-        <Grid RowDefinitions="*,Auto,Auto" Margin="24">
-            <!-- Logo and Progress Bar -->
-            <StackPanel Grid.Row="0"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center"
-                        Spacing="16">
-                <Image Source="/Assets/ecliptix.png"
-                       Width="96"
-                       Height="96" />
-                <ProgressBar Foreground="DarkOrchid"
-                             IsIndeterminate="True"
-                             Height="8"
-                             Width="200" />
-            </StackPanel>
+        TransparencyLevelHint="Transparent">
 
-            <!-- Status -->
-            <TextBlock Grid.Row="1"
-                       Text="{CompiledBinding Status}"
-                       FontSize="16"
+    <Grid>
+        <!-- LAYER 1: THE GLOW
+             - The Margin is now 18, only 2px smaller than the content margin. This creates a very tight glow.
+             - The Background is semi-transparent (#AA) for a softer, more subtle effect.
+             - The Blur Radius is moderate (25), perfect for an "aura" instead of a cloud. -->
+        <Border Margin="18"
+                CornerRadius="16"
+                Background="#AA9966CC">
+            <Border.Effect>
+                <BlurEffect Radius="25" />
+            </Border.Effect>
+        </Border>
+
+        <!-- LAYER 2: THE CONTENT
+             - This sits on top of the glow layer. Its margin is 20. -->
+        <Border Background="#fafafa"
+                BorderBrush="#B084CC"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="24"
+                Margin="20">
+
+            <Grid RowDefinitions="*, Auto, Auto, Auto">
+
+                <Image Grid.Row="0"
+                       Source="/Assets/ecliptix.png" 
+                       Width="140"
+                       VerticalAlignment="Center"
                        HorizontalAlignment="Center"
-                       Margin="0,16,0,0" />
-
-            <!-- Version and Copyright -->
-            <Grid Grid.Row="2" Margin="0,16,0,8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Copyright (Bottom-Left) -->
-                <TextBlock Grid.Column="0"
-                           Text="© Horizon Dynamics LLC 2025"
-                           FontSize="12"
-                           Foreground="#B0B0B0"
+                       Margin="0,0,0,20" />
+                
+                <TextBlock Grid.Row="1"
+                           Text="{Binding StatusText}"
+                           FontSize="16"
+                           Foreground="#404040"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Bottom"
-                           HorizontalAlignment="Left" />
+                           Margin="0,0,0,16" />
 
-                <!-- Version (Bottom-Right) -->
-                <TextBlock Grid.Column="1"
+                <ProgressBar Grid.Row="2"
+                             IsIndeterminate="True"
+                             Foreground="#9966CC"
+                             Background="#E6E0F8"
+                             Height="4"
+                             CornerRadius="2"
+                             HorizontalAlignment="Stretch" />
+
+                <TextBlock Grid.Row="3"
                            Text="{CompiledBinding ApplicationVersion}"
                            FontSize="12"
-                           Foreground="#B0B0B0"
+                           Foreground="#A0A0A0"
+                           HorizontalAlignment="Left"
                            VerticalAlignment="Bottom"
-                           HorizontalAlignment="Right" />
+                           Margin="0,24,0,0" />
+
             </Grid>
-        </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </Window>
