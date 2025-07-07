@@ -1,4 +1,3 @@
-<!-- Ecliptix.Core/Views/SplashScreen.axaml (FINAL - Visual Studio Style Glow) -->
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -18,10 +17,6 @@
         TransparencyLevelHint="Transparent">
 
     <Grid>
-        <!-- LAYER 1: THE GLOW
-             - The Margin is now 18, only 2px smaller than the content margin. This creates a very tight glow.
-             - The Background is semi-transparent (#AA) for a softer, more subtle effect.
-             - The Blur Radius is moderate (25), perfect for an "aura" instead of a cloud. -->
         <Border Margin="18"
                 CornerRadius="16"
                 Background="#AA9966CC">
@@ -30,14 +25,20 @@
             </Border.Effect>
         </Border>
 
-        <!-- LAYER 2: THE CONTENT
-             - This sits on top of the glow layer. Its margin is 20. -->
         <Border Background="#fafafa"
                 BorderBrush="#B084CC"
                 BorderThickness="1"
                 CornerRadius="16"
                 Padding="14"
                 Margin="10">
+
+            <Border.Effect>
+                <DropShadowEffect Color="#9966CC"
+                                  BlurRadius="15"
+                                  Opacity="0.6"
+                                  OffsetX="0"
+                                  OffsetY="0" />
+            </Border.Effect>
 
             <Grid RowDefinitions="*, Auto, Auto, Auto">
 
