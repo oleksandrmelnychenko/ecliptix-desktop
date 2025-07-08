@@ -2,6 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using ReactiveUI;
+using System;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace Ecliptix.Core.Views.Memberships.Components;
 
@@ -16,31 +20,52 @@ public partial class TitleBar : UserControl
     public static readonly StyledProperty<bool> DisableMaximizeButtonProperty =
         AvaloniaProperty.Register<TitleBar, bool>(nameof(DisableMaximizeButton), true);
 
+    public ReactiveCommand<Unit, Unit> CloseCommand { get; }
+    public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
+    public ReactiveCommand<Unit, Unit> MaximizeCommand { get; }
+
+    private IDisposable _pointerPressedSubscription;
+
     public TitleBar()
     {
         InitializeComponent();
 
-        this.FindControl<Panel>("PART_Root")!
-            .PointerPressed += OnRootPointerPressed;
+        CloseCommand = ReactiveCommand.Create(
+            () => Window?.Close(),
+            this.WhenAnyValue(x => x.DisableCloseButton).Select(disable => !disable)
+        );
 
-        this.FindControl<Button>("PART_Close")!
-            .Click += (_, __) => Window?.Close();
+        MinimizeCommand = ReactiveCommand.Create(
+            () =>
+            {
+                if (Window != null)
+                    Window.WindowState = WindowState.Minimized;
+            },
+            this.WhenAnyValue(x => x.DisableMinimizeButton).Select(disable => !disable)
+        );
 
-        this.FindControl<Button>("PART_Minimize")!
-            .Click += (_, __) =>
+        MaximizeCommand = ReactiveCommand.Create(
+            () =>
+            {
+                if (Window != null)
+                    Window.WindowState = Window.WindowState == WindowState.Maximized
+                        ? WindowState.Normal
+                        : WindowState.Maximized;
+            },
+            this.WhenAnyValue(x => x.DisableMaximizeButton).Select(disable => !disable)
+        );
+
+        var rootPanel = this.FindControl<Panel>("PART_Root");
+        _pointerPressedSubscription = Observable.FromEventPattern<PointerPressedEventArgs>(
+            h => rootPanel.PointerPressed += h,
+            h => rootPanel.PointerPressed -= h
+        ).Subscribe(e =>
         {
-            if (Window != null)
-                Window.WindowState = WindowState.Minimized;
-        };
+            if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                Window?.BeginMoveDrag(e.EventArgs);
+        });
 
-        this.FindControl<Button>("PART_Maximize")!
-            .Click += (_, __) =>
-        {
-            if (Window != null)
-                Window.WindowState = Window.WindowState == WindowState.Maximized
-                    ? WindowState.Normal
-                    : WindowState.Maximized;
-        };
+        this.Unloaded += (s, e) => _pointerPressedSubscription?.Dispose();
     }
 
     public bool DisableCloseButton
@@ -66,11 +91,5 @@ public partial class TitleBar : UserControl
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-    }
-
-    private void OnRootPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-            Window?.BeginMoveDrag(e);
     }
 }
