@@ -36,7 +36,7 @@ public class ApplicationStartup
         {
             await _splashViewModel.IsSubscribed.Task;
 
-            bool success = await Task.Run(() => _initializer.InitializeAsync());
+            bool success = await _initializer.InitializeAsync();
             if (success)
             {
                 TransitionToNextWindow();
