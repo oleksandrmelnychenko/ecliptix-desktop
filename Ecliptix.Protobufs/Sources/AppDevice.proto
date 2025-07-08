@@ -34,4 +34,5 @@ message ApplicationInstanceSettings{
   bytes server_public_key = 3;
   string system_device_identifier = 4;
   AppDevice.DeviceType device_type = 5;
+  string culture = 6;
 }

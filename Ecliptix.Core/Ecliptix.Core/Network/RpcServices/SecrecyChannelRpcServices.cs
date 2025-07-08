@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Core.ResilienceStrategy;
+using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Grpc.Core;

@@ -1,42 +1,38 @@
 using System;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Ecliptix.Core.Network.AppEvents;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-using Serilog;
 
 namespace Ecliptix.Core.ViewModels;
 
-public class SplashScreenViewModel : ReactiveObject, IActivatableViewModel
+public sealed class SplashScreenViewModel : ViewModelBase, IActivatableViewModel
 {
     public string ApplicationVersion => VersionHelper.GetApplicationVersion();
 
-    public ViewModelActivator Activator { get; }
+    public ViewModelActivator Activator { get; } = new();
 
-    [Reactive]
-    public string StatusText { get; set; } = "Initializing...";
+    public TaskCompletionSource<bool> IsSubscribed { get; } = new();
+    
+    private string _statusText  = "Initializing...";
+    public string StatusText
+    {
+        get => _statusText;
+        set => this.RaiseAndSetIfChanged(ref _statusText, value);
+    }
     
     public SplashScreenViewModel()
     {
-        Activator = new ViewModelActivator();
-
         this.WhenActivated(disposables =>
         {
-            MessageBus.Current.Listen<ConnectionFailedUiEvent>()
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(eventData =>
+            MessageBus.Current.Listen<InitializationStatusUpdate>()
+                .Subscribe(update => 
                 {
-                    //TODO: Handle connection failure
-                    
-                    
+                    StatusText = update.Status;
                 })
-                .DisposeWith(disposables);
-
-            Observable.Timer(TimeSpan.FromSeconds(2))
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(_ => { })
-                .DisposeWith(disposables);
+                .DisposeWith(disposables); 
+            
+            IsSubscribed.TrySetResult(true);
         });
     }
 }

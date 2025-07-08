@@ -6,10 +6,9 @@ using Grpc.Core;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
-using Polly.Wrap;
 using Serilog;
 
-namespace Ecliptix.Core.ResilienceStrategy;
+namespace Ecliptix.Core.Network.ResilienceStrategy;
 
 public static class RpcResiliencePolicies
 {

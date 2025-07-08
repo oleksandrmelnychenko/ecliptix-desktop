@@ -1,9 +1,8 @@
 using System;
-using System.Globalization;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Grpc.Core;
 
-namespace Ecliptix.Core.Interceptors;
+namespace Ecliptix.Core.Network.Interceptors;
 
 public static class GrpcMetadataHandler
 {

@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
-using Ecliptix.Core.Interceptors;
+using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.ResilienceStrategy;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
@@ -147,7 +147,7 @@ public static class Program
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
-        services.Configure<AppSettings>(configuration.GetSection("AppSettings"));
+        services.Configure<DefaultAppSettings>(configuration.GetSection("DefaultAppSettings"));
         services.Configure<SecureStoreOptions>(options =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
@@ -155,7 +155,7 @@ public static class Program
         });
 
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-        services.AddSingleton(sp => sp.GetRequiredService<IOptions<AppSettings>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultAppSettings>>().Value);
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>());
@@ -168,9 +168,7 @@ public static class Program
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
 
-        
-        
-        
+
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -181,7 +179,7 @@ public static class Program
     {
         Action<GrpcClientFactoryOptions> configureClientOptions = (options) =>
         {
-            AppSettings settings = services.BuildServiceProvider().GetRequiredService<AppSettings>();
+            DefaultAppSettings settings = services.BuildServiceProvider().GetRequiredService<DefaultAppSettings>();
             string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
                 : string.Empty;

@@ -1,11 +1,11 @@
 using System;
-using Ecliptix.Core.Interceptors;
+using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.Membership;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Ecliptix.Core.ResilienceStrategy;
+namespace Ecliptix.Core.Network.ResilienceStrategy;
 
 public static class ResilienceRpcExtensions
 {

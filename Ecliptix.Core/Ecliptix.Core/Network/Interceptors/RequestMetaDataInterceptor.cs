@@ -1,10 +1,8 @@
-using System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
 
-namespace Ecliptix.Core.Interceptors;
+namespace Ecliptix.Core.Network.Interceptors;
 
 public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {

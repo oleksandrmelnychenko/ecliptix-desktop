@@ -5,11 +5,13 @@ using Ecliptix.Protobuf.PubKeyExchange;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Network.AppEvents;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
+using ReactiveUI;
 using Serilog;
 
 namespace Ecliptix.Core.Services;
@@ -33,7 +35,11 @@ public class ApplicationInitializer(
                 return false;
             }
 
+            NotifyWithInitStatus("Loading application instance settings...");
+
             (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
+
+            NotifyWithInitStatus("Establishing secrecy channel...");
 
             Result<uint, EcliptixProtocolFailure> connectIdResult =
                 await EnsureSecrecyChannelAsync(settings, isNewInstance);
@@ -43,6 +49,8 @@ public class ApplicationInitializer(
                 return false;
             }
 
+            NotifyWithInitStatus("Establishing secrecy channel completed");
+
             uint connectId = connectIdResult.Unwrap();
 
             Result<Unit, EcliptixProtocolFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
@@ -51,6 +59,8 @@ public class ApplicationInitializer(
                 Log.Error("Device registration failed: {Error}", registrationResult.UnwrapErr());
                 return false;
             }
+
+            NotifyWithInitStatus("Application initialized successfully");
 
             Log.Information("Application initialized successfully");
             return true;
@@ -88,8 +98,10 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings newSettings = new()
         {
             AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
-            DeviceId = Helpers.GuidToByteString(Guid.NewGuid())
+            DeviceId = Helpers.GuidToByteString(Guid.NewGuid()),
+            Culture = "en-US",
         };
+        
         await secureStorageProvider.StoreAsync(settingsKey, newSettings.ToByteArray());
         return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
             new InstanceSettingsResult(newSettings, true));
@@ -99,7 +111,8 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
         uint connectId =
-            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings, PubKeyExchangeType.DataCenterEphemeralConnect);
+            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
+                PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (!isNewInstance)
         {
@@ -123,8 +136,8 @@ public class ApplicationInitializer(
             }
         }
 
-        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings,connectId);
-        
+        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+
         Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> establishResult =
             await networkProvider.EstablishSecrecyChannel(connectId);
 
@@ -139,6 +152,9 @@ public class ApplicationInitializer(
 
         return Result<uint, EcliptixProtocolFailure>.Ok(connectId);
     }
+
+    private static void NotifyWithInitStatus(string status) =>
+        MessageBus.Current.SendMessage(new InitializationStatusUpdate(status));
 
     private async Task<Result<Unit, EcliptixProtocolFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)

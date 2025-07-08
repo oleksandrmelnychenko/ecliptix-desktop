@@ -31,6 +31,7 @@
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/VerifyMobileView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUpView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/SplashScreen.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Views/SplashWindow.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/TitleBar.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
       </map>
     </option>

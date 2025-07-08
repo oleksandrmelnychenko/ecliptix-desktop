@@ -1,5 +1,3 @@
-// Ecliptix.Core/Services/ApplicationStartup.cs (MODIFIED)
-
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -14,22 +12,30 @@ using Splat;
 
 namespace Ecliptix.Core;
 
-public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
+public class ApplicationStartup
 {
-    private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
+    private readonly IClassicDesktopStyleApplicationLifetime _desktop;
+    private readonly IApplicationInitializer _initializer;
+    private readonly SplashScreenViewModel _splashViewModel;
+    private readonly SplashScreen _splashScreen;
 
-    private readonly SplashScreen _splashScreen = new()
+    public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        DataContext = Locator.Current.GetService<SplashScreenViewModel>()!
-    };
+        _desktop = desktop;
+        _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
+        _splashViewModel = Locator.Current.GetService<SplashScreenViewModel>()!;
+        _splashScreen = new SplashScreen { DataContext = _splashViewModel };
+    }
 
     public async Task RunAsync()
     {
-        desktop.MainWindow = _splashScreen;
+        _desktop.MainWindow = _splashScreen;
         _splashScreen.Show();
 
         try
         {
+            await _splashViewModel.IsSubscribed.Task;
+
             bool success = await Task.Run(() => _initializer.InitializeAsync());
             if (success)
             {
@@ -38,13 +44,13 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
             else
             {
                 Log.Error("Application initialization failed. The application will now exit");
-                desktop.Shutdown();
+                _desktop.Shutdown();
             }
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "A critical unhandled exception occurred during application startup. Shutting down");
-            desktop.Shutdown();
+            _desktop.Shutdown();
         }
         finally
         {
@@ -65,11 +71,11 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
         else
         {
             Log.Warning("Membership confirmed, but no main application window is defined. Shutting down");
-            desktop.Shutdown();
+            _desktop.Shutdown();
             return;
         }
 
-        desktop.MainWindow = nextWindow;
+        _desktop.MainWindow = nextWindow;
         nextWindow.Show();
     }
 }
