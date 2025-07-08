@@ -2,26 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
-        x:Class="Ecliptix.Core.Views.MainWindow"
-        Title="Ecliptix"
-        CanResize="True"
-        BorderThickness="0"
-        SystemDecorations="None"
-        Background="Transparent"
-        TransparencyLevelHint="Transparent"
-        ExtendClientAreaToDecorationsHint="False"
-        x:DataType="vm:MainViewModel"
-        WindowStartupLocation="CenterScreen"
-        Icon="/Assets/ecliptix.ico"
-        >
-
-    <Window.Resources>
-        <vm:BooleanToBackgroundConverter x:Key="BackgroundConverter" />
-        <vm:BooleanToForegroundConverter x:Key="ForegroundConverter" />
-        <vm:BooleanToAlignmentConverter x:Key="AlignmentConverter" />
-    </Window.Resources>
+        xmlns:viewModels="clr-namespace:Ecliptix.Core.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Ecliptix.Core.Views.Core.MainHostWindow"
+        Title="MainHostWindow">
 
     <Border Name="RootWindowBorder"
             Background="#FFEFEFEF"
@@ -49,43 +33,7 @@
                         Background="#FFFAFAFA"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <ScrollViewer>
-                        <ItemsControl Grid.Row="0" ItemsSource="{Binding ChatItems}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="8,4"
-                                            Padding="12,8"
-                                            CornerRadius="8"
-                                            Background="{Binding IsFromUser, Converter={StaticResource BackgroundConverter}}"
-                                            HorizontalAlignment="{Binding IsFromUser, Converter={StaticResource AlignmentConverter}}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Message}"
-                                                       TextWrapping="Wrap"
-                                                       Foreground="{Binding IsFromUser, Converter={StaticResource ForegroundConverter}}" />
-                                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
-                                                       FontSize="10"
-                                                       Opacity="0.7"
-                                                       Margin="0,4,0,0" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <VirtualizingStackPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
-                        </ScrollViewer>
-                        <TextBlock Grid.Row="1" Text="{Binding StatusText}" Margin="5" />
-                        <Button Grid.Row="2" Content="Send" Command="{Binding SendRequestCommand}" Margin="5" HorizontalAlignment="Right" />
-                    </Grid>
+                    
                 </Border>
             </Grid>
 

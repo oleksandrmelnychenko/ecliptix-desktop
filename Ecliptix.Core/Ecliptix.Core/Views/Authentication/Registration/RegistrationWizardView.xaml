@@ -4,8 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              mc:Ignorable="d"
-             x:DataType="registration:RegistrationWizardViewModel"
-             x:Class="Ecliptix.Core.Views.Authentication.Registration.RegistrationWizardView">
+             x:DataType="registration:RegistrationWizardViewModel">
     
     <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
         <ContentControl Content="{Binding CurrentView}" />

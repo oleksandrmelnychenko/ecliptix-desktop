@@ -23,8 +23,11 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
 
-public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
+public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel, IRoutableViewModel
 {
+    public string UrlPathSegment { get; } = "/sign-in"; 
+    public IScreen HostScreen { get; }
+    
     private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
@@ -67,11 +70,12 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
     public ReactiveCommand<Unit, Unit> SignInCommand { get; }
     public ViewModelActivator Activator { get; } = new();
 
-    public SignInViewModel(NetworkProvider networkProvider, ILocalizationService localizationService)
+    public SignInViewModel(NetworkProvider networkProvider, ILocalizationService localizationService,IScreen hostScreen)
     {
         _networkProvider = networkProvider;
         _localizationService = localizationService;
-
+        HostScreen = hostScreen;
+        
         IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
             x => x.PhoneNumber, x => x.IsPasswordSet, x => x.IsBusy,
             (phone, pwdSet, busy) => !string.IsNullOrWhiteSpace(phone) && pwdSet && !busy);
@@ -310,4 +314,6 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+
+   
 }

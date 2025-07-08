@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network.AppEvents;
 using ReactiveUI;
 
-namespace Ecliptix.Core.ViewModels;
+namespace Ecliptix.Core.ViewModels.Memberships;
 
-public sealed class SplashScreenViewModel : ViewModelBase, IActivatableViewModel
+public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
     public string ApplicationVersion => VersionHelper.GetApplicationVersion();
 
@@ -21,7 +21,7 @@ public sealed class SplashScreenViewModel : ViewModelBase, IActivatableViewModel
         set => this.RaiseAndSetIfChanged(ref _statusText, value);
     }
     
-    public SplashScreenViewModel()
+    public SplashWindowViewModel()
     {
         this.WhenActivated(disposables =>
         {

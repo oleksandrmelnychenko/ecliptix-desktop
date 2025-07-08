@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views;
+namespace Ecliptix.Core.Views.Memberships.Components;
 
 public partial class TitleBar : UserControl
 {

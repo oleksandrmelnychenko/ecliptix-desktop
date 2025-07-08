@@ -4,10 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:authentication="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
-             mc:Ignorable="d"
-             x:Class="Ecliptix.Core.Views.Authentication.SignInView"
-             x:DataType="authentication:SignInViewModel">
-
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="authentication:SignInViewModel"
+             x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
     <Border VerticalAlignment="Top" Width="400" Padding="20" CornerRadius="15">
         <Grid VerticalAlignment="Center" RowSpacing="15">
             <Grid.RowDefinitions>

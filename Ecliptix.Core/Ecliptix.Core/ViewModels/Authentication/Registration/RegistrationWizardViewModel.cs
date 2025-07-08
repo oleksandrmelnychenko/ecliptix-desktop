@@ -10,9 +10,9 @@ public  class RegistrationWizardViewModel : ViewModelBase
 {
     private UserControl? _currentView;
 
-    public RegistrationWizardViewModel(AuthenticationViewFactory authenticationViewFactory)
+    public RegistrationWizardViewModel( )
     {
-        MessageBus.Current.Listen<VerifyCodeNavigateToView>("VerifyCodeNavigateToView")
+        /*MessageBus.Current.Listen<VerifyCodeNavigateToView>("VerifyCodeNavigateToView")
             .Subscribe(c =>
             {
                 
@@ -26,7 +26,7 @@ public  class RegistrationWizardViewModel : ViewModelBase
         });
 
         ShowView.Execute(AuthViewType.PhoneVerification)
-            .Subscribe();
+            .Subscribe();*/
     }
 
     public UserControl? CurrentView

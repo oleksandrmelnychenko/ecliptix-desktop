@@ -18,6 +18,7 @@ using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Core.ViewModels.Memberships;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -196,7 +197,7 @@ public static class Program
 
     private static void ConfigureViewModels(IServiceCollection services)
     {
-        services.AddTransient<AuthenticationViewModel>();
+        services.AddTransient<MembershipHostWindowModel>();
         services.AddTransient<SignInViewModel>();
         services.AddTransient<RegistrationWizardViewModel>();
         services.AddTransient<PhoneVerificationViewModel>();
@@ -205,8 +206,7 @@ public static class Program
         services.AddTransient<PasswordConfirmationViewModel>();
         services.AddTransient<NicknameInputViewModel>();
         services.AddTransient<PassPhaseViewModel>();
-        services.AddSingleton<AuthenticationViewFactory>();
-        services.AddTransient<SplashScreenViewModel>();
+        services.AddTransient<SplashWindowViewModel>();
     }
 
     private static string ResolvePath(string path)

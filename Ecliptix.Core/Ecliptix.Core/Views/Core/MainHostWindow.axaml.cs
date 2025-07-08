@@ -1,41 +1,19 @@
-﻿using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-namespace Ecliptix.Core.Views.Authentication;
+namespace Ecliptix.Core.Views.Core;
 
-public partial class AuthenticationWindow : Window
+public partial class MainHostWindow : Window
 {
-    public AuthenticationWindow()
-    {
-        InitializeComponent();
-        Opacity = 0;
-        Loaded += OnLoaded;
-    }
-
-    private async void OnLoaded(object? sender, RoutedEventArgs e)
-    {
-        const double duration = 500; // milliseconds
-        const int steps = 30;
-
-        for (int i = 0; i <= steps; i++)
-        {
-            Opacity = i / (double)steps;
-            await Task.Delay((int)(duration / steps));
-        }
-    }
-
-    private void InitializeComponent()
+    public MainHostWindow()
     {
         AvaloniaXamlLoader.Load(this);
-#if DEBUG
-        this.AttachDevTools();
-#endif
     }
-
+    
+    
     private void TitleBarArea_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         // Basic check to avoid dragging via buttons (might need refinement)

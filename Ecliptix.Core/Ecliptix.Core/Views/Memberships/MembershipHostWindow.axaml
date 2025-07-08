@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
+        xmlns:signIn="clr-namespace:Ecliptix.Core.Views.Memberships.SignIn"
+        xmlns:reactiveUi="http://reactiveui.net"
+        xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="False"
+        x:DataType="vm:MembershipHostWindowModel"
+        Width="680" Height="448"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/ecliptix.ico"
+        ShowInTaskbar="False"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow"
+        >
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="{x:Type vm:SignInViewModel}">
+            <signIn:SignInView />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid>
+        <Border Margin="18"
+                CornerRadius="8"
+                Background="#AA9966CC">
+            <Border.Effect>
+                <BlurEffect Radius="25" />
+            </Border.Effect>
+        </Border>
+
+        <Border Background="#fafafa"
+                BorderBrush="#B084CC"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="14"
+                Margin="10">
+
+            <Border.Effect>
+                <DropShadowEffect Color="#9966CC"
+                                  BlurRadius="15"
+                                  Opacity="0.6"
+                                  OffsetX="0"
+                                  OffsetY="0" />
+            </Border.Effect>
+
+            <Grid RowDefinitions="Auto,*">
+                <comp:TitleBar/>
+                
+                <reactiveUi:RoutedViewHost Grid.Row="1"
+                                           Router="{Binding Router}"
+                                           Margin="0,20,0,0"
+                                           Background="Transparent">
+                    <reactiveUi:RoutedViewHost.DefaultContent>
+                        <TextBlock Text="Loading View..." HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </reactiveUi:RoutedViewHost.DefaultContent>
+                </reactiveUi:RoutedViewHost>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

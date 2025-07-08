@@ -78,6 +78,14 @@
             <DependentUpon>SignInView.axaml</DependentUpon>
             <SubType>Code</SubType>
         </Compile>
+        <Compile Update="Views\Memberships\Components\Splash\SplashWindow.axaml.cs">
+          <DependentUpon>SplashWindow.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\Memberships\Components\TitleBar.axaml.cs">
+          <DependentUpon>TitleBar.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -88,11 +96,17 @@
     <ItemGroup>
       <AdditionalFiles Include="Locales\en-US.json" />
       <AdditionalFiles Include="Locales\uk-UA.json" />
+      <AdditionalFiles Include="Views\Authentication\Registration\PhoneVerificationView.xaml" />
+      <AdditionalFiles Include="Views\Authentication\Registration\RegistrationWizardView.xaml" />
     </ItemGroup>
     
     <ItemGroup>
       <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
       <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="ViewModels\Core\" />
     </ItemGroup>
 
 </Project>

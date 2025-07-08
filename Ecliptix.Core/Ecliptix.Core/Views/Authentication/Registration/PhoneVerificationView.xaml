@@ -5,8 +5,7 @@
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="registration:PhoneVerificationViewModel"
-             x:Class="Ecliptix.Core.Views.Authentication.Registration.PhoneVerificationView">
+             x:DataType="registration:PhoneVerificationViewModel">
    
     <Grid VerticalAlignment="Center" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" MinWidth="350">
         
