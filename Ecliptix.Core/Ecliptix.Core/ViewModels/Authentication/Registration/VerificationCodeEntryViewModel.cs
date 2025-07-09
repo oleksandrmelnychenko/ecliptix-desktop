@@ -15,6 +15,7 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -174,7 +175,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                         InitiateVerificationRequest.Types.Type.SendOtp), cancellationTokenSource.Token);
                 }
 
-                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
             },
             cancellationTokenSource.Token
         );
@@ -232,7 +233,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 RxApp.MainThreadScheduler.Schedule(() =>
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
-                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
             },
             cancellationTokenSource.Token
         );
@@ -273,7 +274,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 {
                 }
 
-                return Task.FromResult(Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
             },
             CancellationToken.None
         );

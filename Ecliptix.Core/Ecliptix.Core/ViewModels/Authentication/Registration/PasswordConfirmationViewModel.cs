@@ -18,6 +18,7 @@ using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -491,11 +492,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                                 //SAFE the STATE with a KEY
                                 
                                 return Task.FromResult(
-                                    Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
+                                    Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
                             });
                     }
 
-                    return Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value);
+                    return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
                 },
                 CancellationToken.None
             );

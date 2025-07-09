@@ -8,7 +8,7 @@
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="450" Height="340"
+        Width="340" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
@@ -53,19 +53,12 @@
 
                 <TextBlock Grid.Row="1"
                            Text="{Binding StatusText}"
-                           FontSize="12"
+                           FontSize="14"
                            Foreground="#404040"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Bottom"
                            Margin="0,0,0,16" />
 
-                <ProgressBar Grid.Row="2"
-                             IsIndeterminate="True"
-                             Foreground="#9966CC"
-                             Background="#E6E0F8"
-                             Height="2"
-                             CornerRadius="2"
-                             HorizontalAlignment="Stretch" />
 
                 <TextBlock Grid.Row="3"
                            Text="{CompiledBinding ApplicationVersion}"

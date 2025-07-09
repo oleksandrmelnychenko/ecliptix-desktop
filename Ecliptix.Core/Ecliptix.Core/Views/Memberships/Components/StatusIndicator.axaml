@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:network="clr-namespace:Ecliptix.Core.AppEvents.Network"
+             xmlns:local="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+             mc:Ignorable="d" d:DesignWidth="24" d:DesignHeight="24"
+             x:Class="Ecliptix.Core.Views.Memberships.Components.StatusIndicator"
+             x:DataType="network:NetworkStatus">
+
+    <Design.DataContext>
+        <network:NetworkStatus>DataCenterConnecting</network:NetworkStatus>
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <Style Selector="Ellipse#PulseEllipse">
+            <Style.Animations>
+                <Animation Duration="0:0:1.5" IterationCount="INFINITE" Easing="CubicEaseOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Width" Value="10" />
+                        <Setter Property="Height" Value="10" />
+                        <Setter Property="Opacity" Value="0.7" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Width" Value="24" />
+                        <Setter Property="Height" Value="24" />
+                        <Setter Property="Opacity" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <Style Selector="local|StatusIndicator[DataContext=DataCenterConnected] Ellipse">
+            <Setter Property="Fill" Value="#28C940" /> 
+        </Style>
+        <Style Selector="local|StatusIndicator[DataContext=DataCenterConnecting] Ellipse">
+            <Setter Property="Fill" Value="#FFBD2E" /> 
+        </Style>
+        <Style Selector="local|StatusIndicator[DataContext=DataCenterDisconnected] Ellipse">
+            <Setter Property="Fill" Value="#FF5F57" /> 
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <Viewbox Stretch="Uniform">
+            <Grid Width="24" Height="24">
+                <Ellipse Name="PulseEllipse" Fill="Transparent" Opacity="0.5" />
+                <Ellipse Name="CenterDot" Width="12" Height="12" />
+                <Ellipse Width="10" Height="10">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush Center="0.5,0.5" Radius="0.5">
+                            <GradientStop Color="#88FFFFFF" Offset="0" />
+                            <GradientStop Color="Transparent" Offset="1" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+            </Grid>
+        </Viewbox>
+    </Grid>
+
+</UserControl>

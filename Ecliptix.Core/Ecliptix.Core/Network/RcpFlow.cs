@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 
 namespace Ecliptix.Core.Network;
 
@@ -19,7 +21,7 @@ public abstract class RpcFlow
     /// <returns>An RpcFlow.InboundStream with an empty stream.</returns>
     public static RpcFlow NewEmptyInboundStream()
     {
-        async IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> EmptyStream()
+        async IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> EmptyStream()
         {
             yield break; // Produces an empty async enumerable
         }
@@ -43,17 +45,16 @@ public abstract class RpcFlow
     public static RpcFlow NewBidirectionalStream()
     {
         Channel<CipherPayload> channel = Channel.CreateUnbounded<CipherPayload>();
-        IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> inbound = ToOkStream(channel.Reader);
+        IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> inbound = ToOkStream(channel.Reader);
         ChannelSink outboundSink = new(channel.Writer);
         return new BidirectionalStream(inbound, outboundSink);
     }
 
     // Helper method to convert ChannelReader payloads to Result.Ok
-    private static async IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> ToOkStream(
+    private static IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> ToOkStream(
         ChannelReader<CipherPayload> reader)
     {
-        await foreach (CipherPayload payload in reader.ReadAllAsync())
-            yield return Result<CipherPayload, EcliptixProtocolFailure>.Ok(payload);
+        return reader.ReadAllAsync().Select(payload => Result<CipherPayload, NetworkFailure>.Ok(payload));
     }
 
     /// <summary>
@@ -65,7 +66,7 @@ public abstract class RpcFlow
         ///     Initializes a new instance of the SingleCall class.
         /// </summary>
         /// <param name="result">The result task.</param>
-        public SingleCall(Task<Result<CipherPayload, EcliptixProtocolFailure>> result)
+        public SingleCall(Task<Result<CipherPayload, NetworkFailure>> result)
         {
             Result = result;
         }
@@ -74,7 +75,7 @@ public abstract class RpcFlow
         ///     Convenience constructor for immediate results.
         /// </summary>
         /// <param name="result">The immediate result.</param>
-        public SingleCall(Result<CipherPayload, EcliptixProtocolFailure> result)
+        public SingleCall(Result<CipherPayload, NetworkFailure> result)
             : this(Task.FromResult(result))
         {
         }
@@ -82,7 +83,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The result of the single call, wrapped in a task for consistency with other variants.
         /// </summary>
-        public Task<Result<CipherPayload, EcliptixProtocolFailure>> Result { get; }
+        public Task<Result<CipherPayload, NetworkFailure>> Result { get; }
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public abstract class RpcFlow
         ///     Initializes a new instance of the InboundStream class.
         /// </summary>
         /// <param name="stream">The inbound stream.</param>
-        public InboundStream(IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> stream)
+        public InboundStream(IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> stream)
         {
             Stream = stream;
         }
@@ -102,7 +103,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The asynchronous stream of payloads or errors.
         /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> Stream { get; }
+        public IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> Stream { get; }
     }
 
     /// <summary>
@@ -136,7 +137,7 @@ public abstract class RpcFlow
         /// <param name="inbound">The inbound stream.</param>
         /// <param name="outboundSink">The outbound sink.</param>
         public BidirectionalStream(
-            IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> inbound,
+            IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> inbound,
             IOutboundSink outboundSink)
         {
             Inbound = inbound;
@@ -146,7 +147,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The inbound stream of received payloads.
         /// </summary>
-        public IAsyncEnumerable<Result<CipherPayload, EcliptixProtocolFailure>> Inbound { get; }
+        public IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> Inbound { get; }
 
         /// <summary>
         ///     The outbound sink for transmitting payloads.
@@ -165,9 +166,9 @@ internal class DrainSink : IOutboundSink
     /// </summary>
     /// <param name="payload">The payload to discard.</param>
     /// <returns>A task with a successful result.</returns>
-    public Task<Result<Unit, EcliptixProtocolFailure>> SendAsync(CipherPayload payload)
+    public Task<Result<Unit, NetworkFailure>> SendAsync(CipherPayload payload)
     {
-        return Task.FromResult(Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value));
+        return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
     }
 }
 
@@ -192,17 +193,17 @@ internal class ChannelSink : IOutboundSink
     /// </summary>
     /// <param name="payload">The payload to send.</param>
     /// <returns>A task representing the result of the send operation.</returns>
-    public async Task<Result<Unit, EcliptixProtocolFailure>> SendAsync(CipherPayload payload)
+    public async Task<Result<Unit, NetworkFailure>> SendAsync(CipherPayload payload)
     {
         try
         {
             await _writer.WriteAsync(payload);
-            return Result<Unit, EcliptixProtocolFailure>.Ok(new Unit());
+            return Result<Unit, NetworkFailure>.Ok(new Unit());
         }
         catch (Exception ex)
         {
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic(ex.Message, ex));
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }
     }
 }

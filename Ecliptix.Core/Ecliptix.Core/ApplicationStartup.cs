@@ -44,7 +44,7 @@ public class ApplicationStartup
             else
             {
                 Log.Error("Application initialization failed. The application will now exit");
-                _desktop.Shutdown();
+                //_desktop.Shutdown();
             }
         }
         catch (Exception ex)

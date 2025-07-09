@@ -86,6 +86,10 @@
           <DependentUpon>TitleBar.axaml</DependentUpon>
           <SubType>Code</SubType>
         </Compile>
+        <Compile Update="Views\Memberships\Components\StatusIndicator.axaml.cs">
+            <DependentUpon>StatusIndicator.axaml</DependentUpon>
+            <SubType>Code</SubType>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -107,6 +111,7 @@
     
     <ItemGroup>
       <Folder Include="ViewModels\Core\" />
+      <Folder Include="Views\Core\Components\" />
     </ItemGroup>
 
 </Project>

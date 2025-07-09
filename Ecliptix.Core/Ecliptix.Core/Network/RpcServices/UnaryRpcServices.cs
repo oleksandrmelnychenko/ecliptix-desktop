@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.AppDeviceServices;
@@ -9,8 +11,10 @@ using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 using Polly.Retry;
+using Serilog;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -18,7 +22,9 @@ public sealed class UnaryRpcServices
 {
     private readonly Dictionary<RcpServiceType, GrpcMethodDelegate> _serviceMethods;
 
-    private delegate Task<Result<CipherPayload, EcliptixProtocolFailure>> GrpcMethodDelegate(CipherPayload payload,
+    private delegate Task<Result<CipherPayload, NetworkFailure>> GrpcMethodDelegate(CipherPayload payload,
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
         CancellationToken token);
 
     public UnaryRpcServices(
@@ -38,84 +44,110 @@ public sealed class UnaryRpcServices
         };
         return;
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> RegisterDeviceAsync(CipherPayload payload,
+        async Task<Result<CipherPayload, NetworkFailure>> RegisterDeviceAsync(CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
             CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
+        async Task<Result<CipherPayload, NetworkFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
             CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 authenticationServicesClient.ValidatePhoneNumberAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationRecordRequestAsync(
-            CipherPayload payload, CancellationToken token)
+        async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
+            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 membershipServicesClient.OpaqueRegistrationInitRequestAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> VerifyCodeAsync(CipherPayload payload,
+        async Task<Result<CipherPayload, NetworkFailure>> VerifyCodeAsync(CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
             CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 authenticationServicesClient.VerifyOtpAsync(payload, new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueRegistrationCompleteRequestAsync(
-            CipherPayload payload, CancellationToken token)
+        async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
+            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueSignInInitRequestAsync(
-            CipherPayload payload, CancellationToken token)
+        async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInInitRequestAsync(
+            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 membershipServicesClient.OpaqueSignInInitRequestAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
 
-        async Task<Result<CipherPayload, EcliptixProtocolFailure>> OpaqueSignInCompleteRequestAsync(
-            CipherPayload payload, CancellationToken token)
+        async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
+            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
         {
-            return await ExecuteGrpcCallAsync(() =>
+            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 membershipServicesClient.OpaqueSignInCompleteRequestAsync(payload,
                     new CallOptions(cancellationToken: token)));
         }
     }
 
-    public async Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeRequestAsync(ServiceRequest request, CancellationToken token)
+    public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(ServiceRequest request,
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
+        CancellationToken token)
     {
         if (_serviceMethods.TryGetValue(request.RcpServiceMethod, out GrpcMethodDelegate? method))
         {
-            Result<CipherPayload, EcliptixProtocolFailure> result = await method(request.Payload, token);
-            return Result<RpcFlow, EcliptixProtocolFailure>.Ok(new RpcFlow.SingleCall(Task.FromResult(result)));
+            Result<CipherPayload, NetworkFailure> result = await method(request.Payload, networkEvents, systemEvents,
+                token);
+            return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.SingleCall(Task.FromResult(result)));
         }
 
-        return Result<RpcFlow, EcliptixProtocolFailure>.Err(
-            EcliptixProtocolFailure.Generic("Unknown service type"));
+        return Result<RpcFlow, NetworkFailure>.Err(
+            NetworkFailure.InvalidRequestType("Unknown service type"));
     }
 
-    private static async Task<Result<CipherPayload, EcliptixProtocolFailure>> ExecuteGrpcCallAsync(
+    private static async Task<Result<CipherPayload, NetworkFailure>> ExecuteGrpcCallAsync(
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
         Func<AsyncUnaryCall<CipherPayload>> grpcCallFactory)
     {
-        AsyncRetryPolicy<CipherPayload> policy = RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<CipherPayload>();
-        return await Result<CipherPayload, EcliptixProtocolFailure>.TryAsync(
-            async () => await policy.ExecuteAsync(async () =>
+        try
+        {
+            AsyncRetryPolicy<CipherPayload> policy =
+                RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
+
+            CipherPayload? response = await policy.ExecuteAsync(async () =>
             {
                 AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
                 return await call.ResponseAsync;
-            }),
-            err => EcliptixProtocolFailure.Generic(err.Message, err.InnerException));
+            });
+
+            networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected));
+
+            return Result<CipherPayload, NetworkFailure>.Ok(response);
+        }
+        catch (Exception exc)
+        {
+            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
+
+            return Result<CipherPayload, NetworkFailure>.Err(
+                NetworkFailure.DataCenterShutdown(exc.Message));
+        }
     }
 }

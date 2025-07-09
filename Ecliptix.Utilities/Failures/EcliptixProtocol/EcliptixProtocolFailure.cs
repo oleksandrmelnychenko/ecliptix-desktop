@@ -1,3 +1,4 @@
+using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 
 namespace Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -8,27 +9,6 @@ public record EcliptixProtocolFailure(
     Exception? InnerException = null)
     : FailureBase(Message, InnerException)
 {
-    public override Status ToGrpcStatus()
-    {
-        StatusCode code = FailureType switch
-        {
-            EcliptixProtocolFailureType.InvalidInput => StatusCode.InvalidArgument,
-            EcliptixProtocolFailureType.PeerPubKeyFailed => StatusCode.InvalidArgument,
-            EcliptixProtocolFailureType.BufferTooSmall => StatusCode.InvalidArgument,
-            EcliptixProtocolFailureType.DataTooLarge => StatusCode.InvalidArgument,
-
-            EcliptixProtocolFailureType.ObjectDisposed => StatusCode.FailedPrecondition,
-            EcliptixProtocolFailureType.EphemeralMissing => StatusCode.FailedPrecondition,
-            EcliptixProtocolFailureType.StateMissing => StatusCode.FailedPrecondition,
-            EcliptixProtocolFailureType.ActorRefNotFound => StatusCode.FailedPrecondition,
-
-            _ => StatusCode.Internal
-        };
-
-        return new Status(code, Message);
-    }
-
-
     public static EcliptixProtocolFailure Generic(string details, Exception? inner = null)
     {
         return new EcliptixProtocolFailure(EcliptixProtocolFailureType.Generic, details, inner);
@@ -37,16 +17,6 @@ public record EcliptixProtocolFailure(
     public static EcliptixProtocolFailure Decode(string details, Exception? inner = null)
     {
         return new EcliptixProtocolFailure(EcliptixProtocolFailureType.DecodeFailed, details, inner);
-    }
-
-    public static EcliptixProtocolFailure ActorRefNotFound(string details, Exception? inner = null)
-    {
-        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.ActorRefNotFound, details, inner);
-    }
-
-    public static EcliptixProtocolFailure ActorNotCreated(string details, Exception? inner = null)
-    {
-        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.ActorNotCreated, details, inner);
     }
 
     public static EcliptixProtocolFailure DeriveKey(string details, Exception? inner = null)
@@ -119,5 +89,15 @@ public record EcliptixProtocolFailure(
             InnerException,
             Timestamp
         };
+    }
+    
+    public NetworkFailure ToNetworkFailure()
+    {
+        NetworkFailureType networkFailureType = FailureType switch
+        {
+            _ => NetworkFailureType.EcliptixProtocolFailure
+        };
+        
+        return new NetworkFailure(networkFailureType, Message, InnerException);
     }
 }

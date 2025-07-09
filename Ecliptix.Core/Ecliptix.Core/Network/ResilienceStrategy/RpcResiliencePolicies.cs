@@ -1,7 +1,8 @@
 using System;
 using System.Net.Http;
+using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 using Polly;
 using Polly.CircuitBreaker;
@@ -49,7 +50,7 @@ public static class RpcResiliencePolicies
                 onRetryAsync: async (outcome, timespan, retryAttempt, context) =>
                 {
                     Log.Warning("Circuit broken. Attempting session recovery ({RetryAttempt}/2)", retryAttempt);
-                    Result<Unit, EcliptixProtocolFailure> recoveryResult =
+                    Result<Unit, NetworkFailure> recoveryResult =
                         await networkProvider.RestoreSecrecyChannelAsync();
                     if (recoveryResult.IsErr)
                     {
@@ -86,16 +87,18 @@ public static class RpcResiliencePolicies
                         timespan.TotalSeconds, retryAttempt);
                 });
     }
-   
-    public static AsyncRetryPolicy<TResult> GetSecrecyChannelRetryPolicy<TResult>() =>
+
+    public static AsyncRetryPolicy<TResult> GetSecrecyChannelRetryPolicy<TResult>(INetworkEvents networkEvents) =>
         Policy<TResult>
             .Handle<RpcException>(ex =>
                 ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
             .WaitAndRetryAsync(
                 retryCount: 3,
-                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt * 10),
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt * 6),
                 onRetry: (exception, timespan, retryAttempt, context) =>
                 {
+                    networkEvents.InitiateChangeState(
+                        NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
                     Log.Warning("gRPC call failed . Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
                         timespan.TotalSeconds, retryAttempt);
                 });

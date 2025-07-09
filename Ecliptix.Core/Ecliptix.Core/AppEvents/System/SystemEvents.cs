@@ -7,20 +7,20 @@ public enum SystemState
     Initializing,
     Running,
     Busy,
-    Degraded,
+    DataCenterShutdown,
     FatalError
 }
 
 public class SystemStateChangedEvent
 {
-    public string State { get; private set; }
+    public SystemState State { get; private set; }
 
-    private SystemStateChangedEvent(string state)
+    private SystemStateChangedEvent(SystemState state)
     {
         State = state;
     }
 
-    public static SystemStateChangedEvent New(string state) => new(state);
+    public static SystemStateChangedEvent New(SystemState state) => new(state);
 }
 
 public class SystemEvents(IEventAggregator aggregator) : ISystemEvents

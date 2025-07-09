@@ -3,10 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -19,12 +21,12 @@ public class RpcServiceManager
 
     private readonly
         Dictionary<ServiceFlowType,
-            Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, EcliptixProtocolFailure>>>> _serviceInvokers;
+            Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>> _serviceInvokers;
 
     public RpcServiceManager(
         UnaryRpcServices unaryRpcServices,
         ReceiveStreamRpcServices receiveStreamRpcServices,
-        SecrecyChannelRpcServices secrecyChannelRpcServices)
+        SecrecyChannelRpcServices secrecyChannelRpcServices, INetworkEvents networkEvents, ISystemEvents systemEvents)
     {
         _unaryRpcServices = unaryRpcServices;
         _receiveStreamRpcServices = receiveStreamRpcServices;
@@ -32,32 +34,44 @@ public class RpcServiceManager
 
         _serviceInvokers =
             new Dictionary<ServiceFlowType,
-                Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, EcliptixProtocolFailure>>>>
+                Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>>
             {
-                { ServiceFlowType.Single, (req, token) => _unaryRpcServices.InvokeRequestAsync(req, token) },
-                { ServiceFlowType.ReceiveStream, (req, token) =>
-                     _receiveStreamRpcServices.ProcessRequest(req, token) }
+                {
+                    ServiceFlowType.Single,
+                    (req, token) => _unaryRpcServices.InvokeRequestAsync(req, networkEvents, systemEvents, token)
+                },
+                {
+                    ServiceFlowType.ReceiveStream, (req, token) =>
+                        _receiveStreamRpcServices.ProcessRequest(req, token)
+                }
             };
     }
 
-    public async Task<PubKeyExchange> EstablishAppDeviceSecrecyChannel(
+    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannel(
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
     {
-        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(serviceRequest.PubKeyExchange);
+        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(networkEvents, systemEvents,
+            serviceRequest.PubKeyExchange);
     }
 
-    public async Task<RestoreSecrecyChannelResponse> RestoreAppDeviceSecrecyChannel(
+    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannel(
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest)
     {
-        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(serviceRequest.PubKeyExchange);
+        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents, systemEvents,
+            serviceRequest.PubKeyExchange);
     }
 
-    public async Task<Result<RpcFlow, EcliptixProtocolFailure>> InvokeServiceRequestAsync(ServiceRequest request,
+    public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,
         CancellationToken token)
     {
-        if (_serviceInvokers.TryGetValue(request.ActionType, out var invoker))
+        if (_serviceInvokers.TryGetValue(request.ActionType,
+                out Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>? invoker))
         {
-            Result<RpcFlow, EcliptixProtocolFailure> result = await invoker(request, token);
+            Result<RpcFlow, NetworkFailure> result = await invoker(request, token);
             if (result.IsOk)
             {
                 Console.WriteLine(
@@ -73,7 +87,7 @@ public class RpcServiceManager
         }
         else
         {
-            return Result<RpcFlow, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic("Unknown action type"));
+            return Result<RpcFlow, NetworkFailure>.Err(NetworkFailure.InvalidRequestType("Unknown action type"));
         }
     }
 }

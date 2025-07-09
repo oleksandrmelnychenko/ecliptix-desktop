@@ -12,6 +12,7 @@ using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -25,9 +26,9 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel, IRoutableViewModel
 {
-    public string UrlPathSegment { get; } = "/sign-in"; 
+    public string UrlPathSegment { get; } = "/sign-in";
     public IScreen HostScreen { get; }
-    
+
     private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
@@ -70,12 +71,13 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
     public ReactiveCommand<Unit, Unit> SignInCommand { get; }
     public ViewModelActivator Activator { get; } = new();
 
-    public SignInViewModel(NetworkProvider networkProvider, ILocalizationService localizationService,IScreen hostScreen)
+    public SignInViewModel(NetworkProvider networkProvider, ILocalizationService localizationService,
+        IScreen hostScreen)
     {
         _networkProvider = networkProvider;
         _localizationService = localizationService;
         HostScreen = hostScreen;
-        
+
         IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
             x => x.PhoneNumber, x => x.IsPasswordSet, x => x.IsBusy,
             (phone, pwdSet, busy) => !string.IsNullOrWhiteSpace(phone) && pwdSet && !busy);
@@ -114,7 +116,8 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                 OpaqueCryptoUtilities.DomainParams);
             OpaqueProtocolService clientOpaqueService = new(serverStaticPublicKeyParam);
 
-            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
+                OpaqueProtocolService.CreateOprfRequest(passwordSpan.ToArray());
             if (oprfResult.IsErr)
             {
                 SetError($"Failed to create OPAQUE request: {oprfResult.UnwrapErr().Message}");
@@ -131,12 +134,12 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             byte[] passwordBytes = passwordSpan.ToArray();
 
-            Result<ShieldUnit, EcliptixProtocolFailure> overallResult = await _networkProvider.ExecuteServiceRequest(
+            Result<ShieldUnit, NetworkFailure> overallResult = await _networkProvider.ExecuteServiceRequest(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceType.OpaqueSignInInitRequest,
                 initRequest.ToByteArray(),
                 ServiceFlowType.Single,
-                async payload => 
+                async payload =>
                 {
                     OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
 
@@ -150,48 +153,53 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                         EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(
                             $"Failed to process server response: {finalizationResult.UnwrapErr().Message}");
                         SetError(failure.Message);
-                        return Result<ShieldUnit, EcliptixProtocolFailure>.Err(
-                            EcliptixProtocolFailure.Generic("Failed to process server response."));
+                        return Result<ShieldUnit, NetworkFailure>.Err(
+                            EcliptixProtocolFailure.Generic("Failed to process server response.").ToNetworkFailure());
                     }
 
-                    (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey, byte[] transcriptHash) = finalizationResult.Unwrap();
+                    (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
+                        byte[] transcriptHash) = finalizationResult.Unwrap();
 
-                    Result<ShieldUnit, EcliptixProtocolFailure> finalizeResult = await _networkProvider.ExecuteServiceRequest(
-                        ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                        RcpServiceType.OpaqueSignInCompleteRequest,
-                        finalizeRequest.ToByteArray(),
-                        ServiceFlowType.Single,
-                        async payload2 => 
-                        {
-                            OpaqueSignInFinalizeResponse finalizeResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
-
-                            if (finalizeResponse.Result ==
-                                OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+                    Result<ShieldUnit, NetworkFailure> finalizeResult =
+                        await _networkProvider.ExecuteServiceRequest(
+                            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                            RcpServiceType.OpaqueSignInCompleteRequest,
+                            finalizeRequest.ToByteArray(),
+                            ServiceFlowType.Single,
+                            async payload2 =>
                             {
-                                SetError(finalizeResponse.HasMessage
-                                    ? finalizeResponse.Message
-                                    : "Invalid phone number or password.");
-                                return Result<ShieldUnit, EcliptixProtocolFailure>.Err(
-                                    EcliptixProtocolFailure.Generic("Invalid credentials."));
-                            }
+                                OpaqueSignInFinalizeResponse finalizeResponse =
+                                    Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
 
-                            Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
-                                finalizeResponse, sessionKey, serverMacKey, transcriptHash);
+                                if (finalizeResponse.Result ==
+                                    OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+                                {
+                                    SetError(finalizeResponse.HasMessage
+                                        ? finalizeResponse.Message
+                                        : "Invalid phone number or password.");
 
-                            if (verificationResult.IsErr)
-                            {
-                                EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(
-                                    $"Server authentication failed: {verificationResult.UnwrapErr().Message}");
-                                SetError(failure.Message);
-                                return Result<ShieldUnit, EcliptixProtocolFailure>.Err(failure);
-                            }
+                                    return Result<ShieldUnit, NetworkFailure>.Err(
+                                        EcliptixProtocolFailure.Generic("Invalid credentials.").ToNetworkFailure());
+                                }
 
-                            byte[] finalSessionKey = verificationResult.Unwrap();
-                            System.Diagnostics.Debug.WriteLine("Sign-in successful! Session key established.");
+                                Result<byte[], OpaqueFailure> verificationResult =
+                                    clientOpaqueService.VerifyServerMacAndGetSessionKey(
+                                        finalizeResponse, sessionKey, serverMacKey, transcriptHash);
 
-                            return await Task.FromResult(
-                                Result<ShieldUnit, EcliptixProtocolFailure>.Ok(ShieldUnit.Value));
-                        });
+                                if (verificationResult.IsErr)
+                                {
+                                    EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(
+                                        $"Server authentication failed: {verificationResult.UnwrapErr().Message}");
+                                    SetError(failure.Message);
+                                    return Result<ShieldUnit, NetworkFailure>.Err(failure.ToNetworkFailure());
+                                }
+
+                                byte[] finalSessionKey = verificationResult.Unwrap();
+                                System.Diagnostics.Debug.WriteLine("Sign-in successful! Session key established.");
+
+                                return await Task.FromResult(
+                                    Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+                            });
 
                     return finalizeResult;
                 });
@@ -314,6 +322,4 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
-   
 }
