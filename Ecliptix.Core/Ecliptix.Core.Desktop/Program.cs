@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
+using Ecliptix.Core.AppEvents;
+using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Network.ResilienceStrategy;
@@ -154,7 +157,11 @@ public static class Program
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
             options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
         });
-
+        
+        services.AddSingleton<IEventAggregator, EventAggregator>();
+        services.AddSingleton<INetworkEvents, NetworkEvents>();
+        services.AddSingleton<ISystemEvents, SystemEvents>();
+        
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultAppSettings>>().Value);
         services.AddSingleton<ILocalizationService, LocalizationService>();

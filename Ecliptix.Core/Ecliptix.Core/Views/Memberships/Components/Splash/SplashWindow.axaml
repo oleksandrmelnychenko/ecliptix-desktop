@@ -43,7 +43,7 @@
             <Grid RowDefinitions="*, Auto, Auto, Auto">
 
                 <Svg Grid.Row="0"
-                     Path="../Assets/logo.svg"
+                     Path="../../../../Assets/logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
                      Height="160"

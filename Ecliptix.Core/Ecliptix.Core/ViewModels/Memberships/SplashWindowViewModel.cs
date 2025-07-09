@@ -1,13 +1,15 @@
 using System;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
-using Ecliptix.Core.Network.AppEvents;
+using Ecliptix.Core.AppEvents.Network;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
 public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
+    private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
+    
     public string ApplicationVersion => VersionHelper.GetApplicationVersion();
 
     public ViewModelActivator Activator { get; } = new();
@@ -21,14 +23,14 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         set => this.RaiseAndSetIfChanged(ref _statusText, value);
     }
     
-    public SplashWindowViewModel()
+    public SplashWindowViewModel(INetworkEvents networkEvents)
     {
         this.WhenActivated(disposables =>
         {
-            MessageBus.Current.Listen<InitializationStatusUpdate>()
-                .Subscribe(update => 
+            networkEvents.NetworkStatusChanged
+                .Subscribe(networkStatusChangedEvent =>
                 {
-                    StatusText = update.Status;
+                    _networkStatus = networkStatusChangedEvent.Status;
                 })
                 .DisposeWith(disposables); 
             
