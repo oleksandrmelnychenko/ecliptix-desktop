@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+        xmlns:network="clr-namespace:Ecliptix.Core.AppEvents.Network"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
@@ -15,32 +16,122 @@
         Background="Transparent"
         TransparencyLevelHint="Transparent">
 
+    <Window.Resources>
+        <!-- Solid Colors (for Glow and Border) -->
+        <Color x:Key="ColorConnected">#28C940</Color>
+        <Color x:Key="ColorConnecting">#FFBD2E</Color>
+        <Color x:Key="ColorDisconnected">#FF5F57</Color>
+        <Color x:Key="ColorDefault">#9966CC</Color>
+
+        <!-- Semi-Transparent Colors (for Background Blur) -->
+        <SolidColorBrush x:Key="BrushBlurConnected" Color="#AA28C940" />
+        <SolidColorBrush x:Key="BrushBlurConnecting" Color="#AAFFBD2E" />
+        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#AAFF5F57" />
+        <SolidColorBrush x:Key="BrushBlurDefault" Color="#AA9966CC" />
+
+        <!-- Light Background Tints (for the main content area) -->
+        <SolidColorBrush x:Key="BrushContentConnected" Color="#F0FFF4" />
+        <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
+        <SolidColorBrush x:Key="BrushContentDisconnected" Color="#FFF0F0" />
+        <SolidColorBrush x:Key="BrushContentDefault" Color="#FAFAFA" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Pseudoclass bindings remain the same. They are correct. -->
+        <Style Selector="Window">
+            <Setter Property="(Classes.connected)"
+                    Value="{Binding NetworkStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static network:NetworkStatus.DataCenterConnected}}" />
+            <Setter Property="(Classes.connecting)"
+                    Value="{Binding NetworkStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static network:NetworkStatus.DataCenterConnecting}}" />
+            <Setter Property="(Classes.disconnected)"
+                    Value="{Binding NetworkStatus, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static network:NetworkStatus.DataCenterDisconnected}}" />
+        </Style>
+
+        <!--
+        REFINED STYLES: We now use the new brushes and add transitions
+        for a smooth color-fading effect.
+        -->
+        <Style Selector="Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurDefault}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window:connected Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurConnected}" />
+        </Style>
+        <Style Selector="Window:connecting Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurConnecting}" />
+        </Style>
+        <Style Selector="Window:disconnected Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurDisconnected}" />
+        </Style>
+
+        <Style Selector="Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentDefault}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ColorDefault}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window:connected Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentConnected}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ColorConnected}" />
+        </Style>
+        <Style Selector="Window:connecting Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentConnecting}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ColorConnecting}" />
+        </Style>
+        <Style Selector="Window:disconnected Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentDisconnected}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ColorDisconnected}" />
+        </Style>
+
+        <Style Selector="Border#ContentBorder DropShadowEffect">
+            <Setter Property="Color" Value="{StaticResource ColorDefault}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <ColorTransition Property="Color" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window:connected Border#ContentBorder DropShadowEffect">
+            <Setter Property="Color" Value="{StaticResource ColorConnected}" />
+        </Style>
+        <Style Selector="Window:connecting Border#ContentBorder DropShadowEffect">
+            <Setter Property="Color" Value="{StaticResource ColorConnecting}" />
+        </Style>
+        <Style Selector="Window:disconnected Border#ContentBorder DropShadowEffect">
+            <Setter Property="Color" Value="{StaticResource ColorDisconnected}" />
+        </Style>
+    </Window.Styles>
+
     <Grid>
-        <Border Margin="18"
-                CornerRadius="8"
-                Background="#AA9966CC">
+        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="8">
             <Border.Effect>
                 <BlurEffect Radius="25" />
             </Border.Effect>
         </Border>
 
-        <Border Background="#fafafa"
-                BorderBrush="#B084CC"
+        <Border Name="ContentBorder"
                 BorderThickness="1"
                 CornerRadius="8"
                 Padding="14"
                 Margin="10">
-
             <Border.Effect>
-                <DropShadowEffect Color="#9966CC"
-                                  BlurRadius="15"
-                                  Opacity="0.6"
+                <DropShadowEffect BlurRadius="15"
+                                  Opacity="0.8"
                                   OffsetX="0"
                                   OffsetY="0" />
             </Border.Effect>
 
-            <Grid RowDefinitions="*, Auto, Auto, Auto">
 
+            <Grid RowDefinitions="*, Auto, Auto, Auto">
                 <Svg Grid.Row="0"
                      Path="../../../../Assets/logo.svg"
                      VerticalAlignment="Center"
@@ -54,17 +145,14 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Bottom"
                             Margin="8,0,8,16">
-
                     <TextBlock Text="{Binding BaseStatusText}"
                                FontSize="14"
                                Foreground="#404040"
                                TextWrapping="Wrap" />
-
                     <TextBlock Text="{Binding Dots}"
                                FontSize="14"
                                Foreground="#404040"
                                Width="20" />
-
                 </StackPanel>
 
                 <TextBlock Grid.Row="3"
@@ -74,7 +162,6 @@
                            HorizontalAlignment="Left"
                            VerticalAlignment="Bottom"
                            Margin="0,24,0,0" />
-
             </Grid>
         </Border>
     </Grid>

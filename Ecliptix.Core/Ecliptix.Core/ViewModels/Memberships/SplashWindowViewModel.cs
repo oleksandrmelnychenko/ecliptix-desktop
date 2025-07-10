@@ -27,7 +27,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public string StatusText => _isShuttingDown ? _baseStatusText : _baseStatusText + _dots; // Combine dynamically
+    public string StatusText => _isShuttingDown ? _baseStatusText : _baseStatusText + _dots;
 
     public string BaseStatusText
     {
@@ -47,11 +47,11 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         {
             networkEvents.NetworkStatusChanged
                 .Select(e => e.State)
-                .Delay(TimeSpan.FromSeconds(1)) // 1-second delay for UX
+                .Delay(TimeSpan.FromSeconds(1))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(status =>
                 {
-                    if (_isShuttingDown) return; // Skip status updates during shutdown
+                    if (_isShuttingDown) return;
 
                     NetworkStatus = status;
 
@@ -64,7 +64,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                         _ => "Unexpected network status. Contact support if this persists."
                     };
 
-                    Dots = ""; // Reset dots on status change
+                    Dots = "";
                 })
                 .DisposeWith(disposables);
 
@@ -73,25 +73,23 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(systemStateChangedEvent =>
                 {
-                    if (_isShuttingDown) return; // Skip during shutdown
+                    if (_isShuttingDown) return;
 
                     BaseStatusText = systemStateChangedEvent.State.ToString();
                     Dots = "";
                 })
                 .DisposeWith(disposables);
 
-            // Dot animation for connecting or disconnected states
             var dotCount = 0;
             Observable.Interval(TimeSpan.FromSeconds(1))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(_ =>
                 {
-                    if (_isShuttingDown) return; // No dots during shutdown
+                    if (_isShuttingDown) return;
 
-                    if (NetworkStatus == NetworkStatus.DataCenterConnecting ||
-                        NetworkStatus == NetworkStatus.DataCenterDisconnected)
+                    if (NetworkStatus == NetworkStatus.DataCenterConnecting || NetworkStatus == NetworkStatus.DataCenterDisconnected)
                     {
-                        dotCount = (dotCount + 1) % 4; // Cycle 0-3 dots
+                        dotCount = (dotCount + 1) % 4;
                         Dots = new string('.', dotCount);
                     }
                     else
@@ -107,13 +105,13 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 
     public async Task PrepareForShutdownAsync()
     {
-        _isShuttingDown = true; // Block other status updates
+        _isShuttingDown = true;
         await Observable.Interval(TimeSpan.FromSeconds(1))
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Take(8) // 8 ticks for 7 to 0
+            .Take(8)
             .Select(remaining => 7 - remaining)
-            .Do(remaining => BaseStatusText = $"Shutting down in {remaining} seconds...") // Update base text
+            .Do(remaining => BaseStatusText = $"Shutting down in {remaining} seconds...")
             .LastAsync();
-        _isShuttingDown = false; // Reset flag
+        _isShuttingDown = false;
     }
 }

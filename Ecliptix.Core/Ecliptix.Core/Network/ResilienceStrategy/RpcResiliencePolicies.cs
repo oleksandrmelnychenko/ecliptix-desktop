@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -13,9 +14,10 @@ namespace Ecliptix.Core.Network.ResilienceStrategy;
 
 public static class RpcResiliencePolicies
 {
+    private const int DefaultRetryCount = 3;
+
     public static IAsyncPolicy<HttpResponseMessage> CreateUnaryResiliencePolicy(INetworkEvents networkEvents)
     {
-        const int retryCount = 3;
         const double baseBackoffSeconds = 2.0;
         const int breakerFailures = 2;
         const int breakerDurationSeconds = 30;
@@ -26,7 +28,7 @@ public static class RpcResiliencePolicies
             .Or<RpcException>(ex =>
                 ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
             .OrResult(r => !r.IsSuccessStatusCode)
-            .WaitAndRetryAsync(retryCount,
+            .WaitAndRetryAsync(DefaultRetryCount,
                 retryAttempt =>
                     TimeSpan.FromSeconds(baseBackoffSeconds * retryAttempt +
                                          Random.Shared.NextDouble()),
@@ -57,12 +59,12 @@ public static class RpcResiliencePolicies
         AsyncRetryPolicy<HttpResponseMessage>? sessionRecoveryPolicy = Policy<HttpResponseMessage>
             .Handle<BrokenCircuitException>()
             .WaitAndRetryAsync(
-                retryCount - 1,
+                DefaultRetryCount - 1,
                 _ => TimeSpan.FromSeconds(recoveryDelaySeconds),
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
                     Log.Warning("Circuit broken. Attempting session recovery ({RetryAttempt}/{MaxRetries})",
-                        retryAttempt, retryCount - 1);
+                        retryAttempt, DefaultRetryCount - 1);
 
                     networkEvents.InitiateChangeState(
                         NetworkStatusChangedEvent.New(NetworkStatus.RestoreSecrecyChannel));
@@ -80,11 +82,16 @@ public static class RpcResiliencePolicies
             .WaitAndRetryAsync(
                 retryCount: 3,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt * 6),
-                onRetry: (exception, timespan, retryAttempt, context) =>
+                onRetryAsync: async (exception, timespan, retryAttempt, context) =>
                 {
                     networkEvents.InitiateChangeState(
                         NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
-                    Log.Warning("gRPC call failed . Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
-                        timespan.TotalSeconds, retryAttempt);
+                    Log.Warning("gRPC call failed. Retrying in {Timespan} seconds. Attempt {RetryAttempt}/{MaxRetries}",
+                        timespan.TotalSeconds, retryAttempt, DefaultRetryCount);
+
+                    await Task.Delay(timespan);
+
+                    networkEvents.InitiateChangeState(
+                        NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
                 });
 }
