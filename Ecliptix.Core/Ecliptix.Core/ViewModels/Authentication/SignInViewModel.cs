@@ -134,7 +134,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             byte[] passwordBytes = passwordSpan.ToArray();
 
-            Result<ShieldUnit, NetworkFailure> overallResult = await _networkProvider.ExecuteServiceRequest(
+            Result<ShieldUnit, NetworkFailure> overallResult = await _networkProvider.ExecuteServiceRequestAsync(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceType.OpaqueSignInInitRequest,
                 initRequest.ToByteArray(),
@@ -161,7 +161,7 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                         byte[] transcriptHash) = finalizationResult.Unwrap();
 
                     Result<ShieldUnit, NetworkFailure> finalizeResult =
-                        await _networkProvider.ExecuteServiceRequest(
+                        await _networkProvider.ExecuteServiceRequestAsync(
                             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                             RcpServiceType.OpaqueSignInCompleteRequest,
                             finalizeRequest.ToByteArray(),

@@ -457,7 +457,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             byte[] pas = passwordSpan.ToArray();
 
-            _ = await _networkProvider.ExecuteServiceRequest(
+            _ = await _networkProvider.ExecuteServiceRequestAsync(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
@@ -479,7 +479,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                             PeerRegistrationRecord = ByteString.CopyFrom(envelope.Unwrap())
                         };
 
-                        _ = await _networkProvider.ExecuteServiceRequest(
+                        _ = await _networkProvider.ExecuteServiceRequestAsync(
                             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                             RcpServiceType.OpaqueRegistrationComplete,
                             r.ToByteArray(),

@@ -32,29 +32,17 @@ public class ApplicationStartup
         _desktop.MainWindow = _splashScreen;
         _splashScreen.Show();
 
-        try
-        {
-            await _splashViewModel.IsSubscribed.Task;
+        await _splashViewModel.IsSubscribed.Task;
 
-            bool success = await _initializer.InitializeAsync();
-            if (success)
-            {
-                TransitionToNextWindow();
-            }
-            else
-            {
-                Log.Error("Application initialization failed. The application will now exit");
-                //_desktop.Shutdown();
-            }
-        }
-        catch (Exception ex)
+        bool success = await _initializer.InitializeAsync();
+        if (success)
         {
-            Log.Fatal(ex, "A critical unhandled exception occurred during application startup. Shutting down");
-            _desktop.Shutdown();
+            TransitionToNextWindow();
         }
-        finally
+        else
         {
-            _splashScreen.Close();
+           await _splashViewModel.PrepareForShutdownAsync();
+           _desktop.Shutdown();
         }
     }
 

@@ -11,6 +11,9 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
+    private string _baseStatusText = "Initializing...";
+    private string _dots = "";
+    private bool _isShuttingDown;
 
     public NetworkStatus NetworkStatus
     {
@@ -24,12 +27,18 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    private string _statusText = "Initializing...";
+    public string StatusText => _isShuttingDown ? _baseStatusText : _baseStatusText + _dots; // Combine dynamically
 
-    public string StatusText
+    public string BaseStatusText
     {
-        get => _statusText;
-        set => this.RaiseAndSetIfChanged(ref _statusText, value);
+        get => _baseStatusText;
+        private set => this.RaiseAndSetIfChanged(ref _baseStatusText, value);
+    }
+
+    public string Dots
+    {
+        get => _dots;
+        private set => this.RaiseAndSetIfChanged(ref _dots, value);
     }
 
     public SplashWindowViewModel(INetworkEvents networkEvents, ISystemEvents systemEvents)
@@ -38,26 +47,73 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         {
             networkEvents.NetworkStatusChanged
                 .Select(e => e.State)
+                .Delay(TimeSpan.FromSeconds(1)) // 1-second delay for UX
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(status =>
                 {
+                    if (_isShuttingDown) return; // Skip status updates during shutdown
+
                     NetworkStatus = status;
 
-                    StatusText = status switch
+                    BaseStatusText = status switch
                     {
-                        NetworkStatus.DataCenterConnecting => "Connecting to data center...",
-                        NetworkStatus.DataCenterConnected => "Connected to data center.",
-                        NetworkStatus.DataCenterDisconnected => "Data center is not reachable.",
-                        _ => "Unknown network status."
+                        NetworkStatus.DataCenterConnecting => "Establishing secure connection to data center",
+                        NetworkStatus.DataCenterConnected => "Connection established. Initializing services...",
+                        NetworkStatus.DataCenterDisconnected =>
+                            "Server not responding. Attempting to reconnect",
+                        _ => "Unexpected network status. Contact support if this persists."
                     };
+
+                    Dots = ""; // Reset dots on status change
                 })
                 .DisposeWith(disposables);
 
             systemEvents.SystemStateChanged
-                .Subscribe(systemStateChangedEvent => { StatusText = systemStateChangedEvent.State.ToString(); })
+                .Delay(TimeSpan.FromSeconds(1))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(systemStateChangedEvent =>
+                {
+                    if (_isShuttingDown) return; // Skip during shutdown
+
+                    BaseStatusText = systemStateChangedEvent.State.ToString();
+                    Dots = "";
+                })
+                .DisposeWith(disposables);
+
+            // Dot animation for connecting or disconnected states
+            var dotCount = 0;
+            Observable.Interval(TimeSpan.FromSeconds(1))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ =>
+                {
+                    if (_isShuttingDown) return; // No dots during shutdown
+
+                    if (NetworkStatus == NetworkStatus.DataCenterConnecting ||
+                        NetworkStatus == NetworkStatus.DataCenterDisconnected)
+                    {
+                        dotCount = (dotCount + 1) % 4; // Cycle 0-3 dots
+                        Dots = new string('.', dotCount);
+                    }
+                    else
+                    {
+                        Dots = "";
+                    }
+                })
                 .DisposeWith(disposables);
 
             IsSubscribed.TrySetResult(true);
         });
+    }
+
+    public async Task PrepareForShutdownAsync()
+    {
+        _isShuttingDown = true; // Block other status updates
+        await Observable.Interval(TimeSpan.FromSeconds(1))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Take(8) // 8 ticks for 7 to 0
+            .Select(remaining => 7 - remaining)
+            .Do(remaining => BaseStatusText = $"Shutting down in {remaining} seconds...") // Update base text
+            .LastAsync();
+        _isShuttingDown = false; // Reset flag
     }
 }

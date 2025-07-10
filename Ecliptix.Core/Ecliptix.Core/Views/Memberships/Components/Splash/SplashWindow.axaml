@@ -2,13 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels"
         xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="340" Height="340"
+        Width="440" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
@@ -50,15 +49,23 @@
                      HorizontalAlignment="Center"
                      Margin="0,0,0,20" />
 
+                <StackPanel Grid.Row="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Bottom"
+                            Margin="8,0,8,16">
 
-                <TextBlock Grid.Row="1"
-                           Text="{Binding StatusText}"
-                           FontSize="14"
-                           Foreground="#404040"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Bottom"
-                           Margin="0,0,0,16" />
+                    <TextBlock Text="{Binding BaseStatusText}"
+                               FontSize="14"
+                               Foreground="#404040"
+                               TextWrapping="Wrap" />
 
+                    <TextBlock Text="{Binding Dots}"
+                               FontSize="14"
+                               Foreground="#404040"
+                               Width="20" />
+
+                </StackPanel>
 
                 <TextBlock Grid.Row="3"
                            Text="{CompiledBinding ApplicationVersion}"

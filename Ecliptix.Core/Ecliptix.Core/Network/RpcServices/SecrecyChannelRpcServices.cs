@@ -15,19 +15,31 @@ namespace Ecliptix.Core.Network.RpcServices;
 public sealed class SecrecyChannelRpcServices(
     AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient)
 {
-    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannel(
+    /// <summary>
+    ///     Establishes a secrecy channel with the app device service.
+    /// </summary>
+    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
-        PubKeyExchange request) =>
-        await ExecuteWithRetryAsync(networkEvents, systemEvents,
+        PubKeyExchange request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return await ExecuteWithRetryAsync(networkEvents, systemEvents,
             () => appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request));
+    }
 
-    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>>
-        RestoreAppDeviceSecrecyChannelAsync(INetworkEvents networkEvents,
-            ISystemEvents systemEvents,
-            RestoreSecrecyChannelRequest request) =>
-        await ExecuteWithRetryAsync(networkEvents, systemEvents, () =>
-            appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request));
+    /// <summary>
+    ///     Restores a secrecy channel with the app device service.
+    /// </summary>
+    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
+        INetworkEvents networkEvents,
+        ISystemEvents systemEvents,
+        RestoreSecrecyChannelRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return await ExecuteWithRetryAsync(networkEvents, systemEvents,
+            () => appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request));
+    }
 
     private static async Task<Result<TResponse, NetworkFailure>> ExecuteWithRetryAsync<TResponse>(
         INetworkEvents networkEvents,
@@ -37,7 +49,7 @@ public sealed class SecrecyChannelRpcServices(
         try
         {
             AsyncRetryPolicy<TResponse> policy =
-                RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<TResponse>(networkEvents);
+                RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<TResponse>(networkEvents);
             TResponse response = await policy.ExecuteAsync(async () =>
             {
                 AsyncUnaryCall<TResponse> call = grpcCallFactory();

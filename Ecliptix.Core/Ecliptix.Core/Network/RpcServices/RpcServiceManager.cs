@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -14,8 +15,6 @@ namespace Ecliptix.Core.Network.RpcServices;
 
 public class RpcServiceManager
 {
-    private readonly UnaryRpcServices _unaryRpcServices;
-    private readonly ReceiveStreamRpcServices _receiveStreamRpcServices;
     private readonly SecrecyChannelRpcServices _secrecyChannelRpcServices;
     private readonly ConcurrentDictionary<RcpServiceType, Task> _activeStreamHandles = new();
 
@@ -26,10 +25,9 @@ public class RpcServiceManager
     public RpcServiceManager(
         UnaryRpcServices unaryRpcServices,
         ReceiveStreamRpcServices receiveStreamRpcServices,
-        SecrecyChannelRpcServices secrecyChannelRpcServices, INetworkEvents networkEvents, ISystemEvents systemEvents)
+        SecrecyChannelRpcServices secrecyChannelRpcServices,
+        INetworkEvents networkEvents, ISystemEvents systemEvents)
     {
-        _unaryRpcServices = unaryRpcServices;
-        _receiveStreamRpcServices = receiveStreamRpcServices;
         _secrecyChannelRpcServices = secrecyChannelRpcServices;
 
         _serviceInvokers =
@@ -38,30 +36,31 @@ public class RpcServiceManager
             {
                 {
                     ServiceFlowType.Single,
-                    (req, token) => _unaryRpcServices.InvokeRequestAsync(req, networkEvents, systemEvents, token)
+                    (req, token) => unaryRpcServices.InvokeRequestAsync(req, networkEvents, systemEvents, token)
                 },
                 {
-                    ServiceFlowType.ReceiveStream, (req, token) =>
-                        _receiveStreamRpcServices.ProcessRequest(req, token)
+                    ServiceFlowType.ReceiveStream, receiveStreamRpcServices.ProcessRequest
                 }
             };
     }
 
-    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannel(
+    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
     {
-        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannel(networkEvents, systemEvents,
+        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
+            systemEvents,
             serviceRequest.PubKeyExchange);
     }
 
-    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannel(
+    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest)
     {
-        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents, systemEvents,
+        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
+            systemEvents,
             serviceRequest.PubKeyExchange);
     }
 
@@ -85,9 +84,7 @@ public class RpcServiceManager
 
             return result;
         }
-        else
-        {
-            return Result<RpcFlow, NetworkFailure>.Err(NetworkFailure.InvalidRequestType("Unknown action type"));
-        }
+
+        return Result<RpcFlow, NetworkFailure>.Err(NetworkFailure.InvalidRequestType("Unknown action type"));
     }
 }

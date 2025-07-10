@@ -5,4 +5,5 @@ public enum NetworkStatus
     DataCenterConnected,
     DataCenterDisconnected,
     DataCenterConnecting,
+    RestoreSecrecyChannel,
 }

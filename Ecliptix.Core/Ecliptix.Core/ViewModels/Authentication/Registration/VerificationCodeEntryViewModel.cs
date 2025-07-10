@@ -157,7 +157,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkProvider.ExecuteServiceRequest(
+        _ = await _networkProvider.ExecuteServiceRequestAsync(
             connectId,
             RcpServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
@@ -197,7 +197,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkProvider.ExecuteServiceRequest(
+        _ = await _networkProvider.ExecuteServiceRequestAsync(
             connectId,
             RcpServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
@@ -253,7 +253,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8)
         };
 
-        await _networkProvider.ExecuteServiceRequest(
+        await _networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RcpServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),

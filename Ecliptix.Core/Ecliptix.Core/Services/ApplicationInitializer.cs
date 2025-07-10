@@ -9,7 +9,6 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Serilog;
@@ -24,15 +23,19 @@ public class ApplicationInitializer(
 {
     private record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
 
+    public bool IsMembershipConfirmed { get; } = false;
+    
     public async Task<bool> InitializeAsync()
     {
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Initializing));
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await GetOrCreateInstanceSettingsAsync();
+        
         if (settingsResult.IsErr)
         {
-            Log.Error("Failed to get or create application instance settings: {Error}", settingsResult.UnwrapErr());
+            Log.Error("Failed to retrieve or create application instance settings: {@Error}", settingsResult.UnwrapErr());
+            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError));
             return false;
         }
 
@@ -58,8 +61,6 @@ public class ApplicationInitializer(
         Log.Information("Application initialized successfully");
         return true;
     }
-
-    public bool IsMembershipConfirmed { get; } = false;
 
     private async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> GetOrCreateInstanceSettingsAsync()
     {
@@ -110,7 +111,7 @@ public class ApplicationInitializer(
                 EcliptixSecrecyChannelState? state =
                     EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
                 Result<bool, NetworkFailure> restoreSecrecyChannelResult =
-                    await networkProvider.RestoreSecrecyChannel(state, applicationInstanceSettings);
+                    await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
 
                 if (restoreSecrecyChannelResult.IsErr)
                     return Result<uint, NetworkFailure>.Err(restoreSecrecyChannelResult.UnwrapErr());
@@ -128,7 +129,7 @@ public class ApplicationInitializer(
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
 
         Result<EcliptixSecrecyChannelState, NetworkFailure> establishResult =
-            await networkProvider.EstablishSecrecyChannel(connectId);
+            await networkProvider.EstablishSecrecyChannelAsync(connectId);
 
         if (establishResult.IsErr)
         {
@@ -152,7 +153,7 @@ public class ApplicationInitializer(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
-        return await networkProvider.ExecuteServiceRequest(
+        return await networkProvider.ExecuteServiceRequestAsync(
             connectId,
             RcpServiceType.RegisterAppDevice,
             appDevice.ToByteArray(),

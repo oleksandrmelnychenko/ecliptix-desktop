@@ -10,11 +10,9 @@ using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 using Polly.Retry;
-using Serilog;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -130,7 +128,7 @@ public sealed class UnaryRpcServices
         try
         {
             AsyncRetryPolicy<CipherPayload> policy =
-                RpcResiliencePolicies.GetSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
+                RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
 
             CipherPayload? response = await policy.ExecuteAsync(async () =>
             {

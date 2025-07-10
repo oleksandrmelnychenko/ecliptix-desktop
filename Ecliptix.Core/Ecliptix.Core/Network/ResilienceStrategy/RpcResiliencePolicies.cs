@@ -13,82 +13,67 @@ namespace Ecliptix.Core.Network.ResilienceStrategy;
 
 public static class RpcResiliencePolicies
 {
-    public static IAsyncPolicy<HttpResponseMessage> GetAuthenticatedPolicy(INetworkProvider networkProvider)
+    public static IAsyncPolicy<HttpResponseMessage> CreateUnaryResiliencePolicy(INetworkEvents networkEvents)
     {
+        const int retryCount = 3;
+        const double baseBackoffSeconds = 2.0;
+        const int breakerFailures = 2;
+        const int breakerDurationSeconds = 30;
+        const int recoveryDelaySeconds = 2;
+
         AsyncRetryPolicy<HttpResponseMessage>? transientRetryPolicy = Policy<HttpResponseMessage>
-            .Handle<RpcException>(ex =>
+            .Handle<HttpRequestException>()
+            .Or<RpcException>(ex =>
                 ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
             .OrResult(r => !r.IsSuccessStatusCode)
-            .WaitAndRetryAsync(3,
-                retryAttempt => TimeSpan.FromSeconds(retryAttempt),
+            .WaitAndRetryAsync(retryCount,
+                retryAttempt =>
+                    TimeSpan.FromSeconds(baseBackoffSeconds * retryAttempt +
+                                         Random.Shared.NextDouble()),
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
-                    Log.Warning("Transient failure. Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
+                    Exception exception = outcome.Exception;
+                    Log.Warning(exception,
+                        "Transient failure. Retrying in {Timespan} seconds. Attempt {RetryAttempt}/{RetryCount}",
                         timespan.TotalSeconds, retryAttempt);
                 });
 
         AsyncCircuitBreakerPolicy<HttpResponseMessage>? circuitBreakerPolicy = Policy<HttpResponseMessage>
-            .Handle<RpcException>(ex => ex.StatusCode == StatusCode.Unauthenticated)
-            .OrResult(r => r.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            .Handle<RpcException>(ex =>
+                ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
+            .OrResult(r => (int)r.StatusCode >= 500)
             .CircuitBreakerAsync(
-                2,
-                TimeSpan.FromSeconds(30),
+                breakerFailures,
+                TimeSpan.FromSeconds(breakerDurationSeconds),
                 onBreak: (result, breakDuration) =>
                 {
-                    Log.Warning("Circuit breaker opened for {BreakDuration} seconds due to unauthorized failure",
+                    Log.Warning("Circuit breaker opened for {BreakDuration} seconds due to transient failure",
                         breakDuration.TotalSeconds);
-                    networkProvider.SetSecrecyChannelAsUnhealthy();
+                    networkEvents.InitiateChangeState(
+                        NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
                 },
-                onReset: () => Log.Information("Circuit breaker reset")
-            );
+                onReset: () => Log.Information("Circuit breaker reset"));
 
         AsyncRetryPolicy<HttpResponseMessage>? sessionRecoveryPolicy = Policy<HttpResponseMessage>
             .Handle<BrokenCircuitException>()
             .WaitAndRetryAsync(
-                2,
-                _ => TimeSpan.FromSeconds(1),
-                onRetryAsync: async (outcome, timespan, retryAttempt, context) =>
-                {
-                    Log.Warning("Circuit broken. Attempting session recovery ({RetryAttempt}/2)", retryAttempt);
-                    Result<Unit, NetworkFailure> recoveryResult =
-                        await networkProvider.RestoreSecrecyChannelAsync();
-                    if (recoveryResult.IsErr)
-                    {
-                        Log.Error("Session recovery failed: {Error}", recoveryResult.UnwrapErr().Message);
-                        throw new SessionRecoveryException("Failed to recover session",
-                            recoveryResult.UnwrapErr().InnerException);
-                    }
-
-                    Log.Information("Session recovered on attempt {RetryAttempt}", retryAttempt);
-                });
-
-        return Policy.WrapAsync(circuitBreakerPolicy, sessionRecoveryPolicy, transientRetryPolicy);
-    }
-
-    public static AsyncRetryPolicy<HttpResponseMessage> GetUnauthenticatedRetryPolicy()
-    {
-        return Policy
-            .Handle<HttpRequestException>()
-            .Or<RpcException>(ex => ex.StatusCode is StatusCode.Unavailable
-                or StatusCode.DeadlineExceeded
-                or StatusCode.ResourceExhausted)
-            .OrResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
-            .WaitAndRetryAsync(
-                retryCount: 3,
-                sleepDurationProvider: retryAttempt =>
-                    TimeSpan.FromSeconds(retryAttempt * 2),
+                retryCount - 1,
+                _ => TimeSpan.FromSeconds(recoveryDelaySeconds),
                 onRetry: (outcome, timespan, retryAttempt, context) =>
                 {
-                    Exception exception = outcome.Exception ??
-                                          new Exception($"HTTP response: {outcome.Result?.StatusCode}");
-                    Log.Warning(
-                        exception,
-                        "Unauthenticated call failed. Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
-                        timespan.TotalSeconds, retryAttempt);
+                    Log.Warning("Circuit broken. Attempting session recovery ({RetryAttempt}/{MaxRetries})",
+                        retryAttempt, retryCount - 1);
+
+                    networkEvents.InitiateChangeState(
+                        NetworkStatusChangedEvent.New(NetworkStatus.RestoreSecrecyChannel));
                 });
+
+        return Policy.WrapAsync(sessionRecoveryPolicy, circuitBreakerPolicy,
+            transientRetryPolicy);
     }
 
-    public static AsyncRetryPolicy<TResult> GetSecrecyChannelRetryPolicy<TResult>(INetworkEvents networkEvents) =>
+    public static AsyncRetryPolicy<TResult>
+        CreateSecrecyChannelRetryPolicy<TResult>(INetworkEvents networkEvents) =>
         Policy<TResult>
             .Handle<RpcException>(ex =>
                 ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.ResourceExhausted)
@@ -102,12 +87,4 @@ public static class RpcResiliencePolicies
                     Log.Warning("gRPC call failed . Retrying in {Timespan} seconds. Attempt {RetryAttempt}/3",
                         timespan.TotalSeconds, retryAttempt);
                 });
-}
-
-public class SessionRecoveryException : Exception
-{
-    public SessionRecoveryException(string message, Exception innerException)
-        : base(message, innerException)
-    {
-    }
 }

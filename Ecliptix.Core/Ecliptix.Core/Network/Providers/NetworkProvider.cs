@@ -57,7 +57,7 @@ public sealed class NetworkProvider(
     public void SetSecrecyChannelAsUnhealthy()
     {
         _isSessionConsideredHealthy = false;
-        Log.Warning("Session has been programmatically marked as unhealthy");
+        networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
     }
 
     public async Task<Result<Unit, NetworkFailure>> RestoreSecrecyChannelAsync()
@@ -88,7 +88,6 @@ public sealed class NetworkProvider(
         }
     }
 
-    // NEW ADDED MODIFIED 2025-07-07 16:12 by Vitalik Koliesnikov
     private async Task<Result<Unit, NetworkFailure>> PerformFullRecoveryLogic()
     {
         if (!_applicationInstanceSettings.HasValue)
@@ -97,7 +96,8 @@ public sealed class NetworkProvider(
                 NetworkFailure.InvalidRequestType("Application instance settings not available"));
         }
 
-        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!, PubKeyExchangeType.DataCenterEphemeralConnect);
+        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
         _connections.TryRemove(connectId, out _);
         Result<Option<byte[]>, InternalServiceApiFailure> storedStateResult =
             await secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
@@ -106,7 +106,7 @@ public sealed class NetworkProvider(
             EcliptixSecrecyChannelState? state =
                 EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
             Result<bool, NetworkFailure> restoreResult =
-                await RestoreSecrecyChannel(state, _applicationInstanceSettings.Value!);
+                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
                 Log.Information("Session successfully restored from storage");
@@ -115,6 +115,7 @@ public sealed class NetworkProvider(
 
             Log.Warning("Failed to restore session from storage, falling back to reconnection");
         }
+
         Result<Unit, NetworkFailure> reconnectionResult = await PerformReconnectionLogic();
         if (reconnectionResult.IsErr)
         {
@@ -132,85 +133,7 @@ public sealed class NetworkProvider(
             applicationInstanceSettings.DeviceId.Span,
             pubKeyExchangeType);
 
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-    // public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequest(
-    //     uint connectId,
-    //     RcpServiceType serviceType,
-    //     byte[] plainBuffer,
-    //     ServiceFlowType flowType,
-    //     Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-    //     CancellationToken token = default)
-    // {
-    //     const int maxAttempts = 10;
-    //     int attempt = 0;
-    //
-    //     while (attempt < maxAttempts)
-    //     {
-    //         attempt++;
-    //
-    //         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-    //         {
-    //             Log.Warning("Connection {ConnectId} not found on attempt {Attempt}", connectId, attempt);
-    //             return Result<Unit, NetworkFailure>.Err(
-    //                 NetworkFailure.InvalidRequestType("Connection not found"));
-    //         }
-    //
-    //         ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-    //         Result<Unit, NetworkFailure> result =
-    //             await SendRequestAsync(connectId, protocolSystem, request, onCompleted, token);
-    //
-    //         if (result.IsOk)
-    //         {
-    //             if (attempt > 1)
-    //             {
-    //                 Log.Information("Request succeeded on attempt {Attempt}", attempt);
-    //             }
-    //             return result;
-    //         }
-    //
-    //         NetworkFailure failure = result.UnwrapErr();
-    //         Log.Warning("Request attempt {Attempt}/{MaxAttempts} failed: {Error}",
-    //             attempt, maxAttempts, failure.Message);
-    //
-    //         // On failure, always attempt recovery except for the last attempt
-    //         if (attempt < maxAttempts)
-    //         {
-    //             Log.Information("Attempting session recovery for service type: {ServiceType}", serviceType);
-    //
-    //             Result<Unit, NetworkFailure> recoveryResult =
-    //                 await HandleRecoveryBasedOnServiceType(serviceType, connectId);
-    //
-    //             if (recoveryResult.IsOk)
-    //             {
-    //                 Log.Information("Recovery successful, retrying request");
-    //                 continue;
-    //             }
-    //             else
-    //             {
-    //                 Log.Error("Recovery failed: {Error}", recoveryResult.UnwrapErr().Message);
-    //             }
-    //         }
-    //
-    //         if (attempt >= maxAttempts)
-    //         {
-    //             Log.Error("Request failed after {MaxAttempts} attempts. Final error: {Error}",
-    //                 maxAttempts, failure.Message);
-    //             return result;
-    //         }
-    //
-    //         TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt - 1));
-    //         Log.Information("Retrying in {DelayMs}ms... (attempt {NextAttempt}/{MaxAttempts})",
-    //             delay.TotalMilliseconds, attempt + 1, maxAttempts);
-    //
-    //         await Task.Delay(delay, token);
-    //     }
-    //
-    //     return Result<Unit, NetworkFailure>.Err(
-    //         NetworkFailure.InvalidRequestType($"Request failed after {maxAttempts} attempts"));
-    // }
-    
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-    public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequest(
+    public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestAsync(
         uint connectId,
         RcpServiceType serviceType,
         byte[] plainBuffer,
@@ -218,8 +141,6 @@ public sealed class NetworkProvider(
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token = default)
     {
-        return await ServiceSpecificResiliencePolicies.ExecuteWithRetryAndRecovery(
-        operation: async () => {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
             return Result<Unit, NetworkFailure>.Err(
@@ -227,15 +148,10 @@ public sealed class NetworkProvider(
         }
 
         ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-        return await SendRequestAsync(connectId, protocolSystem, request, onCompleted, token);
-        },
-        recoveryHandler: HandleRecoveryBasedOnServiceType,
-        serviceType: serviceType,
-        connectId: connectId,
-        maxAttempts: 3);
+        return await SendRequestAsync(protocolSystem, request, onCompleted, token);
     }
 
-    public async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannel(
+    public async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannelAsync(
         EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
@@ -255,7 +171,7 @@ public sealed class NetworkProvider(
                 request);
 
         Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
-            await rpcServiceManager.RestoreAppDeviceSecrecyChannel(networkEvents, systemEvents, serviceRequest);
+            await rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(networkEvents, systemEvents, serviceRequest);
 
         if (restoreAppDeviceSecrecyChannelResponse.IsErr)
             return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
@@ -276,7 +192,7 @@ public sealed class NetworkProvider(
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
-    public async Task<Result<EcliptixSecrecyChannelState, NetworkFailure>> EstablishSecrecyChannel(
+    public async Task<Result<EcliptixSecrecyChannelState, NetworkFailure>> EstablishSecrecyChannelAsync(
         uint connectId)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
@@ -295,7 +211,7 @@ public sealed class NetworkProvider(
                 pubKeyExchangeRequest.Unwrap());
 
         Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
-            await rpcServiceManager.EstablishAppDeviceSecrecyChannel(networkEvents, systemEvents, action);
+            await rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(networkEvents, systemEvents, action);
 
         PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
 
@@ -378,6 +294,7 @@ public sealed class NetworkProvider(
             return newState;
         });
     }
+
     // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
     private async Task<Result<Unit, NetworkFailure>> PerformReconnectionLogic()
     {
@@ -400,7 +317,7 @@ public sealed class NetworkProvider(
         if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
             Result<EcliptixSecrecyChannelState, NetworkFailure> stateResult =
-                await EstablishSecrecyChannel(connectId);
+                await EstablishSecrecyChannelAsync(connectId);
 
             if (stateResult.IsOk)
             {
@@ -432,7 +349,7 @@ public sealed class NetworkProvider(
         InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
 
         Result<EcliptixSecrecyChannelState, NetworkFailure> establishResult =
-            await EstablishSecrecyChannel(connectId);
+            await EstablishSecrecyChannelAsync(connectId);
 
         if (establishResult.IsErr)
         {
@@ -442,23 +359,20 @@ public sealed class NetworkProvider(
         Log.Information("Successfully established new connection");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-    private ServiceRequest BuildRequest(
-    EcliptixProtocolSystem protocolSystem,
-    RcpServiceType serviceType,
-    byte[] plainBuffer,
-    ServiceFlowType flowType)
-    {
-    Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
-        protocolSystem.ProduceOutboundMessage(plainBuffer);
 
-    return ServiceRequest.New(flowType, serviceType, outboundPayload.Unwrap(), []);
-    }
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-
-    private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(
-        uint connectId,
+    private static ServiceRequest BuildRequest(
         EcliptixProtocolSystem protocolSystem,
+        RcpServiceType serviceType,
+        byte[] plainBuffer,
+        ServiceFlowType flowType)
+    {
+        Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
+            protocolSystem.ProduceOutboundMessage(plainBuffer);
+
+        return ServiceRequest.New(flowType, serviceType, outboundPayload.Unwrap(), []);
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token)
@@ -478,7 +392,8 @@ public sealed class NetworkProvider(
                 CipherPayload inboundPayload = callResult.Unwrap();
                 Result<byte[], EcliptixProtocolFailure> decryptedData =
                     protocolSystem.ProcessInboundMessage(inboundPayload);
-                if (decryptedData.IsErr) return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
+                if (decryptedData.IsErr)
+                    return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
 
                 Result<Unit, NetworkFailure> callbackOutcome = await onCompleted(decryptedData.Unwrap());
                 if (callbackOutcome.IsErr) return callbackOutcome;
@@ -502,6 +417,7 @@ public sealed class NetworkProvider(
                         Log.Warning("Stream callback failed: {Error}", streamCallbackOutcome.UnwrapErr());
                     }
                 }
+
                 break;
 
             case RpcFlow.OutboundSink _:
@@ -512,28 +428,4 @@ public sealed class NetworkProvider(
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
-
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-    private static bool IsSessionTimeoutError(NetworkFailure failure)
-    {
-        return failure.Message.Contains("not found or has timed out") ||
-               failure.Message.Contains("session expired") ||
-               failure.Message.Contains("connection lost");
-    }
-
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
-    private async Task<Result<Unit, NetworkFailure>> HandleRecoveryBasedOnServiceType(
-        RcpServiceType serviceType,
-        uint connectId)
-    {
-        if (serviceType == RcpServiceType.RegisterAppDevice)
-        {
-            return await EstablishConnectionOnly(connectId);
-        }
-        else
-        {
-            return await PerformReconnectionLogic();
-        }
-    }
-    
 }
