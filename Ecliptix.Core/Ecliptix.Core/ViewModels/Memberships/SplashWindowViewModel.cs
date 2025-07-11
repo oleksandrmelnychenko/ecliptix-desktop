@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using ReactiveUI;
@@ -11,7 +12,7 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
-    private string _baseStatusText = "Initializing...";
+    private string _baseStatusText = "Establishing secure connection to data center";
     private string _dots = "";
     private bool _isShuttingDown;
 
@@ -27,8 +28,13 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public string StatusText => _isShuttingDown ? _baseStatusText : _baseStatusText + _dots;
-
+    private Color _glowColor = Color.Parse("#9966CC"); 
+    public Color GlowColor
+    {
+        get => _glowColor;
+        private set => this.RaiseAndSetIfChanged(ref _glowColor, value);
+    }
+    
     public string BaseStatusText
     {
         get => _baseStatusText;
@@ -55,13 +61,17 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 
                     NetworkStatus = status;
 
-                    BaseStatusText = status switch
+                    (BaseStatusText, GlowColor) = status switch
                     {
-                        NetworkStatus.DataCenterConnecting => "Establishing secure connection to data center",
-                        NetworkStatus.DataCenterConnected => "Connection established. Initializing services...",
+                        NetworkStatus.DataCenterConnecting => 
+                            ("Establishing secure connection to data center", Color.Parse("#FFBD2E")),
+                        NetworkStatus.RestoreSecrecyChannel => 
+                            ("Restoring secure connection to data center", Color.Parse("#FFBD2E")),
+                        NetworkStatus.DataCenterConnected => 
+                            ("Connection established. Initializing services...", Color.Parse("#28C940")),
                         NetworkStatus.DataCenterDisconnected =>
-                            "Server not responding. Attempting to reconnect",
-                        _ => "Unexpected network status. Contact support if this persists."
+                            ("Server not responding. Attempting to reconnect", Color.Parse("#FF5F57")),
+                        _ => ("Unexpected network status.", Color.Parse("#9966CC"))
                     };
 
                     Dots = "";
@@ -87,7 +97,9 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                 {
                     if (_isShuttingDown) return;
 
-                    if (NetworkStatus == NetworkStatus.DataCenterConnecting || NetworkStatus == NetworkStatus.DataCenterDisconnected)
+                    if (NetworkStatus == NetworkStatus.DataCenterConnecting || 
+                        NetworkStatus == NetworkStatus.DataCenterDisconnected ||
+                        NetworkStatus == NetworkStatus.RestoreSecrecyChannel)
                     {
                         dotCount = (dotCount + 1) % 4;
                         Dots = new string('.', dotCount);
