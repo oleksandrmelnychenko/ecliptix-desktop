@@ -10,7 +10,7 @@
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="440" Height="340"
+        Width="510" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
@@ -22,13 +22,13 @@
         <!-- Converters -->
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
         <viewModels:EqualityConverter x:Key="EqualityConverter" />
-        
+
         <!-- Resources for Background Blur -->
         <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="0.67" />
         <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="0.67" />
         <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="0.67" />
         <SolidColorBrush x:Key="BrushBlurDefault" Color="#9966CC" Opacity="0.67" />
-        
+
         <!-- Resources for Content Background Tints -->
         <SolidColorBrush x:Key="BrushContentConnected" Color="#F0FFF4" />
         <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
@@ -90,19 +90,16 @@
     </Window.Styles>
 
     <Grid>
-
-        <!-- This border provides the outer, blurred glow effect -->
-        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="8">
+        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="22">
             <Border.Effect>
-                <BlurEffect Radius="25" />
+                <BlurEffect Radius="30" />
             </Border.Effect>
         </Border>
 
-        <!-- This border contains the main content. Its BorderBrush and DropShadow are now bound directly to the ViewModel. -->
         <Border Name="ContentBorder"
                 BorderThickness="1"
-                CornerRadius="8"
-                Padding="14"
+                CornerRadius="22"
+                Padding="4"
                 Background="#373446"
                 Margin="10"
                 BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}">
@@ -120,8 +117,38 @@
                 </DropShadowEffect>
             </Border.Effect>
 
-            <Grid RowDefinitions="*, Auto, Auto, Auto">
-                <Svg Grid.Row="0"
+            <Grid RowDefinitions="Auto,*, Auto, Auto, Auto">
+                <Border Height="52"
+                        CornerRadius="22,22,8,8"
+                        Background="#4c4e5d"
+                        BorderThickness="1.5">
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                           >
+                            <TextBlock Text="{Binding BaseStatusText}"
+                                       FontSize="16"
+                                       Foreground="#dddee6"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Dots}"
+                                       FontSize="16"
+                                       Foreground="#dddee6"
+                                       Width="20" />
+                        </StackPanel>
+
+                        <!--<TextBlock Text="Sub"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center" />-->
+
+                    </StackPanel>
+                </Border>
+                <Svg Grid.Row="1"
                      Path="../../../../Assets/logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
@@ -129,28 +156,13 @@
                      HorizontalAlignment="Center"
                      Margin="0,0,0,20" />
 
-                <StackPanel Grid.Row="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Bottom"
-                            Margin="8,0,8,16">
-                    <TextBlock Text="{Binding BaseStatusText}"
-                               FontSize="14"
-                               Foreground="#404040"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Dots}"
-                               FontSize="14"
-                               Foreground="#404040"
-                               Width="20" />
-                </StackPanel>
-
                 <TextBlock Grid.Row="3"
                            Text="{CompiledBinding ApplicationVersion}"
                            FontSize="8"
                            Foreground="#A0A0A0"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Bottom"
-                           Margin="0,24,0,0" />
+                           Margin="14,0,0,14" />
             </Grid>
         </Border>
     </Grid>
