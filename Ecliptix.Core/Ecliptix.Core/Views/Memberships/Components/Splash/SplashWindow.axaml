@@ -121,31 +121,28 @@
                 <Border Height="52"
                         CornerRadius="22,22,8,8"
                         Background="#4c4e5d"
+                        HorizontalAlignment="Stretch"
                         BorderThickness="1.5">
 
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+                    <StackPanel Orientation="Vertical"
+                                Spacing="4"
+                                Margin="14,0,0,0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
 
-                        <StackPanel
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                           >
-                            <TextBlock Text="{Binding BaseStatusText}"
-                                       FontSize="16"
-                                       Foreground="#dddee6"
-                                       TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding Dots}"
-                                       FontSize="16"
-                                       Foreground="#dddee6"
-                                       Width="20" />
-                        </StackPanel>
+                        <TextBlock Text="{Binding TitleText}"
+                                   FontSize="16"
+                                   FontWeight="Medium"
+                                   Foreground="#ededf3"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Left" />
 
-                        <!--<TextBlock Text="Sub"
+                        <TextBlock Text="{Binding SubtitleText}"
                                    FontSize="14"
                                    FontWeight="Bold"
-                                   Foreground="White"
-                                   HorizontalAlignment="Center" />-->
-
+                                   Foreground="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Left" />
                     </StackPanel>
                 </Border>
                 <Svg Grid.Row="1"

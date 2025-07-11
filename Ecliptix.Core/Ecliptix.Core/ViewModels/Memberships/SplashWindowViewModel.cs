@@ -12,9 +12,32 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
-    private string _baseStatusText = "Establishing secure connection to data center";
-    private string _dots = "";
     private bool _isShuttingDown;
+    private string _baseSubtitle = "";
+
+    private string _titleText = "Ecliptix";
+
+    public string TitleText
+    {
+        get => _titleText;
+        private set => this.RaiseAndSetIfChanged(ref _titleText, value);
+    }
+
+    private string _subtitleText = "Establishing secure connection...";
+
+    public string SubtitleText
+    {
+        get => _subtitleText;
+        private set => this.RaiseAndSetIfChanged(ref _subtitleText, value);
+    }
+
+    private Color _glowColor = Color.Parse("#9966CC");
+
+    public Color GlowColor
+    {
+        get => _glowColor;
+        private set => this.RaiseAndSetIfChanged(ref _glowColor, value);
+    }
 
     public NetworkStatus NetworkStatus
     {
@@ -23,33 +46,12 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
     }
 
     public string ApplicationVersion => VersionHelper.GetApplicationVersion();
-
     public ViewModelActivator Activator { get; } = new();
-
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
-
-    private Color _glowColor = Color.Parse("#9966CC"); 
-    public Color GlowColor
-    {
-        get => _glowColor;
-        private set => this.RaiseAndSetIfChanged(ref _glowColor, value);
-    }
-    
-    public string BaseStatusText
-    {
-        get => _baseStatusText;
-        private set => this.RaiseAndSetIfChanged(ref _baseStatusText, value);
-    }
-
-    public string Dots
-    {
-        get => _dots;
-        private set => this.RaiseAndSetIfChanged(ref _dots, value);
-    }
 
     public SplashWindowViewModel(INetworkEvents networkEvents, ISystemEvents systemEvents)
     {
-        this.WhenActivated(disposables =>
+        this.WhenActivated((CompositeDisposable disposables) =>
         {
             networkEvents.NetworkStatusChanged
                 .Select(e => e.State)
@@ -58,23 +60,8 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                 .Subscribe(status =>
                 {
                     if (_isShuttingDown) return;
-
                     NetworkStatus = status;
-
-                    (BaseStatusText, GlowColor) = status switch
-                    {
-                        NetworkStatus.DataCenterConnecting => 
-                            ("Establishing secure connection to data center", Color.Parse("#FFBD2E")),
-                        NetworkStatus.RestoreSecrecyChannel => 
-                            ("Restoring secure connection to data center", Color.Parse("#FFBD2E")),
-                        NetworkStatus.DataCenterConnected => 
-                            ("Connection established. Initializing services...", Color.Parse("#28C940")),
-                        NetworkStatus.DataCenterDisconnected =>
-                            ("Server not responding. Attempting to reconnect", Color.Parse("#FF5F57")),
-                        _ => ("Unexpected network status.", Color.Parse("#9966CC"))
-                    };
-
-                    Dots = "";
+                    UpdateUiForNetworkStatus(status);
                 })
                 .DisposeWith(disposables);
 
@@ -84,35 +71,51 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                 .Subscribe(systemStateChangedEvent =>
                 {
                     if (_isShuttingDown) return;
-
-                    BaseStatusText = systemStateChangedEvent.State.ToString();
-                    Dots = "";
+                    TitleText = "System Update";
+                    _baseSubtitle = systemStateChangedEvent.State.ToString();
+                    SubtitleText = _baseSubtitle;
                 })
                 .DisposeWith(disposables);
 
-            var dotCount = 0;
+            int dotCount = 0;
             Observable.Interval(TimeSpan.FromSeconds(1))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(_ =>
                 {
                     if (_isShuttingDown) return;
-
-                    if (NetworkStatus == NetworkStatus.DataCenterConnecting || 
-                        NetworkStatus == NetworkStatus.DataCenterDisconnected ||
-                        NetworkStatus == NetworkStatus.RestoreSecrecyChannel)
+                    if (NetworkStatus is NetworkStatus.DataCenterConnecting or NetworkStatus.DataCenterDisconnected
+                        or NetworkStatus.RestoreSecrecyChannel)
                     {
                         dotCount = (dotCount + 1) % 4;
-                        Dots = new string('.', dotCount);
-                    }
-                    else
-                    {
-                        Dots = "";
+                        SubtitleText = _baseSubtitle + new string('.', dotCount);
                     }
                 })
                 .DisposeWith(disposables);
 
             IsSubscribed.TrySetResult(true);
         });
+    }
+
+    private void UpdateUiForNetworkStatus(NetworkStatus status)
+    {
+        (string title, string baseSubtitle, Color glowColor) = status switch
+        {
+            NetworkStatus.DataCenterConnecting =>
+                ("Connecting", "Establishing secure connection", Color.Parse("#FFBD2E")),
+            NetworkStatus.RestoreSecrecyChannel =>
+                ("Reconnecting", "Restoring secure channel", Color.Parse("#FFBD2E")),
+            NetworkStatus.DataCenterConnected =>
+                ("Connected", "Initializing services...", Color.Parse("#28C940")),
+            NetworkStatus.DataCenterDisconnected =>
+                ("Server not responding", "Attempting to reconnect", Color.Parse("#FF5F57")),
+            _ => ("Status Unknown", "Unexpected network status.", Color.Parse("#9966CC"))
+        };
+
+        TitleText = title;
+        _baseSubtitle = baseSubtitle;
+        GlowColor = glowColor;
+
+        SubtitleText = _baseSubtitle;
     }
 
     public async Task PrepareForShutdownAsync()
@@ -122,7 +125,11 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
             .ObserveOn(RxApp.MainThreadScheduler)
             .Take(8)
             .Select(remaining => 7 - remaining)
-            .Do(remaining => BaseStatusText = $"Shutting down in {remaining} seconds...")
+            .Do(remaining =>
+            {
+                TitleText = "Shutting Down";
+                SubtitleText = $"Closing in {remaining} seconds...";
+            })
             .LastAsync();
         _isShuttingDown = false;
     }
