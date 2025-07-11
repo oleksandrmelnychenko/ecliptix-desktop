@@ -10,7 +10,7 @@
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="510" Height="340"
+        Width="540" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
@@ -118,7 +118,7 @@
             </Border.Effect>
 
             <Grid RowDefinitions="Auto,*, Auto, Auto, Auto">
-                <Border Height="52"
+                <Border Height="62"
                         CornerRadius="22,22,8,8"
                         Background="#4c4e5d"
                         HorizontalAlignment="Stretch"
@@ -131,7 +131,7 @@
                                 VerticalAlignment="Center">
 
                         <TextBlock Text="{Binding TitleText}"
-                                   FontSize="16"
+                                   FontSize="18"
                                    FontWeight="Medium"
                                    Foreground="#ededf3"
                                    TextWrapping="Wrap"
@@ -139,7 +139,7 @@
 
                         <TextBlock Text="{Binding SubtitleText}"
                                    FontSize="14"
-                                   FontWeight="Bold"
+                                   FontWeight="Medium"
                                    Foreground="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}"
                                    TextWrapping="Wrap"
                                    TextAlignment="Left" />
