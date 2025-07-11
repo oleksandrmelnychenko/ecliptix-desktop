@@ -59,6 +59,8 @@ public class ApplicationInitializer(
         }
 
         Log.Information("Application initialized successfully");
+        
+        systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
         return true;
     }
 

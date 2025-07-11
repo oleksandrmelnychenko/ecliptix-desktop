@@ -11,11 +11,13 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
 {
+    private string _baseSubtitle = "";
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
     private bool _isShuttingDown;
-    private string _baseSubtitle = "";
 
     private string _titleText = "Starting Ecliptix...";
+    private string _subtitleText = "Establishing secure connection...";
+    private Color _glowColor = Color.Parse("#9966CC");
 
     public string TitleText
     {
@@ -23,15 +25,11 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         private set => this.RaiseAndSetIfChanged(ref _titleText, value);
     }
 
-    private string _subtitleText = "Establishing secure connection...";
-
     public string SubtitleText
     {
         get => _subtitleText;
         private set => this.RaiseAndSetIfChanged(ref _subtitleText, value);
     }
-
-    private Color _glowColor = Color.Parse("#9966CC");
 
     public Color GlowColor
     {
@@ -45,13 +43,12 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         private set => this.RaiseAndSetIfChanged(ref _networkStatus, value);
     }
 
-    public string ApplicationVersion => VersionHelper.GetApplicationVersion();
     public ViewModelActivator Activator { get; } = new();
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
     public SplashWindowViewModel(INetworkEvents networkEvents, ISystemEvents systemEvents)
     {
-        this.WhenActivated((CompositeDisposable disposables) =>
+        this.WhenActivated(disposables =>
         {
             networkEvents.NetworkStatusChanged
                 .Select(e => e.State)
@@ -96,6 +93,22 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         });
     }
 
+    public async Task PrepareForShutdownAsync()
+    {
+        _isShuttingDown = true;
+        await Observable.Interval(TimeSpan.FromSeconds(1))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Take(8)
+            .Select(remaining => 7 - remaining)
+            .Do(remaining =>
+            {
+                TitleText = "Shutting Down";
+                SubtitleText = $"Closing in {remaining} seconds...";
+            })
+            .LastAsync();
+        _isShuttingDown = false;
+    }
+
     private void UpdateUiForNetworkStatus(NetworkStatus status)
     {
         (string title, string baseSubtitle, Color glowColor) = status switch
@@ -116,21 +129,5 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         GlowColor = glowColor;
 
         SubtitleText = _baseSubtitle;
-    }
-
-    public async Task PrepareForShutdownAsync()
-    {
-        _isShuttingDown = true;
-        await Observable.Interval(TimeSpan.FromSeconds(1))
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Take(8)
-            .Select(remaining => 7 - remaining)
-            .Do(remaining =>
-            {
-                TitleText = "Shutting Down";
-                SubtitleText = $"Closing in {remaining} seconds...";
-            })
-            .LastAsync();
-        _isShuttingDown = false;
     }
 }
