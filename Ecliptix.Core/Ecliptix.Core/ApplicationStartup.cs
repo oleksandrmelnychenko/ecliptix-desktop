@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -16,8 +15,8 @@ public class ApplicationStartup
 {
     private readonly IClassicDesktopStyleApplicationLifetime _desktop;
     private readonly IApplicationInitializer _initializer;
-    private readonly SplashWindowViewModel _splashViewModel;
-    private readonly SplashWindow _splashScreen;
+    private SplashWindowViewModel? _splashViewModel;
+    private SplashWindow? _splashScreen;
 
     public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     {
@@ -30,9 +29,9 @@ public class ApplicationStartup
     public async Task RunAsync()
     {
         _desktop.MainWindow = _splashScreen;
-        _splashScreen.Show();
+        _splashScreen?.Show();
 
-        await _splashViewModel.IsSubscribed.Task;
+        await _splashViewModel?.IsSubscribed.Task!;
 
         bool success = await _initializer.InitializeAsync();
         if (success)
@@ -41,8 +40,11 @@ public class ApplicationStartup
         }
         else
         {
-           await _splashViewModel.PrepareForShutdownAsync();
-           _desktop.Shutdown();
+            await _splashViewModel.PrepareForShutdownAsync();
+            _desktop.Shutdown();
+
+            _splashScreen = null;
+            _splashViewModel = null;
         }
     }
 
@@ -51,7 +53,6 @@ public class ApplicationStartup
         Window nextWindow;
         if (!_initializer.IsMembershipConfirmed)
         {
-            _splashScreen.Hide();
             nextWindow = new MembershipHostWindow
             {
                 DataContext = Locator.Current.GetService<MembershipHostWindowModel>()
@@ -63,7 +64,13 @@ public class ApplicationStartup
             _desktop.Shutdown();
             return;
         }
+
         _desktop.MainWindow = nextWindow;
         nextWindow.Show();
+
+        _splashScreen?.Close();
+
+        _splashScreen = null;
+        _splashViewModel = null;
     }
 }

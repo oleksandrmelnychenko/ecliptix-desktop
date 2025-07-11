@@ -34,7 +34,7 @@
             </Border.Effect>
         </Border>
 
-        <Border Background="#fafafa"
+        <Border Background="#373446"
                 BorderBrush="#B084CC"
                 BorderThickness="1"
                 CornerRadius="8"

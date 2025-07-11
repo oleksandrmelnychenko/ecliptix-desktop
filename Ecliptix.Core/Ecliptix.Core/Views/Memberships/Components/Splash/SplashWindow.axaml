@@ -91,7 +91,7 @@
                 BorderThickness="1"
                 CornerRadius="22"
                 Padding="4"
-                Background="#373446"
+                Background="#30323f"
                 Margin="10"
                 BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}">
             <Border.Effect>
