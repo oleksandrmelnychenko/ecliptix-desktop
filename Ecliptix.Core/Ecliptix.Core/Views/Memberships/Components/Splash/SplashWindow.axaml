@@ -10,7 +10,7 @@
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="440" Height="340"
+        Width="510" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
@@ -19,38 +19,25 @@
         TransparencyLevelHint="Transparent">
 
     <Window.Resources>
+        <!-- Converters -->
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
-        
-        <!-- Colors (for Glow) -->
-        <Color x:Key="GlowColorConnected">#28C940</Color>
-        <Color x:Key="GlowColorConnecting">#FFBD2E</Color>
-        <Color x:Key="GlowColorDisconnected">#FF5F57</Color>
-        <Color x:Key="GlowColorDefault">#9966CC</Color>
+        <viewModels:EqualityConverter x:Key="EqualityConverter" />
 
-        <!-- Brushes for Semi-Transparent Background Blur -->
-        <SolidColorBrush x:Key="BrushBlurConnected" Color="{StaticResource GlowColorConnected}" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurConnecting" Color="{StaticResource GlowColorConnecting}" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="{StaticResource GlowColorDisconnected}" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurDefault" Color="{StaticResource GlowColorDefault}" Opacity="0.67" />
-        
-        <!-- Brushes for Light Background Tints -->
+        <!-- Resources for Background Blur -->
+        <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurDefault" Color="#9966CC" Opacity="0.67" />
+
+        <!-- Resources for Content Background Tints -->
         <SolidColorBrush x:Key="BrushContentConnected" Color="#F0FFF4" />
         <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
         <SolidColorBrush x:Key="BrushContentDisconnected" Color="#FFF0F0" />
         <SolidColorBrush x:Key="BrushContentDefault" Color="#FAFAFA" />
-
-        <!-- Brushes for Border -->
-        <SolidColorBrush x:Key="BorderBrushConnected" Color="{StaticResource GlowColorConnected}" />
-        <SolidColorBrush x:Key="BorderBrushConnecting" Color="{StaticResource GlowColorConnecting}" />
-        <SolidColorBrush x:Key="BorderBrushDisconnected" Color="{StaticResource GlowColorDisconnected}" />
-        <SolidColorBrush x:Key="BorderBrushDefault" Color="{StaticResource GlowColorDefault}" />
-
-        <!-- Equality Converter -->
-        <viewModels:EqualityConverter x:Key="EqualityConverter" />
     </Window.Resources>
 
     <Window.Styles>
-        <!-- Pseudoclass bindings for NetworkStatus -->
+        <!-- Pseudoclass bindings for NetworkStatus (Drives all style changes) -->
         <Style Selector="Window">
             <Setter Property="(Classes.connected)"
                     Value="{Binding NetworkStatus, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static network:NetworkStatus.DataCenterConnected}}" />
@@ -81,10 +68,9 @@
             <Setter Property="Background" Value="{StaticResource BrushBlurDisconnected}" />
         </Style>
 
-        <!-- ContentBorder styles -->
+        <!-- ContentBorder Background styles -->
         <Style Selector="Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDefault}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.3" />
@@ -94,31 +80,29 @@
         </Style>
         <Style Selector="Window:connected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnected}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushConnected}" />
         </Style>
         <Style Selector="Window:connecting Border#ContentBorder, Window:restore Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnecting}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushConnecting}" />
         </Style>
         <Style Selector="Window:disconnected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDisconnected}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDisconnected}" />
         </Style>
     </Window.Styles>
 
     <Grid>
-        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="8">
+        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="22">
             <Border.Effect>
-                <BlurEffect Radius="25" />
+                <BlurEffect Radius="30" />
             </Border.Effect>
         </Border>
 
         <Border Name="ContentBorder"
                 BorderThickness="1"
-                CornerRadius="8"
-                Padding="14"
-                BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}"
-                Margin="10">
+                CornerRadius="22"
+                Padding="4"
+                Background="#373446"
+                Margin="10"
+                BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="15"
                                   Opacity="0.8"
@@ -133,9 +117,38 @@
                 </DropShadowEffect>
             </Border.Effect>
 
+            <Grid RowDefinitions="Auto,*, Auto, Auto, Auto">
+                <Border Height="52"
+                        CornerRadius="22,22,8,8"
+                        Background="#4c4e5d"
+                        BorderThickness="1.5">
 
-            <Grid RowDefinitions="*, Auto, Auto, Auto">
-                <Svg Grid.Row="0"
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="4">
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                           >
+                            <TextBlock Text="{Binding BaseStatusText}"
+                                       FontSize="16"
+                                       Foreground="#dddee6"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Dots}"
+                                       FontSize="16"
+                                       Foreground="#dddee6"
+                                       Width="20" />
+                        </StackPanel>
+
+                        <!--<TextBlock Text="Sub"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center" />-->
+
+                    </StackPanel>
+                </Border>
+                <Svg Grid.Row="1"
                      Path="../../../../Assets/logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
@@ -143,28 +156,13 @@
                      HorizontalAlignment="Center"
                      Margin="0,0,0,20" />
 
-                <StackPanel Grid.Row="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Bottom"
-                            Margin="8,0,8,16">
-                    <TextBlock Text="{Binding BaseStatusText}"
-                               FontSize="14"
-                               Foreground="#404040"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Dots}"
-                               FontSize="14"
-                               Foreground="#404040"
-                               Width="20" />
-                </StackPanel>
-
                 <TextBlock Grid.Row="3"
                            Text="{CompiledBinding ApplicationVersion}"
                            FontSize="8"
                            Foreground="#A0A0A0"
                            HorizontalAlignment="Left"
                            VerticalAlignment="Bottom"
-                           Margin="0,24,0,0" />
+                           Margin="14,0,0,14" />
             </Grid>
         </Border>
     </Grid>
