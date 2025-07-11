@@ -141,15 +141,80 @@ public sealed class NetworkProvider(
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token = default)
     {
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        // Result<Unit, NetworkFailure> result;
+        // do
+        // {
+        //     if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        //     {
+        //         return Result<Unit, NetworkFailure>.Err(
+        //             NetworkFailure.InvalidRequestType("Connection not found"));
+        //     }
+        //
+        //     ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
+        //     result = await SendRequestAsync(protocolSystem, request, onCompleted, token);
+        //
+        //     if (result.IsErr && result.UnwrapErr().Message.Contains("Secure session with"))
+        //     {
+        //         if (serviceType == RcpServiceType.RegisterAppDevice)
+        //         {
+        //             await EstablishConnectionOnly(connectId);
+        //         }
+        //         else
+        //         {
+        //             await PerformReconnectionLogic();
+        //         }
+        //     }
+        // } while (result.IsErr);
+        //
+        // return result;
+        return await RetryExecute(
+            retryAttempt => TimeSpan.FromSeconds(retryAttempt * 6),
+            shouldRetry: result => result.IsErr && result.UnwrapErr().Message.Contains("Secure session with"),
+            onRetryAsync: async (attempt, result) =>
+            {
+                if (serviceType == RcpServiceType.RegisterAppDevice)
+                    await EstablishConnectionOnly(connectId);
+                else
+                    await PerformReconnectionLogic();
+            },
+            block: async () =>
+            {
+                if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+                {
+                    return Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType("Connection not found"));
+                }
+
+                ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
+                return await SendRequestAsync(protocolSystem, request, onCompleted, token);
+            });
+    }
+
+    public async static Task<TResult> RetryExecute<TResult>(
+        Func<int, TimeSpan> retryInterval,
+        Func<TResult, bool> shouldRetry,                         
+        Func<int, TResult, Task> onRetryAsync,                   
+        Func<Task<TResult>> block,
+        int? maxRetryCount = null
+    )
+    {
+        int attempt = 1;
+        while (true)
         {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Connection not found"));
+            TResult result = await block();
+
+            if (!shouldRetry(result) || (maxRetryCount.HasValue && attempt >= maxRetryCount.Value))
+                return result;
+
+            await onRetryAsync(attempt, result);
+            await Task.Delay(retryInterval(attempt));
+
+            attempt++;
         }
 
-        ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-        return await SendRequestAsync(protocolSystem, request, onCompleted, token);
+        throw new InvalidOperationException("Unreachable code in RetryExecute.");
     }
+    
 
     public async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannelAsync(
         EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
@@ -313,23 +378,7 @@ public sealed class NetworkProvider(
         {
             return establishResult;
         }
-
-        if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            Result<EcliptixSecrecyChannelState, NetworkFailure> stateResult =
-                await EstablishSecrecyChannelAsync(connectId);
-
-            if (stateResult.IsOk)
-            {
-                Result<Unit, InternalServiceApiFailure> storeResult =
-                    await secureStorageProvider.StoreAsync(connectId.ToString(), stateResult.Unwrap().ToByteArray());
-
-                if (storeResult.IsErr)
-                {
-                    Log.Warning("Failed to store reconnection session state: {Error}", storeResult.UnwrapErr());
-                }
-            }
-        }
+        
 
         Log.Information("Successfully reconnected and established new session");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -355,6 +404,9 @@ public sealed class NetworkProvider(
         {
             return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
         }
+        
+        EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
+        await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
 
         Log.Information("Successfully established new connection");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);

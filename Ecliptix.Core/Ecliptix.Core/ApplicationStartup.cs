@@ -62,7 +62,6 @@ public class ApplicationStartup
             _desktop.Shutdown();
             return;
         }
-
         _desktop.MainWindow = nextWindow;
         nextWindow.Show();
     }
