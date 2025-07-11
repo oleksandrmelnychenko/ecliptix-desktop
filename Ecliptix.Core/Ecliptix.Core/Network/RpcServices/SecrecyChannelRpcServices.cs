@@ -25,7 +25,7 @@ public sealed class SecrecyChannelRpcServices(
     {
         ArgumentNullException.ThrowIfNull(request);
         return await ExecuteWithRetryAsync(networkEvents, systemEvents,
-            () => appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request));
+            callOptions => appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request, callOptions));
     }
 
     /// <summary>
@@ -38,13 +38,13 @@ public sealed class SecrecyChannelRpcServices(
     {
         ArgumentNullException.ThrowIfNull(request);
         return await ExecuteWithRetryAsync(networkEvents, systemEvents,
-            () => appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request));
+            callOptions => appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request, callOptions));
     }
 
     private static async Task<Result<TResponse, NetworkFailure>> ExecuteWithRetryAsync<TResponse>(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
-        Func<AsyncUnaryCall<TResponse>> grpcCallFactory)
+        Func<CallOptions, AsyncUnaryCall<TResponse>> grpcCallFactory)
     {
         try
         {
@@ -52,7 +52,9 @@ public sealed class SecrecyChannelRpcServices(
                 RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<TResponse>(networkEvents);
             TResponse response = await policy.ExecuteAsync(async () =>
             {
-                AsyncUnaryCall<TResponse> call = grpcCallFactory();
+                var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20));
+                AsyncUnaryCall<TResponse> call = grpcCallFactory(callOptions);
+                // AsyncUnaryCall<TResponse> call = grpcCallFactory();
                 return await call.ResponseAsync;
             });
 

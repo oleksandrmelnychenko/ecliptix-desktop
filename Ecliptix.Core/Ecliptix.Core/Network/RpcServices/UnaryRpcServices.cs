@@ -49,7 +49,7 @@ public sealed class UnaryRpcServices
         {
             return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
                 appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(payload,
-                    new CallOptions(cancellationToken: token)));
+                    new CallOptions(cancellationToken: token, deadline: DateTime.UtcNow.AddSeconds(20))));
         }
 
         async Task<Result<CipherPayload, NetworkFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
@@ -129,10 +129,12 @@ public sealed class UnaryRpcServices
         {
             AsyncRetryPolicy<CipherPayload> policy =
                 RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
-
+            
             CipherPayload? response = await policy.ExecuteAsync(async () =>
             {
-                AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
+                //CallOptions callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20));
+                
+                AsyncUnaryCall<CipherPayload> call = grpcCallFactory(); 
                 return await call.ResponseAsync;
             });
 
