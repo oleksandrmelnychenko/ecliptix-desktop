@@ -15,7 +15,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
     private bool _isShuttingDown;
     private string _baseSubtitle = "";
 
-    private string _titleText = "Ecliptix";
+    private string _titleText = "Starting Ecliptix...";
 
     public string TitleText
     {

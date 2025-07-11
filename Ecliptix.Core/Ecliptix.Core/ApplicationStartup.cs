@@ -51,6 +51,7 @@ public class ApplicationStartup
         Window nextWindow;
         if (!_initializer.IsMembershipConfirmed)
         {
+            _splashScreen.Hide();
             nextWindow = new MembershipHostWindow
             {
                 DataContext = Locator.Current.GetService<MembershipHostWindowModel>()

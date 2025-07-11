@@ -10,7 +10,7 @@
         x:Class="Ecliptix.Core.Views.Memberships.Components.Splash.SplashWindow"
         x:DataType="memberships:SplashWindowViewModel"
         x:CompileBindings="True"
-        Width="540" Height="340"
+        Width="440" Height="340"
         WindowStartupLocation="CenterScreen"
         CanResize="False"
         ShowInTaskbar="False"
