@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
-    <Border VerticalAlignment="Top" Width="400"  Padding="20" CornerRadius="15">
+    <Border VerticalAlignment="Top" Width="400" Background="AliceBlue" Padding="20" CornerRadius="15">
         <Grid VerticalAlignment="Center" RowSpacing="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -17,8 +17,11 @@
             </Grid.RowDefinitions>
 
             <Grid RowDefinitions="Auto Auto" Grid.Row="0">
-                <TextBlock Grid.Row="0" Text="Sign in into account" FontSize="24" FontWeight="Bold" Foreground="#FFE8E8E8" />
-                <TextBlock Grid.Row="1" Text="Sign in to join conversation." FontSize="14" Foreground="#FFE8E8E8" />
+                <TextBlock Grid.Row="0" Text="Sign in to Ecliptix" FontSize="14" FontWeight="Regular" />
+                <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Welcome back! Your
+personalized experience 
+awaits."
+                           FontSize="24" />
             </Grid>
 
             <controls:HintedTextBox
