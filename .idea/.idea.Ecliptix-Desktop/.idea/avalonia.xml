@@ -8,6 +8,7 @@
         <entry key="Ecliptix.Core/Ecliptix.Core/Controls/EcliptixTextBox.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Controls/HintedTextBox.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Styles/Buttons.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Styles/Fonts.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Themes/Generic.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/AuthenticationWindow.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Authentication/Registration/ConfirmPasswordView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
