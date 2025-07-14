@@ -7,7 +7,15 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
-    <Border VerticalAlignment="Top" Width="400" Background="AliceBlue" Padding="20" CornerRadius="15">
+    
+    <Border MaxWidth="420"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            BorderBrush="#ece9ea"
+            BorderThickness="1"
+            CornerRadius="22"
+            Background="#fefcfd"
+            Padding="24"> 
         <Grid VerticalAlignment="Center" RowSpacing="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -16,20 +24,24 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid RowDefinitions="Auto Auto" Grid.Row="0">
-                <TextBlock Grid.Row="0" Text="Sign in to Ecliptix" FontSize="14" FontWeight="Regular" />
-                <TextBlock Grid.Row="1" TextWrapping="Wrap" Text="Welcome back! Your
-personalized experience 
-awaits."
-                           FontSize="24" />
-            </Grid>
+            <StackPanel Grid.Row="0" Spacing="8">
+                <TextBlock Text="Sign in to Ecliptix"
+                           FontSize="26"
+                           FontWeight="Medium"
+                           Foreground="#090607"/>
+                <TextBlock Text="Welcome back! Your personalized experience awaits."
+                           TextWrapping="Wrap"
+                           FontSize="16"
+                           FontWeight="Light"
+                           Foreground="#A0A0A0"/>
+            </StackPanel>
 
             <controls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
                 Watermark="Mobile"
                 Hint="Include country code."
-                BorderBrush="#FFE8E8E8"
+                BorderBrush="#e2e0e1"
                 TextForeground="#333333"
                 HintForeground="#6a5acd"
                 IconSource="/Assets/lamp.svg"
@@ -44,7 +56,7 @@ awaits."
                 Hint=""
                 Margin="0 0 0 10"
                 CornerRadius="15"
-                BorderBrush="#E0E0E0"
+                BorderBrush="#e2e0e1"
                 TextForeground="#333333"
                 HintForeground="#6a5acd"
                 IconSource="/Assets/lamp.svg"
@@ -53,7 +65,7 @@ awaits."
 
             <Button Grid.Row="3"
                     Classes="SubmitButton"
-                    Background="DodgerBlue"
+                    Background="#9966CC"
                     Content="Sign in"
                     Command="{Binding SignInCommand}" />
         </Grid>
