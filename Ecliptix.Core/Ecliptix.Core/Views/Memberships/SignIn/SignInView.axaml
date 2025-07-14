@@ -7,15 +7,16 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
-    
+
     <Border MaxWidth="420"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             BorderBrush="#ece9ea"
             BorderThickness="1"
             CornerRadius="22"
-            Background="#fefcfd"
-            Padding="24"> 
+            Background="#fefbfa"
+            Padding="24">
+
         <Grid VerticalAlignment="Center" RowSpacing="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -26,30 +27,37 @@
 
             <StackPanel Grid.Row="0" Spacing="8">
                 <TextBlock Text="Sign in to Ecliptix"
-                           FontSize="22"
+                           FontSize="18"
                            FontWeight="Medium"
-                           Foreground="#5d5d5d"/>
+                           Foreground="#272320" />
                 <TextBlock Text="Welcome back! Your personalized experience awaits."
                            TextWrapping="Wrap"
                            FontSize="16"
                            FontWeight="Light"
-                           Foreground="#A0A0A0"/>
+                           Foreground="#272320" />
             </StackPanel>
 
-            <controls:HintedTextBox
-                Grid.Row="1"
-                x:Name="MobileTextBox"
-                Watermark="Mobile"
-                Hint="Include country code."
-                BorderBrush="#e2e0e1"
-                TextForeground="#333333"
-                HintForeground="#6a5acd"
-                IconSource="/Assets/lamp.svg"
-                ValidationType="PhoneNumber"
-                MainBorderBrush="#e2e0e1"
-                Text="{Binding PhoneNumber}" />
 
-            <controls:HintedTextBox
+            <StackPanel Grid.Row="1" Spacing="8">
+                <TextBlock Text="Mobile number" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
+                <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
+                         FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
+                         Background="#efeae7">
+
+                </TextBox>
+
+            </StackPanel>
+
+            <StackPanel Grid.Row="2" Spacing="8">
+                <TextBlock Text="Secure key" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
+                <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
+                         FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
+                         Background="#efeae7">
+
+                </TextBox>
+            </StackPanel>
+
+            <!--<controls:HintedTextBox
                 Grid.Row="2"
                 x:Name="PasswordTextBox"
                 Watermark="Secure Key"
@@ -62,11 +70,11 @@
                 IconSource="/Assets/lamp.svg"
                 MainBorderBrush="#e2e0e1"
                 ValidationType="Password"
-                PasswordChar="*" />
+                PasswordChar="*" />-->
 
             <Button Grid.Row="3"
                     Classes="SubmitButton"
-                    Background="#6a5acd"
+                    Background="#272320"
                     Content="Sign in"
                     Command="{Binding SignInCommand}" />
         </Grid>
