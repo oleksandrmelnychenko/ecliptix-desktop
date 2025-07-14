@@ -2,13 +2,68 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:viewModels="clr-namespace:Ecliptix.Core.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Core.MainHostWindow"
         Title="MainHostWindow">
+    <Window.Styles>
+        <Style Selector="Button.traffic-light">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="PART_BackgroundBorder"
+                            Background="{TemplateBinding Background}"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" />
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.traffic-light.close">
+            <Setter Property="Background" Value="#FF5F57" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pointerover">
+            <Setter Property="Background" Value="#E0443E" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pressed">
+            <Setter Property="Background" Value="#C13934" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize">
+            <Setter Property="Background" Value="#FFBD2E" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pointerover">
+            <Setter Property="Background" Value="#E0A72A" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pressed">
+            <Setter Property="Background" Value="#C19124" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize">
+            <Setter Property="Background" Value="#28C940" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pointerover">
+            <Setter Property="Background" Value="#23AF38" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pressed">
+            <Setter Property="Background" Value="#1E952F" />
+        </Style>
+
+    </Window.Styles>
 
     <Border Name="RootWindowBorder"
-            Background="#FFEFEFEF"
+            Background="#fff8f5"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
@@ -33,7 +88,7 @@
                         Background="#FFFAFAFA"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
-                    
+
                 </Border>
             </Grid>
 

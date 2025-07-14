@@ -11,10 +11,8 @@
             <Setter Property="FontFamily" Value="Segoe UI, $Default" />
         </Style>
     </Application.Styles>
-    
-    <Application.Resources>
-       
 
+    <Application.Resources>
     </Application.Resources>
 
 </Application>
