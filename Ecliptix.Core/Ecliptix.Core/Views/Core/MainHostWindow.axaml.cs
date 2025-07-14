@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Ecliptix.Core.Services;
 
 namespace Ecliptix.Core.Views.Core;
 
@@ -11,6 +12,7 @@ public partial class MainHostWindow : Window
     public MainHostWindow()
     {
         AvaloniaXamlLoader.Load(this);
+        IconService.SetIconForWindow(this);        
     }
     
     

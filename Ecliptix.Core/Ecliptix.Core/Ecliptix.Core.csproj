@@ -11,6 +11,7 @@
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
         <AssemblyVersion>0.0.1.0</AssemblyVersion>
+        <ApplicationIcon>Assets/logo.ico</ApplicationIcon>
     </PropertyGroup>
     <ItemGroup>
         <TrimmerRootAssembly Include="Avalonia.Themes.Fluent"/>
@@ -114,4 +115,22 @@
       <Folder Include="Views\Core\Components\" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
+        <Content Include="Assets/logo.ico">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
+        <Content Include="Assets/logo.icns">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+        <Content Include="Assets/logo.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    
 </Project>
