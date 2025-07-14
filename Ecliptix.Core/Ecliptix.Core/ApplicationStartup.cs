@@ -1,10 +1,13 @@
 using System;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.Views;
+using Ecliptix.Core.Views.Core;
 using Ecliptix.Core.Views.Memberships;
 using Ecliptix.Core.Views.Memberships.Components.Splash;
 using Serilog;
@@ -16,8 +19,10 @@ public class ApplicationStartup
 {
     private readonly IClassicDesktopStyleApplicationLifetime _desktop;
     private readonly IApplicationInitializer _initializer;
-    private readonly SplashWindowViewModel _splashViewModel;
-    private readonly SplashWindow _splashScreen;
+    private SplashWindowViewModel? _splashViewModel;
+    private SplashWindow? _splashScreen;
+
+    private const string RootContentName = "MainContentGrid";
 
     public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     {
@@ -30,28 +35,33 @@ public class ApplicationStartup
     public async Task RunAsync()
     {
         _desktop.MainWindow = _splashScreen;
-        _splashScreen.Show();
+        _splashScreen?.Show();
 
-        await _splashViewModel.IsSubscribed.Task;
+        await _splashViewModel?.IsSubscribed.Task!;
 
         bool success = await _initializer.InitializeAsync();
         if (success)
         {
-            TransitionToNextWindow();
+            await TransitionToNextWindowAsync();
         }
         else
         {
-           await _splashViewModel.PrepareForShutdownAsync();
-           _desktop.Shutdown();
+            if (_splashViewModel != null)
+            {
+                await _splashViewModel.PrepareForShutdownAsync();
+            }
+
+            _desktop.Shutdown();
         }
     }
 
-    private void TransitionToNextWindow()
+    private async Task TransitionToNextWindowAsync()
     {
+        if (_splashScreen is null) return;
+
         Window nextWindow;
         if (!_initializer.IsMembershipConfirmed)
         {
-            _splashScreen.Hide();
             nextWindow = new MembershipHostWindow
             {
                 DataContext = Locator.Current.GetService<MembershipHostWindowModel>()
@@ -59,11 +69,46 @@ public class ApplicationStartup
         }
         else
         {
-            Log.Warning("Membership confirmed, but no main application window is defined. Shutting down");
-            _desktop.Shutdown();
-            return;
+            nextWindow = new MainHostWindow
+            {
+            };
         }
-        _desktop.MainWindow = nextWindow;
+
+        nextWindow.WindowStartupLocation = WindowStartupLocation.Manual;
+        PixelPoint splashPos = _splashScreen.Position;
+        Size splashSize = _splashScreen.ClientSize;
+
+        const int n = 2;
+        
+        int centeredX = splashPos.X + (int)((splashSize.Width - nextWindow.Width) / n);
+        int centeredY = splashPos.Y + (int)((splashSize.Height - nextWindow.Height) / n);
+        nextWindow.Position = new PixelPoint(centeredX, centeredY);
+
+        Grid? contentToFadeIn = nextWindow.FindControl<Grid>(RootContentName);
+
         nextWindow.Show();
+        _desktop.MainWindow = nextWindow;
+
+        Grid? splashContentToFadeOut = _splashScreen.Content as Grid;
+
+        if (splashContentToFadeOut != null && contentToFadeIn != null)
+        {
+            TimeSpan duration = TimeSpan.FromMilliseconds(700);
+
+            Task fadeOutTask = splashContentToFadeOut.FadeOutAsync(duration);
+            Task fadeInTask = contentToFadeIn.FadeInAsync(duration);
+            await Task.WhenAll(fadeOutTask, fadeInTask);
+        }
+        else
+        {
+            Log.Warning("Could not find content for animation. Splash: {S}, NextWindow: {N}. Skipping animations",
+                splashContentToFadeOut != null, contentToFadeIn != null);
+            if (contentToFadeIn != null) contentToFadeIn.Opacity = 1;
+        }
+
+        _splashScreen.Close();
+
+        _splashScreen = null;
+        _splashViewModel = null;
     }
 }

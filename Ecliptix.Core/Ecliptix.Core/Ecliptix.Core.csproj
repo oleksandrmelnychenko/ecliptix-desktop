@@ -31,7 +31,6 @@
         <PackageReference Include="Avalonia" Version="11.3.2" />
         <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
         <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
@@ -87,10 +86,6 @@
           <DependentUpon>TitleBar.axaml</DependentUpon>
           <SubType>Code</SubType>
         </Compile>
-        <Compile Update="Views\Memberships\Components\StatusIndicator.axaml.cs">
-            <DependentUpon>StatusIndicator.axaml</DependentUpon>
-            <SubType>Code</SubType>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>
@@ -111,6 +106,7 @@
     </ItemGroup>
     
     <ItemGroup>
+      <Folder Include="Assets\Fonts\" />
       <Folder Include="ViewModels\Core\" />
       <Folder Include="Views\Core\Components\" />
     </ItemGroup>
