@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.ReactiveUI; 
 using Ecliptix.Core.ViewModels.Authentication;
 using System.Threading.Tasks;
+using Ecliptix.Core.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Views.Authentication;
@@ -16,6 +17,7 @@ public partial class AuthenticationWindow : ReactiveWindow<MembershipHostWindowM
         {
             FadeIn();
         });
+        IconService.SetIconForWindow(this);
     }
 
     private async void FadeIn()

@@ -13,7 +13,6 @@
         x:DataType="vm:AuthenticationViewModel"
         Width="680" Height="448"
         WindowStartupLocation="CenterScreen"
-        Icon="/Assets/ecliptix.ico"
         ShowInTaskbar="False"
         Background="Transparent"
         TransparencyLevelHint="Transparent"

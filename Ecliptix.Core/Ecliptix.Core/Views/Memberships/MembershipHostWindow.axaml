@@ -12,7 +12,6 @@
         x:DataType="vm:MembershipHostWindowModel"
         Width="600" Height="700"
         WindowStartupLocation="CenterScreen"
-        Icon="/Assets/ecliptix.ico"
         ShowInTaskbar="True"
         Background="Transparent"
         Title=""
