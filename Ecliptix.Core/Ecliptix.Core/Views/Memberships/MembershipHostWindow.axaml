@@ -18,7 +18,7 @@
         Title=""
         TransparencyLevelHint="Transparent"
         x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow">
-    
+
     <Window.Styles>
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />
@@ -74,7 +74,7 @@
             <Setter Property="Background" Value="#1E952F" />
         </Style>
     </Window.Styles>
-    
+
     <Window.DataTemplates>
         <DataTemplate DataType="{x:Type vm:SignInViewModel}">
             <signIn:SignInView />
@@ -105,7 +105,7 @@
                                   OffsetY="0" />
             </Border.Effect>
 
-            <Grid RowDefinitions="Auto,Auto,*">
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
                 <comp:TitleBar DisableMinimizeButton="False" DisableCloseButton="False" />
 
                 <Svg Grid.Row="1"
@@ -113,9 +113,8 @@
                      VerticalAlignment="Top"
                      Width="100"
                      Height="100"
-                     HorizontalAlignment="Center"
-                />
-                
+                     HorizontalAlignment="Center" />
+
                 <reactiveUi:RoutedViewHost Grid.Row="2"
                                            Router="{Binding Router}"
                                            Margin="0,10,0,0"
@@ -124,6 +123,12 @@
                         <TextBlock Text="Loading View..." HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </reactiveUi:RoutedViewHost.DefaultContent>
                 </reactiveUi:RoutedViewHost>
+
+                <Grid Grid.Row="3">
+                    <TextBlock HorizontalAlignment="Center" FontWeight="Light"
+                               Foreground="#A0A0A0" VerticalAlignment="Bottom" Text="Horizon Dynamics 2025" Margin="0,0,0,10">
+                    </TextBlock>
+                </Grid>
             </Grid>
         </Border>
     </Grid>
