@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="700"
+             x:Class="Ecliptix.Core.Views.Memberships.WelcomeView"
+             x:DataType="vm:WelcomeViewModel">
+
+    <Border MaxWidth="420"
+            Padding="24"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+
+        <Grid RowDefinitions="Auto, *, Auto, Auto" RowSpacing="20">
+
+            <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,20">
+                <TextBlock Text="Welcome to Ecliptix"
+                           FontSize="22"
+                           FontWeight="Regular"
+                           TextAlignment="Center"
+                           Foreground="#272320" />
+                <TextBlock Text="Your secure, private communication hub."
+                           TextWrapping="Wrap"
+                           FontSize="16"
+                           TextAlignment="Center"
+                           FontWeight="Light"
+                           Foreground="#A0A0A0" />
+            </StackPanel>
+
+            <!-- 2. Feature Carousel (The Slider) -->
+            <Carousel Grid.Row="1"
+                      ItemsSource="{Binding FeatureSlides}"
+                      SelectedIndex="{Binding SelectedSlideIndex, Mode=TwoWay}">
+                <Carousel.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Spacing="16" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <PathIcon Data="{Binding IconPath}"
+                                      Width="64" Height="64"
+                                      Foreground="White" />
+                            <TextBlock Text="{Binding Description}"
+                                       FontSize="16"
+                                       Foreground="#D0D0D0"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DataTemplate>
+                </Carousel.ItemTemplate>
+            </Carousel>
+
+            <!-- 3. Page Indicators for the Carousel -->
+            <ItemsControl Grid.Row="2"
+                          HorizontalAlignment="Center"
+                          Margin="0,20,0,0"
+                          ItemsSource="{Binding FeatureSlides}">
+
+                <!-- This tells the ItemsControl to arrange its items in a horizontal StackPanel -->
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="8" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.Styles>
+                    <!-- The styles are now correctly placed within the ItemsControl -->
+                    <Style Selector="RadioButton.indicator /template/ Ellipse#PART_Ellipse">
+                        <Setter Property="Width" Value="8" />
+                        <Setter Property="Height" Value="8" />
+                        <Setter Property="Fill" Value="#404040" />
+                        <Setter Property="Transitions">
+                            <Transitions>
+                                <BrushTransition Property="Fill" Duration="0:0:0.2" />
+                            </Transitions>
+                        </Setter>
+                    </Style>
+                    <Style Selector="RadioButton.indicator:checked /template/ Ellipse#PART_Ellipse">
+                        <Setter Property="Fill" Value="White" />
+                    </Style>
+                </ItemsControl.Styles>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <RadioButton GroupName="CarouselIndicators"
+                                     Classes="indicator"
+                                     IsChecked="{Binding IsSelected}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+
+            </ItemsControl>
+
+            <!-- 4. Action Buttons -->
+            <StackPanel Grid.Row="3" Spacing="12" Margin="0,40,0,0">
+                <!-- Primary Action: Create Account -->
+                <Button Content="Create account"
+                        Command="{Binding NavToCreateAccountCommand}"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Background="#272320"
+                        Foreground="#e2ddd9"
+                        FontWeight="Regular"
+                        FontSize="16"
+                        CornerRadius="12" />
+
+                <Button Content="Sign in"
+                        Command="{Binding NavToSignInCommand}"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Background="Transparent"
+                        Foreground="#272320"
+                        BorderBrush="#272320"
+                        BorderThickness="1"
+                        FontWeight="Regular"
+                        FontSize="16"
+                        CornerRadius="12" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

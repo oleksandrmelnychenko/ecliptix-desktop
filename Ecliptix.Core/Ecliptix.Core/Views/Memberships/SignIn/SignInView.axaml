@@ -17,40 +17,67 @@
             Padding="24">
 
         <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
-            <StackPanel Grid.Row="0" Spacing="8">
+            <StackPanel Grid.Row="0" Margin="0,0,0,20" Spacing="8">
                 <TextBlock Text="Sign in to Ecliptix"
                            FontSize="18"
                            FontWeight="Medium"
                            Foreground="#272320" />
-                <TextBlock Text="Welcome back! Your personalized experience awaits."
+                <TextBlock Text="Please confirm your country code and mobile number"
                            TextWrapping="Wrap"
                            FontSize="16"
                            FontWeight="Light"
                            Foreground="#272320" />
             </StackPanel>
 
-
             <StackPanel Grid.Row="1" Spacing="8">
                 <TextBlock Text="Mobile number" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
-                <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
+                <TextBox VerticalContentAlignment="Center" FontWeight="Normal"
                          FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
                          Background="#efeae7">
+                    <TextBox.Transitions>
+                        <Transitions>
+                            <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+                            <ThicknessTransition Property="BorderThickness" Duration="0:0:0.2" />
+                        </Transitions>
+                    </TextBox.Transitions>
+                    <TextBox.Styles>
+                        <Style Selector="TextBox">
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                        </Style>
+                        <Style Selector="TextBox:focus">
+                            <Setter Property="BorderThickness" Value="2" />
+                            <Setter Property="BorderBrush" Value="#0078D7" />
+                        </Style>
+                    </TextBox.Styles>
                 </TextBox>
+                <TextBlock Text="Invalid phone number" Foreground="Red" FontSize="12" Margin="10,0,0,0"
+                           FontWeight="Regular">
+                </TextBlock>
             </StackPanel>
 
             <StackPanel Grid.Row="2" Spacing="8">
                 <TextBlock Text="Secure key" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
-                <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
+                <TextBox VerticalContentAlignment="Center" FontWeight="Normal" BorderThickness="0"
                          FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
                          Background="#efeae7">
                 </TextBox>
             </StackPanel>
 
-            <Button Grid.Row="3"
+            <StackPanel Grid.Row="3">
+                <TextBlock Text="Invalid phone number" Foreground="Red" FontSize="12" Margin="0,0,0,10"
+                           FontWeight="Regular">
+                </TextBlock>
+                <Button 
                     Classes="SubmitButton"
                     Background="#272320"
-                    Content="Sign in"
+                    Margin="0,20,0,0"
+                    Content="Continue"
                     Command="{Binding SignInCommand}" />
+                
+                <TextBlock Text="Account recovery"></TextBlock>
+            </StackPanel>
+           
         </Grid>
     </Border>
 </UserControl>

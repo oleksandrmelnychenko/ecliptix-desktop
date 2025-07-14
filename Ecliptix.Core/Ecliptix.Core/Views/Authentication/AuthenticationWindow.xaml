@@ -23,9 +23,11 @@
         <DataTemplate DataType="{x:Type vm:SignInViewModel}">
             <views:SignInView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:WelcomeViewModel}">
+            <views:WelcomeView />
+        </DataTemplate>
     </Window.DataTemplates>
-
-
+    
     <Grid>
         <Border Margin="18"
                 CornerRadius="8"

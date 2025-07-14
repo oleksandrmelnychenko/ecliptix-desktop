@@ -213,6 +213,7 @@ public static class Program
         services.AddTransient<NicknameInputViewModel>();
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<SplashWindowViewModel>();
+        services.AddTransient<WelcomeViewModel>();
     }
 
     private static string ResolvePath(string path)
