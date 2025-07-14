@@ -2,13 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Design.PreviewWith>
         <Border Padding="20">
-            <!-- Add Controls for Previewer Here -->
         </Border>
     </Design.PreviewWith>
 
     <Style Selector="Button.SubmitButton">
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Height" Value="55" />
+        <Setter Property="Height" Value="45" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="FontSize" Value="16" />
@@ -20,7 +19,6 @@
             </Transitions>
         </Setter>
         <Setter Property="Background">
-            <!-- A deep, sophisticated gradient for the default state -->
             <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
                 <GradientStop Color="#3B3E99" Offset="0.0" />
                 <GradientStop Color="#5348E2" Offset="1.0" />
@@ -28,11 +26,10 @@
         </Setter>
     </Style>
 
-    <!-- Hover effect: An electric blue "aurora" animates in -->
     <Style Selector="Button.SubmitButton:pointerover /template/ ContentPresenter">
         <Setter Property="Background">
             <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                <GradientStop Color="#00BFFF" Offset="0.0" /> <!-- Electric Blue -->
+                <GradientStop Color="#6a5acd" Offset="0.0" /> 
                 <GradientStop Color="#5348E2" Offset="0.75" />
                 <GradientStop Color="#3B3E99" Offset="1.0" />
             </LinearGradientBrush>

@@ -26,9 +26,9 @@
 
             <StackPanel Grid.Row="0" Spacing="8">
                 <TextBlock Text="Sign in to Ecliptix"
-                           FontSize="26"
+                           FontSize="22"
                            FontWeight="Medium"
-                           Foreground="#090607"/>
+                           Foreground="#5d5d5d"/>
                 <TextBlock Text="Welcome back! Your personalized experience awaits."
                            TextWrapping="Wrap"
                            FontSize="16"
@@ -46,26 +46,27 @@
                 HintForeground="#6a5acd"
                 IconSource="/Assets/lamp.svg"
                 ValidationType="PhoneNumber"
-                MainBorderBrush="LightGray"
+                MainBorderBrush="#e2e0e1"
                 Text="{Binding PhoneNumber}" />
 
             <controls:HintedTextBox
                 Grid.Row="2"
                 x:Name="PasswordTextBox"
-                Watermark=""
-                Hint=""
+                Watermark="Secure Key"
+                Hint="Secure key to your account"
                 Margin="0 0 0 10"
                 CornerRadius="15"
                 BorderBrush="#e2e0e1"
                 TextForeground="#333333"
                 HintForeground="#6a5acd"
                 IconSource="/Assets/lamp.svg"
+                MainBorderBrush="#e2e0e1"
                 ValidationType="Password"
                 PasswordChar="*" />
 
             <Button Grid.Row="3"
                     Classes="SubmitButton"
-                    Background="#9966CC"
+                    Background="#6a5acd"
                     Content="Sign in"
                     Command="{Binding SignInCommand}" />
         </Grid>

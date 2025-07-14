@@ -78,11 +78,12 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         _localizationService = localizationService;
         HostScreen = hostScreen;
 
+        /*
         IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
-            x => x.PhoneNumber, x => x.IsPasswordSet, x => x.IsBusy,
-            (phone, pwdSet, busy) => !string.IsNullOrWhiteSpace(phone) && pwdSet && !busy);
+            x => x.PhoneNumber, x => x => x.IsBusy,
+            (phone, busy) => !string.IsNullOrWhiteSpace(phone) && !busy);*/
 
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecuteSignIn);
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
     }
 
     private async Task SignInAsync()
