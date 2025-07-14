@@ -89,7 +89,7 @@
             </Border.Effect>
         </Border>
 
-        <Border Background="#f8f7f6"
+        <Border Background="#fefbfa"
                 BorderBrush="#B084CC"
                 BorderThickness="1"
                 CornerRadius="8"
