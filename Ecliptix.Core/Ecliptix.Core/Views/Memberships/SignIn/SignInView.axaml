@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:authentication="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
@@ -17,14 +16,7 @@
             Background="#fefbfa"
             Padding="24">
 
-        <Grid VerticalAlignment="Center" RowSpacing="15">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
+        <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
             <StackPanel Grid.Row="0" Spacing="8">
                 <TextBlock Text="Sign in to Ecliptix"
                            FontSize="18"
@@ -43,9 +35,7 @@
                 <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
                          FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
                          Background="#efeae7">
-
                 </TextBox>
-
             </StackPanel>
 
             <StackPanel Grid.Row="2" Spacing="8">
@@ -53,24 +43,8 @@
                 <TextBox VerticalContentAlignment="Center" FontWeight="Regular" BorderThickness="0"
                          FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
                          Background="#efeae7">
-
                 </TextBox>
             </StackPanel>
-
-            <!--<controls:HintedTextBox
-                Grid.Row="2"
-                x:Name="PasswordTextBox"
-                Watermark="Secure Key"
-                Hint="Secure key to your account"
-                Margin="0 0 0 10"
-                CornerRadius="15"
-                BorderBrush="#e2e0e1"
-                TextForeground="#333333"
-                HintForeground="#6a5acd"
-                IconSource="/Assets/lamp.svg"
-                MainBorderBrush="#e2e0e1"
-                ValidationType="Password"
-                PasswordChar="*" />-->
 
             <Button Grid.Row="3"
                     Classes="SubmitButton"
