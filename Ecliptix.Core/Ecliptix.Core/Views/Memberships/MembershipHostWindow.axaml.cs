@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Services;
@@ -11,5 +12,8 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
+#if DEBUG
+        this.AttachDevTools();
+#endif
     }
 }

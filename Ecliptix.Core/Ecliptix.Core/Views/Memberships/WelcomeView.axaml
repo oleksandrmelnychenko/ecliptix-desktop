@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="700"
              x:Class="Ecliptix.Core.Views.Memberships.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
@@ -23,82 +24,14 @@
                            Foreground="#272320" />
             </StackPanel>
 
-            <!-- Carousel with peek effect -->
-            <StackPanel Grid.Row="1" Spacing="16">
-                <!-- Custom carousel container for peek effect -->
-                <Border Height="200" ClipToBounds="False">
-                    <ScrollViewer Name="CarouselScrollViewer"
-                                  HorizontalScrollBarVisibility="Hidden"
-                                  VerticalScrollBarVisibility="Disabled"
-                                  HorizontalAlignment="Stretch">
-                        <ItemsControl ItemsSource="{Binding FeatureSlides}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal"
-                                                Spacing="16"
-                                                HorizontalAlignment="Center"
-                                                Margin="40,0"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="vm:FeatureSlide">
-                                    <Border Background="{Binding BackgroundColor}"
-                                            CornerRadius="24"
-                                            Width="240"
-                                            Height="280">
-                                        <StackPanel Spacing="20"
-                                                    VerticalAlignment="Center"
-                                                    HorizontalAlignment="Center"
-                                                    Margin="24">
-                                            <PathIcon Data="{Binding IconPath}"
-                                                      Width="48"
-                                                      Height="48"
-                                                      Foreground="#272320" />
-                                            <TextBlock Text="{Binding Title}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="#272320"
-                                                       TextAlignment="Center" />
-                                            <TextBlock Text="{Binding Description}"
-                                                       FontSize="14"
-                                                       Foreground="#666666"
-                                                       TextAlignment="Center"
-                                                       TextWrapping="Wrap"
-                                                       LineHeight="20" />
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Border>
-
-                <!-- Dynamic slide indicators -->
-                <ItemsControl Name="SlideIndicators" ItemsSource="{Binding FeatureSlides}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"
-                                        HorizontalAlignment="Center"
-                                        Spacing="8"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Name="SlideIndicator" 
-                                    Width="8"
-                                    Height="8"
-                                    CornerRadius="4"
-                                    Tapped="OnIndicatorTapped">
-                                <Border.Styles>
-                                    <Style Selector="Border">
-                                        <Setter Property="Background" Value="#D0D0D0" />
-                                    </Style>
-                                </Border.Styles>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+            <!-- Custom Carousel -->
+            <controls:CustomCarousel Grid.Row="1" 
+                                   ItemsSource="{Binding FeatureSlides}"
+                                   SelectedIndex="{Binding SelectedSlideIndex}"
+                                   CardWidth="280"
+                                   CardHeight="240"
+                                   CardSpacing="32"
+                                   />
 
             <!-- Action buttons -->
             <StackPanel Grid.Row="3" Spacing="12" Margin="0,40,0,0">
