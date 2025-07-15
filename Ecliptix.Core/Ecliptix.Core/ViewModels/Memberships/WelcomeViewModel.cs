@@ -1,9 +1,9 @@
-using System; 
+using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using Ecliptix.Core.ViewModels.Authentication;
 using ReactiveUI;
-using Ecliptix.Core.ViewModels.Authentication.ViewFactory; 
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
@@ -27,7 +27,12 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
     {
         HostScreen = hostScreen;
 
-        FeatureSlides = [];
+        FeatureSlides =
+        [
+            new FeatureSlide("", "Mental health", true),
+            new FeatureSlide("", "Security"),
+            new FeatureSlide("", "Privacy")
+        ];
 
         this.WhenAnyValue(x => x.SelectedSlideIndex)
             .Subscribe(new Action<int>(index =>
@@ -36,7 +41,7 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
                 {
                     FeatureSlide item = FeatureSlides[i];
                     bool shouldBeSelected = (i == index);
-                    
+
                     if (item.IsSelected != shouldBeSelected)
                     {
                         FeatureSlides[i] = item with { IsSelected = shouldBeSelected };
@@ -50,7 +55,7 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(AuthViewType.PhoneVerification);
         });
-        
+
         NavToSignInCommand = ReactiveCommand.Create(() =>
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(AuthViewType.SignIn);
