@@ -11,9 +11,10 @@
     <Border MaxWidth="420"
             Padding="24"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center">
+            VerticalAlignment="Center"
+            >
 
-        <Grid RowDefinitions="Auto, *, Auto" RowSpacing="5">
+        <Grid RowDefinitions="Auto, *, Auto" RowSpacing="10">
 
             <!-- Header -->
             <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,5">
@@ -26,15 +27,16 @@
 
             <!-- Custom Carousel -->
             <controls:CustomCarousel Grid.Row="1" 
-                                   ItemsSource="{Binding FeatureSlides}"
-                                   SelectedIndex="{Binding SelectedSlideIndex}"
-                                   CardWidth="280"
-                                   CardHeight="240"
-                                   CardSpacing="32"
-                                   />
+                                     ItemsSource="{Binding FeatureSlides}"
+                                     SelectedIndex="{Binding SelectedSlideIndex}"
+                                     CardWidth="280"
+                                     CardHeight="260"
+                                     CardSpacing="32"
+                                     Margin="0 0 0 10"
+                                     />
 
             <!-- Action buttons -->
-            <StackPanel Grid.Row="3" Spacing="12" Margin="0 0 0 0" MaxWidth="280">
+            <StackPanel Grid.Row="3" Spacing="5" Margin="0 0 0 0" MaxWidth="280">
                 <TextBlock Text="Створіть обліковий запис або ввійдіть,
 щоб зберігати всі розмови та
 генерувати зображення"
@@ -42,7 +44,8 @@
                            FontSize="16"
                            TextAlignment="Center"
                            FontWeight="Light"
-                           Foreground="#A0A0A0" />
+                           Foreground="#6D6C6C" 
+                           Margin="0 0 0 15"/>
 
                 <Button Content="Create account"
                         Command="{Binding NavToCreateAccountCommand}"

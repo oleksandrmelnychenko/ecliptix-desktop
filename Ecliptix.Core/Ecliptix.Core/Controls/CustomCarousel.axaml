@@ -6,7 +6,18 @@
              mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="350"
              x:Class="Ecliptix.Core.Controls.CustomCarousel">
 
-    <StackPanel Spacing="16" VerticalAlignment="Stretch">
+    <UserControl.Styles>
+        <Styles>
+            <Style Selector="Border.carousel-indicator">
+                <Setter Property="Background" Value="#D0D0D0" />
+            </Style>
+            <Style Selector="Border.carousel-indicator.selected">
+                <Setter Property="Background" Value="#272320" />
+            </Style>
+        </Styles>
+    </UserControl.Styles>
+    
+    <StackPanel Spacing="8" VerticalAlignment="Stretch">
         <!-- Custom carousel container for peek effect -->
         <Border ClipToBounds="False">
             <ScrollViewer Name="CarouselScrollViewer"
@@ -18,16 +29,16 @@
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"
-                                        Spacing="24"
-                                        HorizontalAlignment="Center"
-                                        Margin="40,0"/>
+                                        Spacing="{Binding CardSpacing, RelativeSource={RelativeSource AncestorType=controls:CustomCarousel}}"
+                                        HorizontalAlignment="Center"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Name="CarouselCard"
                                     CornerRadius="32"
-                                    Width="240">
+                                    Width="{Binding CardWidth, RelativeSource={RelativeSource AncestorType=controls:CustomCarousel}}"
+                                    Height="{Binding CardHeight, RelativeSource={RelativeSource AncestorType=controls:CustomCarousel}}">
                                 <StackPanel Spacing="20"
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Center"
@@ -69,7 +80,7 @@
                     <Border Name="SlideIndicator" 
                             Width="8"
                             Height="8"
-                            CornerRadius="4"
+                            CornerRadius="1"
                             Tapped="OnIndicatorTapped">
                         <Border.Styles>
                             <Style Selector="Border">

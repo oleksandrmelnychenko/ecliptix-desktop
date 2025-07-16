@@ -53,6 +53,36 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
                 Description: "Your data stays private with local processing and zero data collection policies",
                 BackgroundColor: "#f4f3ff"
             ),
+            new FeatureSlide(
+                IconPath: "M12,8.5A2.5,2.5 0 0,0 9.5,11A2.5,2.5 0 0,0 12,13.5A2.5,2.5 0 0,0 14.5,11A2.5,2.5 0 0,0 12,8.5M12,17A4,4 0 0,1 8,13A4,4 0 0,1 12,9A4,4 0 0,1 16,13A4,4 0 0,1 12,17M12,1L8,5H16L12,1M21,10V14L17,18V10L21,10M7,18L3,14V10L7,10V18M16,19H8L12,23L16,19Z",
+                Title: "Privacy First",
+                Description: "Your data stays private with local processing and zero data collection policies",
+                BackgroundColor: "#f4f3ff"
+            ),
+            new FeatureSlide(
+                IconPath: "M12,8.5A2.5,2.5 0 0,0 9.5,11A2.5,2.5 0 0,0 12,13.5A2.5,2.5 0 0,0 14.5,11A2.5,2.5 0 0,0 12,8.5M12,17A4,4 0 0,1 8,13A4,4 0 0,1 12,9A4,4 0 0,1 16,13A4,4 0 0,1 12,17M12,1L8,5H16L12,1M21,10V14L17,18V10L21,10M7,18L3,14V10L7,10V18M16,19H8L12,23L16,19Z",
+                Title: "Privacy First",
+                Description: "Your data stays private with local processing and zero data collection policies",
+                BackgroundColor: "#f4f3ff"
+            ),
+            new FeatureSlide(
+                IconPath: "M12,8.5A2.5,2.5 0 0,0 9.5,11A2.5,2.5 0 0,0 12,13.5A2.5,2.5 0 0,0 14.5,11A2.5,2.5 0 0,0 12,8.5M12,17A4,4 0 0,1 8,13A4,4 0 0,1 12,9A4,4 0 0,1 16,13A4,4 0 0,1 12,17M12,1L8,5H16L12,1M21,10V14L17,18V10L21,10M7,18L3,14V10L7,10V18M16,19H8L12,23L16,19Z",
+                Title: "Privacy First",
+                Description: "Your data stays private with local processing and zero data collection policies",
+                BackgroundColor: "#f4f3ff"
+            ),
+            new FeatureSlide(
+                IconPath: "M12,8.5A2.5,2.5 0 0,0 9.5,11A2.5,2.5 0 0,0 12,13.5A2.5,2.5 0 0,0 14.5,11A2.5,2.5 0 0,0 12,8.5M12,17A4,4 0 0,1 8,13A4,4 0 0,1 12,9A4,4 0 0,1 16,13A4,4 0 0,1 12,17M12,1L8,5H16L12,1M21,10V14L17,18V10L21,10M7,18L3,14V10L7,10V18M16,19H8L12,23L16,19Z",
+                Title: "Privacy First",
+                Description: "Your data stays private with local processing and zero data collection policies",
+                BackgroundColor: "#f4f3ff"
+            ),
+            new FeatureSlide(
+                IconPath: "M12,8.5A2.5,2.5 0 0,0 9.5,11A2.5,2.5 0 0,0 12,13.5A2.5,2.5 0 0,0 14.5,11A2.5,2.5 0 0,0 12,8.5M12,17A4,4 0 0,1 8,13A4,4 0 0,1 12,9A4,4 0 0,1 16,13A4,4 0 0,1 12,17M12,1L8,5H16L12,1M21,10V14L17,18V10L21,10M7,18L3,14V10L7,10V18M16,19H8L12,23L16,19Z",
+                Title: "Privacy First",
+                Description: "Your data stays private with local processing and zero data collection policies",
+                BackgroundColor: "#f4f3ff"
+            ),
         };
 
         SelectedSlideIndex = 0;

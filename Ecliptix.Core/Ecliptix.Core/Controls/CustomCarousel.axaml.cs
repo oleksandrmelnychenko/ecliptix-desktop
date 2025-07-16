@@ -1,8 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
@@ -15,6 +14,7 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Ecliptix.Core.ViewModels.Memberships;
 using ReactiveUI;
 
@@ -25,6 +25,15 @@ public partial class CustomCarousel : UserControl
     private ItemsControl _indicatorsControl;
     private ScrollViewer _scrollViewer;
     private ItemsControl _carouselItemsControl;
+    private List<double> _itemCenters;
+
+    private IDisposable _itemsSourceSubscription;
+    private IDisposable _selectedIndexSubscription;
+    private IDisposable _cardWidthSubscription;
+    private IDisposable _cardHeightSubscription;
+    private IDisposable _cardSpacingSubscription;
+
+    #region Styled Properties
 
     public static readonly StyledProperty<IEnumerable> ItemsSourceProperty =
         AvaloniaProperty.Register<CustomCarousel, IEnumerable>(nameof(ItemsSource));
@@ -32,7 +41,29 @@ public partial class CustomCarousel : UserControl
     public static readonly StyledProperty<int> SelectedIndexProperty = AvaloniaProperty.Register<
         CustomCarousel,
         int
-    >(nameof(SelectedIndex));
+    >(nameof(SelectedIndex), 0);
+
+    public static readonly StyledProperty<double> CardWidthProperty = AvaloniaProperty.Register<
+        CustomCarousel,
+        double
+    >(nameof(CardWidth), 240.0);
+
+    public static readonly StyledProperty<double> CardHeightProperty = AvaloniaProperty.Register<
+        CustomCarousel,
+        double
+    >(nameof(CardHeight), 280.0);
+
+    public static readonly StyledProperty<double> CardSpacingProperty = AvaloniaProperty.Register<
+        CustomCarousel,
+        double
+    >(nameof(CardSpacing), 24.0);
+
+    public static readonly StyledProperty<double> ContainerWidthProperty =
+        AvaloniaProperty.Register<CustomCarousel, double>(nameof(ContainerWidth), 0.0);
+
+    #endregion
+
+    #region Public Properties
 
     public IEnumerable ItemsSource
     {
@@ -45,21 +76,6 @@ public partial class CustomCarousel : UserControl
         get => GetValue(SelectedIndexProperty);
         set => SetValue(SelectedIndexProperty, value);
     }
-
-    public static readonly StyledProperty<double> CardWidthProperty = AvaloniaProperty.Register<
-        CustomCarousel,
-        double
-    >(nameof(CardWidth), 240);
-
-    public static readonly StyledProperty<double> CardHeightProperty = AvaloniaProperty.Register<
-        CustomCarousel,
-        double
-    >(nameof(CardHeight), 280);
-
-    public static readonly StyledProperty<double> CardSpacingProperty = AvaloniaProperty.Register<
-        CustomCarousel,
-        double
-    >(nameof(CardSpacing), 24);
 
     public double CardWidth
     {
@@ -79,36 +95,155 @@ public partial class CustomCarousel : UserControl
         set => SetValue(CardSpacingProperty, value);
     }
 
+    public double ContainerWidth
+    {
+        get => GetValue(ContainerWidthProperty);
+        set => SetValue(ContainerWidthProperty, value);
+    }
+
+    #endregion
+
     public CustomCarousel()
     {
         AvaloniaXamlLoader.Load(this);
+        InitializeControls();
+        SetupEventHandlers();
+    }
 
+    private void InitializeControls()
+    {
         _indicatorsControl = this.FindControl<ItemsControl>("SlideIndicators");
         _scrollViewer = this.FindControl<ScrollViewer>("CarouselScrollViewer");
         _carouselItemsControl = this.FindControl<ItemsControl>("CarouselItemsControl");
 
-        // Block mouse scroll
-        _scrollViewer.PointerWheelChanged += OnPointerWheelChanged;
+        _itemCenters = new List<double>();
+    }
 
-        // Subscribe to property changes
-        this.GetObservable(ItemsSourceProperty).Subscribe(OnItemsSourceChanged);
+    private void SetupEventHandlers()
+    {
+        if (_scrollViewer != null)
+        {
+            _scrollViewer.PointerWheelChanged += OnPointerWheelChanged;
+        }
 
-        this.GetObservable(SelectedIndexProperty).Subscribe(OnSelectedIndexChanged);
-
-        // Handle size changes to update margins
         this.SizeChanged += OnSizeChanged;
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        // Set up subscriptions when control is attached to visual tree
+        _itemsSourceSubscription = this.GetObservable(ItemsSourceProperty)
+            .Subscribe(OnItemsSourceChanged);
+        _selectedIndexSubscription = this.GetObservable(SelectedIndexProperty)
+            .Subscribe(OnSelectedIndexChanged);
+        _cardWidthSubscription = this.GetObservable(CardWidthProperty)
+            .Subscribe(_ => OnCarouselPropertiesChanged());
+        _cardHeightSubscription = this.GetObservable(CardHeightProperty)
+            .Subscribe(_ => OnCarouselPropertiesChanged());
+        _cardSpacingSubscription = this.GetObservable(CardSpacingProperty)
+            .Subscribe(_ => OnCarouselPropertiesChanged());
+
+        Dispatcher.UIThread.Post(
+            () =>
+            {
+                OnItemsSourceChanged(ItemsSource);
+
+                Dispatcher.UIThread.Post(
+                    () =>
+                    {
+                        UpdateSlideIndicators(SelectedIndex);
+                    },
+                    DispatcherPriority.Render
+                );
+
+                OnCarouselPropertiesChanged();
+            },
+            DispatcherPriority.Loaded
+        );
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+
+        // Clean up subscriptions when control is detached
+        _itemsSourceSubscription?.Dispose();
+        _selectedIndexSubscription?.Dispose();
+        _cardWidthSubscription?.Dispose();
+        _cardHeightSubscription?.Dispose();
+        _cardSpacingSubscription?.Dispose();
+
+        // Reset subscription fields
+        _itemsSourceSubscription = null;
+        _selectedIndexSubscription = null;
+        _cardWidthSubscription = null;
+        _cardHeightSubscription = null;
+        _cardSpacingSubscription = null;
+    }
+
+    #region Core Calculation Functions
+
+    /// <summary>
+    /// Calculate symmetric margin to center the first item in the viewport
+    /// </summary>
+    /// <param name="itemWidth">Width of a single carousel item</param>
+    /// <param name="viewportWidth">Width of the container viewport</param>
+    /// <returns>Margin value for symmetric centering</returns>
+    private double CalculateSymmetricMargin(double itemWidth, double viewportWidth)
+    {
+        if (viewportWidth <= 0 || itemWidth <= 0)
+            return 0;
+
+        double itemCenter = itemWidth / 2;
+        double viewportCenter = viewportWidth / 2;
+        double margin = viewportCenter - itemCenter;
+
+        return Math.Max(0, margin);
+    }
+
+    /// <summary>
+    /// Calculate the center positions of all carousel items
+    /// </summary>
+    /// <param name="itemCount">Number of items in the carousel</param>
+    /// <param name="itemWidth">Width of each item</param>
+    /// <param name="spacing">Spacing between items</param>
+    /// <param name="margin">Left margin of the carousel container</param>
+    /// <returns>List of center positions for each item</returns>
+    public static List<double> CalculateItemCenters(
+        int itemCount,
+        double itemWidth,
+        double spacing,
+        double margin
+    )
+    {
+        var centers = new List<double>();
+
+        for (int i = 0; i < itemCount; i++)
+        {
+            double left = margin + i * (itemWidth + spacing);
+            double center = left + (itemWidth / 2);
+            centers.Add(center);
+        }
+
+        return centers;
+    }
+
+    #endregion
+
+    #region Event Handlers
+
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        UpdateCarouselMargins();
-        // Re-center the current element after size change
+        ContainerWidth = e.NewSize.Width;
+        UpdateCarouselLayout();
         CenterActiveElement(SelectedIndex);
     }
 
     private void OnPointerWheelChanged(object sender, PointerWheelEventArgs e)
     {
-        // Block mouse wheel scrolling
+        // Block mouse wheel scrolling to prevent unwanted navigation
         e.Handled = true;
     }
 
@@ -117,38 +252,14 @@ public partial class CustomCarousel : UserControl
         if (_carouselItemsControl != null)
         {
             _carouselItemsControl.ItemsSource = items;
-
-            // Calculate and set dynamic margin for proper centering
-            if (items != null)
-            {
-                UpdateCarouselMargins();
-            }
         }
+
         if (_indicatorsControl != null)
         {
             _indicatorsControl.ItemsSource = items;
         }
-    }
 
-    private void UpdateCarouselMargins()
-    {
-        if (_carouselItemsControl == null || _scrollViewer == null)
-            return;
-
-        // Calculate padding needed to center the first and last elements
-        double containerWidth = _scrollViewer.Bounds.Width;
-        if (containerWidth <= 0)
-            return;
-
-        double padding = (containerWidth - CardWidth) / 4;
-        // 5.0769230769
-        // Find the items panel and update its margin
-        if (_carouselItemsControl.ItemsPanel != null)
-        {
-            // We need to modify the XAML to apply margin dynamically
-            // For now, let's set a computed margin through code
-            _carouselItemsControl.Margin = new Thickness(padding, 0, padding, 0);
-        }
+        UpdateCarouselLayout();
     }
 
     private void OnSelectedIndexChanged(int selectedIndex)
@@ -157,51 +268,75 @@ public partial class CustomCarousel : UserControl
         CenterActiveElement(selectedIndex);
     }
 
-    private void UpdateSlideIndicators(int selectedIndex)
+    private void OnCarouselPropertiesChanged()
     {
-        if (_indicatorsControl == null || _indicatorsControl.ItemCount == 0)
-            return;
-
-        for (int i = 0; i < _indicatorsControl.ItemCount; i++)
-        {
-            if (
-                _indicatorsControl.ContainerFromIndex(i) is ContentPresenter presenter
-                && presenter.Child is Border indicator
-            )
-            {
-                indicator.Background =
-                    i == selectedIndex
-                        ? new SolidColorBrush(Color.Parse("#272320"))
-                        : new SolidColorBrush(Color.Parse("#D0D0D0"));
-            }
-        }
+        UpdateCarouselLayout();
+        CenterActiveElement(SelectedIndex);
     }
 
-    private void CenterActiveElement(int selectedIndex)
+    #endregion
+
+    #region Layout Management
+
+    private void UpdateCarouselLayout()
     {
-        if (_scrollViewer == null || _carouselItemsControl == null)
+        if (_carouselItemsControl == null || _scrollViewer == null)
             return;
 
-        // Calculate the position to center the active element
-        double slideWidth = CardWidth + CardSpacing;
+        // Get current container width
         double containerWidth = _scrollViewer.Bounds.Width;
-
         if (containerWidth <= 0)
             return;
 
-        // The margin we use for the carousel items
-        double padding = (containerWidth - CardWidth) / 2;
+        // Update container width property
+        ContainerWidth = containerWidth;
 
-        // Calculate the target scroll position
-        double targetOffset = (selectedIndex * slideWidth) - padding;
+        // Calculate symmetric margin
+        double margin = CalculateSymmetricMargin(CardWidth, containerWidth);
 
-        // Get the maximum scrollable extent
+        // Calculate item centers with the margin
+        int itemCount = GetItemCount();
+        _itemCenters = CalculateItemCenters(itemCount, CardWidth, CardSpacing, margin);
+
+        // Apply symmetric margin to carousel items
+        _carouselItemsControl.Margin = new Thickness(margin, 0, margin, 0);
+
+        Console.WriteLine($"Container Width: {containerWidth}");
+        Console.WriteLine($"Card Width: {CardWidth}");
+        Console.WriteLine($"Card Spacing: {CardSpacing}");
+        Console.WriteLine($"Calculated Margin: {margin}");
+        Console.WriteLine($"Item Count: {itemCount}");
+        Console.WriteLine(
+            $"Item Centers: [{string.Join(", ", _itemCenters.Select(c => c.ToString("F1")))}]"
+        );
+    }
+
+    private int GetItemCount()
+    {
+        return ItemsSource?.Cast<object>().Count() ?? 0;
+    }
+
+    #endregion
+
+    #region Navigation and Animation
+
+    private void CenterActiveElement(int selectedIndex)
+    {
+        if (_scrollViewer == null || _carouselItemsControl == null || _itemCenters == null)
+            return;
+
+        double containerWidth = _scrollViewer.Bounds.Width;
+        if (containerWidth <= 0 || selectedIndex < 0 || selectedIndex >= _itemCenters.Count)
+            return;
+
+        double viewportCenter = containerWidth / 2;
+        double center = _itemCenters[selectedIndex];
+
+        double targetOffset = center - viewportCenter;
+
         double maxScrollExtent = _scrollViewer.Extent.Width - _scrollViewer.Viewport.Width;
-
-        // Clamp the target offset to valid range
         targetOffset = Math.Max(0, Math.Min(targetOffset, maxScrollExtent));
 
-        // Animate to the target offset
         _ = AnimateScrollTo(targetOffset);
     }
 
@@ -241,6 +376,33 @@ public partial class CustomCarousel : UserControl
         await animation.RunAsync(_scrollViewer);
     }
 
+    #endregion
+
+    #region Slide Indicators
+
+    private void UpdateSlideIndicators(int selectedIndex)
+    {
+        if (_indicatorsControl == null || _indicatorsControl.ItemCount == 0)
+            return;
+
+        for (int i = 0; i < _indicatorsControl.ItemCount; i++)
+        {
+            if (
+                _indicatorsControl.ContainerFromIndex(i) is ContentPresenter presenter
+                && presenter.Child is Border indicator
+            )
+            {
+                indicator.Classes.Clear();
+                indicator.Classes.Add("carousel-indicator");
+
+                if (i == selectedIndex)
+                {
+                    indicator.Classes.Add("selected");
+                }
+            }
+        }
+    }
+
     private void OnIndicatorTapped(object sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (sender is Border tappedIndicator)
@@ -253,7 +415,6 @@ public partial class CustomCarousel : UserControl
                     && presenter.Child == tappedIndicator
                 )
                 {
-                    // Update the selected index
                     SelectedIndex = i;
                     break;
                 }
@@ -261,11 +422,14 @@ public partial class CustomCarousel : UserControl
         }
     }
 
+    #endregion
+
+    #region Template Management
+
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
 
-        // Apply the custom data template for carousel items
         if (_carouselItemsControl != null)
         {
             _carouselItemsControl.ItemTemplate = CreateCarouselItemTemplate();
@@ -281,16 +445,16 @@ public partial class CustomCarousel : UserControl
                 {
                     Background = new SolidColorBrush(Color.Parse(slide.BackgroundColor)),
                     CornerRadius = new CornerRadius(32),
-                    Width = 240,
-                    Height = 200,
+                    Width = CardWidth,
+                    Height = CardHeight,
                 };
 
                 var stackPanel = new StackPanel
                 {
-                    Spacing = 10,
+                    Spacing = 20,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                    Margin = new Thickness(10),
+                    Margin = new Thickness(24),
                 };
 
                 var icon = new PathIcon
@@ -329,4 +493,6 @@ public partial class CustomCarousel : UserControl
             }
         );
     }
+
+    #endregion
 }
