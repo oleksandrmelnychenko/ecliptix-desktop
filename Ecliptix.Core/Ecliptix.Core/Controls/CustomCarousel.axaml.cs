@@ -407,13 +407,16 @@ public partial class CustomCarousel : UserControl
                 && presenter.Child is Border indicator
             )
             {
-                indicator.Classes.Clear();
-                indicator.Classes.Add("carousel-indicator");
+                // Ensure the base class is always there
+                if (!indicator.Classes.Contains("carousel-indicator"))
+                    indicator.Classes.Add("carousel-indicator");
 
-                if (i == selectedIndex)
-                {
+                // Add or remove selected class without clearing all classes
+                bool isSelected = i == selectedIndex;
+                if (isSelected && !indicator.Classes.Contains("selected"))
                     indicator.Classes.Add("selected");
-                }
+                else if (!isSelected && indicator.Classes.Contains("selected"))
+                    indicator.Classes.Remove("selected");
             }
         }
     }

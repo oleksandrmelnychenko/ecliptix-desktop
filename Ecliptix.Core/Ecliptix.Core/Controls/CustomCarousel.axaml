@@ -10,9 +10,18 @@
         <Styles>
             <Style Selector="Border.carousel-indicator">
                 <Setter Property="Background" Value="#D0D0D0" />
+                <Setter Property="Height" Value="8"/>
             </Style>
             <Style Selector="Border.carousel-indicator.selected">
-                <Setter Property="Background" Value="#272320" />
+                <Setter Property="Background" Value="#272320"/>
+                <Setter Property="Height" Value="12"/>
+            </Style>
+            <Style Selector="Border.carousel-indicator.selected">
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Height" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Setter>
             </Style>
         </Styles>
     </UserControl.Styles>
@@ -72,15 +81,15 @@
                 <ItemsPanelTemplate>
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
-                                Spacing="8"/>
+                                Spacing="4"
+                                Height="12"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <Border Name="SlideIndicator" 
-                            Width="8"
-                            Height="8"
-                            CornerRadius="1"
+                            Width="4"
+                            CornerRadius="2"
                             Tapped="OnIndicatorTapped">
                         <Border.Styles>
                             <Style Selector="Border">
