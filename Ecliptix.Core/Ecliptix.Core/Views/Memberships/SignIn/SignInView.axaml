@@ -38,7 +38,6 @@
                 BorderBrush="#e2e0e1"
                 TextForeground="#333333"
                 HintForeground="#6a5acd"
-                Background="#efeae7"
                 IconSource="/Assets/lamp.svg"
                 ValidationType="PhoneNumber"
                 MainBorderBrush="#e2e0e1"
