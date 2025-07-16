@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:authentication="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
@@ -29,55 +30,47 @@
                            Foreground="#272320" />
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Spacing="8">
-                <TextBlock Text="Mobile number" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
-                <TextBox VerticalContentAlignment="Center" FontWeight="Normal"
-                         FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
-                         Background="#efeae7">
-                    <TextBox.Transitions>
-                        <Transitions>
-                            <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
-                            <ThicknessTransition Property="BorderThickness" Duration="0:0:0.2" />
-                        </Transitions>
-                    </TextBox.Transitions>
-                    <TextBox.Styles>
-                        <Style Selector="TextBox">
-                            <Setter Property="BorderThickness" Value="0" />
-                            <Setter Property="BorderBrush" Value="Transparent" />
-                        </Style>
-                        <Style Selector="TextBox:focus">
-                            <Setter Property="BorderThickness" Value="2" />
-                            <Setter Property="BorderBrush" Value="#0078D7" />
-                        </Style>
-                    </TextBox.Styles>
-                </TextBox>
-                <TextBlock Text="Invalid phone number" Foreground="Red" FontSize="12" Margin="10,0,0,0"
-                           FontWeight="Regular">
-                </TextBlock>
-            </StackPanel>
+            <controls:HintedTextBox
+                Grid.Row="1"
+                x:Name="MobileTextBox"
+                Watermark="Mobile"
+                Hint="Include country code."
+                BorderBrush="#e2e0e1"
+                TextForeground="#333333"
+                HintForeground="#6a5acd"
+                Background="#efeae7"
+                IconSource="/Assets/lamp.svg"
+                ValidationType="PhoneNumber"
+                MainBorderBrush="#e2e0e1"
+                Text="{Binding PhoneNumber}" />
 
-            <StackPanel Grid.Row="2" Spacing="8">
-                <TextBlock Text="Secure key" FontSize="15" Margin="10,0,0,0" FontWeight="Regular"></TextBlock>
-                <TextBox VerticalContentAlignment="Center" FontWeight="Normal" BorderThickness="0"
-                         FontSize="15" Height="45" Padding="10,0,0,0" CornerRadius="12" Foreground="#272320"
-                         Background="#efeae7">
-                </TextBox>
-            </StackPanel>
+            <controls:HintedTextBox
+                Grid.Row="2"
+                x:Name="PasswordTextBox"
+                Watermark="Secure Key"
+                Hint="Secure key to your account"
+                Margin="0 0 0 10"
+                CornerRadius="15"
+                BorderBrush="#e2e0e1"
+                TextForeground="#333333"
+                HintForeground="#6a5acd"
+                IconSource="/Assets/lamp.svg"
+                MainBorderBrush="#e2e0e1"
+                ValidationType="Password"
+                PasswordChar="*" />
 
-            <StackPanel Grid.Row="3">
-                <TextBlock Text="Invalid phone number" Foreground="Red" FontSize="12" Margin="0,0,0,10"
-                           FontWeight="Regular">
-                </TextBlock>
-                <Button 
+            <StackPanel Grid.Row="3" Spacing="12" Margin="0,20,0,0">
+
+                <Button
                     Classes="SubmitButton"
                     Background="#272320"
                     Margin="0,20,0,0"
                     Content="Continue"
                     Command="{Binding SignInCommand}" />
-                
-                <TextBlock Text="Account recovery"></TextBlock>
+
+                <TextBlock HorizontalAlignment="Center" Text="Account recovery"></TextBlock>
             </StackPanel>
-           
+
         </Grid>
     </Border>
 </UserControl>
