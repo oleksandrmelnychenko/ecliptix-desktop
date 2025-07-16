@@ -266,6 +266,21 @@ public partial class CustomCarousel : UserControl
     {
         UpdateSlideIndicators(selectedIndex);
         CenterActiveElement(selectedIndex);
+
+        if (ItemsSource != null)
+        {
+            var items = ItemsSource.Cast<object>().ToArray();
+            if (
+                selectedIndex >= 0
+                && selectedIndex < items.Length
+                && items[selectedIndex] is FeatureSlide slide
+            )
+            {
+                MessageBus.Current.SendMessage(
+                    new BackgroundColorChangedMessage(slide.BackgroundColor)
+                );
+            }
+        }
     }
 
     private void OnCarouselPropertiesChanged()
@@ -447,6 +462,8 @@ public partial class CustomCarousel : UserControl
                     CornerRadius = new CornerRadius(32),
                     Width = CardWidth,
                     Height = CardHeight,
+                    BorderBrush = new SolidColorBrush(Color.Parse("#D2D3D2")),
+                    BorderThickness = new Thickness(1),
                 };
 
                 var stackPanel = new StackPanel
