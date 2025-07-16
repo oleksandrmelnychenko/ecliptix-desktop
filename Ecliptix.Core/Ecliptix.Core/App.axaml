@@ -2,17 +2,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
+    
+    <Application.Resources>
+        <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/#Segoe UI</FontFamily>
+    </Application.Resources>
+    
     <Application.Styles>
-
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
         <StyleInclude Source="/Styles/Fonts.axaml" />
         <Style Selector="TextElement">
-            <Setter Property="FontFamily" Value="Segoe UI, $Default" />
+            <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
         </Style>
     </Application.Styles>
 
-    <Application.Resources>
-    </Application.Resources>
+   
 
 </Application>
