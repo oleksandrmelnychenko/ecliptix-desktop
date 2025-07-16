@@ -2,12 +2,17 @@ using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using Ecliptix.Core.ViewModels.Authentication;
-using ReactiveUI;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public record FeatureSlide(string IconPath, string Title, string Description, string BackgroundColor);
+public record FeatureSlide(
+    string IconPath,
+    string Title,
+    string Description,
+    string BackgroundColor
+);
 
 public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
@@ -18,7 +23,8 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
 
     public ObservableCollection<FeatureSlide> FeatureSlides { get; }
 
-    [ReactiveUI.Fody.Helpers.Reactive] public int SelectedSlideIndex { get; set; }
+    [ReactiveUI.Fody.Helpers.Reactive]
+    public int SelectedSlideIndex { get; set; }
 
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
@@ -46,14 +52,16 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
                 Title: "Privacy First",
                 Description: "Your data stays private with local processing and zero data collection policies",
                 BackgroundColor: "#f4f3ff"
-            )
+            ),
         };
 
         SelectedSlideIndex = 0;
 
         NavToCreateAccountCommand = ReactiveCommand.Create(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(AuthViewType.PhoneVerification);
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(
+                AuthViewType.PhoneVerification
+            );
         });
 
         NavToSignInCommand = ReactiveCommand.Create(() =>

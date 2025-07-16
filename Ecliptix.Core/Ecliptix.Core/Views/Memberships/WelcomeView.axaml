@@ -13,7 +13,7 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
 
-        <Grid RowDefinitions="Auto, *, Auto, Auto" RowSpacing="5">
+        <Grid RowDefinitions="Auto, *, Auto" RowSpacing="5">
 
             <!-- Header -->
             <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,5">
@@ -34,7 +34,7 @@
                                    />
 
             <!-- Action buttons -->
-            <StackPanel Grid.Row="3" Spacing="12" Margin="0,40,0,0">
+            <StackPanel Grid.Row="3" Spacing="12" Margin="0 0 0 0" MaxWidth="280">
                 <TextBlock Text="Створіть обліковий запис або ввійдіть,
 щоб зберігати всі розмови та
 генерувати зображення"

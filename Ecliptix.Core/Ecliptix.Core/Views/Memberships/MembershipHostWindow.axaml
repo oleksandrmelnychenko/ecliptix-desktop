@@ -10,7 +10,7 @@
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MembershipHostWindowModel"
-        Width="600" Height="700"
+        Width="600" Height="800"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Background="Transparent"

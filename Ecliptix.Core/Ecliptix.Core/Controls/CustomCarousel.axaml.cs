@@ -282,15 +282,15 @@ public partial class CustomCarousel : UserControl
                     Background = new SolidColorBrush(Color.Parse(slide.BackgroundColor)),
                     CornerRadius = new CornerRadius(32),
                     Width = 240,
-                    Height = 280,
+                    Height = 200,
                 };
 
                 var stackPanel = new StackPanel
                 {
-                    Spacing = 20,
+                    Spacing = 10,
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                    Margin = new Thickness(24),
+                    Margin = new Thickness(10),
                 };
 
                 var icon = new PathIcon
