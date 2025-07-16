@@ -91,30 +91,20 @@
     <Grid x:Name="MainContentGrid">
         <Border Margin="18"
                 CornerRadius="8"
-                Background="#AA9966CC"
-                ZIndex="1">
+                Background="#AA9966CC">
             <Border.Effect>
                 <BlurEffect Radius="25" />
             </Border.Effect>
         </Border>
         
-        <Border CornerRadius="8"
-                Background="#e8e9ff"
-                ZIndex="2"
-                Margin="10"
-                Padding="0"
-                >
-        </Border>
 
-        <Border Background="{Binding BackgroundColor}"
+        <Border Background="#ffffff"
                 BorderBrush="#B084CC"
                 BorderThickness="1"
                 CornerRadius="8"
                 Padding="0"
                 Margin="10"
-                ZIndex="3"
-                x:Name="MainBorder"
-                Classes="animated-background">
+                x:Name="MainBorder">
 
             <Border.Effect>
                 <DropShadowEffect Color="#9966CC"

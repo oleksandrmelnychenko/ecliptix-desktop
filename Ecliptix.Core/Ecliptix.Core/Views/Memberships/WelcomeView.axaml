@@ -16,7 +16,6 @@
 
         <Grid RowDefinitions="Auto, *, Auto" RowSpacing="10">
 
-            <!-- Header -->
             <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,5">
                 <TextBlock Text="Welcome to Ecliptix"
                            FontSize="22"
@@ -25,18 +24,27 @@
                            Foreground="#272320" />
             </StackPanel>
 
-            <!-- Custom Carousel -->
-            <controls:CustomCarousel Grid.Row="1" 
-                                     ItemsSource="{Binding FeatureSlides}"
-                                     SelectedIndex="{Binding SelectedSlideIndex}"
-                                     CardWidth="280"
-                                     CardHeight="260"
-                                     CardSpacing="32"
-                                     Margin="0 0 0 10"
-                                     />
-
-            <!-- Action buttons -->
-            <StackPanel Grid.Row="3" Spacing="5" Margin="0 0 0 0" MaxWidth="280">
+            <Grid Grid.Row="1" Width="300" Height="300">
+                <!-- Blurred border background -->
+                <Border Width="300"
+                        Height="300"
+                        CornerRadius="150"
+                        BorderThickness="5"
+                        Background="White">
+                    <Border.Effect>
+                        <BlurEffect Radius="10" />
+                    </Border.Effect>
+                </Border>
+                <Border Width="290"
+                        Height="290"
+                        CornerRadius="145"
+                        ClipToBounds="True">
+                    <Image Source="avares://Ecliptix.Core/Assets/welcome-screen_bg.png" 
+                           Stretch="UniformToFill" />
+                </Border>
+            </Grid>
+        
+            <StackPanel Grid.Row="2" Spacing="5" Margin="0 0 0 0" HorizontalAlignment="Stretch">
                 <TextBlock Text="Створіть обліковий запис або ввійдіть,
 щоб зберігати всі розмови та
 генерувати зображення"
@@ -46,18 +54,18 @@
                            FontWeight="Light"
                            Foreground="#6D6C6C" 
                            Margin="0 0 0 15"/>
+            <Grid HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
+                <Button Grid.Column="0" Content="Create account"
+                                       HorizontalAlignment="Stretch"
+                                       Height="55"
+                                       Command="{Binding NavToCreateAccountCommand}"
+                                       Background="#272320"
+                                       Foreground="#e2ddd9"
+                                       FontWeight="Regular"
+                                       FontSize="14"
+                                       CornerRadius="12" />
 
-                <Button Content="Create account"
-                        Command="{Binding NavToCreateAccountCommand}"
-                        HorizontalAlignment="Stretch"
-                        Height="55"
-                        Background="#272320"
-                        Foreground="#e2ddd9"
-                        FontWeight="Regular"
-                        FontSize="14"
-                        CornerRadius="12" />
-
-                <Button Content="Sign in"
+                <Button Grid.Column="1" Content="Sign in"
                         Command="{Binding NavToSignInCommand}"
                         HorizontalAlignment="Stretch"
                         Height="55"
@@ -69,6 +77,7 @@
                         FontWeight="Regular"
                         FontSize="14"
                         CornerRadius="12" />
+            </Grid>
             </StackPanel>
         </Grid>
     </Border>

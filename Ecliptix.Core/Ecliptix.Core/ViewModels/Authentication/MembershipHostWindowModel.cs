@@ -9,17 +9,8 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
 
-public class MembershipHostWindowModel : ReactiveObject, IScreen, IDisposable
+public class MembershipHostWindowModel : ReactiveObject, IScreen
 {
-    private readonly IDisposable _colorSubscription;
-    private string _backgroundColor = "#e8e9ff";
-
-    public string BackgroundColor
-    {
-        get => _backgroundColor;
-        private set => this.RaiseAndSetIfChanged(ref _backgroundColor, value);
-    }
-
     public RoutingState Router { get; } = new RoutingState();
 
     public ReactiveCommand<AuthViewType, IRoutableViewModel> Navigate { get; }
@@ -37,17 +28,6 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen, IDisposable
         );
 
         Navigate.Execute(AuthViewType.MembershipWelcome).Subscribe();
-
-        _colorSubscription = MessageBus
-            .Current.Listen<BackgroundColorChangedMessage>()
-            .Subscribe(msg =>
-            {
-                Color toColor = Color.Parse(msg.ColorHex);
-                byte opacity = (byte)(255 * msg.Opacity);
-                toColor = Color.FromArgb(opacity, toColor.R, toColor.G, toColor.B);
-
-                BackgroundColor = toColor.ToString();
-            });
     }
 
     private IRoutableViewModel CreateViewModelForView(
@@ -63,10 +43,5 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen, IDisposable
             //AuthViewType.RegistrationWizard => dependencyResolver.GetRequiredService<RegistrationWizardViewModel>(),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
-    }
-
-    public void Dispose()
-    {
-        _colorSubscription?.Dispose();
     }
 }
