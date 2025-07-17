@@ -9,76 +9,68 @@
              x:DataType="vm:WelcomeViewModel">
 
     <Border MaxWidth="420"
-            Padding="24"
+            Padding="24 10 24 24"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
+            VerticalAlignment="Top"
             >
 
-        <Grid RowDefinitions="Auto, *, Auto" RowSpacing="10">
+        <Grid RowDefinitions="Auto, *, Auto" RowSpacing="15">
 
-            <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,5">
-                <TextBlock Text="Welcome to Ecliptix"
-                           FontSize="22"
-                           FontWeight="Regular"
-                           TextAlignment="Center"
-                           Foreground="#272320" />
+            <StackPanel Grid.Row="0" Spacing="15" Margin="0,0,0,5">
+                    <Border Height="40">
+                        <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png"/>
+                    </Border>  
+                    <Border Height="20">
+                        <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png"/>
+                    </Border>
             </StackPanel>
 
-            <Grid Grid.Row="1" Width="300" Height="300">
-                <!-- Blurred border background -->
-                <Border Width="300"
-                        Height="300"
-                        CornerRadius="150"
+            <Grid Grid.Row="1" Width="250" Height="250">
+                
+                <Border Width="250"
+                        Height="250"
+                        CornerRadius="125"
                         BorderThickness="5"
                         Background="White">
                     <Border.Effect>
                         <BlurEffect Radius="10" />
                     </Border.Effect>
                 </Border>
-                <Border Width="290"
-                        Height="290"
-                        CornerRadius="145"
+                <Border Width="240"
+                        Height="240"
+                        CornerRadius="120"
                         ClipToBounds="True">
-                    <Image Source="avares://Ecliptix.Core/Assets/welcome-screen_bg.png" 
+                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png" 
                            Stretch="UniformToFill" />
                 </Border>
             </Grid>
-        
-            <StackPanel Grid.Row="2" Spacing="5" Margin="0 0 0 0" HorizontalAlignment="Stretch">
-                <TextBlock Text="Створіть обліковий запис або ввійдіть,
-щоб зберігати всі розмови та
-генерувати зображення"
-                           TextWrapping="Wrap"
-                           FontSize="16"
-                           TextAlignment="Center"
-                           FontWeight="Light"
-                           Foreground="#6D6C6C" 
-                           Margin="0 0 0 15"/>
-            <Grid HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
-                <Button Grid.Column="0" Content="Create account"
-                                       HorizontalAlignment="Stretch"
-                                       Height="55"
-                                       Command="{Binding NavToCreateAccountCommand}"
-                                       Background="#272320"
-                                       Foreground="#e2ddd9"
-                                       FontWeight="Regular"
-                                       FontSize="14"
-                                       CornerRadius="12" />
-
-                <Button Grid.Column="1" Content="Sign in"
+            
+            <Grid Grid.Row="2" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10" Margin="0 35 0 0">
+                <Button Grid.Column="0" Content="Sign in"
                         Command="{Binding NavToSignInCommand}"
                         HorizontalAlignment="Stretch"
-                        Height="55"
-                        Background="Transparent"
-                        Foreground="#272320"
-                        BorderBrush="#272320"
+                        Height="45"
+                        Background="{DynamicResource LightButtonColor}"
+                        Foreground="{DynamicResource LightButtonForegroundColor}"
                         FontFeatures="Underline"
+                        FontWeight="SemiBold"
+                        FontSize="14"
+                        CornerRadius="15" 
                         BorderThickness="0"
+                        />
+                
+                <Button Grid.Column="1" Content="Create account"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Command="{Binding NavToCreateAccountCommand}"
+                        Background="{DynamicResource DarkButtonColor}"
+                        Foreground="{DynamicResource DarkButtonForegroundColor}"
                         FontWeight="Regular"
                         FontSize="14"
-                        CornerRadius="12" />
+                        CornerRadius="15" 
+                        BorderThickness="0"/>
             </Grid>
-            </StackPanel>
+           
         </Grid>
     </Border>
 </UserControl>

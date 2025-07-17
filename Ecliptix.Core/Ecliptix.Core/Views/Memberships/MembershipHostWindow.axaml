@@ -10,7 +10,7 @@
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MembershipHostWindowModel"
-        Width="700" Height="800"
+        Width="560" Height="700"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Background="Transparent"
@@ -120,8 +120,8 @@
                 <Svg Grid.Row="1"
                      Path="../../../Assets/logo.svg"
                      VerticalAlignment="Top"
-                     Width="100"
-                     Height="100"
+                     Width="110"
+                     Height="110"
                      HorizontalAlignment="Center" />
 
                 <reactiveUi:RoutedViewHost Grid.Row="2"
@@ -134,8 +134,13 @@
                 </reactiveUi:RoutedViewHost>
 
                 <Grid Grid.Row="3">
-                    <TextBlock HorizontalAlignment="Center" FontWeight="Light"
-                               Foreground="#A0A0A0" VerticalAlignment="Bottom" Text="Horizon Dynamics 2025" Margin="0,0,0,10">
+                    <TextBlock HorizontalAlignment="Center"
+                               FontWeight="Normal"
+                               FontSize="13"
+                               Foreground="{DynamicResource FooterTextColor}" 
+                               VerticalAlignment="Bottom" 
+                               Text="Horizon Dynamics 2025" 
+                               Margin="0,0,0,10">
                     </TextBlock>
                 </Grid>
             </Grid>
