@@ -8,11 +8,11 @@
              x:Class="Ecliptix.Core.Views.Memberships.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <Border MaxWidth="420"
+    <Border MaxWidth="366"
             Padding="24 10 24 24"
-            HorizontalAlignment="Center"
+            HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
-            >
+    >
 
         <Grid RowDefinitions="Auto, *, Auto" RowSpacing="15">
 

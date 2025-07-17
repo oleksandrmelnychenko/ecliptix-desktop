@@ -18,7 +18,7 @@
                     <Color x:Key="BackgroundColor">#ffffff</Color>
 
                     <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="TextBoxForegroundColor">#777777</Color>
+                    <Color x:Key="TextBoxForegroundColor">#5E5D5D</Color>
 
                     <Color x:Key="TipsColor">#9966cc</Color>
 
@@ -26,6 +26,8 @@
                     <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
                     
                     <Color x:Key="FooterTextColor">#616161</Color>
+                    
+                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
 
                     <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
                     <SolidColorBrush x:Key="DarkButtonForegroundBrush" Color="{StaticResource DarkButtonForegroundColor}" />
@@ -54,7 +56,7 @@
                     <Color x:Key="BackgroundColor">#ffffff</Color>
 
                     <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="TextBoxForegroundColor">#777777</Color>
+                    <Color x:Key="TextBoxForegroundColor">#474747</Color>
 
                     <Color x:Key="TipsColor">#9966cc</Color>
 
@@ -62,6 +64,8 @@
                     <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
                     
                     <Color x:Key="FooterTextColor">#616161</Color>
+                    
+                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
 
                     <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
                     <SolidColorBrush x:Key="DarkButtonForegroundBrush" Color="{StaticResource DarkButtonForegroundColor}" />

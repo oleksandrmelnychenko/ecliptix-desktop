@@ -13,57 +13,78 @@ namespace Ecliptix.Core.Controls;
 
 public partial class HintedTextBox : UserControl
 {
-    public static readonly StyledProperty<string> TextProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty);
+    public static readonly StyledProperty<string> TextProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        string
+    >(nameof(Text), string.Empty);
 
-    public static readonly StyledProperty<string> WatermarkProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Watermark), string.Empty);
+    public static readonly StyledProperty<string> WatermarkProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        string
+    >(nameof(Watermark), string.Empty);
 
-    public static readonly StyledProperty<string> HintProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
+    public static readonly StyledProperty<string> HintProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        string
+    >(nameof(Hint), string.Empty);
 
-    public static readonly StyledProperty<char> PasswordCharProperty =
-        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordChar));
+    public static readonly StyledProperty<char> PasswordCharProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        char
+    >(nameof(PasswordChar));
 
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
-        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(FocusBorderBrush),
-            new SolidColorBrush(Color.Parse("#6a5acd")));
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(FocusBorderBrush),
+            new SolidColorBrush(Color.Parse("#6a5acd"))
+        );
 
     public static readonly StyledProperty<IBrush> TextForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(TextForeground),
-            new SolidColorBrush(Colors.Black));
+            new SolidColorBrush(Colors.Black)
+        );
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
             nameof(HintForeground),
-            new SolidColorBrush(Colors.Gray));
+            new SolidColorBrush(Colors.Gray)
+        );
 
-    public static readonly StyledProperty<string> IconSourceProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(IconSource), string.Empty);
+    public static readonly StyledProperty<string> IconSourceProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        string
+    >(nameof(IconSource), string.Empty);
 
-    public static readonly StyledProperty<string> ErrorTextProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(ErrorText), string.Empty);
+    public static readonly StyledProperty<string> ErrorTextProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        string
+    >(nameof(ErrorText), string.Empty);
 
     public static readonly StyledProperty<double> EllipseOpacityProperty =
         AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity));
 
-    public static readonly StyledProperty<bool> HasErrorProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError));
+    public static readonly StyledProperty<bool> HasErrorProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        bool
+    >(nameof(HasError));
 
     public static readonly StyledProperty<ValidationType> ValidationTypeProperty =
         AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType));
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
+            nameof(MainBorderBrush),
+            new SolidColorBrush(Colors.LightGray)
+        );
 
     public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
-        AvaloniaProperty.Register<HintedTextBox, TextWrapping>(
-            nameof(TextWrapping));
+        AvaloniaProperty.Register<HintedTextBox, TextWrapping>(nameof(TextWrapping));
 
-    public static readonly StyledProperty<int> MaxLengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
+    public static readonly StyledProperty<int> MaxLengthProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        int
+    >(nameof(MaxLength), int.MaxValue);
 
     public static readonly StyledProperty<int> RemainingCharactersProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(RemainingCharacters), int.MaxValue);
@@ -71,33 +92,63 @@ public partial class HintedTextBox : UserControl
     public static readonly StyledProperty<bool> ShowCharacterCounterProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter));
 
-    public static readonly StyledProperty<bool> IsNumericOnlyProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsNumericOnly));
+    public static readonly StyledProperty<bool> IsNumericOnlyProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        bool
+    >(nameof(IsNumericOnly));
+
+    public static readonly StyledProperty<IBrush> BackgroundProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        IBrush
+    >(nameof(Background), new SolidColorBrush(Colors.White));
+
+    public static new readonly StyledProperty<double> FontSizeProperty = AvaloniaProperty.Register<
+        HintedTextBox,
+        double
+    >(nameof(FontSize), 14.0);
+
+    public static new readonly StyledProperty<FontWeight> FontWeightProperty =
+        AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
+
+    public new FontWeight FontWeight
+    {
+        get => GetValue(FontWeightProperty);
+        set => SetValue(FontWeightProperty, value);
+    }
+
+    public new double FontSize
+    {
+        get => GetValue(FontSizeProperty);
+        set => SetValue(FontSizeProperty, value);
+    }
+
+    public new IBrush Background
+    {
+        get => GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
+    }
 
     public bool IsNumericOnly
     {
         get => GetValue(IsNumericOnlyProperty);
         set => SetValue(IsNumericOnlyProperty, value);
     }
-    
-    
+
     private readonly CompositeDisposable _disposables = new();
     private Panel? _counterPanel;
     private Border? _focusBorder;
     private bool _isDirty;
     private Border? _mainBorder;
-    
-    
+
     private TextBox? _mainTextBox;
 
     public event EventHandler<TextChangedEventArgs>? TextChanged;
-    
+
     public HintedTextBox()
     {
         InitializeComponent();
         Initialize();
     }
-    
 
     public bool ShowCharacterCounter
     {
@@ -226,7 +277,6 @@ public partial class HintedTextBox : UserControl
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
             // Log or handle missing controls (for debugging purposes)
             return;
-        
 
         // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
@@ -238,7 +288,7 @@ public partial class HintedTextBox : UserControl
             }
 
             string input = _mainTextBox.Text ?? string.Empty;
-    
+
             if (IsNumericOnly)
             {
                 string numeric = string.Concat(input.Where(char.IsDigit));
@@ -248,10 +298,10 @@ public partial class HintedTextBox : UserControl
                     input = numeric;
                 }
             }
-            
+
             // Update the Text property without raising the event again
             SetValue(TextProperty, input);
-    
+
             RemainingCharacters = MaxLength - input.Length;
 
             // Validate input as before
@@ -286,13 +336,15 @@ public partial class HintedTextBox : UserControl
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
-        
-        _disposables.Add(Disposable.Create(() =>
-        {
-            _mainTextBox.TextChanged -= OnTextChanged;
-            _mainTextBox.GotFocus -= OnGotFocus;
-            _mainTextBox.LostFocus -= OnLostFocus;
-        }));
+
+        _disposables.Add(
+            Disposable.Create(() =>
+            {
+                _mainTextBox.TextChanged -= OnTextChanged;
+                _mainTextBox.GotFocus -= OnGotFocus;
+                _mainTextBox.LostFocus -= OnLostFocus;
+            })
+        );
 
         this.WhenAnyValue(x => x.ErrorText)
             .Subscribe(errorText =>
@@ -304,11 +356,11 @@ public partial class HintedTextBox : UserControl
 
         UpdateBorderState();
     }
-    
-    
+
     private void UpdateBorderState(bool forceFocus = false)
     {
-        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
+            return;
 
         if (HasError)
         {

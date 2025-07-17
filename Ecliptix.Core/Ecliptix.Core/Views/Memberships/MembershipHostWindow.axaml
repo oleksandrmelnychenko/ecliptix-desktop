@@ -6,6 +6,7 @@
         xmlns:signIn="clr-namespace:Ecliptix.Core.Views.Memberships.SignIn"
         xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+        xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="False"
@@ -18,7 +19,32 @@
         TransparencyLevelHint="Transparent"
         x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow">
 
+    <Window.Resources>
+        <memberships:BooleanToOpacityConverter x:Key="BoolToOpacityConverter" TrueOpacity="1.0" FalseOpacity="0"/>
+    </Window.Resources>
+    
     <Window.Styles>
+        <Style Selector="Button.back-button">
+            <Setter Property="Width" Value="50" />
+            <Setter Property="Height" Value="50" />
+            <Setter Property="CornerRadius" Value="25" />
+            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.back-button:pointerover">
+            <Setter Property="Background" Value="#E4E3E3" /> 
+        </Style>
+        <Style Selector="Button.back-button:pressed">
+            <Setter Property="Background" Value="#D1D0D0" /> 
+        </Style>
+        
+        
         <Style Selector="Border.animated-background">
             <Setter Property="Transitions">
                 <Transitions>
@@ -97,6 +123,27 @@
             </Border.Effect>
         </Border>
         
+        <Button Grid.Row="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Width="60"
+                Height="60"
+                CornerRadius="30"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                Command="{Binding Router.NavigateBack}"
+                Margin="30 40 0 0"
+                ZIndex="1"
+                Classes="back-button"
+                Opacity = "{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+            <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
+                   Stretch="Uniform"
+                   Width="25"
+                   Height="25"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"/>
+            
+        </Button>
 
         <Border Background="#ffffff"
                 BorderBrush="#B084CC"
@@ -115,8 +162,13 @@
             </Border.Effect>
 
             <Grid RowDefinitions="Auto,Auto,*,Auto">
-                <comp:TitleBar DisableMinimizeButton="False" DisableCloseButton="False" />
+                <comp:TitleBar 
+                    DisableMinimizeButton="False"
+                    DisableCloseButton="False" 
+                    />
 
+               
+                
                 <Svg Grid.Row="1"
                      Path="../../../Assets/logo.svg"
                      VerticalAlignment="Top"
@@ -124,10 +176,17 @@
                      Height="110"
                      HorizontalAlignment="Center" />
 
+                
+                
                 <reactiveUi:RoutedViewHost Grid.Row="2"
                                            Router="{Binding Router}"
                                            Margin="0,10,0,0"
                                            Background="Transparent">
+                    <reactiveUi:RoutedViewHost.PageTransition>
+                        <CompositePageTransition>
+                            <CrossFade Duration="0:0:0.2"/>
+                        </CompositePageTransition>
+                    </reactiveUi:RoutedViewHost.PageTransition>
                     <reactiveUi:RoutedViewHost.DefaultContent>
                         <TextBlock Text="Loading View..." HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </reactiveUi:RoutedViewHost.DefaultContent>

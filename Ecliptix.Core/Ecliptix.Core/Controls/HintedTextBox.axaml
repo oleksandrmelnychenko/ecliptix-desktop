@@ -7,6 +7,11 @@
              x:Name="control">
     <!-- TODO -->
     <UserControl.Styles>
+        <Style Selector="TextBox#MainTextBox /template/ TextBlock#PART_Watermark">
+            <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        
         <Style Selector="TextBox#MainTextBox ScrollBar:vertical">
             <Setter Property="Width" Value="0" />
             <Setter Property="Background" Value="Transparent" />
@@ -67,14 +72,14 @@
             BorderBrush="{Binding MainBorderBrush, ElementName=control}"
             CornerRadius="15"
             MinHeight="64"
-            Background="White">
+            Background="{Binding Background, ElementName=control}">
             <Border.Transitions>
                 <Transitions>
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
                 </Transitions>
             </Border.Transitions>
 
-            <Panel Margin="8">
+            <Panel Margin="12 15 8 15 ">
                 <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
                     <Grid Grid.Row="0">
                         <Grid ColumnDefinitions="Auto,*">
@@ -91,8 +96,9 @@
                                 Margin="0 0 10 0"
                                 VerticalAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
-                                VerticalContentAlignment="Center"
-                                FontSize="14"
+                                VerticalContentAlignment="Top"
+                                FontSize="{Binding FontSize, ElementName=control}"
+                                FontWeight="{Binding FontWeight, ElementName=control}"
                                 MinHeight="32"
                                 MinWidth="32"
                                 TextWrapping="{Binding TextWrapping, ElementName=control}"
@@ -116,12 +122,12 @@
                         </StackPanel.Transitions>
                         <Svg x:Name="IconElement"
                              Path="{Binding IconSource, ElementName=control}"
-                             Height="13"
-                             Width="13"
+                             Height="19"
+                             Width="19"
                              VerticalAlignment="Center"
                              HorizontalAlignment="Center"
                              Margin="0,0,5,0"
-                             Css=".Purple { fill: #6a5acd; }">
+                             Css=".Purple { fill: #9966cc; }">
                             <!-- <Svg.Styles> -->
                             <!--     <Style Selector="Path"> -->
                             <!--         <Setter Property="Fill" Value="#6a5acd" /> -->
@@ -132,7 +138,7 @@
                         <TextBlock x:Name="HintTextBlock"
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
-                                   FontSize="12"
+                                   FontSize="13"
                                    IsHitTestVisible="False"
                                    
                                    />

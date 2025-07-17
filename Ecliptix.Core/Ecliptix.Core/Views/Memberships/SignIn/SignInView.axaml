@@ -8,67 +8,86 @@
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
 
-    <Border MaxWidth="420"
-            HorizontalAlignment="Center"
+    <Border MaxWidth="366"
+            HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
-            BorderBrush="#ece9ea"
-            BorderThickness="1"
-            CornerRadius="22"
-            Background="#fefbfa"
-            Padding="24">
+            Padding="24 0 24 24">
 
         <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
-            <StackPanel Grid.Row="0" Margin="0,0,0,20" Spacing="8">
-                <TextBlock Text="Sign in to Ecliptix"
-                           FontSize="18"
+            <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
+                <TextBlock Text="Sign in"
+                           FontSize="17"
                            FontWeight="Medium"
-                           Foreground="#272320" />
-                <TextBlock Text="Please confirm your country code and mobile number"
+                           Foreground="{DynamicResource TextForegroundColor}" 
+                           LetterSpacing="-0.5"
+                           LineHeight="25"
+                           />
+                <TextBlock Text="Welcome back! Your personalized experience awaits."
                            TextWrapping="Wrap"
-                           FontSize="16"
-                           FontWeight="Light"
-                           Foreground="#272320" />
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           LetterSpacing="-0.5"
+                           Foreground="{DynamicResource TextForegroundColor}" />
             </StackPanel>
 
             <controls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
-                Watermark="Mobile"
-                Hint="Include country code."
-                BorderBrush="#e2e0e1"
-                TextForeground="#333333"
-                HintForeground="#6a5acd"
-                IconSource="/Assets/lamp.svg"
+                Watermark="Mobile Number"
+                Hint="Start with country code."
+                TextForeground="{DynamicResource TextBoxForegroundColor}"
+                HintForeground="{DynamicResource TipsColor}"
+                IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
                 ValidationType="PhoneNumber"
-                MainBorderBrush="#e2e0e1"
-                Text="{Binding PhoneNumber}" />
+                MainBorderBrush="Transparent"
+                Text="{Binding PhoneNumber}"
+                Height="90"
+                CornerRadius="5"
+                FontSize="18"
+                Background="{DynamicResource TextBoxBackgroundColor}"
+                FontWeight="Medium"/>
 
             <controls:HintedTextBox
                 Grid.Row="2"
                 x:Name="PasswordTextBox"
+                Background="{DynamicResource TextBoxBackgroundColor}"
                 Watermark="Secure Key"
                 Hint="Secure key to your account"
-                Margin="0 0 0 10"
-                CornerRadius="15"
-                BorderBrush="#e2e0e1"
-                TextForeground="#333333"
-                HintForeground="#6a5acd"
-                IconSource="/Assets/lamp.svg"
-                MainBorderBrush="#e2e0e1"
+                CornerRadius="5 "
+                TextForeground="{DynamicResource TextBoxForegroundColor}"
+                HintForeground="{DynamicResource TipsColor}"
+                IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
+                MainBorderBrush="Transparent"
                 ValidationType="Password"
-                PasswordChar="*" />
-
-            <StackPanel Grid.Row="3" Spacing="12" Margin="0,20,0,0">
-
-                <Button
-                    Classes="SubmitButton"
-                    Background="#272320"
-                    Margin="0,20,0,0"
-                    Content="Continue"
-                    Command="{Binding SignInCommand}" />
-
-                <TextBlock HorizontalAlignment="Center" Text="Account recovery"></TextBlock>
-            </StackPanel>
+                PasswordChar="*"
+                FontSize="18"
+                Height="90"
+                FontWeight="Medium"/>
+            
+            <Grid Grid.Row="3" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
+                <Button Grid.Column="0" Content="Account recovery"
+                        Command="{Binding SignInCommand}"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Background="{DynamicResource LightButtonColor}"
+                        Foreground="{DynamicResource LightButtonForegroundColor}"
+                        FontWeight="SemiBold"
+                        FontSize="14"
+                        CornerRadius="15" 
+                        BorderThickness="0"
+                />
+                
+                <Button Grid.Column="1" Content="Continue"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Command="{Binding AccountRecoveryCommand}"
+                        Background="{DynamicResource DarkButtonColor}"
+                        Foreground="{DynamicResource DarkButtonForegroundColor}"
+                        FontWeight="Regular"
+                        FontSize="14"
+                        CornerRadius="15" 
+                        BorderThickness="0"/>
+            </Grid>
 
         </Grid>
     </Border>

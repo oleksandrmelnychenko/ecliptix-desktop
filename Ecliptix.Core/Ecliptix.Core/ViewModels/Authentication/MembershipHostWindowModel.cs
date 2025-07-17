@@ -22,12 +22,27 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     {
         Navigate = ReactiveCommand.CreateFromObservable<AuthViewType, IRoutableViewModel>(
             viewType =>
-                Router.Navigate.Execute(
+            {
+                return Router.Navigate.Execute(
                     CreateViewModelForView(viewType, networkProvider, localizationService)!
-                )
+                );
+            }
         );
 
         Navigate.Execute(AuthViewType.MembershipWelcome).Subscribe();
+
+        this.WhenAnyObservable(x => x.Router.NavigateBack.CanExecute)
+            .Subscribe(canExecute =>
+            {
+                CanNavigateBack = canExecute;
+            });
+    }
+
+    private bool _canNavigateBack;
+    public bool CanNavigateBack
+    {
+        get => _canNavigateBack;
+        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
     }
 
     private IRoutableViewModel CreateViewModelForView(
