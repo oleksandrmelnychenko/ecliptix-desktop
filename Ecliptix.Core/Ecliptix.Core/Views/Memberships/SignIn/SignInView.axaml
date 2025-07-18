@@ -38,6 +38,8 @@
                 TextForeground="{DynamicResource TextBoxForegroundColor}"
                 HintForeground="{DynamicResource TipsColor}"
                 IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
+                ShowCharacterCounter="True"
+                MaxLength="15"
                 ValidationType="PhoneNumber"
                 MainBorderBrush="Transparent"
                 Text="{Binding PhoneNumber}"
@@ -45,8 +47,9 @@
                 CornerRadius="5"
                 FontSize="18"
                 Background="{DynamicResource TextBoxBackgroundColor}"
-                FontWeight="Medium"/>
-
+                FontWeight="Medium"
+                />
+            
             <controls:HintedTextBox
                 Grid.Row="2"
                 x:Name="PasswordTextBox"
@@ -63,6 +66,7 @@
                 FontSize="18"
                 Height="90"
                 FontWeight="Medium"/>
+            
             
             <Grid Grid.Row="3" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
                 <Button Grid.Column="0" Content="Account recovery"

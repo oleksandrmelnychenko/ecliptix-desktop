@@ -33,7 +33,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                    <BrushTransition Property="Background" Duration="0:0:0.5" />
                 </Transitions>
             </Setter>
         </Style>
@@ -43,6 +43,7 @@
         <Style Selector="Button.back-button:pressed">
             <Setter Property="Background" Value="#D1D0D0" /> 
         </Style>
+        
         
         
         <Style Selector="Border.animated-background">
@@ -184,8 +185,9 @@
                                            Background="Transparent">
                     <reactiveUi:RoutedViewHost.PageTransition>
                         <CompositePageTransition>
-                            <CrossFade Duration="0:0:0.2"/>
+                            <PageSlide Duration="0:0:0.4"/>
                         </CompositePageTransition>
+                        
                     </reactiveUi:RoutedViewHost.PageTransition>
                     <reactiveUi:RoutedViewHost.DefaultContent>
                         <TextBlock Text="Loading View..." HorizontalAlignment="Center" VerticalAlignment="Center" />

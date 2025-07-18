@@ -144,10 +144,28 @@ public partial class HintedTextBox : UserControl
 
     public event EventHandler<TextChangedEventArgs>? TextChanged;
 
+    // public HintedTextBox()
+    // {
+    //     InitializeComponent();
+    //     Initialize();
+    // }
+
+    private bool _isInitialized;
+
     public HintedTextBox()
     {
+        Loaded += OnControlLoaded;
         InitializeComponent();
-        Initialize();
+    }
+
+    private void OnControlLoaded(object? sender, RoutedEventArgs e)
+    {
+        if (!_isInitialized)
+        {
+            _isInitialized = true;
+            Loaded -= OnControlLoaded;
+            Initialize();
+        }
     }
 
     public bool ShowCharacterCounter
