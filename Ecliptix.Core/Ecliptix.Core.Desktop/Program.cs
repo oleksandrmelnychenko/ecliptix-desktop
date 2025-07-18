@@ -91,13 +91,14 @@ public static class Program
             "Information" => LogEventLevel.Information,
             "Warning" => LogEventLevel.Warning,
             "Error" => LogEventLevel.Error,
-            _ => LogEventLevel.Warning
+            _ => LogEventLevel.Warning,
         };
 
-        LoggerConfiguration loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(minimumLevel);
+        LoggerConfiguration loggerConfig = new LoggerConfiguration().MinimumLevel.Is(minimumLevel);
 
-        IEnumerable<IConfigurationSection> overrides = serilogConfig.GetSection("MinimumLevel:Override").GetChildren();
+        IEnumerable<IConfigurationSection> overrides = serilogConfig
+            .GetSection("MinimumLevel:Override")
+            .GetChildren();
         foreach (IConfigurationSection overrideSection in overrides)
         {
             LogEventLevel level = overrideSection.Value switch
@@ -106,28 +107,41 @@ public static class Program
                 "Information" => LogEventLevel.Information,
                 "Warning" => LogEventLevel.Warning,
                 "Error" => LogEventLevel.Error,
-                _ => LogEventLevel.Warning
+                _ => LogEventLevel.Warning,
             };
             loggerConfig.MinimumLevel.Override(overrideSection.Key, level);
         }
 
-        IConfigurationSection? fileSink = serilogConfig.GetSection("WriteTo").GetChildren()
-            .FirstOrDefault(s => s["Name"] == "Async")?.GetSection("Args:configure")
-            .GetChildren().FirstOrDefault(c => c["Name"] == "File")?.GetSection("Args");
+        IConfigurationSection? fileSink = serilogConfig
+            .GetSection("WriteTo")
+            .GetChildren()
+            .FirstOrDefault(s => s["Name"] == "Async")
+            ?.GetSection("Args:configure")
+            .GetChildren()
+            .FirstOrDefault(c => c["Name"] == "File")
+            ?.GetSection("Args");
         if (fileSink != null)
         {
             string path = ResolvePath(fileSink["path"] ?? "Storage/logs/ecliptix.log");
-            loggerConfig.WriteTo.Async(a => a.File(
-                path: path,
-                rollingInterval: fileSink.GetValue<RollingInterval>("rollingInterval", RollingInterval.Day),
-                retainedFileCountLimit: fileSink.GetValue<int?>("retainedFileCountLimit", 7),
-                fileSizeLimitBytes: fileSink.GetValue<long?>("fileSizeLimitBytes", 10000000),
-                outputTemplate: fileSink["outputTemplate"] ??
-                                "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"));
+            loggerConfig.WriteTo.Async(a =>
+                a.File(
+                    path: path,
+                    rollingInterval: fileSink.GetValue<RollingInterval>(
+                        "rollingInterval",
+                        RollingInterval.Day
+                    ),
+                    retainedFileCountLimit: fileSink.GetValue<int?>("retainedFileCountLimit", 7),
+                    fileSizeLimitBytes: fileSink.GetValue<long?>("fileSizeLimitBytes", 10000000),
+                    outputTemplate: fileSink["outputTemplate"]
+                        ?? "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+                )
+            );
         }
         else
         {
-            Log.Warning("No file sink configured in Serilog settings; logging to console only in development");
+            Log.Warning(
+                "No file sink configured in Serilog settings; logging to console only in development"
+            );
         }
 
         if (configuration.GetValue<string>("AppSettings:Environment") == "Development")
@@ -144,9 +158,12 @@ public static class Program
 
         services.AddLogging(builder => builder.AddSerilog(dispose: true));
 
-        services.AddDataProtection()
+        services
+            .AddDataProtection()
             .SetApplicationName("Ecliptix")
-            .PersistKeysToFileSystem(new DirectoryInfo(ResolvePath("%APPDATA%/Storage/DataProtection-Keys")))
+            .PersistKeysToFileSystem(
+                new DirectoryInfo(ResolvePath("%APPDATA%/Storage/DataProtection-Keys"))
+            )
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
@@ -154,18 +171,21 @@ public static class Program
         services.Configure<SecureStoreOptions>(options =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
-            options.EncryptedStatePath = ResolvePath(section["EncryptedStatePath"] ?? "Storage/state");
+            options.EncryptedStatePath = ResolvePath(
+                section["EncryptedStatePath"] ?? "Storage/state"
+            );
         });
-        
+
         services.AddSingleton<IEventAggregator, EventAggregator>();
         services.AddSingleton<INetworkEvents, NetworkEvents>();
         services.AddSingleton<ISystemEvents, SystemEvents>();
-        
+
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultAppSettings>>().Value);
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
-            sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>());
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
+        );
         services.AddSingleton<ISecureStorageProvider, SecureStorageProvider>();
         services.AddSingleton<RpcServiceManager>();
         services.AddSingleton<NetworkProvider>();
@@ -174,8 +194,10 @@ public static class Program
         services.AddSingleton<ReceiveStreamRpcServices>();
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
-
-
+        services.AddSingleton<DeadlineInterceptor>();
+        services.AddTransient<ResilienceInterceptor>();
+        
+        
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -186,13 +208,20 @@ public static class Program
     {
         Action<GrpcClientFactoryOptions> configureClientOptions = (options) =>
         {
-            DefaultAppSettings settings = services.BuildServiceProvider().GetRequiredService<DefaultAppSettings>();
-            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+            DefaultAppSettings settings = services
+                .BuildServiceProvider()
+                .GetRequiredService<DefaultAppSettings>();
+            string? endpoint = settings.Environment.Equals(
+                "Development",
+                StringComparison.OrdinalIgnoreCase
+            )
                 ? settings.DataCenterConnectionString
                 : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))
-                throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
+                throw new InvalidOperationException(
+                    "gRPC endpoint URL is not configured in appsettings.json."
+                );
 
             options.Address = new Uri(endpoint);
         };
@@ -221,25 +250,38 @@ public static class Program
         if (string.IsNullOrEmpty(path))
             throw new ArgumentException("Path cannot be empty.", nameof(path));
 
-        string appDataDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        string appDataDir =
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
             : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local/share")
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "Library/Application Support");
+                ? Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".local/share"
+                )
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Library/Application Support"
+            );
 
-        path = Environment.ExpandEnvironmentVariables(path.Replace("%APPDATA%", Path.Combine(appDataDir, "Ecliptix")));
+        path = Environment.ExpandEnvironmentVariables(
+            path.Replace("%APPDATA%", Path.Combine(appDataDir, "Ecliptix"))
+        );
 
         string? directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (
+                RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+            )
             {
                 try
                 {
-                    File.SetUnixFileMode(directory,
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                    File.SetUnixFileMode(
+                        directory,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                    );
                     Log.Debug("Set secure permissions (700) on directory {Path}", directory);
                 }
                 catch (IOException ex)
@@ -253,8 +295,5 @@ public static class Program
     }
 
     private static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .LogToTrace()
-            .UseReactiveUI();
+        AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().UseReactiveUI();
 }

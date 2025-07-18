@@ -12,27 +12,52 @@ namespace Ecliptix.Core.Network.ResilienceStrategy;
 
 public static class ResilienceRpcExtensions
 {
-    public static void AddResilientGrpcClients(this IServiceCollection services,
-        Action<GrpcClientFactoryOptions> configureClientOptions)
+    public static void AddResilientGrpcClients(
+        this IServiceCollection services,
+        Action<GrpcClientFactoryOptions> configureClientOptions
+    )
     {
-        services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(configureClientOptions)
-            .AddPolicyHandler((_, _) => Policy.NoOpAsync<HttpResponseMessage>())
+        services
+            .AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(
+                configureClientOptions
+            )
+            .AddPolicyHandler(
+                (sp, _) =>
+                {
+                    INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
+                    return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
+                }
+            )
+            .AddInterceptor<ResilienceInterceptor>()
+            .AddInterceptor<DeadlineInterceptor>()
             .AddInterceptor<RequestMetaDataInterceptor>();
 
-        services.AddGrpcClient<MembershipServices.MembershipServicesClient>(configureClientOptions)
-            .AddPolicyHandler((sp, _) =>
-            {
-                INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
-                return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
-            })
-            .AddInterceptor<RequestMetaDataInterceptor>();
+        services
+            .AddGrpcClient<MembershipServices.MembershipServicesClient>(configureClientOptions)
+            .AddPolicyHandler(
+                (sp, _) =>
+                {
+                    INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
+                    return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
+                }
+            )
+            .AddInterceptor<DeadlineInterceptor>()
+            .AddInterceptor<RequestMetaDataInterceptor>()
+            .AddInterceptor<ResilienceInterceptor>();
 
-        services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(configureClientOptions)
-            .AddPolicyHandler((sp, _) =>
-            {
-                INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
-                return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
-            })
-            .AddInterceptor<RequestMetaDataInterceptor>();
+        services
+            .AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(
+                configureClientOptions
+            )
+            .AddPolicyHandler(
+                (sp, _) =>
+                {
+                    INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
+                    return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
+                }
+            )
+            .AddInterceptor<DeadlineInterceptor>()
+            .AddInterceptor<RequestMetaDataInterceptor>()
+            .AddInterceptor<ResilienceInterceptor>();
     }
 }

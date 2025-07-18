@@ -20,15 +20,18 @@ public sealed class UnaryRpcServices
 {
     private readonly Dictionary<RcpServiceType, GrpcMethodDelegate> _serviceMethods;
 
-    private delegate Task<Result<CipherPayload, NetworkFailure>> GrpcMethodDelegate(CipherPayload payload,
+    private delegate Task<Result<CipherPayload, NetworkFailure>> GrpcMethodDelegate(
+        CipherPayload payload,
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
-        CancellationToken token);
+        CancellationToken token
+    );
 
     public UnaryRpcServices(
         MembershipServices.MembershipServicesClient membershipServicesClient,
         AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
-        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
+        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient
+    )
     {
         _serviceMethods = new Dictionary<RcpServiceType, GrpcMethodDelegate>
         {
@@ -38,107 +41,187 @@ public sealed class UnaryRpcServices
             [RcpServiceType.VerifyOtp] = VerifyCodeAsync,
             [RcpServiceType.OpaqueRegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
             [RcpServiceType.OpaqueSignInInitRequest] = OpaqueSignInInitRequestAsync,
-            [RcpServiceType.OpaqueSignInCompleteRequest] = OpaqueSignInCompleteRequestAsync
+            [RcpServiceType.OpaqueSignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
         };
         return;
 
-        async Task<Result<CipherPayload, NetworkFailure>> RegisterDeviceAsync(CipherPayload payload,
+        async Task<Result<CipherPayload, NetworkFailure>> RegisterDeviceAsync(
+            CipherPayload payload,
             INetworkEvents networkEvents,
             ISystemEvents systemEvents,
-            CancellationToken token)
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(payload,
-                    new CallOptions(cancellationToken: token, deadline: DateTime.UtcNow.AddSeconds(20))));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> ValidatePhoneNumberAsync(CipherPayload payload,
+        async Task<Result<CipherPayload, NetworkFailure>> ValidatePhoneNumberAsync(
+            CipherPayload payload,
             INetworkEvents networkEvents,
             ISystemEvents systemEvents,
-            CancellationToken token)
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                authenticationServicesClient.ValidatePhoneNumberAsync(payload,
-                    new CallOptions(cancellationToken: token)));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    authenticationServicesClient.ValidatePhoneNumberAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
 
         async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
-            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
-        {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                membershipServicesClient.OpaqueRegistrationInitRequestAsync(payload,
-                    new CallOptions(cancellationToken: token)));
-        }
-
-        async Task<Result<CipherPayload, NetworkFailure>> VerifyCodeAsync(CipherPayload payload,
+            CipherPayload payload,
             INetworkEvents networkEvents,
             ISystemEvents systemEvents,
-            CancellationToken token)
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                authenticationServicesClient.VerifyOtpAsync(payload, new CallOptions(cancellationToken: token)));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueRegistrationInitRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
+        }
+
+        async Task<Result<CipherPayload, NetworkFailure>> VerifyCodeAsync(
+            CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    authenticationServicesClient.VerifyOtpAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
 
         async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
-            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
+            CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(payload,
-                    new CallOptions(cancellationToken: token)));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
 
         async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInInitRequestAsync(
-            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
+            CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                membershipServicesClient.OpaqueSignInInitRequestAsync(payload,
-                    new CallOptions(cancellationToken: token)));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueSignInInitRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
 
         async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
-            CipherPayload payload, INetworkEvents networkEvents, ISystemEvents systemEvents, CancellationToken token)
+            CipherPayload payload,
+            INetworkEvents networkEvents,
+            ISystemEvents systemEvents,
+            CancellationToken token
+        )
         {
-            return await ExecuteGrpcCallAsync(networkEvents, systemEvents, () =>
-                membershipServicesClient.OpaqueSignInCompleteRequestAsync(payload,
-                    new CallOptions(cancellationToken: token)));
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueSignInCompleteRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
         }
     }
 
-    public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(ServiceRequest request,
+    public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(
+        ServiceRequest request,
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
-        CancellationToken token)
+        CancellationToken token
+    )
     {
         if (_serviceMethods.TryGetValue(request.RcpServiceMethod, out GrpcMethodDelegate? method))
         {
-            Result<CipherPayload, NetworkFailure> result = await method(request.Payload, networkEvents, systemEvents,
-                token);
-            return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.SingleCall(Task.FromResult(result)));
+            Result<CipherPayload, NetworkFailure> result = await method(
+                request.Payload,
+                networkEvents,
+                systemEvents,
+                token
+            );
+            return Result<RpcFlow, NetworkFailure>.Ok(
+                new RpcFlow.SingleCall(Task.FromResult(result))
+            );
         }
 
         return Result<RpcFlow, NetworkFailure>.Err(
-            NetworkFailure.InvalidRequestType("Unknown service type"));
+            NetworkFailure.InvalidRequestType("Unknown service type")
+        );
     }
 
     private static async Task<Result<CipherPayload, NetworkFailure>> ExecuteGrpcCallAsync(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
-        Func<AsyncUnaryCall<CipherPayload>> grpcCallFactory)
+        Func<AsyncUnaryCall<CipherPayload>> grpcCallFactory
+    )
     {
         try
         {
-            AsyncRetryPolicy<CipherPayload> policy =
-                RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
-            
-            CipherPayload? response = await policy.ExecuteAsync(async () =>
-            {
-                //CallOptions callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20));
-                
-                AsyncUnaryCall<CipherPayload> call = grpcCallFactory(); 
-                return await call.ResponseAsync;
-            });
+            // AsyncRetryPolicy<CipherPayload> policy =
+            //     RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
+            //
+            // CipherPayload? response = await policy.ExecuteAsync(async () =>
+            // {
+            //     //CallOptions callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20));
+            //
+            //     AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
+            //     return await call.ResponseAsync;
+            // });
 
-            networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected));
+            AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
+            CipherPayload response = await call.ResponseAsync;
+
+            networkEvents.InitiateChangeState(
+                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
+            );
 
             return Result<CipherPayload, NetworkFailure>.Ok(response);
         }
@@ -147,7 +230,8 @@ public sealed class UnaryRpcServices
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
 
             return Result<CipherPayload, NetworkFailure>.Err(
-                NetworkFailure.DataCenterShutdown(exc.Message));
+                NetworkFailure.DataCenterShutdown(exc.Message)
+            );
         }
     }
 }
