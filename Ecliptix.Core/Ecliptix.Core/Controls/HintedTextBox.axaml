@@ -12,6 +12,10 @@
             <Setter Property="Opacity" Value="1" />
         </Style>
         
+        <Style Selector="TextBox#MainTextBox">
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
+        </Style>
+        
         <Style Selector="TextBox#MainTextBox ScrollBar:vertical">
             <Setter Property="Width" Value="0" />
             <Setter Property="Background" Value="Transparent" />
@@ -102,7 +106,8 @@
                                 MinHeight="32"
                                 MinWidth="32"
                                 TextWrapping="{Binding TextWrapping, ElementName=control}"
-                                MaxLength="{Binding MaxLength, ElementName=control}" />
+                                MaxLength="{Binding MaxLength, ElementName=control}" 
+                                />
                         </Grid>
                     </Grid>
 

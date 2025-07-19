@@ -28,8 +28,8 @@ public static class ResilienceRpcExtensions
                     return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
                 }
             )
-            .AddInterceptor<ResilienceInterceptor>()
-            .AddInterceptor<DeadlineInterceptor>()
+            //.AddInterceptor<ResilienceInterceptor>()
+            //.AddInterceptor<DeadlineInterceptor>()
             .AddInterceptor<RequestMetaDataInterceptor>();
 
         services
@@ -41,23 +41,22 @@ public static class ResilienceRpcExtensions
                     return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
                 }
             )
-            .AddInterceptor<DeadlineInterceptor>()
-            .AddInterceptor<RequestMetaDataInterceptor>()
-            .AddInterceptor<ResilienceInterceptor>();
+            //.AddInterceptor<ResilienceInterceptor>()
+            //.AddInterceptor<DeadlineInterceptor>()
+            .AddInterceptor<RequestMetaDataInterceptor>();
 
         services
             .AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(
                 configureClientOptions
             )
-            .AddPolicyHandler(
-                (sp, _) =>
+            .AddPolicyHandler((sp, _) =>
                 {
                     INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
                     return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
                 }
             )
-            .AddInterceptor<DeadlineInterceptor>()
-            .AddInterceptor<RequestMetaDataInterceptor>()
-            .AddInterceptor<ResilienceInterceptor>();
+            //.AddInterceptor<ResilienceInterceptor>()
+            //.AddInterceptor<DeadlineInterceptor>()
+            .AddInterceptor<RequestMetaDataInterceptor>();
     }
 }

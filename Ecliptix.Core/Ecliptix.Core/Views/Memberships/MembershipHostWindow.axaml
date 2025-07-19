@@ -133,7 +133,7 @@
                 BorderBrush="Transparent"
                 BorderThickness="0"
                 Command="{Binding Router.NavigateBack}"
-                Margin="30 40 0 0"
+                Margin="30 80 0 0"
                 ZIndex="1"
                 Classes="back-button"
                 Opacity = "{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">

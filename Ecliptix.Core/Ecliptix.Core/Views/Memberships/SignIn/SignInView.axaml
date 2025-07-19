@@ -25,7 +25,7 @@
                 <TextBlock Text="Welcome back! Your personalized experience awaits."
                            TextWrapping="Wrap"
                            FontSize="20"
-                           FontWeight="SemiBold"
+                           FontWeight="Medium"
                            LetterSpacing="-0.5"
                            Foreground="{DynamicResource TextForegroundColor}" />
             </StackPanel>
@@ -38,8 +38,6 @@
                 TextForeground="{DynamicResource TextBoxForegroundColor}"
                 HintForeground="{DynamicResource TipsColor}"
                 IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
-                ShowCharacterCounter="True"
-                MaxLength="15"
                 ValidationType="PhoneNumber"
                 MainBorderBrush="Transparent"
                 Text="{Binding PhoneNumber}"
