@@ -131,19 +131,14 @@
                              Width="19"
                              VerticalAlignment="Center"
                              HorizontalAlignment="Center"
-                             Margin="0,0,5,0"
                              Css=".Purple { fill: #9966cc; }">
-                            <!-- <Svg.Styles> -->
-                            <!--     <Style Selector="Path"> -->
-                            <!--         <Setter Property="Fill" Value="#6a5acd" /> -->
-                            <!--     </Style> -->
-                            <!-- </Svg.Styles> -->
                         </Svg>
 
                         <TextBlock x:Name="HintTextBlock"
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
                                    FontSize="13"
+                                   VerticalAlignment="Bottom"
                                    IsHitTestVisible="False"
                                    
                                    />
