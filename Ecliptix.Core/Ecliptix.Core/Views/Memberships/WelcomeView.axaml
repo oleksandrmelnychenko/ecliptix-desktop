@@ -8,25 +8,54 @@
              x:Class="Ecliptix.Core.Views.Memberships.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
+    <UserControl.Styles>
+        <Style Selector="Button.signin-button">
+            <Setter Property="Height" Value="45" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.5" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.signin-button:pointerover">
+            <Setter Property="Background" Value="#E4E3E3" />
+        </Style>
+        <Style Selector="Button.signin-button:pressed">
+            <Setter Property="Background" Value="#D1D0D0" />
+        </Style>
+
+        <Style Selector="Border.animated-background">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.5" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
     <Border MaxWidth="366"
             Padding="24 10 24 24"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Top"
-    >
+            VerticalAlignment="Top">
 
         <Grid RowDefinitions="Auto, *, Auto" RowSpacing="15">
 
             <StackPanel Grid.Row="0" Spacing="15" Margin="0,0,0,5">
-                    <Border Height="40">
-                        <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png"/>
-                    </Border>  
-                    <Border Height="20">
-                        <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png"/>
-                    </Border>
+                <Border Height="40">
+                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png" />
+                </Border>
+                <Border Height="20">
+                    <Image
+                        Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png" />
+                </Border>
             </StackPanel>
 
             <Grid Grid.Row="1" Width="250" Height="250">
-                
+
                 <Border Width="250"
                         Height="250"
                         CornerRadius="125"
@@ -40,25 +69,21 @@
                         Height="240"
                         CornerRadius="120"
                         ClipToBounds="True">
-                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png" 
+                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
                            Stretch="UniformToFill" />
                 </Border>
             </Grid>
-            
-            <Grid Grid.Row="2" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10" Margin="0 35 0 0">
+
+            <Grid Grid.Row="2" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10"
+                  Margin="0 35 0 0">
                 <Button Grid.Column="0" Content="Sign in"
                         Command="{Binding NavToSignInCommand}"
                         HorizontalAlignment="Stretch"
-                        Height="45"
-                        Background="{DynamicResource LightButtonColor}"
                         Foreground="{DynamicResource LightButtonForegroundColor}"
-                        FontFeatures="Underline"
-                        FontWeight="SemiBold"
+                        FontWeight="Regular"
                         FontSize="14"
-                        CornerRadius="15" 
-                        BorderThickness="0"
-                        />
-                
+                        Classes="signin-button" />
+
                 <Button Grid.Column="1" Content="Create account"
                         HorizontalAlignment="Stretch"
                         Height="45"
@@ -67,10 +92,10 @@
                         Foreground="{DynamicResource DarkButtonForegroundColor}"
                         FontWeight="Regular"
                         FontSize="14"
-                        CornerRadius="15" 
-                        BorderThickness="0"/>
+                        CornerRadius="15"
+                        BorderThickness="0" />
             </Grid>
-           
+
         </Grid>
     </Border>
 </UserControl>

@@ -90,7 +90,6 @@
     <Application.Styles>
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
-        <StyleInclude Source="/Styles/Fonts.axaml" />
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
         </Style>

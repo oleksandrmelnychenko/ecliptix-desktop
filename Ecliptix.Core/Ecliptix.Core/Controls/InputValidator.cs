@@ -1,15 +1,24 @@
-using System.Text.RegularExpressions;
+/*using System.Text.RegularExpressions;
 
 namespace Ecliptix.Core.Controls;
 
-public static class InputValidator
+public static partial class InputValidator
 {
+    private static readonly Regex PhonePattern = new(@"^\+\d{7,15}$", RegexOptions.Compiled);
+
+    private static readonly Regex SecureKeyPattern = SecureKeyRegex();
+
+    private static readonly Regex OnlyDigitsAfterPlusPattern = new(@"^\+\d+$", RegexOptions.Compiled);
+    private static readonly Regex PrintableAsciiPattern = new(@"^[\x20-\x7E]+$", RegexOptions.Compiled);
+    private static readonly Regex UppercasePattern = new(@"[A-Z]", RegexOptions.Compiled);
+    private static readonly Regex SpecialCharPattern = new(@"[!@#$%^&*(),.?""{}|<>/]", RegexOptions.Compiled);
+
     public static string? Validate(string input, ValidationType type)
     {
         return type switch
         {
             ValidationType.PhoneNumber => ValidatePhoneNumber(input),
-            ValidationType.Password => ValidatePassword(input),
+            ValidationType.SecureKey => ValidatePassword(input),
 
             _ => null
         };
@@ -18,10 +27,10 @@ public static class InputValidator
     private static string? ValidatePhoneNumber(string input)
     {
         if (string.IsNullOrWhiteSpace(input))
-            return "Empty number";
+            return "Empty";
 
         if (!input.StartsWith("+"))
-            return "Must start with +";
+            return "Start with +";
 
         if (!Regex.IsMatch(input, @"^\+\d+$"))
             return "Digits only";
@@ -52,8 +61,11 @@ public static class InputValidator
             return "Need uppercase";
 
         if (!Regex.IsMatch(input, @"[!@#$%^&*(),.?""{}|<>/]"))
-            return "Need special char";*/
+            return "Need special char";#1#
 
         return null;
     }
-}
+
+    [GeneratedRegex(@"^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?""{}|<>/])[\x20-\x7E]{8,}$", RegexOptions.Compiled)]
+    private static partial Regex SecureKeyRegex();
+}*/

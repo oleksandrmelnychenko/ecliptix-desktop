@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Ecliptix.Utilities.Membership;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls;
@@ -281,7 +282,7 @@ public partial class HintedTextBox : UserControl
     private void Initialize()
     {
         RemainingCharacters = MaxLength;
-        // Set initial state
+        
         ErrorText = string.Empty;
         HasError = false;
         EllipseOpacity = 0.0;
@@ -293,10 +294,8 @@ public partial class HintedTextBox : UserControl
         _counterPanel = this.FindControl<Panel>("CounterPanel");
 
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null)
-            // Log or handle missing controls (for debugging purposes)
             return;
 
-        // Define event handlers for subscription and unsubscription
         void OnTextChanged(object? sender, EventArgs e)
         {
             if (!_isDirty)
@@ -317,13 +316,11 @@ public partial class HintedTextBox : UserControl
                 }
             }
 
-            // Update the Text property without raising the event again
             SetValue(TextProperty, input);
 
             RemainingCharacters = MaxLength - input.Length;
 
-            // Validate input as before
-            string? validationMessage = InputValidator.Validate(input, ValidationType);
+            string? validationMessage = MembershipValidation.Validate(ValidationType,input);
             if (!string.IsNullOrEmpty(validationMessage))
             {
                 ErrorText = validationMessage;
@@ -337,7 +334,6 @@ public partial class HintedTextBox : UserControl
 
             UpdateBorderState();
 
-            // Raise the event only once
             TextChanged?.Invoke(this, new TextChangedEventArgs(TextBox.TextChangedEvent));
         }
 
@@ -396,7 +392,6 @@ public partial class HintedTextBox : UserControl
         {
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#6a5acd"));
             _focusBorder.Opacity = 0;
-            // Use the new custom property for the main border brush.
             _mainBorder.BorderBrush = MainBorderBrush;
         }
     }

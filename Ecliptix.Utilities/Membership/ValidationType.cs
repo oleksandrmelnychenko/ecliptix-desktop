@@ -1,8 +1,8 @@
-namespace Ecliptix.Core.Controls;
+namespace Ecliptix.Utilities.Membership;
 
 public enum ValidationType
 {
     None,
     PhoneNumber,
-    Password
+    SecureKey
 }

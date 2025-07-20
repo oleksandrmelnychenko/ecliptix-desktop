@@ -44,8 +44,6 @@
             <Setter Property="Background" Value="#D1D0D0" /> 
         </Style>
         
-        
-        
         <Style Selector="Border.animated-background">
             <Setter Property="Transitions">
                 <Transitions>
@@ -167,8 +165,6 @@
                     DisableMinimizeButton="False"
                     DisableCloseButton="False" 
                     />
-
-               
                 
                 <Svg Grid.Row="1"
                      Path="../../../Assets/logo.svg"
@@ -176,19 +172,16 @@
                      Width="110"
                      Height="110"
                      HorizontalAlignment="Center" />
-
-                
                 
                 <reactiveUi:RoutedViewHost Grid.Row="2"
                                            Router="{Binding Router}"
                                            Margin="0,10,0,0"
                                            Background="Transparent">
+                    
                     <reactiveUi:RoutedViewHost.PageTransition>
-                        <CompositePageTransition>
-                            <PageSlide Duration="0:0:0.4"/>
-                        </CompositePageTransition>
-                        
+                        <memberships:SharedAxisTransition />
                     </reactiveUi:RoutedViewHost.PageTransition>
+                    
                     <reactiveUi:RoutedViewHost.DefaultContent>
                         <TextBlock Text="Loading View..." HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </reactiveUi:RoutedViewHost.DefaultContent>

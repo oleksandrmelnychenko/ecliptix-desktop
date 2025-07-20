@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
-
+    
     <Border MaxWidth="366"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
@@ -16,8 +16,8 @@
         <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
             <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
                 <TextBlock Text="Sign in"
-                           FontSize="17"
-                           FontWeight="Medium"
+                           FontSize="14"
+                           FontWeight="Light"
                            Foreground="{DynamicResource TextForegroundColor}" 
                            LetterSpacing="-0.5"
                            LineHeight="25"
@@ -25,8 +25,8 @@
                 <TextBlock Text="Welcome back! Your personalized experience awaits."
                            TextWrapping="Wrap"
                            FontSize="20"
-                           FontWeight="Medium"
-                           LetterSpacing="-0.5"
+                           LineHeight="28"
+                           FontWeight="Light"
                            Foreground="{DynamicResource TextForegroundColor}" />
             </StackPanel>
 
@@ -45,7 +45,7 @@
                 CornerRadius="5"
                 FontSize="18"
                 Background="{DynamicResource TextBoxBackgroundColor}"
-                FontWeight="Medium"
+                FontWeight="Light"
                 />
             
             <controls:HintedTextBox
@@ -53,27 +53,28 @@
                 x:Name="PasswordTextBox"
                 Background="{DynamicResource TextBoxBackgroundColor}"
                 Watermark="Secure Key"
-                Hint="Secure key to your account"
+                Hint="Stored only on your device"
                 CornerRadius="5 "
                 TextForeground="{DynamicResource TextBoxForegroundColor}"
                 HintForeground="{DynamicResource TipsColor}"
                 IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
                 MainBorderBrush="Transparent"
-                ValidationType="Password"
+                ValidationType="SecureKey"
                 PasswordChar="*"
                 FontSize="18"
                 Height="90"
-                FontWeight="Medium"/>
+                FontWeight="Light"/>
             
             
             <Grid Grid.Row="3" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
-                <Button Grid.Column="0" Content="Account recovery"
+                <Button Grid.Column="0" 
+                        Content="Account recovery"
                         Command="{Binding SignInCommand}"
                         HorizontalAlignment="Stretch"
                         Height="45"
                         Background="{DynamicResource LightButtonColor}"
                         Foreground="{DynamicResource LightButtonForegroundColor}"
-                        FontWeight="SemiBold"
+                        FontWeight="Regular"
                         FontSize="14"
                         CornerRadius="15" 
                         BorderThickness="0"
