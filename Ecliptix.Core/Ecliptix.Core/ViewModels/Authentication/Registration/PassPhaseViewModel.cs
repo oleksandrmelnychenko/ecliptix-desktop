@@ -7,7 +7,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class PassPhaseViewModel: ViewModelBase, IActivatableViewModel
+public class PassPhaseViewModel: ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     private readonly ILocalizationService _localizationService;
     private string _passPhase = string.Empty;
@@ -27,10 +27,12 @@ public class PassPhaseViewModel: ViewModelBase, IActivatableViewModel
     public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
     public ViewModelActivator Activator { get; } = new();
 
-    public PassPhaseViewModel(ILocalizationService localizationService)
+    public PassPhaseViewModel(
+        ILocalizationService localizationService,
+        IScreen hostScreen)
     {
         _localizationService = localizationService;
-
+        HostScreen = hostScreen;
         SubmitCommand = ReactiveCommand.Create(() =>
         {
             Console.WriteLine($"PassPhase submitted: {PassPhase}");
@@ -53,4 +55,7 @@ public class PassPhaseViewModel: ViewModelBase, IActivatableViewModel
                 .DisposeWith(disposables);
         });
     }
+
+    public string? UrlPathSegment { get; } = "/pass-phase";
+    public IScreen HostScreen { get; }
 }

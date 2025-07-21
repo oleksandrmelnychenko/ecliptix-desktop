@@ -87,6 +87,10 @@
       <DependentUpon>VerificationCodeEntryView.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Memberships\SignUp\PasswordConfirmationView.axaml.cs">
+      <DependentUpon>PasswordConfirmationView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />

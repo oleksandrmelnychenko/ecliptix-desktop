@@ -58,6 +58,7 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
             MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService, this),
             MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider, localizationService, this),
             MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider, localizationService, this),
+            MembershipViewType.PassPhase => new PassPhaseViewModel(localizationService, this),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
     }

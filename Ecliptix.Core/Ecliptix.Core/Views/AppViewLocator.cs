@@ -21,6 +21,7 @@ public class AppViewLocator : IViewLocator
         PhoneVerificationViewModel context => new PhoneVerificationView { DataContext = context },
         VerificationCodeEntryViewModel context => new VerificationCodeEntryView { DataContext = context },
         PasswordConfirmationViewModel context => new PasswordConfirmationView { DataContext = context },
+        PassPhaseViewModel context => new PassPhaseView { DataContext = context },
         
         _ => throw new ArgumentOutOfRangeException(nameof(viewModel))
     };

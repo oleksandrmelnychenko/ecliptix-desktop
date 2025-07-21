@@ -10,7 +10,9 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
@@ -69,8 +71,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
 
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
+    
     private readonly NetworkProvider _networkProvider;
-    private readonly ISecureStorageProvider _secureStorageProvider;
     private readonly ILocalizationService _localizationService;
     public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
     public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
@@ -95,13 +98,18 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         )
     {
         _networkProvider = networkProvider;
-        
         _localizationService = localizationService;
+        HostScreen = hostScreen;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
             x => x.IsBusy,
             (cs, busy) => cs && !busy);
 
+        NavPassConfToPassPhase = ReactiveCommand.Create(() =>
+        {
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+        });
+        
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
 
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
@@ -134,6 +142,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                     IsBusy = false;
                 })
                 .DisposeWith(disposables);
+            
+            
         });
     }
 
