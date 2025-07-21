@@ -7,6 +7,8 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
+using Ecliptix.Core.Views.Authentication.Registration;
+using Ecliptix.Core.Views.Memberships.SignUp;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
@@ -54,6 +56,8 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
             MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
             MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService, this),
+            MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider, localizationService, this),
+            MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider, localizationService, this),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
     }

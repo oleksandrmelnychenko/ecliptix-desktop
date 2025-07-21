@@ -10,6 +10,8 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels.Authentication;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -19,14 +21,13 @@ using ReactiveUI;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 
-namespace Ecliptix.Core.ViewModels.Authentication.Registration;
+namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel
+public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly IDisposable _mobileSubscription;
     private readonly NetworkProvider _networkProvider;
-    private readonly ISecureStorageProvider _secureStorageProvider;
     private string _errorMessage = string.Empty;
     private bool _isSent;
     private string _remainingTime = "01:00";
@@ -47,15 +48,22 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
-    public VerificationCodeEntryViewModel(NetworkProvider networkProvider,
-        ISecureStorageProvider secureStorageProvider, ILocalizationService localizationService)
+    public VerificationCodeEntryViewModel(
+        NetworkProvider networkProvider,
+        ILocalizationService localizationService,
+        IScreen hostScreen)
     {
         _localizationService = localizationService;
         _networkProvider =
             networkProvider ?? throw new ArgumentNullException(nameof(networkProvider));
-        _secureStorageProvider = secureStorageProvider;
         _verificationCode = string.Empty;
+        HostScreen = hostScreen;
 
+        NavToPasswordConfirmation = ReactiveCommand.Create(() =>
+        {
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmPassword);
+        });
+        
         // "VERIFY" button enabled only when code is 6 digits and timer is not zero
         IObservable<bool> canVerify = this.WhenAnyValue(
             x => x.VerificationCode,
@@ -123,6 +131,9 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
+    
+    public ReactiveCommand<Unit, Unit> NavToPasswordConfirmation { get; }
+        
     public ViewModelActivator Activator { get; } = new();
 
     private ValidatePhoneNumberResponse _validatePhoneNumberResponse;
@@ -291,4 +302,8 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         Console.WriteLine(t);
         return t;
     }
+
+    public string? UrlPathSegment { get; } = "/verification-code-entry";
+    
+    public IScreen HostScreen { get; }
 }

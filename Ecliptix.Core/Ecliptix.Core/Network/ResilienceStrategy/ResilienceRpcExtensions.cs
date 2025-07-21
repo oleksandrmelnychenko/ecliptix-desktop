@@ -45,7 +45,7 @@ public static class GrpcClientServiceExtensions
                 INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
                 return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
             })
-            .AddInterceptor<ResilienceInterceptor>()
+            //  .AddInterceptor<ResilienceInterceptor>()
             .AddInterceptor<DeadlineInterceptor>()
             .AddInterceptor<RequestMetaDataInterceptor>();
     }

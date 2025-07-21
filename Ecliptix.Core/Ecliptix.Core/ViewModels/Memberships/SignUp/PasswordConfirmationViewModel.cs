@@ -3,14 +3,14 @@ using System.Buffers;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
-using ReactiveUI;
 using System.Text;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
@@ -21,14 +21,12 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
-using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
-using ECPoint = Org.BouncyCastle.Math.EC.ECPoint;
-using ShieldUnit = Ecliptix.Utilities.Unit;
+using ReactiveUI;
 
-namespace Ecliptix.Core.ViewModels.Authentication.Registration;
+namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewModel
+public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
 
@@ -90,11 +88,14 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     private string VerificationSessionId { get; set; }
 
-    public PasswordConfirmationViewModel(NetworkProvider networkProvider, ISecureStorageProvider secureStorageProvider,
-        ILocalizationService localizationService)
+    public PasswordConfirmationViewModel(
+        NetworkProvider networkProvider, 
+        ILocalizationService localizationService,
+        IScreen hostScreen
+        )
     {
         _networkProvider = networkProvider;
-        _secureStorageProvider = secureStorageProvider;
+        
         _localizationService = localizationService;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
@@ -211,7 +212,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             newHandle = allocateResult.Unwrap();
 
-            Result<ShieldUnit, EcliptixProtocolFailure> writeResult =
+            Result<Unit, EcliptixProtocolFailure> writeResult =
                 newHandle.Write(rentedBuffer.AsSpan(0, bytesWritten)).MapSodiumFailure();
             if (writeResult.IsErr)
             {
@@ -269,7 +270,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle!.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
 
-            Result<ShieldUnit, EcliptixProtocolFailure> readResult =
+            Result<Unit, EcliptixProtocolFailure> readResult =
                 _securePasswordHandle.Read(passwordSpan).MapSodiumFailure();
             if (readResult.IsErr)
             {
@@ -282,7 +283,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             _passwordManager ??= PasswordManager.Create().Unwrap();
 
-            Result<ShieldUnit, EcliptixProtocolFailure> complianceResult =
+            Result<Unit, EcliptixProtocolFailure> complianceResult =
                 _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
 
             passwordSpan.Clear();
@@ -372,12 +373,12 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedBytes1 = ArrayPool<byte>.Shared.Rent(handle1.Length);
             Span<byte> span1 = rentedBytes1.AsSpan(0, handle1.Length);
-            Result<ShieldUnit, EcliptixProtocolFailure> read1Result = handle1.Read(span1).MapSodiumFailure();
+            Result<Unit, EcliptixProtocolFailure> read1Result = handle1.Read(span1).MapSodiumFailure();
             if (read1Result.IsErr) return Result<bool, EcliptixProtocolFailure>.Err(read1Result.UnwrapErr());
 
             rentedBytes2 = ArrayPool<byte>.Shared.Rent(handle2.Length);
             Span<byte> span2 = rentedBytes2.AsSpan(0, handle2.Length);
-            Result<ShieldUnit, EcliptixProtocolFailure> read2Result = handle2.Read(span2).MapSodiumFailure();
+            Result<Unit, EcliptixProtocolFailure> read2Result = handle2.Read(span2).MapSodiumFailure();
             if (read2Result.IsErr) return Result<bool, EcliptixProtocolFailure>.Err(read2Result.UnwrapErr());
 
             bool areEqual = CryptographicOperations.FixedTimeEquals(span1, span2);
@@ -421,7 +422,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         {
             rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(_securePasswordHandle.Length);
             Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, _securePasswordHandle.Length);
-            Result<ShieldUnit, EcliptixProtocolFailure> readResult =
+            Result<Unit, EcliptixProtocolFailure> readResult =
                 _securePasswordHandle.Read(passwordSpan).MapSodiumFailure();
             if (readResult.IsErr)
             {
@@ -492,11 +493,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                                 //SAFE the STATE with a KEY
                                 
                                 return Task.FromResult(
-                                    Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+                                    Result<Unit, NetworkFailure>.Ok(Unit.Value));
                             });
                     }
 
-                    return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
+                    return Result<Unit, NetworkFailure>.Ok(Unit.Value);
                 },
                 CancellationToken.None
             );
@@ -535,4 +536,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
         base.Dispose(disposing);
     }
+
+    public string? UrlPathSegment { get; } = "/password-confirmation";
+    public IScreen HostScreen { get; }
 }

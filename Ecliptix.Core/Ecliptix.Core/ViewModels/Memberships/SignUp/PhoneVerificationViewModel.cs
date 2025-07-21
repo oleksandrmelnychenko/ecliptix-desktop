@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -35,7 +36,8 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
     public string InvalidFormatError =>
         _localizationService["Authentication.Registration.phoneVerification.error.invalidFormat"];
 
-    public PhoneVerificationViewModel(NetworkProvider networkProvider,
+    public PhoneVerificationViewModel(
+        NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen)
     {
@@ -47,6 +49,12 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
             .Select(ValidateMobileNumber)
             .StartWith(ValidateMobileNumber(PhoneNumber));
 
+        NavToVerifyOtp = ReactiveCommand.Create(() =>
+        {
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.VerificationCodeEntry);
+        });
+        
+        
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             ErrorMessage = string.Empty;
@@ -79,6 +87,8 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
                 .DisposeWith(disposables);
         });
     }
+
+    public ReactiveCommand<Unit, Unit> NavToVerifyOtp { get; set; }
 
 
     public string PhoneNumber

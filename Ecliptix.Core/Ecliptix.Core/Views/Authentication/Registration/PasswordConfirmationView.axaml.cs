@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
+using Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 namespace Ecliptix.Core.Views.Authentication.Registration;
 
@@ -12,10 +13,9 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
 {
     private bool _handlersAttached;
 
-    public PasswordConfirmationView(PasswordConfirmationViewModel viewModel)
+    public PasswordConfirmationView()
     {
         InitializeComponent();
-        DataContext = viewModel;
     }
 
     private void InitializeComponent()

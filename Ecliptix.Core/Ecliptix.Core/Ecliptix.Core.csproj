@@ -83,6 +83,10 @@
       <DependentUpon>TitleBar.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\Memberships\SignUp\VerificationCodeEntryView.axaml.cs">
+      <DependentUpon>VerificationCodeEntryView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />

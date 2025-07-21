@@ -8,10 +8,7 @@
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
     
-    <Border MaxWidth="366"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Top"
-            Padding="24 0 24 24">
+ 
 
         <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
             <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
@@ -95,5 +92,4 @@
             </Grid>
 
         </Grid>
-    </Border>
 </UserControl>

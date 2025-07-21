@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:signUp="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignUp"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="signUp:VerificationCodeEntryViewModel"
+             x:Class="Ecliptix.Core.Views.Memberships.SignUp.VerificationCodeEntryView">
+    
+    
+   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+       <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
+           <TextBlock Text="Verify you number"
+                      FontSize="14"
+                      FontWeight="Light"
+                      Foreground="{DynamicResource TextForegroundColor}" 
+                      LetterSpacing="-0.5"
+                      LineHeight="25"
+           />
+           <TextBlock Text="We have sent a code to your phone to verify your identity."
+                      TextWrapping="Wrap"
+                      FontSize="20"
+                      LineHeight="28"
+                      FontWeight="Light"
+                      Foreground="{DynamicResource TextForegroundColor}" />
+       </StackPanel>
+       
+        <controls:HintedTextBox
+            Grid.Row="1"
+            x:Name="VerificationCodeTextBox"
+            Watermark="######"
+            Hint="Enter the verification code"
+            TextForeground="{DynamicResource TextBoxForegroundColor}"
+            HintForeground="{DynamicResource TipsColor}"
+            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
+            IconErrorSource="{DynamicResource LampIconDrawingError}"             ValidationType="PhoneNumber"
+            MainBorderBrush="Transparent"
+            Text="{Binding VerificationCode}"
+            Height="90"
+            CornerRadius="5"
+            FontSize="18"
+            Background="{DynamicResource TextBoxBackgroundColor}"
+            FontWeight="Light"
+        />
+        
+        <Grid RowDefinitions="Auto,Auto"
+              ColumnDefinitions="*, Auto"
+              Grid.Row="2 ">
+            
+            <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
+            <TextBlock x:Name="ExpirationTextBlock" Text="{Binding Expiration}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
+            <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
+        </Grid>
+
+        <Button Grid.Row="3" 
+                Content="Verify" 
+                Command="{Binding SendVerificationCodeCommand}"
+                IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" 
+                Background="{DynamicResource DarkButtonColor}"
+                Foreground="{DynamicResource DarkButtonForegroundColor}"
+                FontWeight="Regular"
+                FontSize="14"
+                CornerRadius="15" 
+                BorderThickness="0"
+                HorizontalAlignment="Stretch"
+                Height="45"
+                />
+
+        <Button Grid.Row="4" 
+                Content="Resend Code"
+                IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
+                Command="{Binding ResendSendVerificationCodeCommand}" 
+                Background="{DynamicResource LightButtonColor}"
+                Foreground="{DynamicResource LightButtonForegroundColor}"
+                FontWeight="Regular"
+                FontSize="14"
+                CornerRadius="15" 
+                BorderThickness="0"
+                HorizontalAlignment="Stretch"
+                Height="45"/>
+        
+        <Button Grid.Row="5" Command="{Binding NavToPasswordConfirmation}" Content="Navigate next test"/>
+    </Grid>
+   
+</UserControl>

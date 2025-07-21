@@ -37,10 +37,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Border MaxWidth="366"
-            Padding="24 10 24 24"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Top">
+ 
 
         <Grid RowDefinitions="Auto, *, Auto" RowSpacing="15">
 
@@ -97,5 +94,4 @@
             </Grid>
 
         </Grid>
-    </Border>
 </UserControl>

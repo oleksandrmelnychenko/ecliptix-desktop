@@ -8,10 +8,9 @@ namespace Ecliptix.Core.Views.Authentication.Registration;
 
 public partial class PassPhaseView : ReactiveUserControl<PassPhaseViewModel>
 {
-    public PassPhaseView(PassPhaseViewModel viewModel)
+    public PassPhaseView()
     {
         InitializeComponent();
-        DataContext = viewModel;
     }
 
     private void InitializeComponent()
