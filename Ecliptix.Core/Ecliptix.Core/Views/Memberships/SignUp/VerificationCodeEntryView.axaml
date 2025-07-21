@@ -27,23 +27,33 @@
                       Foreground="{DynamicResource TextForegroundColor}" />
        </StackPanel>
        
-        <controls:HintedTextBox
-            Grid.Row="1"
-            x:Name="VerificationCodeTextBox"
-            Watermark="######"
-            Hint="Enter the verification code"
-            TextForeground="{DynamicResource TextBoxForegroundColor}"
-            HintForeground="{DynamicResource TipsColor}"
-            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
-            IconErrorSource="{DynamicResource LampIconDrawingError}"             ValidationType="PhoneNumber"
-            MainBorderBrush="Transparent"
-            Text="{Binding VerificationCode}"
-            Height="90"
-            CornerRadius="5"
-            FontSize="18"
-            Background="{DynamicResource TextBoxBackgroundColor}"
-            FontWeight="Light"
-        />
+       <controls:SegmentedTextBox Grid.Row="1"
+                                  SegmentCount="5" 
+                                  Height="40" 
+                                  FontSize="14"
+                                  HorizontalAlignment="Center"
+                                  SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
+                                  ActiveSegmentBorderColor="{DynamicResource TipsColor}">
+           
+       </controls:SegmentedTextBox>
+       
+       <!-- <controls:HintedTextBox -->
+       <!--     Grid.Row="1" -->
+       <!--     x:Name="VerificationCodeTextBox" -->
+       <!--     Watermark="######" -->
+       <!--     Hint="Enter the verification code" -->
+       <!--     TextForeground="{DynamicResource TextBoxForegroundColor}" -->
+       <!--     HintForeground="{DynamicResource TipsColor}" -->
+       <!--     IconRegularSource="{DynamicResource LampIconDrawingRegular}" -->
+       <!--     IconErrorSource="{DynamicResource LampIconDrawingError}"             ValidationType="PhoneNumber" -->
+       <!--     MainBorderBrush="Transparent" -->
+       <!--     Text="{Binding VerificationCode}" -->
+       <!--     Height="90" -->
+       <!--     CornerRadius="5" -->
+       <!--     FontSize="18" -->
+       <!--     Background="{DynamicResource TextBoxBackgroundColor}" -->
+       <!--     FontWeight="Light" -->
+       <!-- /> -->
         
         <Grid RowDefinitions="Auto,Auto"
               ColumnDefinitions="*, Auto"
