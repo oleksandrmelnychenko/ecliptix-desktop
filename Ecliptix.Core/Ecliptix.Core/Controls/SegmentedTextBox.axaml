@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.SegmentedTextBox"
+             IsPointerInteractionEnabled="False"
+             >
+    
+     <UserControl.Styles>
+        <!-- Custom TextBox Template to override all default styling -->
+        <Style Selector="TextBox.segment">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="MaxLength" Value="1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="4,0,4,0"/>
+            <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=controls:SegmentedTextBox}}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <TextPresenter x:Name="PART_TextPresenter"
+                                       Text="{TemplateBinding Text}"
+                                       CaretIndex="{TemplateBinding CaretIndex}"
+                                       SelectionStart="{TemplateBinding SelectionStart}"
+                                       SelectionEnd="{TemplateBinding SelectionEnd}"
+                                       TextAlignment="{TemplateBinding TextAlignment}"
+                                       TextWrapping="{TemplateBinding TextWrapping}"
+                                       PasswordChar="{TemplateBinding PasswordChar}"
+                                       RevealPassword="{TemplateBinding RevealPassword}"
+                                       SelectionBrush="{TemplateBinding SelectionBrush}"
+                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                       CaretBrush="{TemplateBinding CaretBrush}"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <!-- Active TextBox Style -->
+        <Style Selector="TextBox.segment.active">
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=controls:SegmentedTextBox}}"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <Grid >
+        <StackPanel x:Name="SegmentsPanel"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    
+                    />
+        <Border x:Name="OverlayRectangle"
+                   Background="Transparent"
+                   IsHitTestVisible="True"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   ZIndex="1"
+                
+                   PointerPressed="OverlayRectangle_PointerPressed"
+                   Tapped="OverlayRectangle_Tapped"/>
+    </Grid>
+</UserControl>
