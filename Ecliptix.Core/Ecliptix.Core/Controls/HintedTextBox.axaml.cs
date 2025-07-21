@@ -98,17 +98,17 @@ public partial class HintedTextBox : UserControl
         bool
     >(nameof(IsNumericOnly));
 
-    public static readonly StyledProperty<IBrush> BackgroundProperty = AvaloniaProperty.Register<
+    public new static readonly StyledProperty<IBrush> BackgroundProperty = AvaloniaProperty.Register<
         HintedTextBox,
         IBrush
     >(nameof(Background), new SolidColorBrush(Colors.White));
 
-    public static new readonly StyledProperty<double> FontSizeProperty = AvaloniaProperty.Register<
+    public new static readonly StyledProperty<double> FontSizeProperty = AvaloniaProperty.Register<
         HintedTextBox,
         double
     >(nameof(FontSize), 14.0);
 
-    public static new readonly StyledProperty<FontWeight> FontWeightProperty =
+    public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
     public new FontWeight FontWeight
@@ -140,6 +140,7 @@ public partial class HintedTextBox : UserControl
     private Border? _focusBorder;
     private bool _isDirty;
     private Border? _mainBorder;
+    private Panel? _errorStackPanel;
 
     private TextBox? _mainTextBox;
 
@@ -287,7 +288,8 @@ public partial class HintedTextBox : UserControl
         HasError = false;
         EllipseOpacity = 0.0;
 
-        // Find controls
+ 
+        _errorStackPanel = this.FindControl<Panel>("ErrorStackPanel");
         _mainTextBox = this.FindControl<TextBox>("MainTextBox");
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
