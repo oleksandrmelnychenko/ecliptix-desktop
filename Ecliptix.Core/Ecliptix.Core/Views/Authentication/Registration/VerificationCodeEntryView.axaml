@@ -22,7 +22,8 @@
                                 Margin="0,5,0,5"
                                 TextForeground="#333333"
                                 HintForeground="#6a5acd"
-                                IconSource="/Assets/lamp.svg"
+                                IconRegularSource="{DynamicResource LampIconDrawingRegular}"
+                                IconErrorSource="{DynamicResource LampIconDrawingError}"
                                 MainBorderBrush="LightGray" />
 
         <Grid Grid.Row="2">

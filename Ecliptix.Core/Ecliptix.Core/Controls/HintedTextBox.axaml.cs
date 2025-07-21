@@ -52,10 +52,11 @@ public partial class HintedTextBox : UserControl
             new SolidColorBrush(Colors.Gray)
         );
 
-    public static readonly StyledProperty<string> IconSourceProperty = AvaloniaProperty.Register<
-        HintedTextBox,
-        string
-    >(nameof(IconSource), string.Empty);
+    public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty = 
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
+
+    public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty = 
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconErrorSource));
 
     public static readonly StyledProperty<string> ErrorTextProperty = AvaloniaProperty.Register<
         HintedTextBox,
@@ -111,6 +112,18 @@ public partial class HintedTextBox : UserControl
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
+    public DrawingImage? IconErrorSource
+    {
+        get => GetValue(IconErrorSourceProperty);
+        set => SetValue(IconErrorSourceProperty, value);
+    }
+    
+    public DrawingImage? IconRegularSource
+    {
+        get => GetValue(IconRegularSourceProperty);
+        set => SetValue(IconRegularSourceProperty, value);
+    }
+    
     public new FontWeight FontWeight
     {
         get => GetValue(FontWeightProperty);
@@ -221,13 +234,7 @@ public partial class HintedTextBox : UserControl
         get => GetValue(EllipseOpacityProperty);
         set => SetValue(EllipseOpacityProperty, value);
     }
-
-    public string IconSource
-    {
-        get => GetValue(IconSourceProperty);
-        set => SetValue(IconSourceProperty, value);
-    }
-
+    
     public IBrush TextForeground
     {
         get => GetValue(TextForegroundProperty);

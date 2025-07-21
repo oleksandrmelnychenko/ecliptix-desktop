@@ -84,6 +84,10 @@
                     <SolidColorBrush x:Key="BackButtonForegroundBrush" Color="{StaticResource BackButtonForegroundColor}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
+            
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="Assets/Icons/LampIcon.axaml"></ResourceInclude>
+            </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
     

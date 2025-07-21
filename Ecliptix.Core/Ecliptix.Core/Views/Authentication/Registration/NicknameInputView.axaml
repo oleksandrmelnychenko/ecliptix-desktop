@@ -23,7 +23,9 @@
             BorderBrush="#E0E0E0"
             TextForeground="#333333"
             HintForeground="#6a5acd"
-            IconSource="/Assets/lamp.svg" />
+            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
+            IconErrorSource="{DynamicResource LampIconDrawingError}"
+            />
 
         <Button
             Grid.Row="3"

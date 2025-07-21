@@ -4,6 +4,8 @@
     <option name="projectPerEditor">
       <map>
         <entry key="Ecliptix.Core/Ecliptix.Core/App.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Assets/Icons/LampIcon.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Assets/Icons/LampIconRegular.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Components/SplashScreen/SplashView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Controls/CustomCarousel.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Controls/EcliptixTextBox.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
