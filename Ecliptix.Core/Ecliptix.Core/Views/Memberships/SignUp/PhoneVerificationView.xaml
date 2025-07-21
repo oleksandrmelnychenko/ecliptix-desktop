@@ -9,35 +9,59 @@
              x:Class="Ecliptix.Core.Views.Memberships.SignUp.PhoneVerificationView"
              x:DataType="signUp:PhoneVerificationViewModel">
    
-    <Grid VerticalAlignment="Center" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" MinWidth="350">
-        
-        <Grid RowDefinitions="Auto, Auto">
-            <TextBlock Grid.Row="0" Text="{Binding Title}" FontSize="24" FontWeight="Light" Foreground="#333333" />
-            <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="14" Margin="0,4,0,10" Foreground="#B0B0B0" />
-        </Grid>
-        
+    <Border MaxWidth="366"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Top"
+            Padding="24 0 24 24">
 
-        <!--<controls:HintedTextBox
-            Grid.Row="1"
-            x:Name="MobileTextBox"
-            Watermark="{Binding Hint}"
-            Hint="{Binding Hint}"
-            Text="{Binding Mobile, Mode=TwoWay}"
-            Margin="0,5"
-            CornerRadius="15"
-            BorderBrush="#E0E0E0"
-            TextForeground="#333333"
-            HintForeground="#6a5acd"
-            IconSource="/Assets/lamp.svg"
-            ValidationType="PhoneNumber" />-->
+        <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
+            <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
+                <TextBlock Text="Verify Phone Number"
+                           FontSize="14"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource TextForegroundColor}" 
+                           LetterSpacing="-0.5"
+                           LineHeight="25"
+                           />
+                <TextBlock Text="Please confirm you phone number to continue."
+                           TextWrapping="Wrap"
+                           FontSize="20"
+                           LineHeight="28"
+                           FontWeight="Light"
+                           Foreground="{DynamicResource TextForegroundColor}" />
+            </StackPanel>
 
-        <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="Red" />
+            <controls:HintedTextBox
+                Grid.Row="1"
+                x:Name="MobileTextBox"
+                Watermark="Mobile Number"
+                Hint="Start with country code."
+                TextForeground="{DynamicResource TextBoxForegroundColor}"
+                HintForeground="{DynamicResource TipsColor}"
+                IconSource="avares://Ecliptix.Core/Assets/lamp.svg"
+                ValidationType="PhoneNumber"
+                MainBorderBrush="Transparent"
+                Text="{Binding PhoneNumber}"
+                Height="90"
+                CornerRadius="5"
+                FontSize="18"
+                Background="{DynamicResource TextBoxBackgroundColor}"
+                FontWeight="Light"
+                />
+                
+                <Button Grid.Row="3" Content="Continue"
+                        HorizontalAlignment="Stretch"
+                        Height="45"
+                        Command="{Binding VerifyMobileCommand}"
+                        Background="{DynamicResource DarkButtonColor}"
+                        Foreground="{DynamicResource DarkButtonForegroundColor}"
+                        FontWeight="Regular"
+                        FontSize="14"
+                        CornerRadius="15" 
+                        BorderThickness="0"/>
+            </Grid>
 
-        <Button
-            Grid.Row="3"
-            Classes="SubmitButton"
-            Content="{Binding ButtonContent}"
-            Command="{Binding VerifyMobileCommand}" />
-    </Grid>
+       
+    </Border>
   
 </UserControl>

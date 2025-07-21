@@ -18,7 +18,7 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
         new(@"^\+(?:[0-9] ?){6,14}[0-9]$", RegexOptions.Compiled);
 
     private string _errorMessage = string.Empty;
-    private string _mobile = "+380970177443";
+    private string _phoneNumber = "+380970177443";
 
     private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
@@ -43,14 +43,14 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
         _localizationService = localizationService;
         HostScreen = hostScreen;
 
-        IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.Mobile)
+        IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.PhoneNumber)
             .Select(ValidateMobileNumber)
-            .StartWith(ValidateMobileNumber(Mobile));
+            .StartWith(ValidateMobileNumber(PhoneNumber));
 
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             ErrorMessage = string.Empty;
-            /*MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(Mobile, MembershipViewType.VerificationCodeEntry),
+            /*MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(PhoneNumber, MembershipViewType.VerificationCodeEntry),
                 "VerifyCodeNavigateToView");*/
         });
 
@@ -81,10 +81,10 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
     }
 
 
-    public string Mobile
+    public string PhoneNumber
     {
-        get => _mobile;
-        set => this.RaiseAndSetIfChanged(ref _mobile, value);
+        get => _phoneNumber;
+        set => this.RaiseAndSetIfChanged(ref _phoneNumber, value);
     }
 
     public string ErrorMessage
@@ -96,10 +96,10 @@ public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, 
     public ReactiveCommand<Unit, Unit> VerifyMobileCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendCodeCommand { get; }
 
-    private static bool ValidateMobileNumber(string? mobile)
+    private static bool ValidateMobileNumber(string? phoneNumber)
     {
-        if (string.IsNullOrWhiteSpace(mobile)) return false;
+        if (string.IsNullOrWhiteSpace(phoneNumber)) return false;
 
-        return InternationalPhoneNumberRegex.IsMatch(mobile);
+        return InternationalPhoneNumberRegex.IsMatch(phoneNumber);
     }
 }
