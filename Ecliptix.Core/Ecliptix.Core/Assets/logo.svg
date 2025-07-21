@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 524 524">
     <defs>
-        <!-- Gradients have been mathematically recalculated to work without transforms in the new coordinate system -->
         <linearGradient id="linear-gradient" x1="410.27" y1="210.57" x2="239.38" y2="514.82"
                         gradientUnits="userSpaceOnUse">
             <stop offset="0" stop-color="#ee39f1"/>
