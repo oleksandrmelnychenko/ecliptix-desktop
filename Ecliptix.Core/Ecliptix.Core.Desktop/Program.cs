@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
@@ -10,6 +12,7 @@ using DotNetEnv;
 using Ecliptix.Core.AppEvents;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Network.ResilienceStrategy;
@@ -176,7 +179,22 @@ public static class Program
                 section["EncryptedStatePath"] ?? "Storage/state"
             );
         });
-
+        
+        services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
+        {
+            InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
+            client.Timeout = options.ProbeTimeout; 
+        });
+        
+        services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
+        services.AddSingleton<InternetConnectivityObserver>(); 
+        services.AddSingleton(new InternetConnectivityObserverOptions
+        {
+            PollingInterval = TimeSpan.FromSeconds(10),
+            FailureThreshold = 2,
+            SuccessThreshold = 1
+        });
+        
         services.AddSingleton<IEventAggregator, EventAggregator>();
         services.AddSingleton<INetworkEvents, NetworkEvents>();
         services.AddSingleton<ISystemEvents, SystemEvents>();
@@ -197,7 +215,6 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<DeadlineInterceptor>();
         services.AddTransient<ResilienceInterceptor>();
-        
         
         ConfigureGrpc(services);
         ConfigureViewModels(services);

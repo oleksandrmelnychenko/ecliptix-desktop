@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Net.NetworkInformation;
 using Avalonia.Media;
 using Ecliptix.Core.Controls;
+using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -15,30 +17,40 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 
 public class MembershipHostWindowModel : ReactiveObject, IScreen
 {
-    public RoutingState Router { get; } = new RoutingState();
+    public RoutingState Router { get; } = new();
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
+    private readonly IDisposable _connectivitySubscription;
+    private bool _isConnected;
+
+    public bool IsConnected
+    {
+        get => _isConnected;
+        set => this.RaiseAndSetIfChanged(ref _isConnected, value);
+    }
+
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
-        ILocalizationService localizationService
+        ILocalizationService localizationService,
+        InternetConnectivityObserver connectivityObserver
     )
     {
-        Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(
-            viewType => Router.Navigate.Execute(
+        _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
+
+        Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
+            Router.Navigate.Execute(
                 CreateViewModelForView(viewType, networkProvider, localizationService)!
             ));
 
         Navigate.Execute(MembershipViewType.MembershipWelcome).Subscribe();
 
         this.WhenAnyObservable(x => x.Router.NavigateBack.CanExecute)
-            .Subscribe(canExecute =>
-            {
-                CanNavigateBack = canExecute;
-            });
+            .Subscribe(canExecute => { CanNavigateBack = canExecute; });
     }
 
     private bool _canNavigateBack;
+
     public bool CanNavigateBack
     {
         get => _canNavigateBack;
@@ -55,9 +67,12 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         {
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
             MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
-            MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService, this),
-            MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider, localizationService, this),
-            MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider, localizationService, this),
+            MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService,
+                this),
+            MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider,
+                localizationService, this),
+            MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider,
+                localizationService, this),
             MembershipViewType.PassPhase => new PassPhaseViewModel(localizationService, this),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
