@@ -167,10 +167,10 @@
                     />
                 
                 <Svg Grid.Row="1"
-                     Path="../../../Assets/logo.svg"
+                     Path="../../../Assets/ecliptix_logo.svg"
                      VerticalAlignment="Top"
-                     Width="110"
-                     Height="110"
+                     Width="100"
+                     Height="100"
                      HorizontalAlignment="Center" />
                 
                 <reactiveUi:RoutedViewHost Grid.Row="2"

@@ -90,7 +90,7 @@
                 BorderThickness="1"
                 CornerRadius="22"
                 Padding="4"
-                Background="#ffffff"
+                Background="#3b3c40"
                 Margin="10"
                 BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}">
             <Border.Effect>
@@ -106,10 +106,11 @@
             <Grid RowDefinitions="*, Auto">
 
                 <Svg Grid.Row="0"
-                     Path="../../../../Assets/logo.svg"
+                     Path="../../../../Assets/ecliptix_logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
                      Height="160"
+                     ClipToBounds="True"
                      HorizontalAlignment="Center"
                       />
             </Grid>
