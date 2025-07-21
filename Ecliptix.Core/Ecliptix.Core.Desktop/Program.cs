@@ -207,28 +207,21 @@ public static class Program
 
     private static void ConfigureGrpc(IServiceCollection services)
     {
-        Action<GrpcClientFactoryOptions> configureClientOptions = (options) =>
+        void ConfigureClientOptions(GrpcClientFactoryOptions options)
         {
-            DefaultAppSettings settings = services
-                .BuildServiceProvider()
+            DefaultAppSettings settings = services.BuildServiceProvider()
                 .GetRequiredService<DefaultAppSettings>();
-            string? endpoint = settings.Environment.Equals(
-                "Development",
-                StringComparison.OrdinalIgnoreCase
-            )
+            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
                 : string.Empty;
 
-            if (string.IsNullOrEmpty(endpoint))
-                throw new InvalidOperationException(
-                    "gRPC endpoint URL is not configured in appsettings.json."
-                );
+            if (string.IsNullOrEmpty(endpoint)) throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
 
             options.Address = new Uri(endpoint);
-        };
+        }
 
-        services.AddSingleton(configureClientOptions);
-        services.AddResilientGrpcClients(configureClientOptions);
+        services.AddSingleton((Action<GrpcClientFactoryOptions>)ConfigureClientOptions);
+        services.AddConfiguredGrpcClients();
     }
 
     private static void ConfigureViewModels(IServiceCollection services)
