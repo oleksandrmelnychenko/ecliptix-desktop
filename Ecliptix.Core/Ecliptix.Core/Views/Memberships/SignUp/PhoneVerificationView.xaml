@@ -4,8 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
+             xmlns:signUp="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignUp"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="registration:PhoneVerificationViewModel">
+             x:Class="Ecliptix.Core.Views.Memberships.SignUp.PhoneVerificationView"
+             x:DataType="signUp:PhoneVerificationViewModel">
    
     <Grid VerticalAlignment="Center" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" MinWidth="350">
         
@@ -15,7 +17,7 @@
         </Grid>
         
 
-        <controls:HintedTextBox
+        <!--<controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
             Watermark="{Binding Hint}"
@@ -27,7 +29,7 @@
             TextForeground="#333333"
             HintForeground="#6a5acd"
             IconSource="/Assets/lamp.svg"
-            ValidationType="PhoneNumber" />
+            ValidationType="PhoneNumber" />-->
 
         <TextBlock Grid.Row="2" Text="{Binding ErrorMessage}" Foreground="Red" />
 

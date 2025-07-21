@@ -21,9 +21,7 @@
     <None Remove="Fonts\suisse-intl-regular.ttf" />
     <None Remove="Fonts\suisseintl-bold.otf" />
     <None Remove="Views\Authentication\Registration\PhoneVerificationView.xaml" />
-    <AvaloniaXaml Include="Views\Authentication\Registration\PhoneVerificationView.xaml" />
     <None Remove="Views\Authentication\Registration\RegistrationWizardView.xaml" />
-    <AvaloniaXaml Include="Views\Authentication\Registration\RegistrationWizardView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AnimatedImage.Avalonia" Version="2.0.0" />
@@ -31,11 +29,7 @@
     <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
-    <PackageReference
-      Condition="'$(Configuration)' == 'Debug'"
-      Include="Avalonia.Diagnostics"
-      Version="11.3.2"
-    />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
     <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Google.Protobuf" Version="3.31.1" />
@@ -53,10 +47,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.6" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.6" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.6" />
-    <PackageReference
-      Include="Microsoft.Extensions.Options.ConfigurationExtensions"
-      Version="9.0.6"
-    />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.6" />
     <PackageReference Include="Polly" Version="8.6.1" />
     <PackageReference Include="Polly.Core" Version="8.6.1" />
     <PackageReference Include="Polly.Extensions" Version="8.6.1" />
@@ -100,8 +91,6 @@
   <ItemGroup>
     <AdditionalFiles Include="Locales\en-US.json" />
     <AdditionalFiles Include="Locales\uk-UA.json" />
-    <AdditionalFiles Include="Views\Authentication\Registration\PhoneVerificationView.xaml" />
-    <AdditionalFiles Include="Views\Authentication\Registration\RegistrationWizardView.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
@@ -126,5 +115,8 @@
     <Content Include="Assets/logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaXaml Include="Views\Memberships\SignUp\PhoneVerificationView.xaml" />
   </ItemGroup>
 </Project>

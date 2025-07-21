@@ -10,11 +10,9 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
-using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
@@ -264,11 +262,11 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 if (verifyCodeReply.Result == VerificationResult.Succeeded)
                 {
                     Membership membership = verifyCodeReply.Membership;
-                    MessageBus.Current.SendMessage(
+                    /*MessageBus.Current.SendMessage(
                         new VerifyCodeNavigateToView(
                             Helpers.FromByteStringToGuid(membership.UniqueIdentifier).ToString(),
-                            AuthViewType.ConfirmPassword),
-                        "VerifyCodeNavigateToView");
+                            MembershipViewType.ConfirmPassword),
+                        "VerifyCodeNavigateToView");*/
                 }
                 else if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
                 {

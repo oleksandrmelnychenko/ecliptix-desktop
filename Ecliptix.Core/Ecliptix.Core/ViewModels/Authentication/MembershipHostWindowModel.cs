@@ -3,8 +3,10 @@ using Avalonia.Media;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
@@ -13,23 +15,19 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
 {
     public RoutingState Router { get; } = new RoutingState();
 
-    public ReactiveCommand<AuthViewType, IRoutableViewModel> Navigate { get; }
+    public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService
     )
     {
-        Navigate = ReactiveCommand.CreateFromObservable<AuthViewType, IRoutableViewModel>(
-            viewType =>
-            {
-                return Router.Navigate.Execute(
-                    CreateViewModelForView(viewType, networkProvider, localizationService)!
-                );
-            }
-        );
+        Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(
+            viewType => Router.Navigate.Execute(
+                CreateViewModelForView(viewType, networkProvider, localizationService)!
+            ));
 
-        Navigate.Execute(AuthViewType.MembershipWelcome).Subscribe();
+        Navigate.Execute(MembershipViewType.MembershipWelcome).Subscribe();
 
         this.WhenAnyObservable(x => x.Router.NavigateBack.CanExecute)
             .Subscribe(canExecute =>
@@ -46,16 +44,16 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     }
 
     private IRoutableViewModel CreateViewModelForView(
-        AuthViewType viewType,
+        MembershipViewType viewType,
         NetworkProvider networkProvider,
         ILocalizationService localizationService
     )
     {
         return viewType switch
         {
-            AuthViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
-            AuthViewType.MembershipWelcome => new WelcomeViewModel(this),
-            //AuthViewType.RegistrationWizard => dependencyResolver.GetRequiredService<RegistrationWizardViewModel>(),
+            MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
+            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
+            MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService, this),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
     }

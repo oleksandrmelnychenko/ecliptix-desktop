@@ -1,10 +1,9 @@
 namespace Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 
-public enum AuthViewType
+public enum MembershipViewType
 {
     MembershipWelcome,
     SignIn,
-    RegistrationWizard,
     PhoneVerification,
     VerificationCodeEntry,
     PasswordRecovery,

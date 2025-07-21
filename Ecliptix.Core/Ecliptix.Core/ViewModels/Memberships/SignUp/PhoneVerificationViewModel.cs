@@ -2,51 +2,61 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
 
-namespace Ecliptix.Core.ViewModels.Authentication.Registration;
+namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public record VerifyCodeNavigateToView(string Mobile, AuthViewType ViewTypeToNav);
-
-public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel
+public class PhoneVerificationViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
-    
+
     private static readonly Regex InternationalPhoneNumberRegex =
         new(@"^\+(?:[0-9] ?){6,14}[0-9]$", RegexOptions.Compiled);
 
     private string _errorMessage = string.Empty;
     private string _mobile = "+380970177443";
 
+    private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
-    
+
+    public string? UrlPathSegment { get; } = "/phone-verification";
+
+    public IScreen HostScreen { get; }
+
     public string Title => _localizationService["Authentication.Registration.phoneVerification.title"];
     public string Description => _localizationService["Authentication.Registration.phoneVerification.description"];
     public string Hint => _localizationService["Authentication.Registration.phoneVerification.hint"];
     public string ButtonContent => _localizationService["Authentication.Registration.phoneVerification.button"];
-    public string InvalidFormatError => _localizationService["Authentication.Registration.phoneVerification.error.invalidFormat"];
-    
-    public PhoneVerificationViewModel(ILocalizationService localizationService)
+
+    public string InvalidFormatError =>
+        _localizationService["Authentication.Registration.phoneVerification.error.invalidFormat"];
+
+    public PhoneVerificationViewModel(NetworkProvider networkProvider,
+        ILocalizationService localizationService,
+        IScreen hostScreen)
     {
+        _networkProvider = networkProvider;
         _localizationService = localizationService;
-        
+        HostScreen = hostScreen;
+
         IObservable<bool> isMobileValid = this.WhenAnyValue(x => x.Mobile)
             .Select(ValidateMobileNumber)
             .StartWith(ValidateMobileNumber(Mobile));
-        
+
         VerifyMobileCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             ErrorMessage = string.Empty;
-            MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(Mobile, AuthViewType.VerificationCodeEntry),
-                "VerifyCodeNavigateToView");
+            /*MessageBus.Current.SendMessage(new VerifyCodeNavigateToView(Mobile, MembershipViewType.VerificationCodeEntry),
+                "VerifyCodeNavigateToView");*/
         });
 
         ResendCodeCommand = ReactiveCommand.Create(() => { Console.WriteLine("Resend code requested."); },
             Observable.Return(true));
-        
+
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
