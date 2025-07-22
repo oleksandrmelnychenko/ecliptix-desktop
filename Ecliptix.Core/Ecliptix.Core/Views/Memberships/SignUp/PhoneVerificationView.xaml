@@ -14,30 +14,34 @@
              Width="320">
 
     <UserControl.Resources>
-        <!-- Balanced Layout Dimensions -->
+        <!-- Layout Dimensions -->
         <x:Double x:Key="ButtonHeight">44</x:Double>
         <x:Double x:Key="InputHeight">78</x:Double>
         <x:Double x:Key="InputFontSize">16</x:Double>
-        <x:Double x:Key="WatermarkFontSize">15</x:Double>
+        <x:Double x:Key="WatermarkFontSize">14</x:Double>
         <x:Double x:Key="ButtonFontSize">14</x:Double>
-        <x:Double x:Key="TitleFontSize">15</x:Double>
-        <x:Double x:Key="SubtitleFontSize">18</x:Double>
-        <x:Double x:Key="HeaderMaxWidth">260</x:Double>
+        <x:Double x:Key="TitleFontSize">22</x:Double>
+        <x:Double x:Key="SubtitleFontSize">17</x:Double>
+        <x:Double x:Key="HeaderMaxWidth">280</x:Double>
 
-        <!-- Balanced Spacing -->
-        <x:Double x:Key="SectionSpacing">18</x:Double>
-        <x:Double x:Key="HeaderSpacing">6</x:Double>
+        <!-- Spacing -->
+        <x:Double x:Key="SectionSpacing">21</x:Double>
+        <x:Double x:Key="HeaderSpacing">7</x:Double>
 
-        <!-- Corner Radius -->
+        <!-- UI Elements -->
         <CornerRadius x:Key="InputCornerRadius">12</CornerRadius>
         <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
 
-        <!-- Transitions -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.3</system:TimeSpan>
+        <!-- Button Colors -->
+        <Color x:Key="DarkButtonHoverColor">#262626</Color>
+        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
+
+        <!-- Animation Durations -->
+        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!-- Button Base Style -->
+        <!-- Base Button Style -->
         <Style Selector="Button.auth-button">
             <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
             <Setter Property="FontWeight" Value="Medium" />
@@ -48,49 +52,60 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
+                                     Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
+                                      Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
 
         <Style Selector="Button.auth-button:pressed">
-            <Setter Property="RenderTransform" Value="scale(0.98)" />
+            <Setter Property="Opacity" Value="0.9" />
         </Style>
 
-        <!-- Continue Button Style -->
+        <!-- Continue Button (Dark) -->
         <Style Selector="Button.continue-button">
             <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
             <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
         </Style>
+
+        <Style Selector="Button.continue-button:pointerover">
+            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
+        </Style>
+
+        <Style Selector="Button.continue-button:pressed">
+            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
+        </Style>
     </UserControl.Styles>
 
-    <!-- Main Grid with consistent proportions -->
+    <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource SectionSpacing}"
-          RowDefinitions="Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="320">
 
-        <!-- Header Section with balanced typography -->
+        <!-- Header Section -->
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="Verify Phone Number"
-                       FontSize="{StaticResource TitleFontSize}"
-                       FontWeight="Medium"
-                       Foreground="{DynamicResource TextForegroundColor}"
-                       LineHeight="22" />
-            <TextBlock Text="Please confirm you phone number to continue."
-                       TextWrapping="Wrap"
+            <TextBlock Text="Creating new account"
                        FontSize="{StaticResource SubtitleFontSize}"
-                       LineHeight="24"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}" />
+                       Foreground="{DynamicResource TextForegroundColor}"
+                       LineHeight="28" />
+            <TextBlock Text="Confirm your mobile number. We'll send you a verification code via SMS."
+                       TextWrapping="Wrap"
+                       FontSize="{StaticResource TitleFontSize}"
+                       LineHeight="28"
+                       FontWeight="Normal"
+                       Foreground="{DynamicResource TextForegroundColor}"
+                       Opacity="0.8" />
         </StackPanel>
 
-        <!-- Mobile Number Input with balanced proportions -->
+        <!-- Mobile Number Input -->
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
@@ -109,14 +124,13 @@
             FontSize="{StaticResource InputFontSize}"
             WatermarkFontSize="{StaticResource WatermarkFontSize}"
             Background="{DynamicResource TextBoxBackgroundColor}"
-            FontWeight="Regular"
+            FontWeight="Light"
             HorizontalAlignment="Stretch" />
 
         <!-- Continue Button -->
-        <Button Grid.Row="3"
+        <Button Grid.Row="2"
                 Content="Continue"
                 Command="{Binding NavToVerifyOtp}"
                 Classes="auth-button continue-button" />
-
     </Grid>
 </UserControl>

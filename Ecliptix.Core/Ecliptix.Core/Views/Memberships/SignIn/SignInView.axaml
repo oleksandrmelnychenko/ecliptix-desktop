@@ -18,7 +18,7 @@
         <x:Double x:Key="ButtonHeight">44</x:Double>
         <x:Double x:Key="InputHeight">78</x:Double>
         <x:Double x:Key="InputFontSize">16</x:Double>
-        <x:Double x:Key="WatermarkFontSize">15</x:Double>
+        <x:Double x:Key="WatermarkFontSize">14</x:Double>
         <x:Double x:Key="ButtonFontSize">14</x:Double>
         <x:Double x:Key="TitleFontSize">22</x:Double>
         <x:Double x:Key="SubtitleFontSize">17</x:Double>
