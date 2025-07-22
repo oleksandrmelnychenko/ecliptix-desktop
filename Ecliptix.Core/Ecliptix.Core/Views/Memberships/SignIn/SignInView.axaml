@@ -7,89 +7,83 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="authentication:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView">
-    
- 
 
-        <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
-            <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
-                <TextBlock Text="Sign in"
-                           FontSize="14"
-                           FontWeight="Light"
-                           Foreground="{DynamicResource TextForegroundColor}" 
-                           LetterSpacing="-0.5"
-                           LineHeight="25"
-                           />
-                <TextBlock Text="Welcome back! Your personalized experience awaits."
-                           TextWrapping="Wrap"
-                           FontSize="20"
-                           LineHeight="28"
-                           FontWeight="Light"
-                           Foreground="{DynamicResource TextForegroundColor}" />
-            </StackPanel>
+    <Grid VerticalAlignment="Center" RowSpacing="15" RowDefinitions="Auto,Auto,Auto,Auto">
+        <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
+            <TextBlock Text="Sign in"
+                       FontSize="16"
+                       FontWeight="Light"
+                       Foreground="{DynamicResource TextForegroundColor}"
+                       LetterSpacing="-0.5"
+                       LineHeight="25" />
+            <TextBlock Text="Welcome back! Your personalized experience awaits."
+                       TextWrapping="Wrap"
+                       FontSize="20"
+                       LineHeight="28"
+                       FontWeight="Light"
+                       Foreground="{DynamicResource TextForegroundColor}" />
+        </StackPanel>
 
-            <controls:HintedTextBox
-                Grid.Row="1"
-                x:Name="MobileTextBox"
-                Watermark="Mobile Number"
-                Hint="Start with country code."
-                TextForeground="{DynamicResource TextBoxForegroundColor}"
-                HintForeground="{DynamicResource TipsColor}"
-                IconRegularSource="{DynamicResource LampIconDrawingRegular}"
-                IconErrorSource="{DynamicResource LampIconDrawingError}"  
-                FocusBorderBrush="{DynamicResource TipsColor}"
-                ValidationType="PhoneNumber"
-                MainBorderBrush="Transparent"
-                Text="{Binding PhoneNumber}"
-                Height="90"
-                CornerRadius="5"
-                FontSize="18"
-                Background="{DynamicResource TextBoxBackgroundColor}"
-                FontWeight="Light"
-                />
-            
-            <controls:HintedTextBox
-                Grid.Row="2"
-                x:Name="PasswordTextBox"
-                Background="{DynamicResource TextBoxBackgroundColor}"
-                Watermark="Secure Key"
-                Hint="Stored only on your device"
-                CornerRadius="5 "
-                TextForeground="{DynamicResource TextBoxForegroundColor}"
-                HintForeground="{DynamicResource TipsColor}"
-                IconRegularSource="{DynamicResource LampIconDrawingRegular}"
-                IconErrorSource="{DynamicResource LampIconDrawingError}"            MainBorderBrush="Transparent"
-                ValidationType="SecureKey"
-                PasswordChar="*"
-                FontSize="18"
-                Height="90"
-                FontWeight="Light"/>
-            
-            
-            <Grid Grid.Row="3" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
-                <Button Grid.Column="0" 
-                        Content="Account recovery"
-                        Command="{Binding AccountRecoveryCommand}"
-                        HorizontalAlignment="Stretch"
-                        Height="45"
-                        Background="{DynamicResource LightButtonColor}"
-                        Foreground="{DynamicResource LightButtonForegroundColor}"
-                        FontWeight="Regular"
-                        FontSize="14"
-                        CornerRadius="15" 
-                        BorderThickness="0"
-                />
-                
-                <Button Grid.Column="1" Content="Continue"
-                        HorizontalAlignment="Stretch"
-                        Height="45"
-                        Command="{Binding SignInCommand}"
-                        Background="{DynamicResource DarkButtonColor}"
-                        Foreground="{DynamicResource DarkButtonForegroundColor}"
-                        FontWeight="Regular"
-                        FontSize="14"
-                        CornerRadius="15" 
-                        BorderThickness="0"/>
-            </Grid>
+        <controls:HintedTextBox
+            Grid.Row="1"
+            x:Name="MobileTextBox"
+            Watermark="Mobile Number"
+            Hint="Start with country code."
+            TextForeground="{DynamicResource TextBoxForegroundColor}"
+            HintForeground="{DynamicResource TipsColor}"
+            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
+            IconErrorSource="{DynamicResource LampIconDrawingError}"
+            FocusBorderBrush="{DynamicResource TipsColor}"
+            ValidationType="PhoneNumber"
+            MainBorderBrush="Transparent"
+            Text="{Binding PhoneNumber}"
+            Height="90"
+            CornerRadius="5"
+            FontSize="18"
+            Background="{DynamicResource TextBoxBackgroundColor}"
+            FontWeight="Light" />
 
+        <controls:HintedTextBox
+            Grid.Row="2"
+            x:Name="PasswordTextBox"
+            Background="{DynamicResource TextBoxBackgroundColor}"
+            Watermark="Secure Key"
+            Hint="Stored only on your device"
+            CornerRadius="5 "
+            TextForeground="{DynamicResource TextBoxForegroundColor}"
+            HintForeground="{DynamicResource TipsColor}"
+            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
+            IconErrorSource="{DynamicResource LampIconDrawingError}" MainBorderBrush="Transparent"
+            ValidationType="SecureKey"
+            PasswordChar="*"
+            FontSize="18"
+            Height="90"
+            FontWeight="Light" />
+
+        <Grid Grid.Row="3" HorizontalAlignment="Stretch" ColumnDefinitions="* *" ColumnSpacing="10">
+            <Button Grid.Column="0"
+                    Content="Account recovery"
+                    Command="{Binding AccountRecoveryCommand}"
+                    HorizontalAlignment="Stretch"
+                    Height="45"
+                    Background="{DynamicResource LightButtonColor}"
+                    Foreground="{DynamicResource LightButtonForegroundColor}"
+                    FontWeight="Regular"
+                    FontSize="14"
+                    CornerRadius="15"
+                    BorderThickness="0" />
+
+            <Button Grid.Column="1" Content="Continue"
+                    HorizontalAlignment="Stretch"
+                    Height="45"
+                    Command="{Binding SignInCommand}"
+                    Background="{DynamicResource DarkButtonColor}"
+                    Foreground="{DynamicResource DarkButtonForegroundColor}"
+                    FontWeight="Regular"
+                    FontSize="14"
+                    CornerRadius="15"
+                    BorderThickness="0" />
         </Grid>
+
+    </Grid>
 </UserControl>
