@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
              d:DesignWidth="320"
@@ -175,16 +174,14 @@
                     Command="{Binding NavToSignInCommand}"
                     Classes="auth-button signin-button"
                     Foreground="{DynamicResource LightButtonForegroundColor}"
-                    HorizontalAlignment="Stretch"
-                    ToolTip.Tip="Sign in to your account" />
+                    HorizontalAlignment="Stretch" />
 
             <!-- Create Account Button -->
             <Button Grid.Column="1"
                     Content="Create account"
                     Command="{Binding NavToCreateAccountCommand}"
                     Classes="auth-button create-account-button"
-                    HorizontalAlignment="Stretch"
-                    ToolTip.Tip="Create a new account" />
+                    HorizontalAlignment="Stretch"/>
         </Grid>
     </StackPanel>
 </UserControl>

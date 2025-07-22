@@ -42,8 +42,6 @@
         <x:Double x:Key="BackgroundBlurRadius">20</x:Double>
         <x:Double x:Key="ShadowBlurRadius">12</x:Double>
         <x:Double x:Key="HeaderSpacing">12</x:Double>
-        <x:Double x:Key="ContentSpacing">16</x:Double>
-        <x:Double x:Key="FooterSpacing">16</x:Double>
 
         <!-- Colors -->
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
