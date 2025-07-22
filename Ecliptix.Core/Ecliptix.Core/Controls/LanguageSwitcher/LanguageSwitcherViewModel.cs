@@ -30,8 +30,8 @@ public partial class LanguageSwitcherViewModel : ObservableObject
 
         AvailableLanguages =
         [
-            new LanguageItem("en-US", "English", "🇺🇸"),
-            new LanguageItem("uk-UA", "Українська", "🇺🇦")
+            new LanguageItem("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
+            new LanguageItem("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
         ];
 
         _selectedLanguage = AvailableLanguages[0];
@@ -99,4 +99,4 @@ public partial class LanguageSwitcherViewModel : ObservableObject
     }
 }
 
-public record LanguageItem(string Code, string DisplayName, string Flag);
+public record LanguageItem(string Code, string DisplayName, string FlagImagePath);

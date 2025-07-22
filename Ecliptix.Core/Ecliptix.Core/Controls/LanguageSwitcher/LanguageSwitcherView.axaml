@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:languageSwitcher="clr-namespace:Ecliptix.Core.Controls.LanguageSwitcher"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
              d:DesignWidth="120"
              d:DesignHeight="36"
@@ -11,17 +12,26 @@
 
     <UserControl.Resources>
         <x:Double x:Key="ControlHeight">36</x:Double>
-        <x:Double x:Key="ControlWidth">120</x:Double>
+        <x:Double x:Key="ControlWidth">75</x:Double>
         <x:Double x:Key="FontSize">13</x:Double>
         <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+
+        <!-- Hover Colors -->
+        <Color x:Key="ComboBoxHoverColor">#F5F5F5</Color>
+        <Color x:Key="ComboBoxPressedColor">#EEEEEE</Color>
+
+        <!-- Animation Durations -->
+        <system:TimeSpan x:Key="TransitionDuration">0:0:0.25</system:TimeSpan>
+        <system:TimeSpan x:Key="PopupAnimationDuration">0:0:0.2</system:TimeSpan>
     </UserControl.Resources>
-    
-     <UserControl.Styles>
+
+    <UserControl.Styles>
         <!-- Custom ComboBox Style -->
         <Style Selector="ComboBox">
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid>
@@ -30,6 +40,16 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="4">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Background"
+                                                     Duration="{StaticResource TransitionDuration}"
+                                                     Easing="CubicEaseOut" />
+                                    <DoubleTransition Property="Opacity" Duration="{StaticResource TransitionDuration}"
+                                                      Easing="CubicEaseOut" />
+                                </Transitions>
+                            </Border.Transitions>
+
                             <Grid ColumnDefinitions="*,Auto">
                                 <ContentPresenter x:Name="ContentPresenter"
                                                   Grid.Column="0"
@@ -51,7 +71,17 @@
                                           Stretch="Uniform"
                                           HorizontalAlignment="Center"
                                           VerticalAlignment="Center"
-                                          Data="M0,0 L4.5,5 L9,0 Z" />
+                                          Data="M0,0 L4.5,5 L9,0 Z">
+                                        <Path.Transitions>
+                                            <Transitions>
+                                                <BrushTransition Property="Fill"
+                                                                 Duration="{StaticResource TransitionDuration}" />
+                                                <TransformOperationsTransition Property="RenderTransform"
+                                                                               Duration="{StaticResource TransitionDuration}"
+                                                                               Easing="CubicEaseOut" />
+                                            </Transitions>
+                                        </Path.Transitions>
+                                    </Path>
                                 </Border>
                             </Grid>
                         </Border>
@@ -64,15 +94,41 @@
                                IsLightDismissEnabled="True"
                                WindowManagerAddShadowHint="False"
                                Topmost="False">
-                            <Border Background="White"
-                                    BorderBrush="#CCCCCC"
-                                    BorderThickness="1"
-                                    CornerRadius="4"
-                                    Padding="4">
-                                <ScrollViewer>
-                                    <ItemsPresenter Name="PART_ItemsPresenter"
-                                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
-                                </ScrollViewer>
+                            <Border Name="PopupContainer"
+                                    Background="Transparent"
+                                    RenderTransformOrigin="0.5,0">
+                                <!-- Animated Content Wrapper -->
+                                <Border Name="PopupContent"
+                                        Background="White"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="0"
+                                        CornerRadius="4"
+                                        Padding="4"
+                                        RenderTransformOrigin="0.5,0"
+                                        Opacity="0"
+                                        RenderTransform="scaleY(0) translateY(-5px)">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000"
+                                                          BlurRadius="8"
+                                                          Opacity="0.15"
+                                                          OffsetX="0"
+                                                          OffsetY="2" />
+                                    </Border.Effect>
+                                    <Border.Transitions>
+                                        <Transitions>
+                                            <DoubleTransition Property="Opacity"
+                                                              Duration="{StaticResource PopupAnimationDuration}"
+                                                              Easing="CubicEaseOut" />
+                                            <TransformOperationsTransition Property="RenderTransform"
+                                                                           Duration="{StaticResource PopupAnimationDuration}"
+                                                                           Easing="BackEaseOut" />
+                                        </Transitions>
+                                    </Border.Transitions>
+                                    <ScrollViewer>
+                                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                                        ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                    </ScrollViewer>
+                                </Border>
                             </Border>
                         </Popup>
                     </Grid>
@@ -80,10 +136,45 @@
             </Setter>
         </Style>
 
-        <!-- Style for ComboBoxItem -->
+        <!-- Popup Opening Animation - Scale + Fade from Top -->
+        <Style Selector="ComboBox:dropdownopen /template/ Border#PopupContent">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="scaleY(1) translateY(0px)" />
+        </Style>
+
+        <!-- Dropdown Arrow Rotation Animation -->
+        <Style Selector="ComboBox /template/ Path">
+            <Setter Property="RenderTransform" Value="rotate(0)" />
+        </Style>
+
+        <Style Selector="ComboBox:dropdownopen /template/ Path">
+            <Setter Property="RenderTransform" Value="rotate(180deg)" />
+        </Style>
+
+        <!-- Hover state for ComboBox main button -->
+        <Style Selector="ComboBox:pointerover /template/ Border#Background">
+            <Setter Property="Background" Value="{StaticResource ComboBoxHoverColor}" />
+        </Style>
+
+        <!-- Pressed state for ComboBox main button -->
+        <Style Selector="ComboBox:pressed /template/ Border#Background">
+            <Setter Property="Background" Value="{StaticResource ComboBoxPressedColor}" />
+            <Setter Property="Opacity" Value="0.9" />
+        </Style>
+
+        <!-- Style for ComboBoxItem with Staggered Animation -->
         <Style Selector="ComboBoxItem">
-            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Padding" Value="8,6" />
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="translateX(-10px)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Name="ItemBorder"
@@ -91,6 +182,11 @@
                             BorderThickness="0"
                             CornerRadius="3"
                             Padding="{TemplateBinding Padding}">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                            </Transitions>
+                        </Border.Transitions>
                         <ContentPresenter Content="{TemplateBinding Content}"
                                           ContentTemplate="{TemplateBinding ContentTemplate}" />
                     </Border>
@@ -98,15 +194,21 @@
             </Setter>
         </Style>
 
+        <!-- Animate Items when Dropdown Opens -->
+        <Style Selector="ComboBox:dropdownopen ComboBoxItem">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="translateX(0px)" />
+        </Style>
+
         <!-- Hover state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#EAD9FF" />
+            <Setter Property="Background" Value="#F3F0FF" />
         </Style>
 
         <!-- Selected state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#9966CC" />
-            <Setter Property="TextBlock.Foreground" Value="White" />
+            <Setter Property="Background" Value="#E8E0FF" />
+            <Setter Property="TextBlock.Foreground" Value="#6B46C1" />
         </Style>
 
         <!-- Pressed state for dropdown glyph -->
@@ -120,7 +222,7 @@
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
     </UserControl.Styles>
-    
+
 
     <ComboBox ItemsSource="{Binding AvailableLanguages}"
               SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}"
@@ -130,14 +232,21 @@
               CornerRadius="{StaticResource ControlCornerRadius}"
               Background="{DynamicResource ComboBoxBackground}"
               BorderBrush="{DynamicResource ComboBoxBorderBrush}">
-        
+
         <ComboBox.ItemTemplate>
             <DataTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Flag}" 
-                               FontSize="16" 
-                               VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding DisplayName}" 
+                    <Svg
+                        Path="{Binding FlagImagePath}"
+                         VerticalAlignment="Center"
+                         Width="20"
+                         Height="20"
+                         ClipToBounds="True"
+                         HorizontalAlignment="Center"
+                    />
+                    
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontWeight="Light"
                                VerticalAlignment="Center" />
                 </StackPanel>
             </DataTemplate>
