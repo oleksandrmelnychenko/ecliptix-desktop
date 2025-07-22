@@ -250,17 +250,6 @@
                         </reactiveUi:RoutedViewHost.DefaultContent>
                     </reactiveUi:RoutedViewHost>
                 </Border>
-
-                <!-- Footer -->
-                <Border Grid.Row="3"
-                        Padding="{StaticResource FooterPadding}">
-                    <TextBlock HorizontalAlignment="Center"
-                               FontWeight="Normal"
-                               FontSize="11"
-                               Foreground="{DynamicResource FooterTextColor}"
-                               Text="© Horizon Dynamics 2025"
-                               Opacity="0.7" />
-                </Border>
             </Grid>
         </Border>
     </Grid>
