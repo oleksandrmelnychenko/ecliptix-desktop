@@ -58,7 +58,7 @@
         <StackPanel x:Name="SegmentsPanel"
                     Orientation="Horizontal"
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center"
+                    VerticalAlignment="Stretch"
                     
                     />
         <Border x:Name="OverlayRectangle"
