@@ -24,33 +24,29 @@
         x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow">
 
     <Window.Resources>
+        <!-- Converters -->
         <memberships:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"
                                                TrueOpacity="1.0"
                                                FalseOpacity="0" />
 
-        <!-- Window Dimensions -->
+        <!-- Layout Dimensions -->
         <x:Double x:Key="BackButtonSize">48</x:Double>
         <x:Double x:Key="LogoSize">100</x:Double>
         <x:Double x:Key="ContentMaxWidth">320</x:Double>
-
-        <!-- Footer Resources -->
         <x:Double x:Key="FooterFontSize">11</x:Double>
         <x:Double x:Key="FooterSpacing">4</x:Double>
         <x:Double x:Key="FooterLinkSpacing">16</x:Double>
-
-        <!-- Proper CornerRadius and Thickness resources -->
-        <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
-        <Thickness x:Key="ContentPadding">20,0</Thickness>
-        <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
-        <Thickness x:Key="FooterPadding">0,16</Thickness>
-        <Thickness x:Key="FooterMargin">0,32,0,16</Thickness>
-
-        <!-- Numeric values -->
         <x:Double x:Key="BackgroundBlurRadius">20</x:Double>
         <x:Double x:Key="ShadowBlurRadius">12</x:Double>
         <x:Double x:Key="HeaderSpacing">12</x:Double>
 
-        <!-- Colors -->
+        <!-- Layout Values -->
+        <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
+        <Thickness x:Key="ContentPadding">20,0</Thickness>
+        <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
+        <Thickness x:Key="FooterMargin">0,32,0,16</Thickness>
+
+        <!-- Window Colors -->
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
         <SolidColorBrush x:Key="WindowBorderBrush">#B084CC</SolidColorBrush>
         <SolidColorBrush x:Key="BlurBackgroundBrush">#AA9966CC</SolidColorBrush>
@@ -61,12 +57,12 @@
         <Color x:Key="FooterLinkColor">#6a5acd</Color>
         <Color x:Key="FooterLinkHoverColor">#553c9a</Color>
 
-        <!-- Footer Transition Duration -->
+        <!-- Animation Durations -->
         <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
     </Window.Resources>
 
     <Window.Styles>
-        <!-- Back Button Styles -->
+        <!-- Back Button -->
         <Style Selector="Button.back-button">
             <Setter Property="Width" Value="{StaticResource BackButtonSize}" />
             <Setter Property="Height" Value="{StaticResource BackButtonSize}" />
@@ -93,7 +89,7 @@
             <Setter Property="RenderTransform" Value="scale(0.95)" />
         </Style>
 
-        <!-- Footer Text Styles -->
+        <!-- Footer Styles -->
         <Style Selector="TextBlock.footer-text">
             <Setter Property="FontSize" Value="{StaticResource FooterFontSize}" />
             <Setter Property="Foreground" Value="{StaticResource FooterTextColor}" />
@@ -101,7 +97,6 @@
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
 
-        <!-- Footer Link Styles -->
         <Style Selector="Button.footer-link">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -123,14 +118,13 @@
             <Setter Property="Foreground" Value="{StaticResource FooterLinkHoverColor}" />
         </Style>
 
-        <!-- Footer Container -->
         <Style Selector="StackPanel.footer-section">
             <Setter Property="Spacing" Value="{StaticResource FooterSpacing}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="Margin" Value="{StaticResource FooterMargin}" />
         </Style>
 
-        <!-- Animated Background Styles -->
+        <!-- Window Frame Styles -->
         <Style Selector="Border.animated-background">
             <Setter Property="Transitions">
                 <Transitions>
@@ -139,7 +133,6 @@
             </Setter>
         </Style>
 
-        <!-- Main Border Styles -->
         <Style Selector="Border.main-border">
             <Setter Property="Background" Value="{StaticResource WindowBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource WindowBorderBrush}" />
@@ -152,7 +145,7 @@
             </Setter>
         </Style>
 
-        <!-- Traffic Light Button Styles -->
+        <!-- Traffic Light Buttons -->
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
@@ -176,7 +169,7 @@
             </Setter>
         </Style>
 
-        <!-- Traffic Light Colors -->
+        <!-- Close Button -->
         <Style Selector="Button.traffic-light.close">
             <Setter Property="Background" Value="#FF5F57" />
         </Style>
@@ -187,6 +180,7 @@
             <Setter Property="Background" Value="#C13934" />
         </Style>
 
+        <!-- Minimize Button -->
         <Style Selector="Button.traffic-light.minimize">
             <Setter Property="Background" Value="#FFBD2E" />
         </Style>
@@ -197,6 +191,7 @@
             <Setter Property="Background" Value="#C19124" />
         </Style>
 
+        <!-- Maximize Button -->
         <Style Selector="Button.traffic-light.maximize">
             <Setter Property="Background" Value="#28C940" />
         </Style>
@@ -214,6 +209,7 @@
         </DataTemplate>
     </Window.DataTemplates>
 
+    <!-- Main Layout -->
     <Grid x:Name="MainContentGrid">
 
         <!-- Background Blur Effect -->
@@ -254,7 +250,7 @@
                                   OffsetY="2" />
             </Border.Effect>
 
-            <!-- Main Layout Grid -->
+            <!-- Main Content Grid -->
             <Grid RowDefinitions="Auto,Auto,*,Auto"
                   RowSpacing="{StaticResource HeaderSpacing}">
 
@@ -302,7 +298,7 @@
                     </reactiveUi:RoutedViewHost>
                 </Border>
 
-                <!-- Footer Section (Moved from WelcomeView) -->
+                <!-- Footer Section -->
                 <StackPanel Grid.Row="3"
                             Classes="footer-section">
 
