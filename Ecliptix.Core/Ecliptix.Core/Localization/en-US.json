@@ -1,0 +1,33 @@
+{
+  "Authentication": {
+    "Registration": {
+      "phoneVerification": {
+        "title": "Creating new account",
+        "description": "Confirm your phone number. We'll send you a verification code via SMS.",
+        "hint": "Start with country code.",
+        "watermark": "Mobile Number",
+        "button": "Continue",
+        "error": {
+          "invalidFormat": "Invalid format. Use +countrycode followed by number (e.g., +12025550123)."
+        }
+      },
+      "verificationCodeEntry": {
+        "title": "Verify your number",
+        "description": "We have sent a code to your phone to verify your identity.",
+        "hint": "Enter verification code",
+        "expiration": "Code expires in: {0}",
+        "error": {
+          "invalidCode": "Invalid code"
+        },
+        "button": {
+          "verify": "Verify",
+          "resend": "Resend Code"
+        }
+      }
+    }
+  },
+  "Welcome": {
+    "signIn": "Sign in",
+    "createAccount": "Create account"
+  }
+}

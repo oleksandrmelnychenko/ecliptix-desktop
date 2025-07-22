@@ -8,8 +8,8 @@
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="400"
-             x:Class="Ecliptix.Core.Views.Memberships.SignUp.PhoneVerificationView"
-             x:DataType="signUp:PhoneVerificationViewModel"
+             x:Class="Ecliptix.Core.Views.Memberships.SignUp.MobileVerificationView"
+             x:DataType="signUp:MobileVerificationViewModel"
              MinWidth="320"
              Width="320">
 
@@ -91,12 +91,12 @@
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="Creating new account"
+            <TextBlock Text="{Binding LocalizationService[Authentication.Registration.phoneVerification.title]}"
                        FontSize="{StaticResource SubtitleFontSize}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
-            <TextBlock Text="Confirm your mobile number. We'll send you a verification code via SMS."
+            <TextBlock Text="{Binding LocalizationService[Authentication.Registration.phoneVerification.description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource TitleFontSize}"
                        LineHeight="28"
@@ -109,8 +109,8 @@
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
-            Watermark="Mobile Number"
-            Hint="Start with country code."
+            Watermark="{Binding LocalizationService[Authentication.Registration.phoneVerification.watermark]}"
+            Hint="{Binding LocalizationService[Authentication.Registration.phoneVerification.hint]}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
@@ -118,7 +118,7 @@
             FocusBorderBrush="{DynamicResource TipsColor}"
             ValidationType="PhoneNumber"
             MainBorderBrush="Transparent"
-            Text="{Binding PhoneNumber}"
+            Text="{Binding MobileNumber,Mode=TwoWay}"
             Height="{StaticResource InputHeight}"
             CornerRadius="{StaticResource InputCornerRadius}"
             FontSize="{StaticResource InputFontSize}"
@@ -129,7 +129,7 @@
 
         <!-- Continue Button -->
         <Button Grid.Row="2"
-                Content="Continue"
+                Content="{Binding LocalizationService[Authentication.Registration.phoneVerification.button]}"
                 Command="{Binding NavToVerifyOtp}"
                 Classes="auth-button continue-button" />
     </Grid>

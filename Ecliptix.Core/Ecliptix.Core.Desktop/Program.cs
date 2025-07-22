@@ -245,7 +245,7 @@ public static class Program
     {
         services.AddTransient<MembershipHostWindowModel>();
         services.AddTransient<SignInViewModel>();
-        services.AddTransient<PhoneVerificationViewModel>();
+        services.AddTransient<MobileVerificationViewModel>();
         services.AddTransient<VerificationCodeEntryViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<PasswordConfirmationViewModel>();

@@ -18,7 +18,7 @@ public class AppViewLocator : IViewLocator
     {
         SignInViewModel context => new SignInView { DataContext = context },
         WelcomeViewModel context => new WelcomeView { DataContext = context },
-        PhoneVerificationViewModel context => new PhoneVerificationView { DataContext = context },
+        MobileVerificationViewModel context => new MobileVerificationView { DataContext = context },
         VerificationCodeEntryViewModel context => new VerificationCodeEntryView { DataContext = context },
         PasswordConfirmationViewModel context => new PasswordConfirmationView { DataContext = context },
         PassPhaseViewModel context => new PassPhaseView { DataContext = context },
