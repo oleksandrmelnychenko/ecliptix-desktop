@@ -5,26 +5,109 @@
              xmlns:registration="clr-namespace:Ecliptix.Core.ViewModels.Authentication.Registration"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:signUp="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignUp"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="signUp:VerificationCodeEntryViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignUp.VerificationCodeEntryView">
     
+     <UserControl.Resources>
+        <!-- Layout Dimensions -->
+        <x:Double x:Key="ButtonHeight">44</x:Double>
+        <x:Double x:Key="ButtonFontSize">14</x:Double>
+        <x:Double x:Key="TitleFontSize">22</x:Double>
+        <x:Double x:Key="SubtitleFontSize">17</x:Double>
+        <x:Double x:Key="HeaderMaxWidth">280</x:Double>
+
+        <!-- Spacing -->
+        <x:Double x:Key="SectionSpacing">24</x:Double>
+        <x:Double x:Key="HeaderSpacing">7</x:Double>
+        <x:Double x:Key="ButtonSpacing">10</x:Double>
+
+        <!-- UI Elements -->
+        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
+
+        <!-- Button Colors -->
+        <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
+        <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
+        <Color x:Key="DarkButtonHoverColor">#262626</Color>
+        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
+
+        <!-- Animation Durations -->
+        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- Base Button Style -->
+        <Style Selector="Button.auth-button">
+            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
+                                     Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
+                                      Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.auth-button:pressed">
+            <Setter Property="Opacity" Value="0.9" />
+        </Style>
+
+        <!-- Recovery Button (Light Gray) -->
+        <Style Selector="Button.recovery-button">
+            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource LightButtonForegroundColor}" />
+        </Style>
+
+        <Style Selector="Button.recovery-button:pointerover">
+            <Setter Property="Background" Value="{StaticResource GrayButtonHoverColor}" />
+        </Style>
+
+        <Style Selector="Button.recovery-button:pressed">
+            <Setter Property="Background" Value="{StaticResource GrayButtonPressedColor}" />
+        </Style>
+
+        <!-- Continue Button (Dark) -->
+        <Style Selector="Button.continue-button">
+            <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
+        </Style>
+
+        <Style Selector="Button.continue-button:pointerover">
+            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
+        </Style>
+
+        <Style Selector="Button.continue-button:pressed">
+            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
+        </Style>
+    </UserControl.Styles>
     
-   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
-       <StackPanel Grid.Row="0" Spacing="8" MaxWidth="240" HorizontalAlignment="Left">
-           <TextBlock Text="Verify you number"
-                      FontSize="14"
-                      FontWeight="Light"
-                      Foreground="{DynamicResource TextForegroundColor}" 
-                      LetterSpacing="-0.5"
-                      LineHeight="25"
-           />
-           <TextBlock Text="We have sent a code to your phone to verify your identity."
-                      TextWrapping="Wrap"
-                      FontSize="20"
-                      LineHeight="28"
-                      FontWeight="Light"
-                      Foreground="{DynamicResource TextForegroundColor}" />
+   <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+       <StackPanel 
+           Grid.Row="0" 
+           Spacing="{StaticResource HeaderSpacing}" 
+           MaxWidth="{StaticResource HeaderMaxWidth}" 
+           HorizontalAlignment="Left">
+           <TextBlock 
+               Text="Verify your number"
+               FontSize="{StaticResource SubtitleFontSize}"
+               FontWeight="Light"
+               Foreground="{DynamicResource TextForegroundColor}"
+               LineHeight="25" />
+           <TextBlock 
+               Text="We have sent a code to your phone to verify your identity."
+               TextWrapping="Wrap"
+               FontSize="{StaticResource TitleFontSize}"
+               LineHeight="28"
+               FontWeight="Light"
+               Foreground="{DynamicResource TextForegroundColor}" />
        </StackPanel>
        
        <controls:SegmentedTextBox Grid.Row="1"
@@ -40,61 +123,34 @@
                                   AllowOnlyNumbers="True"
                                   Value="{Binding VerificationCode, Mode=TwoWay}"/>
        
-       <!-- <controls:HintedTextBox -->
-       <!--     Grid.Row="1" -->
-       <!--     x:Name="VerificationCodeTextBox" -->
-       <!--     Watermark="######" -->
-       <!--     Hint="Enter the verification code" -->
-       <!--     TextForeground="{DynamicResource TextBoxForegroundColor}" -->
-       <!--     HintForeground="{DynamicResource TipsColor}" -->
-       <!--     IconRegularSource="{DynamicResource LampIconDrawingRegular}" -->
-       <!--     IconErrorSource="{DynamicResource LampIconDrawingError}"             ValidationType="PhoneNumber" -->
-       <!--     MainBorderBrush="Transparent" -->
-       <!--     Text="{Binding VerificationCode}" -->
-       <!--     Height="90" -->
-       <!--     CornerRadius="5" -->
-       <!--     FontSize="18" -->
-       <!--     Background="{DynamicResource TextBoxBackgroundColor}" -->
-       <!--     FontWeight="Light" -->
-       <!-- /> -->
-        
-        <Grid RowDefinitions="Auto,Auto"
-              ColumnDefinitions="*, Auto"
-              Grid.Row="2 ">
-            
-            <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
-            <TextBlock x:Name="ExpirationTextBlock" Text="{Binding Expiration}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
-            <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
-        </Grid>
+       <Grid RowDefinitions="Auto,Auto"
+             ColumnDefinitions="*, Auto"
+             Grid.Row="2 ">
+                
+           <TextBlock Text="{Binding RemainingTime}" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Left" />
+           <TextBlock x:Name="ExpirationTextBlock" Text="{Binding Expiration}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" />
+           <TextBlock Text="{Binding ErrorMessage}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Foreground="Red" HorizontalAlignment="Center" />
+       </Grid>
 
-        <Button Grid.Row="3" 
-                Content="Verify" 
-                Command="{Binding SendVerificationCodeCommand}"
-                IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}" 
-                Background="{DynamicResource DarkButtonColor}"
-                Foreground="{DynamicResource DarkButtonForegroundColor}"
-                FontWeight="Regular"
-                FontSize="14"
-                CornerRadius="15" 
-                BorderThickness="0"
-                HorizontalAlignment="Stretch"
-                Height="45"
-                />
+       <Grid 
+           Grid.Row="3" 
+           ColumnDefinitions="*, *"
+           ColumnSpacing="{StaticResource ButtonSpacing}">
+           <Button
+               Content="Resend Code"
+               IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
+               Command="{Binding ResendSendVerificationCodeCommand}"
+               Classes="auth-button recovery-button" />
 
-        <Button Grid.Row="4" 
-                Content="Resend Code"
-                IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
-                Command="{Binding ResendSendVerificationCodeCommand}" 
-                Background="{DynamicResource LightButtonColor}"
-                Foreground="{DynamicResource LightButtonForegroundColor}"
-                FontWeight="Regular"
-                FontSize="14"
-                CornerRadius="15" 
-                BorderThickness="0"
-                HorizontalAlignment="Stretch"
-                Height="45"/>
-        
-        <Button Grid.Row="5" Command="{Binding NavToPasswordConfirmation}" Content="Navigate next test"/>
+           <Button Grid.Column="1"
+                   Content="Verify"
+                   Command="{Binding SendVerificationCodeCommand}"
+                   IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
+                   Classes="auth-button continue-button" />
+       </Grid>
+       
+        <Button Grid.Row="4" Command="{Binding NavToPasswordConfirmation}" Content="Navigate next test"/>
+       
     </Grid>
    
 </UserControl>

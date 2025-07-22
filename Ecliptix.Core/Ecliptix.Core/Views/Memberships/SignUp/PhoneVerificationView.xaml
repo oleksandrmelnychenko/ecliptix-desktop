@@ -81,7 +81,6 @@
                        FontSize="{StaticResource TitleFontSize}"
                        FontWeight="Medium"
                        Foreground="{DynamicResource TextForegroundColor}"
-                       LetterSpacing="-0.3"
                        LineHeight="22" />
             <TextBlock Text="Please confirm you phone number to continue."
                        TextWrapping="Wrap"
