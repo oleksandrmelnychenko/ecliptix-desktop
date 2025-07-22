@@ -1,101 +1,143 @@
+using System;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Linq;
+using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.ViewModels;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.LanguageSwitcher;
 
-public partial class LanguageSwitcherViewModel : ObservableObject
+public sealed class LanguageSwitcherViewModel : ViewModelBase, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
+    private readonly ObservableAsPropertyHelper<bool> _isEnglish;
+    private readonly ObservableAsPropertyHelper<string> _currentLanguageCode;
+    private readonly ObservableAsPropertyHelper<int> _activeSegmentIndex;
+    private LanguageItem _selectedLanguage;
 
-    [ObservableProperty] private bool _isEnglish = true;
+    public ViewModelActivator Activator { get; } = new();
 
-    [ObservableProperty] private LanguageItem _selectedLanguage;
+    public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
+    [
+        new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
+        new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
+        // Easy to add more:
+        // new("de-DE", "DE", "avares://Ecliptix.Core/Assets/Flags/germany_flag.svg"),
+        // new("fr-FR", "FR", "avares://Ecliptix.Core/Assets/Flags/france_flag.svg"),
+        // new("es-ES", "ES", "avares://Ecliptix.Core/Assets/Flags/spain_flag.svg"),
+    ];
 
-    public ObservableCollection<LanguageItem> AvailableLanguages { get; }
+    public bool IsEnglish => _isEnglish.Value;
+    public string CurrentLanguageCode => _currentLanguageCode.Value;
+    public int ActiveSegmentIndex => _activeSegmentIndex.Value;
 
-    public string CurrentLanguageCode => IsEnglish ? "EN" : "UA";
-    public string CurrentLanguageFlag => IsEnglish ? "🇺🇸" : "🇺🇦";
-    public int ActiveSegmentIndex => IsEnglish ? 0 : 1;
+    public LanguageItem SelectedLanguage
+    {
+        get => _selectedLanguage;
+        set => this.RaiseAndSetIfChanged(ref _selectedLanguage, value);
+    }
 
-    public ICommand ToggleLanguageCommand { get; }
-    public ICommand SetEnglishCommand { get; }
-    public ICommand SetUkrainianCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
+    public ReactiveCommand<Unit, Unit> SetEnglishCommand { get; }
+    public ReactiveCommand<Unit, Unit> SetUkrainianCommand { get; }
 
     public LanguageSwitcherViewModel(ILocalizationService localizationService)
     {
         _localizationService = localizationService;
+        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
 
-        AvailableLanguages =
-        [
-            new LanguageItem("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
-            new LanguageItem("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
-        ];
+        IObservable<string> languageChanges = CreateLanguageObservable();
 
-        _selectedLanguage = AvailableLanguages[0];
-        IsEnglish = _localizationService.CurrentCultureName == "en-US";
+        _isEnglish = languageChanges
+            .Select(culture => culture == "en-US")
+            .ToProperty(this, x => x.IsEnglish);
 
-        ToggleLanguageCommand = new RelayCommand(ToggleLanguage);
-        SetEnglishCommand = new RelayCommand(SetEnglish);
-        SetUkrainianCommand = new RelayCommand(SetUkrainian);
+        _currentLanguageCode = languageChanges
+            .Select(culture => GetLanguageByCode(culture)?.DisplayName ?? "??")
+            .ToProperty(this, x => x.CurrentLanguageCode);
 
-        _localizationService.LanguageChanged += OnLanguageChanged;
+        _activeSegmentIndex = languageChanges
+            .Select(GetLanguageIndex)
+            .ToProperty(this, x => x.ActiveSegmentIndex);
+
+        ToggleLanguageCommand = ReactiveCommand.Create(ToggleLanguage);
+
+        SetEnglishCommand = ReactiveCommand.Create(
+            () => _localizationService.SetCulture("en-US"),
+            this.WhenAnyValue(x => x.IsEnglish).Select(isEnglish => !isEnglish));
+
+        SetUkrainianCommand = ReactiveCommand.Create(
+            () => _localizationService.SetCulture("uk-UA"),
+            this.WhenAnyValue(x => x.IsEnglish));
+
+        SetupReactiveBindings(languageChanges);
+    }
+
+    private LanguageItem? GetLanguageByCode(string cultureCode) =>
+        AvailableLanguages.FirstOrDefault(lang => lang.Code == cultureCode);
+
+    private int GetLanguageIndex(string cultureCode)
+    {
+        for (int i = 0; i < AvailableLanguages.Count; i++)
+        {
+            if (AvailableLanguages[i].Code == cultureCode)
+            {
+                return i;
+            }
+        }
+
+        return 0; 
     }
 
     private void ToggleLanguage()
     {
-        if (IsEnglish)
-        {
-            SetUkrainian();
-        }
-        else
-        {
-            SetEnglish();
-        }
+        int currentIndex = GetLanguageIndex(_localizationService.CurrentCultureName);
+        int nextIndex = (currentIndex + 1) % AvailableLanguages.Count;
+        _localizationService.SetCulture(AvailableLanguages[nextIndex].Code);
     }
 
-    private void SetEnglish()
+    private IObservable<string> CreateLanguageObservable() =>
+        Observable.Create<string>(observer =>
+            {
+                _localizationService.LanguageChanged += Handler;
+                observer.OnNext(_localizationService.CurrentCultureName);
+
+                return Disposable.Create(() => _localizationService.LanguageChanged -= Handler);
+
+                void Handler() => observer.OnNext(_localizationService.CurrentCultureName);
+            })
+            .DistinctUntilChanged();
+
+    private void SetupReactiveBindings(IObservable<string> languageChanges)
     {
-        if (!IsEnglish)
+        this.WhenActivated(disposables =>
         {
-            _localizationService.SetCulture("en-US");
-            IsEnglish = true;
-            SelectedLanguage = AvailableLanguages[0];
-            OnPropertyChanged(nameof(CurrentLanguageCode));
-            OnPropertyChanged(nameof(CurrentLanguageFlag));
-            OnPropertyChanged(nameof(ActiveSegmentIndex));
-        }
+            languageChanges
+                .Select(culture => GetLanguageByCode(culture) ?? AvailableLanguages[0])
+                .BindTo(this, x => x.SelectedLanguage)
+                .DisposeWith(disposables);
+
+            this.WhenAnyValue(x => x.SelectedLanguage)
+                .Where(item => item.Code != _localizationService.CurrentCultureName)
+                .Subscribe(item => _localizationService.SetCulture(item.Code))
+                .DisposeWith(disposables);
+        });
     }
 
-    private void SetUkrainian()
+    protected override void Dispose(bool disposing)
     {
-        if (IsEnglish)
+        if (disposing)
         {
-            _localizationService.SetCulture("uk-UA");
-            IsEnglish = false;
-            SelectedLanguage = AvailableLanguages[1];
-            OnPropertyChanged(nameof(CurrentLanguageCode));
-            OnPropertyChanged(nameof(CurrentLanguageFlag));
-            OnPropertyChanged(nameof(ActiveSegmentIndex));
+            _isEnglish.Dispose();
+            _currentLanguageCode.Dispose();
+            _activeSegmentIndex.Dispose();
+            Activator?.Dispose();
         }
-    }
 
-    private void OnLanguageChanged()
-    {
-        IsEnglish = _localizationService.CurrentCultureName == "en-US";
-        OnPropertyChanged(nameof(CurrentLanguageCode));
-        OnPropertyChanged(nameof(CurrentLanguageFlag));
-        OnPropertyChanged(nameof(ActiveSegmentIndex));
-    }
-
-    partial void OnSelectedLanguageChanged(LanguageItem value)
-    {
-        if (value != null)
-        {
-            _localizationService.SetCulture(value.Code);
-        }
+        base.Dispose(disposing);
     }
 }
 

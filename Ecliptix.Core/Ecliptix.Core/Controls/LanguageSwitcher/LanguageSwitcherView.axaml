@@ -247,6 +247,7 @@
                     
                     <TextBlock Text="{Binding DisplayName}"
                                FontWeight="Light"
+                               FontSize="12"
                                VerticalAlignment="Center" />
                 </StackPanel>
             </DataTemplate>
