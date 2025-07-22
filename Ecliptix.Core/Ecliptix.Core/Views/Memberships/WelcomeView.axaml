@@ -166,8 +166,7 @@
                     Command="{Binding NavToSignInCommand}"
                     HorizontalAlignment="Stretch"
                     Foreground="{DynamicResource LightButtonForegroundColor}"
-                    Classes="signin-button"
-                    ToolTip.Tip="Sign in to your existing account" />
+                    Classes="signin-button" />
 
             <!-- Create Account Button -->
             <Button Grid.Column="1"
@@ -175,8 +174,7 @@
                     Content="Create account"
                     HorizontalAlignment="Stretch"
                     Command="{Binding NavToCreateAccountCommand}"
-                    Classes="create-account-button"
-                    ToolTip.Tip="Create a new account" />
+                    Classes="create-account-button" />
         </Grid>
     </StackPanel>
 </UserControl>

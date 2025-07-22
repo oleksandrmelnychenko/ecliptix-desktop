@@ -129,6 +129,7 @@
                 Height="50"
                 CornerRadius="30"
                 BorderBrush="Transparent"
+                Cursor="Hand"
                 BorderThickness="0"
                 Command="{Binding Router.NavigateBack}"
                 Margin="30 80 0 0"
@@ -141,7 +142,6 @@
                    Height="20"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center" />
-
         </Button>
 
         <Border Background="#ffffff"
@@ -171,9 +171,10 @@
                      Width="120"
                      Height="120"
                      HorizontalAlignment="Center" />
+
                 <reactiveUi:RoutedViewHost Grid.Row="2"
                                            Router="{Binding Router}"
-                                           Margin="0,16,0,0"
+                                           Margin="0,16,0,16"
                                            Background="Transparent"
                                            MaxWidth="366"
                                            MinHeight="200"
@@ -198,14 +199,13 @@
                     </reactiveUi:RoutedViewHost.DefaultContent>
                 </reactiveUi:RoutedViewHost>
 
-                <Grid Grid.Row="3">
+                <Grid Grid.Row="3" Margin="0,0,0,16">
                     <TextBlock HorizontalAlignment="Center"
                                FontWeight="Normal"
                                FontSize="13"
                                Foreground="{DynamicResource FooterTextColor}"
                                VerticalAlignment="Bottom"
-                               Text="© Horizon Dynamics 2025"
-                               Margin="0,0,0,10">
+                               Text="© Horizon Dynamics 2025">
                     </TextBlock>
                 </Grid>
             </Grid>
