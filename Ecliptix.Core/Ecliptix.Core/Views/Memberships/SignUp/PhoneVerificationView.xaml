@@ -14,22 +14,23 @@
              Width="320">
 
     <UserControl.Resources>
-        <!-- Layout Dimensions (keeping your original values) -->
-        <x:Double x:Key="ButtonHeight">45</x:Double>
-        <x:Double x:Key="InputHeight">90</x:Double>
-        <x:Double x:Key="InputFontSize">18</x:Double>
+        <!-- Balanced Layout Dimensions -->
+        <x:Double x:Key="ButtonHeight">44</x:Double>
+        <x:Double x:Key="InputHeight">78</x:Double>
+        <x:Double x:Key="InputFontSize">16</x:Double>
+        <x:Double x:Key="WatermarkFontSize">15</x:Double>
         <x:Double x:Key="ButtonFontSize">14</x:Double>
-        <x:Double x:Key="TitleFontSize">14</x:Double>
-        <x:Double x:Key="SubtitleFontSize">20</x:Double>
-        <x:Double x:Key="HeaderMaxWidth">240</x:Double>
+        <x:Double x:Key="TitleFontSize">15</x:Double>
+        <x:Double x:Key="SubtitleFontSize">18</x:Double>
+        <x:Double x:Key="HeaderMaxWidth">260</x:Double>
 
-        <!-- Spacing (keeping your original spacing) -->
-        <x:Double x:Key="SectionSpacing">15</x:Double>
-        <x:Double x:Key="HeaderSpacing">8</x:Double>
+        <!-- Balanced Spacing -->
+        <x:Double x:Key="SectionSpacing">18</x:Double>
+        <x:Double x:Key="HeaderSpacing">6</x:Double>
 
-        <!-- Corner Radius (keeping your original values) -->
-        <CornerRadius x:Key="InputCornerRadius">5</CornerRadius>
-        <CornerRadius x:Key="ButtonCornerRadius">15</CornerRadius>
+        <!-- Corner Radius -->
+        <CornerRadius x:Key="InputCornerRadius">12</CornerRadius>
+        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
 
         <!-- Transitions -->
         <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.3</system:TimeSpan>
@@ -39,7 +40,7 @@
         <!-- Button Base Style -->
         <Style Selector="Button.auth-button">
             <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="FontWeight" Value="Regular" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
@@ -64,33 +65,33 @@
         </Style>
     </UserControl.Styles>
 
-    <!-- Main Grid (keeping your original structure but ensuring consistent width) -->
+    <!-- Main Grid with consistent proportions -->
     <Grid VerticalAlignment="Center"
           RowSpacing="{StaticResource SectionSpacing}"
           RowDefinitions="Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="320">
 
-        <!-- Header Section (keeping your exact text design) -->
+        <!-- Header Section with balanced typography -->
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
             <TextBlock Text="Verify Phone Number"
                        FontSize="{StaticResource TitleFontSize}"
-                       FontWeight="Light"
+                       FontWeight="Medium"
                        Foreground="{DynamicResource TextForegroundColor}"
-                       LetterSpacing="-0.5"
-                       LineHeight="25" />
+                       LetterSpacing="-0.3"
+                       LineHeight="22" />
             <TextBlock Text="Please confirm you phone number to continue."
                        TextWrapping="Wrap"
                        FontSize="{StaticResource SubtitleFontSize}"
-                       LineHeight="28"
+                       LineHeight="24"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}" />
         </StackPanel>
 
-        <!-- Mobile Number Input (keeping your exact design) -->
+        <!-- Mobile Number Input with balanced proportions -->
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
@@ -107,11 +108,12 @@
             Height="{StaticResource InputHeight}"
             CornerRadius="{StaticResource InputCornerRadius}"
             FontSize="{StaticResource InputFontSize}"
+            WatermarkFontSize="{StaticResource WatermarkFontSize}"
             Background="{DynamicResource TextBoxBackgroundColor}"
-            FontWeight="Light"
+            FontWeight="Regular"
             HorizontalAlignment="Stretch" />
 
-        <!-- Continue Button (keeping your exact design) -->
+        <!-- Continue Button -->
         <Button Grid.Row="3"
                 Content="Continue"
                 Command="{Binding NavToVerifyOtp}"

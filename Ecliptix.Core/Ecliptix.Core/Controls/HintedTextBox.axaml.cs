@@ -81,7 +81,12 @@ public partial class HintedTextBox : UserControl
 
     public new static readonly StyledProperty<double> FontSizeProperty =
         AvaloniaProperty.Register<HintedTextBox, double>(
-            nameof(FontSize), 14.0);
+            nameof(FontSize), 16.0);
+
+    // New property for watermark font size
+    public static readonly StyledProperty<double> WatermarkFontSizeProperty =
+        AvaloniaProperty.Register<HintedTextBox, double>(
+            nameof(WatermarkFontSize), 15.0);
 
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
@@ -123,6 +128,12 @@ public partial class HintedTextBox : UserControl
     {
         get => GetValue(FontSizeProperty);
         set => SetValue(FontSizeProperty, value);
+    }
+
+    public double WatermarkFontSize
+    {
+        get => GetValue(WatermarkFontSizeProperty);
+        set => SetValue(WatermarkFontSizeProperty, value);
     }
 
     public new IBrush Background
