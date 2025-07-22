@@ -2,12 +2,52 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="78"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             mc:Ignorable="d"
+             d:DesignWidth="320"
+             d:DesignHeight="78"
              x:Class="Ecliptix.Core.Controls.HintedTextBox"
              x:Name="control">
 
+    <UserControl.Resources>
+        <!-- Layout Dimensions -->
+        <x:Double x:Key="MinControlHeight">56</x:Double>
+        <x:Double x:Key="MinTextBoxHeight">28</x:Double>
+        <x:Double x:Key="IconSize">16</x:Double>
+        <x:Double x:Key="ScrollBarThumbWidth">10</x:Double>
+        <x:Double x:Key="CounterFontSize">11</x:Double>
+        <x:Double x:Key="HintFontSize">12</x:Double>
+
+        <!-- Border Thickness (Fixed to use Thickness type) -->
+        <Thickness x:Key="FocusBorderThickness">1.5</Thickness>
+        <Thickness x:Key="MainBorderThickness">0.5</Thickness>
+
+        <!-- Spacing and Margins -->
+        <Thickness x:Key="MainBorderMargin">0.75</Thickness>
+        <Thickness x:Key="InnerPanelMargin">14,12,12,12</Thickness>
+        <Thickness x:Key="TextBoxMargin">0,0,12,0</Thickness>
+        <Thickness x:Key="CounterMargin">0,8,0,0</Thickness>
+        <Thickness x:Key="HintSectionMargin">0,6,0,0</Thickness>
+        <Thickness x:Key="IconMargin">0,0,6,0</Thickness>
+
+        <!-- Corner Radius -->
+        <CornerRadius x:Key="ScrollBarThumbRadius">5</CornerRadius>
+
+        <!-- Transitions -->
+        <system:TimeSpan x:Key="OpacityTransitionDuration">0:0:0.25</system:TimeSpan>
+        <system:TimeSpan x:Key="SlowOpacityTransition">0:0:0.3</system:TimeSpan>
+        <system:TimeSpan x:Key="VerySlowOpacityTransition">0:0:0.4</system:TimeSpan>
+        <system:TimeSpan x:Key="BrushTransitionDuration">0:0:0.25</system:TimeSpan>
+
+        <!-- Colors -->
+        <Color x:Key="ErrorForegroundColor">#ef3a3a</Color>
+        <Color x:Key="ScrollBarThumbColor">Red</Color>
+        <Color x:Key="ScrollBarThumbHoverColor">#AA0000</Color>
+        <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
+    </UserControl.Resources>
+
     <UserControl.Styles>
-        <!-- Enhanced Watermark Style with separate font size -->
+        <!-- Watermark Styling -->
         <Style Selector="TextBox#MainTextBox /template/ TextBlock#PART_Watermark">
             <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
             <Setter Property="Opacity" Value="0.7" />
@@ -15,10 +55,12 @@
             <Setter Property="FontWeight" Value="Regular" />
         </Style>
 
+        <!-- TextBox Focus Styling -->
         <Style Selector="TextBox#MainTextBox">
             <Setter Property="FocusAdorner" Value="{x:Null}" />
         </Style>
 
+        <!-- Custom ScrollBar Styling -->
         <Style Selector="TextBox#MainTextBox ScrollBar:vertical">
             <Setter Property="Width" Value="0" />
             <Setter Property="Background" Value="Transparent" />
@@ -32,12 +74,13 @@
                                ViewportSize="{TemplateBinding ViewportSize}">
                             <Track.Thumb>
                                 <Thumb Name="PART_Thumb"
-                                       Background="Red"
-                                       Width="10"
-                                       CornerRadius="5">
+                                       Background="{StaticResource ScrollBarThumbColor}"
+                                       Width="{StaticResource ScrollBarThumbWidth}"
+                                       CornerRadius="{StaticResource ScrollBarThumbRadius}">
                                     <Thumb.Styles>
                                         <Style Selector="Thumb:hover">
-                                            <Setter Property="Background" Value="#AA0000" />
+                                            <Setter Property="Background"
+                                                    Value="{StaticResource ScrollBarThumbHoverColor}" />
                                         </Style>
                                     </Thumb.Styles>
                                 </Thumb>
@@ -47,140 +90,163 @@
                 </ControlTemplate>
             </Setter>
         </Style>
+
+        <!-- Icon Styling -->
+        <Style Selector="Image.hint-icon">
+            <Setter Property="Width" Value="{StaticResource IconSize}" />
+            <Setter Property="Height" Value="{StaticResource IconSize}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="{StaticResource IconMargin}" />
+        </Style>
+
+        <!-- Hint Text Styling -->
+        <Style Selector="TextBlock.hint-text">
+            <Setter Property="FontSize" Value="{StaticResource HintFontSize}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <!-- Error Text Styling -->
+        <Style Selector="TextBlock.error-text">
+            <Setter Property="FontSize" Value="{StaticResource HintFontSize}" />
+            <Setter Property="Foreground" Value="{StaticResource ErrorForegroundColor}" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <!-- Counter Text Styling -->
+        <Style Selector="TextBlock.counter-text">
+            <Setter Property="FontSize" Value="{StaticResource CounterFontSize}" />
+            <Setter Property="Foreground" Value="{StaticResource CounterForegroundBrush}" />
+        </Style>
+
+        <!-- Section Container Styling -->
+        <Style Selector="StackPanel.hint-section">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="{StaticResource HintSectionMargin}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource SlowOpacityTransition}" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="StackPanel.error-section">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Margin" Value="{StaticResource HintSectionMargin}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="{Binding Background, ElementName=control}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource SlowOpacityTransition}" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="StackPanel.counter-section">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="{StaticResource CounterMargin}" />
+        </Style>
     </UserControl.Styles>
 
     <UserControl.Transitions>
         <Transitions>
-            <DoubleTransition Property="Opacity" Duration="0:0:0.4" />
+            <DoubleTransition Property="Opacity" Duration="{StaticResource VerySlowOpacityTransition}" />
         </Transitions>
     </UserControl.Transitions>
 
     <Grid>
-        <!-- Focus Border with enhanced styling -->
-        <Border
-            x:Name="FocusBorder"
-            BorderThickness="1.5"
-            BorderBrush="{Binding FocusBorderBrush, ElementName=control}"
-            Background="Transparent"
-            CornerRadius="{Binding CornerRadius, ElementName=control}"
-            Opacity="0">
+        <!-- Focus Border Layer -->
+        <Border x:Name="FocusBorder"
+                BorderThickness="{StaticResource FocusBorderThickness}"
+                BorderBrush="{Binding FocusBorderBrush, ElementName=control}"
+                Background="Transparent"
+                CornerRadius="{Binding CornerRadius, ElementName=control}"
+                Opacity="0">
             <Border.Transitions>
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource OpacityTransitionDuration}" />
+                    <BrushTransition Property="BorderBrush" Duration="{StaticResource BrushTransitionDuration}" />
                 </Transitions>
             </Border.Transitions>
         </Border>
 
-        <!-- Main Border with balanced proportions -->
-        <Border
-            x:Name="MainBorder"
-            Margin="0.75"
-            BorderThickness="0.5"
-            BorderBrush="{Binding MainBorderBrush, ElementName=control}"
-            CornerRadius="{Binding CornerRadius, ElementName=control}"
-            MinHeight="56"
-            Background="{Binding Background, ElementName=control}">
+        <!-- Main Content Border -->
+        <Border x:Name="MainBorder"
+                Margin="{StaticResource MainBorderMargin}"
+                BorderThickness="{StaticResource MainBorderThickness}"
+                BorderBrush="{Binding MainBorderBrush, ElementName=control}"
+                CornerRadius="{Binding CornerRadius, ElementName=control}"
+                MinHeight="{StaticResource MinControlHeight}"
+                Background="{Binding Background, ElementName=control}">
             <Border.Transitions>
                 <Transitions>
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
+                    <BrushTransition Property="BorderBrush" Duration="{StaticResource BrushTransitionDuration}" />
                 </Transitions>
             </Border.Transitions>
 
-            <!-- Optimized Inner Layout -->
-            <Panel Margin="14,12,12,12">
-                <Grid VerticalAlignment="Stretch" RowDefinitions="*,Auto">
+            <!-- Content Panel -->
+            <Panel Margin="{StaticResource InnerPanelMargin}">
+                <Grid VerticalAlignment="Stretch"
+                      RowDefinitions="*,Auto">
 
-                    <!-- Main Text Input Area -->
+                    <!-- Text Input Area -->
                     <Grid Grid.Row="0">
-                        <TextBox
-                            x:Name="MainTextBox"
-                            Watermark="{Binding Watermark, ElementName=control}"
-                            Text="{Binding Text, ElementName=control, Mode=TwoWay}"
-                            PasswordChar="{Binding PasswordChar, ElementName=control}"
-                            Foreground="{Binding TextForeground, ElementName=control}"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            Margin="0,0,12,0"
-                            VerticalAlignment="Center"
-                            HorizontalAlignment="Stretch"
-                            VerticalContentAlignment="Center"
-                            FontSize="{Binding FontSize, ElementName=control}"
-                            FontWeight="{Binding FontWeight, ElementName=control}"
-                            MinHeight="28"
-                            TextWrapping="{Binding TextWrapping, ElementName=control}"
-                            MaxLength="{Binding MaxLength, ElementName=control}" />
-                    </Grid>
+                        <!-- Main TextBox -->
+                        <TextBox x:Name="MainTextBox"
+                                 Watermark="{Binding Watermark, ElementName=control}"
+                                 Text="{Binding Text, ElementName=control, Mode=TwoWay}"
+                                 PasswordChar="{Binding PasswordChar, ElementName=control}"
+                                 Foreground="{Binding TextForeground, ElementName=control}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0"
+                                 Margin="{StaticResource TextBoxMargin}"
+                                 VerticalAlignment="Center"
+                                 HorizontalAlignment="Stretch"
+                                 VerticalContentAlignment="Center"
+                                 FontSize="{Binding FontSize, ElementName=control}"
+                                 FontWeight="{Binding FontWeight, ElementName=control}"
+                                 MinHeight="{StaticResource MinTextBoxHeight}"
+                                 TextWrapping="{Binding TextWrapping, ElementName=control}"
+                                 MaxLength="{Binding MaxLength, ElementName=control}" />
 
-                    <!-- Character Counter (when enabled) -->
-                    <StackPanel Grid.Row="0"
-                                x:Name="CounterPanel"
-                                Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Top"
-                                Margin="0,8,0,0"
-                                IsVisible="{Binding ShowCharacterCounter, ElementName=control}">
-                        <TextBlock Text="{Binding RemainingCharacters, ElementName=control}"
-                                   FontSize="11"
-                                   Foreground="Gray" />
-                    </StackPanel>
+                        <!-- Character Counter -->
+                        <StackPanel Grid.Row="0"
+                                    x:Name="CounterPanel"
+                                    Classes="counter-section"
+                                    IsVisible="{Binding ShowCharacterCounter, ElementName=control}">
+                            <TextBlock Text="{Binding RemainingCharacters, ElementName=control}"
+                                       Classes="counter-text" />
+                        </StackPanel>
+                    </Grid>
 
                     <!-- Hint Section (Normal State) -->
                     <StackPanel x:Name="HintStackPanel"
                                 Grid.Row="1"
-                                Orientation="Horizontal"
-                                Margin="0,6,0,0"
-                                VerticalAlignment="Center">
-                        <StackPanel.Transitions>
-                            <Transitions>
-                                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
-                            </Transitions>
-                        </StackPanel.Transitions>
-
-                        <Image Width="16"
-                               Height="16"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,6,0"
-                               Source="{Binding IconRegularSource, ElementName=control}" />
-
+                                Classes="hint-section">
+                        <Image Source="{Binding IconRegularSource, ElementName=control}"
+                               Classes="hint-icon" />
                         <TextBlock x:Name="HintTextBlock"
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
-                                   FontSize="12"
-                                   VerticalAlignment="Center"
-                                   IsHitTestVisible="False" />
+                                   Classes="hint-text" />
                     </StackPanel>
 
                     <!-- Error Section -->
                     <StackPanel Grid.Row="1"
-                                Orientation="Horizontal"
-                                Margin="0,6,0,0"
                                 x:Name="ErrorStackPanel"
-                                Opacity="{Binding EllipseOpacity, ElementName=control}"
-                                Background="{Binding Background, ElementName=control}"
-                                HorizontalAlignment="Stretch">
-                        <StackPanel.Transitions>
-                            <Transitions>
-                                <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
-                            </Transitions>
-                        </StackPanel.Transitions>
-
-                        <Image Width="16"
-                               Height="16"
-                               VerticalAlignment="Center"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,6,0"
-                               Source="{Binding IconErrorSource, ElementName=control}" />
-
-                        <TextBlock
-                            FontSize="12"
-                            Foreground="#ef3a3a"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            IsHitTestVisible="False"
-                            Text="{Binding ErrorText, ElementName=control}" />
+                                Classes="error-section"
+                                Opacity="{Binding EllipseOpacity, ElementName=control}">
+                        <Image Source="{Binding IconErrorSource, ElementName=control}"
+                               Classes="hint-icon" />
+                        <TextBlock Text="{Binding ErrorText, ElementName=control}"
+                                   Classes="error-text" />
                     </StackPanel>
                 </Grid>
             </Panel>
