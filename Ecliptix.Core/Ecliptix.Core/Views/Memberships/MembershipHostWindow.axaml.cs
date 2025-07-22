@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Controls;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
 

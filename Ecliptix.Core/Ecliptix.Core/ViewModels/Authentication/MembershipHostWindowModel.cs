@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.Reactive;
-using Avalonia.Media;
-using Ecliptix.Core.Controls;
+using Ecliptix.Core.Controls.LanguageSwitcher;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
@@ -11,8 +9,6 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
-using Ecliptix.Core.Views.Authentication.Registration;
-using Ecliptix.Core.Views.Memberships.SignUp;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
@@ -36,6 +32,8 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
 
+    public LanguageSwitcherViewModel LanguageSwitcher { get; }
+
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -43,6 +41,8 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     )
     {
         _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
+      
+        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService);
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
@@ -95,7 +95,8 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         {
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
             MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
-            MembershipViewType.PhoneVerification => new MobileVerificationViewModel(networkProvider, localizationService,
+            MembershipViewType.PhoneVerification => new MobileVerificationViewModel(networkProvider,
+                localizationService,
                 this),
             MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider,
                 localizationService, this),

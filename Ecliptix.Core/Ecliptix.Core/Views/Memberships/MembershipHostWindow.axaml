@@ -8,6 +8,7 @@
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
+        xmlns:languageSwitcher="clr-namespace:Ecliptix.Core.Controls.LanguageSwitcher"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -259,6 +260,14 @@
                                DisableMinimizeButton="False"
                                DisableCloseButton="False" />
 
+                <languageSwitcher:LanguageSwitcherView
+                    Grid.Row="0" 
+                    Name="LanguageSwitcherView"
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Top" 
+                    DataContext="{Binding LanguageSwitcher}"
+                    Margin="16" />
+                
                 <!-- Logo Section -->
                 <Border Grid.Row="1"
                         HorizontalAlignment="Center"

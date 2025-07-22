@@ -12,6 +12,7 @@ using DotNetEnv;
 using Ecliptix.Core.AppEvents;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Controls.LanguageSwitcher;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Core.Network.Providers;
@@ -215,6 +216,8 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<DeadlineInterceptor>();
         services.AddTransient<ResilienceInterceptor>();
+        services.AddTransient<LanguageSwitcherViewModel>();
+        services.AddTransient<LanguageSwitcherView>();
         
         ConfigureGrpc(services);
         ConfigureViewModels(services);
