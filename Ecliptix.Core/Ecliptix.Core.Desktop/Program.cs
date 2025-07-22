@@ -24,6 +24,7 @@ using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;

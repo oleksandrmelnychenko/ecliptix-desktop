@@ -2,12 +2,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
         xmlns:signIn="clr-namespace:Ecliptix.Core.Views.Memberships.SignIn"
         xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
+        xmlns:vm1="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
+        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -204,7 +205,7 @@
     </Window.Styles>
 
     <Window.DataTemplates>
-        <DataTemplate DataType="{x:Type vm:SignInViewModel}">
+        <DataTemplate DataType="{x:Type vm1:SignInViewModel}">
             <signIn:SignInView />
         </DataTemplate>
     </Window.DataTemplates>

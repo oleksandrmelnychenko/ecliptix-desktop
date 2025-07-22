@@ -1,18 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.Reactive;
-using Avalonia.Media;
-using Ecliptix.Core.Controls;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
-using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
-using Ecliptix.Core.Views.Authentication.Registration;
-using Ecliptix.Core.Views.Memberships.SignUp;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
@@ -101,7 +96,6 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
                 localizationService, this),
             MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider,
                 localizationService, this),
-            MembershipViewType.PassPhase => new PassPhaseViewModel(localizationService, this),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
     }

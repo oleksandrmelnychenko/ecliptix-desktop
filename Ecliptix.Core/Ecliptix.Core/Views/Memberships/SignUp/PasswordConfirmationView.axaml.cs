@@ -7,7 +7,7 @@ using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-namespace Ecliptix.Core.Views.Authentication.Registration;
+namespace Ecliptix.Core.Views.Memberships.SignUp;
 
 public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConfirmationViewModel>
 {
