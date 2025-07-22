@@ -23,11 +23,76 @@
           "verify": "Verify",
           "resend": "Resend Code"
         }
+      },
+      "nicknameInput": {
+        "title": "Enter your nickname",
+        "description": "This nickname will be visible to other users",
+        "hint": "Enter your nickname",
+        "watermark": "Nickname",
+        "button": "Confirm nickname"
+      },
+      "passwordConfirmation": {
+        "title": "Enter your password",
+        "description": "Make sure you have verified it",
+        "passwordHint": "Enter your password",
+        "verifyPasswordHint": "Re-enter your password",
+        "error": {
+          "passwordMismatch": "Passwords do not match"
+        },
+        "button": "Confirm password"
+      },
+      "passPhase": {
+        "title": "Enter your PIN code",
+        "description": "Provide a PIN code for secure authentication.",
+        "hint": "Enter your PIN code",
+        "watermark": "####",
+        "button": "Confirm PIN code"
       }
+    },
+    "SignIn": {
+      "title": "Sign in",
+      "welcome": "Welcome back! Your personalized experience awaits.",
+      "mobilePlaceholder": "Mobile Number",
+      "mobileHint": "Start with country code.",
+      "passwordPlaceholder": "Secure Key",
+      "passwordHint": "Stored only on your device",
+      "accountRecovery": "Account recovery",
+      "continue": "Continue"
     }
+  },
+  "SignIn": {
+    "Title": "Sign in",
+    "Welcome": "Welcome back! Your personalized experience awaits.",
+    "MobilePlaceholder": "Mobile Number",
+    "MobileHint": "Start with country code.",
+    "PasswordPlaceholder": "Secure Key",
+    "PasswordHint": "Stored only on your device",
+    "AccountRecovery": "Account recovery",
+    "Continue": "Continue"
   },
   "Welcome": {
     "signIn": "Sign in",
     "createAccount": "Create account"
+  },
+  "Footer": {
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "support": "Support",
+    "agreementText": "By continuing, you agree to our Terms and Privacy Policy",
+    "copyright": "© Horizon Dynamics 2025. All rights reserved."
+  },
+  "Navigation": {
+    "back": "Back",
+    "close": "Close",
+    "minimize": "Minimize",
+    "maximize": "Maximize"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "loadingView": "Loading View...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "ok": "OK"
   }
 }

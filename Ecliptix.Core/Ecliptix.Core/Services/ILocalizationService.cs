@@ -1,12 +1,12 @@
 using System;
 using System.Globalization;
+using System.ComponentModel;
 
 namespace Ecliptix.Core.Services;
 
-public interface ILocalizationService
+public interface ILocalizationService : INotifyPropertyChanged
 {
     string this[string key] { get; }
-    string GetString(string key, params object[] args);
     void SetCulture(string cultureName);
     CultureInfo CurrentCultureInfo { get; }
     string CurrentCultureName { get; }

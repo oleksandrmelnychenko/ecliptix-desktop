@@ -4,9 +4,9 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
+using Avalonia.Threading;
 using Ecliptix.Core.Settings;
 
 namespace Ecliptix.Core.Services;
@@ -170,16 +170,26 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
 
     private void OnLanguageChanged()
     {
-        LanguageChanged?.Invoke();
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            LanguageChanged?.Invoke();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => LanguageChanged?.Invoke());
+        }
     }
 
     private void NotifyAllPropertiesChanged()
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() =>
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]")));
+        }
     }
 }

@@ -1,5 +1,8 @@
 using System;
 using System.Buffers;
+using System.ComponentModel;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
@@ -21,21 +24,24 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
-public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     public string UrlPathSegment { get; } = "/sign-in";
     public ViewModelActivator Activator { get; } = new();
     public IScreen HostScreen { get; }
     private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
+
+    public ILocalizationService Localization => _localizationService;
+
     private SodiumSecureMemoryHandle? _securePasswordHandle;
-    
+
     private bool _isErrorVisible;
     private bool _isBusy;
     private bool _isPasswordSet;
     private string _phoneNumber;
     private string _errorMessage;
-    
+
     public SignInViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -43,25 +49,31 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
     {
         _networkProvider = networkProvider;
         _localizationService = localizationService;
-        HostScreen = hostScreen;
-        
-        // var canSignIn = this.WhenAnyValue(
-        //     x => x.PhoneNumber,
-        //     x => x.IsPasswordSet,
-        //     x => x.IsBusy,
-        //     (phone, hasPassword, busy) => 
-        //         !string.IsNullOrWhiteSpace(phone) && hasPassword && !busy);
 
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync/*, canSignIn*/);
-        
+        this.WhenActivated(disposables =>
+        {
+            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>(
+                    handler => _localizationService.PropertyChanged += handler,
+                    handler => _localizationService.PropertyChanged -= handler)
+                .Where(args => args.EventArgs.PropertyName == "Item[]")
+                .Subscribe(_ =>
+                {
+                    this.RaisePropertyChanged(nameof(Localization));
+                })
+                .DisposeWith(disposables);
+        });
+
+
+        HostScreen = hostScreen;
+
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync /*, canSignIn*/);
     }
-    
+
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
-    
-    
-    
+
+
     public string PhoneNumber
     {
         get => _phoneNumber;
@@ -91,19 +103,19 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
         get => _isPasswordSet;
         private set => this.RaiseAndSetIfChanged(ref _isPasswordSet, value);
     }
-    
+
     private void SetError(string message)
     {
         ErrorMessage = message;
         IsErrorVisible = true;
     }
-    
+
     private void ClearError()
     {
         ErrorMessage = string.Empty;
         IsErrorVisible = false;
     }
-    
+
     public void UpdatePassword(string? passwordText)
     {
         _securePasswordHandle?.Dispose();
@@ -126,7 +138,7 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
             SetError($"Error processing password: {result.UnwrapErr().Message}");
         }
     }
-    
+
     private static Result<
         SodiumSecureMemoryHandle,
         EcliptixProtocolFailure
@@ -179,7 +191,7 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
             }
         }
     }
-    
+
     private async Task SignInAsync()
     {
         IsBusy = true;
@@ -245,10 +257,10 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
 
                         Result<
                             (
-                                OpaqueSignInFinalizeRequest Request,
-                                byte[] SessionKey,
-                                byte[] ServerMacKey,
-                                byte[] TranscriptHash
+                            OpaqueSignInFinalizeRequest Request,
+                            byte[] SessionKey,
+                            byte[] ServerMacKey,
+                            byte[] TranscriptHash
                             ),
                             OpaqueFailure
                         > finalizationResult = clientOpaqueService.CreateSignInFinalizationRequest(
@@ -347,7 +359,6 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
                             "Sign-in process completed successfully. Session key established."
                         );
                         return finalizeResult;
-                        
                     }
                 );
 
@@ -355,6 +366,7 @@ public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableVie
             {
                 SetError($"Sign-in network request failed: {overallResult.UnwrapErr().Message}");
             }
+
             Console.WriteLine(
                 "Sign-in process completed unsuccessfully. Session key established."
             );

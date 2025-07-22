@@ -109,12 +109,12 @@
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="Sign in"
+            <TextBlock Text="{Binding Localization[SignIn.Title]}"
                        FontSize="{StaticResource SubtitleFontSize}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
-            <TextBlock Text="Welcome back! Your personalized experience awaits."
+            <TextBlock Text="{Binding Localization[SignIn.Welcome]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource TitleFontSize}"
                        LineHeight="28"
@@ -127,8 +127,8 @@
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
-            Watermark="Mobile Number"
-            Hint="Start with country code."
+            Watermark="{Binding Localization[SignIn.MobilePlaceholder]}"
+            Hint="{Binding Localization[SignIn.MobileHint]}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
@@ -150,8 +150,8 @@
             Grid.Row="2"
             x:Name="PasswordTextBox"
             Background="{DynamicResource TextBoxBackgroundColor}"
-            Watermark="Secure Key"
-            Hint="Stored only on your device"
+            Watermark="{Binding Localization[SignIn.PasswordPlaceholder]}"
+            Hint="{Binding Localization[SignIn.PasswordHint]}"
             CornerRadius="{StaticResource InputCornerRadius}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
@@ -164,21 +164,20 @@
             WatermarkFontSize="{StaticResource WatermarkFontSize}"
             Height="{StaticResource InputHeight}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" 
-            />
-        
+            HorizontalAlignment="Stretch" />
+
         <!-- Action Buttons -->
         <Grid Grid.Row="3"
               HorizontalAlignment="Stretch"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource ButtonSpacing}">
             <Button Grid.Column="0"
-                    Content="Account recovery"
+                    Content="{Binding Localization[SignIn.AccountRecovery]}"
                     Command="{Binding AccountRecoveryCommand}"
                     Classes="auth-button recovery-button" />
 
             <Button Grid.Column="1"
-                    Content="Continue"
+                    Content="{Binding Localization[SignIn.Continue]}"
                     Command="{Binding SignInCommand}"
                     Classes="auth-button continue-button" />
         </Grid>
