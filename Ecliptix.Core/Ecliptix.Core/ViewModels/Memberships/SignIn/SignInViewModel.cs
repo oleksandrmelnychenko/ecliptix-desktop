@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
@@ -19,25 +18,50 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
 using ShieldUnit = Ecliptix.Utilities.Unit;
-using Unit = System.Reactive.Unit;
-using Utilities = Ecliptix.Core.Network.Utilities;
 
-namespace Ecliptix.Core.ViewModels.Authentication;
+namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
-public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel, IRoutableViewModel
+public class SignInViewModel: ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
     public string UrlPathSegment { get; } = "/sign-in";
+    public ViewModelActivator Activator { get; } = new();
     public IScreen HostScreen { get; }
-
     private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
-    private string _phoneNumber = "+380970177443";
-    private string _errorMessage = string.Empty;
+    
     private bool _isErrorVisible;
     private bool _isBusy;
     private bool _isPasswordSet;
+    private string _phoneNumber;
+    private string _errorMessage;
+    
+    public SignInViewModel(
+        NetworkProvider networkProvider,
+        ILocalizationService localizationService,
+        IScreen hostScreen)
+    {
+        _networkProvider = networkProvider;
+        _localizationService = localizationService;
+        HostScreen = hostScreen;
+        
+        // var canSignIn = this.WhenAnyValue(
+        //     x => x.PhoneNumber,
+        //     x => x.IsPasswordSet,
+        //     x => x.IsBusy,
+        //     (phone, hasPassword, busy) => 
+        //         !string.IsNullOrWhiteSpace(phone) && hasPassword && !busy);
 
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync/*, canSignIn*/);
+        
+    }
+    
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
+
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
+    
+    
+    
     public string PhoneNumber
     {
         get => _phoneNumber;
@@ -67,37 +91,95 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         get => _isPasswordSet;
         private set => this.RaiseAndSetIfChanged(ref _isPasswordSet, value);
     }
-
-    public ReactiveCommand<Unit, Unit> SignInCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> AccountRecoveryCommand { get; }
-
-    public ViewModelActivator Activator { get; } = new();
-
-    public SignInViewModel(
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IScreen hostScreen
-    )
+    
+    private void SetError(string message)
     {
-        _networkProvider = networkProvider;
-        _localizationService = localizationService;
-        HostScreen = hostScreen;
-
-        /*
-        IObservable<bool> canExecuteSignIn = this.WhenAnyValue(
-            x => x.PhoneNumber, x => x => x.IsBusy,
-            (phone, busy) => !string.IsNullOrWhiteSpace(phone) && !busy);*/
-
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
-        AccountRecoveryCommand = ReactiveCommand.CreateFromTask(AccountRecoveryAsync);
+        ErrorMessage = message;
+        IsErrorVisible = true;
     }
-
-    private async Task AccountRecoveryAsync()
+    
+    private void ClearError()
     {
-        throw new NotImplementedException();
+        ErrorMessage = string.Empty;
+        IsErrorVisible = false;
     }
+    
+    public void UpdatePassword(string? passwordText)
+    {
+        _securePasswordHandle?.Dispose();
+        _securePasswordHandle = null;
+        IsPasswordSet = false;
+        ClearError();
 
+        if (string.IsNullOrEmpty(passwordText))
+            return;
+
+        Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result =
+            ConvertStringToSodiumHandle(passwordText);
+        if (result.IsOk)
+        {
+            _securePasswordHandle = result.Unwrap();
+            IsPasswordSet = true;
+        }
+        else
+        {
+            SetError($"Error processing password: {result.UnwrapErr().Message}");
+        }
+    }
+    
+    private static Result<
+        SodiumSecureMemoryHandle,
+        EcliptixProtocolFailure
+    > ConvertStringToSodiumHandle(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return SodiumSecureMemoryHandle.Allocate(0).MapSodiumFailure();
+
+        byte[]? rentedBuffer = null;
+        SodiumSecureMemoryHandle? newHandle = null;
+        int bytesWritten = 0;
+        try
+        {
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(text.Length);
+            rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteCount);
+            bytesWritten = Encoding.UTF8.GetBytes(text, 0, text.Length, rentedBuffer, 0);
+
+            var allocateResult = SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();
+            if (allocateResult.IsErr)
+                return allocateResult;
+
+            newHandle = allocateResult.Unwrap();
+            var writeResult = newHandle
+                .Write(rentedBuffer.AsSpan(0, bytesWritten))
+                .MapSodiumFailure();
+
+            if (writeResult.IsErr)
+            {
+                newHandle.Dispose();
+                return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                    writeResult.UnwrapErr()
+                );
+            }
+
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(newHandle);
+        }
+        catch (Exception ex)
+        {
+            newHandle?.Dispose();
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to convert string to secure handle.", ex)
+            );
+        }
+        finally
+        {
+            if (rentedBuffer != null)
+            {
+                rentedBuffer.AsSpan(0, bytesWritten).Clear();
+                ArrayPool<byte>.Shared.Return(rentedBuffer);
+            }
+        }
+    }
+    
     private async Task SignInAsync()
     {
         IsBusy = true;
@@ -261,7 +343,11 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
                                 }
                             );
 
+                        Console.WriteLine(
+                            "Sign-in process completed successfully. Session key established."
+                        );
                         return finalizeResult;
+                        
                     }
                 );
 
@@ -269,6 +355,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
             {
                 SetError($"Sign-in network request failed: {overallResult.UnwrapErr().Message}");
             }
+            Console.WriteLine(
+                "Sign-in process completed unsuccessfully. Session key established."
+            );
         }
         catch (Exception ex)
         {
@@ -276,6 +365,9 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
         }
         finally
         {
+            Console.WriteLine(
+                "Sign in ended."
+            );
             if (rentedPasswordBytes != null)
             {
                 rentedPasswordBytes.AsSpan().Clear();
@@ -284,114 +376,5 @@ public class SignInViewModel : ViewModelBase, IDisposable, IActivatableViewModel
 
             IsBusy = false;
         }
-    }
-
-    private void SetError(string message)
-    {
-        ErrorMessage = message;
-        IsErrorVisible = true;
-    }
-
-    private void ClearError()
-    {
-        ErrorMessage = string.Empty;
-        IsErrorVisible = false;
-    }
-
-    public void UpdatePassword(string? passwordText)
-    {
-        _securePasswordHandle?.Dispose();
-        _securePasswordHandle = null;
-        IsPasswordSet = false;
-        ClearError();
-
-        if (string.IsNullOrEmpty(passwordText))
-            return;
-
-        Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result =
-            ConvertStringToSodiumHandle(passwordText);
-        if (result.IsOk)
-        {
-            _securePasswordHandle = result.Unwrap();
-            IsPasswordSet = true;
-        }
-        else
-        {
-            SetError($"Error processing password: {result.UnwrapErr().Message}");
-        }
-    }
-
-    private static Result<
-        SodiumSecureMemoryHandle,
-        EcliptixProtocolFailure
-    > ConvertStringToSodiumHandle(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return SodiumSecureMemoryHandle.Allocate(0).MapSodiumFailure();
-
-        byte[]? rentedBuffer = null;
-        SodiumSecureMemoryHandle? newHandle = null;
-        int bytesWritten = 0;
-        try
-        {
-            int maxByteCount = Encoding.UTF8.GetMaxByteCount(text.Length);
-            rentedBuffer = ArrayPool<byte>.Shared.Rent(maxByteCount);
-            bytesWritten = Encoding.UTF8.GetBytes(text, 0, text.Length, rentedBuffer, 0);
-
-            var allocateResult = SodiumSecureMemoryHandle.Allocate(bytesWritten).MapSodiumFailure();
-            if (allocateResult.IsErr)
-                return allocateResult;
-
-            newHandle = allocateResult.Unwrap();
-            var writeResult = newHandle
-                .Write(rentedBuffer.AsSpan(0, bytesWritten))
-                .MapSodiumFailure();
-
-            if (writeResult.IsErr)
-            {
-                newHandle.Dispose();
-                return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
-                    writeResult.UnwrapErr()
-                );
-            }
-
-            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(newHandle);
-        }
-        catch (Exception ex)
-        {
-            newHandle?.Dispose();
-            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Failed to convert string to secure handle.", ex)
-            );
-        }
-        finally
-        {
-            if (rentedBuffer != null)
-            {
-                rentedBuffer.AsSpan(0, bytesWritten).Clear();
-                ArrayPool<byte>.Shared.Return(rentedBuffer);
-            }
-        }
-    }
-
-    private bool _disposedValue;
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                _securePasswordHandle?.Dispose();
-            }
-
-            _disposedValue = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 }

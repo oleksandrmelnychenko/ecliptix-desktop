@@ -5,10 +5,11 @@
              xmlns:authentication="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:memberships="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="400"
-             x:DataType="authentication:SignInViewModel"
+             x:DataType="memberships:SignInViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignIn.SignInView"
              MinWidth="320"
              Width="320">
@@ -163,8 +164,9 @@
             WatermarkFontSize="{StaticResource WatermarkFontSize}"
             Height="{StaticResource InputHeight}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
-
+            HorizontalAlignment="Stretch" 
+            />
+        
         <!-- Action Buttons -->
         <Grid Grid.Row="3"
               HorizontalAlignment="Stretch"
