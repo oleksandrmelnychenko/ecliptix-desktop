@@ -46,7 +46,7 @@
         <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
         <Thickness x:Key="ContentPadding">20,0</Thickness>
         <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
-        <Thickness x:Key="FooterMargin">0,32,0,16</Thickness>
+        <Thickness x:Key="FooterMargin">0,0,0,16</Thickness>
 
         <!-- Window Colors -->
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
@@ -239,6 +239,14 @@
                    Height="18" />
         </Button>
 
+            <languageSwitcher:LanguageSwitcherView
+                    Name="LanguageSwitcherView"
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Top" 
+                    DataContext="{Binding LanguageSwitcher}"
+                    Margin="16"
+                    ZIndex="1000"/>
+
         <!-- Main Content Border -->
         <Border Classes="main-border"
                 Margin="8"
@@ -261,13 +269,7 @@
                                DisableMinimizeButton="False"
                                DisableCloseButton="False" />
 
-                <languageSwitcher:LanguageSwitcherView
-                    Grid.Row="0" 
-                    Name="LanguageSwitcherView"
-                    HorizontalAlignment="Right" 
-                    VerticalAlignment="Top" 
-                    DataContext="{Binding LanguageSwitcher}"
-                    Margin="16" />
+            
                 
                 <!-- Logo Section -->
                 <Border Grid.Row="1"
