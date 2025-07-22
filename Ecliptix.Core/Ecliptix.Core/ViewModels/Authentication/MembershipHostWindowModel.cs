@@ -90,7 +90,7 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         {
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
             MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
-            MembershipViewType.PhoneVerification => new PhoneVerificationViewModel(networkProvider, localizationService,
+            MembershipViewType.PhoneVerification => new MobileVerificationViewModel(networkProvider, localizationService,
                 this),
             MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(networkProvider,
                 localizationService, this),

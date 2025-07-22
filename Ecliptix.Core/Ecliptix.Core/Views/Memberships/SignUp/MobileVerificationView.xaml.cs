@@ -4,9 +4,9 @@ using Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 namespace Ecliptix.Core.Views.Memberships.SignUp;
 
-public partial class PhoneVerificationView : ReactiveUserControl<PhoneVerificationViewModel>
+public partial class MobileVerificationView : ReactiveUserControl<MobileVerificationViewModel>
 {
-    public PhoneVerificationView()
+    public MobileVerificationView()
     {
         InitializeComponent();
     }

@@ -97,8 +97,8 @@
     <UpToDateCheckInput Remove="Themes\Generic.axaml" />
   </ItemGroup>
   <ItemGroup>
-    <AdditionalFiles Include="Locales\en-US.json" />
-    <AdditionalFiles Include="Locales\uk-UA.json" />
+    <EmbeddedResource Include="Localization\en-US.json" />
+    <EmbeddedResource Include="Localization\uk-UA.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
@@ -125,6 +125,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaXaml Include="Views\Memberships\SignUp\PhoneVerificationView.xaml" />
+    <AvaloniaXaml Include="Views\Memberships\SignUp\MobileVerificationView.xaml" />
   </ItemGroup>
 </Project>
