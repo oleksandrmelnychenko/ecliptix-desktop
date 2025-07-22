@@ -292,11 +292,6 @@
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Stretch"
                                                ClipToBounds="True">
-
-                        <reactiveUi:RoutedViewHost.PageTransition>
-                            <memberships:SharedAxisTransition />
-                        </reactiveUi:RoutedViewHost.PageTransition>
-
                         <reactiveUi:RoutedViewHost.DefaultContent>
                             <StackPanel HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
