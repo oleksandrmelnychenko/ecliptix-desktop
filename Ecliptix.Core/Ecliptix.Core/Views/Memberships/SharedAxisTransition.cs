@@ -10,94 +10,138 @@ using Avalonia.Styling;
 
 namespace Ecliptix.Core.Views.Memberships;
 
-/// <summary>
-/// A page transition that combines a sliding motion with a pronounced fade and a dynamic scale effect.
-/// The scale origin changes based on the transition direction to enhance the slide effect.
-/// </summary>
 public class SharedAxisTransition : IPageTransition
 {
     private readonly TimeSpan _duration = TimeSpan.FromMilliseconds(350);
-    private const double SlideDistance = 40; // Increased for a more pronounced effect
+    private const double SlideDistance = 30;
     private const double TargetScale = 0.95;
+    private const double FadeOutAt = 0.6;
+    private const double DelayIncomingAt = 0.2;
 
     public async Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
     {
-        if (cancellationToken.IsCancellationRequested) return;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
 
-        List<Task> tasks = new List<Task>();
+        List<Task> tasks = [];
         int direction = forward ? 1 : -1;
-
-        RelativePoint fromOrigin, toOrigin;
-        if (forward)
-        {
-            fromOrigin = new RelativePoint(1, 0.5, RelativeUnit.Relative);
-            toOrigin = new RelativePoint(0, 0.5, RelativeUnit.Relative);
-        }
-        else
-        {
-            fromOrigin = new RelativePoint(0, 0.5, RelativeUnit.Relative);
-            toOrigin = new RelativePoint(1, 0.5, RelativeUnit.Relative);
-        }
 
         if (from != null)
         {
-            from.RenderTransformOrigin = fromOrigin;
-            GetOrAddTransform<TranslateTransform>(from);
-            GetOrAddTransform<ScaleTransform>(from);
-
-            Animation fromAnimation = new Animation
-            {
-                Duration = _duration,
-                Easing = new CubicEaseIn(),
-                FillMode = FillMode.Forward,
-                Children =
-                {
-                    new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 1.0), new Setter(TranslateTransform.XProperty, 0.0), new Setter(ScaleTransform.ScaleXProperty, 1.0), new Setter(ScaleTransform.ScaleYProperty, 1.0) } },
-                    new KeyFrame { Cue = new Cue(0.6), Setters = { new Setter(Visual.OpacityProperty, 0.0) } },
-                    new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 0.0), new Setter(TranslateTransform.XProperty, -direction * SlideDistance), new Setter(ScaleTransform.ScaleXProperty, TargetScale), new Setter(ScaleTransform.ScaleYProperty, TargetScale) } }
-                }
-            };
-
-            tasks.Add(fromAnimation.RunAsync(from, cancellationToken));
+            tasks.Add(AnimateOutgoingView(from, direction, cancellationToken));
         }
 
         if (to != null)
         {
-            to.Opacity = 0;
-            to.IsVisible = true;
-            to.RenderTransformOrigin = toOrigin;
-            
-            TranslateTransform toTranslate = GetOrAddTransform<TranslateTransform>(to);
-            ScaleTransform toScale = GetOrAddTransform<ScaleTransform>(to);
-            
-            toTranslate.X = direction * SlideDistance;
-            toScale.ScaleX = TargetScale;
-            toScale.ScaleY = TargetScale;
-            
-            Animation toAnimation = new Animation
-            {
-                Duration = _duration,
-                Easing = new CubicEaseOut(),
-                FillMode = FillMode.Forward,
-                Children =
-                {
-                    new KeyFrame { Cue = new Cue(0), Setters = { new Setter(Visual.OpacityProperty, 0.0), new Setter(TranslateTransform.XProperty, direction * SlideDistance), new Setter(ScaleTransform.ScaleXProperty, TargetScale), new Setter(ScaleTransform.ScaleYProperty, TargetScale) } },
-                    new KeyFrame { Cue = new Cue(0.2), Setters = { new Setter(Visual.OpacityProperty, 0.0), new Setter(TranslateTransform.XProperty, direction * SlideDistance), new Setter(ScaleTransform.ScaleXProperty, TargetScale), new Setter(ScaleTransform.ScaleYProperty, TargetScale) } },
-                    new KeyFrame { Cue = new Cue(1), Setters = { new Setter(Visual.OpacityProperty, 1.0), new Setter(TranslateTransform.XProperty, 0.0), new Setter(ScaleTransform.ScaleXProperty, 1.0), new Setter(ScaleTransform.ScaleYProperty, 1.0) } }
-                }
-            };
-
-            tasks.Add(toAnimation.RunAsync(to, cancellationToken));
+            tasks.Add(AnimateIncomingView(to, direction, cancellationToken));
         }
 
         await Task.WhenAll(tasks);
 
-        if (cancellationToken.IsCancellationRequested) return;
-
-        CleanupTransforms(from, to);
+        if (!cancellationToken.IsCancellationRequested)
+        {
+            CleanupTransforms(from, to);
+        }
     }
 
-    private void CleanupTransforms(Visual? from, Visual? to)
+    private Task AnimateOutgoingView(Visual view, int direction, CancellationToken cancellationToken)
+    {
+        SetupViewTransforms(view);
+
+        Animation animation = new()
+        {
+            Duration = _duration,
+            Easing = new CubicEaseIn(),
+            FillMode = FillMode.Forward,
+            Children =
+            {
+                CreateKeyFrame(0, opacity: 1.0, translateX: 0.0, scaleX: 1.0, scaleY: 1.0),
+                CreateKeyFrame(FadeOutAt, opacity: 0.0),
+                CreateKeyFrame(1.0,
+                    opacity: 0.0,
+                    translateX: -direction * SlideDistance,
+                    scaleX: TargetScale,
+                    scaleY: TargetScale)
+            }
+        };
+
+        return animation.RunAsync(view, cancellationToken);
+    }
+
+    private Task AnimateIncomingView(Visual view, int direction, CancellationToken cancellationToken)
+    {
+        PrepareIncomingView(view, direction);
+
+        Animation animation = new()
+        {
+            Duration = _duration,
+            Easing = new CubicEaseOut(),
+            FillMode = FillMode.Forward,
+            Children =
+            {
+                CreateKeyFrame(0, opacity: 0.0, translateX: direction * SlideDistance, scaleX: TargetScale,
+                    scaleY: TargetScale),
+                CreateKeyFrame(DelayIncomingAt, opacity: 0.0, translateX: direction * SlideDistance,
+                    scaleX: TargetScale, scaleY: TargetScale),
+                CreateKeyFrame(1.0, opacity: 1.0, translateX: 0.0, scaleX: 1.0, scaleY: 1.0)
+            }
+        };
+
+        return animation.RunAsync(view, cancellationToken);
+    }
+
+    private static void SetupViewTransforms(Visual view)
+    {
+        view.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+        GetOrAddTransform<TranslateTransform>(view);
+        GetOrAddTransform<ScaleTransform>(view);
+    }
+
+    private static void PrepareIncomingView(Visual view, int direction)
+    {
+        view.Opacity = 0;
+        view.IsVisible = true;
+        view.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+
+        TranslateTransform translateTransform = GetOrAddTransform<TranslateTransform>(view);
+        ScaleTransform scaleTransform = GetOrAddTransform<ScaleTransform>(view);
+
+        translateTransform.X = direction * SlideDistance;
+        scaleTransform.ScaleX = TargetScale;
+        scaleTransform.ScaleY = TargetScale;
+    }
+
+    private static KeyFrame CreateKeyFrame(double cue, double? opacity = null, double? translateX = null,
+        double? scaleX = null, double? scaleY = null)
+    {
+        KeyFrame keyFrame = new() { Cue = new Cue(cue) };
+
+        if (opacity.HasValue)
+        {
+            keyFrame.Setters.Add(new Setter(Visual.OpacityProperty, opacity.Value));
+        }
+
+        if (translateX.HasValue)
+        {
+            keyFrame.Setters.Add(new Setter(TranslateTransform.XProperty, translateX.Value));
+        }
+
+        if (scaleX.HasValue)
+        {
+            keyFrame.Setters.Add(new Setter(ScaleTransform.ScaleXProperty, scaleX.Value));
+        }
+
+        if (scaleY.HasValue)
+        {
+            keyFrame.Setters.Add(new Setter(ScaleTransform.ScaleYProperty, scaleY.Value));
+        }
+
+        return keyFrame;
+    }
+
+    private static void CleanupTransforms(Visual? from, Visual? to)
     {
         if (from != null)
         {
@@ -119,10 +163,11 @@ public class SharedAxisTransition : IPageTransition
         if (visual.RenderTransform is not TransformGroup transformGroup)
         {
             transformGroup = new TransformGroup();
-            if (visual.RenderTransform is Transform existingConcreteTransform)
+            if (visual.RenderTransform is Transform existingTransform)
             {
-                transformGroup.Children.Add(existingConcreteTransform);
+                transformGroup.Children.Add(existingTransform);
             }
+
             visual.RenderTransform = transformGroup;
         }
 
