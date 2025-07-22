@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Reactive;
 using Avalonia.Media;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Network;
@@ -30,6 +32,10 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         set => this.RaiseAndSetIfChanged(ref _isConnected, value);
     }
 
+    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
+
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -47,6 +53,12 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
 
         this.WhenAnyObservable(x => x.Router.NavigateBack.CanExecute)
             .Subscribe(canExecute => { CanNavigateBack = canExecute; });
+
+        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/privacy"); });
+
+        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/terms"); });
+
+        OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
     }
 
     private bool _canNavigateBack;
@@ -55,6 +67,22 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     {
         get => _canNavigateBack;
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Handle URL opening failure silently
+        }
     }
 
     private IRoutableViewModel CreateViewModelForView(
