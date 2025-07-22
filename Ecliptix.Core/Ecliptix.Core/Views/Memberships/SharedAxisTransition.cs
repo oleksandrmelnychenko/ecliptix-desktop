@@ -12,193 +12,166 @@ namespace Ecliptix.Core.Views.Memberships;
 
 public class SharedAxisTransition : IPageTransition
 {
-    private readonly TimeSpan _duration = TimeSpan.FromMilliseconds(350);
-    private const double SlideDistance = 30;
+    private readonly TimeSpan _duration = TimeSpan.FromMilliseconds(300);
+
+    private const double SlideDistance = 30.0;
+    
+    private const double TargetScale = 0.92;
 
     public async Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested) return;
 
-        List<Task> tasks = new List<Task>();
-        var direction = forward ? 1 : -1;
+        List<Task> tasks = [];
+        int direction = forward ? 1 : -1;
+        SplineEasing easing = new(0.4, 0.0, 0.2, 1.0); 
 
-        // Handle outgoing view
         if (from != null)
         {
-            var fromTransform = GetOrAddTranslateTransform(from);
-
+            from.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+            GetOrAddTransform<TranslateTransform>(from);
+            GetOrAddTransform<ScaleTransform>(from);
+            
             var fromAnimation = new Animation
             {
                 Duration = _duration,
-                Easing = new CubicEaseIn(),
+                Easing = easing,
                 FillMode = FillMode.Forward,
                 Children =
                 {
+                    // --- Opacity (Fade Out) ---
+                    // Fades out over the entire duration for a smoother cross-fade.
                     new KeyFrame
                     {
                         Cue = new Cue(0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, 1.0),
-                            new Setter(TranslateTransform.XProperty, 0.0)
-                        }
-                    },
-                    new KeyFrame
-                    {
-                        Cue = new Cue(0.5),
-                        Setters = { new Setter(Visual.OpacityProperty, 0.0) }
-                    },
-                    new KeyFrame
-                    {
-                        Cue = new Cue(1),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, 0.0),
-                            new Setter(TranslateTransform.XProperty, -direction * SlideDistance)
-                        }
-                    }
-                }
-            };
-
-            tasks.Add(fromAnimation.RunAsync(from, cancellationToken));
-        }
-
-        // Handle incoming view
-        if (to != null)
-        {
-            // Ensure the view starts invisible and positioned correctly
-            to.Opacity = 0;
-            to.IsVisible = true;
-
-            var toTransform = GetOrAddTranslateTransform(to);
-            toTransform.X = direction * SlideDistance; // Set initial position
-
-            var toAnimation = new Animation
-            {
-                Duration = _duration,
-                Easing = new CubicEaseOut(),
-                FillMode = FillMode.Forward,
-                Children =
-                {
-                    new KeyFrame
-                    {
-                        Cue = new Cue(0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, 0.0),
-                            new Setter(TranslateTransform.XProperty, direction * SlideDistance)
-                        }
-                    },
-                    new KeyFrame
-                    {
-                        Cue = new Cue(0.5),
                         Setters = { new Setter(Visual.OpacityProperty, 1.0) }
                     },
                     new KeyFrame
                     {
-                        Cue = new Cue(1),
+                        Cue = new Cue(1.0), // Fades out over full duration
+                        Setters = { new Setter(Visual.OpacityProperty, 0.0) }
+                    },
+                    // --- Transform (Slide and Scale) ---
+                    new KeyFrame
+                    {
+                        Cue = new Cue(0),
                         Setters =
                         {
-                            new Setter(Visual.OpacityProperty, 1.0),
-                            new Setter(TranslateTransform.XProperty, 0.0)
+                            new Setter(TranslateTransform.XProperty, 0.0),
+                            new Setter(ScaleTransform.ScaleXProperty, 1.0),
+                            new Setter(ScaleTransform.ScaleYProperty, 1.0)
+                        }
+                    },
+                    new KeyFrame
+                    {
+                        Cue = new Cue(1.0),
+                        Setters =
+                        {
+                            new Setter(TranslateTransform.XProperty, -direction * SlideDistance),
+                            new Setter(ScaleTransform.ScaleXProperty, TargetScale),
+                            new Setter(ScaleTransform.ScaleYProperty, TargetScale)
                         }
                     }
                 }
             };
+            tasks.Add(fromAnimation.RunAsync(from, cancellationToken));
+        }
 
+        // Animate the incoming view (if it exists)
+        if (to != null)
+        {
+            to.Opacity = 0;
+            to.IsVisible = true;
+            to.RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative);
+            
+            var toTranslate = GetOrAddTransform<TranslateTransform>(to);
+            var toScale = GetOrAddTransform<ScaleTransform>(to);
+            
+            toTranslate.X = direction * SlideDistance;
+            toScale.ScaleX = TargetScale;
+            toScale.ScaleY = TargetScale;
+
+            var toAnimation = new Animation
+            {
+                Duration = _duration,
+                Easing = easing,
+                FillMode = FillMode.Forward,
+                Children =
+                {
+                    // --- Opacity (Cross-Fade In) ---
+                    // **THE FIX IS HERE:** This now starts fading in from the very beginning.
+                    new KeyFrame
+                    {
+                        Cue = new Cue(0), // <<<<<<<<<<<<<<<< CHANGED FROM 0.3 TO 0
+                        Setters = { new Setter(Visual.OpacityProperty, 0.0) }
+                    },
+                    new KeyFrame
+                    {
+                        Cue = new Cue(1.0),
+                        Setters = { new Setter(Visual.OpacityProperty, 1.0) }
+                    },
+                    // --- Transform (Slide and Scale) ---
+                    new KeyFrame
+                    {
+                        Cue = new Cue(0),
+                        Setters =
+                        {
+                            new Setter(TranslateTransform.XProperty, direction * SlideDistance),
+                            new Setter(ScaleTransform.ScaleXProperty, TargetScale),
+                            new Setter(ScaleTransform.ScaleYProperty, TargetScale)
+                        }
+                    },
+                    new KeyFrame
+                    {
+                        Cue = new Cue(1.0),
+                        Setters =
+                        {
+                            new Setter(TranslateTransform.XProperty, 0.0),
+                            new Setter(ScaleTransform.ScaleXProperty, 1.0),
+                            new Setter(ScaleTransform.ScaleYProperty, 1.0)
+                        }
+                    }
+                }
+            };
             tasks.Add(toAnimation.RunAsync(to, cancellationToken));
         }
 
-        try
-        {
-            await Task.WhenAll(tasks);
-        }
-        catch (TaskCanceledException)
-        {
-            // Handle cancellation gracefully
-            return;
-        }
+        await Task.WhenAll(tasks);
 
         if (cancellationToken.IsCancellationRequested) return;
 
-        // Clean up transforms after animation completes
-        CleanupTransforms(from, to);
-    }
-
-    private void CleanupTransforms(Visual? from, Visual? to)
-    {
-        // Hide the old view completely
         if (from != null)
         {
             from.IsVisible = false;
-            ResetTransform(from);
+            from.RenderTransform = null; 
+            from.RenderTransformOrigin = RelativePoint.TopLeft;
         }
 
-        // Ensure new view is properly positioned
         if (to != null)
         {
-            to.IsVisible = true;
             to.Opacity = 1.0;
-            ResetTransform(to);
+            to.RenderTransform = null;
+            to.RenderTransformOrigin = RelativePoint.TopLeft;
         }
     }
-
-    private void ResetTransform(Visual visual)
-    {
-        if (visual.RenderTransform is TranslateTransform translateTransform)
-        {
-            translateTransform.X = 0;
-            translateTransform.Y = 0;
-        }
-        else if (visual.RenderTransform is TransformGroup group)
-        {
-            foreach (var child in group.Children)
-            {
-                if (child is TranslateTransform tt)
-                {
-                    tt.X = 0;
-                    tt.Y = 0;
-                    break;
-                }
-            }
-        }
-    }
-
-    private static TranslateTransform GetOrAddTranslateTransform(Visual visual)
-    {
-        switch (visual.RenderTransform)
-        {
-            case null:
-                var newTransform = new TranslateTransform();
-                visual.RenderTransform = newTransform;
-                return newTransform;
-
-            case TranslateTransform translateTransform:
-                return translateTransform;
-
-            case TransformGroup group:
-                foreach (var child in group.Children)
-                {
-                    if (child is TranslateTransform childTranslateTransform)
-                        return childTranslateTransform;
-                }
-
-                var newTt = new TranslateTransform();
-                group.Children.Add(newTt);
-                return newTt;
-
-            default:
-                var newGroup = new TransformGroup();
-                if (visual.RenderTransform is Transform existingTransform)
-                {
-                    newGroup.Children.Add(existingTransform);
-                }
     
-                var newTranslateTransform = new TranslateTransform();
-                newGroup.Children.Add(newTranslateTransform);
-                visual.RenderTransform = newGroup;
-                return newTranslateTransform;
-
+    private static T GetOrAddTransform<T>(Visual visual) where T : Transform, new()
+    {
+        if (visual.RenderTransform is not TransformGroup transformGroup)
+        {
+            transformGroup = new TransformGroup();
+            if (visual.RenderTransform is Transform existingConcreteTransform)
+            {
+                transformGroup.Children.Add(existingConcreteTransform);
+            }
+            visual.RenderTransform = transformGroup;
         }
+        foreach (var child in transformGroup.Children)
+        {
+            if (child is T existing) return existing;
+        }
+        var newTransform = new T();
+        transformGroup.Children.Add(newTransform);
+        return newTransform;
     }
 }

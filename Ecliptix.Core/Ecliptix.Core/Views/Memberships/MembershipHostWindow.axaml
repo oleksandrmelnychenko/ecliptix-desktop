@@ -233,8 +233,7 @@
                 Margin="24,64,0,0"
                 ZIndex="2"
                 Classes="back-button"
-                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}"
-                ToolTip.Tip="Go back">
+                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
 
             <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
                    Stretch="Uniform"
