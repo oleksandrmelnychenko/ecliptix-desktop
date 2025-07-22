@@ -8,6 +8,7 @@ using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using ReactiveUI;
 
