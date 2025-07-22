@@ -7,11 +7,14 @@
         xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
+        d:DesignWidth="480"
+        d:DesignHeight="680"
         SystemDecorations="None"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MembershipHostWindowModel"
-        Width="560" Height="700"
+        Width="480"
+        Height="680"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Background="Transparent"
@@ -20,64 +23,110 @@
         x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow">
 
     <Window.Resources>
-        <memberships:BooleanToOpacityConverter x:Key="BoolToOpacityConverter" TrueOpacity="1.0" FalseOpacity="0" />
+        <memberships:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"
+                                               TrueOpacity="1.0"
+                                               FalseOpacity="0" />
+
+        <!-- Window Dimensions -->
+        <x:Double x:Key="BackButtonSize">48</x:Double>
+        <x:Double x:Key="LogoSize">100</x:Double>
+        <x:Double x:Key="ContentMaxWidth">320</x:Double>
+
+        <!-- Proper CornerRadius and Thickness resources -->
+        <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
+        <Thickness x:Key="ContentPadding">20,0</Thickness>
+        <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
+        <Thickness x:Key="FooterPadding">0,16</Thickness>
+
+        <!-- Numeric values -->
+        <x:Double x:Key="BackgroundBlurRadius">20</x:Double>
+        <x:Double x:Key="ShadowBlurRadius">12</x:Double>
+        <x:Double x:Key="HeaderSpacing">12</x:Double>
+        <x:Double x:Key="ContentSpacing">16</x:Double>
+        <x:Double x:Key="FooterSpacing">16</x:Double>
+
+        <!-- Colors -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
+        <SolidColorBrush x:Key="WindowBorderBrush">#B084CC</SolidColorBrush>
+        <SolidColorBrush x:Key="BlurBackgroundBrush">#AA9966CC</SolidColorBrush>
+        <Color x:Key="ShadowColor">#9966CC</Color>
     </Window.Resources>
 
     <Window.Styles>
+        <!-- Back Button Styles -->
         <Style Selector="Button.back-button">
-            <Setter Property="Width" Value="50" />
-            <Setter Property="Height" Value="50" />
-            <Setter Property="CornerRadius" Value="25" />
+            <Setter Property="Width" Value="{StaticResource BackButtonSize}" />
+            <Setter Property="Height" Value="{StaticResource BackButtonSize}" />
+            <Setter Property="CornerRadius" Value="24" />
             <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.5" />
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
                 </Transitions>
             </Setter>
         </Style>
+
         <Style Selector="Button.back-button:pointerover">
             <Setter Property="Background" Value="#E4E3E3" />
-        </Style>
-        <Style Selector="Button.back-button:pressed">
-            <Setter Property="Background" Value="#D1D0D0" />
+            <Setter Property="RenderTransform" Value="scale(1.05)" />
         </Style>
 
+        <Style Selector="Button.back-button:pressed">
+            <Setter Property="Background" Value="#D1D0D0" />
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <!-- Animated Background Styles -->
         <Style Selector="Border.animated-background">
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.5" Easing="CubicEaseOut" />
+                    <BrushTransition Property="Background" Duration="0:0:0.4" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>
 
+        <!-- Main Border Styles -->
+        <Style Selector="Border.main-border">
+            <Setter Property="Background" Value="{StaticResource WindowBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource WindowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource WindowBorderRadius}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Traffic Light Button Styles -->
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Name="PART_BackgroundBorder"
                             Background="{TemplateBinding Background}"
                             Width="{TemplateBinding Width}"
                             Height="{TemplateBinding Height}"
-                            CornerRadius="{TemplateBinding CornerRadius}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}" />
+                            CornerRadius="{TemplateBinding CornerRadius}" />
                 </ControlTemplate>
             </Setter>
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="0.1" />
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
                 </Transitions>
             </Setter>
         </Style>
 
+        <!-- Traffic Light Colors -->
         <Style Selector="Button.traffic-light.close">
             <Setter Property="Background" Value="#FF5F57" />
         </Style>
@@ -87,6 +136,7 @@
         <Style Selector="Button.traffic-light.close:pressed">
             <Setter Property="Background" Value="#C13934" />
         </Style>
+
         <Style Selector="Button.traffic-light.minimize">
             <Setter Property="Background" Value="#FFBD2E" />
         </Style>
@@ -96,6 +146,7 @@
         <Style Selector="Button.traffic-light.minimize:pressed">
             <Setter Property="Background" Value="#C19124" />
         </Style>
+
         <Style Selector="Button.traffic-light.maximize">
             <Setter Property="Background" Value="#28C940" />
         </Style>
@@ -114,100 +165,104 @@
     </Window.DataTemplates>
 
     <Grid x:Name="MainContentGrid">
-        <Border Margin="18"
-                CornerRadius="8"
-                Background="#AA9966CC">
+
+        <!-- Background Blur Effect -->
+        <Border Classes="animated-background"
+                Background="{StaticResource BlurBackgroundBrush}"
+                CornerRadius="{StaticResource WindowBorderRadius}"
+                Margin="12">
             <Border.Effect>
-                <BlurEffect Radius="25" />
+                <BlurEffect Radius="{StaticResource BackgroundBlurRadius}" />
             </Border.Effect>
         </Border>
 
-        <Button Grid.Row="0"
-                HorizontalAlignment="Left"
+        <!-- Back Navigation Button -->
+        <Button HorizontalAlignment="Left"
                 VerticalAlignment="Top"
-                Width="50"
-                Height="50"
-                CornerRadius="30"
-                BorderBrush="Transparent"
-                Cursor="Hand"
-                BorderThickness="0"
                 Command="{Binding Router.NavigateBack}"
-                Margin="30 80 0 0"
-                ZIndex="1"
+                Margin="24,64,0,0"
+                ZIndex="2"
                 Classes="back-button"
-                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}"
+                ToolTip.Tip="Go back">
+
             <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
                    Stretch="Uniform"
-                   Width="20"
-                   Height="20"
-                   VerticalAlignment="Center"
-                   HorizontalAlignment="Center" />
+                   Width="18"
+                   Height="18" />
         </Button>
 
-        <Border Background="#ffffff"
-                BorderBrush="#B084CC"
-                BorderThickness="1"
-                CornerRadius="8"
-                Padding="0"
-                Margin="10"
+        <!-- Main Content Border -->
+        <Border Classes="main-border"
+                Margin="8"
                 x:Name="MainBorder">
 
             <Border.Effect>
-                <DropShadowEffect Color="#9966CC"
-                                  BlurRadius="15"
-                                  Opacity="0.6"
+                <DropShadowEffect Color="{StaticResource ShadowColor}"
+                                  BlurRadius="{StaticResource ShadowBlurRadius}"
+                                  Opacity="0.4"
                                   OffsetX="0"
-                                  OffsetY="0" />
+                                  OffsetY="2" />
             </Border.Effect>
 
-            <Grid RowDefinitions="Auto,Auto,*,Auto">
-                <comp:TitleBar
-                    DisableMinimizeButton="False"
-                    DisableCloseButton="False" />
+            <!-- Main Layout Grid -->
+            <Grid RowDefinitions="Auto,Auto,*,Auto"
+                  RowSpacing="{StaticResource HeaderSpacing}">
 
-                <Svg Grid.Row="1"
-                     Path="../../../Assets/ecliptix_logo.svg"
-                     VerticalAlignment="Top"
-                     Width="120"
-                     Height="120"
-                     HorizontalAlignment="Center" />
+                <!-- Title Bar -->
+                <comp:TitleBar Grid.Row="0"
+                               DisableMinimizeButton="False"
+                               DisableCloseButton="False" />
 
-                <reactiveUi:RoutedViewHost Grid.Row="2"
-                                           Router="{Binding Router}"
-                                           Margin="0,16,0,16"
-                                           Background="Transparent"
-                                           MaxWidth="366"
-                                           MinHeight="200"
-                                           HorizontalAlignment="Stretch"
-                                           VerticalAlignment="Stretch"
-                                           Padding="24,0,24,0"
-                                           ClipToBounds="True">
+                <!-- Logo Section -->
+                <Border Grid.Row="1"
+                        HorizontalAlignment="Center"
+                        Padding="{StaticResource HeaderPadding}">
+                    <Svg Path="../../../Assets/ecliptix_logo.svg"
+                         Width="{StaticResource LogoSize}"
+                         Height="{StaticResource LogoSize}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Top" />
+                </Border>
 
-                    <reactiveUi:RoutedViewHost.PageTransition>
-                        <memberships:SharedAxisTransition />
-                    </reactiveUi:RoutedViewHost.PageTransition>
+                <!-- Content Area -->
+                <Border Grid.Row="2"
+                        Padding="{StaticResource ContentPadding}">
 
-                    <reactiveUi:RoutedViewHost.DefaultContent>
-                        <StackPanel HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Spacing="10">
-                            <TextBlock Text="Loading View..."
-                                       HorizontalAlignment="Center"
-                                       FontSize="14"
-                                       Opacity="0.7" />
-                        </StackPanel>
-                    </reactiveUi:RoutedViewHost.DefaultContent>
-                </reactiveUi:RoutedViewHost>
+                    <reactiveUi:RoutedViewHost Router="{Binding Router}"
+                                               Background="Transparent"
+                                               Width="{StaticResource ContentMaxWidth}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Stretch"
+                                               ClipToBounds="True">
 
-                <Grid Grid.Row="3" Margin="0,0,0,16">
+                        <reactiveUi:RoutedViewHost.PageTransition>
+                            <memberships:SharedAxisTransition />
+                        </reactiveUi:RoutedViewHost.PageTransition>
+
+                        <reactiveUi:RoutedViewHost.DefaultContent>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Text="Loading View..."
+                                           HorizontalAlignment="Center"
+                                           FontSize="13"
+                                           Opacity="0.6" />
+                            </StackPanel>
+                        </reactiveUi:RoutedViewHost.DefaultContent>
+                    </reactiveUi:RoutedViewHost>
+                </Border>
+
+                <!-- Footer -->
+                <Border Grid.Row="3"
+                        Padding="{StaticResource FooterPadding}">
                     <TextBlock HorizontalAlignment="Center"
                                FontWeight="Normal"
-                               FontSize="13"
+                               FontSize="11"
                                Foreground="{DynamicResource FooterTextColor}"
-                               VerticalAlignment="Bottom"
-                               Text="© Horizon Dynamics 2025">
-                    </TextBlock>
-                </Grid>
+                               Text="© Horizon Dynamics 2025"
+                               Opacity="0.7" />
+                </Border>
             </Grid>
         </Border>
     </Grid>

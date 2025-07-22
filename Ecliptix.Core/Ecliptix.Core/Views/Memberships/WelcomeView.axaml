@@ -6,21 +6,33 @@
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
-             d:DesignWidth="420"
-             d:DesignHeight="500"
+             d:DesignWidth="320"
+             d:DesignHeight="420"
              x:Class="Ecliptix.Core.Views.Memberships.WelcomeView"
-             x:DataType="vm:WelcomeViewModel">
+             x:DataType="vm:WelcomeViewModel"
+             MinWidth="320"
+             Width="320">
 
     <UserControl.Resources>
-        <!-- Button Dimensions -->
-        <x:Double x:Key="ButtonHeight">45</x:Double>
+        <!-- Layout Dimensions -->
+        <x:Double x:Key="ButtonHeight">44</x:Double>
         <x:Double x:Key="StandardFontSize">14</x:Double>
+        <x:Double x:Key="LogoHeight">36</x:Double>
+        <x:Double x:Key="TaglineHeight">18</x:Double>
+        <x:Double x:Key="CircleSize">180</x:Double>
+        <x:Double x:Key="InnerCircleSize">170</x:Double>
+        <x:Double x:Key="BlurRadius">8</x:Double>
+
+        <!-- Spacing -->
+        <x:Double x:Key="HeaderSpacing">12</x:Double>
+        <x:Double x:Key="SectionSpacing">18</x:Double>
+        <x:Double x:Key="ButtonSpacing">8</x:Double>
 
         <!-- Corner Radius -->
-        <CornerRadius x:Key="SignInButtonCornerRadius">12</CornerRadius>
-        <CornerRadius x:Key="CreateAccountButtonCornerRadius">15</CornerRadius>
-        <CornerRadius x:Key="CircleImageCornerRadius">125</CornerRadius>
-        <CornerRadius x:Key="InnerCircleCornerRadius">120</CornerRadius>
+        <CornerRadius x:Key="SignInButtonCornerRadius">10</CornerRadius>
+        <CornerRadius x:Key="CreateAccountButtonCornerRadius">12</CornerRadius>
+        <CornerRadius x:Key="CircleImageCornerRadius">90</CornerRadius>
+        <CornerRadius x:Key="InnerCircleCornerRadius">85</CornerRadius>
 
         <!-- Colors -->
         <Color x:Key="SignInButtonHoverColor">#E4E3E3</Color>
@@ -28,33 +40,40 @@
         <Color x:Key="CircleBorderColor">White</Color>
 
         <!-- Durations -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.5</system:TimeSpan>
+        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.3</system:TimeSpan>
 
-        <!-- Sizes -->
-        <x:Double x:Key="CircleSize">200</x:Double>
-        <x:Double x:Key="InnerCircleSize">190</x:Double>
-        <Thickness x:Key="CircleBorderThickness">5</Thickness>
-        <x:Double x:Key="BlurRadius">10</x:Double>
-        <x:Double x:Key="LogoHeight">40</x:Double>
-        <x:Double x:Key="TaglineHeight">20</x:Double>
+        <!-- Thickness -->
+        <Thickness x:Key="CircleBorderThickness">4</Thickness>
+        <Thickness x:Key="ContainerMargin">0,8,0,16</Thickness>
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!-- Sign In Button Styles -->
-        <Style Selector="Button.signin-button">
+        <!-- Button Base Styles -->
+        <Style Selector="Button.auth-button">
             <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="CornerRadius" Value="{StaticResource SignInButtonCornerRadius}" />
-            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontWeight" Value="Regular" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="FontSize" Value="{StaticResource StandardFontSize}" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
                 </Transitions>
             </Setter>
+        </Style>
+
+        <Style Selector="Button.auth-button:pressed">
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+
+        <!-- Sign In Button -->
+        <Style Selector="Button.signin-button">
+            <Setter Property="CornerRadius" Value="{StaticResource SignInButtonCornerRadius}" />
+            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
         </Style>
 
         <Style Selector="Button.signin-button:pointerover">
@@ -65,116 +84,107 @@
             <Setter Property="Background" Value="{StaticResource SignInButtonPressedColor}" />
         </Style>
 
-        <!-- Create Account Button Styles -->
+        <!-- Create Account Button -->
         <Style Selector="Button.create-account-button">
-            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
             <Setter Property="CornerRadius" Value="{StaticResource CreateAccountButtonCornerRadius}" />
             <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
             <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="FontWeight" Value="Regular" />
-            <Setter Property="FontSize" Value="{StaticResource StandardFontSize}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}" />
-                </Transitions>
-            </Setter>
         </Style>
 
-        <!-- Circle Image Container Styles -->
+        <!-- Circle Container -->
         <Style Selector="Border.circle-container">
             <Setter Property="Width" Value="{StaticResource CircleSize}" />
             <Setter Property="Height" Value="{StaticResource CircleSize}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+
+        <!-- Header Section -->
+        <Style Selector="StackPanel.header-section">
+            <Setter Property="Spacing" Value="{StaticResource HeaderSpacing}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
     </UserControl.Styles>
 
-    <!-- Main container with proper sizing -->
-    <StackPanel Spacing="20"
+    <!-- Main Container with fixed width -->
+    <StackPanel Spacing="{StaticResource SectionSpacing}"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                Margin="0,10,0,20">
+                Margin="{StaticResource ContainerMargin}"
+                Width="320">
 
-        <!-- Header Section with Logo and Tagline -->
-        <StackPanel Name="HeaderSection"
-                    Spacing="15"
-                    HorizontalAlignment="Center">
+        <!-- Header Section -->
+        <StackPanel Classes="header-section"
+                    Name="HeaderSection">
 
             <!-- Main Logo -->
-            <Border Name="LogoBorder"
-                    Height="{StaticResource LogoHeight}"
+            <Border Height="{StaticResource LogoHeight}"
                     HorizontalAlignment="Center">
-                <Image Name="LogoImage"
-                       Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png"
                        Stretch="Uniform" />
             </Border>
 
             <!-- Tagline -->
-            <Border Name="TaglineBorder"
-                    Height="{StaticResource TaglineHeight}"
+            <Border Height="{StaticResource TaglineHeight}"
                     HorizontalAlignment="Center">
-                <Image Name="TaglineImage"
-                       Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png"
                        Stretch="Uniform" />
             </Border>
         </StackPanel>
 
-        <!-- Central Circle Image Section -->
-        <Grid Name="CircleImageSection"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center">
+        <!-- Central Circle Image -->
+        <Viewbox MaxWidth="{StaticResource CircleSize}"
+                 MaxHeight="{StaticResource CircleSize}"
+                 HorizontalAlignment="Center">
 
-            <!-- Background Circle with Blur Effect -->
-            <Border Name="BlurCircle"
-                    Classes="circle-container"
-                    CornerRadius="{StaticResource CircleImageCornerRadius}"
-                    BorderThickness="{StaticResource CircleBorderThickness}"
-                    Background="{StaticResource CircleBorderColor}">
-                <Border.Effect>
-                    <BlurEffect Radius="{StaticResource BlurRadius}" />
-                </Border.Effect>
-            </Border>
+            <Grid Width="{StaticResource CircleSize}"
+                  Height="{StaticResource CircleSize}">
 
-            <!-- Main Image Circle -->
-            <Border Name="ImageCircle"
-                    Width="{StaticResource InnerCircleSize}"
-                    Height="{StaticResource InnerCircleSize}"
-                    CornerRadius="{StaticResource InnerCircleCornerRadius}"
-                    ClipToBounds="True"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-                <Image Name="BackgroundImage"
-                       Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
-                       Stretch="UniformToFill" />
-            </Border>
-        </Grid>
+                <!-- Background Blur Circle -->
+                <Border Classes="circle-container"
+                        CornerRadius="{StaticResource CircleImageCornerRadius}"
+                        BorderThickness="{StaticResource CircleBorderThickness}"
+                        Background="{StaticResource CircleBorderColor}">
+                    <Border.Effect>
+                        <BlurEffect Radius="{StaticResource BlurRadius}" />
+                    </Border.Effect>
+                </Border>
 
-        <!-- Bottom Button Section -->
-        <Grid Name="ButtonSection"
+                <!-- Main Image Circle -->
+                <Border Width="{StaticResource InnerCircleSize}"
+                        Height="{StaticResource InnerCircleSize}"
+                        CornerRadius="{StaticResource InnerCircleCornerRadius}"
+                        ClipToBounds="True"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
+                           Stretch="UniformToFill" />
+                </Border>
+            </Grid>
+        </Viewbox>
+
+        <!-- Action Buttons -->
+        <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="{StaticResource ButtonSpacing}"
               HorizontalAlignment="Stretch"
-              ColumnDefinitions="*,*"
-              ColumnSpacing="10"
-              Margin="0,20,0,0">
+              Margin="0,4,0,0">
 
             <!-- Sign In Button -->
             <Button Grid.Column="0"
-                    Name="SignInButton"
                     Content="Sign in"
                     Command="{Binding NavToSignInCommand}"
-                    HorizontalAlignment="Stretch"
+                    Classes="auth-button signin-button"
                     Foreground="{DynamicResource LightButtonForegroundColor}"
-                    Classes="signin-button" />
+                    HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Sign in to your account" />
 
             <!-- Create Account Button -->
             <Button Grid.Column="1"
-                    Name="CreateAccountButton"
                     Content="Create account"
-                    HorizontalAlignment="Stretch"
                     Command="{Binding NavToCreateAccountCommand}"
-                    Classes="create-account-button" />
+                    Classes="auth-button create-account-button"
+                    HorizontalAlignment="Stretch"
+                    ToolTip.Tip="Create a new account" />
         </Grid>
     </StackPanel>
 </UserControl>
