@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
-    
-     <Application.Resources>
+
+    <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/#Segoe UI</FontFamily>
 
@@ -24,16 +24,18 @@
 
                     <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
                     <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
-                    
+
                     <Color x:Key="FooterTextColor">#616161</Color>
-                    
+
                     <Color x:Key="TextForegroundColor">#0c0c0c</Color>
 
                     <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
-                    <SolidColorBrush x:Key="DarkButtonForegroundBrush" Color="{StaticResource DarkButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="DarkButtonForegroundBrush"
+                                     Color="{StaticResource DarkButtonForegroundColor}" />
 
                     <SolidColorBrush x:Key="LightButtonBrush" Color="{StaticResource LightButtonColor}" />
-                    <SolidColorBrush x:Key="LightButtonForegroundBrush" Color="{StaticResource LightButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="LightButtonForegroundBrush"
+                                     Color="{StaticResource LightButtonForegroundColor}" />
 
                     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
 
@@ -42,8 +44,10 @@
 
                     <SolidColorBrush x:Key="TipsBrush" Color="{StaticResource TipsColor}" />
 
-                    <SolidColorBrush x:Key="BackButtonBackgroundBrush" Color="{StaticResource BackButtonBackgroundColor}" />
-                    <SolidColorBrush x:Key="BackButtonForegroundBrush" Color="{StaticResource BackButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="BackButtonBackgroundBrush"
+                                     Color="{StaticResource BackButtonBackgroundColor}" />
+                    <SolidColorBrush x:Key="BackButtonForegroundBrush"
+                                     Color="{StaticResource BackButtonForegroundColor}" />
                 </ResourceDictionary>
 
                 <ResourceDictionary x:Key="Dark">
@@ -62,16 +66,18 @@
 
                     <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
                     <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
-                    
+
                     <Color x:Key="FooterTextColor">#616161</Color>
-                    
+
                     <Color x:Key="TextForegroundColor">#0c0c0c</Color>
 
                     <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
-                    <SolidColorBrush x:Key="DarkButtonForegroundBrush" Color="{StaticResource DarkButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="DarkButtonForegroundBrush"
+                                     Color="{StaticResource DarkButtonForegroundColor}" />
 
                     <SolidColorBrush x:Key="LightButtonBrush" Color="{StaticResource LightButtonColor}" />
-                    <SolidColorBrush x:Key="LightButtonForegroundBrush" Color="{StaticResource LightButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="LightButtonForegroundBrush"
+                                     Color="{StaticResource LightButtonForegroundColor}" />
 
                     <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
 
@@ -80,17 +86,19 @@
 
                     <SolidColorBrush x:Key="TipsBrush" Color="{StaticResource TipsColor}" />
 
-                    <SolidColorBrush x:Key="BackButtonBackgroundBrush" Color="{StaticResource BackButtonBackgroundColor}" />
-                    <SolidColorBrush x:Key="BackButtonForegroundBrush" Color="{StaticResource BackButtonForegroundColor}" />
+                    <SolidColorBrush x:Key="BackButtonBackgroundBrush"
+                                     Color="{StaticResource BackButtonBackgroundColor}" />
+                    <SolidColorBrush x:Key="BackButtonForegroundBrush"
+                                     Color="{StaticResource BackButtonForegroundColor}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
-            
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/LampIcon.axaml"></ResourceInclude>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
-    
+
     <Application.Styles>
         <SimpleTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
@@ -99,6 +107,5 @@
         </Style>
     </Application.Styles>
 
-   
 
 </Application>

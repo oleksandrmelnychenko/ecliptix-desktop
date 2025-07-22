@@ -66,7 +66,7 @@
     </UserControl.Styles>
 
     <!-- Main Grid with consistent proportions -->
-    <Grid VerticalAlignment="Center"
+    <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource SectionSpacing}"
           RowDefinitions="Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"

@@ -19,7 +19,7 @@ public class SharedAxisTransition : IPageTransition
     {
         if (cancellationToken.IsCancellationRequested) return;
 
-        var tasks = new List<Task>();
+        List<Task> tasks = new List<Task>();
         var direction = forward ? 1 : -1;
 
         // Handle outgoing view
