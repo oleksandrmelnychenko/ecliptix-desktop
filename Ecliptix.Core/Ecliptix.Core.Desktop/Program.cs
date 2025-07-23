@@ -154,9 +154,6 @@ public static class Program
         //
         // return loggerConfig.CreateLogger();
         
-        string? environment = configuration.GetValue<string>("DefaultAppSettings:Environment");
-        bool isDevelopment = environment?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true;
-
         LoggerConfiguration loggerConfig = new LoggerConfiguration()
             .ReadFrom.Configuration(configuration); 
         
