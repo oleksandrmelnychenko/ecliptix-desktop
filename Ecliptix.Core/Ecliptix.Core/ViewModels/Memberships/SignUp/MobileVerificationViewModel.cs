@@ -1,7 +1,6 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
@@ -21,9 +20,8 @@ namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
-    public ViewModelActivator Activator { get; } = new();
-
     private string _errorMessage = string.Empty;
+
     private string _mobileNumber = "+380970177443";
 
     private readonly ILocalizationService _localizationService;
@@ -33,7 +31,9 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
 
     public IScreen HostScreen { get; }
 
-    public ReactiveCommand<Unit, Unit> NavToVerifyOtp { get; set; }
+    public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; set; }
+
+    public ViewModelActivator Activator { get; } = new();
 
     public string MobileNumber
     {
@@ -58,43 +58,10 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
         _localizationService = localizationService;
         HostScreen = hostScreen;
 
-        NavToVerifyOtp = ReactiveCommand.CreateFromTask(async () =>
-        {
-            string? systemDeviceIdentifier = SystemDeviceIdentifier();
-            
-            ValidatePhoneNumberRequest request = new()
-            {
-                PhoneNumber = MobileNumber,
-                AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
-            };
+        IObservable<bool> canExecute = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(num => !string.IsNullOrWhiteSpace(num));
 
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-
-            _ = await NetworkProvider.ExecuteServiceRequestAsync(
-                connectId,
-                RcpServiceType.ValidatePhoneNumber,
-                request.ToByteArray(),
-                ServiceFlowType.Single,
-                payload =>
-                {
-                    ValidatePhoneNumberResponse validatePhoneNumberResponse = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
-                    if (validatePhoneNumberResponse.Result == VerificationResult.InvalidPhone)
-                    {
-                        ErrorMessage = validatePhoneNumberResponse.Message;
-                    }
-                    else
-                    {
-                        /*Task.Run(async () => await InitiateVerification(_validatePhoneNumberResponse.PhoneNumberIdentifier,
-                            InitiateVerificationRequest.Types.Type.SendOtp), cancellationTokenSource.Token);*/
-                    }
-
-                    return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
-                }
-            );
-
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.VerificationCodeEntry);
-        });
-
+        VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
@@ -104,5 +71,50 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
                 .Subscribe(_ => { this.RaisePropertyChanged(nameof(InvalidFormatError)); })
                 .DisposeWith(disposables);
         });
+    }
+
+    private async Task<Unit> ExecuteVerificationAsync()
+    {
+        string systemDeviceIdentifier = SystemDeviceIdentifier();
+
+        ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
+            connectId,
+            RcpServiceType.ValidatePhoneNumber,
+            request.ToByteArray(),
+            ServiceFlowType.Single,
+            HandleValidationResponseAsync
+        );
+
+        if (result.IsOk)
+        {
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.VerificationCodeEntry);
+        }
+
+        return Unit.Default;
+    }
+
+    private ValidatePhoneNumberRequest CreateValidateRequest(string systemDeviceIdentifier)
+    {
+        return new ValidatePhoneNumberRequest
+        {
+            PhoneNumber = MobileNumber,
+            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
+        };
+    }
+
+    private Task<Result<ShieldUnit, NetworkFailure>> HandleValidationResponseAsync(byte[] payload)
+    {
+        ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
+        if (response.Result == VerificationResult.InvalidPhone)
+        {
+            ErrorMessage = response.Message;
+            return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+        }
+
+        ErrorMessage = string.Empty;
+        return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
     }
 }

@@ -61,7 +61,6 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                 .DisposeWith(disposables);
         });
 
-
         HostScreen = hostScreen;
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync /*, canSignIn*/);
