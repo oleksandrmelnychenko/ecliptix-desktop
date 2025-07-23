@@ -9,6 +9,7 @@ public static class MembershipValidation
         {
             ValidationType.PhoneNumber => PhoneNumberValidator.Validate(value) ?? string.Empty,
             ValidationType.SecureKey => SecureKeyValidator.Validate(value) ?? string.Empty,
+            ValidationType.None => string.Empty,
             _ => throw new ArgumentOutOfRangeException(nameof(validationType), validationType, null)
         };
     }

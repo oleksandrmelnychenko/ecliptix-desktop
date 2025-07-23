@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -16,6 +17,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
+using Ecliptix.Utilities.Membership;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
@@ -39,8 +41,8 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
     private bool _isBusy;
     private bool _isPasswordSet;
     private string _phoneNumber;
-    private string _errorMessage;
-
+    private string _passwordErrorMessage;
+    private int _passwordLength;
     public SignInViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -61,9 +63,29 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                 .DisposeWith(disposables);
         });
 
+        // IObservable<bool> canExecute = this.WhenAnyValue(
+        //     x => x.PhoneNumber,
+        //     x => x.PasswordErrorMessage,
+        //     x => x.IsPasswordSet,
+        //     (number, error, ispasswordset) =>
+        //         string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
+        //         string.IsNullOrEmpty(error) &&
+        //         ispasswordset);
+        IObservable<bool> canExecute = this.WhenAnyValue(
+                x => x.PhoneNumber,
+                x => x.PasswordErrorMessage,
+                x => x.PasswordLength,
+                (number, error, passwordLength) =>
+                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
+                    passwordLength > 8 &&
+                    string.IsNullOrEmpty(error))
+            .Throttle(TimeSpan.FromMilliseconds(10))
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler);
+        
         HostScreen = hostScreen;
 
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync /*, canSignIn*/);
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync , canExecute);
     }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
@@ -71,16 +93,23 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
 
 
+
+    public int PasswordLength
+    {
+        get => _passwordLength;
+        private set => this.RaiseAndSetIfChanged(ref _passwordLength, value);
+    }
+
     public string PhoneNumber
     {
         get => _phoneNumber;
         set => this.RaiseAndSetIfChanged(ref _phoneNumber, value);
     }
-
-    public string ErrorMessage
+    
+    public string PasswordErrorMessage
     {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+        get => _passwordErrorMessage;
+        private set => this.RaiseAndSetIfChanged(ref _passwordErrorMessage, value);
     }
 
     public bool IsErrorVisible
@@ -103,13 +132,13 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
 
     private void SetError(string message)
     {
-        ErrorMessage = message;
+        PasswordErrorMessage = message;
         IsErrorVisible = true;
     }
 
     private void ClearError()
     {
-        ErrorMessage = string.Empty;
+        PasswordErrorMessage = string.Empty;
         IsErrorVisible = false;
     }
 
@@ -117,12 +146,15 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
     {
         _securePasswordHandle?.Dispose();
         _securePasswordHandle = null;
+        PasswordLength = 0;
         IsPasswordSet = false;
         ClearError();
 
         if (string.IsNullOrEmpty(passwordText))
             return;
 
+        PasswordLength = passwordText.Length;
+        
         Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result =
             ConvertStringToSodiumHandle(passwordText);
         if (result.IsOk)
@@ -133,6 +165,7 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
         else
         {
             SetError($"Error processing password: {result.UnwrapErr().Message}");
+            PasswordLength = 0;
         }
     }
 

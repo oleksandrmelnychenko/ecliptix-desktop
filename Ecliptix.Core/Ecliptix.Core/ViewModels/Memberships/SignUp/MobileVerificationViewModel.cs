@@ -11,6 +11,7 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Membership;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -35,6 +36,7 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
 
     public ViewModelActivator Activator { get; } = new();
 
+    
     public string MobileNumber
     {
         get => _mobileNumber;
@@ -58,10 +60,12 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
         _localizationService = localizationService;
         HostScreen = hostScreen;
 
-        IObservable<bool> canExecute = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(num => !string.IsNullOrWhiteSpace(num));
+        IObservable<bool> canExecute = this.WhenAnyValue(
+            x => x.MobileNumber,
+            (number) => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
+        
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(

@@ -136,7 +136,7 @@
             FocusBorderBrush="{DynamicResource TipsColor}"
             ValidationType="PhoneNumber"
             MainBorderBrush="Transparent"
-            Text="{Binding PhoneNumber}"
+            Text="{Binding PhoneNumber, Mode=TwoWay}"
             Height="{StaticResource InputHeight}"
             CornerRadius="{StaticResource InputCornerRadius}"
             FontSize="{StaticResource InputFontSize}"
@@ -158,8 +158,8 @@
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
             IconErrorSource="{DynamicResource LampIconDrawingError}"
             MainBorderBrush="Transparent"
-            ValidationType="SecureKey"
             PasswordChar="●"
+            ValidationType="None"
             FontSize="{StaticResource InputFontSize}"
             WatermarkFontSize="{StaticResource WatermarkFontSize}"
             Height="{StaticResource InputHeight}"
@@ -179,6 +179,7 @@
             <Button Grid.Column="1"
                     Content="{Binding Localization[SignIn.Continue]}"
                     Command="{Binding SignInCommand}"
+                    IsEnabled="{Binding SignInCommand.CanExecute}"
                     Classes="auth-button continue-button" />
         </Grid>
     </Grid>
