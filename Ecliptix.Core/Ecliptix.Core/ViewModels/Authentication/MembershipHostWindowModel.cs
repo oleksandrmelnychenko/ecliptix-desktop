@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Reactive;
+using Avalonia.Controls;
 using Ecliptix.Core.Controls.LanguageSwitcher;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
@@ -35,13 +36,25 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
 
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
 
+    private ConnectivityNotificationManager _notificationManager;
+    private bool _hasShownInitialNotification = false;
+    
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver
     )
     {
-        _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
+        _connectivitySubscription = connectivityObserver.Subscribe(async status =>
+        {
+            IsConnected = status;
+            
+            if (_notificationManager != null && (_hasShownInitialNotification || !status))
+            {
+                await _notificationManager.ShowConnectivityStatus(status);
+                _hasShownInitialNotification = true;
+            }
+        });
       
         LanguageSwitcher = new LanguageSwitcherViewModel(localizationService);
 
@@ -70,6 +83,17 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
     }
 
+    public void InitializeNotificationManager(StackPanel notificationContainer)
+    {
+        _notificationManager = new ConnectivityNotificationManager(notificationContainer);
+        
+        if (!IsConnected)
+        {
+            _ = _notificationManager.ShowConnectivityStatus(IsConnected);
+            _hasShownInitialNotification = true;
+        }
+    }
+    
     private static void OpenUrl(string url)
     {
         try

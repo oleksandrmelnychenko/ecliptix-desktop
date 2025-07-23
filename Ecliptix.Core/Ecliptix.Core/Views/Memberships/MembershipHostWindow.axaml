@@ -239,13 +239,19 @@
                    Height="18" />
         </Button>
 
-            <languageSwitcher:LanguageSwitcherView
-                    Name="LanguageSwitcherView"
-                    HorizontalAlignment="Right" 
-                    VerticalAlignment="Top" 
-                    DataContext="{Binding LanguageSwitcher}"
-                    Margin="16"
-                    ZIndex="1000"/>
+        <languageSwitcher:LanguageSwitcherView
+                Name="LanguageSwitcherView"
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Top" 
+                DataContext="{Binding LanguageSwitcher}"
+                Margin="16"
+                ZIndex="10"/>
+        
+        <StackPanel x:Name="NotificationContainer"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,120,0,0"
+                    ZIndex="1001" />
 
         <!-- Main Content Border -->
         <Border Classes="main-border"
