@@ -94,9 +94,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         NetworkProvider networkProvider, 
         ILocalizationService localizationService,
         IScreen hostScreen
-        )
+        ): base(networkProvider)
     {
-        _networkProvider = networkProvider;
         _localizationService = localizationService;
         HostScreen = hostScreen;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(

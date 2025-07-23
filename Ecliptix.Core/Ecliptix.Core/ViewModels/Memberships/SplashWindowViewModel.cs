@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Network.Providers;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
@@ -13,7 +14,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
     private bool _isShuttingDown;
     private Color _glowColor = Color.Parse("#9966CC");
-    
+
     public Color GlowColor
     {
         get => _glowColor;
@@ -29,7 +30,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
     public ViewModelActivator Activator { get; } = new();
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(INetworkEvents networkEvents)
+    public SplashWindowViewModel(INetworkEvents networkEvents, NetworkProvider networkProvider) : base(networkProvider)
     {
         this.WhenActivated(disposables =>
         {
@@ -44,7 +45,7 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
                     UpdateUiForNetworkStatus(status);
                 })
                 .DisposeWith(disposables);
-            
+
             IsSubscribed.TrySetResult(true);
         });
     }

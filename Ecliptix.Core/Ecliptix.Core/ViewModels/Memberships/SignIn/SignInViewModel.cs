@@ -29,7 +29,6 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
     public string UrlPathSegment { get; } = "/sign-in";
     public ViewModelActivator Activator { get; } = new();
     public IScreen HostScreen { get; }
-    private readonly NetworkProvider _networkProvider;
     private readonly ILocalizationService _localizationService;
 
     public ILocalizationService Localization => _localizationService;
@@ -45,9 +44,8 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
     public SignInViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen)
+        IScreen hostScreen): base(networkProvider)
     {
-        _networkProvider = networkProvider;
         _localizationService = localizationService;
 
         this.WhenActivated(disposables =>
@@ -245,7 +243,7 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
             byte[] passwordBytes = passwordSpan.ToArray();
 
             Result<ShieldUnit, NetworkFailure> overallResult =
-                await _networkProvider.ExecuteServiceRequestAsync(
+                await NetworkProvider.ExecuteServiceRequestAsync(
                     ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                     RcpServiceType.OpaqueSignInInitRequest,
                     initRequest.ToByteArray(),
@@ -291,7 +289,7 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                         ) = finalizationResult.Unwrap();
 
                         Result<ShieldUnit, NetworkFailure> finalizeResult =
-                            await _networkProvider.ExecuteServiceRequestAsync(
+                            await NetworkProvider.ExecuteServiceRequestAsync(
                                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                                 RcpServiceType.OpaqueSignInCompleteRequest,
                                 finalizeRequest.ToByteArray(),

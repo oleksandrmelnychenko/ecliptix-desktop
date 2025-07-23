@@ -1,5 +1,6 @@
 ﻿using System;
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -8,32 +9,26 @@ using Splat;
 
 namespace Ecliptix.Core.ViewModels;
 
-public class ViewModelBase : ReactiveObject, IDisposable
+public abstract class ViewModelBase(NetworkProvider networkProvider) : ReactiveObject, IDisposable
 {
+    protected NetworkProvider NetworkProvider { get; } = networkProvider;
+
     private bool _disposedValue;
 
-    protected static uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
+    protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
-        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
-
         uint connectId = Helpers.ComputeUniqueConnectId(
-            appInstanceInfo.AppInstanceId.Span,
-            appInstanceInfo.DeviceId.Span, pubKeyExchangeType);
+            NetworkProvider.ApplicationInstanceSettings.AppInstanceId.Span,
+            NetworkProvider.ApplicationInstanceSettings.DeviceId.Span, pubKeyExchangeType);
 
         return connectId;
     }
 
-    protected static byte[] ServerPublicKey()
-    {
-        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
-        return appInstanceInfo.ServerPublicKey.ToByteArray();
-    }
+    protected byte[] ServerPublicKey() =>
+        NetworkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
 
-    protected static string? SystemDeviceIdentifier()
-    {
-        ApplicationInstanceSettings appInstanceInfo = Locator.Current.GetService<ApplicationInstanceSettings>()!;
-        return appInstanceInfo.SystemDeviceIdentifier;
-    }
+    protected string SystemDeviceIdentifier() =>
+        NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
 
     protected virtual void Dispose(bool disposing)
     {

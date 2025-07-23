@@ -51,11 +51,9 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     public VerificationCodeEntryViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen)
+        IScreen hostScreen): base(networkProvider)
     {
         _localizationService = localizationService;
-        _networkProvider =
-            networkProvider ?? throw new ArgumentNullException(nameof(networkProvider));
         _verificationCode = string.Empty;
         HostScreen = hostScreen;
 
@@ -225,16 +223,18 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
                 {
-                    //Redirect to the Phone verification view
+                    // Notify user and redirect to the Phone verification view
+                    
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached)
                 {
-                    //Redirect to the Phone verification view
+                    // Notify user and redirect to the Phone verification view
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
                 {
+                    // Notify user and redirect to the Phone verification view
                 }
 
                 VerificationSessionIdentifier ??= Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);

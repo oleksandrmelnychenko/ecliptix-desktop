@@ -5,12 +5,11 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Services;
-using Ecliptix.Core.ViewModels;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.LanguageSwitcher;
 
-public sealed class LanguageSwitcherViewModel : ViewModelBase, IActivatableViewModel
+public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly ObservableAsPropertyHelper<bool> _isEnglish;
@@ -125,19 +124,6 @@ public sealed class LanguageSwitcherViewModel : ViewModelBase, IActivatableViewM
                 .Subscribe(item => _localizationService.SetCulture(item.Code))
                 .DisposeWith(disposables);
         });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _isEnglish.Dispose();
-            _currentLanguageCode.Dispose();
-            _activeSegmentIndex.Dispose();
-            Activator?.Dispose();
-        }
-
-        base.Dispose(disposing);
     }
 }
 

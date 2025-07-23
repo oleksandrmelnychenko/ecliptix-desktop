@@ -41,6 +41,7 @@
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignInView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/ApplyVerificationCodeView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/HostView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
+        <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/MobileVerificationView.xaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/PasswordConfirmationView.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/PhoneVerificationView.xaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />
         <entry key="Ecliptix.Core/Ecliptix.Core/Views/Memberships/SignUp/SignUpHost.axaml" value="Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj" />

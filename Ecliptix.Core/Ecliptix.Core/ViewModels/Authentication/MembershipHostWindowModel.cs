@@ -15,7 +15,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication;
 
-public class MembershipHostWindowModel : ReactiveObject, IScreen
+public class MembershipHostWindowModel : ViewModelBase, IScreen
 {
     public RoutingState Router { get; } = new();
 
@@ -38,24 +38,24 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
 
     private ConnectivityNotificationManager _notificationManager;
     private bool _hasShownInitialNotification = false;
-    
+
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver
-    )
+    ) : base(networkProvider)
     {
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
         {
             IsConnected = status;
-            
+
             if (_notificationManager != null && (_hasShownInitialNotification || !status))
             {
                 await _notificationManager.ShowConnectivityStatus(status);
                 _hasShownInitialNotification = true;
             }
         });
-      
+
         LanguageSwitcher = new LanguageSwitcherViewModel(localizationService);
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
@@ -86,14 +86,14 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
     public void InitializeNotificationManager(StackPanel notificationContainer)
     {
         _notificationManager = new ConnectivityNotificationManager(notificationContainer);
-        
+
         if (!IsConnected)
         {
             _ = _notificationManager.ShowConnectivityStatus(IsConnected);
             _hasShownInitialNotification = true;
         }
     }
-    
+
     private static void OpenUrl(string url)
     {
         try
@@ -119,7 +119,7 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
         return viewType switch
         {
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
-            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this),
+            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this, networkProvider),
             MembershipViewType.PhoneVerification => new MobileVerificationViewModel(networkProvider,
                 localizationService,
                 this),
@@ -127,7 +127,7 @@ public class MembershipHostWindowModel : ReactiveObject, IScreen
                 localizationService, this),
             MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(networkProvider,
                 localizationService, this),
-            MembershipViewType.PassPhase => new PassPhaseViewModel(localizationService, this),
+            MembershipViewType.PassPhase => new PassPhaseViewModel(localizationService, this, networkProvider),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType)),
         };
     }

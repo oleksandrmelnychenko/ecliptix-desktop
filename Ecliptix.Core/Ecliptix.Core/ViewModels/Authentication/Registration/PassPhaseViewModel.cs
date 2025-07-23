@@ -2,6 +2,7 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
@@ -29,7 +30,7 @@ public class PassPhaseViewModel: ViewModelBase, IActivatableViewModel, IRoutable
 
     public PassPhaseViewModel(
         ILocalizationService localizationService,
-        IScreen hostScreen)
+        IScreen hostScreen,NetworkProvider networkProvider): base(networkProvider)
     {
         _localizationService = localizationService;
         HostScreen = hostScreen;

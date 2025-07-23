@@ -3,7 +3,8 @@ using System.Reactive;
 using System.Reactive.Concurrency; // For IScheduler
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Services; 
+using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -11,6 +12,7 @@ namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 public class NicknameInputViewModel : ViewModelBase, IActivatableViewModel
 {
     private string _nickname = string.Empty;
+
     public string Nickname
     {
         get => _nickname;
@@ -30,25 +32,23 @@ public class NicknameInputViewModel : ViewModelBase, IActivatableViewModel
 
     public NicknameInputViewModel(
         ILocalizationService localizationService,
-        IScheduler? mainThreadScheduler = null) 
+        NetworkProvider networkProvider,
+        IScheduler? mainThreadScheduler = null) : base(networkProvider)
     {
         _localizationService = localizationService;
-            
+
         IScheduler scheduler = mainThreadScheduler ?? RxApp.MainThreadScheduler;
 
-        SubmitCommand = ReactiveCommand.Create(() =>
-        {
-            Console.WriteLine($"Nickname submitted: {Nickname}");
-        });
-        
+        SubmitCommand = ReactiveCommand.Create(() => { Console.WriteLine($"Nickname submitted: {Nickname}"); });
+
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
                     handlerAction => _localizationService.LanguageChanged += handlerAction,
                     handlerAction => _localizationService.LanguageChanged -= handlerAction
                 )
-                .ObserveOn(scheduler) 
-                .Subscribe(_ => 
+                .ObserveOn(scheduler)
+                .Subscribe(_ =>
                 {
                     this.RaisePropertyChanged(nameof(Title));
                     this.RaisePropertyChanged(nameof(Description));
@@ -56,14 +56,11 @@ public class NicknameInputViewModel : ViewModelBase, IActivatableViewModel
                     this.RaisePropertyChanged(nameof(ButtonContent));
                     this.RaisePropertyChanged(nameof(Watermark));
                 })
-                .DisposeWith(disposables); 
+                .DisposeWith(disposables);
 
             SubmitCommand.ThrownExceptions
-                .ObserveOn(scheduler) 
-                .Subscribe(ex =>
-                {
-                    Console.WriteLine($"Error during SubmitCommand: {ex.Message}");
-                })
+                .ObserveOn(scheduler)
+                .Subscribe(ex => { Console.WriteLine($"Error during SubmitCommand: {ex.Message}"); })
                 .DisposeWith(disposables);
         });
     }

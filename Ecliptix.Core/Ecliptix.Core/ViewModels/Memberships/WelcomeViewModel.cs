@@ -1,4 +1,5 @@
 using System.Reactive;
+using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
@@ -15,7 +16,7 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
 
-    public WelcomeViewModel(IScreen hostScreen)
+    public WelcomeViewModel(IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider)
     {
         HostScreen = hostScreen;
 

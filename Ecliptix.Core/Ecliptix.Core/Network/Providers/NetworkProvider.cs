@@ -39,6 +39,9 @@ public sealed class NetworkProvider(
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
+    public ApplicationInstanceSettings ApplicationInstanceSettings =>
+        _applicationInstanceSettings.Value!;
+
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
@@ -192,8 +195,8 @@ public sealed class NetworkProvider(
 
     public async static Task<TResult> RetryExecute<TResult>(
         Func<int, TimeSpan> retryInterval,
-        Func<TResult, bool> shouldRetry,                         
-        Func<int, TResult, Task> onRetryAsync,                   
+        Func<TResult, bool> shouldRetry,
+        Func<int, TResult, Task> onRetryAsync,
         Func<Task<TResult>> block,
         int? maxRetryCount = null
     )
@@ -214,7 +217,7 @@ public sealed class NetworkProvider(
 
         throw new InvalidOperationException("Unreachable code in RetryExecute.");
     }
-    
+
 
     public async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannelAsync(
         EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
@@ -378,7 +381,7 @@ public sealed class NetworkProvider(
         {
             return establishResult;
         }
-        
+
 
         Log.Information("Successfully reconnected and established new session");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -404,7 +407,7 @@ public sealed class NetworkProvider(
         {
             return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
         }
-        
+
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
 
