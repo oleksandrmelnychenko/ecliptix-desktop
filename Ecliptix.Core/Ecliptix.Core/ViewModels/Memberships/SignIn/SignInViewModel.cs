@@ -284,7 +284,8 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                     {
                         OpaqueSignInInitResponse initResponse =
                             Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
-
+                        
+                        
                         Result<
                             (
                             OpaqueSignInFinalizeRequest Request,
@@ -395,11 +396,12 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
             if (overallResult.IsErr)
             {
                 SetError($"Sign-in network request failed: {overallResult.UnwrapErr().Message}");
+                Console.WriteLine(
+                    "Sign-in process completed unsuccessfully. Session key established."
+                );
             }
 
-            Console.WriteLine(
-                "Sign-in process completed unsuccessfully. Session key established."
-            );
+          
         }
         catch (Exception ex)
         {
