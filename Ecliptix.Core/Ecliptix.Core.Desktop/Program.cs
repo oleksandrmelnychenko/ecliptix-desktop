@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -35,7 +32,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Core;
-using Serilog.Events;
+using Serilog.Settings.Configuration;
 using Splat.Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core.Desktop;
@@ -90,71 +87,79 @@ public static class Program
 
     private static Logger ConfigureSerilog(IConfiguration configuration)
     {
-        IConfigurationSection serilogConfig = configuration.GetSection("Serilog");
-        LogEventLevel minimumLevel = serilogConfig.GetValue<string>("MinimumLevel:Default") switch
-        {
-            "Debug" => LogEventLevel.Debug,
-            "Information" => LogEventLevel.Information,
-            "Warning" => LogEventLevel.Warning,
-            "Error" => LogEventLevel.Error,
-            _ => LogEventLevel.Warning,
-        };
+        // IConfigurationSection serilogConfig = configuration.GetSection("Serilog");
+        // LogEventLevel minimumLevel = serilogConfig.GetValue<string>("MinimumLevel:Default") switch
+        // {
+        //     "Debug" => LogEventLevel.Debug,
+        //     "Information" => LogEventLevel.Information,
+        //     "Warning" => LogEventLevel.Warning,
+        //     "Error" => LogEventLevel.Error,
+        //     _ => LogEventLevel.Warning,
+        // };
+        //
+        // LoggerConfiguration loggerConfig = new LoggerConfiguration().MinimumLevel.Is(minimumLevel);
+        //
+        // IEnumerable<IConfigurationSection> overrides = serilogConfig
+        //     .GetSection("MinimumLevel:Override")
+        //     .GetChildren();
+        // foreach (IConfigurationSection overrideSection in overrides)
+        // {
+        //     LogEventLevel level = overrideSection.Value switch
+        //     {
+        //         "Debug" => LogEventLevel.Debug,
+        //         "Information" => LogEventLevel.Information,
+        //         "Warning" => LogEventLevel.Warning,
+        //         "Error" => LogEventLevel.Error,
+        //         _ => LogEventLevel.Warning,
+        //     };
+        //     loggerConfig.MinimumLevel.Override(overrideSection.Key, level);
+        // }
+        //
+        // IConfigurationSection? fileSink = serilogConfig
+        //     .GetSection("WriteTo")
+        //     .GetChildren()
+        //     .FirstOrDefault(s => s["Name"] == "Async")
+        //     ?.GetSection("Args:configure")
+        //     .GetChildren()
+        //     .FirstOrDefault(c => c["Name"] == "File")
+        //     ?.GetSection("Args");
+        // if (fileSink != null)
+        // {
+        //     string path = ResolvePath(fileSink["path"] ?? "Storage/logs/ecliptix.log");
+        //     loggerConfig.WriteTo.Async(a =>
+        //         a.File(
+        //             path: path,
+        //             rollingInterval: fileSink.GetValue<RollingInterval>(
+        //                 "rollingInterval",
+        //                 RollingInterval.Day
+        //             ),
+        //             retainedFileCountLimit: fileSink.GetValue<int?>("retainedFileCountLimit", 7),
+        //             fileSizeLimitBytes: fileSink.GetValue<long?>("fileSizeLimitBytes", 10000000),
+        //             outputTemplate: fileSink["outputTemplate"]
+        //                 ?? "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+        //         )
+        //     );
+        // }
+        // else
+        // {
+        //     Log.Warning(
+        //         "No file sink configured in Serilog settings; logging to console only in development"
+        //     );
+        // }
+        //
+        // if (configuration.GetValue<string>("AppSettings:Environment") == "Development")
+        // {
+        //     loggerConfig.WriteTo.Console();
+        // }
+        //
+        // return loggerConfig.CreateLogger();
+        
+        string? environment = configuration.GetValue<string>("DefaultAppSettings:Environment");
+        bool isDevelopment = environment?.Equals("Development", StringComparison.OrdinalIgnoreCase) == true;
 
-        LoggerConfiguration loggerConfig = new LoggerConfiguration().MinimumLevel.Is(minimumLevel);
-
-        IEnumerable<IConfigurationSection> overrides = serilogConfig
-            .GetSection("MinimumLevel:Override")
-            .GetChildren();
-        foreach (IConfigurationSection overrideSection in overrides)
-        {
-            LogEventLevel level = overrideSection.Value switch
-            {
-                "Debug" => LogEventLevel.Debug,
-                "Information" => LogEventLevel.Information,
-                "Warning" => LogEventLevel.Warning,
-                "Error" => LogEventLevel.Error,
-                _ => LogEventLevel.Warning,
-            };
-            loggerConfig.MinimumLevel.Override(overrideSection.Key, level);
-        }
-
-        IConfigurationSection? fileSink = serilogConfig
-            .GetSection("WriteTo")
-            .GetChildren()
-            .FirstOrDefault(s => s["Name"] == "Async")
-            ?.GetSection("Args:configure")
-            .GetChildren()
-            .FirstOrDefault(c => c["Name"] == "File")
-            ?.GetSection("Args");
-        if (fileSink != null)
-        {
-            string path = ResolvePath(fileSink["path"] ?? "Storage/logs/ecliptix.log");
-            loggerConfig.WriteTo.Async(a =>
-                a.File(
-                    path: path,
-                    rollingInterval: fileSink.GetValue<RollingInterval>(
-                        "rollingInterval",
-                        RollingInterval.Day
-                    ),
-                    retainedFileCountLimit: fileSink.GetValue<int?>("retainedFileCountLimit", 7),
-                    fileSizeLimitBytes: fileSink.GetValue<long?>("fileSizeLimitBytes", 10000000),
-                    outputTemplate: fileSink["outputTemplate"]
-                        ?? "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-                )
-            );
-        }
-        else
-        {
-            Log.Warning(
-                "No file sink configured in Serilog settings; logging to console only in development"
-            );
-        }
-
-        if (configuration.GetValue<string>("AppSettings:Environment") == "Development")
-        {
-            loggerConfig.WriteTo.Console();
-        }
-
+        LoggerConfiguration loggerConfig = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration); 
+        
         return loggerConfig.CreateLogger();
     }
 
