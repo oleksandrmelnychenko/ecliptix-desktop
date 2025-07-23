@@ -117,7 +117,6 @@ using Avalonia.Styling;
                 Padding = new Thickness(12, 8),
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch,
-                BoxShadow = new BoxShadows(BoxShadow.Parse("0 4 10 0 #4D000000"))
             };
 
             // Create a grid for layout

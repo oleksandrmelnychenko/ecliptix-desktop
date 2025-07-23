@@ -250,7 +250,8 @@
         <StackPanel x:Name="NotificationContainer"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
-                    Margin="0,120,0,0"
+                    Margin="0,20,0,0"
+                    Width="250"
                     ZIndex="1001" />
 
         <!-- Main Content Border -->
