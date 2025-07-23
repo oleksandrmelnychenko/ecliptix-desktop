@@ -61,11 +61,11 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
         NavToVerifyOtp = ReactiveCommand.CreateFromTask(async () =>
         {
             string? systemDeviceIdentifier = SystemDeviceIdentifier();
-
+            
             ValidatePhoneNumberRequest request = new()
             {
                 PhoneNumber = MobileNumber,
-                AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8),
+                AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
             };
 
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
