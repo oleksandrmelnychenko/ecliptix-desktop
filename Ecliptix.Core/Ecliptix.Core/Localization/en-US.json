@@ -1,98 +1,88 @@
 {
   "Authentication": {
-    "Registration": {
-      "phoneVerification": {
-        "title": "Creating new account",
-        "description": "Confirm your phone number. We'll send you a verification code via SMS.",
-        "hint": "Start with country code.",
-        "watermark": "Mobile Number",
-        "button": "Continue",
-        "error": {
-          "invalidFormat": "Invalid format. Use +countrycode followed by number (e.g., +12025550123)."
+    "SignUp": {
+      "PhoneVerification": {
+        "Title": "Creating new account",
+        "Description": "Confirm your phone number. We'll send you a verification code via SMS.",
+        "Hint": "Start with country code.",
+        "Watermark": "Mobile Number",
+        "Button": "Continue",
+        "Error": {
+          "InvalidFormat": "Invalid format. Use +countrycode followed by number (e.g., +12025550123)."
         }
       },
-      "verificationCodeEntry": {
-        "title": "Verify your number",
-        "description": "We have sent a code to your phone to verify your identity.",
-        "hint": "Enter verification code",
-        "expiration": "Code expires in: {0}",
-        "error": {
-          "invalidCode": "Invalid code"
+      "VerificationCodeEntry": {
+        "Title": "Verify your number",
+        "Description": "We have sent a code to your phone to verify your identity.",
+        "Hint": "Enter verification code",
+        "Expiration": "Code expires in: {0}",
+        "Error": {
+          "InvalidCode": "Invalid code"
         },
-        "button": {
-          "verify": "Verify",
-          "resend": "Resend Code"
+        "Button": {
+          "Verify": "Verify",
+          "Resend": "Resend Code"
         }
       },
-      "nicknameInput": {
-        "title": "Enter your nickname",
-        "description": "This nickname will be visible to other users",
-        "hint": "Enter your nickname",
-        "watermark": "Nickname",
-        "button": "Confirm nickname"
+      "NicknameInput": {
+        "Title": "Enter your nickname",
+        "Description": "This nickname will be visible to other users",
+        "Hint": "Enter your nickname",
+        "Watermark": "Nickname",
+        "Button": "Confirm nickname"
       },
-      "passwordConfirmation": {
-        "title": "Enter your password",
-        "description": "Make sure you have verified it",
-        "passwordHint": "Enter your password",
-        "verifyPasswordHint": "Re-enter your password",
-        "error": {
-          "passwordMismatch": "Passwords do not match"
+      "PasswordConfirmation": {
+        "Title": "Enter your password",
+        "Description": "Make sure you have verified it",
+        "PasswordHint": "Enter your password",
+        "VerifyPasswordHint": "Re-enter your password",
+        "Error": {
+          "PasswordMismatch": "Passwords do not match"
         },
-        "button": "Confirm password"
+        "Button": "Confirm password"
       },
-      "passPhase": {
-        "title": "Enter your PIN code",
-        "description": "Provide a PIN code for secure authentication.",
-        "hint": "Enter your PIN code",
-        "watermark": "####",
-        "button": "Confirm PIN code"
+      "PassPhase": {
+        "Title": "Enter your PIN code",
+        "Description": "Provide a PIN code for secure authentication.",
+        "Hint": "Enter your PIN code",
+        "Watermark": "####",
+        "Button": "Confirm PIN code"
       }
     },
     "SignIn": {
-      "title": "Sign in",
-      "welcome": "Welcome back! Your personalized experience awaits.",
-      "mobilePlaceholder": "Mobile Number",
-      "mobileHint": "Start with country code.",
-      "passwordPlaceholder": "Secure Key",
-      "passwordHint": "Stored only on your device",
-      "accountRecovery": "Account recovery",
-      "continue": "Continue"
+      "Title": "Sign in",
+      "Welcome": "Welcome back! Your personalized experience awaits.",
+      "MobilePlaceholder": "Mobile Number",
+      "MobileHint": "Start with country code.",
+      "PasswordPlaceholder": "Secure Key",
+      "PasswordHint": "Stored only on your device",
+      "AccountRecovery": "Account recovery",
+      "Continue": "Continue"
     }
   },
-  "SignIn": {
-    "Title": "Sign in",
-    "Welcome": "Welcome back! Your personalized experience awaits.",
-    "MobilePlaceholder": "Mobile Number",
-    "MobileHint": "Start with country code.",
-    "PasswordPlaceholder": "Secure Key",
-    "PasswordHint": "Stored only on your device",
-    "AccountRecovery": "Account recovery",
-    "Continue": "Continue"
-  },
   "Welcome": {
-    "signIn": "Sign in",
-    "createAccount": "Create account"
+    "SignInButton": "Sign in",
+    "CreateAccountButton": "Create account"
   },
   "Footer": {
-    "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service",
-    "support": "Support",
-    "agreementText": "By continuing, you agree to our Terms and Privacy Policy",
-    "copyright": "© Horizon Dynamics 2025. All rights reserved."
+    "PrivacyPolicy": "Privacy Policy",
+    "TermsOfService": "Terms of Service",
+    "Support": "Support",
+    "AgreementText": "By continuing, you agree to our Terms and Privacy Policy",
+    "Copyright": "© Horizon Dynamics 2025. All rights reserved."
   },
   "Navigation": {
-    "back": "Back",
-    "close": "Close",
-    "minimize": "Minimize",
-    "maximize": "Maximize"
+    "Back": "Back",
+    "Close": "Close",
+    "Minimize": "Minimize",
+    "Maximize": "Maximize"
   },
   "Common": {
-    "loading": "Loading...",
-    "loadingView": "Loading View...",
-    "error": "Error",
-    "success": "Success",
-    "cancel": "Cancel",
-    "ok": "OK"
+    "Loading": "Loading...",
+    "LoadingView": "Loading View...",
+    "Error": "Error",
+    "Success": "Success",
+    "Cancel": "Cancel",
+    "Ok": "OK"
   }
 }

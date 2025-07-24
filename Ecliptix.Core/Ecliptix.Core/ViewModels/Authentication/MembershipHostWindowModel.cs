@@ -119,7 +119,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         return viewType switch
         {
             MembershipViewType.SignIn => new SignInViewModel(networkProvider, localizationService, this),
-            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this, networkProvider),
+            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this, localizationService, networkProvider),
             MembershipViewType.PhoneVerification => new MobileVerificationViewModel(networkProvider,
                 localizationService,
                 this),

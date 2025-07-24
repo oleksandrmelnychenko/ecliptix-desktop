@@ -1,5 +1,6 @@
 using System.Reactive;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;
@@ -12,13 +13,18 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
 
     public string UrlPathSegment { get; } = "/welcome";
     public IScreen HostScreen { get; }
+    private readonly ILocalizationService _localizationService;
+
+    public ILocalizationService Localization => _localizationService;
 
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
 
-    public WelcomeViewModel(IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider)
+    public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
+        NetworkProvider networkProvider) : base(networkProvider)
     {
         HostScreen = hostScreen;
+        _localizationService = localizationService;
 
         NavToCreateAccountCommand = ReactiveCommand.Create(() =>
         {

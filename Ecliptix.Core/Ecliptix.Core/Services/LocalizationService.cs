@@ -11,7 +11,7 @@ using Ecliptix.Core.Settings;
 
 namespace Ecliptix.Core.Services;
 
-public sealed class LocalizationService : ILocalizationService, INotifyPropertyChanged
+public sealed class LocalizationService : ILocalizationService
 {
     private readonly Dictionary<string, string> _localizedStrings;
     private CultureInfo _currentCultureInfo;
@@ -67,24 +67,17 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
 
     private void LoadEmbeddedJsonFile(string resourceName, Dictionary<string, string> targetDictionary)
     {
-        try
+        using Stream? stream = _assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
         {
-            using Stream? stream = _assembly.GetManifestResourceStream(resourceName);
-            if (stream == null)
-            {
-                return;
-            }
-
-            using StreamReader reader = new(stream);
-            string jsonContent = reader.ReadToEnd();
-
-            JsonDocument document = JsonDocument.Parse(jsonContent);
-            FlattenJsonObject(document.RootElement, string.Empty, targetDictionary);
+            return;
         }
-        catch (Exception)
-        {
-            // Handle resource loading errors silently
-        }
+
+        using StreamReader reader = new(stream);
+        string jsonContent = reader.ReadToEnd();
+
+        JsonDocument document = JsonDocument.Parse(jsonContent);
+        FlattenJsonObject(document.RootElement, string.Empty, targetDictionary);
     }
 
     private static void FlattenJsonObject(JsonElement element, string prefix, Dictionary<string, string> result)
@@ -172,7 +165,7 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            LanguageChanged?.Invoke();
+            LanguageChanged.Invoke();
         }
         else
         {
@@ -184,7 +177,7 @@ public sealed class LocalizationService : ILocalizationService, INotifyPropertyC
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+            PropertyChanged.Invoke(this, new PropertyChangedEventArgs("Item[]"));
         }
         else
         {
