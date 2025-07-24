@@ -22,7 +22,7 @@ public sealed class LocalizationService : ILocalizationService
     private readonly Lock _cultureChangeLock = new();
 
     public event Action? LanguageChanged;
-    public event PropertyChangedEventHandler? PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
     public CultureInfo CurrentCultureInfo => _currentCultureInfo;
     public string CurrentCultureName => _currentCultureInfo.Name;
@@ -156,15 +156,13 @@ public sealed class LocalizationService : ILocalizationService
             _currentCultureInfo = newCultureInfo;
             _localizedStrings.Clear();
             LoadCulture(cultureName);
-
-           
         }
 
         if (onCultureChanged is not null)
         {
-            onCultureChanged?.Invoke();
             OnLanguageChanged();
             NotifyAllPropertiesChanged();
+            onCultureChanged?.Invoke();
         }
     }
 
@@ -172,7 +170,7 @@ public sealed class LocalizationService : ILocalizationService
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            LanguageChanged.Invoke();
+            LanguageChanged?.Invoke();
         }
         else
         {
@@ -184,12 +182,16 @@ public sealed class LocalizationService : ILocalizationService
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            PropertyChanged.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));    
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]")); 
         }
         else
         {
             Dispatcher.UIThread.Post(() =>
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]")));
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
+            });
         }
     }
 }
