@@ -62,7 +62,7 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
 
         IObservable<bool> canExecute = this.WhenAnyValue(
             x => x.MobileNumber,
-            (number) => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)));
+            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
         

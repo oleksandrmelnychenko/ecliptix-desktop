@@ -1,4 +1,7 @@
+using System;
 using System.Reactive;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
@@ -13,9 +16,8 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
 
     public string UrlPathSegment { get; } = "/welcome";
     public IScreen HostScreen { get; }
-    private readonly ILocalizationService _localizationService;
 
-    public ILocalizationService Localization => _localizationService;
+    public ILocalizationService Localization { get; }
 
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
@@ -24,7 +26,17 @@ public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableV
         NetworkProvider networkProvider) : base(networkProvider)
     {
         HostScreen = hostScreen;
-        _localizationService = localizationService;
+        Localization = localizationService;
+
+        this.WhenActivated(disposables =>
+        {
+            Observable.FromEvent(
+                    handler => Localization.LanguageChanged += handler,
+                    handler => Localization.LanguageChanged -= handler
+                )
+                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
+                .DisposeWith(disposables);
+        });
 
         NavToCreateAccountCommand = ReactiveCommand.Create(() =>
         {
