@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Services;
@@ -9,25 +10,25 @@ namespace Ecliptix.Core.Views.Memberships;
 
 public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowModel>
 {
+    private const string NotificationContainerControl = "NotificationContainer";
+    
     public MembershipHostWindow()
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
-        #if DEBUG
-                this.AttachDevTools();
-        #endif
-
-        this.Loaded += OnWindowLoaded;
+#if DEBUG
+        this.AttachDevTools();
+#endif
     }
-    
-    private void OnWindowLoaded(object sender, Avalonia.Interactivity.RoutedEventArgs e)
+
+    protected override void OnLoaded(RoutedEventArgs e)
     {
-        var notificationContainer = this.FindControl<StackPanel>("NotificationContainer");
+        base.OnLoaded(e);
+
+        StackPanel? notificationContainer = this.FindControl<StackPanel>(NotificationContainerControl);
         if (notificationContainer != null && ViewModel != null)
         {
             ViewModel.InitializeNotificationManager(notificationContainer);
         }
-        
-        this.Loaded -= OnWindowLoaded;
     }
 }
