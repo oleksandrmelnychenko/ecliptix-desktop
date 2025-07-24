@@ -26,74 +26,20 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
-public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class SignInViewModel : ViewModelBase, IRoutableViewModel
 {
-    public string UrlPathSegment { get; } = "/sign-in";
-    public ViewModelActivator Activator { get; } = new();
-    public IScreen HostScreen { get; }
-    private readonly ILocalizationService _localizationService;
-
-    public ILocalizationService Localization => _localizationService;
-
-    private SodiumSecureMemoryHandle? _securePasswordHandle;
-
     private bool _isErrorVisible;
     private bool _isBusy;
     private bool _isPasswordSet;
     private string _phoneNumber;
     private string _passwordErrorMessage;
     private int _passwordLength;
-    public SignInViewModel(
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IScreen hostScreen): base(networkProvider)
-    {
-        _localizationService = localizationService;
 
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEventPattern<PropertyChangedEventHandler, PropertyChangedEventArgs>(
-                    handler => _localizationService.PropertyChanged += handler,
-                    handler => _localizationService.PropertyChanged -= handler)
-                .Where(args => args.EventArgs.PropertyName == "Item[]")
-                .Subscribe(_ =>
-                {
-                    this.RaisePropertyChanged(nameof(Localization));
-                })
-                .DisposeWith(disposables);
-        });
+    public string UrlPathSegment { get; } = "/sign-in";
+    public IScreen HostScreen { get; }
 
-        // IObservable<bool> canExecute = this.WhenAnyValue(
-        //     x => x.PhoneNumber,
-        //     x => x.PasswordErrorMessage,
-        //     x => x.IsPasswordSet,
-        //     (number, error, ispasswordset) =>
-        //         string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
-        //         string.IsNullOrEmpty(error) &&
-        //         ispasswordset);
-        IObservable<bool> canExecute = this.WhenAnyValue(
-                x => x.PhoneNumber,
-                x => x.PasswordErrorMessage,
-                x => x.PasswordLength,
-                (number, error, passwordLength) =>
-                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
-                    passwordLength > 8 &&
-                    string.IsNullOrEmpty(error))
-            .Throttle(TimeSpan.FromMilliseconds(10))
-            .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler);
-        
-        HostScreen = hostScreen;
-
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync , canExecute);
-    }
-
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
-
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
-
-
-
+    private SodiumSecureMemoryHandle? _securePasswordHandle;
+    
     public int PasswordLength
     {
         get => _passwordLength;
@@ -105,7 +51,7 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
         get => _phoneNumber;
         set => this.RaiseAndSetIfChanged(ref _phoneNumber, value);
     }
-    
+
     public string PasswordErrorMessage
     {
         get => _passwordErrorMessage;
@@ -129,6 +75,36 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
         get => _isPasswordSet;
         private set => this.RaiseAndSetIfChanged(ref _isPasswordSet, value);
     }
+    
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
+
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
+    
+    
+    
+    public SignInViewModel(
+        NetworkProvider networkProvider,
+        ILocalizationService localizationService,
+        IScreen hostScreen) : base(networkProvider, localizationService)
+    {
+        IObservable<bool> canExecute = this.WhenAnyValue(
+                x => x.PhoneNumber,
+                x => x.PasswordErrorMessage,
+                x => x.PasswordLength,
+                (number, error, passwordLength) =>
+                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
+                    passwordLength > 8 &&
+                    string.IsNullOrEmpty(error))
+            .Throttle(TimeSpan.FromMilliseconds(10))
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler);
+
+        HostScreen = hostScreen;
+
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecute);
+    }
+
+
 
     private void SetError(string message)
     {
@@ -154,7 +130,7 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
             return;
 
         PasswordLength = passwordText.Length;
-        
+
         Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> result =
             ConvertStringToSodiumHandle(passwordText);
         if (result.IsOk)
@@ -284,8 +260,8 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                     {
                         OpaqueSignInInitResponse initResponse =
                             Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
-                        
-                        
+
+
                         Result<
                             (
                             OpaqueSignInFinalizeRequest Request,
@@ -400,8 +376,6 @@ public class SignInViewModel : ViewModelBase, IActivatableViewModel, IRoutableVi
                     "Sign-in process completed unsuccessfully. Session key established."
                 );
             }
-
-          
         }
         catch (Exception ex)
         {

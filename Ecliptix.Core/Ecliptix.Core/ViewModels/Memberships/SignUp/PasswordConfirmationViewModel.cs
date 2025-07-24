@@ -27,10 +27,8 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 {
-    public ViewModelActivator Activator { get; } = new();
-
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private SodiumSecureMemoryHandle? _secureVerifyPasswordHandle;
 
@@ -72,20 +70,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
     
-    private readonly NetworkProvider _networkProvider;
-    private readonly ILocalizationService _localizationService;
-    public string Title => _localizationService["Authentication.Registration.passwordConfirmation.title"];
-    public string Description => _localizationService["Authentication.Registration.passwordConfirmation.description"];
-    public string PasswordHint => _localizationService["Authentication.Registration.passwordConfirmation.passwordHint"];
-
-    public string VerifyPasswordHint =>
-        _localizationService["Authentication.Registration.passwordConfirmation.verifyPasswordHint"];
-
-    public string ButtonContent => _localizationService["Authentication.Registration.passwordConfirmation.button"];
-
-    public string PasswordMismatchError =>
-        _localizationService["Authentication.Registration.passwordConfirmation.error.passwordMismatch"];
-
     private readonly IDisposable _mobileSubscription;
 
     private string VerificationSessionId { get; set; }
@@ -94,9 +78,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
         NetworkProvider networkProvider, 
         ILocalizationService localizationService,
         IScreen hostScreen
-        ): base(networkProvider)
+        ): base(networkProvider,localizationService)
     {
-        _localizationService = localizationService;
         HostScreen = hostScreen;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
             x => x.CanSubmit,
@@ -114,35 +97,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(mobile => { VerificationSessionId = mobile; }
             );
-
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEvent(
-                    handler => _localizationService.LanguageChanged += handler,
-                    handler => _localizationService.LanguageChanged -= handler
-                )
-                .Subscribe(_ =>
-                {
-                    this.RaisePropertyChanged(nameof(Title));
-                    this.RaisePropertyChanged(nameof(Description));
-                    this.RaisePropertyChanged(nameof(PasswordHint));
-                    this.RaisePropertyChanged(nameof(VerifyPasswordHint));
-                    this.RaisePropertyChanged(nameof(ButtonContent));
-                    this.RaisePropertyChanged(nameof(PasswordMismatchError));
-                })
-                .DisposeWith(disposables);
-
-            SubmitCommand.ThrownExceptions
-                .Subscribe(ex =>
-                {
-                    PasswordErrorMessage = $"An unexpected error occurred: {ex.Message}";
-                    IsPasswordErrorVisible = true;
-                    IsBusy = false;
-                })
-                .DisposeWith(disposables);
-            
-            
-        });
     }
 
     public void UpdatePassword(string? passwordText)
@@ -466,7 +420,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
 
             byte[] pas = passwordSpan.ToArray();
 
-            _ = await _networkProvider.ExecuteServiceRequestAsync(
+            _ = await NetworkProvider.ExecuteServiceRequestAsync(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RcpServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
@@ -488,7 +442,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IActivatableViewMode
                             PeerRegistrationRecord = ByteString.CopyFrom(envelope.Unwrap())
                         };
 
-                        _ = await _networkProvider.ExecuteServiceRequestAsync(
+                        _ = await NetworkProvider.ExecuteServiceRequestAsync(
                             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                             RcpServiceType.OpaqueRegistrationComplete,
                             r.ToByteArray(),

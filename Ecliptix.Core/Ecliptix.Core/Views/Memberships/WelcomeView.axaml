@@ -186,7 +186,7 @@
 
             <!-- Sign In Button -->
             <Button Grid.Column="0"
-                    Content="{Binding Localization[Welcome.SignInButton]}"
+                    Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
                     Classes="auth-button signin-button"
                     Foreground="{DynamicResource LightButtonForegroundColor}"
@@ -194,7 +194,7 @@
 
             <!-- Create Account Button -->
             <Button Grid.Column="1"
-                    Content="{Binding Localization[Welcome.CreateAccountButton]}"
+                    Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                     Command="{Binding NavToCreateAccountCommand}"
                     Classes="auth-button create-account-button"
                     HorizontalAlignment="Stretch" />

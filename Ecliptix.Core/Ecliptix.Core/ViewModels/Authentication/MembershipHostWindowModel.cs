@@ -20,37 +20,37 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 {
     public RoutingState Router { get; } = new();
     
-    private readonly ILocalizationService _localizationService;
-    public ILocalizationService LocalizationService => _localizationService;
-    
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
     private readonly IDisposable _connectivitySubscription;
     private bool _isConnected = true;
-
+    private bool _canNavigateBack;
+    
     public bool IsConnected
     {
         get => _isConnected;
         set => this.RaiseAndSetIfChanged(ref _isConnected, value);
     }
-
+    
+    public bool CanNavigateBack
+    {
+        get => _canNavigateBack;
+        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
+    }
+    
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
 
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
     
-    private bool _hasShownInitialNotification = false;
-
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
         ISecureStorageProvider secureStorageProvider
-    ) : base(networkProvider)
+    ) : base(networkProvider,localizationService)
     {
-        _localizationService = localizationService;
-        
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
         {
             IsConnected = status;
@@ -75,28 +75,9 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
     }
 
-    private bool _canNavigateBack;
-
-    public bool CanNavigateBack
-    {
-        get => _canNavigateBack;
-        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
-    }
 
     private static void OpenUrl(string url)
     {
-        try
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true
-            });
-        }
-        catch
-        {
-            // Handle URL opening failure silently
-        }
     }
 
     private IRoutableViewModel CreateViewModelForView(

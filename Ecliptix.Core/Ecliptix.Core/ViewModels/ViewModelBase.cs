@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -9,11 +12,32 @@ using Splat;
 
 namespace Ecliptix.Core.ViewModels;
 
-public abstract class ViewModelBase(NetworkProvider networkProvider) : ReactiveObject, IDisposable
+public abstract class ViewModelBase
+    : ReactiveObject, IDisposable, IActivatableViewModel
 {
-    protected NetworkProvider NetworkProvider { get; } = networkProvider;
+    public ILocalizationService LocalizationService { get; }
+
+    protected NetworkProvider NetworkProvider { get; }
 
     private bool _disposedValue;
+
+    public ViewModelActivator Activator { get; } = new();
+
+    protected ViewModelBase(NetworkProvider networkProvider, ILocalizationService localizationService)
+    {
+        NetworkProvider = networkProvider;
+        LocalizationService = localizationService;
+
+        this.WhenActivated(disposables =>
+        {
+            Observable.FromEvent(
+                    handler => localizationService.LanguageChanged += handler,
+                    handler => localizationService.LanguageChanged -= handler
+                )
+                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
+                .DisposeWith(disposables);
+        });
+    }
 
     protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {

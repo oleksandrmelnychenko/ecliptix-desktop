@@ -9,11 +9,10 @@
              x:DataType="registration:PassPhaseViewModel">
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
         <Grid RowDefinitions="Auto Auto">
-            
-        <TextBlock Grid.Row="0" TextWrapping="Wrap" FontSize="24" Foreground="#333333" Margin="0 0 0 5" Text="{Binding Title}" />
-        <TextBlock Grid.Row="1" TextWrapping="Wrap" FontSize="14" Foreground="#B0B0B0" Text="{Binding Description}"  />
+
         </Grid>
 
+        <!--
         <controls:HintedTextBox Grid.Row="2"
                                 x:Name="PassPhaseTextBox"
                                 Text="{Binding PassPhase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -38,6 +37,6 @@
                                 MaxLength="4" />
 
         <Button Grid.Row="4" Content="{Binding ButtonContent}" Classes="SubmitButton"
-                Command="{Binding SubmitCommand}" />
+                Command="{Binding SubmitCommand}" />-->
     </Grid>
 </UserControl>

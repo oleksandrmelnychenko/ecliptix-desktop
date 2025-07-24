@@ -87,76 +87,9 @@ public static class Program
 
     private static Logger ConfigureSerilog(IConfiguration configuration)
     {
-        // IConfigurationSection serilogConfig = configuration.GetSection("Serilog");
-        // LogEventLevel minimumLevel = serilogConfig.GetValue<string>("MinimumLevel:Default") switch
-        // {
-        //     "Debug" => LogEventLevel.Debug,
-        //     "Information" => LogEventLevel.Information,
-        //     "Warning" => LogEventLevel.Warning,
-        //     "Error" => LogEventLevel.Error,
-        //     _ => LogEventLevel.Warning,
-        // };
-        //
-        // LoggerConfiguration loggerConfig = new LoggerConfiguration().MinimumLevel.Is(minimumLevel);
-        //
-        // IEnumerable<IConfigurationSection> overrides = serilogConfig
-        //     .GetSection("MinimumLevel:Override")
-        //     .GetChildren();
-        // foreach (IConfigurationSection overrideSection in overrides)
-        // {
-        //     LogEventLevel level = overrideSection.Value switch
-        //     {
-        //         "Debug" => LogEventLevel.Debug,
-        //         "Information" => LogEventLevel.Information,
-        //         "Warning" => LogEventLevel.Warning,
-        //         "Error" => LogEventLevel.Error,
-        //         _ => LogEventLevel.Warning,
-        //     };
-        //     loggerConfig.MinimumLevel.Override(overrideSection.Key, level);
-        // }
-        //
-        // IConfigurationSection? fileSink = serilogConfig
-        //     .GetSection("WriteTo")
-        //     .GetChildren()
-        //     .FirstOrDefault(s => s["Name"] == "Async")
-        //     ?.GetSection("Args:configure")
-        //     .GetChildren()
-        //     .FirstOrDefault(c => c["Name"] == "File")
-        //     ?.GetSection("Args");
-        // if (fileSink != null)
-        // {
-        //     string path = ResolvePath(fileSink["path"] ?? "Storage/logs/ecliptix.log");
-        //     loggerConfig.WriteTo.Async(a =>
-        //         a.File(
-        //             path: path,
-        //             rollingInterval: fileSink.GetValue<RollingInterval>(
-        //                 "rollingInterval",
-        //                 RollingInterval.Day
-        //             ),
-        //             retainedFileCountLimit: fileSink.GetValue<int?>("retainedFileCountLimit", 7),
-        //             fileSizeLimitBytes: fileSink.GetValue<long?>("fileSizeLimitBytes", 10000000),
-        //             outputTemplate: fileSink["outputTemplate"]
-        //                 ?? "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-        //         )
-        //     );
-        // }
-        // else
-        // {
-        //     Log.Warning(
-        //         "No file sink configured in Serilog settings; logging to console only in development"
-        //     );
-        // }
-        //
-        // if (configuration.GetValue<string>("AppSettings:Environment") == "Development")
-        // {
-        //     loggerConfig.WriteTo.Console();
-        // }
-        //
-        // return loggerConfig.CreateLogger();
-        
         LoggerConfiguration loggerConfig = new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration); 
-        
+            .ReadFrom.Configuration(configuration);
+
         return loggerConfig.CreateLogger();
     }
 
@@ -183,22 +116,22 @@ public static class Program
                 section["EncryptedStatePath"] ?? "Storage/state"
             );
         });
-        
+
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
         {
             InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
-            client.Timeout = options.ProbeTimeout; 
+            client.Timeout = options.ProbeTimeout;
         });
-        
+
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
-        services.AddSingleton<InternetConnectivityObserver>(); 
+        services.AddSingleton<InternetConnectivityObserver>();
         services.AddSingleton(new InternetConnectivityObserverOptions
         {
             PollingInterval = TimeSpan.FromSeconds(10),
             FailureThreshold = 2,
             SuccessThreshold = 1
         });
-        
+
         services.AddSingleton<IEventAggregator, EventAggregator>();
         services.AddSingleton<INetworkEvents, NetworkEvents>();
         services.AddSingleton<ISystemEvents, SystemEvents>();
@@ -221,7 +154,7 @@ public static class Program
         services.AddTransient<ResilienceInterceptor>();
         services.AddTransient<LanguageSwitcherViewModel>();
         services.AddTransient<LanguageSwitcherView>();
-        
+
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -238,7 +171,8 @@ public static class Program
                 ? settings.DataCenterConnectionString
                 : string.Empty;
 
-            if (string.IsNullOrEmpty(endpoint)) throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
+            if (string.IsNullOrEmpty(endpoint))
+                throw new InvalidOperationException("gRPC endpoint URL is not configured in appsettings.json.");
 
             options.Address = new Uri(endpoint);
         }
@@ -255,7 +189,6 @@ public static class Program
         services.AddTransient<VerificationCodeEntryViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<PasswordConfirmationViewModel>();
-        services.AddTransient<NicknameInputViewModel>();
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<WelcomeViewModel>();
@@ -269,42 +202,36 @@ public static class Program
         string appDataDir =
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".local/share"
-                )
-            : Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Library/Application Support"
-            );
+                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    ? Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        ".local/share"
+                    )
+                    : Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Library/Application Support"
+                    );
 
         path = Environment.ExpandEnvironmentVariables(
             path.Replace("%APPDATA%", Path.Combine(appDataDir, "Ecliptix"))
         );
 
         string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory))
+        if (string.IsNullOrEmpty(directory)) return path;
+        Directory.CreateDirectory(directory);
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return path;
+        try
         {
-            Directory.CreateDirectory(directory);
-            if (
-                RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
-            )
-            {
-                try
-                {
-                    File.SetUnixFileMode(
-                        directory,
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-                    );
-                    Log.Debug("Set secure permissions (700) on directory {Path}", directory);
-                }
-                catch (IOException ex)
-                {
-                    Log.Warning(ex, "Failed to set permissions for directory {Path}", directory);
-                }
-            }
+            File.SetUnixFileMode(
+                directory,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+            );
+            Log.Debug("Set secure permissions (700) on directory {Path}", directory);
+        }
+        catch (IOException ex)
+        {
+            Log.Warning(ex, "Failed to set permissions for directory {Path}", directory);
         }
 
         return path;

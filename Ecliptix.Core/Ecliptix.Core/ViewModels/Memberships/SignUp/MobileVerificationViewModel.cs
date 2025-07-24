@@ -19,22 +19,17 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
 {
     private string _errorMessage = string.Empty;
 
     private string _mobileNumber = "+380970177443";
-
-    private readonly ILocalizationService _localizationService;
-    public ILocalizationService LocalizationService => _localizationService;
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
     public IScreen HostScreen { get; }
 
     public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; set; }
-
-    public ViewModelActivator Activator { get; } = new();
     
     public string MobileNumber
     {
@@ -48,15 +43,11 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
         private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
     }
 
-    public string InvalidFormatError =>
-        _localizationService["Authentication.Registration.phoneVerification.error.invalidFormat"];
-
     public MobileVerificationViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider)
+        IScreen hostScreen) : base(networkProvider,localizationService)
     {
-        _localizationService = localizationService;
         HostScreen = hostScreen;
 
         IObservable<bool> canExecute = this.WhenAnyValue(
@@ -64,16 +55,6 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
             number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
-        
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEvent(
-                    handler => _localizationService.LanguageChanged += handler,
-                    handler => _localizationService.LanguageChanged -= handler
-                )
-                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
-                .DisposeWith(disposables);
-        });
     }
 
     private async Task<Unit> ExecuteVerificationAsync()

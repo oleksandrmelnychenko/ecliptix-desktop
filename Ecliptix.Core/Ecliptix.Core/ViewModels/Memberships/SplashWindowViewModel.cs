@@ -5,11 +5,12 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
+public sealed class SplashWindowViewModel : ViewModelBase
 {
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
     private bool _isShuttingDown;
@@ -27,10 +28,10 @@ public sealed class SplashWindowViewModel : ViewModelBase, IActivatableViewModel
         private set => this.RaiseAndSetIfChanged(ref _networkStatus, value);
     }
 
-    public ViewModelActivator Activator { get; } = new();
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(INetworkEvents networkEvents, NetworkProvider networkProvider) : base(networkProvider)
+    public SplashWindowViewModel(INetworkEvents networkEvents, ILocalizationService localizationService,
+        NetworkProvider networkProvider) : base(networkProvider, localizationService)
     {
         this.WhenActivated(disposables =>
         {

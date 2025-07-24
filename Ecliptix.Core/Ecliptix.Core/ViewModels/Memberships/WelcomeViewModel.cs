@@ -10,33 +10,18 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public class WelcomeViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class WelcomeViewModel : ViewModelBase, IRoutableViewModel
 {
-    public ViewModelActivator Activator { get; } = new();
-
     public string UrlPathSegment { get; } = "/welcome";
     public IScreen HostScreen { get; }
-
-    public ILocalizationService Localization { get; }
 
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
 
     public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
-        NetworkProvider networkProvider) : base(networkProvider)
+        NetworkProvider networkProvider) : base(networkProvider,localizationService)
     {
         HostScreen = hostScreen;
-        Localization = localizationService;
-
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEvent(
-                    handler => Localization.LanguageChanged += handler,
-                    handler => Localization.LanguageChanged -= handler
-                )
-                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
-                .DisposeWith(disposables);
-        });
 
         NavToCreateAccountCommand = ReactiveCommand.Create(() =>
         {

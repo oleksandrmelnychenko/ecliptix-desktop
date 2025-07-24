@@ -23,26 +23,21 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
+public class VerificationCodeEntryViewModel : ViewModelBase, IRoutableViewModel
 {
     private readonly IDisposable _mobileSubscription;
-    private readonly NetworkProvider _networkProvider;
     private string _errorMessage = string.Empty;
     private bool _isSent;
     private string _remainingTime = "01:00";
     private string _verificationCode;
-
-    private readonly ILocalizationService _localizationService;
-    public ILocalizationService LocalizationService => _localizationService;
 
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
     public VerificationCodeEntryViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider)
+        IScreen hostScreen) : base(networkProvider, localizationService)
     {
-        _localizationService = localizationService;
         _verificationCode = string.Empty;
         HostScreen = hostScreen;
 
@@ -51,7 +46,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmPassword);
         });
 
-        // "VERIFY" button enabled only when code is 6 digits and timer is not zero
         IObservable<bool> canVerify = this.WhenAnyValue(
             x => x.VerificationCode,
             x => x.RemainingTime,
@@ -64,20 +58,9 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         canResend.Subscribe(value => Console.WriteLine($"canResend: {value}")); // For debugging
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
 
-
         _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(mobile => Task.Run(async () => await ValidatePhoneNumber(mobile)));
-
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEvent(
-                    handler => _localizationService.LanguageChanged += handler,
-                    handler => _localizationService.LanguageChanged -= handler
-                )
-                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
-                .DisposeWith(disposables);
-        });
     }
 
     public string VerificationCode
@@ -145,7 +128,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RcpServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
@@ -185,7 +168,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await _networkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RcpServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
@@ -242,7 +225,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
             AppDeviceIdentifier = ByteString.CopyFrom(systemDeviceIdentifier, Encoding.UTF8)
         };
 
-        await _networkProvider.ExecuteServiceRequestAsync(
+        await NetworkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RcpServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
