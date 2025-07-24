@@ -15,9 +15,6 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
 {
     private readonly ILocalizationService _localizationService;
     private readonly ISecureStorageProvider _secureStorageProvider;
-    private readonly ObservableAsPropertyHelper<bool> _isEnglish;
-    private readonly ObservableAsPropertyHelper<string> _currentLanguageCode;
-    private readonly ObservableAsPropertyHelper<int> _activeSegmentIndex;
     private LanguageItem _selectedLanguage;
 
     public ViewModelActivator Activator { get; } = new();
@@ -26,15 +23,7 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
     [
         new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
         new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
-        // Easy to add more:
-        // new("de-DE", "DE", "avares://Ecliptix.Core/Assets/Flags/germany_flag.svg"),
-        // new("fr-FR", "FR", "avares://Ecliptix.Core/Assets/Flags/france_flag.svg"),
-        // new("es-ES", "ES", "avares://Ecliptix.Core/Assets/Flags/spain_flag.svg"),
     ];
-
-    public bool IsEnglish => _isEnglish.Value;
-    public string CurrentLanguageCode => _currentLanguageCode.Value;
-    public int ActiveSegmentIndex => _activeSegmentIndex.Value;
 
     public LanguageItem SelectedLanguage
     {
@@ -53,18 +42,6 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
         _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
 
         IObservable<string> languageChanges = CreateLanguageObservable();
-
-        _isEnglish = languageChanges
-            .Select(culture => culture == "en-US")
-            .ToProperty(this, x => x.IsEnglish);
-
-        _currentLanguageCode = languageChanges
-            .Select(culture => GetLanguageByCode(culture)?.DisplayName ?? "??")
-            .ToProperty(this, x => x.CurrentLanguageCode);
-
-        _activeSegmentIndex = languageChanges
-            .Select(GetLanguageIndex)
-            .ToProperty(this, x => x.ActiveSegmentIndex);
 
         ToggleLanguageCommand = ReactiveCommand.Create(ToggleLanguage);
 
