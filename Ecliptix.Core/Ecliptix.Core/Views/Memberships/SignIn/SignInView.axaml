@@ -109,12 +109,12 @@
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="{Binding Localization[SignIn.Title]}"
+            <TextBlock Text="{Binding Localization[Authentication.SignIn.Title]}"
                        FontSize="{StaticResource SubtitleFontSize}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
-            <TextBlock Text="{Binding Localization[SignIn.Welcome]}"
+            <TextBlock Text="{Binding Localization[Authentication.SignIn.Welcome]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource TitleFontSize}"
                        LineHeight="28"
@@ -127,8 +127,8 @@
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
-            Watermark="{Binding Localization[SignIn.MobilePlaceholder]}"
-            Hint="{Binding Localization[SignIn.MobileHint]}"
+            Watermark="{Binding Localization[Authentication.SignIn.MobilePlaceholder]}"
+            Hint="{Binding Localization[Authentication.SignIn.MobileHint]}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
@@ -150,8 +150,8 @@
             Grid.Row="2"
             x:Name="PasswordTextBox"
             Background="{DynamicResource TextBoxBackgroundColor}"
-            Watermark="{Binding Localization[SignIn.PasswordPlaceholder]}"
-            Hint="{Binding Localization[SignIn.PasswordHint]}"
+            Watermark="{Binding Localization[Authentication.SignIn.PasswordPlaceholder]}"
+            Hint="{Binding Localization[Authentication.SignIn.PasswordHint]}"
             CornerRadius="{StaticResource InputCornerRadius}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
@@ -172,12 +172,12 @@
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource ButtonSpacing}">
             <Button Grid.Column="0"
-                    Content="{Binding Localization[SignIn.AccountRecovery]}"
+                    Content="{Binding Localization[Authentication.SignIn.AccountRecovery]}"
                     Command="{Binding AccountRecoveryCommand}"
                     Classes="auth-button recovery-button" />
 
             <Button Grid.Column="1"
-                    Content="{Binding Localization[SignIn.Continue]}"
+                    Content="{Binding Localization[Authentication.SignIn.Continue]}"
                     Command="{Binding SignInCommand}"
                     IsEnabled="{Binding SignInCommand.CanExecute}"
                     Classes="auth-button continue-button" />
