@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 
 namespace Ecliptix.Core.Controls.LanguageSwitcher;
@@ -12,9 +13,10 @@ public partial class LanguageSwitcherView : ReactiveUserControl<LanguageSwitcher
         AvaloniaXamlLoader.Load(this);
     }
 
-    public LanguageSwitcherView(ILocalizationService localizationService) : this()
+    public LanguageSwitcherView(ILocalizationService localizationService,
+        ISecureStorageProvider secureStorageProvider) : this()
     {
         AvaloniaXamlLoader.Load(this);
-        DataContext = new LanguageSwitcherViewModel(localizationService);
+        DataContext = new LanguageSwitcherViewModel(localizationService, secureStorageProvider);
     }
 }

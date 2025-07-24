@@ -21,7 +21,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
     private SodiumSecureMemoryHandle _chainKeyHandle;
 
     private readonly SortedDictionary<uint, EcliptixMessageKey> _messageKeys;
-    
+
     private uint _currentIndex;
 
     private SodiumSecureMemoryHandle? _dhPrivateKeyHandle;
@@ -107,12 +107,14 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                             dhInfo.dhPrivateKeyHandle,
                             dhInfo.dhPublicKeyCloned,
                             actualCacheWindow);
-                       
+
                         byte[] chainKeyTemp = new byte[Constants.X25519KeySize];
                         if (chainKeyHandle.Read(chainKeyTemp).IsOk)
                         {
-                            Console.WriteLine($"[EcliptixProtocolChainStep] Created Chain Key: {Convert.ToHexString(chainKeyTemp)}");
+                            Console.WriteLine(
+                                $"[EcliptixProtocolChainStep] Created Chain Key: {Convert.ToHexString(chainKeyTemp)}");
                         }
+
                         return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Ok(step);
                     })
                     .MapErr(err =>
@@ -288,7 +290,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                 byte[] chainKeyTemp = new byte[Constants.X25519KeySize];
                 if (_chainKeyHandle.Read(chainKeyTemp).IsOk)
                 {
-                    Console.WriteLine($"[EcliptixProtocolChainStep] Updated Chain Key at index {idx}: {Convert.ToHexString(chainKeyTemp)}");
+                    Console.WriteLine(
+                        $"[EcliptixProtocolChainStep] Updated Chain Key at index {idx}: {Convert.ToHexString(chainKeyTemp)}");
                 }
             }
 
@@ -298,7 +301,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
             PruneOldKeys();
 
-            Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after derivation (Count: {_messageKeys.Count}):");
+            Console.WriteLine(
+                $"[EcliptixProtocolChainStep] Message Keys Cache after derivation (Count: {_messageKeys.Count}):");
             foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys)
             {
                 byte[] msgKeyTemp = new byte[Constants.AesKeySize];
@@ -373,7 +377,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             Console.WriteLine($"[EcliptixProtocolChainStep] Exporting to Proto State:");
             Console.WriteLine($"  Chain Key: {Convert.ToHexString(chainKey)}");
             Console.WriteLine($"  DH Private Key: {(dhPrivKey != null ? Convert.ToHexString(dhPrivKey) : "<null>")}");
-            Console.WriteLine($"  DH Public Key: {(_dhPublicKey != null ? Convert.ToHexString(_dhPublicKey) : "<null>")}");
+            Console.WriteLine(
+                $"  DH Public Key: {(_dhPublicKey != null ? Convert.ToHexString(_dhPublicKey) : "<null>")}");
 
             return Result<ChainStepState, EcliptixProtocolFailure>.Ok(proto);
         }
@@ -418,7 +423,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             .Map(_ =>
             {
                 _isNewChain = _stepType == ChainStepType.Sender;
-                Console.WriteLine($"[EcliptixProtocolChainStep] Updated Chain Key after DH Ratchet: {Convert.ToHexString(newChainKey)}");
+                Console.WriteLine(
+                    $"[EcliptixProtocolChainStep] Updated Chain Key after DH Ratchet: {Convert.ToHexString(newChainKey)}");
                 return Unit.Value;
             });
     }
@@ -445,24 +451,41 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             () => ValidateDhPublicKeySize(newDhPublicKey)
         ).Bind(_ =>
         {
-            Result<Unit, EcliptixProtocolFailure> handleResult = EnsureDhPrivateKeyHandle();
-            if (handleResult.IsErr) return handleResult.MapErr(e => e);
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> newHandleResult =
+                SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize)
+                    .MapSodiumFailure()
+                    .Bind(handle => handle.Write(newDhPrivateKey!.AsSpan())
+                        .MapSodiumFailure()
+                        .Map(_ => handle) 
+                        .MapErr(err =>
+                        {
+                            handle.Dispose();
+                            return err;
+                        }));
 
-            Result<Unit, EcliptixProtocolFailure> writeResult = _dhPrivateKeyHandle!.Write(newDhPrivateKey!.AsSpan())
-                .MapSodiumFailure();
-            if (writeResult.IsErr) return writeResult.MapErr(e => e);
+            if (newHandleResult.IsErr)
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Err(newHandleResult.UnwrapErr());
+            }
+
+            SodiumSecureMemoryHandle newDhPrivateKeyHandle = newHandleResult.Unwrap();
+
+            _dhPrivateKeyHandle?.Dispose();
+            _dhPrivateKeyHandle = newDhPrivateKeyHandle;
 
             WipeIfNotNull(_dhPublicKey).IgnoreResult();
             _dhPublicKey = (byte[])newDhPublicKey!.Clone();
 
-            Console.WriteLine($"[EcliptixProtocolChainStep] Updated DH Private Key: {Convert.ToHexString(newDhPrivateKey)}");
-            Console.WriteLine($"[EcliptixProtocolChainStep] Updated DH Public Key: {Convert.ToHexString(newDhPublicKey)}");
+            Console.WriteLine(
+                $"[EcliptixProtocolChainStep] Updated DH Private Key: {Convert.ToHexString(newDhPrivateKey)}");
+            Console.WriteLine(
+                $"[EcliptixProtocolChainStep] Updated DH Public Key: {Convert.ToHexString(newDhPublicKey)}");
 
             return OkResult;
         });
     }
 
-    private Result<Unit, EcliptixProtocolFailure> EnsureDhPrivateKeyHandle()
+    /*private Result<Unit, EcliptixProtocolFailure> EnsureDhPrivateKeyHandle()
     {
         if (_dhPrivateKeyHandle != null) return OkResult;
 
@@ -472,7 +495,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
         _dhPrivateKeyHandle = allocResult.Unwrap();
         return OkResult;
-    }
+    }*/
 
     private static Result<Unit, EcliptixProtocolFailure> ValidateAll(
         params Func<Result<Unit, EcliptixProtocolFailure>>[]? validators)
@@ -551,7 +574,8 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             }
         }
 
-        Console.WriteLine($"[EcliptixProtocolChainStep] Message Keys Cache after pruning (Count: {_messageKeys.Count}):");
+        Console.WriteLine(
+            $"[EcliptixProtocolChainStep] Message Keys Cache after pruning (Count: {_messageKeys.Count}):");
         foreach (KeyValuePair<uint, EcliptixMessageKey> kvp in _messageKeys)
         {
             byte[] msgKeyTemp = new byte[Constants.AesKeySize];

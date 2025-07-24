@@ -89,9 +89,7 @@ public class ApplicationStartup
         nextWindow.Show();
         _desktop.MainWindow = nextWindow;
 
-        Grid? splashContentToFadeOut = _splashScreen.Content as Grid;
-
-        if (splashContentToFadeOut != null && contentToFadeIn != null)
+        if (_splashScreen.Content is Grid splashContentToFadeOut && contentToFadeIn != null)
         {
             TimeSpan duration = TimeSpan.FromMilliseconds(700);
 
@@ -101,8 +99,6 @@ public class ApplicationStartup
         }
         else
         {
-            Log.Warning("Could not find content for animation. Splash: {S}, NextWindow: {N}. Skipping animations",
-                splashContentToFadeOut != null, contentToFadeIn != null);
             if (contentToFadeIn != null) contentToFadeIn.Opacity = 1;
         }
 

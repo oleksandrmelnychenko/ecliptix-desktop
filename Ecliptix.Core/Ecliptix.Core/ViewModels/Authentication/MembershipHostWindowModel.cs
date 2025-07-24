@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Ecliptix.Core.Controls.LanguageSwitcher;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
@@ -42,7 +43,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        InternetConnectivityObserver connectivityObserver
+        InternetConnectivityObserver connectivityObserver,
+        ISecureStorageProvider secureStorageProvider
     ) : base(networkProvider)
     {
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
@@ -56,7 +58,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
             }
         });
 
-        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService);
+        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService,secureStorageProvider);
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(

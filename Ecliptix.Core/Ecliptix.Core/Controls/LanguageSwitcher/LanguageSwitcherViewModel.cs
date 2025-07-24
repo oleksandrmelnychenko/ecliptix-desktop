@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
@@ -12,6 +13,7 @@ namespace Ecliptix.Core.Controls.LanguageSwitcher;
 public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
+    private readonly ISecureStorageProvider _secureStorageProvider;
     private readonly ObservableAsPropertyHelper<bool> _isEnglish;
     private readonly ObservableAsPropertyHelper<string> _currentLanguageCode;
     private readonly ObservableAsPropertyHelper<int> _activeSegmentIndex;
@@ -40,12 +42,12 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
     }
 
     public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
-    public ReactiveCommand<Unit, Unit> SetEnglishCommand { get; }
-    public ReactiveCommand<Unit, Unit> SetUkrainianCommand { get; }
 
-    public LanguageSwitcherViewModel(ILocalizationService localizationService)
+    public LanguageSwitcherViewModel(ILocalizationService localizationService,
+        ISecureStorageProvider secureStorageProvider)
     {
         _localizationService = localizationService;
+        _secureStorageProvider = secureStorageProvider;
         _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
 
         IObservable<string> languageChanges = CreateLanguageObservable();
@@ -64,14 +66,6 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
 
         ToggleLanguageCommand = ReactiveCommand.Create(ToggleLanguage);
 
-        SetEnglishCommand = ReactiveCommand.Create(
-            () => _localizationService.SetCulture("en-US"),
-            this.WhenAnyValue(x => x.IsEnglish).Select(isEnglish => !isEnglish));
-
-        SetUkrainianCommand = ReactiveCommand.Create(
-            () => _localizationService.SetCulture("uk-UA"),
-            this.WhenAnyValue(x => x.IsEnglish));
-
         SetupReactiveBindings(languageChanges);
     }
 
@@ -88,7 +82,7 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
             }
         }
 
-        return 0; 
+        return 0;
     }
 
     private void ToggleLanguage()
@@ -126,5 +120,3 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
         });
     }
 }
-
-public record LanguageItem(string Code, string DisplayName, string FlagImagePath);
