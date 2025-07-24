@@ -34,8 +34,8 @@ public sealed class NetworkProvider(
 
     private const int DefaultOneTimeKeyCount = 5;
 
-    private static readonly SemaphoreSlim SessionRecoveryLock = new(1, 1);
-    private volatile bool _isSessionConsideredHealthy;
+    private static readonly SemaphoreSlim SecrecyChannelRecoveryLock = new(1, 1);
+    private volatile bool _isSecrecyChannelConsideredHealthy;
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
@@ -53,22 +53,23 @@ public sealed class NetworkProvider(
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+        string culture = applicationInstanceSettings.Culture;
 
-        rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId);
+        rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
 
     public void SetSecrecyChannelAsUnhealthy()
     {
-        _isSessionConsideredHealthy = false;
+        _isSecrecyChannelConsideredHealthy = false;
         networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
     }
 
     public async Task<Result<Unit, NetworkFailure>> RestoreSecrecyChannelAsync()
     {
-        await SessionRecoveryLock.WaitAsync();
+        await SecrecyChannelRecoveryLock.WaitAsync();
         try
         {
-            if (_isSessionConsideredHealthy)
+            if (_isSecrecyChannelConsideredHealthy)
             {
                 Log.Information("Session was already recovered by another thread. Skipping redundant recovery");
                 return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -77,7 +78,7 @@ public sealed class NetworkProvider(
             Log.Information("Starting session recovery process...");
             Result<Unit, NetworkFailure> result = await PerformFullRecoveryLogic();
 
-            _isSessionConsideredHealthy = result.IsOk;
+            _isSecrecyChannelConsideredHealthy = result.IsOk;
             if (result.IsErr)
             {
                 Log.Error(result.UnwrapErr().Message, "Session recovery failed.");
@@ -87,7 +88,7 @@ public sealed class NetworkProvider(
         }
         finally
         {
-            SessionRecoveryLock.Release();
+            SecrecyChannelRecoveryLock.Release();
         }
     }
 
@@ -229,7 +230,7 @@ public sealed class NetworkProvider(
         }
 
         rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
-            Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId));
+            Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), applicationInstanceSettings.Culture);
 
         RestoreSecrecyChannelRequest request = new();
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest =

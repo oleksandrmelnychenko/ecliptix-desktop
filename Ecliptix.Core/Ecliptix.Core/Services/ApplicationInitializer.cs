@@ -8,39 +8,45 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Serilog;
+using Splat;
 
 namespace Ecliptix.Core.Services;
+
+public record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
 
 public class ApplicationInitializer(
     NetworkProvider networkProvider,
     ISecureStorageProvider secureStorageProvider,
+    ILocalizationService localizationService,
     ISystemEvents systemEvents)
     : IApplicationInitializer
 {
-    private record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
-
     public bool IsMembershipConfirmed { get; } = false;
-    
-    public async Task<bool> InitializeAsync()
+
+    public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Initializing));
-
-        Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await GetOrCreateInstanceSettingsAsync();
         
+        Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
+            await secureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
+
         if (settingsResult.IsErr)
         {
-            Log.Error("Failed to retrieve or create application instance settings: {@Error}", settingsResult.UnwrapErr());
+            Log.Error("Failed to retrieve or create application instance settings: {@Error}",
+                settingsResult.UnwrapErr());
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError));
             return false;
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
+        localizationService.SetCulture(settings.Culture);
+        
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
         if (connectIdResult.IsErr)
@@ -59,42 +65,9 @@ public class ApplicationInitializer(
         }
 
         Log.Information("Application initialized successfully");
-        
+
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
         return true;
-    }
-
-    private async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> GetOrCreateInstanceSettingsAsync()
-    {
-        const string settingsKey = "ApplicationInstanceSettings";
-        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-            await secureStorageProvider.TryGetByKeyAsync(settingsKey);
-
-        if (getResult.IsErr)
-        {
-            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
-        }
-
-        Option<byte[]> maybeSettingsData = getResult.Unwrap();
-
-        if (maybeSettingsData.HasValue)
-        {
-            ApplicationInstanceSettings? existingSettings =
-                ApplicationInstanceSettings.Parser.ParseFrom(maybeSettingsData.Value);
-            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
-                new InstanceSettingsResult(existingSettings, false));
-        }
-
-        ApplicationInstanceSettings newSettings = new()
-        {
-            AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
-            DeviceId = Helpers.GuidToByteString(Guid.NewGuid()),
-            Culture = "en-US",
-        };
-
-        await secureStorageProvider.StoreAsync(settingsKey, newSettings.ToByteArray());
-        return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
-            new InstanceSettingsResult(newSettings, true));
     }
 
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(

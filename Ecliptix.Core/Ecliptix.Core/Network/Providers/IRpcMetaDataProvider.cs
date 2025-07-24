@@ -6,7 +6,7 @@ public interface IRpcMetaDataProvider
 {
     Guid AppInstanceId { get; }
     Guid DeviceId { get; }
-
-    void SetAppInfo(Guid appInstanceId, Guid deviceId);
+    string Culture { get; set; }
+    void SetAppInfo(Guid appInstanceId, Guid deviceId,string culture);
     void Clear();
 }

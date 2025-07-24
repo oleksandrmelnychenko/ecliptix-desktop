@@ -5,7 +5,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Utilities;
+using Google.Protobuf;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
 using Serilog;
@@ -14,9 +16,11 @@ namespace Ecliptix.Core.Persistors;
 
 public sealed class SecureStorageProvider : ISecureStorageProvider
 {
+    private const string SettingsKey = "ApplicationInstanceSettings";
+
     private readonly IDataProtector _protector;
     private readonly string _storagePath;
-    
+
     private bool _disposed;
 
     public SecureStorageProvider(
@@ -24,11 +28,86 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         IDataProtectionProvider dataProtectionProvider)
     {
         SecureStoreOptions opts = options.Value;
-        
+
         _storagePath = opts.EncryptedStatePath;
         _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
 
         InitializeStorageDirectory();
+    }
+
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string culture)
+    {
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await TryGetByKeyAsync(SettingsKey);
+
+        if (getResult.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings existingSettings =
+            ApplicationInstanceSettings.Parser.ParseFrom(getResult.Unwrap().Value);
+        existingSettings.Culture = culture;
+
+        await StoreAsync(SettingsKey, existingSettings.ToByteArray());
+        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
+    }
+
+    public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
+        GetApplicationInstanceSettingsAsync()
+    {
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await TryGetByKeyAsync(SettingsKey);
+
+        if (getResult.IsErr)
+        {
+            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
+        }
+
+        Option<byte[]> maybeSettingsData = getResult.Unwrap();
+
+        if (maybeSettingsData.HasValue)
+        {
+            ApplicationInstanceSettings? existingSettings =
+                ApplicationInstanceSettings.Parser.ParseFrom(maybeSettingsData.Value);
+            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Ok(existingSettings);
+        }
+
+        return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
+            InternalServiceApiFailure.SecureStoreKeyNotFound("Application instance settings not found."));
+    }
+
+    public async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
+        string defaultCulture)
+    {
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await TryGetByKeyAsync(SettingsKey);
+
+        if (getResult.IsErr)
+        {
+            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
+        }
+
+        Option<byte[]> maybeSettingsData = getResult.Unwrap();
+
+        if (maybeSettingsData.HasValue)
+        {
+            ApplicationInstanceSettings? existingSettings =
+                ApplicationInstanceSettings.Parser.ParseFrom(maybeSettingsData.Value);
+            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
+                new InstanceSettingsResult(existingSettings, false));
+        }
+
+        ApplicationInstanceSettings newSettings = new()
+        {
+            AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
+            DeviceId = Helpers.GuidToByteString(Guid.NewGuid()),
+            Culture = defaultCulture
+        };
+
+        await StoreAsync(SettingsKey, newSettings.ToByteArray());
+        return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
+            new InstanceSettingsResult(newSettings, true));
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data)
@@ -77,7 +156,9 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         }
         catch (CryptographicException ex)
         {
-            Log.Error(ex, "Failed to decrypt data for key {Key}. The data might be corrupt or the protection keys have changed", key);
+            Log.Error(ex,
+                "Failed to decrypt data for key {Key}. The data might be corrupt or the protection keys have changed",
+                key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied($"Failed to decrypt data: {ex.Message}"));
         }
@@ -88,7 +169,7 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
                 InternalServiceApiFailure.SecureStoreAccessDenied("Failed to access secure storage.", ex));
         }
     }
-    
+
     public Task<Result<Unit, InternalServiceApiFailure>> DeleteAsync(string key)
     {
         try
@@ -103,6 +184,7 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
             {
                 Log.Debug("No data to delete for key {Key} as file does not exist", key);
             }
+
             return Task.FromResult(Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value));
         }
         catch (Exception ex)
@@ -128,18 +210,22 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
             {
                 Directory.CreateDirectory(_storagePath);
                 Log.Information("Created secure storage directory: {Path}", _storagePath);
-                
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                    RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    File.SetUnixFileMode(_storagePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); // 700
+                    File.SetUnixFileMode(_storagePath,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); // 700
                 }
             }
+
             Log.Debug("SecureStorageProvider initialized with path {Path}", _storagePath);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to initialize secure storage directory at {Path}", _storagePath);
-            throw new InvalidOperationException($"Could not create or access the secure storage directory: {_storagePath}", ex);
+            throw new InvalidOperationException(
+                $"Could not create or access the secure storage directory: {_storagePath}", ex);
         }
     }
 
@@ -158,7 +244,7 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
             }
         }
     }
-    
+
     public async ValueTask DisposeAsync()
     {
         if (!_disposed)

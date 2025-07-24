@@ -13,7 +13,7 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
     {
         Metadata headers = context.Options.Headers ?? [];
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-            rpcMetaDataProvider.DeviceId.ToString());
+            rpcMetaDataProvider.DeviceId.ToString(), rpcMetaDataProvider.Culture);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
@@ -33,7 +33,7 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
         Metadata headers = context.Options.Headers ?? [];
         Metadata newMetadata =
             GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-                rpcMetaDataProvider.DeviceId.ToString());
+                rpcMetaDataProvider.DeviceId.ToString(), rpcMetaDataProvider.Culture);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);

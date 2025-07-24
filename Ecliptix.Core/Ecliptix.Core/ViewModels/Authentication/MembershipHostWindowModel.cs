@@ -58,7 +58,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
             }
         });
 
-        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService,secureStorageProvider);
+        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider);
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(

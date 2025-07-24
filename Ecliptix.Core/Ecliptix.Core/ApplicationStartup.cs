@@ -4,13 +4,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Core;
 using Ecliptix.Core.Views.Memberships;
 using Ecliptix.Core.Views.Memberships.Components.Splash;
-using Serilog;
 using Splat;
 
 namespace Ecliptix.Core;
@@ -32,14 +32,14 @@ public class ApplicationStartup
         _splashScreen = new SplashWindow { DataContext = _splashViewModel };
     }
 
-    public async Task RunAsync()
+    public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
         _desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
         await _splashViewModel?.IsSubscribed.Task!;
 
-        bool success = await _initializer.InitializeAsync();
+        bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
         {
             await TransitionToNextWindowAsync();
@@ -79,7 +79,7 @@ public class ApplicationStartup
         Size splashSize = _splashScreen.ClientSize;
 
         const int n = 2;
-        
+
         int centeredX = splashPos.X + (int)((splashSize.Width - nextWindow.Width) / n);
         int centeredY = splashPos.Y + (int)((splashSize.Height - nextWindow.Height) / n);
         nextWindow.Position = new PixelPoint(centeredX, centeredY);

@@ -26,7 +26,7 @@ public static class GrpcClientServiceExtensions
 
     private static void ConfigureClient(IServiceProvider serviceProvider, GrpcClientFactoryOptions options)
     {
-        DefaultAppSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultAppSettings>>().Value;
+        DefaultSystemSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultSystemSettings>>().Value;
         
         string? endpoint = settings.DataCenterConnectionString;
         

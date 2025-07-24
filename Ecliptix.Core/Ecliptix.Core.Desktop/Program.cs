@@ -175,7 +175,7 @@ public static class Program
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
-        services.Configure<DefaultAppSettings>(configuration.GetSection("DefaultAppSettings"));
+        services.Configure<DefaultSystemSettings>(configuration.GetSection("DefaultAppSettings"));
         services.Configure<SecureStoreOptions>(options =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
@@ -204,7 +204,7 @@ public static class Program
         services.AddSingleton<ISystemEvents, SystemEvents>();
 
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultAppSettings>>().Value);
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
@@ -232,8 +232,8 @@ public static class Program
     {
         void ConfigureClientOptions(GrpcClientFactoryOptions options)
         {
-            DefaultAppSettings settings = services.BuildServiceProvider()
-                .GetRequiredService<DefaultAppSettings>();
+            DefaultSystemSettings settings = services.BuildServiceProvider()
+                .GetRequiredService<DefaultSystemSettings>();
             string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
                 : string.Empty;

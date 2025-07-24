@@ -27,9 +27,10 @@ public sealed class LocalizationService : ILocalizationService
     public CultureInfo CurrentCultureInfo => _currentCultureInfo;
     public string CurrentCultureName => _currentCultureInfo.Name;
 
-    public LocalizationService(DefaultAppSettings defaultAppSettings)
+    public LocalizationService(DefaultSystemSettings defaultSystemSettings)
     {
-        string defaultCultureName = defaultAppSettings.Culture;
+        string defaultCultureName = defaultSystemSettings.Culture;
+
         _assembly = Assembly.GetExecutingAssembly();
         _resourceNamespace = "Ecliptix.Core.Localization";
 
@@ -139,7 +140,7 @@ public sealed class LocalizationService : ILocalizationService
         }
     }
 
-    public void SetCulture(string cultureName)
+    public void SetCulture(string cultureName, Action? onCultureChanged = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName, nameof(cultureName));
 
@@ -155,10 +156,16 @@ public sealed class LocalizationService : ILocalizationService
             _currentCultureInfo = newCultureInfo;
             _localizedStrings.Clear();
             LoadCulture(cultureName);
+
+           
         }
 
-        OnLanguageChanged();
-        NotifyAllPropertiesChanged();
+        if (onCultureChanged is not null)
+        {
+            onCultureChanged?.Invoke();
+            OnLanguageChanged();
+            NotifyAllPropertiesChanged();
+        }
     }
 
     private void OnLanguageChanged()

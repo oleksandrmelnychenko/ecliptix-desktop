@@ -1,6 +1,6 @@
 namespace Ecliptix.Core.Settings;
 
-public class DefaultAppSettings
+public class DefaultSystemSettings
 {
     public string DefaultTheme { get; set; }
     public string Environment { get; set; } 

@@ -7,7 +7,7 @@ namespace Ecliptix.Core.Services;
 public interface ILocalizationService : INotifyPropertyChanged
 {
     string this[string key] { get; }
-    void SetCulture(string cultureName);
+    void SetCulture(string cultureName, Action? onCultureChanged = null);
     CultureInfo CurrentCultureInfo { get; }
     string CurrentCultureName { get; }
     event Action? LanguageChanged;

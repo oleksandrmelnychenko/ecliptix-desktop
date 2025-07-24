@@ -6,6 +6,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Protobuf.AppDevice;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.LanguageSwitcher;
@@ -48,6 +49,7 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
     {
         _localizationService = localizationService;
         _secureStorageProvider = secureStorageProvider;
+
         _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
 
         IObservable<string> languageChanges = CreateLanguageObservable();
@@ -115,7 +117,11 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
 
             this.WhenAnyValue(x => x.SelectedLanguage)
                 .Where(item => item.Code != _localizationService.CurrentCultureName)
-                .Subscribe(item => _localizationService.SetCulture(item.Code))
+                .Subscribe(item =>
+                {
+                    _localizationService.SetCulture(item.Code,
+                        () => _secureStorageProvider.SetApplicationSettingsCultureAsync(item.Code));
+                })
                 .DisposeWith(disposables);
         });
     }
