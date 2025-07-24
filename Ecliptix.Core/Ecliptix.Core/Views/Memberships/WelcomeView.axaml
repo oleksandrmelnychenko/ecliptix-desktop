@@ -120,7 +120,8 @@
     <!-- Main Layout -->
     <Grid RowDefinitions="Auto,*,Auto"
           HorizontalAlignment="Stretch"
-          VerticalAlignment="Stretch"
+          VerticalAlignment="Top"
+          RowSpacing="42"
           Margin="{StaticResource ContainerMargin}"
           Width="320">
 

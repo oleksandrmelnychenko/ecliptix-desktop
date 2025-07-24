@@ -118,12 +118,12 @@
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="Verify your number"
+            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
                        FontSize="{StaticResource SubtitleFontSize}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
-            <TextBlock Text="We have sent a code to your phone to verify your identity."
+            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource TitleFontSize}"
                        LineHeight="28"
@@ -156,7 +156,7 @@
                        Classes="status-text"
                        HorizontalAlignment="Left" />
             <TextBlock x:Name="ExpirationTextBlock"
-                       Text="{Binding Expiration}"
+                       Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Expiration]}"
                        Grid.Row="0"
                        Grid.Column="1"
                        Classes="status-text"
@@ -172,13 +172,13 @@
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource ButtonSpacing}">
-            <Button Content="Resend Code"
+            <Button Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Resend]}"
                     IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
                     Command="{Binding ResendSendVerificationCodeCommand}"
                     Classes="auth-button recovery-button" />
 
             <Button Grid.Column="1"
-                    Content="Verify"
+                    Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
                     Command="{Binding SendVerificationCodeCommand}"
                     IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
                     Classes="auth-button continue-button" />

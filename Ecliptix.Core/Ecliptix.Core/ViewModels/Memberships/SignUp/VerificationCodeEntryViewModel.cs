@@ -25,7 +25,6 @@ namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewModel, IRoutableViewModel
 {
-    private readonly ILocalizationService _localizationService;
     private readonly IDisposable _mobileSubscription;
     private readonly NetworkProvider _networkProvider;
     private string _errorMessage = string.Empty;
@@ -33,25 +32,15 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     private string _remainingTime = "01:00";
     private string _verificationCode;
 
-    public string Title => _localizationService["Authentication.Registration.verificationCodeEntry.title"];
-    public string Hint => _localizationService["Authentication.Registration.verificationCodeEntry.hint"];
-    public string Expiration => _localizationService["Authentication.Registration.verificationCodeEntry.expiration"];
-
-    public string InvalidCodeError =>
-        _localizationService["Authentication.Registration.verificationCodeEntry.error.invalidCode"];
-
-    public string VerifyButtonContent =>
-        _localizationService["Authentication.Registration.verificationCodeEntry.button.verify"];
-
-    public string ResendButtonContent =>
-        _localizationService["Authentication.Registration.verificationCodeEntry.button.resend"];
+    private readonly ILocalizationService _localizationService;
+    public ILocalizationService LocalizationService => _localizationService;
 
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
     public VerificationCodeEntryViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen): base(networkProvider)
+        IScreen hostScreen) : base(networkProvider)
     {
         _localizationService = localizationService;
         _verificationCode = string.Empty;
@@ -61,7 +50,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmPassword);
         });
-        
+
         // "VERIFY" button enabled only when code is 6 digits and timer is not zero
         IObservable<bool> canVerify = this.WhenAnyValue(
             x => x.VerificationCode,
@@ -86,15 +75,7 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                     handler => _localizationService.LanguageChanged += handler,
                     handler => _localizationService.LanguageChanged -= handler
                 )
-                .Subscribe(_ =>
-                {
-                    this.RaisePropertyChanged(nameof(Title));
-                    this.RaisePropertyChanged(nameof(Hint));
-                    this.RaisePropertyChanged(nameof(Expiration));
-                    this.RaisePropertyChanged(nameof(InvalidCodeError));
-                    this.RaisePropertyChanged(nameof(VerifyButtonContent));
-                    this.RaisePropertyChanged(nameof(ResendButtonContent));
-                })
+                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
                 .DisposeWith(disposables);
         });
     }
@@ -129,9 +110,9 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
-    
+
     public ReactiveCommand<Unit, Unit> NavToPasswordConfirmation { get; }
-        
+
     public ViewModelActivator Activator { get; } = new();
 
     private ValidatePhoneNumberResponse _validatePhoneNumberResponse;
@@ -224,7 +205,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
                 {
                     // Notify user and redirect to the Phone verification view
-                    
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached)
@@ -304,6 +284,6 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IActivatableViewMod
     }
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
-    
+
     public IScreen HostScreen { get; }
 }

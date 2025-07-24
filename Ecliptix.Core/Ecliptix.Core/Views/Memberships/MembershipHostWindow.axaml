@@ -18,7 +18,7 @@
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="vm:MembershipHostWindowModel"
         Width="480"
-        Height="680"
+        Height="720"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Background="Transparent"
@@ -96,6 +96,7 @@
         <Style Selector="TextBlock.footer-text">
             <Setter Property="FontSize" Value="{StaticResource FooterFontSize}" />
             <Setter Property="Foreground" Value="{StaticResource FooterTextColor}" />
+            <Setter Property="LineHeight" Value="16"></Setter>
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="TextAlignment" Value="Center" />
         </Style>
@@ -241,13 +242,13 @@
         </Button>
 
         <languageSwitcher:LanguageSwitcherView
-                Name="LanguageSwitcherView"
-                HorizontalAlignment="Right" 
-                VerticalAlignment="Top" 
-                DataContext="{Binding LanguageSwitcher}"
-                Margin="16"
-                ZIndex="10"/>
-        
+            Name="LanguageSwitcherView"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            DataContext="{Binding LanguageSwitcher}"
+            Margin="16"
+            ZIndex="10" />
+
         <controls:NetworkStatusNotification
             x:Name="NetworkNotification"
             HorizontalAlignment="Center"
@@ -281,8 +282,7 @@
                                DisableMinimizeButton="False"
                                DisableCloseButton="False" />
 
-            
-                
+
                 <!-- Logo Section -->
                 <Border Grid.Row="1"
                         HorizontalAlignment="Center"
@@ -326,7 +326,7 @@
                                 HorizontalAlignment="Center"
                                 Spacing="{StaticResource FooterLinkSpacing}">
 
-                        <Button Content="Privacy Policy"
+                        <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                                 Command="{Binding OpenPrivacyPolicyCommand}"
                                 Classes="footer-link" />
 
@@ -334,7 +334,7 @@
                                    Classes="footer-text"
                                    VerticalAlignment="Center" />
 
-                        <Button Content="Terms of Service"
+                        <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                                 Command="{Binding OpenTermsOfServiceCommand}"
                                 Classes="footer-link" />
 
@@ -342,18 +342,18 @@
                                    Classes="footer-text"
                                    VerticalAlignment="Center" />
 
-                        <Button Content="Support"
+                        <Button Content="{Binding LocalizationService[Footer.Support]}"
                                 Command="{Binding OpenSupportCommand}"
                                 Classes="footer-link" />
                     </StackPanel>
 
                     <!-- Copyright Text -->
-                    <TextBlock Text="By continuing, you agree to our Terms and Privacy Policy"
+                    <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
                                Classes="footer-text"
                                TextWrapping="Wrap"
                                MaxWidth="280" />
 
-                    <TextBlock Text="© Horizon Dynamics 2025. All rights reserved."
+                    <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                                Classes="footer-text"
                                Opacity="0.7" />
                 </StackPanel>

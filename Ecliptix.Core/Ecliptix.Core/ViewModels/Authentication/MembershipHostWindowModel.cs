@@ -19,7 +19,10 @@ namespace Ecliptix.Core.ViewModels.Authentication;
 public class MembershipHostWindowModel : ViewModelBase, IScreen
 {
     public RoutingState Router { get; } = new();
-
+    
+    private readonly ILocalizationService _localizationService;
+    public ILocalizationService LocalizationService => _localizationService;
+    
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
     private readonly IDisposable _connectivitySubscription;
@@ -46,6 +49,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         ISecureStorageProvider secureStorageProvider
     ) : base(networkProvider)
     {
+        _localizationService = localizationService;
+        
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
         {
             IsConnected = status;

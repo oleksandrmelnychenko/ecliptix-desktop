@@ -91,12 +91,12 @@
                     Spacing="{StaticResource HeaderSpacing}"
                     MaxWidth="{StaticResource HeaderMaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="{Binding LocalizationService[Authentication.Registration.phoneVerification.title]}"
+            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Title]}"
                        FontSize="{StaticResource SubtitleFontSize}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
-            <TextBlock Text="{Binding LocalizationService[Authentication.Registration.phoneVerification.description]}"
+            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource TitleFontSize}"
                        LineHeight="28"
@@ -109,8 +109,8 @@
         <controls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
-            Watermark="{Binding LocalizationService[Authentication.Registration.phoneVerification.watermark]}"
-            Hint="{Binding LocalizationService[Authentication.Registration.phoneVerification.hint]}"
+            Watermark="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Watermark]}"
+            Hint="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Hint]}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
@@ -129,7 +129,7 @@
 
         <!-- Continue Button -->
         <Button Grid.Row="2"
-                Content="{Binding LocalizationService[Authentication.Registration.phoneVerification.button]}"
+                Content="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Button]}"
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
                 Classes="auth-button continue-button" />

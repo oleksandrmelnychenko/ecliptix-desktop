@@ -35,7 +35,6 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
     public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; set; }
 
     public ViewModelActivator Activator { get; } = new();
-
     
     public string MobileNumber
     {
@@ -72,7 +71,7 @@ public class MobileVerificationViewModel : ViewModelBase, IActivatableViewModel,
                     handler => _localizationService.LanguageChanged += handler,
                     handler => _localizationService.LanguageChanged -= handler
                 )
-                .Subscribe(_ => { this.RaisePropertyChanged(nameof(InvalidFormatError)); })
+                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
                 .DisposeWith(disposables);
         });
     }

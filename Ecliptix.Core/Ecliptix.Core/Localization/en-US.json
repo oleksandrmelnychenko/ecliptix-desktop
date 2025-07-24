@@ -3,25 +3,25 @@
     "SignUp": {
       "PhoneVerification": {
         "Title": "Creating new account",
-        "Description": "Confirm your phone number. We'll send you a verification code via SMS.",
-        "Hint": "Start with country code.",
+        "Description": "Confirm your phone number. We'll send you a verification code via SMS",
+        "Hint": "Start with country code",
         "Watermark": "Mobile Number",
         "Button": "Continue",
         "Error": {
-          "InvalidFormat": "Invalid format. Use +countrycode followed by number (e.g., +12025550123)."
+          "InvalidFormat": "Invalid format. Use +countrycode followed by number"
         }
       },
       "VerificationCodeEntry": {
         "Title": "Verify your number",
-        "Description": "We have sent a code to your phone to verify your identity.",
+        "Description": "We have sent a code to your phone to verify your identity",
         "Hint": "Enter verification code",
-        "Expiration": "Code expires in: {0}",
+        "Expiration": "Code valid: {0}",
         "Error": {
           "InvalidCode": "Invalid code"
         },
         "Button": {
           "Verify": "Verify",
-          "Resend": "Resend Code"
+          "Resend": "Resend"
         }
       },
       "NicknameInput": {
@@ -43,7 +43,7 @@
       },
       "PassPhase": {
         "Title": "Enter your PIN code",
-        "Description": "Provide a PIN code for secure authentication.",
+        "Description": "Provide a PIN code for secure authentication",
         "Hint": "Enter your PIN code",
         "Watermark": "####",
         "Button": "Confirm PIN code"
@@ -51,7 +51,7 @@
     },
     "SignIn": {
       "Title": "Sign in",
-      "Welcome": "Welcome back! Your personalized experience awaits.",
+      "Welcome": "Welcome back! Your personalized experience awaits",
       "MobilePlaceholder": "Mobile Number",
       "MobileHint": "Start with country code.",
       "PasswordPlaceholder": "Secure Key",
