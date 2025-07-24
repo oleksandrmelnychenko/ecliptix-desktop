@@ -7,11 +7,13 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
-using Avalonia.Layout;
+using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChanged
+namespace Ecliptix.Core.Controls;
+
+public sealed partial class NetworkStatusNotification : UserControl, INotifyPropertyChanged
 {
     public static readonly StyledProperty<string> StatusTextProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, string>(nameof(StatusText), "No Connection");
@@ -23,9 +25,9 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
     public static readonly StyledProperty<IBrush> EllipseColorProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(EllipseColor), Brushes.Transparent);
 
-    public static readonly StyledProperty<string> IconPathProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, string>(nameof(IconPath),
-            "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
+    public static readonly StyledProperty<Geometry> IconPathProperty =
+        AvaloniaProperty.Register<NetworkStatusNotification, Geometry>(nameof(IconPath),
+            Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"));
 
     public static readonly StyledProperty<TimeSpan> AppearDurationProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(AppearDuration),
@@ -57,7 +59,7 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
         set => SetValue(EllipseColorProperty, value);
     }
 
-    public string IconPath
+    public Geometry IconPath
     {
         get => GetValue(IconPathProperty);
         set => SetValue(IconPathProperty, value);
@@ -81,16 +83,18 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
         set => SetValue(FlickerDurationProperty, value);
     }
 
-    // Private fields
-    private Border _mainBorder;
-    private Ellipse _statusEllipse;
-    private PathIcon _icon;
-    private TextBlock _statusTextBlock;
+    // Private fields for animations
     private Animation _flickerAnimation;
     private Animation _appearAnimation;
     private Animation _disappearAnimation;
     private Animation _ellipseColorTransition;
     private Animation _textTransition;
+
+    // XAML controls (these will be found by name)
+    private Border _mainBorder;
+    private Ellipse _statusEllipse;
+    private PathIcon _statusIcon;
+    private TextBlock _statusTextBlock;
 
     public event PropertyChangedEventHandler PropertyChanged;
 
@@ -101,82 +105,21 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
         this.Loaded += OnLoaded;
     }
 
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+        
+        // Find controls by name
+        _mainBorder = this.FindControl<Border>("MainBorder");
+        _statusEllipse = this.FindControl<Ellipse>("StatusEllipse");
+        _statusIcon = this.FindControl<PathIcon>("StatusIcon");
+        _statusTextBlock = this.FindControl<TextBlock>("StatusTextBlock");
+    }
+
     private void OnLoaded(object sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         CreateAnimations();
-        UpdateBindings();
         this.Loaded -= OnLoaded;
-    }
-
-    private void InitializeComponent()
-    {
-        _mainBorder = new Border
-        {
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(12, 8),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-        };
-
-        Grid grid = new();
-        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-        grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-
-        _icon = new PathIcon
-        {
-            Width = 20,
-            Height = 20,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-        Grid.SetColumn(_icon, 0);
-
-        _statusTextBlock = new TextBlock
-        {
-            Foreground = Brushes.White,
-            FontWeight = FontWeight.Medium,
-            VerticalAlignment = VerticalAlignment.Center,
-            TextWrapping = TextWrapping.NoWrap
-        };
-        Grid.SetColumn(_statusTextBlock, 1);
-
-        _statusEllipse = new Ellipse
-        {
-            Width = 8,
-            Height = 8,
-            VerticalAlignment = VerticalAlignment.Top,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(8, -2, -2, 0)
-        };
-        Grid.SetColumn(_statusEllipse, 2);
-
-        grid.Children.Add(_icon);
-        grid.Children.Add(_statusTextBlock);
-        grid.Children.Add(_statusEllipse);
-
-        _mainBorder.Child = grid;
-        this.Content = _mainBorder;
-    }
-
-    private void UpdateBindings()
-    {
-        _mainBorder.Background = StatusBackground;
-        _statusTextBlock.Text = StatusText;
-        _statusEllipse.Fill = EllipseColor;
-
-        if (!string.IsNullOrEmpty(IconPath))
-        {
-            try
-            {
-                _icon.Data = Geometry.Parse(IconPath);
-            }
-            catch
-            {
-                _icon.Data = Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
-            }
-        }
     }
 
     private void CreateAnimations()
@@ -348,18 +291,15 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
         StatusText = status;
         if (!string.IsNullOrEmpty(iconPath))
         {
-            IconPath = iconPath;
             try
             {
-                _icon.Data = Geometry.Parse(IconPath);
+                IconPath = Geometry.Parse(iconPath);
             }
             catch
             {
-                _icon.Data = Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
+                IconPath = Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
             }
         }
-
-        _statusTextBlock.Text = StatusText;
 
         await UpdateEllipseColorAsync(ellipseColor);
         await AnimateTextTransitionAsync();
@@ -389,12 +329,6 @@ public sealed class NetworkStatusNotification : UserControl, INotifyPropertyChan
     {
         switch (e.PropertyName)
         {
-            case nameof(StatusText):
-            case nameof(StatusBackground):
-            case nameof(EllipseColor):
-            case nameof(IconPath):
-                UpdateBindings();
-                break;
             case nameof(AppearDuration):
             case nameof(DisappearDuration):
             case nameof(FlickerDuration):

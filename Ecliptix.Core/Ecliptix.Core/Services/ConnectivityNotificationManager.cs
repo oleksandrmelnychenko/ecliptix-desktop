@@ -3,16 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Ecliptix.Core.Controls;
 
 namespace Ecliptix.Core.Services;
 
-public class ConnectivityNotificationManager(
-    Panel parentContainer,
-    NetworkStatusNotification? currentNotification = null,
-    CancellationTokenSource? autoHideCts = null)
+public class ConnectivityNotificationManager(Panel parentContainer)
 {
-    private NetworkStatusNotification? _currentNotification = currentNotification;
-    private CancellationTokenSource? _autoHideCts = autoHideCts;
+    private NetworkStatusNotification? _currentNotification;
+    private CancellationTokenSource? _autoHideCts;
+    private readonly Panel _parentContainer = parentContainer;
     private readonly IBrush _notificationBackground = new SolidColorBrush(Color.FromRgb(43, 48, 51)); // #2b3033
 
     private const string DisconnectedIconPath =
@@ -26,13 +25,14 @@ public class ConnectivityNotificationManager(
         if (_autoHideCts is not null)
         {
             await _autoHideCts.CancelAsync();
-            _autoHideCts?.Dispose();
+            _autoHideCts.Dispose();
+            _autoHideCts = null;
         }
 
         if (_currentNotification == null)
         {
             _currentNotification = new NetworkStatusNotification();
-            parentContainer.Children.Add(_currentNotification);
+            _parentContainer.Children.Add(_currentNotification);
 
             SetNotificationContent(isConnected);
             await _currentNotification.ShowAsync();
@@ -46,15 +46,16 @@ public class ConnectivityNotificationManager(
         {
             _autoHideCts = new CancellationTokenSource();
             CancellationToken token = _autoHideCts.Token;
+
             _ = Task.Delay(TimeSpan.FromSeconds(2), token)
                 .ContinueWith(async task =>
+                {
+                    if (!token.IsCancellationRequested && task.IsCompletedSuccessfully)
                     {
-                        if (!token.IsCancellationRequested && task.IsCompletedSuccessfully)
-                        {
-                            await HideCurrentNotification();
-                        }
-                    }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion,
-                    TaskScheduler.FromCurrentSynchronizationContext());
+                        await HideCurrentNotification();
+                    }
+                }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion,
+                TaskScheduler.FromCurrentSynchronizationContext());
         }
     }
 
@@ -62,16 +63,24 @@ public class ConnectivityNotificationManager(
     {
         (string statusText, IBrush ellipseColor, string iconPath) = GetConnectivityConfiguration(isConnected);
 
-        _currentNotification.StatusText = statusText;
+        _currentNotification!.StatusText = statusText;
         _currentNotification.StatusBackground = _notificationBackground;
         _currentNotification.EllipseColor = ellipseColor;
-        _currentNotification.IconPath = iconPath;
+
+        try
+        {
+            _currentNotification.IconPath = Geometry.Parse(iconPath);
+        }
+        catch
+        {
+            _currentNotification.IconPath = Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z");
+        }
     }
 
     private async Task UpdateExistingNotification(bool isConnected)
     {
         (string statusText, IBrush ellipseColor, string iconPath) = GetConnectivityConfiguration(isConnected);
-        await _currentNotification.UpdateStatusWithAnimation(statusText, ellipseColor, iconPath);
+        await _currentNotification!.UpdateStatusWithAnimation(statusText, ellipseColor, iconPath);
     }
 
     private (string statusText, IBrush ellipseColor, string iconPath) GetConnectivityConfiguration(bool isConnected)
@@ -94,12 +103,18 @@ public class ConnectivityNotificationManager(
 
     public async Task HideCurrentNotification()
     {
-        await _currentNotification.HideAsync();
-        parentContainer.Children.Remove(_currentNotification);
-        _currentNotification = null;
+        if (_currentNotification != null)
+        {
+            await _currentNotification.HideAsync();
+            _parentContainer.Children.Remove(_currentNotification);
+            _currentNotification = null;
+        }
 
-        await _autoHideCts.CancelAsync();
-        _autoHideCts.Dispose();
-        _autoHideCts = null;
+        if (_autoHideCts != null)
+        {
+            await _autoHideCts.CancelAsync();
+            _autoHideCts.Dispose();
+            _autoHideCts = null;
+        }
     }
 }
