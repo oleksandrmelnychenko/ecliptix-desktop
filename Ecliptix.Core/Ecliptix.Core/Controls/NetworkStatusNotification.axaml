@@ -10,7 +10,7 @@
             Padding="12,8"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            Background="{Binding StatusBackground, ElementName=Root}">
+            Background="{Binding Background, ElementName=Root}">
     
         <Grid>
             <Grid.ColumnDefinitions>
@@ -26,24 +26,25 @@
                       Foreground="White"
                       VerticalAlignment="Center"
                       Margin="0,0,8,0"
-                      Data="{Binding IconPath, ElementName=Root}" />
+                      Data="{Binding IconData, ElementName=Root}"/>
       
             <TextBlock x:Name="StatusTextBlock"
                        Grid.Column="1"
-                       Text="{Binding StatusText, ElementName=Root}"
+                       Text="NO INTERNET CONNECTION"
                        Foreground="White"
                        FontWeight="Medium"
                        VerticalAlignment="Center"
-                       TextWrapping="NoWrap" />
+                       TextWrapping="NoWrap"
+                       />
       
             <Ellipse x:Name="StatusEllipse"
                      Grid.Column="2"
                      Width="8"
                      Height="8"
-                     Fill="{Binding EllipseColor, ElementName=Root}"
                      VerticalAlignment="Top"
                      HorizontalAlignment="Right"
-                     Margin="8,-2,-2,0" />
+                     Margin="8,-2,-2,0"
+                     Fill="{Binding EllipseColor, ElementName=Root}" />
         </Grid>
     </Border>
-</UserControl>
+</UserControl>  

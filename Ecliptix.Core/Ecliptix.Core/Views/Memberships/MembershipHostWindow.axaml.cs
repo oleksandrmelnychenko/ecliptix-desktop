@@ -16,19 +16,8 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
-#if DEBUG
-        this.AttachDevTools();
-#endif
-    }
-
-    protected override void OnLoaded(RoutedEventArgs e)
-    {
-        base.OnLoaded(e);
-
-        StackPanel? notificationContainer = this.FindControl<StackPanel>(NotificationContainerControl);
-        if (notificationContainer != null && ViewModel != null)
-        {
-            ViewModel.InitializeNotificationManager(notificationContainer);
-        }
+    #if DEBUG
+            this.AttachDevTools();
+    #endif
     }
 }

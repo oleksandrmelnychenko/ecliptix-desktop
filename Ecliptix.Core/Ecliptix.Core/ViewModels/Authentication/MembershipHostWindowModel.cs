@@ -23,7 +23,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
     private readonly IDisposable _connectivitySubscription;
-    private bool _isConnected;
+    private bool _isConnected = true;
 
     public bool IsConnected
     {
@@ -36,8 +36,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
 
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
-
-    private ConnectivityNotificationManager _notificationManager;
+    
     private bool _hasShownInitialNotification = false;
 
     public MembershipHostWindowModel(
@@ -50,12 +49,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
         {
             IsConnected = status;
-
-            if (_notificationManager != null && (_hasShownInitialNotification || !status))
-            {
-                await _notificationManager.ShowConnectivityStatus(status);
-                _hasShownInitialNotification = true;
-            }
         });
 
         LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider);
@@ -83,17 +76,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     {
         get => _canNavigateBack;
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
-    }
-
-    public void InitializeNotificationManager(StackPanel notificationContainer)
-    {
-        _notificationManager = new ConnectivityNotificationManager(notificationContainer);
-
-        if (!IsConnected)
-        {
-            _ = _notificationManager.ShowConnectivityStatus(IsConnected);
-            _hasShownInitialNotification = true;
-        }
     }
 
     private static void OpenUrl(string url)

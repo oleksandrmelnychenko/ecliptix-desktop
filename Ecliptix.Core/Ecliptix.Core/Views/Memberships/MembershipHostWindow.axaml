@@ -10,6 +10,7 @@
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         xmlns:languageSwitcher="clr-namespace:Ecliptix.Core.Controls.LanguageSwitcher"
         xmlns:vm1="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
+        xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -247,12 +248,16 @@
                 Margin="16"
                 ZIndex="10"/>
         
-        <StackPanel x:Name="NotificationContainer"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    Margin="0,20,0,0"
-                    Width="250"
-                    ZIndex="1001" />
+        <controls:NetworkStatusNotification
+            x:Name="NetworkNotification"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0,20,0,0"
+            FontSize="12"
+            Width="250"
+            Height="40"
+            ZIndex="1001"
+            IsConnected="{Binding IsConnected}" />
 
         <!-- Main Content Border -->
         <Border Classes="main-border"
