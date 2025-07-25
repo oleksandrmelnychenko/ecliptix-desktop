@@ -42,11 +42,9 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
             
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
-            passwordBox.TextChanged += PasswordBox_TextChanged;
         }
         if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
-            verifyPasswordBox.TextChanged += VerifyPasswordBox_TextChanged;
         }
         _handlersAttached = true;
     }
@@ -58,11 +56,9 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
             
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
-            passwordBox.TextChanged -= PasswordBox_TextChanged;
         }
         if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
-            verifyPasswordBox.TextChanged -= VerifyPasswordBox_TextChanged;
         }
         _handlersAttached = false;
     }

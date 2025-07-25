@@ -152,6 +152,16 @@
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="{StaticResource CounterMargin}" />
         </Style>
+        
+        <Style Selector="TextBlock.password-mask-overlay">
+            <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
+            <Setter Property="FontSize" Value="{Binding FontSize, ElementName=control}" />
+            <Setter Property="FontWeight" Value="{Binding FontWeight, ElementName=control}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="{StaticResource TextBoxMargin}" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
     </UserControl.Styles>
 
     <UserControl.Transitions>
@@ -201,12 +211,10 @@
                         <TextBox x:Name="MainTextBox"
                                  Watermark="{Binding Watermark, ElementName=control}"
                                  Text="{Binding Text, ElementName=control, Mode=TwoWay}"
-                                 PasswordChar="{Binding PasswordChar, ElementName=control}"
                                  Foreground="{Binding TextForeground, ElementName=control}"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Padding="0"
-                                 RevealPassword="True"
                                  Margin="{StaticResource TextBoxMargin}"
                                  VerticalAlignment="Center"
                                  HorizontalAlignment="Stretch"
@@ -217,6 +225,10 @@
                                  TextWrapping="{Binding TextWrapping, ElementName=control}"
                                  MaxLength="{Binding MaxLength, ElementName=control}" />
 
+                        <TextBlock x:Name="PasswordMaskOverlay"
+                                   Classes="password-mask-overlay"
+                                   IsVisible="{Binding IsPasswordMode, ElementName=control}" />
+                        
                         <!-- Character Counter -->
                         <StackPanel Grid.Row="0"
                                     x:Name="CounterPanel"

@@ -3,10 +3,10 @@ using System.Linq;
 using System.Reactive.Disposables;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Ecliptix.Utilities.Membership;
 using ReactiveUI;
 
@@ -14,8 +14,15 @@ namespace Ecliptix.Core.Controls;
 
 public sealed partial class HintedTextBox : UserControl, IDisposable
 {
+    public static readonly StyledProperty<bool> IsPasswordModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordMode), false);
+
+    public static readonly StyledProperty<char> PasswordMaskCharProperty =
+        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordMaskChar), '●');
+
     public static readonly StyledProperty<string> TextProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty);
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
+            defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
     public static readonly StyledProperty<string> WatermarkProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Watermark), string.Empty);
@@ -23,20 +30,17 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<string> HintProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
 
-    public static readonly StyledProperty<char> PasswordCharProperty =
-        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordChar));
-
     public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(FocusBorderBrush), CreateBrush("#6a5acd"));
+            nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse("#6a5acd")));
 
     public static readonly StyledProperty<IBrush> TextForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(TextForeground), CreateBrush(Colors.Black));
+            nameof(TextForeground), new SolidColorBrush(Colors.Black));
 
     public static readonly StyledProperty<IBrush> HintForegroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(HintForeground), CreateBrush(Colors.Gray));
+            nameof(HintForeground), new SolidColorBrush(Colors.Gray));
 
     public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty =
         AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
@@ -58,7 +62,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(MainBorderBrush), CreateBrush(Colors.LightGray));
+            nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
 
     public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
         AvaloniaProperty.Register<HintedTextBox, TextWrapping>(nameof(TextWrapping));
@@ -77,7 +81,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
-            nameof(Background), CreateBrush(Colors.White));
+            nameof(Background), new SolidColorBrush(Colors.White));
 
     public new static readonly StyledProperty<double> FontSizeProperty =
         AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), 16.0);
@@ -88,29 +92,42 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
-    private static readonly SolidColorBrush ErrorBorderBrush = CreateBrush("#de1e31");
-    private static readonly SolidColorBrush FocusedBorderBrush = CreateBrush("#6a5acd");
-    private static readonly SolidColorBrush TransparentBrush = CreateBrush(Colors.Transparent);
+    public static readonly RoutedEvent<PasswordCharactersAddedEventArgs> PasswordCharactersAddedEvent =
+        RoutedEvent.Register<HintedTextBox, PasswordCharactersAddedEventArgs>(nameof(PasswordCharactersAdded),
+            RoutingStrategies.Bubble);
 
-    private readonly CompositeDisposable _disposables = new();
-    private Border? _focusBorder;
-    private Border? _mainBorder;
-    private TextBox? _mainTextBox;
-    private bool _isDirty;
-    private bool _isInitialized;
-    private bool _eventsSubscribed;
-    private bool _isDisposed;
+    public static readonly RoutedEvent<PasswordCharactersRemovedEventArgs> PasswordCharactersRemovedEvent =
+        RoutedEvent.Register<HintedTextBox, PasswordCharactersRemovedEventArgs>(nameof(PasswordCharactersRemoved),
+            RoutingStrategies.Bubble);
 
-    public event EventHandler<TextChangedEventArgs>? TextChanged;
+    public event EventHandler<PasswordCharactersAddedEventArgs> PasswordCharactersAdded
+    {
+        add => AddHandler(PasswordCharactersAddedEvent, value);
+        remove => RemoveHandler(PasswordCharactersAddedEvent, value);
+    }
+
+    public event EventHandler<PasswordCharactersRemovedEventArgs> PasswordCharactersRemoved
+    {
+        add => AddHandler(PasswordCharactersRemovedEvent, value);
+        remove => RemoveHandler(PasswordCharactersRemovedEvent, value);
+    }
+
+    public bool IsPasswordMode
+    {
+        get => GetValue(IsPasswordModeProperty);
+        set => SetValue(IsPasswordModeProperty, value);
+    }
+
+    public char PasswordMaskChar
+    {
+        get => GetValue(PasswordMaskCharProperty);
+        set => SetValue(PasswordMaskCharProperty, value);
+    }
 
     public string Text
     {
         get => GetValue(TextProperty);
-        set
-        {
-            SetValue(TextProperty, value);
-            UpdateRemainingCharacters();
-        }
+        set => SetValue(TextProperty, value);
     }
 
     public string Watermark
@@ -123,12 +140,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         get => GetValue(HintProperty);
         set => SetValue(HintProperty, value);
-    }
-
-    public char PasswordChar
-    {
-        get => GetValue(PasswordCharProperty);
-        set => SetValue(PasswordCharProperty, value);
     }
 
     public IBrush FocusBorderBrush
@@ -164,7 +175,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public string ErrorText
     {
         get => GetValue(ErrorTextProperty);
-        set => SetValue(ErrorTextProperty, value);
+        private set => SetValue(ErrorTextProperty, value);
     }
 
     public double EllipseOpacity
@@ -200,11 +211,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public int MaxLength
     {
         get => GetValue(MaxLengthProperty);
-        set
-        {
-            SetValue(MaxLengthProperty, value);
-            UpdateRemainingCharacters();
-        }
+        set => SetValue(MaxLengthProperty, value);
     }
 
     public int RemainingCharacters
@@ -249,197 +256,245 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(FontWeightProperty, value);
     }
 
+    private readonly CompositeDisposable _disposables = new();
+    private TextBox? _mainTextBox;
+    private TextBlock? _passwordMaskOverlay;
+    private Border? _focusBorder;
+    private Border? _mainBorder;
+    private string _shadowText = string.Empty;
+    private bool _isUpdatingFromCode;
+    private bool _isDisposed;
+    private bool _isControlInitialized;
+    private int _nextCaretPosition;
+
     public HintedTextBox()
     {
         InitializeComponent();
-        this.AttachedToVisualTree += OnAttachedToVisualTree;
+        AttachedToVisualTree += OnAttachedToVisualTree;
+    }
+
+    public void SyncPasswordState(int newPasswordLength)
+    {
+        _shadowText = new string(PasswordMaskChar, newPasswordLength);
+        UpdateTextBox(_shadowText, _nextCaretPosition);
+        UpdatePasswordMaskOverlay(newPasswordLength);
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
-        if (_isInitialized || _isDisposed) return;
-        _isInitialized = true;
+        if (_isControlInitialized || _isDisposed) return;
         Initialize();
     }
 
-    private void OnTextChanged(object? sender, EventArgs e)
-    {
-        if (!_isDirty)
-        {
-            _isDirty = true;
-            return;
-        }
-
-        if (_mainTextBox == null || _isDisposed) return;
-
-        string input = _mainTextBox.Text ?? string.Empty;
-
-        if (IsNumericOnly)
-        {
-            input = FilterNumericInput(input);
-        }
-
-        UpdateTextValue(input);
-        ValidateInput(input);
-        UpdateBorderState();
-
-        TextChanged?.Invoke(this, new TextChangedEventArgs(TextBox.TextChangedEvent));
-    }
-
-    private void OnGotFocus(object? sender, GotFocusEventArgs e) => UpdateBorderState(true);
-
-    private void OnLostFocus(object? sender, RoutedEventArgs e) => UpdateBorderState();
-
     private void Initialize()
     {
-        InitializeProperties();
+        if (_isControlInitialized) return;
+
         FindControls();
-
-        if (!AreControlsValid()) return;
-
-        SubscribeToEvents();
-        SetupReactiveBindings();
-        UpdateBorderState();
-    }
-
-    private void InitializeProperties()
-    {
-        RemainingCharacters = MaxLength;
-        ErrorText = string.Empty;
-        HasError = false;
-        EllipseOpacity = 0.0;
-    }
-
-    private void FindControls()
-    {
-        this.FindControl<Panel>("ErrorStackPanel");
-        _mainTextBox = this.FindControl<TextBox>("MainTextBox");
-        _focusBorder = this.FindControl<Border>("FocusBorder");
-        _mainBorder = this.FindControl<Border>("MainBorder");
-        this.FindControl<Panel>("CounterPanel");
-    }
-
-    private bool AreControlsValid()
-    {
-        return _mainTextBox != null && _focusBorder != null && _mainBorder != null;
-    }
-
-    private void SubscribeToEvents()
-    {
-        if (_mainTextBox == null || _eventsSubscribed || _isDisposed) return;
+        if (_mainTextBox == null) return;
 
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
-
-        _eventsSubscribed = true;
-
         _disposables.Add(Disposable.Create(() =>
         {
-            if (_mainTextBox != null && _eventsSubscribed && !_isDisposed)
-            {
-                _mainTextBox.TextChanged -= OnTextChanged;
-                _mainTextBox.GotFocus -= OnGotFocus;
-                _mainTextBox.LostFocus -= OnLostFocus;
-                _eventsSubscribed = false;
-            }
+            if (_mainTextBox == null) return;
+            _mainTextBox.TextChanged -= OnTextChanged;
+            _mainTextBox.GotFocus -= OnGotFocus;
+            _mainTextBox.LostFocus -= OnLostFocus;
         }));
+
+        SetupReactiveBindings();
+        UpdateBorderState();
+        _isControlInitialized = true;
     }
+
+    private void OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+
+        ProcessTextChange();
+    }
+
+    private void ProcessTextChange()
+    {
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+
+        if (IsPasswordMode)
+        {
+            string newText = _mainTextBox!.Text ?? string.Empty;
+            if (newText == _shadowText) return;
+
+            (int diffIndex, int removedCount, string added) = Diff(_shadowText, newText);
+
+            if (removedCount > 0 && string.IsNullOrEmpty(added))
+            {
+                diffIndex = _mainTextBox.CaretIndex;
+            }
+
+            _nextCaretPosition = diffIndex + added.Length;
+
+            if (removedCount > 0)
+            {
+                RaiseEvent(new PasswordCharactersRemovedEventArgs(PasswordCharactersRemovedEvent, diffIndex,
+                    removedCount));
+            }
+
+            if (!string.IsNullOrEmpty(added))
+            {
+                RaiseEvent(new PasswordCharactersAddedEventArgs(PasswordCharactersAddedEvent, diffIndex, added));
+            }
+        }
+        else
+        {
+            ProcessStandardChange();
+        }
+    }
+
+    private void ProcessStandardChange()
+    {
+        string input = _mainTextBox!.Text ?? string.Empty;
+
+        if (IsNumericOnly)
+        {
+            string filtered = string.Concat(input.Where(char.IsDigit));
+            if (input != filtered)
+            {
+                int caret = _mainTextBox.CaretIndex - (input.Length - filtered.Length);
+                UpdateTextBox(filtered, caret);
+                return;
+            }
+        }
+
+        Text = input;
+        UpdateRemainingCharacters();
+        ValidateInput(input);
+    }
+
+    private static (int Index, int RemovedCount, string Added) Diff(string oldStr, string newStr)
+    {
+        int prefixLength = oldStr.TakeWhile((c, i) => i < newStr.Length && c == newStr[i]).Count();
+        int suffixLength = oldStr.Reverse().TakeWhile((c, i) =>
+            i < newStr.Length - prefixLength && c == newStr[^(i + 1)]).Count();
+        int removedCount = Math.Max(0, oldStr.Length - prefixLength - suffixLength);
+        string added = newStr.Substring(prefixLength, Math.Max(0, newStr.Length - prefixLength - suffixLength));
+        return (prefixLength, removedCount, added);
+    }
+
+    private void UpdateTextBox(string text, int caretIndex)
+    {
+        if (_mainTextBox == null) return;
+
+        _isUpdatingFromCode = true;
+        _mainTextBox.Text = text;
+
+        _mainTextBox.CaretIndex = Math.Clamp(caretIndex, 0, text.Length);
+
+        /*Dispatcher.UIThread.Post(() =>
+        {
+            if (_mainTextBox != null)
+                _mainTextBox.CaretIndex = Math.Clamp(caretIndex, 0, text.Length);
+        }, DispatcherPriority.Background);*/
+
+        _isUpdatingFromCode = false;
+    }
+
+    private void UpdatePasswordMaskOverlay(int length)
+    {
+        if (_passwordMaskOverlay != null)
+        {
+            _passwordMaskOverlay.Text = new string(PasswordMaskChar, length);
+        }
+    }
+
+    private void UpdateBorderState()
+    {
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
+
+        bool isFocused = _mainTextBox.IsFocused;
+        if (HasError)
+        {
+            _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
+            _focusBorder.Opacity = 1;
+            _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+        }
+        else if (isFocused)
+        {
+            _focusBorder.BorderBrush = FocusBorderBrush;
+            _focusBorder.Opacity = 1;
+            _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+        }
+        else
+        {
+            _focusBorder.Opacity = 0;
+            _mainBorder.BorderBrush = MainBorderBrush;
+        }
+    }
+
+    private void FindControls()
+    {
+        _mainTextBox = this.FindControl<TextBox>("MainTextBox");
+        _focusBorder = this.FindControl<Border>("FocusBorder");
+        _mainBorder = this.FindControl<Border>("MainBorder");
+        _passwordMaskOverlay = this.FindControl<TextBlock>("PasswordMaskOverlay");
+    }
+
+    private void OnGotFocus(object? sender, Avalonia.Input.GotFocusEventArgs e) => UpdateBorderState();
+    private void OnLostFocus(object? sender, RoutedEventArgs e) => UpdateBorderState();
 
     private void SetupReactiveBindings()
     {
-        if (_isDisposed) return;
+        this.WhenAnyValue(x => x.HasError)
+            .Subscribe(_ => UpdateBorderState())
+            .DisposeWith(_disposables);
 
-        this.WhenAnyValue(x => x.ErrorText)
-            .Subscribe(errorText =>
+        this.WhenAnyValue(x => x.Text)
+            .Subscribe(text =>
             {
-                if (_isDisposed) return;
-                HasError = !string.IsNullOrEmpty(errorText);
-                UpdateBorderState();
+                if (!IsPasswordMode && _mainTextBox != null && _mainTextBox.Text != text)
+                {
+                    UpdateTextBox(text, text?.Length ?? 0);
+                }
             })
             .DisposeWith(_disposables);
     }
 
-    private string FilterNumericInput(string input)
+    private void ValidateInput(string input)
     {
-        string numeric = string.Concat(input.Where(char.IsDigit));
-
-        if (numeric != input && _mainTextBox != null)
+        if (_isDisposed || string.IsNullOrEmpty(input))
         {
-            _mainTextBox.Text = numeric;
+            HasError = false;
+            ErrorText = string.Empty;
+            EllipseOpacity = 0;
+            return;
         }
 
-        return numeric;
-    }
-
-    private void UpdateTextValue(string input)
-    {
-        SetValue(TextProperty, input);
-        UpdateRemainingCharacters();
+        string validationMessage = MembershipValidation.Validate(ValidationType, input);
+        if (!string.IsNullOrEmpty(validationMessage))
+        {
+            ErrorText = validationMessage;
+            HasError = true;
+            EllipseOpacity = 1.0;
+        }
+        else
+        {
+            ErrorText = string.Empty;
+            HasError = false;
+            EllipseOpacity = 0.0;
+        }
     }
 
     private void UpdateRemainingCharacters()
     {
-        RemainingCharacters = MaxLength - (Text?.Length ?? 0);
-    }
-
-    private void ValidateInput(string input)
-    {
-        if (_isDisposed) return;
-
-        string validationMessage = MembershipValidation.Validate(ValidationType, input);
-
-        if (!string.IsNullOrEmpty(validationMessage))
+        if (IsPasswordMode)
         {
-            SetErrorState(validationMessage);
+            RemainingCharacters = MaxLength - _shadowText.Length;
         }
         else
         {
-            ClearErrorState();
+            RemainingCharacters = MaxLength - (Text?.Length ?? 0);
         }
     }
-
-    private void SetErrorState(string errorMessage)
-    {
-        ErrorText = errorMessage;
-        EllipseOpacity = 1.0;
-    }
-
-    private void ClearErrorState()
-    {
-        ErrorText = string.Empty;
-        EllipseOpacity = 0.0;
-    }
-
-    private void UpdateBorderState(bool forceFocus = false)
-    {
-        if (!AreControlsValid() || _isDisposed) return;
-
-        if (HasError)
-        {
-            SetBorderAppearance(ErrorBorderBrush, 1, TransparentBrush);
-        }
-        else if (forceFocus || _mainTextBox!.IsFocused)
-        {
-            SetBorderAppearance(FocusedBorderBrush, 1, TransparentBrush);
-        }
-        else
-        {
-            SetBorderAppearance(FocusedBorderBrush, 0, MainBorderBrush);
-        }
-    }
-
-    private void SetBorderAppearance(IBrush focusBrush, double focusOpacity, IBrush mainBrush)
-    {
-        if (_focusBorder == null || _mainBorder == null || _isDisposed) return;
-
-        _focusBorder.BorderBrush = focusBrush;
-        _focusBorder.Opacity = focusOpacity;
-        _mainBorder.BorderBrush = mainBrush;
-    }
-
-    private static SolidColorBrush CreateBrush(Color color) => new(color);
-    private static SolidColorBrush CreateBrush(string hexColor) => new(Color.Parse(hexColor));
 
     private void InitializeComponent()
     {
@@ -448,26 +503,16 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        if (!_isDisposed)
-        {
-            Dispose();
-        }
-
+        Dispose();
         base.OnDetachedFromVisualTree(e);
     }
 
     public void Dispose()
     {
         if (_isDisposed) return;
-
         _isDisposed = true;
         AttachedToVisualTree -= OnAttachedToVisualTree;
         _disposables.Dispose();
-        _isInitialized = false;
-        _eventsSubscribed = false;
-        _isDirty = false;
         _mainTextBox = null;
-        _focusBorder = null;
-        _mainBorder = null;
     }
 }

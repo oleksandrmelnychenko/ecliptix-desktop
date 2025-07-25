@@ -148,6 +148,7 @@
         <controls:HintedTextBox
             Grid.Row="2"
             x:Name="PasswordTextBox"
+            IsPasswordMode="True"
             Background="{DynamicResource TextBoxBackgroundColor}"
             Watermark="{Binding LocalizationService[Authentication.SignIn.PasswordPlaceholder]}"
             Hint="{Binding LocalizationService[Authentication.SignIn.PasswordHint]}"
@@ -157,7 +158,6 @@
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
             IconErrorSource="{DynamicResource LampIconDrawingError}"
             MainBorderBrush="Transparent"
-            PasswordChar="●"
             ValidationType="SecureKey"
             FontSize="{StaticResource InputFontSize}"
             WatermarkFontSize="{StaticResource WatermarkFontSize}"

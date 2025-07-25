@@ -1,7 +1,10 @@
+// Ecliptix.Core.Views.Memberships.SignIn.SignInView.axaml.cs
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
 
 namespace Ecliptix.Core.Views.Memberships.SignIn;
@@ -29,33 +32,39 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     
     private void SetupEventHandlers()
     {
-        if (_handlersAttached)
-            return;
-
-        if (this.FindControl<Controls.HintedTextBox>("PasswordTextBox") is Controls.HintedTextBox passwordBox)
+        if (_handlersAttached) return;
+        if (this.FindControl<HintedTextBox>("PasswordTextBox") is { } passwordBox)
         {
-            passwordBox.TextChanged += PasswordBox_TextChanged;
+            passwordBox.PasswordCharactersAdded += OnPasswordCharactersAdded;
+            passwordBox.PasswordCharactersRemoved += OnPasswordCharactersRemoved;
+            _handlersAttached = true;
         }
-        _handlersAttached = true;
     }
 
     private void TeardownEventHandlers()
     {
-        if (!_handlersAttached)
-            return;
-
-        if (this.FindControl<Controls.HintedTextBox>("PasswordTextBox") is Controls.HintedTextBox passwordBox)
+        if (!_handlersAttached) return;
+        if (this.FindControl<HintedTextBox>("PasswordTextBox") is { } passwordBox)
         {
-            passwordBox.TextChanged -= PasswordBox_TextChanged;
+            passwordBox.PasswordCharactersAdded -= OnPasswordCharactersAdded;
+            passwordBox.PasswordCharactersRemoved -= OnPasswordCharactersRemoved;
         }
         _handlersAttached = false;
     }
 
-    private void PasswordBox_TextChanged(object? sender, TextChangedEventArgs e)
+    private void OnPasswordCharactersAdded(object? sender, PasswordCharactersAddedEventArgs e)
     {
-        if (DataContext is SignInViewModel vm && sender is Controls.HintedTextBox tb)
-        {
-            vm.UpdatePassword(tb.Text);
-        }
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+        
+        vm.InsertPasswordChars(e.Index, e.Characters);
+        tb.SyncPasswordState(vm.CurrentPasswordLength);
+    }
+
+    private void OnPasswordCharactersRemoved(object? sender, PasswordCharactersRemovedEventArgs e)
+    {
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+
+        vm.RemovePasswordChars(e.Index, e.Count);
+        tb.SyncPasswordState(vm.CurrentPasswordLength);
     }
 }
