@@ -36,4 +36,5 @@ message ApplicationInstanceSettings{
   AppDevice.DeviceType device_type = 5;
   string culture = 6;
   string country = 7;
+  string ip_address = 8;
 }

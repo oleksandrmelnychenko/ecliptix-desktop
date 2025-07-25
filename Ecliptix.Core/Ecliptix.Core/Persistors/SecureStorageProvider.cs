@@ -20,7 +20,6 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
 
     private readonly IDataProtector _protector;
     private readonly string _storagePath;
-
     private bool _disposed;
 
     public SecureStorageProvider(
@@ -28,74 +27,84 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         IDataProtectionProvider dataProtectionProvider)
     {
         SecureStoreOptions opts = options.Value;
-
+       
         _storagePath = opts.EncryptedStatePath;
         _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
-
+        
         InitializeStorageDirectory();
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string culture)
     {
-        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-            await TryGetByKeyAsync(SettingsKey);
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
 
-        if (getResult.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
-        }
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.Culture = culture;
 
-        ApplicationInstanceSettings existingSettings =
-            ApplicationInstanceSettings.Parser.ParseFrom(getResult.Unwrap().Value);
-        existingSettings.Culture = culture;
-
-        await StoreAsync(SettingsKey, existingSettings.ToByteArray());
-        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
+        return await StoreAsync(SettingsKey, settings.ToByteArray());
     }
 
-    public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
-        GetApplicationInstanceSettingsAsync()
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
     {
-        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-            await TryGetByKeyAsync(SettingsKey);
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
 
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.Country = ipCountry.Country;
+        settings.IpAddress = ipCountry.IpAddress;
+
+        return await StoreAsync(SettingsKey, settings.ToByteArray());
+    }
+
+    public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync()
+    {
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)
-        {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
-        }
 
-        Option<byte[]> maybeSettingsData = getResult.Unwrap();
+        Option<byte[]> maybeData = getResult.Unwrap();
+        if (!maybeData.HasValue)
+            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreKeyNotFound("Application instance settings not found."));
 
-        if (maybeSettingsData.HasValue)
+        try
         {
-            ApplicationInstanceSettings? existingSettings =
-                ApplicationInstanceSettings.Parser.ParseFrom(maybeSettingsData.Value);
-            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Ok(existingSettings);
+            ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
+            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Ok(settings);
         }
-
-        return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
-            InternalServiceApiFailure.SecureStoreKeyNotFound("Application instance settings not found."));
+        catch (InvalidProtocolBufferException ex)
+        {
+            Log.Error(ex, "Failed to parse application instance settings");
+            return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied("Corrupt settings data in secure storage.", ex));
+        }
     }
 
     public async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
         string defaultCulture)
     {
-        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-            await TryGetByKeyAsync(SettingsKey);
-
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)
-        {
             return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
-        }
 
-        Option<byte[]> maybeSettingsData = getResult.Unwrap();
-
-        if (maybeSettingsData.HasValue)
+        Option<byte[]> maybeData = getResult.Unwrap();
+        if (maybeData.HasValue)
         {
-            ApplicationInstanceSettings? existingSettings =
-                ApplicationInstanceSettings.Parser.ParseFrom(maybeSettingsData.Value);
-            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
-                new InstanceSettingsResult(existingSettings, false));
+            try
+            {
+                ApplicationInstanceSettings settings = ApplicationInstanceSettings.Parser.ParseFrom(maybeData.Value);
+                return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
+                    new InstanceSettingsResult(settings, false));
+            }
+            catch (InvalidProtocolBufferException ex)
+            {
+                Log.Error(ex, "Corrupt protobuf data during initialization");
+                return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(
+                    InternalServiceApiFailure.SecureStoreAccessDenied("Corrupt settings data in secure storage.", ex));
+            }
         }
 
         ApplicationInstanceSettings newSettings = new()
@@ -105,7 +114,10 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
             Culture = defaultCulture
         };
 
-        await StoreAsync(SettingsKey, newSettings.ToByteArray());
+        Result<Unit, InternalServiceApiFailure> storeResult = await StoreAsync(SettingsKey, newSettings.ToByteArray());
+        if (storeResult.IsErr)
+            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(storeResult.UnwrapErr());
+
         return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
             new InstanceSettingsResult(newSettings, true));
     }
@@ -116,16 +128,20 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         {
             string filePath = GetHashedFilePath(key);
             byte[] protectedData = _protector.Protect(data);
-
-            await File.WriteAllBytesAsync(filePath, protectedData).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(filePath, protectedData);
             SetSecureFilePermissions(filePath);
-
-            Log.Debug("Successfully stored data for key {Key}", key);
+            Log.Debug("Stored data for key {Key}", key);
             return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
         }
-        catch (Exception ex)
+        catch (CryptographicException ex)
         {
-            Log.Error(ex, "Failed to store data for key {Key}", key);
+            Log.Error(ex, "Failed to encrypt data for key {Key}", key);
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to encrypt data for storage.", ex));
+        }
+        catch (IOException ex)
+        {
+            Log.Error(ex, "Failed to write data for key {Key}", key);
             return Result<Unit, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreAccessDenied("Failed to write to secure storage.", ex));
         }
@@ -134,33 +150,30 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
     public async Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key)
     {
         string filePath = GetHashedFilePath(key);
-
         if (!File.Exists(filePath))
         {
-            Log.Debug("No data found for key {Key}, as file does not exist at {Path}", key, filePath);
+            Log.Debug("No data found for key {Key} at {Path}", key, filePath);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
         }
 
         try
         {
-            byte[] protectedData = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
+            byte[] protectedData = await File.ReadAllBytesAsync(filePath);
             if (protectedData.Length == 0)
             {
-                Log.Warning("File for key {Key} at {Path} is empty. Treating as non-existent", key, filePath);
+                Log.Warning("Empty file for key {Key} at {Path}", key, filePath);
                 return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.None);
             }
 
             byte[] data = _protector.Unprotect(protectedData);
-            Log.Debug("Successfully retrieved and decrypted data for key {Key}", key);
+            Log.Debug("Retrieved data for key {Key}", key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Ok(Option<byte[]>.Some(data));
         }
         catch (CryptographicException ex)
         {
-            Log.Error(ex,
-                "Failed to decrypt data for key {Key}. The data might be corrupt or the protection keys have changed",
-                key);
+            Log.Error(ex, "Failed to decrypt data for key {Key}", key);
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied($"Failed to decrypt data: {ex.Message}"));
+                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to decrypt data.", ex));
         }
         catch (IOException ex)
         {
@@ -170,28 +183,32 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         }
     }
 
-    public Task<Result<Unit, InternalServiceApiFailure>> DeleteAsync(string key)
+    public Result<Unit, InternalServiceApiFailure> DeleteAsync(string key)
     {
+        if (string.IsNullOrEmpty(key))
+        {
+            throw new ArgumentNullException(nameof(key));
+        }
+
         try
         {
             string filePath = GetHashedFilePath(key);
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
-                Log.Debug("Successfully deleted data for key {Key}", key);
+                Log.Debug("Deleted data for key {Key}", filePath);
             }
             else
             {
-                Log.Debug("No data to delete for key {Key} as file does not exist", key);
+                Log.Debug("No data to delete for key {Key}", key);
             }
-
-            return Task.FromResult(Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value));
+            return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             Log.Error(ex, "Failed to delete data for key {Key}", key);
-            return Task.FromResult(Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to delete from secure storage.", ex)));
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to delete from secure storage.", ex));
         }
     }
 
@@ -214,18 +231,15 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    File.SetUnixFileMode(_storagePath,
-                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); // 700
+                    File.SetUnixFileMode(_storagePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                 }
             }
-
-            Log.Debug("SecureStorageProvider initialized with path {Path}", _storagePath);
+            Log.Debug("Initialized secure storage at {Path}", _storagePath);
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
             Log.Error(ex, "Failed to initialize secure storage directory at {Path}", _storagePath);
-            throw new InvalidOperationException(
-                $"Could not create or access the secure storage directory: {_storagePath}", ex);
+            throw new InvalidOperationException($"Could not create secure storage directory: {_storagePath}", ex);
         }
     }
 
@@ -235,23 +249,23 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         {
             try
             {
-                File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite); // 600
-                Log.Debug("Set secure file permissions on {Path}", filePath);
+                File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                Log.Debug("Set permissions on {Path}", filePath);
             }
             catch (IOException ex)
             {
-                Log.Warning(ex, "Failed to set secure permissions for file {Path}", filePath);
+                Log.Warning(ex, "Failed to set permissions for {Path}", filePath);
             }
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
             _disposed = true;
             GC.SuppressFinalize(this);
-            await Task.CompletedTask;
         }
+        return ValueTask.CompletedTask;
     }
 }

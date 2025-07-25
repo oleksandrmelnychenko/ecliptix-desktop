@@ -14,7 +14,6 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Serilog;
-using Splat;
 
 namespace Ecliptix.Core.Services;
 
@@ -24,7 +23,8 @@ public class ApplicationInitializer(
     NetworkProvider networkProvider,
     ISecureStorageProvider secureStorageProvider,
     ILocalizationService localizationService,
-    ISystemEvents systemEvents)
+    ISystemEvents systemEvents,
+    IHttpClientFactory httpClientFactory)
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -32,7 +32,7 @@ public class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Initializing));
-        
+
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await secureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
 
@@ -47,7 +47,18 @@ public class ApplicationInitializer(
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
         localizationService.SetCulture(settings.Culture);
-        
+
+        _ = Task.Run(async () =>
+        {
+            Option<IpCountry> countryCode =
+                await IpGeolocationService.GetIpCountryAsync(httpClientFactory, defaultSystemSettings.CountryCodeApi);
+
+            if (countryCode.HasValue)
+            {
+                await secureStorageProvider.SetApplicationIpCountryAsync(countryCode.Value!);
+            }
+        });
+
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
         if (connectIdResult.IsErr)
@@ -66,8 +77,6 @@ public class ApplicationInitializer(
         }
 
         Log.Information("Application initialized successfully");
-        
-        await EnsureCountryInSettingsAsync(secureStorageProvider);
 
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
         return true;
@@ -149,27 +158,5 @@ public class ApplicationInitializer(
                     appServerInstanceId);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, CancellationToken.None);
-    }
-    
-    private async Task EnsureCountryInSettingsAsync(ISecureStorageProvider secureStorageProvider)
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await secureStorageProvider.GetApplicationInstanceSettingsAsync();
-        if (settingsResult.IsErr)
-        {
-            Log.Information("Failed to retrieve application instance settings: {@Error}", settingsResult.UnwrapErr());
-            return;
-        } 
-
-        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        if (string.IsNullOrEmpty(settings.Country))
-        {
-            using HttpClient httpClient = new HttpClient();
-            string response = await httpClient.GetStringAsync("https://api.country.is/");
-            string? countryCode = System.Text.Json.JsonDocument.Parse(response).RootElement.GetProperty("country").GetString();
-
-            settings.Country = countryCode;
-            await secureStorageProvider.StoreAsync("ApplicationInstanceSettings", settings.ToByteArray());
-            Log.Information("Successfully updated country in application settings: {Country}", settings.Country);
-        } else Log.Information("Country already set in application settings: {Country}", settings.Country);
     }
 }
