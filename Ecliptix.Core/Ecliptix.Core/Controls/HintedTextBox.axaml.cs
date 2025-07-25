@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Ecliptix.Utilities.Membership;
 using ReactiveUI;
 
@@ -389,12 +388,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.Text = text;
 
         _mainTextBox.CaretIndex = Math.Clamp(caretIndex, 0, text.Length);
-
-        /*Dispatcher.UIThread.Post(() =>
-        {
-            if (_mainTextBox != null)
-                _mainTextBox.CaretIndex = Math.Clamp(caretIndex, 0, text.Length);
-        }, DispatcherPriority.Background);*/
 
         _isUpdatingFromCode = false;
     }

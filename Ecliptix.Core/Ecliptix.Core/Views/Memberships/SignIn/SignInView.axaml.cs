@@ -1,5 +1,3 @@
-// Ecliptix.Core.Views.Memberships.SignIn.SignInView.axaml.cs
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;

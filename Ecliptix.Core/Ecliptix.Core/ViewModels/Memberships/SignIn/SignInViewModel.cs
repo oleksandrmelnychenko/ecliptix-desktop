@@ -13,7 +13,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
-public class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
+public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
 {
     private string _phoneNumber = string.Empty;
     private string _passwordErrorMessage = string.Empty;
@@ -197,6 +197,9 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
                 SetError($"System error: Failed to read password securely. {readResult.UnwrapErr().Message}");
                 return;
             }
+            
+            //READ the password and convert it to a string for further processing
+            string password = Encoding.UTF8.GetString(passwordSpan);
 
             // Your existing OPAQUE protocol and network logic goes here.
             // It will operate on the `passwordSpan` variable.
@@ -234,7 +237,7 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (_isDisposed) return;
         if (disposing)
