@@ -116,7 +116,7 @@
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
             IconErrorSource="{DynamicResource LampIconDrawingError}"
             FocusBorderBrush="{DynamicResource TipsColor}"
-            ValidationType="PhoneNumber"
+            ValidationType="MobileNumber"
             MainBorderBrush="Transparent"
             Text="{Binding MobileNumber,Mode=TwoWay}"
             Height="{StaticResource InputHeight}"

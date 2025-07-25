@@ -3,6 +3,6 @@ namespace Ecliptix.Utilities.Membership;
 public enum ValidationType
 {
     None,
-    PhoneNumber,
+    MobileNumber,
     SecureKey
 }

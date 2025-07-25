@@ -12,7 +12,7 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public class WelcomeViewModel : ViewModelBase, IRoutableViewModel
 {
-    public string UrlPathSegment { get; } = "/welcome";
+    public string UrlPathSegment => "/welcome";
     public IScreen HostScreen { get; }
 
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }

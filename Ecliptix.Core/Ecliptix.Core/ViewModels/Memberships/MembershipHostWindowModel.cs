@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reactive;
-using Avalonia.Controls;
 using Ecliptix.Core.Controls.LanguageSwitcher;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
@@ -9,12 +7,11 @@ using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
-using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using ReactiveUI;
 
-namespace Ecliptix.Core.ViewModels.Authentication;
+namespace Ecliptix.Core.ViewModels.Memberships;
 
 public class MembershipHostWindowModel : ViewModelBase, IScreen
 {

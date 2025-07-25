@@ -93,7 +93,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private static readonly SolidColorBrush TransparentBrush = CreateBrush(Colors.Transparent);
 
     private readonly CompositeDisposable _disposables = new();
-    private Panel? _counterPanel;
     private Border? _focusBorder;
     private Border? _mainBorder;
     private TextBox? _mainTextBox;
@@ -317,7 +316,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox = this.FindControl<TextBox>("MainTextBox");
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
-        _counterPanel = this.FindControl<Panel>("CounterPanel");
+        this.FindControl<Panel>("CounterPanel");
     }
 
     private bool AreControlsValid()
@@ -462,7 +461,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (_isDisposed) return;
 
         _isDisposed = true;
-        this.AttachedToVisualTree -= OnAttachedToVisualTree;
+        AttachedToVisualTree -= OnAttachedToVisualTree;
         _disposables.Dispose();
         _isInitialized = false;
         _eventsSubscribed = false;
@@ -470,6 +469,5 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox = null;
         _focusBorder = null;
         _mainBorder = null;
-        _counterPanel = null;
     }
 }

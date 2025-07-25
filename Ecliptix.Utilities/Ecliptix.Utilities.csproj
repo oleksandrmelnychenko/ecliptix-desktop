@@ -15,4 +15,8 @@
       <ProjectReference Include="..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Persistors\" />
+    </ItemGroup>
+
 </Project>

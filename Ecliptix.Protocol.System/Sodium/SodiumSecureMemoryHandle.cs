@@ -7,16 +7,18 @@ namespace Ecliptix.Protocol.System.Sodium;
 
 public sealed class SodiumSecureMemoryHandle : SafeHandle
 {
+    private readonly ReaderWriterLockSlim _lock = new();
+
+    public int Length { get; }
+
+    public override bool IsInvalid => handle == IntPtr.Zero;
+
     private SodiumSecureMemoryHandle(IntPtr preexistingHandle, int length, bool ownsHandle)
         : base(IntPtr.Zero, ownsHandle)
     {
         SetHandle(preexistingHandle);
         Length = length;
     }
-
-    public int Length { get; }
-
-    public override bool IsInvalid => handle == IntPtr.Zero;
 
     public static Result<SodiumSecureMemoryHandle, SodiumFailure> Allocate(int length)
     {
@@ -56,39 +58,34 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
     public Result<Unit, SodiumFailure> Write(ReadOnlySpan<byte> data)
     {
-        if (IsInvalid || IsClosed)
-            return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.ObjectDisposed,
-                    nameof(SodiumSecureMemoryHandle))));
-
-        if (data.Length > Length)
-            return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.BufferTooLarge(string.Format(SodiumFailureMessages.DataTooLarge, data.Length,
-                    Length)));
-
-        if (data.IsEmpty) return Result<Unit, SodiumFailure>.Ok(Unit.Value);
-
+        _lock.EnterWriteLock();
+        
         bool success = false;
-
+        
         try
         {
+            if (IsInvalid || IsClosed)
+                return Result<Unit, SodiumFailure>.Err(
+                    SodiumFailure.NullPointer("Handle disposed"));
+
+            if (data.Length > Length)
+                return Result<Unit, SodiumFailure>.Err(
+                    SodiumFailure.BufferTooLarge($"Data ({data.Length}) > buffer ({Length})"));
+
+            if (data.IsEmpty) return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+
             DangerousAddRef(ref success);
             if (!success)
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.ReferenceCountFailed));
-
-            if (IsInvalid || IsClosed)
-                return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.NullPointer(
-                        string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle))));
+                    SodiumFailure.MemoryPinningFailed("Ref count failed"));
 
             unsafe
             {
                 Buffer.MemoryCopy(
                     Unsafe.AsPointer(ref MemoryMarshal.GetReference(data)),
                     (void*)handle,
-                    (ulong)Length,
-                    (ulong)data.Length);
+                    Length,
+                    data.Length);
             }
 
             return Result<Unit, SodiumFailure>.Ok(Unit.Value);
@@ -96,11 +93,12 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         catch (Exception ex)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UnexpectedWriteError, ex));
+                SodiumFailure.MemoryProtectionFailed("Unexpected write error", ex));
         }
         finally
         {
             if (success) DangerousRelease();
+            _lock.ExitWriteLock();
         }
     }
 
@@ -215,13 +213,19 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
     protected override bool ReleaseHandle()
     {
-        if (IsInvalid) return true;
+        _lock.EnterWriteLock();
+        try
+        {
+            if (IsInvalid) return true;
 
-        if (!SodiumInterop.IsInitialized) return false;
-
-        SodiumInterop.sodium_free(handle);
-        SetHandleAsInvalid();
-        return true;
+            SodiumInterop.sodium_free(handle);
+            SetHandleAsInvalid();
+            return true;
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
+        }
     }
 
     private static Result<T, SodiumFailure> ExecuteWithErrorHandling<T>(

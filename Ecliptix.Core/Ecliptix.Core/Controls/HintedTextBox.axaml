@@ -206,6 +206,7 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Padding="0"
+                                 RevealPassword="True"
                                  Margin="{StaticResource TextBoxMargin}"
                                  VerticalAlignment="Center"
                                  HorizontalAlignment="Stretch"

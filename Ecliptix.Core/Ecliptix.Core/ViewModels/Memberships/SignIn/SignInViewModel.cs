@@ -1,14 +1,11 @@
 using System;
 using System.Buffers;
-using System.ComponentModel;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
-using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -35,11 +32,11 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel
     private string _passwordErrorMessage;
     private int _passwordLength;
 
-    public string UrlPathSegment { get; } = "/sign-in";
+    public string UrlPathSegment => "/sign-in";
     public IScreen HostScreen { get; }
 
     private SodiumSecureMemoryHandle? _securePasswordHandle;
-    
+
     public int PasswordLength
     {
         get => _passwordLength;
@@ -75,13 +72,12 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel
         get => _isPasswordSet;
         private set => this.RaiseAndSetIfChanged(ref _isPasswordSet, value);
     }
-    
+
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
-    
-    
-    
+
+
     public SignInViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -92,7 +88,7 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel
                 x => x.PasswordErrorMessage,
                 x => x.PasswordLength,
                 (number, error, passwordLength) =>
-                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)) &&
+                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number)) &&
                     passwordLength > 8 &&
                     string.IsNullOrEmpty(error))
             .Throttle(TimeSpan.FromMilliseconds(10))
@@ -103,8 +99,6 @@ public class SignInViewModel : ViewModelBase, IRoutableViewModel
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecute);
     }
-
-
 
     private void SetError(string message)
     {

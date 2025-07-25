@@ -1,10 +1,8 @@
-using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 
-namespace Ecliptix.Core.Views.Authentication.Registration;
+namespace Ecliptix.Core.Views.Memberships.SignUp;
 
 public partial class PassPhaseView : ReactiveUserControl<PassPhaseViewModel>
 {

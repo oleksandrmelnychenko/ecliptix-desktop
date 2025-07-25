@@ -23,7 +23,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
 {
     private string _errorMessage = string.Empty;
 
-    private string _mobileNumber = "+380970177443";
+    private string _mobileNumber = "";
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
@@ -52,7 +52,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
 
         IObservable<bool> canExecute = this.WhenAnyValue(
             x => x.MobileNumber,
-            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.PhoneNumber, number)));
+            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
     }
