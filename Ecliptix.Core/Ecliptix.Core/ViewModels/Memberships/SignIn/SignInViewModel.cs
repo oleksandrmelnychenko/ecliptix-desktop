@@ -3,19 +3,28 @@ using System.Buffers;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Opaque.Protocol;
+using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Ecliptix.Utilities.Membership;
+using Google.Protobuf;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Math;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
 public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
 {
-    private string _phoneNumber = string.Empty;
+    private string _mobileNumber = string.Empty;
     private string _passwordErrorMessage = string.Empty;
     private int _currentPasswordLength;
     private bool _isErrorVisible;
@@ -32,10 +41,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         private set => this.RaiseAndSetIfChanged(ref _currentPasswordLength, value);
     }
     
-    public string PhoneNumber
+    public string MobileNumber
     {
-        get => _phoneNumber;
-        set => this.RaiseAndSetIfChanged(ref _phoneNumber, value);
+        get => _mobileNumber;
+        set => this.RaiseAndSetIfChanged(ref _mobileNumber, value);
     }
 
     public string PasswordErrorMessage
@@ -55,9 +64,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         get => _isBusy;
         private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
     }
-    
-    public bool IsPasswordSet => _securePasswordHandle is { IsInvalid: false };
-    
+
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
 
@@ -69,7 +76,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         HostScreen = hostScreen;
 
         IObservable<bool> canExecute = this.WhenAnyValue(
-                x => x.PhoneNumber,
+                x => x.MobileNumber,
                 x => x.PasswordErrorMessage,
                 x => x.CurrentPasswordLength,
                 (number, error, passwordLength) =>
@@ -81,7 +88,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .ObserveOn(RxApp.MainThreadScheduler);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecute);
-        AccountRecoveryCommand = ReactiveCommand.Create(() => { /* Navigation Logic Here */ });
+        AccountRecoveryCommand = ReactiveCommand.Create(() =>
+        {
+            
+        });
     }
 
     public void InsertPasswordChars(int index, string chars)
@@ -117,7 +127,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     return;
                 }
             }
-            var oldSpan = oldLength > 0 ? oldPasswordBytes.AsSpan(0, oldLength) : ReadOnlySpan<byte>.Empty;
+            ReadOnlySpan<byte> oldSpan = oldLength > 0 ? oldPasswordBytes.AsSpan(0, oldLength) : ReadOnlySpan<byte>.Empty;
 
             byte[] insertBytes = Encoding.UTF8.GetBytes(insertChars);
 
@@ -128,13 +138,13 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             if (newLength > 0)
             {
                 newPasswordBytes = ArrayPool<byte>.Shared.Rent(newLength);
-                var newSpan = newPasswordBytes.AsSpan(0, newLength);
+                Span<byte> newSpan = newPasswordBytes.AsSpan(0, newLength);
 
-                oldSpan.Slice(0, index).CopyTo(newSpan);
-                insertBytes.CopyTo(newSpan.Slice(index));
+                oldSpan[..index].CopyTo(newSpan);
+                insertBytes.CopyTo(newSpan[index..]);
                 if (index + removeCount < oldSpan.Length)
                 {
-                    oldSpan.Slice(index + removeCount).CopyTo(newSpan.Slice(index + insertBytes.Length));
+                    oldSpan[(index + removeCount)..].CopyTo(newSpan[(index + insertBytes.Length)..]);
                 }
             }
             
@@ -157,7 +167,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 }
             }
             
-            var oldHandle = _securePasswordHandle;
+            SodiumSecureMemoryHandle? oldHandle = _securePasswordHandle;
             _securePasswordHandle = newHandle;
             oldHandle?.Dispose();
             newHandle = null; 
@@ -187,22 +197,23 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         byte[]? rentedPasswordBytes = null;
         try
         {
-            int passwordLength = _securePasswordHandle.Length;
-            rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(passwordLength);
-            var passwordSpan = rentedPasswordBytes.AsSpan(0, passwordLength);
+            rentedPasswordBytes = ReadPassword();
+            if (rentedPasswordBytes == null) return; 
 
-            Result<Unit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
-            if (readResult.IsErr)
+            OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
+            (byte[] OprfRequest, BigInteger Blind)? requestTuple = CreateOprfRequest(rentedPasswordBytes);
+            if (requestTuple == null) return;
+
+            byte[] oprfRequest = requestTuple.Value.OprfRequest;
+            BigInteger blind = requestTuple.Value.Blind;
+
+            byte[] passwordBytes = rentedPasswordBytes.AsSpan().ToArray();
+
+            Result<Unit, NetworkFailure> initResult = await SendInitRequestAndProcessResponse(clientOpaqueService, oprfRequest, blind, passwordBytes);
+            if (initResult.IsErr)
             {
-                SetError($"System error: Failed to read password securely. {readResult.UnwrapErr().Message}");
-                return;
+                SetError($"Sign-in init failed: {initResult.UnwrapErr().Message}");
             }
-            
-            //READ the password and convert it to a string for further processing
-            string password = Encoding.UTF8.GetString(passwordSpan);
-
-            // Your existing OPAQUE protocol and network logic goes here.
-            // It will operate on the `passwordSpan` variable.
         }
         catch (Exception ex)
         {
@@ -218,6 +229,161 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             IsBusy = false;
         }
     }
+
+    private byte[]? ReadPassword()
+    {
+        byte[]? rentedPasswordBytes = null;
+        try
+        {
+            int passwordLength = _securePasswordHandle!.Length;
+            rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(passwordLength);
+            Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, passwordLength);
+
+            Result<Unit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
+            if (readResult.IsErr)
+            {
+                SetError($"System error: Failed to read password securely. {readResult.UnwrapErr().Message}");
+                return null;
+            }
+
+            return rentedPasswordBytes;
+        }
+        catch
+        {
+            if (rentedPasswordBytes != null)
+            {
+                rentedPasswordBytes.AsSpan().Clear();
+                ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
+            }
+            throw;
+        }
+    }
+
+    private OpaqueProtocolService CreateOpaqueService()
+    {
+        byte[] serverPublicKeyBytes = ServerPublicKey(); 
+        ECPublicKeyParameters serverStaticPublicKeyParam = new(
+            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes),
+            OpaqueCryptoUtilities.DomainParams
+        );
+        return new OpaqueProtocolService(serverStaticPublicKeyParam);
+    }
+
+    private (byte[] OprfRequest, BigInteger Blind)? CreateOprfRequest(byte[] passwordBytes)
+    {
+        Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
+            OpaqueProtocolService.CreateOprfRequest(passwordBytes);
+        if (oprfResult.IsErr)
+        {
+            SetError($"Failed to create OPAQUE request: {oprfResult.UnwrapErr().Message}");
+            return null;
+        }
+        return oprfResult.Unwrap();
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> SendInitRequestAndProcessResponse(
+        OpaqueProtocolService clientOpaqueService,
+        byte[] oprfRequest,
+        BigInteger blind,
+        byte[] passwordBytes)
+    {
+        OpaqueSignInInitRequest initRequest = new()
+        {
+            PhoneNumber = MobileNumber,
+            PeerOprf = ByteString.CopyFrom(oprfRequest),
+        };
+
+        return await NetworkProvider.ExecuteServiceRequestAsync(
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            RcpServiceType.OpaqueSignInInitRequest,
+            initRequest.ToByteArray(),
+            ServiceFlowType.Single,
+            async payload =>
+            {
+                OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
+
+                Result<
+                    (
+                        OpaqueSignInFinalizeRequest Request,
+                        byte[] SessionKey,
+                        byte[] ServerMacKey,
+                        byte[] TranscriptHash
+                    ),
+                    OpaqueFailure
+                > finalizationResult = clientOpaqueService.CreateSignInFinalizationRequest(
+                    MobileNumber,
+                    passwordBytes,
+                    initResponse,
+                    blind
+                );
+
+                if (finalizationResult.IsErr)
+                {
+                    string errorMessage = $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
+                    SetError(errorMessage);
+                    return Result<Unit, NetworkFailure>.Err(
+                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
+                    );
+                }
+
+                (
+                    OpaqueSignInFinalizeRequest finalizeRequest,
+                    byte[] sessionKey,
+                    byte[] serverMacKey,
+                    byte[] transcriptHash
+                ) = finalizationResult.Unwrap();
+
+                return await SendFinalizeRequestAndVerify(clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash);
+            }
+        );
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> SendFinalizeRequestAndVerify(
+        OpaqueProtocolService clientOpaqueService,
+        OpaqueSignInFinalizeRequest finalizeRequest,
+        byte[] sessionKey,
+        byte[] serverMacKey,
+        byte[] transcriptHash)
+    {
+        return await NetworkProvider.ExecuteServiceRequestAsync(
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            RcpServiceType.OpaqueSignInCompleteRequest,
+            finalizeRequest.ToByteArray(),
+            ServiceFlowType.Single,
+            async payload2 =>
+            {
+                OpaqueSignInFinalizeResponse finalizeResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
+
+                if (finalizeResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+                {
+                    SetError(finalizeResponse.HasMessage ? finalizeResponse.Message : "Invalid phone number or password.");
+                    return Result<Unit, NetworkFailure>.Err(
+                        EcliptixProtocolFailure.Generic("Invalid credentials.").ToNetworkFailure()
+                    );
+                }
+
+                Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
+                    finalizeResponse,
+                    sessionKey,
+                    serverMacKey,
+                    transcriptHash
+                );
+
+                if (verificationResult.IsErr)
+                {
+                    string errorMessage = $"Server authentication failed: {verificationResult.UnwrapErr().Message}";
+                    SetError(errorMessage);
+                    return Result<Unit, NetworkFailure>.Err(
+                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
+                    );
+                }
+
+                byte[] finalSessionKey = verificationResult.Unwrap();
+
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+        );
+    }
     
     private void SetError(string message)
     {
@@ -231,13 +397,13 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         IsErrorVisible = false;
     }
     
-    public void Dispose()
+    public new void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    private void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
         if (_isDisposed) return;
         if (disposing)

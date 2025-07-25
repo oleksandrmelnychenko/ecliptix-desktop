@@ -135,7 +135,7 @@
             FocusBorderBrush="{DynamicResource TipsColor}"
             ValidationType="MobileNumber"
             MainBorderBrush="Transparent"
-            Text="{Binding PhoneNumber, Mode=TwoWay}"
+            Text="{Binding MobileNumber, Mode=TwoWay}"
             Height="{StaticResource InputHeight}"
             CornerRadius="{StaticResource InputCornerRadius}"
             FontSize="{StaticResource InputFontSize}"
