@@ -287,17 +287,5 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
         if (_statusEllipse != null)
             _statusEllipse.Opacity = 1.0;
     }
-
-    private void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
-        switch (e.PropertyName)
-        {
-            case nameof(AppearDuration):
-            case nameof(DisappearDuration):
-            case nameof(FlickerDuration):
-                CreateAnimations();
-                break;
-        }
-    }
     
 }

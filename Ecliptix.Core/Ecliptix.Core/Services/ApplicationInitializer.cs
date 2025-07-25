@@ -3,6 +3,7 @@ using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
@@ -65,6 +66,8 @@ public class ApplicationInitializer(
         }
 
         Log.Information("Application initialized successfully");
+        
+        await EnsureCountryInSettingsAsync(secureStorageProvider);
 
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
         return true;
@@ -146,5 +149,27 @@ public class ApplicationInitializer(
                     appServerInstanceId);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, CancellationToken.None);
+    }
+    
+    private async Task EnsureCountryInSettingsAsync(ISecureStorageProvider secureStorageProvider)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await secureStorageProvider.GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+        {
+            Log.Information("Failed to retrieve application instance settings: {@Error}", settingsResult.UnwrapErr());
+            return;
+        } 
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        if (string.IsNullOrEmpty(settings.Country))
+        {
+            using HttpClient httpClient = new HttpClient();
+            string response = await httpClient.GetStringAsync("https://api.country.is/");
+            string? countryCode = System.Text.Json.JsonDocument.Parse(response).RootElement.GetProperty("country").GetString();
+
+            settings.Country = countryCode;
+            await secureStorageProvider.StoreAsync("ApplicationInstanceSettings", settings.ToByteArray());
+            Log.Information("Successfully updated country in application settings: {Country}", settings.Country);
+        } else Log.Information("Country already set in application settings: {Country}", settings.Country);
     }
 }
