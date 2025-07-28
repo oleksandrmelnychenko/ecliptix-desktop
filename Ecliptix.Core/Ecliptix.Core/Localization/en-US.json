@@ -6,19 +6,14 @@
         "Description": "Confirm your phone number. We'll send you a verification code via SMS",
         "Hint": "Start with country code",
         "Watermark": "Mobile Number",
-        "Button": "Continue",
-        "Error": {
-          "InvalidFormat": "Invalid format. Use +countrycode followed by number"
-        }
+        "Button": "Continue"
       },
       "VerificationCodeEntry": {
         "Title": "Verify your number",
         "Description": "We have sent a code to your phone to verify your identity",
         "Hint": "Enter verification code",
         "Expiration": "Code valid: {0}",
-        "Error": {
-          "InvalidCode": "Invalid code"
-        },
+        "Error_InvalidCode": "The code you entered is invalid. Please try again.",
         "Button": {
           "Verify": "Verify",
           "Resend": "Resend"
@@ -36,9 +31,7 @@
         "Description": "Make sure you have verified it",
         "PasswordHint": "Enter your password",
         "VerifyPasswordHint": "Re-enter your password",
-        "Error": {
-          "PasswordMismatch": "Passwords do not match"
-        },
+        "Error_PasswordMismatch": "Passwords do not match.",
         "Button": "Confirm password"
       },
       "PassPhase": {
@@ -58,6 +51,19 @@
       "PasswordHint": "Stored only on your device",
       "AccountRecovery": "Account recovery",
       "Continue": "Continue"
+    }
+  },
+  "ValidationErrors": {
+    "Common": {
+      "CannotBeEmpty": "{0} cannot be empty."
+    },
+    "PhoneNumber": {
+      "MustStartWithCountryCode": "Must start with a country code (+).",
+      "ContainsNonDigits": "Can only contain digits after the country code.",
+      "IncorrectLength": "Must be between {0} and {1} digits long."
+    },
+    "Password": {
+      "TooShort": "Password must be at least {0} characters long."
     }
   },
   "Welcome": {

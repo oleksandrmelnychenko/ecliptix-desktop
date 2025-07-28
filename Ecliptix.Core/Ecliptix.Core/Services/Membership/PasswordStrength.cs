@@ -1,4 +1,4 @@
-namespace Ecliptix.Utilities.Membership;
+namespace Ecliptix.Core.Services.Membership;
 
 public enum PasswordStrength
 {

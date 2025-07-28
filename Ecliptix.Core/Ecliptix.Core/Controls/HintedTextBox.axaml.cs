@@ -6,8 +6,10 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Ecliptix.Utilities.Membership;
+using Ecliptix.Core.Services;
 using ReactiveUI;
+using MembershipValidation = Ecliptix.Core.Services.Membership.MembershipValidation;
+using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
 
 namespace Ecliptix.Core.Controls;
 
@@ -55,9 +57,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public static readonly StyledProperty<bool> HasErrorProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError));
-
-    public static readonly StyledProperty<ValidationType> ValidationTypeProperty =
-        AvaloniaProperty.Register<HintedTextBox, ValidationType>(nameof(ValidationType));
 
     public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
         AvaloniaProperty.Register<HintedTextBox, IBrush>(
@@ -189,12 +188,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         private set => SetValue(HasErrorProperty, value);
     }
 
-    public ValidationType ValidationType
-    {
-        get => GetValue(ValidationTypeProperty);
-        set => SetValue(ValidationTypeProperty, value);
-    }
-
     public IBrush MainBorderBrush
     {
         get => GetValue(MainBorderBrushProperty);
@@ -260,12 +253,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private TextBlock? _passwordMaskOverlay;
     private Border? _focusBorder;
     private Border? _mainBorder;
+    private Border? _shadowBorder;
     private string _shadowText = string.Empty;
     private bool _isUpdatingFromCode;
     private bool _isDisposed;
     private bool _isControlInitialized;
     private int _nextCaretPosition;
-    private Border? _shadowBorder;
 
     public HintedTextBox()
     {
@@ -368,7 +361,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         Text = input;
         UpdateRemainingCharacters();
-        ValidateInput(input);
     }
 
     private static (int Index, int RemovedCount, string Added) Diff(string oldStr, string newStr)
@@ -406,7 +398,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
 
         bool isFocused = _mainTextBox.IsFocused;
-        
+
         if (HasError)
         {
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
@@ -456,31 +448,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
             })
             .DisposeWith(_disposables);
-    }
-
-    private void ValidateInput(string input)
-    {
-        if (_isDisposed || string.IsNullOrEmpty(input))
-        {
-            HasError = false;
-            ErrorText = string.Empty;
-            EllipseOpacity = 0;
-            return;
-        }
-
-        string validationMessage = MembershipValidation.Validate(ValidationType, input);
-        if (!string.IsNullOrEmpty(validationMessage))
-        {
-            ErrorText = validationMessage;
-            HasError = true;
-            EllipseOpacity = 1.0;
-        }
-        else
-        {
-            ErrorText = string.Empty;
-            HasError = false;
-            EllipseOpacity = 0.0;
-        }
     }
 
     private void UpdateRemainingCharacters()

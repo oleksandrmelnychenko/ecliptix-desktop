@@ -1,11 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Ecliptix.Utilities.Membership;
+namespace Ecliptix.Core.Services.Membership;
 
 public static partial class SecureKeyValidator
 {
     private const int MinLength = 8;
-    private const int MaxLength = 128;
+    private const int MaxLength = 21;
     private const int MinCharClasses = 3;
     private const double MinTotalEntropyBits = 50;
 
@@ -26,16 +29,37 @@ public static partial class SecureKeyValidator
     [GeneratedRegex(@"[^a-zA-Z\d]", RegexOptions.Compiled)]
     private static partial Regex HasSpecialCharRegexPattern();
 
-    public static string? Validate(string secureKey)
+    public static string? Validate(string secureKey, ILocalizationService localizationService)
     {
-        return ValidationRules
-            .Select(rule => rule.IsInvalid(secureKey) ? rule.ErrorMessage : null)
-            .FirstOrDefault(errorMessage => errorMessage is not null);
+        List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> validationRules =
+        [
+            (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
+            (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
+            (s => s.Length > MaxLength, "ValidationErrors.SecureKey.MaxLength", [MaxLength]),
+            (s => s.Trim() != s, "ValidationErrors.SecureKey.NoSpaces", null),
+            (s => CalculateTotalShannonEntropy(s) < MinTotalEntropyBits, "ValidationErrors.SecureKey.TooSimple", null),
+            (s => CommonlyUsedPasswords.Contains(s), "ValidationErrors.SecureKey.TooCommon", null),
+            (IsSequentialOrKeyboardPattern, "ValidationErrors.SecureKey.SequentialPattern", null),
+            (HasExcessiveRepeats, "ValidationErrors.SecureKey.RepeatedChars", null),
+            (LacksCharacterDiversity, "ValidationErrors.SecureKey.LacksDiversity", [MinCharClasses]),
+            (ContainsAppNameVariant, "ValidationErrors.SecureKey.ContainsAppName", null)
+        ];
+
+        foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in validationRules)
+        {
+            if (isInvalid(secureKey))
+            {
+                string message = localizationService[errorMessageKey];
+                return args != null ? string.Format(message, args) : message;
+            }
+        }
+
+        return null;
     }
 
-    public static PasswordStrength EstimatePasswordStrength(string secureKey)
+    public static PasswordStrength EstimatePasswordStrength(string secureKey, ILocalizationService localizationService)
     {
-        if (Validate(secureKey) is not null)
+        if (Validate(secureKey, localizationService) is not null)
         {
             return string.IsNullOrWhiteSpace(secureKey) ? PasswordStrength.Invalid : PasswordStrength.VeryWeak;
         }
@@ -52,26 +76,12 @@ public static partial class SecureKeyValidator
 
         return score switch
         {
-            <= 2 => PasswordStrength.Weak, <= 4 => PasswordStrength.Good, <= 6 => PasswordStrength.Strong,
+            <= 2 => PasswordStrength.Weak,
+            <= 4 => PasswordStrength.Good,
+            <= 6 => PasswordStrength.Strong,
             _ => PasswordStrength.VeryStrong,
         };
     }
-
-    private static readonly List<(Func<string, bool> IsInvalid, string ErrorMessage)> ValidationRules =
-    [
-        (string.IsNullOrWhiteSpace, "Required"),
-        (s => s.Length < MinLength, $"At least {MinLength} chars"),
-        (s => s.Length > MaxLength, $"Max {MaxLength} chars"),
-        (s => s.Trim() != s, "No leading/trailing spaces"),
-        (s => CalculateTotalShannonEntropy(s) < MinTotalEntropyBits,
-            "Too simple; add length or variety"),
-        (s => CommonlyUsedPasswords.Contains(s), "Too common"),
-        (IsSequentialOrKeyboardPattern, "No sequential patterns"),
-        (HasExcessiveRepeats, "No repeating characters"),
-        (LacksCharacterDiversity,
-            $"Needs {MinCharClasses} char types (a, A, 1, #)"),
-        (ContainsAppNameVariant, "Cannot contain app name")
-    ];
 
     private static readonly HashSet<string> CommonlyUsedPasswords =
         new(GetTopCommonPasswords(), StringComparer.OrdinalIgnoreCase);
