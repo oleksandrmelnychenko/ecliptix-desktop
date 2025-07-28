@@ -265,6 +265,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private bool _isDisposed;
     private bool _isControlInitialized;
     private int _nextCaretPosition;
+    private Border? _shadowBorder;
 
     public HintedTextBox()
     {
@@ -405,22 +406,26 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
 
         bool isFocused = _mainTextBox.IsFocused;
+        
         if (HasError)
         {
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("ErrorShadow");
         }
         else if (isFocused)
         {
             _focusBorder.BorderBrush = FocusBorderBrush;
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("FocusShadow");
         }
         else
         {
             _focusBorder.Opacity = 0;
             _mainBorder.BorderBrush = MainBorderBrush;
+            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("DefaultShadow");
         }
     }
 
@@ -429,6 +434,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox = this.FindControl<TextBox>("MainTextBox");
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
+        _shadowBorder = this.FindControl<Border>("ShadowBorder");
         _passwordMaskOverlay = this.FindControl<TextBlock>("PasswordMaskOverlay");
     }
 

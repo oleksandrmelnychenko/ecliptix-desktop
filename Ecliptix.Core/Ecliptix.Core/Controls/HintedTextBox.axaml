@@ -7,7 +7,8 @@
              d:DesignWidth="320"
              d:DesignHeight="78"
              x:Class="Ecliptix.Core.Controls.HintedTextBox"
-             x:Name="control">
+             x:Name="control"
+             ClipToBounds="False">
 
     <UserControl.Resources>
         <!-- Layout Dimensions -->
@@ -38,12 +39,18 @@
         <system:TimeSpan x:Key="SlowOpacityTransition">0:0:0.3</system:TimeSpan>
         <system:TimeSpan x:Key="VerySlowOpacityTransition">0:0:0.4</system:TimeSpan>
         <system:TimeSpan x:Key="BrushTransitionDuration">0:0:0.25</system:TimeSpan>
+        <system:TimeSpan x:Key="ShadowTransitionDuration">0:0:0.3</system:TimeSpan>
 
         <!-- Colors -->
         <Color x:Key="ErrorForegroundColor">#ef3a3a</Color>
         <Color x:Key="ScrollBarThumbColor">Red</Color>
         <Color x:Key="ScrollBarThumbHoverColor">#AA0000</Color>
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
+        
+        <BoxShadows x:Key="DefaultShadow">0 0 0 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="FocusShadow">0 0 10 4 #406a5acd, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="ErrorShadow">0 0 10 4 #40de1e31, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="NoShadow">0 0 10 4 #00000000</BoxShadows>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -162,6 +169,8 @@
             <Setter Property="Margin" Value="{StaticResource TextBoxMargin}" />
             <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
+        
+        
     </UserControl.Styles>
 
     <UserControl.Transitions>
@@ -170,7 +179,21 @@
         </Transitions>
     </UserControl.Transitions>
 
-    <Grid>
+    <Grid ClipToBounds="False">
+        
+        <Border x:Name="ShadowBorder"
+                Margin="{StaticResource MainBorderMargin}"
+                CornerRadius="{Binding CornerRadius, ElementName=control}"
+                MinHeight="{StaticResource MinControlHeight}"
+                Background="Transparent"
+                BoxShadow="{StaticResource DefaultShadow}">
+            <Border.Transitions>
+                <Transitions>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="{StaticResource ShadowTransitionDuration}" />
+                </Transitions>
+            </Border.Transitions>
+        </Border>
+        
         <!-- Focus Border Layer -->
         <Border x:Name="FocusBorder"
                 BorderThickness="{StaticResource FocusBorderThickness}"

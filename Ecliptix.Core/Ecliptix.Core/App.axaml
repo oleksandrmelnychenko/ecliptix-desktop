@@ -105,6 +105,9 @@
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
         </Style>
+        <Style Selector=":is(UserControl)">
+            <Setter Property="ClipToBounds" Value="False"/>
+        </Style>
     </Application.Styles>
 
 

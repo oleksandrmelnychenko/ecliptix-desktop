@@ -304,7 +304,7 @@
                                                Width="{StaticResource ContentMaxWidth}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Stretch"
-                                               ClipToBounds="True">
+                                               ClipToBounds="False">
                         <reactiveUi:RoutedViewHost.DefaultContent>
                             <StackPanel HorizontalAlignment="Center"
                                         VerticalAlignment="Center"

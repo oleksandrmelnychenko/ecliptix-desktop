@@ -132,7 +132,6 @@
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
             IconErrorSource="{DynamicResource LampIconDrawingError}"
-            FocusBorderBrush="{DynamicResource TipsColor}"
             ValidationType="MobileNumber"
             MainBorderBrush="Transparent"
             Text="{Binding MobileNumber, Mode=TwoWay}"
