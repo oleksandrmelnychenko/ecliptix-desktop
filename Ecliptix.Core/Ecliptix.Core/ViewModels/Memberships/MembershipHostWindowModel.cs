@@ -39,7 +39,26 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
 
+  
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
+    
+    
+    // For a test purposes 
+    private int _modalZIndex = 0;
+    private double _modalOpacity = 0;
+    public int ModalZIndex
+    {
+        get => _modalZIndex;
+        set => this.RaiseAndSetIfChanged(ref _modalZIndex, value);
+    }
+
+    public double ModalOpacity
+    {
+        get => _modalOpacity;
+        set => this.RaiseAndSetIfChanged(ref _modalOpacity, value);
+    }
+    public ReactiveCommand<Unit, Unit> ToggleModal { get; }
+    // For a test purposes 
     
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
@@ -70,6 +89,21 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         OpenTermsOfServiceCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/terms"); });
 
         OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
+        
+        ToggleModal = ReactiveCommand.Create(() =>
+        {
+            if (ModalZIndex == 10)
+            {
+                ModalZIndex = 0;
+                ModalOpacity = 0;
+            }
+            else
+            {
+                ModalZIndex = 10;
+                ModalOpacity = 1;
+            }
+        });
+        
     }
 
 

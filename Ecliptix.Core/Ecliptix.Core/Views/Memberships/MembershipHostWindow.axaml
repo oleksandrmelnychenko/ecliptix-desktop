@@ -277,6 +277,28 @@
             Opacity="0"
             Height="0"/> -->
         
+        <Button 
+            Width="90"
+            Height="30"
+            Content="Toggle modal"
+            BorderThickness="1"
+            BorderBrush="Black"
+            ZIndex="10"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Command="{Binding ToggleModal}"
+            Margin="0 50 0 0"
+            />
+        
+        <controls:BottomSheetModal
+            ZIndex="{Binding ModalZIndex}"
+            Opacity="{Binding ModalOpacity}"
+            VerticalAlignment="Bottom"
+            HorizontalAlignment="Center"
+            Width="420"
+            Height="400"
+            Margin="0 0 0 9"/>
+        
         <!-- Main Content Border -->
         <Border Classes="main-border"
                 Margin="8"
