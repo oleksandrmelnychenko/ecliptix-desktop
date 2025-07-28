@@ -1,21 +1,19 @@
 using System;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
-using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Membership;
 using Google.Protobuf;
 using ReactiveUI;
+using MembershipValidation = Ecliptix.Core.Services.Membership.MembershipValidation;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
+using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
@@ -30,7 +28,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
     public IScreen HostScreen { get; }
 
     public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; set; }
-    
+
     public string MobileNumber
     {
         get => _mobileNumber;
@@ -46,13 +44,14 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
     public MobileVerificationViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider,localizationService)
+        IScreen hostScreen) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 
         IObservable<bool> canExecute = this.WhenAnyValue(
             x => x.MobileNumber,
-            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number)));
+            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number,
+                LocalizationService)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
     }

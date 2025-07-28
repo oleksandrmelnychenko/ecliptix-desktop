@@ -14,11 +14,13 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
-using Ecliptix.Utilities.Membership;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+using MembershipValidation = Ecliptix.Core.Services.Membership.MembershipValidation;
+using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
@@ -31,7 +33,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     private bool _isBusy;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
     private bool _isDisposed;
-
+    
+    [ObservableAsProperty] public string MobileNumberError { get; }
+    [ObservableAsProperty] public bool HasMobileNumberError { get; }
+    
     public string UrlPathSegment => "/sign-in";
     public IScreen HostScreen { get; }
 
@@ -52,6 +57,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         get => _passwordErrorMessage;
         private set => this.RaiseAndSetIfChanged(ref _passwordErrorMessage, value);
     }
+    
 
     public bool IsErrorVisible
     {
@@ -75,24 +81,42 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     {
         HostScreen = hostScreen;
 
-        IObservable<bool> canExecute = this.WhenAnyValue(
-                x => x.MobileNumber,
-                x => x.PasswordErrorMessage,
-                x => x.CurrentPasswordLength,
-                (number, error, passwordLength) =>
-                    string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number)) &&
-                    passwordLength >= 8 &&
-                    string.IsNullOrEmpty(error))
-            .Throttle(TimeSpan.FromMilliseconds(20))
-            .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler);
+        string validationMessage = MembershipValidation.Validate(ValidationType.MobileNumber, MobileNumber, LocalizationService);
 
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync, canExecute);
+        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
+
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
             
         });
     }
+    
+    /* IT"S FOR UPDATE THE MOBILE NUMBER VALIDATION, need to remove it later.
+    private void ValidateInput(string input)
+    {
+        if (_isDisposed || string.IsNullOrEmpty(input))
+        {
+            HasError = false;
+            ErrorText = string.Empty;
+            EllipseOpacity = 0;
+            return;
+        }
+
+        string validationMessage = MembershipValidation.Validate(ValidationType, input, LocalizationService);
+        if (!string.IsNullOrEmpty(validationMessage))
+        {
+            ErrorText = validationMessage;
+            HasError = true;
+            EllipseOpacity = 1.0;
+        }
+        else
+        {
+            ErrorText = string.Empty;
+            HasError = false;
+            EllipseOpacity = 0.0;
+        }
+    }
+    */
 
     public void InsertPasswordChars(int index, string chars)
     {
