@@ -46,6 +46,11 @@ public class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
+        _ = Task.Run(async () =>
+        {
+            await secureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
+        });
+        
         localizationService.SetCulture(settings.Culture);
 
         _ = Task.Run(async () =>

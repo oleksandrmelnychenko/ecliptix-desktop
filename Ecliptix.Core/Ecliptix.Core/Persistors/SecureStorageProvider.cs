@@ -46,6 +46,17 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         return await StoreAsync(SettingsKey, settings.ToByteArray());
     }
 
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.IsNewInstance = isNewInstance;
+        return await StoreAsync(SettingsKey, settings.ToByteArray());
+    }
+
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();

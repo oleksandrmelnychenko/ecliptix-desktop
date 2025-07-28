@@ -37,4 +37,5 @@ message ApplicationInstanceSettings{
   string culture = 6;
   string country = 7;
   string ip_address = 8;
+  bool is_new_instance = 9;
 }
