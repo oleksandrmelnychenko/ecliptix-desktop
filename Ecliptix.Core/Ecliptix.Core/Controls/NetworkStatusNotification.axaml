@@ -39,11 +39,11 @@
       
             <Ellipse x:Name="StatusEllipse"
                      Grid.Column="2"
-                     Width="8"
-                     Height="8"
+                     Width="6"
+                     Height="6"
                      VerticalAlignment="Top"
                      HorizontalAlignment="Right"
-                     Margin="8,-2,-2,0"
+                     Margin="8,1,-2,0"
                      Fill="{Binding EllipseColor, ElementName=Root}" />
         </Grid>
     </Border>
