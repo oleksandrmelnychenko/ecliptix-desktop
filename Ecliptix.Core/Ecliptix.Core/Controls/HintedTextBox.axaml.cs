@@ -448,6 +448,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
             })
             .DisposeWith(_disposables);
+        
+        this.WhenAnyValue(x => x.HasError)
+            .Subscribe(hasError =>
+            {
+                EllipseOpacity = hasError ? 1.0 : 0.0;
+                
+            })
+            .DisposeWith(_disposables);
+        
     }
 
     private void UpdateRemainingCharacters()

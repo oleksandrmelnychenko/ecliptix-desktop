@@ -60,7 +60,8 @@
     "PhoneNumber": {
       "MustStartWithCountryCode": "Must start with a country code (+).",
       "ContainsNonDigits": "Can only contain digits after the country code.",
-      "IncorrectLength": "Must be between {0} and {1} digits long."
+      "IncorrectLength": "Must be between {0} and {1} digits long.",
+      "CannotBeEmpty": "Mobile number field cannot be empty."
     },
     "Password": {
       "TooShort": "Password must be at least {0} characters long."

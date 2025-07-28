@@ -74,15 +74,33 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
 
+    private bool _hasMobileNumberBeenTouched = false;
+    
     public SignInViewModel(
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
+        
+        IObservable<string> rawValidation = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(mobileNumber =>
+            {
+                if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobileNumber))
+                    _hasMobileNumberBeenTouched = true;
+                if (!_hasMobileNumberBeenTouched)
+                    return string.Empty;
+                return MembershipValidation.Validate(ValidationType.MobileNumber, mobileNumber, LocalizationService);
+            });
 
-        string validationMessage = MembershipValidation.Validate(ValidationType.MobileNumber, MobileNumber, LocalizationService);
+        rawValidation
+            .Scan((prev, current) => string.IsNullOrEmpty(current) ? prev : current)
+            .ToPropertyEx(this, x => x.MobileNumberError);
 
+        rawValidation
+            .Select(error => !string.IsNullOrEmpty(error))
+            .ToPropertyEx(this, x => x.HasMobileNumberError);
+        
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>

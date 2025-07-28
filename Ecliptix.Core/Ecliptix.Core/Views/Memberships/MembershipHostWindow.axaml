@@ -269,12 +269,13 @@
             ZIndex="1001"
             IsConnected="{Binding IsConnected}" />
 
-        <controls:LanguageDetectionModal
+        <!--<controls:LanguageDetectionModal
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             ZIndex="10"
             Margin="8"
-            Opacity="0"/>
+            Opacity="0"
+            Height="0"/> -->
         
         <!-- Main Content Border -->
         <Border Classes="main-border"
@@ -293,10 +294,13 @@
                 <Grid RowDefinitions="Auto,*,Auto"
                       RowSpacing="{StaticResource HeaderSpacing}">
                     
+                    
+                    <!-- TODO testing margin because of moved titlebar ?-->
                     <!-- Logo Section -->
                     <Border Grid.Row="0"
                             HorizontalAlignment="Center"
-                            Padding="{StaticResource HeaderPadding}">
+                            Padding="{StaticResource HeaderPadding}"
+                            Margin="0 63 0 0">
                         <Svg Path="../../../Assets/ecliptix_logo.svg"
                              Width="{StaticResource LogoSize}"
                              Height="{StaticResource LogoSize}"
