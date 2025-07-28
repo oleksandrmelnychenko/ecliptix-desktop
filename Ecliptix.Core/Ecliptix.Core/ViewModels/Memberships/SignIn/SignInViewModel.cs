@@ -81,6 +81,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     {
         HostScreen = hostScreen;
 
+        string validationMessage = MembershipValidation.Validate(ValidationType.MobileNumber, MobileNumber, LocalizationService);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
 
