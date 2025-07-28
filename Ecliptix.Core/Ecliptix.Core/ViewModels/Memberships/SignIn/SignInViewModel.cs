@@ -92,11 +92,9 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     return string.Empty;
                 return MembershipValidation.Validate(ValidationType.MobileNumber, mobileNumber, LocalizationService);
             });
-
         rawValidation
             .Scan((prev, current) => string.IsNullOrEmpty(current) ? prev : current)
             .ToPropertyEx(this, x => x.MobileNumberError);
-
         rawValidation
             .Select(error => !string.IsNullOrEmpty(error))
             .ToPropertyEx(this, x => x.HasMobileNumberError);
