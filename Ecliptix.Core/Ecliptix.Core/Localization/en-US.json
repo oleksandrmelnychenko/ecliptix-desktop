@@ -55,23 +55,24 @@
   },
   "ValidationErrors": {
     "PhoneNumber": {
-      "MustStartWithCountryCode": "Must start with a country code (+).",
-      "ContainsNonDigits": "Can only contain digits after the country code.",
-      "IncorrectLength": "Must be between {0} and {1} digits long.",
-      "CannotBeEmpty": "Mobile number field cannot be empty."
+      "MustStartWithCountryCode": "Must start with +.",
+      "ContainsNonDigits": "Only digits after code.",
+      "IncorrectLength": "Between {0}-{1} digits.",
+      "CannotBeEmpty": "Cannot be empty."
     },
     "SecureKey": {
-      "Required": "Password is required.",
-      "MinLength": "Password must be at least {0} characters long.",
-      "MaxLength": "Password cannot exceed {0} characters.",
-      "NoSpaces": "Password cannot contain leading or trailing spaces.",
-      "TooSimple": "Password is too simple. Use a more complex combination.",
-      "TooCommon": "Password is too common. Choose a unique password.",
-      "SequentialPattern": "Password cannot contain sequential or keyboard patterns.",
-      "RepeatedChars": "Password cannot contain four or more repeated characters.",
-      "LacksDiversity": "Password must include at least {0} different character types (lowercase, uppercase, digits, special characters).",
-      "ContainsAppName": "Password cannot contain the app name or its variants.",
-      "InvalidCredentials": "Invalid phone number or password."
+      "Required": "Required.",
+      "MinLength": "Min {0} chars.",
+      "MaxLength": "Max {0} chars.",
+      "NoSpaces": "No spaces.",
+      "TooSimple": "Too simple.",
+      "TooCommon": "Too common.",
+      "NoDigit":"No digits.",
+      "SequentialPattern": "No sequences.",
+      "RepeatedChars": "No repeats.",
+      "LacksDiversity": "Min {0} types.",
+      "ContainsAppName": "No app name.",
+      "InvalidCredentials": "Invalid."
     }
   },
   "Welcome": {

@@ -9,7 +9,7 @@ public static partial class MobileNumberValidator
     private const int MinDigits = 7;
     private const int MaxDigits = 15;
 
-    public static string? Validate(string phoneNumber, ILocalizationService localizationService)
+    public static string Validate(string phoneNumber, ILocalizationService localizationService)
     {
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey)> validationRules =
         [
@@ -34,7 +34,7 @@ public static partial class MobileNumberValidator
             }
         }
 
-        return null;
+        return string.Empty;
     }
 
     [GeneratedRegex(@"\D")]

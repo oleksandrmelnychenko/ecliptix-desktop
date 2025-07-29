@@ -76,7 +76,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     _hasMobileNumberBeenTouched = true;
                 return !_hasMobileNumberBeenTouched
                     ? string.Empty
-                    : MembershipValidation.Validate(ValidationType.MobileNumber, mobileNumber, LocalizationService);
+                    : MobileNumberValidator.Validate(mobileNumber, LocalizationService);
             });
         rawMobileValidation
             .Scan((prev, current) => string.IsNullOrEmpty(current) ? prev : current)
@@ -95,32 +95,16 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         _insertPasswordSubject
             .Subscribe(x =>
             {
-                try
-                {
-                    ClearSecureKeyError();
-                    ModifySecurePassword(x.index, 0, x.chars);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Error in InsertPasswordChars");
-                    SetSecureKeyError("An unexpected error occurred while processing password input.");
-                }
+                //ClearSecureKeyError();
+                ModifySecurePassword(x.index, 0, x.chars);
             })
             .DisposeWith(Disposables);
 
         _removePasswordSubject
             .Subscribe(x =>
             {
-                try
-                {
-                    ClearSecureKeyError();
-                    ModifySecurePassword(x.index, x.count, string.Empty);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Error in RemovePasswordChars");
-                    SetSecureKeyError("An unexpected error occurred while processing password removal.");
-                }
+                //ClearSecureKeyError();
+                ModifySecurePassword(x.index, x.count, string.Empty);
             })
             .DisposeWith(Disposables);
 
@@ -133,44 +117,47 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     public void InsertPasswordChars(int index, string chars)
     {
         if (string.IsNullOrEmpty(chars)) return;
+        Log.Information("InsertPasswordChars: Index={Index}, Chars=\'{Chars}\'", index, chars);
         _insertPasswordSubject.OnNext((index, chars));
     }
 
     public void RemovePasswordChars(int index, int count)
     {
         if (count <= 0) return;
+        Log.Information($"RemovePasswordChars: Index={index}, Count={count}");
         _removePasswordSubject.OnNext((index, count));
     }
 
     private static int GetUtf8ByteOffset(byte[] bytes, int byteLength, int charIndex)
     {
-        try
+        int currentChar = 0;
+        int currentByte = 0;
+        while (currentByte < byteLength && currentChar < charIndex)
         {
-            int currentChar = 0;
-            int currentByte = 0;
-            while (currentByte < byteLength && currentChar < charIndex)
+            byte b = bytes[currentByte];
+            switch (b)
             {
-                byte b = bytes[currentByte];
-                if (b < 0x80) currentByte += 1; // 1-byte (ASCII)
-                else if (b < 0xE0) currentByte += 2; // 2-byte
-                else if (b < 0xF0) currentByte += 3; // 3-byte
-                else if (b < 0xF8) currentByte += 4; // 4-byte
-                else
-                {
-                    currentByte += 1; // Skip invalid byte to avoid loop hang
+                case < 0x80:
+                    currentByte += 1;
+                    break;
+                case < 0xE0:
+                    currentByte += 2;
+                    break;
+                case < 0xF0:
+                    currentByte += 3;
+                    break;
+                case < 0xF8:
+                    currentByte += 4;
+                    break;
+                default:
+                    currentByte += 1; 
                     continue;
-                }
-
-                currentChar++;
             }
 
-            return currentByte;
+            currentChar++;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error in GetUtf8ByteOffset");
-            return 0; // Fallback to avoid crash
-        }
+
+        return currentByte;
     }
 
     private void ModifySecurePassword(int index, int removeCount, string insertChars)
@@ -256,11 +243,6 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             CurrentPasswordLength = newCharLength;
             success = true;
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error in ModifySecurePassword");
-            SetSecureKeyError("An unexpected error occurred while processing password.");
-        }
         finally
         {
             if (oldPasswordBytes != null) ArrayPool<byte>.Shared.Return(oldPasswordBytes, true);
@@ -319,11 +301,6 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 SetSecureKeyError($"Sign-in init failed: {initResult.UnwrapErr().Message}");
             }
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error in SignInAsync");
-            SetSecureKeyError($"An unexpected error occurred: {ex.Message}");
-        }
         finally
         {
             if (rentedPasswordBytes != null)
@@ -349,12 +326,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             rentedBytes = ArrayPool<byte>.Shared.Rent(length);
             Array.Copy(passwordBytes, 0, rentedBytes, 0, length);
             string password = Encoding.UTF8.GetString(rentedBytes, 0, length);
-            return SecureKeyValidator.Validate(password, LocalizationService);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error in ValidatePassword");
-            return "Invalid password format.";
+            (string? error, _) = SecureKeyValidator.Validate(password, LocalizationService, isSignIn: true);
+            return error;
         }
         finally
         {
@@ -384,17 +357,13 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
             return rentedPasswordBytes;
         }
-        catch (Exception ex)
+        finally
         {
-            Log.Error(ex, "Error in ReadPassword");
-            SetSecureKeyError("An unexpected error occurred while reading password.");
             if (rentedPasswordBytes != null)
             {
                 rentedPasswordBytes.AsSpan().Clear();
                 ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
             }
-
-            return null;
         }
     }
 
@@ -440,52 +409,42 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             ServiceFlowType.Single,
             async payload =>
             {
-                try
-                {
-                    OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
+                OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
 
-                    Result<
-                        (
-                        OpaqueSignInFinalizeRequest Request,
-                        byte[] SessionKey,
-                        byte[] ServerMacKey,
-                        byte[] TranscriptHash
-                        ),
-                        OpaqueFailure
-                    > finalizationResult = clientOpaqueService.CreateSignInFinalizationRequest(
-                        MobileNumber,
-                        passwordBytes,
-                        initResponse,
-                        blind
-                    );
-
-                    if (finalizationResult.IsErr)
-                    {
-                        string errorMessage =
-                            $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
-                        SetSecureKeyError(errorMessage);
-                        return Result<Unit, NetworkFailure>.Err(
-                            EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
-                        );
-                    }
-
+                Result<
                     (
-                        OpaqueSignInFinalizeRequest finalizeRequest,
-                        byte[] sessionKey,
-                        byte[] serverMacKey,
-                        byte[] transcriptHash
-                    ) = finalizationResult.Unwrap();
+                    OpaqueSignInFinalizeRequest Request,
+                    byte[] SessionKey,
+                    byte[] ServerMacKey,
+                    byte[] TranscriptHash
+                    ),
+                    OpaqueFailure
+                > finalizationResult = clientOpaqueService.CreateSignInFinalizationRequest(
+                    MobileNumber,
+                    passwordBytes,
+                    initResponse,
+                    blind
+                );
 
-                    return await SendFinalizeRequestAndVerify(clientOpaqueService, finalizeRequest, sessionKey,
-                        serverMacKey, transcriptHash);
-                }
-                catch (Exception ex)
+                if (finalizationResult.IsErr)
                 {
-                    Log.Error(ex, "Error in SendInitRequestAndProcessResponse");
-                    SetSecureKeyError("An unexpected error occurred during sign-in initialization.");
+                    string errorMessage =
+                        $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
+                    SetSecureKeyError(errorMessage);
                     return Result<Unit, NetworkFailure>.Err(
-                        EcliptixProtocolFailure.Generic("Sign-in initialization failed.").ToNetworkFailure());
+                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
+                    );
                 }
+
+                (
+                    OpaqueSignInFinalizeRequest finalizeRequest,
+                    byte[] sessionKey,
+                    byte[] serverMacKey,
+                    byte[] transcriptHash
+                ) = finalizationResult.Unwrap();
+
+                return await SendFinalizeRequestAndVerify(clientOpaqueService, finalizeRequest, sessionKey,
+                    serverMacKey, transcriptHash);
             }
         );
     }
@@ -504,48 +463,38 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             ServiceFlowType.Single,
             async payload2 =>
             {
-                try
+                OpaqueSignInFinalizeResponse finalizeResponse =
+                    Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
+
+                if (finalizeResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
                 {
-                    OpaqueSignInFinalizeResponse finalizeResponse =
-                        Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
-
-                    if (finalizeResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
-                    {
-                        SetSecureKeyError(finalizeResponse.HasMessage
-                            ? finalizeResponse.Message
-                            : LocalizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
-                        return Result<Unit, NetworkFailure>.Err(
-                            EcliptixProtocolFailure.Generic("Invalid credentials.").ToNetworkFailure()
-                        );
-                    }
-
-                    Result<byte[], OpaqueFailure> verificationResult =
-                        clientOpaqueService.VerifyServerMacAndGetSessionKey(
-                            finalizeResponse,
-                            sessionKey,
-                            serverMacKey,
-                            transcriptHash
-                        );
-
-                    if (verificationResult.IsErr)
-                    {
-                        string errorMessage = $"Server authentication failed: {verificationResult.UnwrapErr().Message}";
-                        SetSecureKeyError(errorMessage);
-                        return Result<Unit, NetworkFailure>.Err(
-                            EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
-                        );
-                    }
-
-                    byte[] finalSessionKey = verificationResult.Unwrap();
-                    return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Error in SendFinalizeRequestAndVerify");
-                    SetSecureKeyError("An unexpected error occurred during sign-in finalization.");
+                    SetSecureKeyError(finalizeResponse.HasMessage
+                        ? finalizeResponse.Message
+                        : LocalizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
                     return Result<Unit, NetworkFailure>.Err(
-                        EcliptixProtocolFailure.Generic("Sign-in finalization failed.").ToNetworkFailure());
+                        EcliptixProtocolFailure.Generic("Invalid credentials.").ToNetworkFailure()
+                    );
                 }
+
+                Result<byte[], OpaqueFailure> verificationResult =
+                    clientOpaqueService.VerifyServerMacAndGetSessionKey(
+                        finalizeResponse,
+                        sessionKey,
+                        serverMacKey,
+                        transcriptHash
+                    );
+
+                if (verificationResult.IsErr)
+                {
+                    string errorMessage = $"Server authentication failed: {verificationResult.UnwrapErr().Message}";
+                    SetSecureKeyError(errorMessage);
+                    return Result<Unit, NetworkFailure>.Err(
+                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
+                    );
+                }
+
+                byte[] finalSessionKey = verificationResult.Unwrap();
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
             }
         );
     }

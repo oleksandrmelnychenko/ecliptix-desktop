@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -10,7 +11,6 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
-using MembershipValidation = Ecliptix.Core.Services.Membership.MembershipValidation;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
@@ -50,7 +50,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
 
         IObservable<bool> canExecute = this.WhenAnyValue(
             x => x.MobileNumber,
-            number => string.IsNullOrWhiteSpace(MembershipValidation.Validate(ValidationType.MobileNumber, number,
+            number => string.IsNullOrWhiteSpace(MobileNumberValidator.Validate(number,
                 LocalizationService)));
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
