@@ -160,6 +160,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     currentByte += 1; // Skip invalid byte to avoid loop hang
                     continue;
                 }
+
                 currentChar++;
             }
 
@@ -330,6 +331,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 rentedPasswordBytes.AsSpan().Clear();
                 ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
             }
+
             IsBusy = false;
         }
     }
@@ -391,6 +393,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 rentedPasswordBytes.AsSpan().Clear();
                 ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
             }
+
             return null;
         }
     }
