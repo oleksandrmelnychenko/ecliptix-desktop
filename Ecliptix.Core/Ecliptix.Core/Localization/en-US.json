@@ -54,17 +54,24 @@
     }
   },
   "ValidationErrors": {
-    "Common": {
-      "CannotBeEmpty": "{0} cannot be empty."
-    },
     "PhoneNumber": {
       "MustStartWithCountryCode": "Must start with a country code (+).",
       "ContainsNonDigits": "Can only contain digits after the country code.",
       "IncorrectLength": "Must be between {0} and {1} digits long.",
       "CannotBeEmpty": "Mobile number field cannot be empty."
     },
-    "Password": {
-      "TooShort": "Password must be at least {0} characters long."
+    "SecureKey": {
+      "Required": "Password is required.",
+      "MinLength": "Password must be at least {0} characters long.",
+      "MaxLength": "Password cannot exceed {0} characters.",
+      "NoSpaces": "Password cannot contain leading or trailing spaces.",
+      "TooSimple": "Password is too simple. Use a more complex combination.",
+      "TooCommon": "Password is too common. Choose a unique password.",
+      "SequentialPattern": "Password cannot contain sequential or keyboard patterns.",
+      "RepeatedChars": "Password cannot contain four or more repeated characters.",
+      "LacksDiversity": "Password must include at least {0} different character types (lowercase, uppercase, digits, special characters).",
+      "ContainsAppName": "Password cannot contain the app name or its variants.",
+      "InvalidCredentials": "Invalid phone number or password."
     }
   },
   "Welcome": {

@@ -160,6 +160,8 @@
             MainBorderBrush="Transparent"
             FontSize="{StaticResource InputFontSize}"
             WatermarkFontSize="{StaticResource WatermarkFontSize}"
+            ErrorText="{Binding SecureKeyError, Mode=OneWay}"
+            HasError="{Binding HasSecureKeyError, Mode=OneWay}"
             Height="{StaticResource InputHeight}"
             FontWeight="Light"
             HorizontalAlignment="Stretch" />
