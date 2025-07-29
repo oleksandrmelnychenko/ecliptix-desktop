@@ -54,9 +54,6 @@
     }
   },
   "ValidationErrors": {
-    "Common": {
-      "CannotBeEmpty": "{0} cannot be empty."
-    },
     "PhoneNumber": {
       "MustStartWithCountryCode": "Must start with a country code (+).",
       "ContainsNonDigits": "Can only contain digits after the country code.",

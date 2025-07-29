@@ -54,9 +54,6 @@
     }
   },
   "ValidationErrors": {
-    "Common": {
-      "CannotBeEmpty": "{0} не може бути порожнім."
-    },
     "PhoneNumber": {
       "MustStartWithCountryCode": "Повинен починатися з коду країни (+).",
       "ContainsNonDigits": "Може містити лише цифри після коду країни.",
