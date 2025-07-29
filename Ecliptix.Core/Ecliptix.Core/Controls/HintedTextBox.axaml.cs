@@ -268,9 +268,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public void SyncPasswordState(int newPasswordLength)
     {
-        _shadowText = new string(PasswordMaskChar, newPasswordLength);
-        UpdateTextBox(_shadowText, _nextCaretPosition);
-        UpdatePasswordMaskOverlay(newPasswordLength);
+        if (newPasswordLength > 0)
+        {
+            _shadowText = new string(PasswordMaskChar, newPasswordLength);
+            UpdateTextBox(_shadowText, _nextCaretPosition);
+            UpdatePasswordMaskOverlay(newPasswordLength);
+        }
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -448,15 +451,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
             })
             .DisposeWith(_disposables);
-        
+
         this.WhenAnyValue(x => x.HasError)
-            .Subscribe(hasError =>
-            {
-                EllipseOpacity = hasError ? 1.0 : 0.0;
-                
-            })
+            .Subscribe(hasError => { EllipseOpacity = hasError ? 1.0 : 0.0; })
             .DisposeWith(_disposables);
-        
     }
 
     private void UpdateRemainingCharacters()
