@@ -12,6 +12,7 @@
         xmlns:vm1="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
+        xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -215,7 +216,7 @@
     </Window.DataTemplates>
 
     <!-- Main Layout -->
-    <Grid x:Name="MainContentGrid">
+    <Grid x:Name="MainContentGrid" ClipToBounds="True">
 
         <!-- Background Blur Effect -->
         <Border Classes="animated-background"
@@ -268,36 +269,19 @@
             Height="40"
             ZIndex="1001"
             IsConnected="{Binding IsConnected}" />
-
-        <!--<controls:LanguageDetectionModal
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            ZIndex="10"
-            Margin="8"
-            Opacity="0"
-            Height="0"/> -->
         
-        <Button 
+        <Button
             Width="90"
             Height="30"
-            Content="Toggle modal"
+            Content="Open modal"
             BorderThickness="1"
             BorderBrush="Black"
             ZIndex="10"
             VerticalAlignment="Top"
             HorizontalAlignment="Center"
-            Command="{Binding ToggleModal}"
+            Command="{Binding OpenBottomSheetCommand}"
             Margin="0 50 0 0"
             />
-        
-        <controls:BottomSheetModal
-            ZIndex="{Binding ModalZIndex}"
-            Opacity="{Binding ModalOpacity}"
-            VerticalAlignment="Bottom"
-            HorizontalAlignment="Center"
-            Width="420"
-            Height="400"
-            Margin="0 0 0 9"/>
         
         <!-- Main Content Border -->
         <Border Classes="main-border"
@@ -314,8 +298,8 @@
             
                 <!-- Main Content Grid -->
                 <Grid RowDefinitions="Auto,*,Auto"
-                      RowSpacing="{StaticResource HeaderSpacing}">
-                    
+                      RowSpacing="{StaticResource HeaderSpacing}"
+                      ClipToBounds="True">
                     
                     <!-- TODO testing margin because of moved titlebar ?-->
                     <!-- Logo Section -->
@@ -333,7 +317,6 @@
                     <!-- Content Area -->
                     <Border Grid.Row="1"
                             Padding="{StaticResource ContentPadding}">
-
                         <reactiveUi:RoutedViewHost Router="{Binding Router}"
                                                    Background="Transparent"
                                                    Width="{StaticResource ContentMaxWidth}"
@@ -393,6 +376,17 @@
                                    Classes="footer-text"
                                    Opacity="0.7" />
                     </StackPanel>
+                    <bottomSheetModal:BottomSheetControl 
+                        DataContext="{Binding BottomSheetViewModel}" 
+                        ZIndex="111"
+                        VerticalAlignment="Stretch"
+                        HorizontalAlignment="Stretch"
+                        AppearVerticalOffset="0"
+                        DisappearVerticalOffset="0"
+                        MinHeight="200"
+                        MaxHeight="600"
+                        Grid.RowSpan="3"
+                    />
                 </Grid>
            
         </Border>

@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Reactive;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Ecliptix.Core.Controls.LanguageSwitcher;
+using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
@@ -42,23 +46,15 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
   
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
     
-    
-    // For a test purposes 
-    private int _modalZIndex = 0;
-    private double _modalOpacity = 0;
-    public int ModalZIndex
+    private BottomSheetViewModel _bottomSheetViewModel;
+
+    public BottomSheetViewModel BottomSheetViewModel
     {
-        get => _modalZIndex;
-        set => this.RaiseAndSetIfChanged(ref _modalZIndex, value);
+        get => _bottomSheetViewModel;
+        set => this.RaiseAndSetIfChanged(ref _bottomSheetViewModel, value);
     }
 
-    public double ModalOpacity
-    {
-        get => _modalOpacity;
-        set => this.RaiseAndSetIfChanged(ref _modalOpacity, value);
-    }
-    public ReactiveCommand<Unit, Unit> ToggleModal { get; }
-    // For a test purposes 
+    public ReactiveCommand<Unit, Unit> OpenBottomSheetCommand { get; }
     
     public MembershipHostWindowModel(
         NetworkProvider networkProvider,
@@ -90,20 +86,90 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
         OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
         
-        ToggleModal = ReactiveCommand.Create(() =>
-        {
-            if (ModalZIndex == 10)
-            {
-                ModalZIndex = 0;
-                ModalOpacity = 0;
-            }
-            else
-            {
-                ModalZIndex = 10;
-                ModalOpacity = 1;
-            }
+        BottomSheetViewModel = new BottomSheetViewModel(networkProvider, localizationService);
+
+        OpenBottomSheetCommand = ReactiveCommand.Create(ShowSimpleBottomSheet);
+        
+    }
+    
+    private void ShowSimpleBottomSheet()
+    {
+        BottomSheetViewModel.ClearContent();
+        
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "Welcome to the bottom sheet!",
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10)
+        });
+            
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "This is a simple example with some text content.",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(0, 0, 0, 15)
         });
         
+        var closeButton = new Button 
+        { 
+            Content = "Close",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Padding = new Avalonia.Thickness(20, 8),
+            Command = BottomSheetViewModel.HideCommand
+        };
+        
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "Welcome to the bottom sheet!",
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10)
+        });
+            
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "This is a simple example with some text content.",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(0, 0, 0, 15)
+        });
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "Welcome to the bottom sheet!",
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10)
+        });
+            
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "This is a simple example with some text content.",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(0, 0, 0, 15)
+        });
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "Welcome to the bottom sheet!",
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10)
+        });
+            
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "This is a simple example with some text content.",
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            Margin = new Avalonia.Thickness(0, 0, 0, 15)
+        });
+        BottomSheetViewModel.AddContent(new TextBlock 
+        { 
+            Text = "Welcome to the bottom sheet!",
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Margin = new Avalonia.Thickness(0, 0, 0, 10)
+        });
+        BottomSheetViewModel.AddContent(closeButton);
+        BottomSheetViewModel.ShowCommand.Execute().Subscribe();
     }
 
 

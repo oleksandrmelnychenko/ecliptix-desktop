@@ -103,6 +103,10 @@
       <DependentUpon>LanguageDetectionModal.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Controls\Modals\BottomSheetModal\BottomSheetControl.axaml.cs">
+      <DependentUpon>BottomSheetControl.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <UpToDateCheckInput Remove="Styles\BaseColors.axaml" />
