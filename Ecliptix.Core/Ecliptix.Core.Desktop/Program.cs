@@ -153,10 +153,7 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<DeadlineInterceptor>();
         services.AddTransient<ResilienceInterceptor>();
-        services.AddTransient<LanguageSwitcherViewModel>();
-        services.AddTransient<LanguageSwitcherView>();
-        services.AddTransient<BottomSheetViewModel>();
-
+       
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -194,6 +191,8 @@ public static class Program
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<WelcomeViewModel>();
+        services.AddTransient<LanguageSwitcherViewModel>();
+        services.AddTransient<BottomSheetViewModel>();
     }
 
     private static string ResolvePath(string path)
