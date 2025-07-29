@@ -48,7 +48,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         private set => this.RaiseAndSetIfChanged(ref _currentPasswordLength, value);
     }
 
-    public string MobileNumber { get; set; }
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
     public string UrlPathSegment => "/sign-in";
     public IScreen HostScreen { get; }
