@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Linq;
 using System.Reactive.Disposables;
@@ -8,8 +9,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Ecliptix.Core.Services;
 using ReactiveUI;
-using MembershipValidation = Ecliptix.Core.Services.Membership.MembershipValidation;
-using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
+using Serilog;
 
 namespace Ecliptix.Core.Controls;
 
@@ -268,12 +268,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public void SyncPasswordState(int newPasswordLength)
     {
-        if (newPasswordLength > 0)
-        {
-            _shadowText = new string(PasswordMaskChar, newPasswordLength);
-            UpdateTextBox(_shadowText, _nextCaretPosition);
-            UpdatePasswordMaskOverlay(newPasswordLength);
-        }
+        Log.Information($"SyncPasswordState: newPasswordLength={newPasswordLength}");
+        _shadowText = newPasswordLength > 0 ? new string(PasswordMaskChar, newPasswordLength) : string.Empty;
+        UpdateTextBox(_shadowText, Math.Min(_nextCaretPosition, _shadowText.Length));
+        UpdatePasswordMaskOverlay(newPasswordLength);
+        UpdateRemainingCharacters();
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -308,7 +307,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
         if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
-
         ProcessTextChange();
     }
 
@@ -318,14 +316,36 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         if (IsPasswordMode)
         {
-            string newText = _mainTextBox!.Text ?? string.Empty;
+            string newText = _mainTextBox.Text ?? string.Empty;
             if (newText == _shadowText) return;
 
+            // Handle full deletion
+            if (string.IsNullOrEmpty(newText) && !string.IsNullOrEmpty(_shadowText))
+            {
+                int oldLength = _shadowText.Length;
+                _nextCaretPosition = 0;
+                _shadowText = string.Empty; // Reset shadow text immediately
+                RaiseEvent(new PasswordCharactersRemovedEventArgs(PasswordCharactersRemovedEvent, 0, oldLength));
+                UpdateTextBox(_shadowText, 0);
+                UpdatePasswordMaskOverlay(0);
+                UpdateRemainingCharacters();
+                return;
+            }
+
+            // Handle full insertion
+            if (string.IsNullOrEmpty(_shadowText) && !string.IsNullOrEmpty(newText))
+            {
+                _nextCaretPosition = newText.Length;
+                RaiseEvent(new PasswordCharactersAddedEventArgs(PasswordCharactersAddedEvent, 0, newText));
+                return;
+            }
+
+            // Handle partial changes
             (int diffIndex, int removedCount, string added) = Diff(_shadowText, newText);
 
             if (removedCount > 0 && string.IsNullOrEmpty(added))
             {
-                diffIndex = _mainTextBox.CaretIndex;
+                diffIndex = Math.Clamp(_mainTextBox.CaretIndex, 0, _shadowText.Length);
             }
 
             _nextCaretPosition = diffIndex + added.Length;
@@ -368,6 +388,16 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private static (int Index, int RemovedCount, string Added) Diff(string oldStr, string newStr)
     {
+        if (string.IsNullOrEmpty(newStr))
+        {
+            return (0, oldStr.Length, string.Empty);
+        }
+
+        if (string.IsNullOrEmpty(oldStr))
+        {
+            return (0, 0, newStr);
+        }
+
         int prefixLength = oldStr.TakeWhile((c, i) => i < newStr.Length && c == newStr[i]).Count();
         int suffixLength = oldStr.Reverse().TakeWhile((c, i) =>
             i < newStr.Length - prefixLength && c == newStr[^(i + 1)]).Count();
@@ -382,9 +412,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         _isUpdatingFromCode = true;
         _mainTextBox.Text = text;
-
         _mainTextBox.CaretIndex = Math.Clamp(caretIndex, 0, text.Length);
-
         _isUpdatingFromCode = false;
     }
 
@@ -392,7 +420,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         if (_passwordMaskOverlay != null)
         {
-            _passwordMaskOverlay.Text = new string(PasswordMaskChar, length);
+            _passwordMaskOverlay.Text = length > 0 ? new string(PasswordMaskChar, length) : string.Empty;
         }
     }
 

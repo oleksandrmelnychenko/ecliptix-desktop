@@ -1,21 +1,23 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
+using Serilog;
 
 namespace Ecliptix.Core.Views.Memberships.SignIn;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
     private bool _handlersAttached;
-    
+
     public SignInView()
     {
         AvaloniaXamlLoader.Load(this);
     }
-    
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -27,7 +29,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         base.OnDetachedFromVisualTree(e);
         TeardownEventHandlers();
     }
-    
+
     private void SetupEventHandlers()
     {
         if (_handlersAttached) return;
@@ -47,13 +49,14 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             passwordBox.PasswordCharactersAdded -= OnPasswordCharactersAdded;
             passwordBox.PasswordCharactersRemoved -= OnPasswordCharactersRemoved;
         }
+
         _handlersAttached = false;
     }
 
     private void OnPasswordCharactersAdded(object? sender, PasswordCharactersAddedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
-        
+        //Log.Information($"OnPasswordCharactersAdded: Index={e.Index}, Characters='{e.Characters}'");
         vm.InsertPasswordChars(e.Index, e.Characters);
         tb.SyncPasswordState(vm.CurrentPasswordLength);
     }
@@ -61,7 +64,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void OnPasswordCharactersRemoved(object? sender, PasswordCharactersRemovedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
-
+        //Log.Information($"OnPasswordCharactersRemoved: Index={e.Index}, Count={e.Count}");
         vm.RemovePasswordChars(e.Index, e.Count);
         tb.SyncPasswordState(vm.CurrentPasswordLength);
     }
