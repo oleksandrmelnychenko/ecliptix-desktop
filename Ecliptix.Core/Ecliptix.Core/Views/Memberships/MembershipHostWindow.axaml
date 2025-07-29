@@ -385,6 +385,7 @@
                         DisappearVerticalOffset="0"
                         MinHeight="200"
                         MaxHeight="600"
+                        Grid.Row="0"
                         Grid.RowSpan="3"
                     />
                 </Grid>

@@ -60,7 +60,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
-        ISecureStorageProvider secureStorageProvider
+        ISecureStorageProvider secureStorageProvider,
+        BottomSheetViewModel bottomSheetViewModel
     ) : base(networkProvider,localizationService)
     {
         _connectivitySubscription = connectivityObserver.Subscribe(async status =>
@@ -85,8 +86,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         OpenTermsOfServiceCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/terms"); });
 
         OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
-        
-        BottomSheetViewModel = new BottomSheetViewModel(networkProvider, localizationService);
+
+        BottomSheetViewModel = bottomSheetViewModel;
 
         OpenBottomSheetCommand = ReactiveCommand.Create(ShowSimpleBottomSheet);
         

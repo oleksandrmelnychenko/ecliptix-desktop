@@ -10,6 +10,7 @@ using Ecliptix.Core.AppEvents;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls.LanguageSwitcher;
+using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Interceptors;
 using Ecliptix.Core.Network.Providers;
@@ -154,6 +155,7 @@ public static class Program
         services.AddTransient<ResilienceInterceptor>();
         services.AddTransient<LanguageSwitcherViewModel>();
         services.AddTransient<LanguageSwitcherView>();
+        services.AddTransient<BottomSheetViewModel>();
 
         ConfigureGrpc(services);
         ConfigureViewModels(services);
