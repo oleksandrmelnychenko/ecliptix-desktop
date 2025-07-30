@@ -1,5 +1,3 @@
-// In Ecliptix.Core/Services/Membership/SecureTextBuffer.cs
-
 using System;
 using System.Buffers;
 using System.Text;
