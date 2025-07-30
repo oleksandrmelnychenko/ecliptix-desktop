@@ -270,18 +270,25 @@
             ZIndex="1001"
             IsConnected="{Binding IsConnected}" />
         
-        <Button
-            Width="90"
-            Height="30"
-            Content="Open modal"
-            BorderThickness="1"
-            BorderBrush="Black"
+        <StackPanel 
+            Orientation="Horizontal"
             ZIndex="10"
             VerticalAlignment="Top"
             HorizontalAlignment="Center"
-            Command="{Binding OpenBottomSheetCommand}"
             Margin="0 50 0 0"
-            />
+            >
+            <Button
+                Width="90"
+                Height="30"
+                Content="Open modal"
+                Command="{Binding OpenBottomSheetCommand}"
+                  />
+            <CheckBox
+                IsChecked="{Binding IsChecked}">
+                Dismissible
+            </CheckBox>
+        </StackPanel>
+        
         
         <!-- Main Content Border -->
         <Border Classes="main-border"
@@ -386,7 +393,7 @@
                         MinHeight="200"
                         MaxHeight="600"
                         ScrimColor="Black"
-                        IsDismissableOnScrimClick="True"
+                        IsDismissableOnScrimClick="False"
                         Grid.Row="0"
                         Grid.RowSpan="3"
                     />

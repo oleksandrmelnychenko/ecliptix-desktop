@@ -1,5 +1,6 @@
 using System;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -52,6 +53,7 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal
             {
                 SetupContentObservables(disposables);
                 SetupVisibilityObservable(disposables);
+                SetupDismissableCommand(disposables);
             });
         }
         
@@ -106,6 +108,24 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal
         {
             get => GetValue(IsDismissableOnScrimClickProperty);
             set => SetValue(IsDismissableOnScrimClickProperty, value);
+        }
+        
+        private void SetupDismissableCommand(CompositeDisposable disposables)
+        {
+            this.WhenAnyValue(x => x.ViewModel)
+                .Where(vm => vm != null)
+                .Take(1)
+                .Subscribe(viewModel =>
+                {
+                    viewModel.IsDismissableOnScrimClick = this.IsDismissableOnScrimClick;
+                })
+                .DisposeWith(disposables);
+            this.WhenAnyValue(x => x.ViewModel!.IsDismissableOnScrimClick)
+                .Subscribe(isDismissable =>
+                {
+                    IsDismissableOnScrimClick = isDismissable;
+                })
+                .DisposeWith(disposables);
         }
         
         private void SetupContentObservables(CompositeDisposable disposables)

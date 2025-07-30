@@ -13,6 +13,7 @@ public class BottomSheetViewModel : ViewModelBase
 {
     private bool _isVisible;
     private ObservableCollection<Control> _contentControls = new();
+    private bool _isDismissableOnScrimClick;
 
     public bool IsVisible
     {
@@ -24,6 +25,12 @@ public class BottomSheetViewModel : ViewModelBase
     {
         get => _contentControls;
         set => this.RaiseAndSetIfChanged(ref _contentControls, value);
+    }
+    
+    public bool IsDismissableOnScrimClick
+    {
+        get => _isDismissableOnScrimClick;
+        set => this.RaiseAndSetIfChanged(ref _isDismissableOnScrimClick, value);
     }
 
     public ReactiveCommand<Unit, Unit> ShowCommand { get; }
@@ -46,7 +53,7 @@ public class BottomSheetViewModel : ViewModelBase
     
     public void AddContent(List<Control> controls)
     {
-        foreach (var control in controls)
+        foreach (Control control in controls)
         {
             ContentControls.Add(control);
         }

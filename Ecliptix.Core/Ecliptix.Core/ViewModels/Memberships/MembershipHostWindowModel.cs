@@ -42,8 +42,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
-
-  
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
     
     private BottomSheetViewModel _bottomSheetViewModel;
@@ -53,7 +51,15 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         get => _bottomSheetViewModel;
         set => this.RaiseAndSetIfChanged(ref _bottomSheetViewModel, value);
     }
-
+    
+    //test 
+    public bool IsChecked
+    {
+        get => _isChecked;
+        set => this.RaiseAndSetIfChanged(ref _isChecked, value);
+    }
+    private bool _isChecked;
+    //test
     public ReactiveCommand<Unit, Unit> OpenBottomSheetCommand { get; }
     
     public MembershipHostWindowModel(
@@ -96,6 +102,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private void ShowSimpleBottomSheet()
     {
         BottomSheetViewModel.ClearContent();
+
+        BottomSheetViewModel.IsDismissableOnScrimClick = IsChecked;
         
         BottomSheetViewModel.AddContent(new TextBlock 
         { 
