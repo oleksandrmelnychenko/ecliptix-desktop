@@ -235,6 +235,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             {
                 SetSecureKeyError(passwordValidationError);
             }
+            else
+            {
+                ClearSecureKeyError();
+            }
 
             SodiumSecureMemoryHandle? oldHandle = _securePasswordHandle;
             _securePasswordHandle = newHandle;
