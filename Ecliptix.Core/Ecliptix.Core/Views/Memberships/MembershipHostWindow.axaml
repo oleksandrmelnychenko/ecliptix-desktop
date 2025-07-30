@@ -271,24 +271,6 @@
             ZIndex="1001"
             IsConnected="{Binding IsConnected}" />
 
-        <StackPanel
-            Orientation="Horizontal"
-            ZIndex="10"
-            VerticalAlignment="Top"
-            HorizontalAlignment="Center"
-            Margin="0 50 0 0">
-            <Button
-                Width="90"
-                Height="30"
-                Content="Open modal"
-                Command="{Binding OpenBottomSheetCommand}" />
-            <CheckBox
-                IsChecked="{Binding IsChecked}">
-                Dismissible
-            </CheckBox>
-        </StackPanel>
-
-
         <!-- Main Content Border -->
         <Border Classes="main-border"
                 Margin="8"

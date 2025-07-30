@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Reactive;
+using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls.LanguageSwitcher;
@@ -12,7 +12,10 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
+using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Utilities;
 using ReactiveUI;
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
@@ -26,6 +29,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private readonly IDisposable _connectivitySubscription;
     private bool _isConnected = true;
     private bool _canNavigateBack;
+
+    private ApplicationInstanceSettings _applicationInstanceSettings;
 
     public bool IsConnected
     {
@@ -45,18 +50,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
     public LanguageSwitcherViewModel LanguageSwitcher { get; }
 
-    //test 
-    public bool IsChecked
-    {
-        get => _isChecked;
-        set => this.RaiseAndSetIfChanged(ref _isChecked, value);
-    }
-
-    private bool _isChecked;
-
-    //test
-    public ReactiveCommand<Unit, Unit> OpenBottomSheetCommand { get; }
-
     public MembershipHostWindowModel(
         IBottomSheetEvents bottomSheetEvents,
         ISystemEvents systemEvents,
@@ -71,6 +64,28 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         _connectivitySubscription = connectivityObserver.Subscribe(async status => { IsConnected = status; });
 
         LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider);
+
+        _ = Task.Run(async () =>
+        {
+            Result<ApplicationInstanceSettings, InternalServiceApiFailure> appSettings =
+                await secureStorageProvider.GetApplicationInstanceSettingsAsync();
+
+            if (appSettings.IsOk)
+            {
+                ApplicationInstanceSettings applicationInstanceSettings = appSettings.Unwrap();
+                string country = applicationInstanceSettings.Country;
+                if (!string.IsNullOrEmpty(country))
+                {
+                    string expectedCulture = country switch
+                    {
+                        "UA" => "uk-UA",
+                        _ => "en-US" 
+                    };
+                    
+                    
+                }
+            }
+        });
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
@@ -88,8 +103,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         OpenTermsOfServiceCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/terms"); });
 
         OpenSupportCommand = ReactiveCommand.Create(() => { OpenUrl("https://ecliptix.com/support"); });
-
-        OpenBottomSheetCommand = ReactiveCommand.Create(ShowSimpleBottomSheet);
     }
 
     private void ShowSimpleBottomSheet()
