@@ -72,7 +72,7 @@
       "RepeatedChars": "No repeats.",
       "LacksDiversity": "Min {0} types.",
       "ContainsAppName": "No app name.",
-      "InvalidCredentials": "Invalid."
+      "InvalidCredentials": "Invalid credentials"
     }
   },
   "Welcome": {

@@ -9,6 +9,8 @@ namespace Ecliptix.Core.Views.Memberships.SignIn;
 
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
+    private const string SecureKeyTextBoxControlName = "SecureKeyTextBox";
+    
     private bool _handlersAttached;
 
     public SignInView()
@@ -31,7 +33,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void SetupEventHandlers()
     {
         if (_handlersAttached) return;
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
+        if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
@@ -42,7 +44,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void TeardownEventHandlers()
     {
         if (!_handlersAttached) return;
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
+        if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;

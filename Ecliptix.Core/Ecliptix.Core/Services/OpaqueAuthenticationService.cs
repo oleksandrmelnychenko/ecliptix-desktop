@@ -80,8 +80,7 @@ public class OpaqueAuthenticationService(
 
                 if (finalizationResult.IsErr)
                 {
-                    string errorMessage =
-                        $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
+                    string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
                     return Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(errorMessage)
                         .ToNetworkFailure());
                 }

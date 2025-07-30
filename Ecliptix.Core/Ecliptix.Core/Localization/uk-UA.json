@@ -72,7 +72,7 @@
       "RepeatedChars": "Без повторів.",
       "LacksDiversity": "Мін {0} типів.",
       "ContainsAppName": "Без назви додатка.",
-      "InvalidCredentials": "Невірний."
+      "InvalidCredentials": "Неправильні облікові дані"
     }
   },
   "Welcome": {
