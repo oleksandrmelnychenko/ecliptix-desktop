@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
@@ -42,9 +43,10 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
     }
 
     public MobileVerificationViewModel(
+        ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider, localizationService)
+        IScreen hostScreen) : base(systemEvents,networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 

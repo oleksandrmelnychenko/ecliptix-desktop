@@ -14,10 +14,12 @@ public enum SystemState
 public class SystemStateChangedEvent
 {
     public SystemState State { get; private set; }
+    public string? LogMessage { get; }
 
-    private SystemStateChangedEvent(SystemState state)
+    private SystemStateChangedEvent(SystemState state,string? logMessage = null)
     {
         State = state;
+        LogMessage = logMessage;
     }
 
     public static SystemStateChangedEvent New(SystemState state) => new(state);

@@ -6,6 +6,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
@@ -34,9 +35,10 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IRoutableViewModel
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
     public VerificationCodeEntryViewModel(
+        ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider, localizationService)
+        IScreen hostScreen) : base(systemEvents,networkProvider, localizationService)
     {
         _verificationCode = string.Empty;
         HostScreen = hostScreen;

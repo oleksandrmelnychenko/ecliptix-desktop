@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
@@ -63,9 +64,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
 
     public SignInViewModel(
+        ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(networkProvider, localizationService)
+        IScreen hostScreen) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 
@@ -93,19 +95,11 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .ToPropertyEx(this, x => x.HasSecureKeyError);
 
         _insertPasswordSubject
-            .Subscribe(x =>
-            {
-                //ClearSecureKeyError();
-                ModifySecurePassword(x.index, 0, x.chars);
-            })
+            .Subscribe(x => { ModifySecurePassword(x.index, 0, x.chars); })
             .DisposeWith(Disposables);
 
         _removePasswordSubject
-            .Subscribe(x =>
-            {
-                //ClearSecureKeyError();
-                ModifySecurePassword(x.index, x.count, string.Empty);
-            })
+            .Subscribe(x => { ModifySecurePassword(x.index, x.count, string.Empty); })
             .DisposeWith(Disposables);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
@@ -117,14 +111,12 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     public void InsertPasswordChars(int index, string chars)
     {
         if (string.IsNullOrEmpty(chars)) return;
-        Log.Information("InsertPasswordChars: Index={Index}, Chars=\'{Chars}\'", index, chars);
         _insertPasswordSubject.OnNext((index, chars));
     }
 
     public void RemovePasswordChars(int index, int count)
     {
         if (count <= 0) return;
-        Log.Information($"RemovePasswordChars: Index={index}, Count={count}");
         _removePasswordSubject.OnNext((index, count));
     }
 
@@ -150,7 +142,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     currentByte += 4;
                     break;
                 default:
-                    currentByte += 1; 
+                    currentByte += 1;
                     continue;
             }
 
@@ -182,7 +174,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                     _securePasswordHandle!.Read(oldPasswordBytes.AsSpan(0, oldLength));
                 if (readResult.IsErr)
                 {
-                    SetSecureKeyError($"System Error: {readResult.UnwrapErr().Message}");
+                    //TODO: Handle error appropriately
                     return;
                 }
             }
@@ -192,8 +184,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
             byte[] insertBytes = Encoding.UTF8.GetBytes(insertChars);
 
-            int startByte = GetUtf8ByteOffset(oldPasswordBytes ?? Array.Empty<byte>(), oldLength, index);
-            int endByte = GetUtf8ByteOffset(oldPasswordBytes ?? Array.Empty<byte>(), oldLength, index + removeCount);
+            int startByte = GetUtf8ByteOffset(oldPasswordBytes ?? [], oldLength, index);
+            int endByte = GetUtf8ByteOffset(oldPasswordBytes ?? [], oldLength, index + removeCount);
             int removedByteCount = endByte - startByte;
 
             int newLength = oldLength - removedByteCount + insertBytes.Length;
@@ -214,7 +206,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 SodiumSecureMemoryHandle.Allocate(newLength);
             if (allocateResult.IsErr)
             {
-                SetSecureKeyError($"System Error: {allocateResult.UnwrapErr().Message}");
+                //TODO: Handle error appropriately
                 return;
             }
 
@@ -225,7 +217,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 Result<Unit, SodiumFailure> writeResult = newHandle.Write(newPasswordBytes.AsSpan(0, newLength));
                 if (writeResult.IsErr)
                 {
-                    SetSecureKeyError($"System Error: {writeResult.UnwrapErr().Message}");
+                    //TODO: Handle error appropriately
                     return;
                 }
             }
@@ -302,7 +294,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 await SendInitRequestAndProcessResponse(clientOpaqueService, oprfRequest, blind, passwordBytes);
             if (initResult.IsErr)
             {
-                SetSecureKeyError($"Sign-in init failed: {initResult.UnwrapErr().Message}");
+                //TODO: Handle error appropriately
             }
         }
         finally
@@ -355,7 +347,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             Result<Unit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
-                SetSecureKeyError($"System error: Failed to read password securely. {readResult.UnwrapErr().Message}");
+                //TODO: Handle error appropriately
                 return null;
             }
 
@@ -387,7 +379,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             OpaqueProtocolService.CreateOprfRequest(passwordBytes);
         if (oprfResult.IsErr)
         {
-            SetSecureKeyError($"Failed to create OPAQUE request: {oprfResult.UnwrapErr().Message}");
+            //TODO: Handle error appropriately
             return null;
         }
 
@@ -503,15 +495,11 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         );
     }
 
-    private void SetSecureKeyError(string message)
-    {
+    private void SetSecureKeyError(string message) =>
         _secureKeyErrorSubject.OnNext(message);
-    }
 
-    private void ClearSecureKeyError()
-    {
+    private void ClearSecureKeyError() =>
         _secureKeyErrorSubject.OnNext(string.Empty);
-    }
 
     public new void Dispose()
     {

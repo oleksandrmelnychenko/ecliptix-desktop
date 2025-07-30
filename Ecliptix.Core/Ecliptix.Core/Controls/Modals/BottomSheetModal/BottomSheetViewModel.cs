@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using Avalonia.Controls;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels;
@@ -30,8 +31,8 @@ public class BottomSheetViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> HideCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public BottomSheetViewModel(NetworkProvider networkProvider, ILocalizationService localizationService) 
-        : base(networkProvider, localizationService)
+    public BottomSheetViewModel(ISystemEvents systemEvents,NetworkProvider networkProvider, ILocalizationService localizationService) 
+        : base(systemEvents,networkProvider, localizationService)
     {
         _isVisible = false;
         ShowCommand = ReactiveCommand.Create(() => { IsVisible = true; return Unit.Default; });
