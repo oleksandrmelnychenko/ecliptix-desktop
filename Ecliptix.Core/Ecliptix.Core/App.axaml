@@ -108,6 +108,56 @@
         <Style Selector=":is(UserControl)">
             <Setter Property="ClipToBounds" Value="False"/>
         </Style>
+    
+        <Style Selector="Button:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="10"/>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.signin-button:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#6a5acd" BorderThickness="2" CornerRadius="10">
+                    </Border>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.footer-link:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
+                    </Border>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ComboBox:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
+                    </Border>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ComboBoxItem:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
+                    </Border>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
+        
+        <Style Selector="Button.create-account-button:focus-visible">
+            <Setter Property="FocusAdorner">
+                <FocusAdornerTemplate>
+                    <Border BorderBrush="#9584FF" BorderThickness="2" CornerRadius="10">
+                    </Border>
+                </FocusAdornerTemplate>
+            </Setter>
+        </Style>
     </Application.Styles>
 
 
