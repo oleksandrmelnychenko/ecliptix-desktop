@@ -1,11 +1,9 @@
-using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
-using Serilog;
 
 namespace Ecliptix.Core.Views.Memberships.SignIn;
 

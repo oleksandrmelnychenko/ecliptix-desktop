@@ -2,14 +2,11 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
-using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using Splat;
 
 namespace Ecliptix.Core.ViewModels;
 
