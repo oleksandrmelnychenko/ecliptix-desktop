@@ -16,13 +16,13 @@ public class SystemStateChangedEvent
     public SystemState State { get; private set; }
     public string? LogMessage { get; }
 
-    private SystemStateChangedEvent(SystemState state,string? logMessage = null)
+    private SystemStateChangedEvent(SystemState state, string? logMessage = null)
     {
         State = state;
         LogMessage = logMessage;
     }
 
-    public static SystemStateChangedEvent New(SystemState state) => new(state);
+    public static SystemStateChangedEvent New(SystemState state, string? logMessage = null) => new(state, logMessage);
 }
 
 public class SystemEvents(IEventAggregator aggregator) : ISystemEvents

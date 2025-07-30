@@ -63,7 +63,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
-        vm.RemovePasswordChars(e.Index, e.Count);
+        vm.RemoveSecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 }

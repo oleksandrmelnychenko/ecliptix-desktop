@@ -31,6 +31,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 {
     private bool _isBusy;
     private SodiumSecureMemoryHandle? _securePasswordHandle;
+    private readonly CompositeDisposable Disposables = new();
     private bool _isDisposed;
     private readonly Subject<string> _secureKeyErrorSubject = new();
     private readonly Subject<(int index, string chars)> _insertPasswordSubject = new();
@@ -42,6 +43,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     [ObservableAsProperty] public bool HasMobileNumberError { get; }
     [ObservableAsProperty] public bool HasSecureKeyError { get; }
     [ObservableAsProperty] public string SecureKeyError { get; }
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
     public int CurrentSecureKeyLength
     {
@@ -49,9 +51,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         private set => this.RaiseAndSetIfChanged(ref _currentSecureKeyLength, value);
     }
 
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
-
     public string UrlPathSegment => "/sign-in";
+    
     public IScreen HostScreen { get; }
 
     public bool IsBusy
@@ -95,18 +96,17 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .ToPropertyEx(this, x => x.HasSecureKeyError);
 
         _insertPasswordSubject
-            .Subscribe(x => { ModifySecurePassword(x.index, 0, x.chars); })
+            .Subscribe(x => { ModifySecureKeyState(x.index, 0, x.chars); })
             .DisposeWith(Disposables);
 
         _removePasswordSubject
-            .Subscribe(x => { ModifySecurePassword(x.index, x.count, string.Empty); })
+            .Subscribe(x => { ModifySecureKeyState(x.index, x.count, string.Empty); })
             .DisposeWith(Disposables);
 
         SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
         AccountRecoveryCommand = ReactiveCommand.Create(() => { });
     }
 
-    private readonly CompositeDisposable Disposables = new();
 
     public void InsertSecureKeyChars(int index, string chars)
     {
@@ -114,7 +114,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         _insertPasswordSubject.OnNext((index, chars));
     }
 
-    public void RemovePasswordChars(int index, int count)
+    public void RemoveSecureKeyChars(int index, int count)
     {
         if (count <= 0) return;
         _removePasswordSubject.OnNext((index, count));
@@ -152,10 +152,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         return currentByte;
     }
 
-    private void ModifySecurePassword(int index, int removeCount, string insertChars)
+    private void ModifySecureKeyState(int index, int removeCount, string insertChars)
     {
-        byte[]? oldPasswordBytes = null;
-        byte[]? newPasswordBytes = null;
+        byte[]? oldSecureKeyBytes = null;
+        byte[]? newSecureKeyBytes = null;
         SodiumSecureMemoryHandle? newHandle = null;
         bool success = false;
 
@@ -169,30 +169,31 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
             if (oldLength > 0)
             {
-                oldPasswordBytes = ArrayPool<byte>.Shared.Rent(oldLength);
+                oldSecureKeyBytes = ArrayPool<byte>.Shared.Rent(oldLength);
                 Result<Unit, SodiumFailure> readResult =
-                    _securePasswordHandle!.Read(oldPasswordBytes.AsSpan(0, oldLength));
+                    _securePasswordHandle!.Read(oldSecureKeyBytes.AsSpan(0, oldLength));
                 if (readResult.IsErr)
                 {
-                    //TODO: Handle error appropriately
+                    SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                        readResult.UnwrapErr().Message));
                     return;
                 }
             }
 
             ReadOnlySpan<byte> oldSpan =
-                oldLength > 0 ? oldPasswordBytes.AsSpan(0, oldLength) : ReadOnlySpan<byte>.Empty;
+                oldLength > 0 ? oldSecureKeyBytes.AsSpan(0, oldLength) : ReadOnlySpan<byte>.Empty;
 
             byte[] insertBytes = Encoding.UTF8.GetBytes(insertChars);
 
-            int startByte = GetUtf8ByteOffset(oldPasswordBytes ?? [], oldLength, index);
-            int endByte = GetUtf8ByteOffset(oldPasswordBytes ?? [], oldLength, index + removeCount);
+            int startByte = GetUtf8ByteOffset(oldSecureKeyBytes ?? [], oldLength, index);
+            int endByte = GetUtf8ByteOffset(oldSecureKeyBytes ?? [], oldLength, index + removeCount);
             int removedByteCount = endByte - startByte;
 
             int newLength = oldLength - removedByteCount + insertBytes.Length;
             if (newLength >= 0)
             {
-                newPasswordBytes = ArrayPool<byte>.Shared.Rent(newLength);
-                Span<byte> newSpan = newPasswordBytes.AsSpan(0, newLength);
+                newSecureKeyBytes = ArrayPool<byte>.Shared.Rent(newLength);
+                Span<byte> newSpan = newSecureKeyBytes.AsSpan(0, newLength);
 
                 oldSpan[..startByte].CopyTo(newSpan[..startByte]);
                 insertBytes.CopyTo(newSpan[startByte..(startByte + insertBytes.Length)]);
@@ -206,7 +207,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 SodiumSecureMemoryHandle.Allocate(newLength);
             if (allocateResult.IsErr)
             {
-                //TODO: Handle error appropriately
+                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                    allocateResult.UnwrapErr().Message));
                 return;
             }
 
@@ -214,15 +216,16 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
             if (newLength > 0)
             {
-                Result<Unit, SodiumFailure> writeResult = newHandle.Write(newPasswordBytes.AsSpan(0, newLength));
+                Result<Unit, SodiumFailure> writeResult = newHandle.Write(newSecureKeyBytes.AsSpan(0, newLength));
                 if (writeResult.IsErr)
                 {
-                    //TODO: Handle error appropriately
+                    SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                        allocateResult.UnwrapErr().Message));
                     return;
                 }
             }
 
-            string? passwordValidationError = ValidatePassword(newPasswordBytes, newLength);
+            string? passwordValidationError = ValidatePassword(newSecureKeyBytes, newLength);
             if (!string.IsNullOrEmpty(passwordValidationError))
             {
                 SetSecureKeyError(passwordValidationError);
@@ -241,8 +244,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         }
         finally
         {
-            if (oldPasswordBytes != null) ArrayPool<byte>.Shared.Return(oldPasswordBytes, true);
-            if (newPasswordBytes != null) ArrayPool<byte>.Shared.Return(newPasswordBytes, true);
+            if (oldSecureKeyBytes != null) ArrayPool<byte>.Shared.Return(oldSecureKeyBytes, true);
+            if (newSecureKeyBytes != null) ArrayPool<byte>.Shared.Return(newSecureKeyBytes, true);
             if (!success && newHandle != null) newHandle.Dispose();
         }
     }
@@ -262,7 +265,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         byte[]? rentedPasswordBytes = null;
         try
         {
-            rentedPasswordBytes = ReadPassword();
+            rentedPasswordBytes = ReadSecureKey();
             if (rentedPasswordBytes == null)
             {
                 IsBusy = false;
@@ -294,7 +297,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
                 await SendInitRequestAndProcessResponse(clientOpaqueService, oprfRequest, blind, passwordBytes);
             if (initResult.IsErr)
             {
-                //TODO: Handle error appropriately
+                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                    initResult.UnwrapErr().Message));
             }
         }
         finally
@@ -335,7 +339,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         }
     }
 
-    private byte[]? ReadPassword()
+    private byte[]? ReadSecureKey()
     {
         byte[]? rentedPasswordBytes = null;
         try
@@ -347,7 +351,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             Result<Unit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
             if (readResult.IsErr)
             {
-                //TODO: Handle error appropriately
+                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                    readResult.UnwrapErr().Message));
                 return null;
             }
 
@@ -377,13 +382,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     {
         Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
             OpaqueProtocolService.CreateOprfRequest(passwordBytes);
-        if (oprfResult.IsErr)
-        {
-            //TODO: Handle error appropriately
-            return null;
-        }
-
-        return oprfResult.Unwrap();
+        if (!oprfResult.IsErr) return oprfResult.Unwrap();
+        SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+            oprfResult.UnwrapErr().Message));
+        return null;
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendInitRequestAndProcessResponse(
