@@ -55,13 +55,11 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         ShowCommand = ReactiveCommand.Create(() =>
         {
             Log.Information("Executing ShowCommand: Setting IsVisible=true");
-            IsVisible = true;
             return Unit.Default;
         });
 
         HideCommand = ReactiveCommand.Create(() =>
         {
-            Log.Information("Executing HideCommand: Setting IsVisible=false");
             IsVisible = false;
             return Unit.Default;
         });
@@ -69,7 +67,6 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         ToggleCommand = ReactiveCommand.Create(() =>
         {
             bool newVisibility = !IsVisible;
-            Log.Information($"Executing ToggleCommand: Setting IsVisible={newVisibility}");
             IsVisible = newVisibility;
             return Unit.Default;
         });
