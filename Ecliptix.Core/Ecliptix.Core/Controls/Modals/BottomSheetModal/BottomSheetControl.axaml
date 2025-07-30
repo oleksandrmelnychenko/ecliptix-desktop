@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="clr-namespace:Ecliptix.Core.Controls.Modals"
              xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.BottomSheetModal.BottomSheetControl"
@@ -38,20 +37,7 @@
                 VerticalAlignment="Bottom"
                 Width="400"
                 Background="White">
-    
-            <ScrollViewer MaxHeight="568"
-                          VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="ContentItems"
-                              ItemsSource="{Binding ContentControls}"
-                              Margin="16,32,16,16">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="10"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
-            </ScrollViewer>
+            <ContentControl MaxHeight="568" Content="{Binding Content}"></ContentControl>
         </Border>
     </Grid>
-   
 </UserControl>

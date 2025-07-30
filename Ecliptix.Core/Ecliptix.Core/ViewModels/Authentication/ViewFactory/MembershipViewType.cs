@@ -6,7 +6,7 @@ public enum MembershipViewType
     SignIn,
     PhoneVerification,
     VerificationCodeEntry,
-    PasswordRecovery,
+    AccountRecovery,
     ConfirmPassword,
     NicknameInput,
     PassPhase,

@@ -228,15 +228,15 @@
                 <BlurEffect Radius="{StaticResource BackgroundBlurRadius}" />
             </Border.Effect>
         </Border>
-        
+
         <!-- Title Bar -->
-        <comp:TitleBar 
+        <comp:TitleBar
             VerticalAlignment="Top"
             ZIndex="11"
             DisableMinimizeButton="False"
             DisableCloseButton="False"
-            Margin="8"/>
-        
+            Margin="8" />
+
         <!-- Back Navigation Button -->
         <Button HorizontalAlignment="Left"
                 VerticalAlignment="Top"
@@ -251,7 +251,7 @@
                    Width="18"
                    Height="18" />
         </Button>
-        
+
         <languageSwitcher:LanguageSwitcherView
             Name="LanguageSwitcherView"
             HorizontalAlignment="Right"
@@ -270,27 +270,25 @@
             Height="40"
             ZIndex="1001"
             IsConnected="{Binding IsConnected}" />
-        
-        <StackPanel 
+
+        <StackPanel
             Orientation="Horizontal"
             ZIndex="10"
             VerticalAlignment="Top"
             HorizontalAlignment="Center"
-            Margin="0 50 0 0"
-            >
+            Margin="0 50 0 0">
             <Button
                 Width="90"
                 Height="30"
                 Content="Open modal"
-                Command="{Binding OpenBottomSheetCommand}"
-                  />
+                Command="{Binding OpenBottomSheetCommand}" />
             <CheckBox
                 IsChecked="{Binding IsChecked}">
                 Dismissible
             </CheckBox>
         </StackPanel>
-        
-        
+
+
         <!-- Main Content Border -->
         <Border Classes="main-border"
                 Margin="8"
@@ -303,103 +301,102 @@
                                   OffsetX="0"
                                   OffsetY="2" />
             </Border.Effect>
-            
-                <!-- Main Content Grid -->
-                <Grid RowDefinitions="Auto,*,Auto"
-                      RowSpacing="{StaticResource HeaderSpacing}"
-                      ClipToBounds="True">
-                    
-                    <!-- TODO testing margin because of moved titlebar ?-->
-                    <!-- Logo Section -->
-                    <Border Grid.Row="0"
-                            HorizontalAlignment="Center"
-                            Padding="{StaticResource HeaderPadding}"
-                            Margin="0 63 0 0">
-                        <Svg Path="../../../Assets/ecliptix_logo.svg"
-                             Width="{StaticResource LogoSize}"
-                             Height="{StaticResource LogoSize}"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Top" />
-                    </Border>
 
-                    <!-- Content Area -->
-                    <Border Grid.Row="1"
-                            Padding="{StaticResource ContentPadding}">
-                        <reactiveUi:RoutedViewHost Router="{Binding Router}"
-                                                   Background="Transparent"
-                                                   Width="{StaticResource ContentMaxWidth}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Stretch"
-                                                   ClipToBounds="False">
-                            <reactiveUi:RoutedViewHost.DefaultContent>
-                                <StackPanel HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Spacing="8">
-                                    <TextBlock Text="Loading View..."
+            <!-- Main Content Grid -->
+            <Grid RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{StaticResource HeaderSpacing}"
+                  ClipToBounds="True">
+
+                <!-- TODO testing margin because of moved titlebar ?-->
+                <!-- Logo Section -->
+                <Border Grid.Row="0"
+                        HorizontalAlignment="Center"
+                        Padding="{StaticResource HeaderPadding}"
+                        Margin="0 63 0 0">
+                    <Svg Path="../../../Assets/ecliptix_logo.svg"
+                         Width="{StaticResource LogoSize}"
+                         Height="{StaticResource LogoSize}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Top" />
+                </Border>
+
+                <!-- Content Area -->
+                <Border Grid.Row="1"
+                        Padding="{StaticResource ContentPadding}">
+                    <reactiveUi:RoutedViewHost Router="{Binding Router}"
+                                               Background="Transparent"
+                                               Width="{StaticResource ContentMaxWidth}"
                                                HorizontalAlignment="Center"
-                                               FontSize="13"
-                                               Opacity="0.6" />
-                                </StackPanel>
-                            </reactiveUi:RoutedViewHost.DefaultContent>
-                        </reactiveUi:RoutedViewHost>
-                    </Border>
+                                               VerticalAlignment="Stretch"
+                                               ClipToBounds="False">
+                        <reactiveUi:RoutedViewHost.DefaultContent>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Text="Loading View..."
+                                           HorizontalAlignment="Center"
+                                           FontSize="13"
+                                           Opacity="0.6" />
+                            </StackPanel>
+                        </reactiveUi:RoutedViewHost.DefaultContent>
+                    </reactiveUi:RoutedViewHost>
+                </Border>
 
-                    <!-- Footer Section -->
-                    <StackPanel Grid.Row="2"
-                                Classes="footer-section">
+                <!-- Footer Section -->
+                <StackPanel Grid.Row="2"
+                            Classes="footer-section">
 
-                        <!-- Legal Links -->
-                        <StackPanel Orientation="Horizontal"
-                                    HorizontalAlignment="Center"
-                                    Spacing="{StaticResource FooterLinkSpacing}">
+                    <!-- Legal Links -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="{StaticResource FooterLinkSpacing}">
 
-                            <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
-                                    Command="{Binding OpenPrivacyPolicyCommand}"
-                                    Classes="footer-link" />
+                        <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                                Command="{Binding OpenPrivacyPolicyCommand}"
+                                Classes="footer-link" />
 
-                            <TextBlock Text="•"
-                                       Classes="footer-text"
-                                       VerticalAlignment="Center" />
-
-                            <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
-                                    Command="{Binding OpenTermsOfServiceCommand}"
-                                    Classes="footer-link" />
-
-                            <TextBlock Text="•"
-                                       Classes="footer-text"
-                                       VerticalAlignment="Center" />
-
-                            <Button Content="{Binding LocalizationService[Footer.Support]}"
-                                    Command="{Binding OpenSupportCommand}"
-                                    Classes="footer-link" />
-                        </StackPanel>
-
-                        <!-- Copyright Text -->
-                        <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
+                        <TextBlock Text="•"
                                    Classes="footer-text"
-                                   TextWrapping="Wrap"
-                                   MaxWidth="280" />
+                                   VerticalAlignment="Center" />
 
-                        <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                        <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                                Command="{Binding OpenTermsOfServiceCommand}"
+                                Classes="footer-link" />
+
+                        <TextBlock Text="•"
                                    Classes="footer-text"
-                                   Opacity="0.7" />
+                                   VerticalAlignment="Center" />
+
+                        <Button Content="{Binding LocalizationService[Footer.Support]}"
+                                Command="{Binding OpenSupportCommand}"
+                                Classes="footer-link" />
                     </StackPanel>
-                    <bottomSheetModal:BottomSheetControl 
-                        DataContext="{Binding BottomSheetViewModel}" 
-                        ZIndex="111"
-                        VerticalAlignment="Stretch"
-                        HorizontalAlignment="Stretch"
-                        AppearVerticalOffset="0"
-                        DisappearVerticalOffset="0"
-                        MinHeight="200"
-                        MaxHeight="600"
-                        ScrimColor="Black"
-                        IsDismissableOnScrimClick="False"
-                        Grid.Row="0"
-                        Grid.RowSpan="3"
-                    />
-                </Grid>
-           
+
+                    <!-- Copyright Text -->
+                    <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
+                               Classes="footer-text"
+                               TextWrapping="Wrap"
+                               MaxWidth="280" />
+
+                    <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                               Classes="footer-text"
+                               Opacity="0.7" />
+                </StackPanel>
+                <bottomSheetModal:BottomSheetControl
+                    x:Name="BottomSheetControl"
+                    ZIndex="111"
+                    VerticalAlignment="Stretch"
+                    HorizontalAlignment="Stretch"
+                    AppearVerticalOffset="0"
+                    DisappearVerticalOffset="0"
+                    MinHeight="200"
+                    MaxHeight="600"
+                    ScrimColor="Black"
+                    IsDismissableOnScrimClick="False"
+                    Grid.Row="0"
+                    Grid.RowSpan="3" />
+            </Grid>
+
         </Border>
     </Grid>
 </Window>
