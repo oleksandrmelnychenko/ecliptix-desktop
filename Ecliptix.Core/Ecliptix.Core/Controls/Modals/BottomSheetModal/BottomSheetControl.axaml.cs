@@ -215,15 +215,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private void CreateAnimations()
     {
-        if (_sheetHeight <= 0)
-        {
-            _showAnimation = null;
-            _hideAnimation = null;
-            _scrimShowAnimation = null;
-            _scrimHideAnimation = null;
-            return;
-        }
-
         double hiddenPosition = _sheetHeight + DisappearVerticalOffset;
 
         _showAnimation = new Animation
