@@ -2,6 +2,7 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
@@ -18,8 +19,8 @@ public class WelcomeViewModel : ViewModelBase, IRoutableViewModel
     public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
 
-    public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
-        NetworkProvider networkProvider) : base(networkProvider,localizationService)
+    public WelcomeViewModel(IScreen hostScreen, ISystemEvents systemEvents, ILocalizationService localizationService,
+        NetworkProvider networkProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 

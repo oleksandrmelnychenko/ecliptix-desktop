@@ -2,13 +2,14 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Authentication.Registration;
 
-public class PassPhaseViewModel: ViewModelBase, IRoutableViewModel
+public class PassPhaseViewModel : ViewModelBase, IRoutableViewModel
 {
     private string _passPhase = string.Empty;
 
@@ -19,19 +20,17 @@ public class PassPhaseViewModel: ViewModelBase, IRoutableViewModel
     }
 
     public string? UrlPathSegment { get; } = "/pass-phase";
-    
+
     public IScreen HostScreen { get; }
-    
+
     public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
 
     public PassPhaseViewModel(
+        ISystemEvents systemEvents,
         ILocalizationService localizationService,
-        IScreen hostScreen,NetworkProvider networkProvider): base(networkProvider,localizationService)
+        IScreen hostScreen, NetworkProvider networkProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        SubmitCommand = ReactiveCommand.Create(() =>
-        {
-            Console.WriteLine($"PassPhase submitted: {PassPhase}");
-        });
+        SubmitCommand = ReactiveCommand.Create(() => { Console.WriteLine($"PassPhase submitted: {PassPhase}"); });
     }
 }

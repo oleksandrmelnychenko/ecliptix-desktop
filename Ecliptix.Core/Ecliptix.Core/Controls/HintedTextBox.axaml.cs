@@ -16,10 +16,10 @@ namespace Ecliptix.Core.Controls;
 public sealed partial class HintedTextBox : UserControl, IDisposable
 {
     public static readonly StyledProperty<bool> IsPasswordModeProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordMode), false);
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyMode));
 
     public static readonly StyledProperty<char> PasswordMaskCharProperty =
-        AvaloniaProperty.Register<HintedTextBox, char>(nameof(PasswordMaskChar), '●');
+        AvaloniaProperty.Register<HintedTextBox, char>(nameof(SecureKeyMaskChar), '●');
 
     public static readonly StyledProperty<string> TextProperty =
         AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
@@ -90,33 +90,33 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
-    public static readonly RoutedEvent<PasswordCharactersAddedEventArgs> PasswordCharactersAddedEvent =
-        RoutedEvent.Register<HintedTextBox, PasswordCharactersAddedEventArgs>(nameof(PasswordCharactersAdded),
+    public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
+        RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
             RoutingStrategies.Bubble);
 
-    public static readonly RoutedEvent<PasswordCharactersRemovedEventArgs> PasswordCharactersRemovedEvent =
-        RoutedEvent.Register<HintedTextBox, PasswordCharactersRemovedEventArgs>(nameof(PasswordCharactersRemoved),
+    public static readonly RoutedEvent<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemovedEvent =
+        RoutedEvent.Register<HintedTextBox, SecureKeyCharactersRemovedEventArgs>(nameof(SecureKeyCharactersRemoved),
             RoutingStrategies.Bubble);
 
-    public event EventHandler<PasswordCharactersAddedEventArgs> PasswordCharactersAdded
+    public event EventHandler<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAdded
     {
-        add => AddHandler(PasswordCharactersAddedEvent, value);
-        remove => RemoveHandler(PasswordCharactersAddedEvent, value);
+        add => AddHandler(SecureKeyCharactersAddedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersAddedEvent, value);
     }
 
-    public event EventHandler<PasswordCharactersRemovedEventArgs> PasswordCharactersRemoved
+    public event EventHandler<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemoved
     {
-        add => AddHandler(PasswordCharactersRemovedEvent, value);
-        remove => RemoveHandler(PasswordCharactersRemovedEvent, value);
+        add => AddHandler(SecureKeyCharactersRemovedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
     }
 
-    public bool IsPasswordMode
+    public bool IsSecureKeyMode
     {
         get => GetValue(IsPasswordModeProperty);
         set => SetValue(IsPasswordModeProperty, value);
     }
 
-    public char PasswordMaskChar
+    public char SecureKeyMaskChar
     {
         get => GetValue(PasswordMaskCharProperty);
         set => SetValue(PasswordMaskCharProperty, value);
@@ -250,7 +250,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private readonly CompositeDisposable _disposables = new();
     private TextBox? _mainTextBox;
-    private TextBlock? _passwordMaskOverlay;
+    private TextBlock? _secureKeyMaskOverlay;
     private Border? _focusBorder;
     private Border? _mainBorder;
     private Border? _shadowBorder;
@@ -266,12 +266,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AttachedToVisualTree += OnAttachedToVisualTree;
     }
 
-    public void SyncPasswordState(int newPasswordLength)
+    public void SyncSecureKeyState(int newPasswordLength)
     {
-        Log.Information($"SyncPasswordState: newPasswordLength={newPasswordLength}");
-        _shadowText = newPasswordLength > 0 ? new string(PasswordMaskChar, newPasswordLength) : string.Empty;
+        _shadowText = newPasswordLength > 0 ? new string(SecureKeyMaskChar, newPasswordLength) : string.Empty;
         UpdateTextBox(_shadowText, Math.Min(_nextCaretPosition, _shadowText.Length));
-        UpdatePasswordMaskOverlay(newPasswordLength);
+        UpdateSecureKeyMaskOverlay(newPasswordLength);
         UpdateRemainingCharacters();
     }
 
@@ -314,33 +313,30 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
 
-        if (IsPasswordMode)
+        if (IsSecureKeyMode)
         {
             string newText = _mainTextBox.Text ?? string.Empty;
             if (newText == _shadowText) return;
 
-            // Handle full deletion
             if (string.IsNullOrEmpty(newText) && !string.IsNullOrEmpty(_shadowText))
             {
                 int oldLength = _shadowText.Length;
                 _nextCaretPosition = 0;
-                _shadowText = string.Empty; // Reset shadow text immediately
-                RaiseEvent(new PasswordCharactersRemovedEventArgs(PasswordCharactersRemovedEvent, 0, oldLength));
+                _shadowText = string.Empty; 
+                RaiseEvent(new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, 0, oldLength));
                 UpdateTextBox(_shadowText, 0);
-                UpdatePasswordMaskOverlay(0);
+                UpdateSecureKeyMaskOverlay(0);
                 UpdateRemainingCharacters();
                 return;
             }
 
-            // Handle full insertion
             if (string.IsNullOrEmpty(_shadowText) && !string.IsNullOrEmpty(newText))
             {
                 _nextCaretPosition = newText.Length;
-                RaiseEvent(new PasswordCharactersAddedEventArgs(PasswordCharactersAddedEvent, 0, newText));
+                RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, 0, newText));
                 return;
             }
 
-            // Handle partial changes
             (int diffIndex, int removedCount, string added) = Diff(_shadowText, newText);
 
             if (removedCount > 0 && string.IsNullOrEmpty(added))
@@ -352,13 +348,13 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             if (removedCount > 0)
             {
-                RaiseEvent(new PasswordCharactersRemovedEventArgs(PasswordCharactersRemovedEvent, diffIndex,
+                RaiseEvent(new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, diffIndex,
                     removedCount));
             }
 
             if (!string.IsNullOrEmpty(added))
             {
-                RaiseEvent(new PasswordCharactersAddedEventArgs(PasswordCharactersAddedEvent, diffIndex, added));
+                RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, diffIndex, added));
             }
         }
         else
@@ -416,11 +412,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _isUpdatingFromCode = false;
     }
 
-    private void UpdatePasswordMaskOverlay(int length)
+    private void UpdateSecureKeyMaskOverlay(int length)
     {
-        if (_passwordMaskOverlay != null)
+        if (_secureKeyMaskOverlay != null)
         {
-            _passwordMaskOverlay.Text = length > 0 ? new string(PasswordMaskChar, length) : string.Empty;
+            _secureKeyMaskOverlay.Text = length > 0 ? new string(SecureKeyMaskChar, length) : string.Empty;
         }
     }
 
@@ -458,7 +454,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _focusBorder = this.FindControl<Border>("FocusBorder");
         _mainBorder = this.FindControl<Border>("MainBorder");
         _shadowBorder = this.FindControl<Border>("ShadowBorder");
-        _passwordMaskOverlay = this.FindControl<TextBlock>("PasswordMaskOverlay");
+        _secureKeyMaskOverlay = this.FindControl<TextBlock>("PasswordMaskOverlay");
     }
 
     private void OnGotFocus(object? sender, Avalonia.Input.GotFocusEventArgs e) => UpdateBorderState();
@@ -473,7 +469,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         this.WhenAnyValue(x => x.Text)
             .Subscribe(text =>
             {
-                if (!IsPasswordMode && _mainTextBox != null && _mainTextBox.Text != text)
+                if (!IsSecureKeyMode && _mainTextBox != null && _mainTextBox.Text != text)
                 {
                     UpdateTextBox(text, text?.Length ?? 0);
                 }
@@ -487,7 +483,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void UpdateRemainingCharacters()
     {
-        if (IsPasswordMode)
+        if (IsSecureKeyMode)
         {
             RemainingCharacters = MaxLength - _shadowText.Length;
         }

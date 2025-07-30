@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
@@ -75,10 +76,11 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     private string VerificationSessionId { get; set; }
 
     public PasswordConfirmationViewModel(
+        ISystemEvents systemEvents,
         NetworkProvider networkProvider, 
         ILocalizationService localizationService,
         IScreen hostScreen
-        ): base(networkProvider,localizationService)
+        ): base(systemEvents,networkProvider,localizationService)
     {
         HostScreen = hostScreen;
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(

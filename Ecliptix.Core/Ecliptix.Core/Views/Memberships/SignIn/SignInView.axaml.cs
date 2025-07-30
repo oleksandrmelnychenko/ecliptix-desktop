@@ -33,10 +33,10 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void SetupEventHandlers()
     {
         if (_handlersAttached) return;
-        if (this.FindControl<HintedTextBox>("PasswordTextBox") is { } passwordBox)
+        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
         {
-            passwordBox.PasswordCharactersAdded += OnPasswordCharactersAdded;
-            passwordBox.PasswordCharactersRemoved += OnPasswordCharactersRemoved;
+            secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
+            secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
             _handlersAttached = true;
         }
     }
@@ -44,28 +44,26 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
     private void TeardownEventHandlers()
     {
         if (!_handlersAttached) return;
-        if (this.FindControl<HintedTextBox>("PasswordTextBox") is { } passwordBox)
+        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
         {
-            passwordBox.PasswordCharactersAdded -= OnPasswordCharactersAdded;
-            passwordBox.PasswordCharactersRemoved -= OnPasswordCharactersRemoved;
+            secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
+            secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
         }
 
         _handlersAttached = false;
     }
 
-    private void OnPasswordCharactersAdded(object? sender, PasswordCharactersAddedEventArgs e)
+    private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
-        //Log.Information($"OnPasswordCharactersAdded: Index={e.Index}, Characters='{e.Characters}'");
-        vm.InsertPasswordChars(e.Index, e.Characters);
-        tb.SyncPasswordState(vm.CurrentPasswordLength);
+        vm.InsertSecureKeyChars(e.Index, e.Characters);
+        tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 
-    private void OnPasswordCharactersRemoved(object? sender, PasswordCharactersRemovedEventArgs e)
+    private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
-        //Log.Information($"OnPasswordCharactersRemoved: Index={e.Index}, Count={e.Count}");
-        vm.RemovePasswordChars(e.Index, e.Count);
-        tb.SyncPasswordState(vm.CurrentPasswordLength);
+        vm.RemoveSecureKeyChars(e.Index, e.Count);
+        tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 }

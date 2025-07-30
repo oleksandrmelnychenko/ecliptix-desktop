@@ -144,11 +144,11 @@
             FontWeight="Light"
             HorizontalAlignment="Stretch" />
 
-        <!-- Password Input -->
+        <!-- SecureKey Input -->
         <controls:HintedTextBox
             Grid.Row="2"
-            x:Name="PasswordTextBox"
-            IsPasswordMode="True"
+            x:Name="SecureKeyTextBox"
+            IsSecureKeyMode="True"
             Background="{DynamicResource TextBoxBackgroundColor}"
             Watermark="{Binding LocalizationService[Authentication.SignIn.PasswordPlaceholder]}"
             Hint="{Binding LocalizationService[Authentication.SignIn.PasswordHint]}"

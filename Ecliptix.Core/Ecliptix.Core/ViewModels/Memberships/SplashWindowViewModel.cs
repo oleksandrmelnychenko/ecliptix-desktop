@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using ReactiveUI;
@@ -30,8 +31,8 @@ public sealed class SplashWindowViewModel : ViewModelBase
 
     public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(INetworkEvents networkEvents, ILocalizationService localizationService,
-        NetworkProvider networkProvider) : base(networkProvider, localizationService)
+    public SplashWindowViewModel(ISystemEvents systemEvents,INetworkEvents networkEvents, ILocalizationService localizationService,
+        NetworkProvider networkProvider) : base(systemEvents,networkProvider, localizationService)
     {
         this.WhenActivated(disposables =>
         {
