@@ -129,7 +129,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
                     _bottomSheetEvents.BottomSheetChangedState(
-                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization));
+                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization,true));
                 }
             }
         }

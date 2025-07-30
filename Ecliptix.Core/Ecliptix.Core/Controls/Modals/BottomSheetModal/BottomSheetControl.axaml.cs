@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -8,11 +9,13 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using Avalonia.Styling;
 using ReactiveUI;
+using Serilog;
 using Splat;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
@@ -33,12 +36,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private Animation? _scrimHideAnimation;
 
     public static readonly StyledProperty<double> AppearVerticalOffsetProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset),
-            DefaultBottomSheetVariables.DefaultAppearVerticalOffset);
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset));
 
     public static readonly StyledProperty<double> DisappearVerticalOffsetProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset),
-            DefaultBottomSheetVariables.DefaultDisappearVerticalOffset);
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset));
 
     public static readonly StyledProperty<double> MinHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
@@ -93,8 +94,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     public BottomSheetControl()
     {
         InitializeComponent();
-        ViewModel = Locator.Current.GetService<BottomSheetViewModel>() ??
-                    throw new InvalidOperationException("BottomSheetViewModel not found in service locator.");
+        ViewModel = Locator.Current.GetService<BottomSheetViewModel>();
         IsVisible = false;
     }
 
@@ -108,6 +108,14 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             SetupContentObservables(disposables);
             SetupVisibilityObservable(disposables);
             SetupDismissableCommand(disposables);
+            Observable.FromEventPattern<RoutedEventArgs>(this, nameof(Loaded))
+                .Take(1)
+                .Subscribe(_ =>
+                {
+                    UpdateSheetHeight();
+                    CreateAnimations();
+                })
+                .DisposeWith(disposables);
         });
     }
 
@@ -116,9 +124,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentItems = this.FindControl<ItemsControl>("ContentItems");
-
-        UpdateSheetHeight();
-        CreateAnimations();
     }
 
     private void SetupContentObservables(CompositeDisposable disposables)
@@ -147,9 +152,18 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private void SetupVisibilityObservable(CompositeDisposable disposables)
     {
-        this.WhenAnyValue(x => x.ViewModel!.IsVisible)
-            .Subscribe(async isVisible =>
+        this.WhenAnyValue(x => x.ViewModel!.IsVisible, x => x.ViewModel!.ShowScrim)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(async tuple =>
             {
+                bool isVisible = tuple.Item1;
+                bool showScrim = tuple.Item2;
+
+                if (isVisible)
+                {
+                    CreateAnimations();
+                }
+                
                 if (_sheetBorder == null || _scrimBorder == null)
                 {
                     IsVisible = isVisible;
@@ -160,28 +174,46 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     _scrimHideAnimation == null)
                 {
                     IsVisible = isVisible;
+                    _scrimBorder.IsVisible = isVisible && showScrim;
                     return;
                 }
 
                 SetupViewForAnimation(_sheetBorder);
-                SetupScrimForAnimation(_scrimBorder);
+                if (showScrim)
+                {
+                    SetupScrimForAnimation(_scrimBorder);
+                }
+                else
+                {
+                    _scrimBorder.IsVisible = false;
+                }
 
                 if (isVisible)
                 {
                     IsVisible = true;
-                    await Task.WhenAll(
-                        _showAnimation.RunAsync(_sheetBorder, CancellationToken.None),
-                        _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None)
-                    );
+                    List<Task> tasks = [_showAnimation.RunAsync(_sheetBorder, CancellationToken.None)];
+                    if (showScrim)
+                    {
+                        tasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                    }
+
+                    await Task.WhenAll(tasks);
                 }
                 else
                 {
-                    await Task.WhenAll(
-                        _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None),
-                        _scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None)
-                    );
+                    List<Task> tasks =
+                    [
+                        _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)
+                    ];
+                    if (showScrim)
+                    {
+                        tasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                    }
+
+                    await Task.WhenAll(tasks);
                     await Task.Delay(_animationDuration);
                     IsVisible = false;
+                    _scrimBorder.IsVisible = false;
                 }
             })
             .DisposeWith(disposables);
@@ -204,12 +236,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         if (_contentItems == null || _sheetBorder == null)
         {
+            _sheetHeight = MinHeight;
             return;
         }
 
         double verticalMargin = _contentItems.Margin.Top + _contentItems.Margin.Bottom;
         double contentHeight = _contentItems.DesiredSize.Height + verticalMargin;
-        _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
+        _sheetHeight = Math.Clamp(contentHeight > 0 ? contentHeight : MinHeight, MinHeight, MaxHeight);
         _sheetBorder.Height = _sheetHeight;
     }
 
@@ -335,7 +368,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         view.IsVisible = true;
     }
 
-    private void SetupScrimForAnimation(Visual view)
+    private static void SetupScrimForAnimation(Visual view)
     {
         view.Opacity = 0.0;
         view.IsVisible = true;

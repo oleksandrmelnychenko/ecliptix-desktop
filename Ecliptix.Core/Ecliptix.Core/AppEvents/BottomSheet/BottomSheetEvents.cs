@@ -12,15 +12,18 @@ public record BottomSheetChangedEvent
     public UserControl? Control { get; init; }
     public BottomSheetComponentType ComponentType { get; init; }
 
-    private BottomSheetChangedEvent(BottomSheetComponentType componentType, UserControl? userControl)
+    public bool ShowScrim { get; init; }
+
+    private BottomSheetChangedEvent(BottomSheetComponentType componentType, bool showScrim, UserControl? userControl)
     {
+        ShowScrim = showScrim;
         ComponentType = componentType;
         Control = userControl;
     }
 
     public static BottomSheetChangedEvent
-        New(BottomSheetComponentType componentType, UserControl? userControl = null) =>
-        new(componentType, userControl);
+        New(BottomSheetComponentType componentType, bool showScrim = false, UserControl? userControl = null) =>
+        new(componentType, showScrim, userControl);
 }
 
 public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
@@ -38,7 +41,8 @@ public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService
     public void BottomSheetChangedState(BottomSheetChangedEvent message)
     {
         UserControl? userControl = GetBottomSheetControl(message.ComponentType);
-        BottomSheetChangedEvent updatedMessage = BottomSheetChangedEvent.New(message.ComponentType, userControl);
+        BottomSheetChangedEvent updatedMessage =
+            BottomSheetChangedEvent.New(message.ComponentType, message.ShowScrim, userControl);
 
         aggregator.Publish(updatedMessage);
     }

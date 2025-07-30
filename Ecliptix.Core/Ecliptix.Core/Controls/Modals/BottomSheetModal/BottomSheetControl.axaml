@@ -10,19 +10,20 @@
 
     <UserControl.Styles>
         <Style Selector="Border.sheet">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="16,16,16,16"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White" />
+            <Setter Property="CornerRadius" Value="16,16,16,16" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="LightGray"></Setter>
-            <Setter Property="MinHeight" Value="200"/>
-            <Setter Property="MaxHeight" Value="600"/>
-            <Setter Property="ZIndex" Value="1"/>
+            <Setter Property="MinHeight" Value="200" />
+            <Setter Property="MaxHeight" Value="600" />
+            <Setter Property="ZIndex" Value="1" />
         </Style>
         <Style Selector="Border.scrim">
-            <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=ScrimColor}"/>
-            <Setter Property="Opacity" Value="0"/>
-            <Setter Property="ZIndex" Value="0"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background"
+                    Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=ScrimColor}" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="ZIndex" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
         </Style>
     </UserControl.Styles>
 
@@ -31,7 +32,7 @@
             x:Name="ScrimBorder"
             Classes="scrim"
             IsHitTestVisible="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=IsDismissableOnScrimClick}"
-            PointerPressed="OnScrimPointerPressed"/>
+            PointerPressed="OnScrimPointerPressed" />
         <Border x:Name="SheetBorder"
                 Classes="sheet"
                 VerticalAlignment="Bottom"
