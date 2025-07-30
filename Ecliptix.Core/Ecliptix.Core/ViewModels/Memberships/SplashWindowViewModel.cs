@@ -1,13 +1,14 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using ReactiveUI;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
-using ReactiveUI;
+
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 

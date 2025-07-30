@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.AppEvents;
+using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls.LanguageSwitcher;
@@ -133,17 +134,17 @@ public static class Program
             SuccessThreshold = 1
         });
 
-        
-       
         services.AddSingleton<IEventAggregator, EventAggregator>();
         services.AddSingleton<INetworkEvents, NetworkEvents>();
         services.AddSingleton<ISystemEvents, SystemEvents>();
+        services.AddSingleton<IBottomSheetEvents, BottomSheetEvents>();
+
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-        
+
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
-        
+
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
         );
@@ -157,7 +158,7 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<DeadlineInterceptor>();
         services.AddTransient<ResilienceInterceptor>();
-       
+
         ConfigureGrpc(services);
         ConfigureViewModels(services);
 
@@ -196,7 +197,7 @@ public static class Program
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<WelcomeViewModel>();
         services.AddTransient<LanguageSwitcherViewModel>();
-        services.AddTransient<BottomSheetViewModel>();
+        services.AddSingleton<BottomSheetViewModel>();
     }
 
     private static string ResolvePath(string path)

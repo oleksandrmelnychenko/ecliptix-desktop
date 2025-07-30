@@ -7,6 +7,7 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -127,7 +128,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
-            /* Navigation logic */
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.AccountRecovery);
         });
     }
 

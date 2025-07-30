@@ -13,348 +13,361 @@ using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using Avalonia.Styling;
 using ReactiveUI;
+using Splat;
 
-namespace Ecliptix.Core.Controls.Modals.BottomSheetModal
+namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
+
+public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
 {
-    public static class DefaultBottomSheetVariables
+    private readonly TimeSpan _animationDuration =
+        TimeSpan.FromMilliseconds(DefaultBottomSheetVariables.DefaultAnimationDuration);
+
+    private double _sheetHeight;
+    private Border? _sheetBorder;
+    private Border? _scrimBorder;
+    private ItemsControl? _contentItems;
+
+    private Animation? _showAnimation;
+    private Animation? _hideAnimation;
+    private Animation? _scrimShowAnimation;
+    private Animation? _scrimHideAnimation;
+
+    public static readonly StyledProperty<double> AppearVerticalOffsetProperty =
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset),
+            DefaultBottomSheetVariables.DefaultAppearVerticalOffset);
+
+    public static readonly StyledProperty<double> DisappearVerticalOffsetProperty =
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset),
+            DefaultBottomSheetVariables.DefaultDisappearVerticalOffset);
+
+    public static readonly StyledProperty<double> MinHeightProperty =
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
+
+    public static readonly StyledProperty<double> MaxHeightProperty =
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MaxHeight), DefaultBottomSheetVariables.MaxHeight);
+
+    public static readonly StyledProperty<IBrush> ScrimColorProperty =
+        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(ScrimColor),
+            DefaultBottomSheetVariables.DefaultScrimColor);
+
+    public static readonly StyledProperty<bool> IsDismissableOnScrimClickProperty =
+        AvaloniaProperty.Register<BottomSheetControl, bool>(nameof(IsDismissableOnScrimClick),
+            DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick);
+
+    public double AppearVerticalOffset
     {
-        public static readonly double MinHeight = 200.0;
-        public static readonly double MaxHeight = 600.0;
-        public static readonly double DefaultAppearVerticalOffset = 0.0;
-        public static readonly double DefaultDisappearVerticalOffset = 0.0;
-        public static readonly double DefaultOpacity = 0.5;
-        public static readonly double DefaultToOpacity = 1.0;
-        public static readonly double DefaultAnimationDuration = 300.0; 
-        public static readonly IBrush DefaultScrimColor = Brushes.Black; 
-        public static readonly bool DefaultIsDismissableOnScrimClick = true;
+        get => GetValue(AppearVerticalOffsetProperty);
+        set => SetValue(AppearVerticalOffsetProperty, value);
     }
-    
-    public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
+
+    public double DisappearVerticalOffset
     {
-        private readonly TimeSpan _animationDuration = TimeSpan.FromMilliseconds(DefaultBottomSheetVariables.DefaultAnimationDuration);
-        private Animation? _showAnimation;
-        private Animation? _hideAnimation;
-        private Animation? _scrimShowAnimation;
-        private Animation? _scrimHideAnimation;
-        private double _sheetHeight;
+        get => GetValue(DisappearVerticalOffsetProperty);
+        set => SetValue(DisappearVerticalOffsetProperty, value);
+    }
 
-        public BottomSheetControl()
+    public double MinHeight
+    {
+        get => GetValue(MinHeightProperty);
+        set => SetValue(MinHeightProperty, value);
+    }
+
+    public double MaxHeight
+    {
+        get => GetValue(MaxHeightProperty);
+        set => SetValue(MaxHeightProperty, value);
+    }
+
+    public IBrush ScrimColor
+    {
+        get => GetValue(ScrimColorProperty);
+        set => SetValue(ScrimColorProperty, value);
+    }
+
+    public bool IsDismissableOnScrimClick
+    {
+        get => GetValue(IsDismissableOnScrimClickProperty);
+        set => SetValue(IsDismissableOnScrimClickProperty, value);
+    }
+
+    public BottomSheetControl()
+    {
+        InitializeComponent();
+        ViewModel = Locator.Current.GetService<BottomSheetViewModel>() ??
+                    throw new InvalidOperationException("BottomSheetViewModel not found in service locator.");
+        IsVisible = false;
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+        InitializeControls();
+
+        this.WhenActivated(disposables =>
         {
-            InitializeComponent();
+            SetupContentObservables(disposables);
+            SetupVisibilityObservable(disposables);
+            SetupDismissableCommand(disposables);
+        });
+    }
+
+    private void InitializeControls()
+    {
+        _sheetBorder = this.FindControl<Border>("SheetBorder");
+        _scrimBorder = this.FindControl<Border>("ScrimBorder");
+        _contentItems = this.FindControl<ItemsControl>("ContentItems");
+
+        UpdateSheetHeight();
+        CreateAnimations();
+    }
+
+    private void SetupContentObservables(CompositeDisposable disposables)
+    {
+        if (_contentItems == null)
+        {
+            return;
         }
 
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-            
-            this.IsVisible = false;
-            
-            this.WhenActivated(disposables =>
+        _contentItems.GetObservable(BoundsProperty)
+            .Subscribe(_ =>
             {
-                SetupContentObservables(disposables);
-                SetupVisibilityObservable(disposables);
-                SetupDismissableCommand(disposables);
-            });
-        }
-        
-        public static readonly StyledProperty<double> AppearVerticalOffsetProperty =
-            AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset), DefaultBottomSheetVariables.DefaultAppearVerticalOffset);
-
-        public static readonly StyledProperty<double> DisappearVerticalOffsetProperty =
-            AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset), DefaultBottomSheetVariables.DefaultDisappearVerticalOffset);
-
-        public new static readonly StyledProperty<double> MinHeightProperty =
-            AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
-
-        public new static readonly StyledProperty<double> MaxHeightProperty =
-            AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MaxHeight), DefaultBottomSheetVariables.MaxHeight);
-
-        public static readonly StyledProperty<IBrush> ScrimColorProperty =
-            AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(ScrimColor), DefaultBottomSheetVariables.DefaultScrimColor);
-
-        public static readonly StyledProperty<bool> IsDismissableOnScrimClickProperty =
-            AvaloniaProperty.Register<BottomSheetControl, bool>(nameof(IsDismissableOnScrimClick), DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick);
-        
-        public new double MinHeight
-        {
-            get => GetValue(MinHeightProperty);
-            set => SetValue(MinHeightProperty, value);
-        }
-
-        public new double MaxHeight
-        {
-            get => GetValue(MaxHeightProperty);
-            set => SetValue(MaxHeightProperty, value);
-        }
-        public double AppearVerticalOffset
-        {
-            get => GetValue(AppearVerticalOffsetProperty);
-            set => SetValue(AppearVerticalOffsetProperty, value);
-        }
-
-        public double DisappearVerticalOffset
-        {
-            get => GetValue(DisappearVerticalOffsetProperty);
-            set => SetValue(DisappearVerticalOffsetProperty, value);
-        }
-
-        public IBrush ScrimColor
-        {
-            get => GetValue(ScrimColorProperty);
-            set => SetValue(ScrimColorProperty, value);
-        }
-
-        public bool IsDismissableOnScrimClick
-        {
-            get => GetValue(IsDismissableOnScrimClickProperty);
-            set => SetValue(IsDismissableOnScrimClickProperty, value);
-        }
-        
-        private void SetupDismissableCommand(CompositeDisposable disposables)
-        {
-            this.WhenAnyValue(x => x.ViewModel)
-                .Where(vm => vm != null)
-                .Take(1)
-                .Subscribe(viewModel =>
-                {
-                    viewModel.IsDismissableOnScrimClick = this.IsDismissableOnScrimClick;
-                })
-                .DisposeWith(disposables);
-            this.WhenAnyValue(x => x.ViewModel!.IsDismissableOnScrimClick)
-                .Subscribe(isDismissable =>
-                {
-                    IsDismissableOnScrimClick = isDismissable;
-                })
-                .DisposeWith(disposables);
-        }
-        
-        private void SetupContentObservables(CompositeDisposable disposables)
-        {
-            Border? sheetBorder = this.FindControl<Border>("SheetBorder");
-            ItemsControl? contentItems = this.FindControl<ItemsControl>("ContentItems");
-
-            if (sheetBorder != null && contentItems != null)
-            {
-                contentItems.GetObservable(BoundsProperty)
-                    .Subscribe(_ =>
-                    {
-                        UpdateSheetHeight(sheetBorder);
-                        CreateAnimations();
-                    })
-                    .DisposeWith(disposables);
-
-                contentItems.GetObservable(MarginProperty)
-                    .Subscribe(_ =>
-                    {
-                        UpdateSheetHeight(sheetBorder);
-                        CreateAnimations();
-                    })
-                    .DisposeWith(disposables);
-
-                UpdateSheetHeight(sheetBorder);
+                UpdateSheetHeight();
                 CreateAnimations();
-            }
-        }
-        private void SetupVisibilityObservable(CompositeDisposable disposables)
-        {
-            Border? sheetBorder = this.FindControl<Border>("SheetBorder");
-            Border? scrimBorder = this.FindControl<Border>("ScrimBorder");
-            
-            this.WhenAnyValue(x => x.ViewModel!.IsVisible)
-                .Subscribe(async isVisible =>
-                {
-                    if (sheetBorder == null || scrimBorder == null) return;
+            })
+            .DisposeWith(disposables);
 
-                    SetupViewForAnimation(sheetBorder);
-                    SetupScrimForAnimation(scrimBorder);
-
-                    if (isVisible)
-                    {
-                        this.IsVisible = true;
-                        await Task.WhenAll(
-                            _showAnimation!.RunAsync(sheetBorder, CancellationToken.None),
-                            _scrimShowAnimation!.RunAsync(scrimBorder, CancellationToken.None)
-                        );
-                    }
-                    else
-                    {
-                        await Task.WhenAll(
-                            _hideAnimation!.RunAsync(sheetBorder, CancellationToken.None),
-                            _scrimHideAnimation!.RunAsync(scrimBorder, CancellationToken.None)
-                        );
-                        await Task.Delay(_animationDuration);
-                        this.IsVisible = false;
-                    }
-                })
-                .DisposeWith(disposables);
-        }
-        
-
-        private void UpdateSheetHeight(Border sheetBorder)
-        {
-            ItemsControl? contentItems = this.FindControl<ItemsControl>("ContentItems");
-            if (contentItems == null) return;
-
-            double verticalMargin = contentItems.Margin.Top + contentItems.Margin.Bottom;
-            double contentHeight = contentItems.DesiredSize.Height + verticalMargin;
-            _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
-            sheetBorder.Height = _sheetHeight;
-        }
-
-        private void CreateAnimations()
-        {
-            double hiddenPosition = _sheetHeight + DisappearVerticalOffset;
-
-            _showAnimation = new Animation
+        _contentItems.GetObservable(MarginProperty)
+            .Subscribe(_ =>
             {
-                Duration = _animationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Forward,
-                Children =
+                UpdateSheetHeight();
+                CreateAnimations();
+            })
+            .DisposeWith(disposables);
+    }
+
+    private void SetupVisibilityObservable(CompositeDisposable disposables)
+    {
+        this.WhenAnyValue(x => x.ViewModel!.IsVisible)
+            .Subscribe(async isVisible =>
+            {
+                if (_sheetBorder == null || _scrimBorder == null)
                 {
-                    new KeyFrame
+                    IsVisible = isVisible;
+                    return;
+                }
+
+                if (_showAnimation == null || _hideAnimation == null || _scrimShowAnimation == null ||
+                    _scrimHideAnimation == null)
+                {
+                    IsVisible = isVisible;
+                    return;
+                }
+
+                SetupViewForAnimation(_sheetBorder);
+                SetupScrimForAnimation(_scrimBorder);
+
+                if (isVisible)
+                {
+                    IsVisible = true;
+                    await Task.WhenAll(
+                        _showAnimation.RunAsync(_sheetBorder, CancellationToken.None),
+                        _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+                    );
+                }
+                else
+                {
+                    await Task.WhenAll(
+                        _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None),
+                        _scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+                    );
+                    await Task.Delay(_animationDuration);
+                    IsVisible = false;
+                }
+            })
+            .DisposeWith(disposables);
+    }
+
+    private void SetupDismissableCommand(CompositeDisposable disposables)
+    {
+        this.WhenAnyValue(x => x.ViewModel)
+            .Where(vm => vm != null)
+            .Take(1)
+            .Subscribe(viewModel => { viewModel!.IsDismissableOnScrimClick = IsDismissableOnScrimClick; })
+            .DisposeWith(disposables);
+
+        this.WhenAnyValue(x => x.ViewModel!.IsDismissableOnScrimClick)
+            .Subscribe(isDismissable => { IsDismissableOnScrimClick = isDismissable; })
+            .DisposeWith(disposables);
+    }
+
+    private void UpdateSheetHeight()
+    {
+        if (_contentItems == null || _sheetBorder == null)
+        {
+            return;
+        }
+
+        double verticalMargin = _contentItems.Margin.Top + _contentItems.Margin.Bottom;
+        double contentHeight = _contentItems.DesiredSize.Height + verticalMargin;
+        _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
+        _sheetBorder.Height = _sheetHeight;
+    }
+
+    private void CreateAnimations()
+    {
+        double hiddenPosition = _sheetHeight + DisappearVerticalOffset;
+
+        _showAnimation = new Animation
+        {
+            Duration = _animationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Forward,
+            Children =
+            {
+                new KeyFrame
+                {
+                    Cue = new Cue(0.0),
+                    Setters =
                     {
-                        Cue = new Cue(0.0),
-                        Setters =
-                        {
-                            new Setter(TranslateTransform.YProperty, hiddenPosition),
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
-                        }
-                    },
-                    new KeyFrame
+                        new Setter(TranslateTransform.YProperty, hiddenPosition),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(1.0),
+                    Setters =
                     {
-                        Cue = new Cue(1.0),
-                        Setters =
-                        {
-                            new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
-                        }
+                        new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
                     }
                 }
-            };
+            }
+        };
 
-            _hideAnimation = new Animation
+        _hideAnimation = new Animation
+        {
+            Duration = _animationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Forward,
+            Children =
             {
-                Duration = _animationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Forward,
-                Children =
+                new KeyFrame
                 {
-                    new KeyFrame
+                    Cue = new Cue(0.0),
+                    Setters =
                     {
-                        Cue = new Cue(0.0),
-                        Setters =
-                        {
-                            new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
-                        }
-                    },
-                    new KeyFrame
+                        new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(1.0),
+                    Setters =
                     {
-                        Cue = new Cue(1.0),
-                        Setters =
-                        {
-                            new Setter(TranslateTransform.YProperty, hiddenPosition),
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
-                        }
+                        new Setter(TranslateTransform.YProperty, hiddenPosition),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
                     }
                 }
-            };
-            _scrimShowAnimation = new Animation
+            }
+        };
+
+        _scrimShowAnimation = new Animation
+        {
+            Duration = _animationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Forward,
+            Children =
             {
-                Duration = _animationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Forward,
-                Children =
+                new KeyFrame
                 {
-                    new KeyFrame
+                    Cue = new Cue(0.0),
+                    Setters =
                     {
-                        Cue = new Cue(0.0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, 0.0)
-                        }
-                    },
-                    new KeyFrame
+                        new Setter(OpacityProperty, 0.0)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(1.0),
+                    Setters =
                     {
-                        Cue = new Cue(1.0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
-                        }
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
                     }
                 }
-            };
-            _scrimHideAnimation = new Animation
+            }
+        };
+
+        _scrimHideAnimation = new Animation
+        {
+            Duration = _animationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Forward,
+            Children =
             {
-                Duration = _animationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Forward,
-                Children =
+                new KeyFrame
                 {
-                    new KeyFrame
+                    Cue = new Cue(0.0),
+                    Setters =
                     {
-                        Cue = new Cue(0.0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
-                        }
-                    },
-                    new KeyFrame
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(1.0),
+                    Setters =
                     {
-                        Cue = new Cue(1.0),
-                        Setters =
-                        {
-                            new Setter(Visual.OpacityProperty, 0.0)
-                        }
+                        new Setter(OpacityProperty, 0.0)
                     }
                 }
-            };
-        }
-
-        private void SetupViewForAnimation(Visual view)
-        {
-            view.RenderTransformOrigin = RelativePoint.TopLeft;
-            TranslateTransform translateTransform = EnsureTransform<TranslateTransform>(view);
-            translateTransform.Y = _sheetHeight + DisappearVerticalOffset;
-            view.Opacity = DefaultBottomSheetVariables.DefaultOpacity;
-            view.IsVisible = true;
-        }
-        
-        private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
-        {
-            if (IsDismissableOnScrimClick && ViewModel != null)
-            {
-                ViewModel.HideCommand.Execute().Subscribe();
             }
-        }
-        
-        private void SetupScrimForAnimation(Visual view)
+        };
+    }
+
+    private void SetupViewForAnimation(Visual view)
+    {
+        view.RenderTransformOrigin = RelativePoint.TopLeft;
+        TranslateTransform translateTransform = EnsureTransform<TranslateTransform>(view);
+        translateTransform.Y = _sheetHeight + DisappearVerticalOffset;
+        view.Opacity = DefaultBottomSheetVariables.DefaultOpacity;
+        view.IsVisible = true;
+    }
+
+    private void SetupScrimForAnimation(Visual view)
+    {
+        view.Opacity = 0.0;
+        view.IsVisible = true;
+    }
+
+    private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (IsDismissableOnScrimClick && ViewModel != null)
         {
-            view.Opacity = 0.0;
-            view.IsVisible = true;
+            ViewModel.HideCommand.Execute().Subscribe();
         }
-        
-        private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    }
+
+    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    {
+        TransformGroup? transformGroup = visual.RenderTransform as TransformGroup;
+
+        if (transformGroup == null)
         {
-            TransformGroup? transformGroup = visual.RenderTransform as TransformGroup;
-
-            if (transformGroup == null)
-            {
-                transformGroup = new TransformGroup();
-                if (visual.RenderTransform is Transform existingTransform)
-                    transformGroup.Children.Add(existingTransform);
-                visual.RenderTransform = transformGroup;
-            }
-
-            foreach (Transform? child in transformGroup.Children)
-            {
-                if (child is T existing) return existing;
-            }
-
-            T newTransform = new T();
-            transformGroup.Children.Add(newTransform);
-            return newTransform;
+            transformGroup = new TransformGroup();
+            if (visual.RenderTransform is Transform existingTransform)
+                transformGroup.Children.Add(existingTransform);
+            visual.RenderTransform = transformGroup;
         }
+
+        foreach (Transform? child in transformGroup.Children)
+        {
+            if (child is T existing) return existing;
+        }
+
+        T newTransform = new();
+        transformGroup.Children.Add(newTransform);
+        return newTransform;
     }
 }

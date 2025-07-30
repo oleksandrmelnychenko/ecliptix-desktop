@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
-using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -80,8 +79,7 @@ public class OpaqueAuthenticationService(
 
                 if (finalizationResult.IsErr)
                 {
-                    string errorMessage =
-                        $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
+                    string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
                     return Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(errorMessage)
                         .ToNetworkFailure());
                 }
@@ -136,7 +134,11 @@ public class OpaqueAuthenticationService(
 
                 if (verificationResult.IsErr)
                 {
-                    string errorMessage = $"Server authentication failed: {verificationResult.UnwrapErr().Message}";
+                    string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
+
+                    systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                        verificationResult.UnwrapErr().Message));
+
                     return Task.FromResult(
                         Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(errorMessage)
                             .ToNetworkFailure()));
