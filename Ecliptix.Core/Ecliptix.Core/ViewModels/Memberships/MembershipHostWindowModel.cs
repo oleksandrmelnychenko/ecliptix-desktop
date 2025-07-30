@@ -71,7 +71,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
         ISecureStorageProvider secureStorageProvider,
-        BottomSheetViewModel bottomSheetViewModel
+        BottomSheetViewModel bottomSheetViewModel,
+        IAuthenticationService authenticationService
     ) : base(systemEvents, networkProvider, localizationService)
     {
         _connectivitySubscription = connectivityObserver.Subscribe(async status => { IsConnected = status; });
@@ -80,7 +81,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
-                CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService)!
+                CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService,authenticationService)
             ));
 
         Navigate.Execute(MembershipViewType.MembershipWelcome).Subscribe();
@@ -190,12 +191,14 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         ISystemEvents systemEvents,
         MembershipViewType viewType,
         NetworkProvider networkProvider,
-        ILocalizationService localizationService
+        ILocalizationService localizationService,
+        IAuthenticationService authenticationService
     )
     {
         return viewType switch
         {
-            MembershipViewType.SignIn => new SignInViewModel(systemEvents, networkProvider, localizationService, this),
+            MembershipViewType.SignIn => new SignInViewModel(systemEvents, networkProvider, localizationService,
+                authenticationService, this),
             MembershipViewType.MembershipWelcome => new WelcomeViewModel(this, systemEvents, localizationService,
                 networkProvider),
             MembershipViewType.PhoneVerification => new MobileVerificationViewModel(systemEvents, networkProvider,

@@ -1,507 +1,172 @@
 using System;
-using System.Buffers;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
-using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Opaque.Protocol;
-using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.PubKeyExchange;
-using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
-using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.Sodium;
-using Google.Protobuf;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Math;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using Serilog;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 
 public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
 {
-    private bool _isBusy;
-    private SodiumSecureMemoryHandle? _securePasswordHandle;
-    private readonly CompositeDisposable Disposables = new();
-    private bool _isDisposed;
-    private readonly Subject<string> _secureKeyErrorSubject = new();
-    private readonly Subject<(int index, string chars)> _insertPasswordSubject = new();
-    private readonly Subject<(int index, int count)> _removePasswordSubject = new();
-    private int _currentSecureKeyLength;
+    private readonly IAuthenticationService _authService;
+    private readonly SecureTextBuffer _secureKeyBuffer = new();
+    private readonly CompositeDisposable _disposables = new();
+    private readonly Subject<string> _signInErrorSubject = new();
     private bool _hasMobileNumberBeenTouched;
-
-    [ObservableAsProperty] public string MobileNumberError { get; }
-    [ObservableAsProperty] public bool HasMobileNumberError { get; }
-    [ObservableAsProperty] public bool HasSecureKeyError { get; }
-    [ObservableAsProperty] public string SecureKeyError { get; }
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
-
-    public int CurrentSecureKeyLength
-    {
-        get => _currentSecureKeyLength;
-        private set => this.RaiseAndSetIfChanged(ref _currentSecureKeyLength, value);
-    }
+    private bool _hasSecureKeyBeenTouched;
+    private bool _isDisposed;
 
     public string UrlPathSegment => "/sign-in";
-    
     public IScreen HostScreen { get; }
 
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
-    }
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
+    [ObservableAsProperty] public bool IsBusy { get; }
 
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SignInCommand { get; }
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AccountRecoveryCommand { get; }
+    [ObservableAsProperty] public string MobileNumberError { get; private set; }
+    [ObservableAsProperty] public bool HasMobileNumberError { get; private set; }
+    [ObservableAsProperty] public string SecureKeyError { get; private set; }
+    [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
+
+    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
+
+    public ReactiveCommand<SystemU, Result<byte[], string>> SignInCommand { get; private set; }
+    public ReactiveCommand<SystemU, SystemU> AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
+        IAuthenticationService authService,
         IScreen hostScreen) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
+        _authService = authService;
 
-        IObservable<string> rawMobileValidation = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(mobileNumber =>
-            {
-                if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobileNumber))
-                    _hasMobileNumberBeenTouched = true;
-                return !_hasMobileNumberBeenTouched
-                    ? string.Empty
-                    : MobileNumberValidator.Validate(mobileNumber, LocalizationService);
-            });
-        rawMobileValidation
-            .Scan((prev, current) => string.IsNullOrEmpty(current) ? prev : current)
-            .ToPropertyEx(this, x => x.MobileNumberError);
-        rawMobileValidation
-            .Select(error => !string.IsNullOrEmpty(error))
-            .ToPropertyEx(this, x => x.HasMobileNumberError);
-
-        _secureKeyErrorSubject
-            .Scan((prev, current) => string.IsNullOrEmpty(current) ? prev : current)
-            .ToPropertyEx(this, x => x.SecureKeyError);
-        _secureKeyErrorSubject
-            .Select(error => !string.IsNullOrEmpty(error))
-            .ToPropertyEx(this, x => x.HasSecureKeyError);
-
-        _insertPasswordSubject
-            .Subscribe(x => { ModifySecureKeyState(x.index, 0, x.chars); })
-            .DisposeWith(Disposables);
-
-        _removePasswordSubject
-            .Subscribe(x => { ModifySecureKeyState(x.index, x.count, string.Empty); })
-            .DisposeWith(Disposables);
-
-        SignInCommand = ReactiveCommand.CreateFromTask(SignInAsync);
-        AccountRecoveryCommand = ReactiveCommand.Create(() => { });
+        IObservable<bool> isFormLogicallyValid = SetupValidation();
+        SetupCommands(isFormLogicallyValid);
+        SetupSubscriptions();
     }
-
 
     public void InsertSecureKeyChars(int index, string chars)
     {
-        if (string.IsNullOrEmpty(chars)) return;
-        _insertPasswordSubject.OnNext((index, chars));
+        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+
+        _secureKeyBuffer.Insert(index, chars);
+        this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
     public void RemoveSecureKeyChars(int index, int count)
     {
-        if (count <= 0) return;
-        _removePasswordSubject.OnNext((index, count));
+        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+
+        _secureKeyBuffer.Remove(index, count);
+        this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
-    private static int GetUtf8ByteOffset(byte[] bytes, int byteLength, int charIndex)
+    private IObservable<bool> SetupValidation()
     {
-        int currentChar = 0;
-        int currentByte = 0;
-        while (currentByte < byteLength && currentChar < charIndex)
-        {
-            byte b = bytes[currentByte];
-            switch (b)
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(mobile =>
             {
-                case < 0x80:
-                    currentByte += 1;
-                    break;
-                case < 0xE0:
-                    currentByte += 2;
-                    break;
-                case < 0xF0:
-                    currentByte += 3;
-                    break;
-                case < 0xF8:
-                    currentByte += 4;
-                    break;
-                default:
-                    currentByte += 1;
-                    continue;
-            }
+                if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
+                    _hasMobileNumberBeenTouched = true;
 
-            currentChar++;
-        }
+                return !_hasMobileNumberBeenTouched
+                    ? string.Empty
+                    : MobileNumberValidator.Validate(mobile, LocalizationService);
+            })
+            .Replay(1)
+            .RefCount();
 
-        return currentByte;
+        mobileErrorStream.ToPropertyEx(this, x => x.MobileNumberError);
+        this.WhenAnyValue(x => x.MobileNumberError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasMobileNumberError);
+
+        IObservable<string> keyDisplayErrorStream = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => _hasSecureKeyBeenTouched ? ValidateSecureKey() : string.Empty)
+            .Replay(1)
+            .RefCount();
+
+        keyDisplayErrorStream.Merge(_signInErrorSubject)
+            .ToPropertyEx(this, x => x.SecureKeyError);
+
+        this.WhenAnyValue(x => x.SecureKeyError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasSecureKeyError);
+
+        IObservable<bool> isMobileLogicallyValid = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(m => string.IsNullOrEmpty(MobileNumberValidator.Validate(m, LocalizationService)));
+
+        IObservable<bool> isKeyLogicallyValid = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => string.IsNullOrEmpty(ValidateSecureKey()));
+
+        return isMobileLogicallyValid.CombineLatest(isKeyLogicallyValid,
+            (isMobileValid, isKeyValid) => isMobileValid && isKeyValid
+        ).DistinctUntilChanged();
     }
 
-    private void ModifySecureKeyState(int index, int removeCount, string insertChars)
+    private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        byte[]? oldSecureKeyBytes = null;
-        byte[]? newSecureKeyBytes = null;
-        SodiumSecureMemoryHandle? newHandle = null;
-        bool success = false;
+        IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
-        try
+        SignInCommand = ReactiveCommand.CreateFromTask(
+            () => _authService.SignInAsync(MobileNumber, _secureKeyBuffer),
+            canSignIn);
+
+        SignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+
+        AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
-            int oldLength = _securePasswordHandle?.Length ?? 0;
-            int oldCharLength = CurrentSecureKeyLength;
-            index = Math.Clamp(index, 0, oldCharLength);
-            removeCount = Math.Clamp(removeCount, 0, oldCharLength - index);
-            int newCharLength = oldCharLength - removeCount + insertChars.Length;
-
-            if (oldLength > 0)
-            {
-                oldSecureKeyBytes = ArrayPool<byte>.Shared.Rent(oldLength);
-                Result<Unit, SodiumFailure> readResult =
-                    _securePasswordHandle!.Read(oldSecureKeyBytes.AsSpan(0, oldLength));
-                if (readResult.IsErr)
-                {
-                    SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                        readResult.UnwrapErr().Message));
-                    return;
-                }
-            }
-
-            ReadOnlySpan<byte> oldSpan =
-                oldLength > 0 ? oldSecureKeyBytes.AsSpan(0, oldLength) : ReadOnlySpan<byte>.Empty;
-
-            byte[] insertBytes = Encoding.UTF8.GetBytes(insertChars);
-
-            int startByte = GetUtf8ByteOffset(oldSecureKeyBytes ?? [], oldLength, index);
-            int endByte = GetUtf8ByteOffset(oldSecureKeyBytes ?? [], oldLength, index + removeCount);
-            int removedByteCount = endByte - startByte;
-
-            int newLength = oldLength - removedByteCount + insertBytes.Length;
-            if (newLength >= 0)
-            {
-                newSecureKeyBytes = ArrayPool<byte>.Shared.Rent(newLength);
-                Span<byte> newSpan = newSecureKeyBytes.AsSpan(0, newLength);
-
-                oldSpan[..startByte].CopyTo(newSpan[..startByte]);
-                insertBytes.CopyTo(newSpan[startByte..(startByte + insertBytes.Length)]);
-                if (endByte < oldSpan.Length)
-                {
-                    oldSpan[endByte..].CopyTo(newSpan[(startByte + insertBytes.Length)..]);
-                }
-            }
-
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocateResult =
-                SodiumSecureMemoryHandle.Allocate(newLength);
-            if (allocateResult.IsErr)
-            {
-                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                    allocateResult.UnwrapErr().Message));
-                return;
-            }
-
-            newHandle = allocateResult.Unwrap();
-
-            if (newLength > 0)
-            {
-                Result<Unit, SodiumFailure> writeResult = newHandle.Write(newSecureKeyBytes.AsSpan(0, newLength));
-                if (writeResult.IsErr)
-                {
-                    SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                        allocateResult.UnwrapErr().Message));
-                    return;
-                }
-            }
-
-            string? passwordValidationError = ValidatePassword(newSecureKeyBytes, newLength);
-            if (!string.IsNullOrEmpty(passwordValidationError))
-            {
-                SetSecureKeyError(passwordValidationError);
-            }
-            else
-            {
-                ClearSecureKeyError();
-            }
-
-            SodiumSecureMemoryHandle? oldHandle = _securePasswordHandle;
-            _securePasswordHandle = newHandle;
-            oldHandle?.Dispose();
-            newHandle = null;
-            CurrentSecureKeyLength = newCharLength;
-            success = true;
-        }
-        finally
-        {
-            if (oldSecureKeyBytes != null) ArrayPool<byte>.Shared.Return(oldSecureKeyBytes, true);
-            if (newSecureKeyBytes != null) ArrayPool<byte>.Shared.Return(newSecureKeyBytes, true);
-            if (!success && newHandle != null) newHandle.Dispose();
-        }
+            /* Navigation logic */
+        });
     }
 
-    private async Task SignInAsync()
+    private void SetupSubscriptions()
     {
-        IsBusy = true;
-        ClearSecureKeyError();
-
-        if (_securePasswordHandle == null || _securePasswordHandle.IsInvalid)
-        {
-            SetSecureKeyError(LocalizationService["ValidationErrors.SecureKey.Required"]);
-            IsBusy = false;
-            return;
-        }
-
-        byte[]? rentedPasswordBytes = null;
-        try
-        {
-            rentedPasswordBytes = ReadSecureKey();
-            if (rentedPasswordBytes == null)
+        SignInCommand
+            .Where(result => result.IsErr)
+            .Select(result => result.UnwrapErr())
+            .Subscribe(error =>
             {
-                IsBusy = false;
-                return;
-            }
+                _hasSecureKeyBeenTouched = true;
+                _signInErrorSubject.OnNext(error);
+            })
+            .DisposeWith(_disposables);
 
-            string? passwordValidationError = ValidatePassword(rentedPasswordBytes, _securePasswordHandle.Length);
-            if (!string.IsNullOrEmpty(passwordValidationError))
+        SignInCommand
+            .Where(result => result.IsOk)
+            .Subscribe(result =>
             {
-                SetSecureKeyError(passwordValidationError);
-                IsBusy = false;
-                return;
-            }
+                _signInErrorSubject.OnNext(string.Empty);
+                byte[] sessionKey = result.Unwrap();
 
-            OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
-            (byte[] OprfRequest, BigInteger Blind)? requestTuple = CreateOprfRequest(rentedPasswordBytes);
-            if (requestTuple == null)
-            {
-                IsBusy = false;
-                return;
-            }
+                // TODO: Navigate and handle the session key securely.
 
-            byte[] oprfRequest = requestTuple.Value.OprfRequest;
-            BigInteger blind = requestTuple.Value.Blind;
-
-            byte[] passwordBytes = rentedPasswordBytes.AsSpan().ToArray();
-
-            Result<Unit, NetworkFailure> initResult =
-                await SendInitRequestAndProcessResponse(clientOpaqueService, oprfRequest, blind, passwordBytes);
-            if (initResult.IsErr)
-            {
-                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                    initResult.UnwrapErr().Message));
-            }
-        }
-        finally
-        {
-            if (rentedPasswordBytes != null)
-            {
-                rentedPasswordBytes.AsSpan().Clear();
-                ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
-            }
-
-            IsBusy = false;
-        }
+                Array.Clear(sessionKey, 0, sessionKey.Length);
+            })
+            .DisposeWith(_disposables);
     }
 
-    private string? ValidatePassword(byte[]? passwordBytes, int length)
+    private string ValidateSecureKey()
     {
-        if (passwordBytes == null || length == 0)
+        string? error = null;
+        _secureKeyBuffer.WithSecureBytes(bytes =>
         {
-            return LocalizationService["ValidationErrors.SecureKey.Required"];
-        }
-
-        byte[]? rentedBytes = null;
-        try
-        {
-            rentedBytes = ArrayPool<byte>.Shared.Rent(length);
-            Array.Copy(passwordBytes, 0, rentedBytes, 0, length);
-            string password = Encoding.UTF8.GetString(rentedBytes, 0, length);
-            (string? error, _) = SecureKeyValidator.Validate(password, LocalizationService, isSignIn: true);
-            return error;
-        }
-        finally
-        {
-            if (rentedBytes != null)
-            {
-                rentedBytes.AsSpan().Clear();
-                ArrayPool<byte>.Shared.Return(rentedBytes);
-            }
-        }
+            string password = Encoding.UTF8.GetString(bytes);
+            (error, _) = SecureKeyValidator.Validate(password, LocalizationService, isSignIn: true);
+        });
+        return error ?? string.Empty;
     }
-
-    private byte[]? ReadSecureKey()
-    {
-        byte[]? rentedPasswordBytes = null;
-        try
-        {
-            int passwordLength = _securePasswordHandle!.Length;
-            rentedPasswordBytes = ArrayPool<byte>.Shared.Rent(passwordLength);
-            Span<byte> passwordSpan = rentedPasswordBytes.AsSpan(0, passwordLength);
-
-            Result<Unit, SodiumFailure> readResult = _securePasswordHandle.Read(passwordSpan);
-            if (readResult.IsErr)
-            {
-                SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                    readResult.UnwrapErr().Message));
-                return null;
-            }
-
-            return rentedPasswordBytes;
-        }
-        finally
-        {
-            if (rentedPasswordBytes != null)
-            {
-                rentedPasswordBytes.AsSpan().Clear();
-                ArrayPool<byte>.Shared.Return(rentedPasswordBytes);
-            }
-        }
-    }
-
-    private OpaqueProtocolService CreateOpaqueService()
-    {
-        byte[] serverPublicKeyBytes = ServerPublicKey();
-        ECPublicKeyParameters serverStaticPublicKeyParam = new(
-            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes),
-            OpaqueCryptoUtilities.DomainParams
-        );
-        return new OpaqueProtocolService(serverStaticPublicKeyParam);
-    }
-
-    private (byte[] OprfRequest, BigInteger Blind)? CreateOprfRequest(byte[] passwordBytes)
-    {
-        Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
-            OpaqueProtocolService.CreateOprfRequest(passwordBytes);
-        if (!oprfResult.IsErr) return oprfResult.Unwrap();
-        SystemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-            oprfResult.UnwrapErr().Message));
-        return null;
-    }
-
-    private async Task<Result<Unit, NetworkFailure>> SendInitRequestAndProcessResponse(
-        OpaqueProtocolService clientOpaqueService,
-        byte[] oprfRequest,
-        BigInteger blind,
-        byte[] passwordBytes)
-    {
-        OpaqueSignInInitRequest initRequest = new()
-        {
-            PhoneNumber = MobileNumber,
-            PeerOprf = ByteString.CopyFrom(oprfRequest),
-        };
-
-        return await NetworkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.OpaqueSignInInitRequest,
-            initRequest.ToByteArray(),
-            ServiceFlowType.Single,
-            async payload =>
-            {
-                OpaqueSignInInitResponse initResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(payload);
-
-                Result<
-                    (
-                    OpaqueSignInFinalizeRequest Request,
-                    byte[] SessionKey,
-                    byte[] ServerMacKey,
-                    byte[] TranscriptHash
-                    ),
-                    OpaqueFailure
-                > finalizationResult = clientOpaqueService.CreateSignInFinalizationRequest(
-                    MobileNumber,
-                    passwordBytes,
-                    initResponse,
-                    blind
-                );
-
-                if (finalizationResult.IsErr)
-                {
-                    string errorMessage =
-                        $"Failed to process server response: {finalizationResult.UnwrapErr().Message}";
-                    SetSecureKeyError(errorMessage);
-                    return Result<Unit, NetworkFailure>.Err(
-                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
-                    );
-                }
-
-                (
-                    OpaqueSignInFinalizeRequest finalizeRequest,
-                    byte[] sessionKey,
-                    byte[] serverMacKey,
-                    byte[] transcriptHash
-                ) = finalizationResult.Unwrap();
-
-                return await SendFinalizeRequestAndVerify(clientOpaqueService, finalizeRequest, sessionKey,
-                    serverMacKey, transcriptHash);
-            }
-        );
-    }
-
-    private async Task<Result<Unit, NetworkFailure>> SendFinalizeRequestAndVerify(
-        OpaqueProtocolService clientOpaqueService,
-        OpaqueSignInFinalizeRequest finalizeRequest,
-        byte[] sessionKey,
-        byte[] serverMacKey,
-        byte[] transcriptHash)
-    {
-        return await NetworkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.OpaqueSignInCompleteRequest,
-            finalizeRequest.ToByteArray(),
-            ServiceFlowType.Single,
-            async payload2 =>
-            {
-                OpaqueSignInFinalizeResponse finalizeResponse =
-                    Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(payload2);
-
-                if (finalizeResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
-                {
-                    SetSecureKeyError(finalizeResponse.HasMessage
-                        ? finalizeResponse.Message
-                        : LocalizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
-                    return Result<Unit, NetworkFailure>.Err(
-                        EcliptixProtocolFailure.Generic("Invalid credentials.").ToNetworkFailure()
-                    );
-                }
-
-                Result<byte[], OpaqueFailure> verificationResult =
-                    clientOpaqueService.VerifyServerMacAndGetSessionKey(
-                        finalizeResponse,
-                        sessionKey,
-                        serverMacKey,
-                        transcriptHash
-                    );
-
-                if (verificationResult.IsErr)
-                {
-                    string errorMessage = $"Server authentication failed: {verificationResult.UnwrapErr().Message}";
-                    SetSecureKeyError(errorMessage);
-                    return Result<Unit, NetworkFailure>.Err(
-                        EcliptixProtocolFailure.Generic(errorMessage).ToNetworkFailure()
-                    );
-                }
-
-                byte[] finalSessionKey = verificationResult.Unwrap();
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-            }
-        );
-    }
-
-    private void SetSecureKeyError(string message) =>
-        _secureKeyErrorSubject.OnNext(message);
-
-    private void ClearSecureKeyError() =>
-        _secureKeyErrorSubject.OnNext(string.Empty);
 
     public new void Dispose()
     {
@@ -514,18 +179,12 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         if (_isDisposed) return;
         if (disposing)
         {
-            _securePasswordHandle?.Dispose();
-            _secureKeyErrorSubject.Dispose();
-            _insertPasswordSubject.Dispose();
-            _removePasswordSubject.Dispose();
-            Disposables.Dispose();
+            _secureKeyBuffer.Dispose();
+            _signInErrorSubject.Dispose();
+            _disposables.Dispose();
         }
 
+        base.Dispose(disposing);
         _isDisposed = true;
-    }
-
-    ~SignInViewModel()
-    {
-        Dispose(false);
     }
 }

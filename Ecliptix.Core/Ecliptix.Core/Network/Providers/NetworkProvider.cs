@@ -145,32 +145,6 @@ public sealed class NetworkProvider(
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token = default)
     {
-        // Result<Unit, NetworkFailure> result;
-        // do
-        // {
-        //     if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-        //     {
-        //         return Result<Unit, NetworkFailure>.Err(
-        //             NetworkFailure.InvalidRequestType("Connection not found"));
-        //     }
-        //
-        //     ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-        //     result = await SendRequestAsync(protocolSystem, request, onCompleted, token);
-        //
-        //     if (result.IsErr && result.UnwrapErr().Message.Contains("Secure session with"))
-        //     {
-        //         if (serviceType == RcpServiceType.RegisterAppDevice)
-        //         {
-        //             await EstablishConnectionOnly(connectId);
-        //         }
-        //         else
-        //         {
-        //             await PerformReconnectionLogic();
-        //         }
-        //     }
-        // } while (result.IsErr);
-        //
-        // return result;
         return await RetryExecute(
             retryAttempt => TimeSpan.FromSeconds(retryAttempt * 6),
             shouldRetry: result => result.IsErr && result.UnwrapErr().Message.Contains("Secure session with"),

@@ -133,13 +133,17 @@ public static class Program
             SuccessThreshold = 1
         });
 
+        
+       
         services.AddSingleton<IEventAggregator, EventAggregator>();
         services.AddSingleton<INetworkEvents, NetworkEvents>();
         services.AddSingleton<ISystemEvents, SystemEvents>();
-
-        services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
         services.AddSingleton<ILocalizationService, LocalizationService>();
+        services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
+        services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
+        
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
+        
         services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
         );

@@ -9,10 +9,11 @@
         xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         xmlns:languageSwitcher="clr-namespace:Ecliptix.Core.Controls.LanguageSwitcher"
-        xmlns:vm1="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
+        xmlns:vm1="clr-namespace:"
+        xmlns:vm11="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -210,7 +211,7 @@
     </Window.Styles>
 
     <Window.DataTemplates>
-        <DataTemplate DataType="{x:Type vm1:SignInViewModel}">
+        <DataTemplate DataType="{x:Type vm11:SignInViewModel}">
             <signIn:SignInView />
         </DataTemplate>
     </Window.DataTemplates>
