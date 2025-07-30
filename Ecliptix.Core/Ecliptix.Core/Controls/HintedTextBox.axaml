@@ -250,7 +250,7 @@
 
                         <TextBlock x:Name="PasswordMaskOverlay"
                                    Classes="password-mask-overlay"
-                                   IsVisible="{Binding IsPasswordMode, ElementName=control}" />
+                                   IsVisible="{Binding IsSecureKeyMode, ElementName=control}" />
                         
                         <!-- Character Counter -->
                         <StackPanel Grid.Row="0"

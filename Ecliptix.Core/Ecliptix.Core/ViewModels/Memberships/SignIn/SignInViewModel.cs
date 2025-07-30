@@ -35,7 +35,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     private readonly Subject<string> _secureKeyErrorSubject = new();
     private readonly Subject<(int index, string chars)> _insertPasswordSubject = new();
     private readonly Subject<(int index, int count)> _removePasswordSubject = new();
-    private int _currentPasswordLength;
+    private int _currentSecureKeyLength;
     private bool _hasMobileNumberBeenTouched;
 
     [ObservableAsProperty] public string MobileNumberError { get; }
@@ -43,10 +43,10 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     [ObservableAsProperty] public bool HasSecureKeyError { get; }
     [ObservableAsProperty] public string SecureKeyError { get; }
 
-    public int CurrentPasswordLength
+    public int CurrentSecureKeyLength
     {
-        get => _currentPasswordLength;
-        private set => this.RaiseAndSetIfChanged(ref _currentPasswordLength, value);
+        get => _currentSecureKeyLength;
+        private set => this.RaiseAndSetIfChanged(ref _currentSecureKeyLength, value);
     }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
@@ -108,7 +108,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     private readonly CompositeDisposable Disposables = new();
 
-    public void InsertPasswordChars(int index, string chars)
+    public void InsertSecureKeyChars(int index, string chars)
     {
         if (string.IsNullOrEmpty(chars)) return;
         _insertPasswordSubject.OnNext((index, chars));
@@ -162,7 +162,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         try
         {
             int oldLength = _securePasswordHandle?.Length ?? 0;
-            int oldCharLength = CurrentPasswordLength;
+            int oldCharLength = CurrentSecureKeyLength;
             index = Math.Clamp(index, 0, oldCharLength);
             removeCount = Math.Clamp(removeCount, 0, oldCharLength - index);
             int newCharLength = oldCharLength - removeCount + insertChars.Length;
@@ -236,7 +236,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             _securePasswordHandle = newHandle;
             oldHandle?.Dispose();
             newHandle = null;
-            CurrentPasswordLength = newCharLength;
+            CurrentSecureKeyLength = newCharLength;
             success = true;
         }
         finally
