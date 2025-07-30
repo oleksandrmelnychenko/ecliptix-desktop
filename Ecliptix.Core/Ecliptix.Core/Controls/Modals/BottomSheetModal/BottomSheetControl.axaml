@@ -17,27 +17,41 @@
             <Setter Property="BorderBrush" Value="LightGray"></Setter>
             <Setter Property="MinHeight" Value="200"/>
             <Setter Property="MaxHeight" Value="600"/>
+            <Setter Property="ZIndex" Value="1"/>
+        </Style>
+        <Style Selector="Border.scrim">
+            <Setter Property="Background" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=ScrimColor}"/>
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="ZIndex" Value="0"/>
+            <Setter Property="CornerRadius" Value="12"/>
         </Style>
     </UserControl.Styles>
 
-    <!-- Bottom sheet content -->
-    <Border x:Name="SheetBorder"
-            Classes="sheet"
-            VerticalAlignment="Bottom"
-            Width="400"
-            Background="White">
+    <Grid>
+        <Border
+            x:Name="ScrimBorder"
+            Classes="scrim"
+            IsHitTestVisible="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=IsDismissableOnScrimClick}"
+            PointerPressed="OnScrimPointerPressed"/>
+        <Border x:Name="SheetBorder"
+                Classes="sheet"
+                VerticalAlignment="Bottom"
+                Width="400"
+                Background="White">
     
-        <ScrollViewer MaxHeight="568"
-                      VerticalScrollBarVisibility="Auto">
-            <ItemsControl x:Name="ContentItems"
-                          ItemsSource="{Binding ContentControls}"
-                          Margin="16,32,16,16">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Spacing="10"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-            </ItemsControl>
-        </ScrollViewer>
-    </Border>
+            <ScrollViewer MaxHeight="568"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="ContentItems"
+                              ItemsSource="{Binding ContentControls}"
+                              Margin="16,32,16,16">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="10"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+   
 </UserControl>
