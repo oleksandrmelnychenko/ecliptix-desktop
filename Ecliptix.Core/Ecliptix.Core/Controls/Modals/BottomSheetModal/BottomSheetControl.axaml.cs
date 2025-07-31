@@ -55,6 +55,26 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         AvaloniaProperty.Register<BottomSheetControl, bool>(nameof(IsDismissableOnScrimClick),
             DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick);
 
+    public static readonly StyledProperty<IBrush> DismissableScrimColorProperty =
+        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(DismissableScrimColor),
+            DefaultBottomSheetVariables.DefaultDismissableScrimColor);
+
+    public static readonly StyledProperty<IBrush> UnDismissableScrimColorProperty =
+        AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(UnDismissableScrimColor),
+            DefaultBottomSheetVariables.DefaultUnDismissableScrimColor);
+
+    public IBrush DismissableScrimColor
+    {
+        get => GetValue(DismissableScrimColorProperty);
+        set => SetValue(DismissableScrimColorProperty, value);
+    }
+
+    public IBrush UnDismissableScrimColor
+    {
+        get => GetValue(UnDismissableScrimColorProperty);
+        set => SetValue(UnDismissableScrimColorProperty, value);
+    }
+    
     public double AppearVerticalOffset
     {
         get => GetValue(AppearVerticalOffsetProperty);
@@ -109,6 +129,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             SetupContentObservables(disposables);
             SetupVisibilityObservable(disposables);
             SetupDismissableCommand(disposables);
+            SetupScrimColorObservable(disposables);
             Observable.FromEventPattern<RoutedEventArgs>(this, nameof(Loaded))
                 .Take(1)
                 .Subscribe(_ =>
@@ -151,6 +172,20 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             .DisposeWith(disposables);
     }
 
+    private void SetupScrimColorObservable(CompositeDisposable disposables)
+    {
+        this.WhenAnyValue(
+                x => x.IsDismissableOnScrimClick, 
+                x => x.DismissableScrimColor,
+                x => x.UnDismissableScrimColor)
+            .Subscribe(tuple =>
+            {
+                var (isDismissable, dismissableColor, unDismissableColor) = tuple;
+                ScrimColor = isDismissable ? dismissableColor : unDismissableColor;
+            })
+            .DisposeWith(disposables);
+    }
+    
    private void SetupVisibilityObservable(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.ViewModel!.IsVisible, x => x.ViewModel!.ShowScrim)
@@ -334,7 +369,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Cue = new Cue(1.0),
                     Setters =
                     {
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity)
                     }
                 }
             }
@@ -352,7 +387,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Cue = new Cue(0.0),
                     Setters =
                     {
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity)
                     }
                 },
                 new KeyFrame

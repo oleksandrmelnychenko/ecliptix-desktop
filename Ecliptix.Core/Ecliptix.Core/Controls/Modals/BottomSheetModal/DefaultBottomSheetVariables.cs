@@ -13,4 +13,7 @@ public static class DefaultBottomSheetVariables
     public const double DefaultAnimationDuration = 300.0;
     public static readonly IBrush DefaultScrimColor = Brushes.Black;
     public const bool DefaultIsDismissableOnScrimClick = true;
+    public static readonly IBrush DefaultDismissableScrimColor = Brushes.Black;
+    public static readonly IBrush DefaultUnDismissableScrimColor = Brushes.Gray;
+    public const double DefaultScrimOpacity = 0.7;
 }

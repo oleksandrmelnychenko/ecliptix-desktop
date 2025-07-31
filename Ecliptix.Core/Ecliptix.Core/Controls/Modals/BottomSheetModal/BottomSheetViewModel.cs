@@ -96,11 +96,11 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                         IsVisible = shouldBeVisible;
                     }
 
-                    bool isDismissable = eventArgs.ComponentType == BottomSheetComponentType.DetectedLocalization;
-                    if (_isDismissableOnScrimClick != isDismissable)
-                    {
-                        IsDismissableOnScrimClick = isDismissable;
-                    }
+                    // bool isDismissable = eventArgs.ComponentType == BottomSheetComponentType.DetectedLocalization;
+                    // if (_isDismissableOnScrimClick != isDismissable)
+                    // {
+                    //     IsDismissableOnScrimClick = isDismissable;
+                    // }
                     
                     if (_showScrim != eventArgs.ShowScrim)
                     {
