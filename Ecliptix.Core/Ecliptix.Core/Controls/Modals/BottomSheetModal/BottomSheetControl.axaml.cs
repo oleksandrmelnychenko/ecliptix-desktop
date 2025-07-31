@@ -125,19 +125,11 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         this.WhenActivated(disposables =>
         {
-            
+
             SetupContentObservables(disposables);
             SetupVisibilityObservable(disposables);
             SetupDismissableCommand(disposables);
             SetupScrimColorObservable(disposables);
-            Observable.FromEventPattern<RoutedEventArgs>(this, nameof(Loaded))
-                .Take(1)
-                .Subscribe(_ =>
-                {
-                    UpdateSheetHeight();
-                    CreateAnimations();
-                })
-                .DisposeWith(disposables);
         });
     }
 
@@ -154,18 +146,21 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             return;
         }
-
-        _contentControl.GetObservable(BoundsProperty)
-            .Subscribe(_ =>
+        
+        _contentControl.GetObservable(ContentControl.ContentProperty)
+            .StartWith(_contentControl.Content)
+            .Where(content => content != null) 
+            .SelectMany(content =>
             {
-                UpdateSheetHeight();
-                CreateAnimations();
+                return Observable.CombineLatest(
+                    _contentControl.GetObservable(BoundsProperty).StartWith(_contentControl.Bounds).Take(1),
+                    _contentControl.GetObservable(MarginProperty).StartWith(_contentControl.Margin).Take(1),
+                    (bounds, margin) => new { Content = content, Bounds = bounds, Margin = margin });
             })
-            .DisposeWith(disposables);
-
-        _contentControl.GetObservable(MarginProperty)
-            .Subscribe(_ =>
+            .Throttle(TimeSpan.FromMilliseconds(100), RxApp.MainThreadScheduler)
+            .Subscribe(state =>
             {
+                Log.Debug($"ContentObservables triggered: Content={state.Content}, Bounds={state.Bounds}, Margin={state.Margin}");
                 UpdateSheetHeight();
                 CreateAnimations();
             })
