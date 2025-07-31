@@ -7,12 +7,11 @@ using System.Reactive.Linq;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
-using Ecliptix.Protobuf.AppDevice;
 using ReactiveUI;
 
-namespace Ecliptix.Core.Controls.LanguageSwitcher;
+namespace Ecliptix.Core.Controls.LanguageSelector;
 
-public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableViewModel
+public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
     private readonly ISecureStorageProvider _secureStorageProvider;
@@ -35,7 +34,7 @@ public sealed class LanguageSwitcherViewModel : ReactiveObject, IActivatableView
 
     public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
 
-    public LanguageSwitcherViewModel(ILocalizationService localizationService,
+    public LanguageSelectorViewModel(ILocalizationService localizationService,
         ISecureStorageProvider secureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider)
     {
         _localizationService = localizationService;

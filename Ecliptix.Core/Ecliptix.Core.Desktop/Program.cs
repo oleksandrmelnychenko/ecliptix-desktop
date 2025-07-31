@@ -10,7 +10,7 @@ using Ecliptix.Core.AppEvents;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Controls.LanguageSwitcher;
+using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Interceptors;
@@ -196,7 +196,7 @@ public static class Program
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<WelcomeViewModel>();
-        services.AddTransient<LanguageSwitcherViewModel>();
+        services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
     }
 

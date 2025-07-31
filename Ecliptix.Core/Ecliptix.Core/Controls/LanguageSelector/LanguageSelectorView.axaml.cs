@@ -4,19 +4,19 @@ using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 
-namespace Ecliptix.Core.Controls.LanguageSwitcher;
+namespace Ecliptix.Core.Controls.LanguageSelector;
 
-public partial class LanguageSwitcherView : ReactiveUserControl<LanguageSwitcherViewModel>
+public partial class LanguageSelectorView : ReactiveUserControl<LanguageSelectorViewModel>
 {
-    public LanguageSwitcherView()
+    public LanguageSelectorView()
     {
         AvaloniaXamlLoader.Load(this);
     }
 
-    public LanguageSwitcherView(ILocalizationService localizationService,
+    public LanguageSelectorView(ILocalizationService localizationService,
         ISecureStorageProvider secureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider) : this()
     {
         AvaloniaXamlLoader.Load(this);
-        DataContext = new LanguageSwitcherViewModel(localizationService, secureStorageProvider, rpcMetaDataProvider);
+        DataContext = new LanguageSelectorViewModel(localizationService, secureStorageProvider, rpcMetaDataProvider);
     }
 }

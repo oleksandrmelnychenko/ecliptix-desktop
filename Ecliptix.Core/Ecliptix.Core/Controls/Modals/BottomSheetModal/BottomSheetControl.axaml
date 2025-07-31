@@ -15,7 +15,7 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="LightGray"></Setter>
             <Setter Property="MinHeight" Value="200" />
-            <Setter Property="MaxHeight" Value="600" />
+            <!--<Setter Property="MaxHeight" Value="600" />-->
             <Setter Property="ZIndex" Value="1" />
         </Style>
         <Style Selector="Border.scrim">
@@ -37,6 +37,7 @@
                 Classes="sheet"
                 VerticalAlignment="Bottom"
                 Width="400"
+                Margin="0,0,0,24"
                 Background="White">
                 <ContentControl 
                     x:Name="ContentControl"

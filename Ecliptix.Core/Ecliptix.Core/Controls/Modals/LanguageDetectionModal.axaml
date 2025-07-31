@@ -4,21 +4,18 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
+             xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:DataType="modals:LanguageDetectionViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.LanguageDetectionModal">
 
     <UserControl.Resources>
-        <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
-        <Color x:Key="ShadowColor">#9966CC</Color>
         <x:Double x:Key="ButtonHeight">44</x:Double>
         <x:Double x:Key="TitleFontSize">22</x:Double>
         <x:Double x:Key="SubtitleFontSize">17</x:Double>
         <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
         <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
-        <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
         <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
         <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
     </UserControl.Resources>
 
@@ -55,7 +52,7 @@
     </UserControl.Styles>
 
     <Border Padding="24">
-        <Grid RowDefinitions="Auto, Auto, Auto" RowSpacing="16">
+        <Grid RowDefinitions="Auto, Auto, *,Auto" RowSpacing="24">
             <TextBlock
                 Grid.Row="0"
                 TextWrapping="Wrap"
@@ -79,8 +76,12 @@
                     VerticalAlignment="Center"
                     Text="Switch to Ukrainian?" />
             </StackPanel>
+            <Grid Grid.Row="2">
+                <Image Width="126" Height="96"  anim:ImageBehavior.RepeatBehavior="3"
+                       anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/language.gif" />
+            </Grid>
             <Grid
-                Grid.Row="2"
+                Grid.Row="3"
                 ColumnDefinitions="*,*"
                 ColumnSpacing="12"
                 Margin="0,8,0,0">

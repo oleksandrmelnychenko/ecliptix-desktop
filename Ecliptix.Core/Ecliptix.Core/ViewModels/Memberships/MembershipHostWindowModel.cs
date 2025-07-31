@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Controls.LanguageSwitcher;
+using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
@@ -51,7 +51,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
     }
 
-    public LanguageSwitcherViewModel LanguageSwitcher { get; }
+    public LanguageSelectorViewModel LanguageSelector { get; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
@@ -77,7 +77,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         _bottomSheetEvents = bottomSheetEvents ?? throw new ArgumentNullException(nameof(bottomSheetEvents));
         _secureStorageProvider = secureStorageProvider;
 
-        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider,rpcMetaDataProvider);
+        LanguageSelector = new LanguageSelectorViewModel(localizationService, secureStorageProvider,rpcMetaDataProvider);
         _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
@@ -131,7 +131,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
                     _bottomSheetEvents.BottomSheetChangedState(
-                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization,false));
+                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization));
                 }
             }
         }

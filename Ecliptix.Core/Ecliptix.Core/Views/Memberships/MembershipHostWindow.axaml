@@ -8,12 +8,12 @@
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:memberships="clr-namespace:Ecliptix.Core.Views.Memberships"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
-        xmlns:languageSwitcher="clr-namespace:Ecliptix.Core.Controls.LanguageSwitcher"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm1="clr-namespace:"
         xmlns:vm11="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
+        xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -252,11 +252,11 @@
                    Height="18" />
         </Button>
 
-        <languageSwitcher:LanguageSwitcherView
+        <languageSelector:LanguageSelectorView
             Name="LanguageSwitcherView"
             HorizontalAlignment="Right"
             VerticalAlignment="Top"
-            DataContext="{Binding LanguageSwitcher}"
+            DataContext="{Binding LanguageSelector}"
             Margin="16"
             ZIndex="12" />
 

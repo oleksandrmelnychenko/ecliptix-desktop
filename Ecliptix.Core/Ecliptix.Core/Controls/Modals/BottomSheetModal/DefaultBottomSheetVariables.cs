@@ -15,5 +15,5 @@ public static class DefaultBottomSheetVariables
     public const bool DefaultIsDismissableOnScrimClick = true;
     public static readonly IBrush DefaultDismissableScrimColor = Brushes.Black;
     public static readonly IBrush DefaultUnDismissableScrimColor = Brushes.Gray;
-    public const double DefaultScrimOpacity = 0.7;
+    public const double DefaultScrimOpacity = 0.1;
 }

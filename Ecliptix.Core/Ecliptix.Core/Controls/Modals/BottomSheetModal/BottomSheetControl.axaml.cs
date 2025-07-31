@@ -180,7 +180,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 x => x.UnDismissableScrimColor)
             .Subscribe(tuple =>
             {
-                var (isDismissable, dismissableColor, unDismissableColor) = tuple;
+                (bool isDismissable, IBrush dismissableColor, IBrush unDismissableColor) = tuple;
                 ScrimColor = isDismissable ? dismissableColor : unDismissableColor;
             })
             .DisposeWith(disposables);

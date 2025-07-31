@@ -23,7 +23,7 @@ public record BottomSheetChangedEvent
     }
 
     public static BottomSheetChangedEvent
-        New(BottomSheetComponentType componentType, bool showScrim = false, UserControl? userControl = null) {
+        New(BottomSheetComponentType componentType, bool showScrim = true, UserControl? userControl = null) {
         return new(componentType, showScrim, userControl);
     }
 }

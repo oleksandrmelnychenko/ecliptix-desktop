@@ -31,15 +31,15 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    [ObservableAsProperty] public string MobileNumberError { get; private set; }
+    [ObservableAsProperty] public string? MobileNumberError { get; private set; }
     [ObservableAsProperty] public bool HasMobileNumberError { get; private set; }
-    [ObservableAsProperty] public string SecureKeyError { get; private set; }
+    [ObservableAsProperty] public string? SecureKeyError { get; private set; }
     [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
-    public ReactiveCommand<SystemU, Result<byte[], string>> SignInCommand { get; private set; }
-    public ReactiveCommand<SystemU, SystemU> AccountRecoveryCommand { get; private set; }
+    public ReactiveCommand<SystemU, Result<byte[], string>>? SignInCommand { get; private set; }
+    public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
         ISystemEvents systemEvents,
@@ -125,7 +125,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
         SignInCommand = ReactiveCommand.CreateFromTask(
