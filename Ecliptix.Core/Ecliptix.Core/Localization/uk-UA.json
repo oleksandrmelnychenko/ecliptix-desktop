@@ -58,8 +58,7 @@
       "MustStartWithCountryCode": "Має починатись із +",
       "ContainsNonDigits": "Лише цифри після коду",
       "IncorrectLength": "Потрібно {0}-{1} цифр",
-      "CannotBeEmpty": "Обов'язкове поле",
-      "InvalidFormat": "Невірний формат номера"
+      "CannotBeEmpty": "Обов'язкове поле"
     },
     "SecureKey": {
       "Required": "Обов'язкове поле",
@@ -67,7 +66,7 @@
       "MaxLength": "Макс. {0} символів",
       "NoSpaces": "Без пробілів",
       "NoUppercase": "Потрібна велика літера",
-      "NoDigit": "Потрібна цифра",
+      "NoDigit": "Потрібна цифра", 
       "TooSimple": "Занадто простий",
       "TooCommon": "Занадто поширений",
       "SequentialPattern": "Без послідовностей (abc, 123)",
@@ -86,7 +85,7 @@
     "PrivacyPolicy": "Політика конфіденційності",
     "TermsOfService": "Умови надання послуг",
     "Support": "Підтримка",
-    "AgreementText": "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
+    "AgreementText": "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденціційності.",
     "Copyright": "© 2025 Horizon Dynamics. Усі права захищено."
   },
   "Navigation": {
@@ -101,5 +100,13 @@
     "Success": "Успішно",
     "Cancel": "Скасувати",
     "Ok": "Гаразд"
+  },
+  "LanguageDetection": {
+    "Title": "Пропозиція мови",
+    "Prompt": "Перемкнутись на {0}?", 
+    "Button": {
+      "Confirm": "Змінити мову",
+      "Decline": "Не зараз"
+    }
   }
 }
