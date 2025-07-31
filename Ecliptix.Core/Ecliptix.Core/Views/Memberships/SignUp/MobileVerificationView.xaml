@@ -115,6 +115,8 @@
             HintForeground="{DynamicResource TipsColor}"
             IconRegularSource="{DynamicResource LampIconDrawingRegular}"
             IconErrorSource="{DynamicResource LampIconDrawingError}"
+            ErrorText="{Binding MobileNumberError, Mode=OneWay}"
+            HasError="{Binding HasMobileNumberError, Mode=OneWay}"
             FocusBorderBrush="{DynamicResource TipsColor}"
             MainBorderBrush="Transparent"
             Text="{Binding MobileNumber,Mode=TwoWay}"

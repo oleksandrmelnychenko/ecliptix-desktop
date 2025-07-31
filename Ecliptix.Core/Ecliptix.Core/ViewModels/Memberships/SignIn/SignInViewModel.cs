@@ -74,15 +74,18 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     private IObservable<bool> SetupValidation()
     {
+        IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
+            .Replay(1)
+            .RefCount();
+
         IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(mobile =>
+            .CombineLatest(mobileValidation, (mobile, error) =>
             {
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
                     _hasMobileNumberBeenTouched = true;
 
-                return !_hasMobileNumberBeenTouched
-                    ? string.Empty
-                    : MobileNumberValidator.Validate(mobile, LocalizationService);
+                return !_hasMobileNumberBeenTouched ? string.Empty : error;
             })
             .Replay(1)
             .RefCount();
@@ -92,8 +95,13 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .Select(e => !string.IsNullOrEmpty(e))
             .ToPropertyEx(this, x => x.HasMobileNumberError);
 
-        IObservable<string> keyDisplayErrorStream = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
-            .Select(_ => _hasSecureKeyBeenTouched ? ValidateSecureKey() : string.Empty)
+        IObservable<string> secureKeyValidation = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => ValidateSecureKey())
+            .Replay(1)
+            .RefCount();
+
+        IObservable<string> keyDisplayErrorStream = secureKeyValidation
+            .Select(error => _hasSecureKeyBeenTouched ? error : string.Empty)
             .Replay(1)
             .RefCount();
 
@@ -104,11 +112,11 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .Select(e => !string.IsNullOrEmpty(e))
             .ToPropertyEx(this, x => x.HasSecureKeyError);
 
-        IObservable<bool> isMobileLogicallyValid = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(m => string.IsNullOrEmpty(MobileNumberValidator.Validate(m, LocalizationService)));
+        IObservable<bool> isMobileLogicallyValid = mobileValidation
+            .Select(string.IsNullOrEmpty);
 
-        IObservable<bool> isKeyLogicallyValid = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
-            .Select(_ => string.IsNullOrEmpty(ValidateSecureKey()));
+        IObservable<bool> isKeyLogicallyValid = secureKeyValidation
+            .Select(string.IsNullOrEmpty);
 
         return isMobileLogicallyValid.CombineLatest(isKeyLogicallyValid,
             (isMobileValid, isKeyValid) => isMobileValid && isKeyValid

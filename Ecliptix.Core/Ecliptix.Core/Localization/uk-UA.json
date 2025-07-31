@@ -2,77 +2,80 @@
   "Authentication": {
     "SignUp": {
       "PhoneVerification": {
-        "Title": "Створення нового акаунта",
-        "Description": "Підтвердьте ваш номер телефону. Ми надішлемо вам код підтвердження через SMS",
-        "Hint": "Включіть код країни",
-        "Watermark": "Мобільний номер",
+        "Title": "Створити акаунт",
+        "Description": "Підтвердьте номер. Ми надішлемо код в SMS.",
+        "Hint": "Включно з кодом країни",
+        "Watermark": "Номер телефону",
         "Button": "Продовжити"
       },
       "VerificationCodeEntry": {
-        "Title": "Підтвердьте ваш номер",
-        "Description": "Ми надіслали код на ваш телефон для підтвердження вашої особи",
-        "Hint": "Введіть код підтвердження",
-        "Expiration": "Код діє: {0}",
-        "Error_InvalidCode": "Введений код невірний. Спробуйте ще раз.",
+        "Title": "Підтвердження номера",
+        "Description": "Введіть код, надісланий на ваш телефон.",
+        "Hint": "Код підтвердження",
+        "Expiration": "Код дійсний: {0}",
+        "Error_InvalidCode": "Неправильний код. Спробуйте ще раз.",
         "Button": {
           "Verify": "Підтвердити",
-          "Resend": "Надіслати ще"
+          "Resend": "Надіслати знову"
         }
       },
       "NicknameInput": {
-        "Title": "Введіть ваш нікнейм",
-        "Description": "Цей нікнейм буде видимий для інших користувачів",
-        "Hint": "Введіть ваш нікнейм",
+        "Title": "Оберіть нікнейм",
+        "Description": "Це ім'я буде видимим для інших.",
+        "Hint": "Ваш нікнейм",
         "Watermark": "Нікнейм",
-        "Button": "Підтвердити нікнейм"
+        "Button": "Підтвердити"
       },
       "PasswordConfirmation": {
-        "Title": "Введіть ваш пароль",
-        "Description": "Переконайтесь, що ви його перевірили",
-        "PasswordHint": "Введіть ваш пароль",
-        "VerifyPasswordHint": "Повторно введіть ваш пароль",
-        "Error_PasswordMismatch": "Паролі не співпадають.",
-        "Button": "Підтвердити пароль"
+        "Title": "Встановіть пароль",
+        "Description": "Для безпеки використовуйте надійний пароль.",
+        "PasswordHint": "Пароль",
+        "VerifyPasswordHint": "Підтвердьте пароль",
+        "Error_PasswordMismatch": "Паролі не збігаються.",
+        "Button": "Встановити пароль"
       },
       "PassPhase": {
-        "Title": "Введіть ваш пін-код",
-        "Description": "Надайте пін-код для безпечної автентифікації",
-        "Hint": "Введіть ваш пін-код",
-        "Watermark": "####",
-        "Button": "Підтвердити пін-код"
+        "Title": "Встановіть PIN-код",
+        "Description": "Для швидкої та безпечної автентифікації.",
+        "Hint": "Ваш PIN-код",
+        "Watermark": "••••",
+        "Button": "Підтвердити PIN"
       }
     },
     "SignIn": {
       "Title": "Вхід",
-      "Welcome": "Ласкаво просимо назад! Ваш персоналізований досвід чекає",
-      "MobilePlaceholder": "Мобільний номер",
-      "MobileHint": "Почніть з коду країни.",
-      "PasswordPlaceholder": "Захищений ключ",
-      "PasswordHint": "Зберігається тільки на вашому пристрої",
-      "AccountRecovery": "Відновлення акаунту",
+      "Welcome": "З поверненням!",
+      "MobilePlaceholder": "Номер телефону",
+      "MobileHint": "Почніть з коду країни (напр., +380)",
+      "PasswordPlaceholder": "Ключ безпеки",
+      "PasswordHint": "Зберігається лише на цьому пристрої",
+      "AccountRecovery": "Забули ключ?",
       "Continue": "Продовжити"
     }
   },
   "ValidationErrors": {
     "PhoneNumber": {
-      "MustStartWithCountryCode": "Почніть з +.",
-      "ContainsNonDigits": "Тільки цифри після коду.",
-      "IncorrectLength": "{0}-{1} цифр.",
-      "CannotBeEmpty": "Не порожнє."
+      "MustStartWithCountryCode": "Має починатись із +",
+      "ContainsNonDigits": "Лише цифри після коду",
+      "IncorrectLength": "Потрібно {0}-{1} цифр",
+      "CannotBeEmpty": "Обов'язкове поле",
+      "InvalidFormat": "Невірний формат номера"
     },
     "SecureKey": {
-      "Required": "Обов'язковий.",
-      "MinLength": "Мін {0} символів.",
-      "MaxLength": "Макс {0} символів.",
-      "NoSpaces": "Без пробілів.",
-      "NoDigits": "Без цифр.",
-      "TooSimple": "Занадто простий.",
-      "TooCommon": "Занадто поширений.",
-      "SequentialPattern": "Без послідовностей.",
-      "RepeatedChars": "Без повторів.",
-      "LacksDiversity": "Мін {0} типів.",
-      "ContainsAppName": "Без назви додатка.",
-      "InvalidCredentials": "Неправильні облікові дані"
+      "Required": "Обов'язкове поле",
+      "MinLength": "Мін. {0} символів",
+      "MaxLength": "Макс. {0} символів",
+      "NoSpaces": "Без пробілів",
+      "NoUppercase": "Потрібна велика літера",
+      "NoDigit": "Потрібна цифра",
+      "TooSimple": "Занадто простий",
+      "TooCommon": "Занадто поширений",
+      "SequentialPattern": "Без послідовностей (abc, 123)",
+      "RepeatedChars": "Без повторів (aaa, 111)",
+      "LacksDiversity": "Потрібно {0} типи символів (A, a, 1, $)",
+      "ContainsAppName": "Не може містити назву додатку",
+      "InvalidCredentials": "Неправильні облікові дані",
+      "NonEnglishLetters": "Лише латинські літери"
     }
   },
   "Welcome": {
@@ -81,10 +84,10 @@
   },
   "Footer": {
     "PrivacyPolicy": "Політика конфіденційності",
-    "TermsOfService": "Умови використання",
+    "TermsOfService": "Умови надання послуг",
     "Support": "Підтримка",
-    "AgreementText": "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності",
-    "Copyright": "© Horizon Dynamics 2025. Всі права захищені"
+    "AgreementText": "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденційності.",
+    "Copyright": "© 2025 Horizon Dynamics. Усі права захищено."
   },
   "Navigation": {
     "Back": "Назад",
@@ -94,10 +97,9 @@
   },
   "Common": {
     "Loading": "Завантаження...",
-    "LoadingView": "Завантаження вигляду...",
     "Error": "Помилка",
-    "Success": "Успіх",
+    "Success": "Успішно",
     "Cancel": "Скасувати",
-    "Ok": "ОК"
+    "Ok": "Гаразд"
   }
 }
