@@ -112,6 +112,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         });
     }
 
+    //TODO: this method must be updated and reworked.
     private async Task CheckCountryCultureMismatchAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> appSettings =
@@ -129,8 +130,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
-                    /*_bottomSheetEvents.BottomSheetChangedState(
-                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization,true));*/
+                    _bottomSheetEvents.BottomSheetChangedState(
+                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization,false));
                 }
             }
         }

@@ -58,8 +58,7 @@
       "MustStartWithCountryCode": "Must start with +",
       "ContainsNonDigits": "Digits only after code",
       "IncorrectLength": "{0}-{1} digits required",
-      "CannotBeEmpty": "Required",
-      "InvalidFormat": "Invalid mobile number format"
+      "CannotBeEmpty": "Required"
     },
     "SecureKey": {
       "Required": "Required",
@@ -101,5 +100,13 @@
     "Success": "Success",
     "Cancel": "Cancel",
     "Ok": "OK"
+  },
+  "LanguageDetection": {
+    "Title": "Language Suggestion",
+    "Prompt": "Switch to {0}?",
+    "Button": {
+      "Confirm": "Switch Language",
+      "Decline": "Not Now"
+    }
   }
 }
