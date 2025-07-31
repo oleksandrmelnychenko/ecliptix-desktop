@@ -17,6 +17,7 @@ public static partial class SecureKeyValidator
     private static readonly Regex HasDigitRegex = HasDigitRegexPattern();
     private static readonly Regex HasLowercaseRegex = HasLowercaseRegexPattern();
     private static readonly Regex HasSpecialCharRegex = HasSpecialCharRegexPattern();
+    private static readonly Regex HasNonEnglishLetterRegex = HasNonEnglishLetterRegexPattern();
 
     [GeneratedRegex("[A-Z]", RegexOptions.Compiled)]
     private static partial Regex HasUppercaseRegexPattern();
@@ -30,6 +31,9 @@ public static partial class SecureKeyValidator
     [GeneratedRegex(@"[^a-zA-Z\d]", RegexOptions.Compiled)]
     private static partial Regex HasSpecialCharRegexPattern();
 
+    [GeneratedRegex(@"[\p{L}-[A-Za-z]]", RegexOptions.Compiled)]
+    private static partial Regex HasNonEnglishLetterRegexPattern();
+
     public static (string? Error, List<string> Recommendations) Validate(string secureKey,
         ILocalizationService localizationService, bool isSignIn = false)
     {
@@ -42,6 +46,7 @@ public static partial class SecureKeyValidator
         [
             (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
             (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
+            (s => HasNonEnglishLetters(s), "ValidationErrors.SecureKey.NonEnglishLetters", null),
             (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null)
         ];
 
@@ -200,4 +205,6 @@ public static partial class SecureKeyValidator
             .Sum(p => -p * Math.Log(p, 2));
         return perCharEntropy * totalLength;
     }
+
+    private static bool HasNonEnglishLetters(string s) => HasNonEnglishLetterRegex.IsMatch(s);
 }

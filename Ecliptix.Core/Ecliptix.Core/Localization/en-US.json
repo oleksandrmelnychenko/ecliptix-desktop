@@ -2,89 +2,91 @@
   "Authentication": {
     "SignUp": {
       "PhoneVerification": {
-        "Title": "Creating new account",
-        "Description": "Confirm your phone number. We'll send you a verification code via SMS",
-        "Hint": "Start with country code",
+        "Title": "Create Account",
+        "Description": "Confirm your number. We'll text you a verification code.",
+        "Hint": "Include country code",
         "Watermark": "Mobile Number",
         "Button": "Continue"
       },
       "VerificationCodeEntry": {
-        "Title": "Verify your number",
-        "Description": "We have sent a code to your phone to verify your identity",
-        "Hint": "Enter verification code",
-        "Expiration": "Code valid: {0}",
-        "Error_InvalidCode": "The code you entered is invalid. Please try again.",
+        "Title": "Verify Your Number",
+        "Description": "Enter the code sent to your phone.",
+        "Hint": "Verification Code",
+        "Expiration": "Code expires in: {0}",
+        "Error_InvalidCode": "Invalid code. Please try again.",
         "Button": {
           "Verify": "Verify",
-          "Resend": "Resend"
+          "Resend": "Resend Code"
         }
       },
       "NicknameInput": {
-        "Title": "Enter your nickname",
-        "Description": "This nickname will be visible to other users",
-        "Hint": "Enter your nickname",
+        "Title": "Choose a Nickname",
+        "Description": "This name will be visible to others.",
+        "Hint": "Your nickname",
         "Watermark": "Nickname",
-        "Button": "Confirm nickname"
+        "Button": "Confirm"
       },
       "PasswordConfirmation": {
-        "Title": "Enter your password",
-        "Description": "Make sure you have verified it",
-        "PasswordHint": "Enter your password",
-        "VerifyPasswordHint": "Re-enter your password",
+        "Title": "Set Password",
+        "Description": "Use a strong, unique password for security.",
+        "PasswordHint": "Password",
+        "VerifyPasswordHint": "Confirm Password",
         "Error_PasswordMismatch": "Passwords do not match.",
-        "Button": "Confirm password"
+        "Button": "Set Password"
       },
       "PassPhase": {
-        "Title": "Enter your PIN code",
-        "Description": "Provide a PIN code for secure authentication",
-        "Hint": "Enter your PIN code",
-        "Watermark": "####",
-        "Button": "Confirm PIN code"
+        "Title": "Set PIN",
+        "Description": "For quick and secure authentication.",
+        "Hint": "Your PIN",
+        "Watermark": "••••",
+        "Button": "Confirm PIN"
       }
     },
     "SignIn": {
-      "Title": "Sign in",
-      "Welcome": "Welcome back! Your personalized experience awaits",
+      "Title": "Sign In",
+      "Welcome": "Welcome back!",
       "MobilePlaceholder": "Mobile Number",
-      "MobileHint": "Start with country code.",
+      "MobileHint": "Include country code (e.g., +1)",
       "PasswordPlaceholder": "Secure Key",
-      "PasswordHint": "Stored only on your device",
-      "AccountRecovery": "Account recovery",
+      "PasswordHint": "Stored only on this device",
+      "AccountRecovery": "Forgot key?",
       "Continue": "Continue"
     }
   },
   "ValidationErrors": {
     "PhoneNumber": {
-      "MustStartWithCountryCode": "Must start with +.",
-      "ContainsNonDigits": "Only digits after code.",
-      "IncorrectLength": "Between {0}-{1} digits.",
-      "CannotBeEmpty": "Cannot be empty."
+      "MustStartWithCountryCode": "Must start with +",
+      "ContainsNonDigits": "Digits only after code",
+      "IncorrectLength": "{0}-{1} digits required",
+      "CannotBeEmpty": "Required"
     },
     "SecureKey": {
-      "Required": "Required.",
-      "MinLength": "Min {0} chars.",
-      "MaxLength": "Max {0} chars.",
-      "NoSpaces": "No spaces.",
-      "TooSimple": "Too simple.",
-      "TooCommon": "Too common.",
-      "NoDigit":"No digits.",
-      "SequentialPattern": "No sequences.",
-      "RepeatedChars": "No repeats.",
-      "LacksDiversity": "Min {0} types.",
-      "ContainsAppName": "No app name.",
-      "InvalidCredentials": "Invalid credentials"
+      "Required": "Required",
+      "MinLength": "Min {0} characters",
+      "MaxLength": "Max {0} characters",
+      "NoSpaces": "No spaces allowed",
+      "NoUppercase": "Requires an uppercase letter",
+      "NoDigit": "Requires a digit",
+      "TooSimple": "Too simple",
+      "TooCommon": "Too common",
+      "SequentialPattern": "No sequences (e.g., abc, 123)",
+      "RepeatedChars": "No repeats (e.g., aaa, 111)",
+      "LacksDiversity": "Requires {0} character types (A, a, 1, $)",
+      "ContainsAppName": "Cannot contain app name",
+      "InvalidCredentials": "Invalid credentials",
+      "NonEnglishLetters": "Latin letters only"
     }
   },
   "Welcome": {
-    "SignInButton": "Sign in",
-    "CreateAccountButton": "Create account"
+    "SignInButton": "Sign In",
+    "CreateAccountButton": "Create Account"
   },
   "Footer": {
     "PrivacyPolicy": "Privacy Policy",
     "TermsOfService": "Terms of Service",
     "Support": "Support",
-    "AgreementText": "By continuing, you agree to our Terms and Privacy Policy",
-    "Copyright": "© Horizon Dynamics 2025. All rights reserved."
+    "AgreementText": "By continuing, you agree to our Terms and Privacy Policy.",
+    "Copyright": "© 2025 Horizon Dynamics. All rights reserved."
   },
   "Navigation": {
     "Back": "Back",
@@ -94,7 +96,6 @@
   },
   "Common": {
     "Loading": "Loading...",
-    "LoadingView": "Loading View...",
     "Error": "Error",
     "Success": "Success",
     "Cancel": "Cancel",
