@@ -70,13 +70,14 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
         ISecureStorageProvider secureStorageProvider,
+        IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService)
         : base(systemEvents, networkProvider, localizationService)
     {
         _bottomSheetEvents = bottomSheetEvents ?? throw new ArgumentNullException(nameof(bottomSheetEvents));
         _secureStorageProvider = secureStorageProvider;
 
-        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider);
+        LanguageSwitcher = new LanguageSwitcherViewModel(localizationService, secureStorageProvider,rpcMetaDataProvider);
         _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
