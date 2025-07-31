@@ -96,7 +96,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                         IsVisible = shouldBeVisible;
                     }
 
-                    bool isDismissable = eventArgs.ComponentType != BottomSheetComponentType.DetectedLocalization;
+                    bool isDismissable = eventArgs.ComponentType == BottomSheetComponentType.DetectedLocalization;
                     if (_isDismissableOnScrimClick != isDismissable)
                     {
                         IsDismissableOnScrimClick = isDismissable;

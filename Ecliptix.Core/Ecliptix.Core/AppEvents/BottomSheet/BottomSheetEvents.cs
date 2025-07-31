@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Services;
+using Serilog;
 
 namespace Ecliptix.Core.AppEvents.BottomSheet;
 
@@ -22,8 +23,9 @@ public record BottomSheetChangedEvent
     }
 
     public static BottomSheetChangedEvent
-        New(BottomSheetComponentType componentType, bool showScrim = false, UserControl? userControl = null) =>
-        new(componentType, showScrim, userControl);
+        New(BottomSheetComponentType componentType, bool showScrim = false, UserControl? userControl = null) {
+        return new(componentType, showScrim, userControl);
+    }
 }
 
 public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
@@ -40,6 +42,7 @@ public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService
 
     public void BottomSheetChangedState(BottomSheetChangedEvent message)
     {
+        Log.Information($"BottomSheetChangedState called with ComponentType={message.ComponentType}, ShowScrim={message.ShowScrim}");
         UserControl? userControl = GetBottomSheetControl(message.ComponentType);
         BottomSheetChangedEvent updatedMessage =
             BottomSheetChangedEvent.New(message.ComponentType, message.ShowScrim, userControl);

@@ -95,10 +95,6 @@
       <DependentUpon>PassPhaseView.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Controls\Modals\BottomSheetModal.axaml.cs">
-      <DependentUpon>BottomSheetModal.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Controls\Modals\LanguageDetectionModal.axaml.cs">
       <DependentUpon>LanguageDetectionModal.axaml</DependentUpon>
       <SubType>Code</SubType>

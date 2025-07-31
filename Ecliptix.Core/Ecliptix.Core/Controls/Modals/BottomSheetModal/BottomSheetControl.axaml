@@ -38,7 +38,9 @@
                 VerticalAlignment="Bottom"
                 Width="400"
                 Background="White">
-            <ContentControl MaxHeight="568" Content="{Binding Content}"></ContentControl>
+                <ContentControl 
+                    x:Name="ContentControl"
+                    Content="{Binding Content}" />
         </Border>
     </Grid>
 </UserControl>

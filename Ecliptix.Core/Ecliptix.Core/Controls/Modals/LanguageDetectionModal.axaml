@@ -94,82 +94,61 @@
     </UserControl.Styles>
     
     
-    <Border BorderThickness="0">
-        <Grid>
-            <Border 
-                x:Name="InactivityZone"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                Opacity="0.4"
-                Background="Gray"
-                ZIndex="0"
-                CornerRadius="12"
-                />
-            
-            <Border 
-                x:Name="MainBorder"
-                ZIndex="1"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Width="380"
-                Height="200"
-                BorderThickness="1"
-                Background="White"
-                Padding="20"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                BoxShadow="0 0 24 4 #9966CC"
+   <Border 
+            x:Name="MainBorder"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Padding="20"
+            > 
+            <Grid
+                x:Name="ContentGrid"
+                RowDefinitions="Auto, Auto, Auto"
+                RowSpacing="15"
                 >
-                
-                <Grid
-                    x:Name="ContentGrid"
-                    RowDefinitions="Auto, Auto, Auto"
-                    RowSpacing="15"
-                    >
+                <TextBlock
+                    TextWrapping="Wrap"
+                    FontSize="{StaticResource TitleFontSize}"
+                    LineHeight="28"
+                    FontWeight="Normal"
+                    HorizontalAlignment="Center"
+                    Text="Detected Language Suggestion"
+                    /> 
+                <StackPanel 
+                    Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Spacing="5">
+                    <Svg
+                        Path="avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg"
+                        VerticalAlignment="Center"
+                        Width="20"
+                        Height="20"
+                        ClipToBounds="True"
+                    />
                     <TextBlock
-                        TextWrapping="Wrap"
-                        FontSize="{StaticResource TitleFontSize}"
-                        LineHeight="28"
+                        FontSize="{StaticResource SubtitleFontSize}"
                         FontWeight="Normal"
+                        Foreground="{DynamicResource TextForegroundColor}"
+                        LineHeight="28"
                         HorizontalAlignment="Center"
-                        Text="Detected Language Suggestion"
-                        /> 
-                    <StackPanel 
-                        Grid.Row="1"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Spacing="5">
-                        <Svg
-                            Path="avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg"
-                            VerticalAlignment="Center"
-                            Width="20"
-                            Height="20"
-                            ClipToBounds="True"
+                        Text="Change to Ukrainian?" />
+                </StackPanel>
+                <Grid
+                    Grid.Row="2"
+                    ColumnDefinitions="*,*"
+                    ColumnSpacing="10">
+                    <Button 
+                        Grid.Column="0"
+                        Content="Cancel"
+                        Classes="auth-button recovery-button"
                         />
-                        <TextBlock
-                            FontSize="{StaticResource SubtitleFontSize}"
-                            FontWeight="Normal"
-                            Foreground="{DynamicResource TextForegroundColor}"
-                            LineHeight="28"
-                            HorizontalAlignment="Center"
-                            Text="Change to Ukrainian?" />
-                    </StackPanel>
-                    <Grid
-                        Grid.Row="2"
-                        ColumnDefinitions="*,*"
-                        ColumnSpacing="10">
-                        <Button 
-                            Grid.Column="0"
-                            Content="Cancel"
-                            Classes="auth-button recovery-button"
-                            />
-                        <Button 
-                            Grid.Column="1"
-                            Content="OK"
-                            Classes="auth-button continue-button"/>
-                    </Grid>
-                    
+                    <Button 
+                        Grid.Column="1"
+                        Content="OK"
+                        Classes="auth-button continue-button"
+                        />
                 </Grid>
-            </Border>
-        </Grid>
-    </Border>
+                
+            </Grid>
+        </Border>
 </UserControl>

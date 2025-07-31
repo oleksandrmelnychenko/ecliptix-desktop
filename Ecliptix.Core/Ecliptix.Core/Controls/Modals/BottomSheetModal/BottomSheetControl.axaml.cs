@@ -28,7 +28,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private double _sheetHeight;
     private Border? _sheetBorder;
     private Border? _scrimBorder;
-    private ItemsControl? _contentItems;
+    private ContentControl? _contentControl;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -105,6 +105,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         this.WhenActivated(disposables =>
         {
+            
             SetupContentObservables(disposables);
             SetupVisibilityObservable(disposables);
             SetupDismissableCommand(disposables);
@@ -123,17 +124,17 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
-        _contentItems = this.FindControl<ItemsControl>("ContentItems");
+        _contentControl = this.FindControl<ContentControl>("ContentControl");
     }
 
     private void SetupContentObservables(CompositeDisposable disposables)
     {
-        if (_contentItems == null)
+        if (_contentControl == null)
         {
             return;
         }
 
-        _contentItems.GetObservable(BoundsProperty)
+        _contentControl.GetObservable(BoundsProperty)
             .Subscribe(_ =>
             {
                 UpdateSheetHeight();
@@ -141,7 +142,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             })
             .DisposeWith(disposables);
 
-        _contentItems.GetObservable(MarginProperty)
+        _contentControl.GetObservable(MarginProperty)
             .Subscribe(_ =>
             {
                 UpdateSheetHeight();
@@ -150,68 +151,75 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             .DisposeWith(disposables);
     }
 
-    private void SetupVisibilityObservable(CompositeDisposable disposables)
+   private void SetupVisibilityObservable(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.ViewModel!.IsVisible, x => x.ViewModel!.ShowScrim)
+            .Buffer(2, 1) 
+            .Select(b => (Previous: b[0], Current: b.Count > 1 ? b[1] : b[0]))
+            .DistinctUntilChanged()
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(async tuple =>
+            .Subscribe(async states =>
             {
-                bool isVisible = tuple.Item1;
-                bool showScrim = tuple.Item2;
+                var (isVisible, showScrim) = states.Current;
+                var (wasVisible, wasScrimShowing) = states.Previous;
 
-                if (isVisible)
-                {
-                    CreateAnimations();
-                }
-                
                 if (_sheetBorder == null || _scrimBorder == null)
                 {
                     IsVisible = isVisible;
                     return;
                 }
+                
+                if (isVisible && !wasVisible)
+                {
+                    CreateAnimations();
+                    if (_showAnimation == null || _scrimShowAnimation == null)
+                    {
+                        IsVisible = true;
+                        return;
+                    }
 
-                if (_showAnimation == null || _hideAnimation == null || _scrimShowAnimation == null ||
-                    _scrimHideAnimation == null)
-                {
-                    IsVisible = isVisible;
-                    _scrimBorder.IsVisible = isVisible && showScrim;
-                    return;
-                }
-
-                SetupViewForAnimation(_sheetBorder);
-                if (showScrim)
-                {
-                    SetupScrimForAnimation(_scrimBorder);
-                }
-                else
-                {
-                    _scrimBorder.IsVisible = false;
-                }
-
-                if (isVisible)
-                {
                     IsVisible = true;
-                    List<Task> tasks = [_showAnimation.RunAsync(_sheetBorder, CancellationToken.None)];
+                    SetupViewForAnimation(_sheetBorder);
+
+                    var showTasks = new List<Task> { _showAnimation.RunAsync(_sheetBorder, CancellationToken.None) };
+
                     if (showScrim)
                     {
-                        tasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                        SetupScrimForAnimation(_scrimBorder);
+                        showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                    }
+                    else
+                    {
+                        _scrimBorder.IsVisible = false;
                     }
 
-                    await Task.WhenAll(tasks);
+                    await Task.WhenAll(showTasks);
                 }
-                else
+                else if (isVisible && showScrim && !wasScrimShowing)
                 {
-                    List<Task> tasks =
-                    [
-                        _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)
-                    ];
-                    if (showScrim)
+                    if (_scrimShowAnimation != null)
                     {
-                        tasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                        SetupScrimForAnimation(_scrimBorder);
+                        await _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None);
+                    }
+                }
+                else if (!isVisible && wasVisible)
+                {
+                    if (_hideAnimation == null || _scrimHideAnimation == null)
+                    {
+                        IsVisible = false;
+                        return;
                     }
 
-                    await Task.WhenAll(tasks);
-                    await Task.Delay(_animationDuration);
+                    var hideTasks = new List<Task> { _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None) };
+
+                    if (_scrimBorder.IsVisible)
+                    {
+                        hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+                    }
+
+                    await Task.WhenAll(hideTasks);
+
                     IsVisible = false;
                     _scrimBorder.IsVisible = false;
                 }
@@ -234,14 +242,14 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private void UpdateSheetHeight()
     {
-        if (_contentItems == null || _sheetBorder == null)
+        if (_contentControl == null || _sheetBorder == null)
         {
             _sheetHeight = MinHeight;
             return;
         }
 
-        double verticalMargin = _contentItems.Margin.Top + _contentItems.Margin.Bottom;
-        double contentHeight = _contentItems.DesiredSize.Height + verticalMargin;
+        double verticalMargin = _contentControl.Margin.Top + _contentControl.Margin.Bottom;
+        double contentHeight = _contentControl.DesiredSize.Height + verticalMargin;
         _sheetHeight = Math.Clamp(contentHeight > 0 ? contentHeight : MinHeight, MinHeight, MaxHeight);
         _sheetBorder.Height = _sheetHeight;
     }
@@ -300,7 +308,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, hiddenPosition),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                        new Setter(OpacityProperty, 0)
                     }
                 }
             }
