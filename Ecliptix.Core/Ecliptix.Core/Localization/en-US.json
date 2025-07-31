@@ -58,7 +58,8 @@
       "MustStartWithCountryCode": "Must start with +",
       "ContainsNonDigits": "Digits only after code",
       "IncorrectLength": "{0}-{1} digits required",
-      "CannotBeEmpty": "Required"
+      "CannotBeEmpty": "Required",
+      "InvalidFormat": "Invalid mobile number format"
     },
     "SecureKey": {
       "Required": "Required",

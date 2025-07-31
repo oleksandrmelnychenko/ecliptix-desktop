@@ -58,7 +58,8 @@
       "MustStartWithCountryCode": "Має починатись із +",
       "ContainsNonDigits": "Лише цифри після коду",
       "IncorrectLength": "Потрібно {0}-{1} цифр",
-      "CannotBeEmpty": "Обов'язкове поле"
+      "CannotBeEmpty": "Обов'язкове поле",
+      "InvalidFormat": "Невірний формат номера"
     },
     "SecureKey": {
       "Required": "Обов'язкове поле",

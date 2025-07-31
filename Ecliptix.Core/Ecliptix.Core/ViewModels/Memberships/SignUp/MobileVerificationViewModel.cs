@@ -1,4 +1,7 @@
 using System;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
@@ -12,54 +15,89 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
+public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, IDisposable
 {
-    private string _errorMessage = string.Empty;
-
-    private string _mobileNumber = "";
+    private readonly CompositeDisposable _disposables = new();
+    private readonly Subject<string> _mobileErrorSubject = new();
+    private bool _hasMobileNumberBeenTouched;
+    private bool _isDisposed;
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
     public IScreen HostScreen { get; }
 
-    public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; set; }
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
-    public string MobileNumber
-    {
-        get => _mobileNumber;
-        set => this.RaiseAndSetIfChanged(ref _mobileNumber, value);
-    }
+    [ObservableAsProperty] public bool IsBusy { get; }
 
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
-    }
+    [ObservableAsProperty] public string MobileNumberError { get; }
+
+    [ObservableAsProperty] public bool HasMobileNumberError { get; }
+
+    public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; private set; }
 
     public MobileVerificationViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(systemEvents,networkProvider, localizationService)
+        IScreen hostScreen) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 
-        IObservable<bool> canExecute = this.WhenAnyValue(
-            x => x.MobileNumber,
-            number => string.IsNullOrWhiteSpace(MobileNumberValidator.Validate(number,
-                LocalizationService)));
+        IObservable<bool> isFormLogicallyValid = SetupValidation();
+        SetupCommands(isFormLogicallyValid);
+    }
 
-        VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canExecute);
+    private IObservable<bool> SetupValidation()
+    {
+        IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
+            .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
+            .Replay(1)
+            .RefCount();
+
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
+            .CombineLatest(mobileValidation, (mobile, error) =>
+            {
+                if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
+                    _hasMobileNumberBeenTouched = true;
+
+                return !_hasMobileNumberBeenTouched ? string.Empty : error;
+            })
+            .Replay(1)
+            .RefCount();
+
+        mobileErrorStream.Merge(_mobileErrorSubject)
+            .ToPropertyEx(this, x => x.MobileNumberError);
+
+        this.WhenAnyValue(x => x.MobileNumberError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasMobileNumberError);
+
+        return mobileValidation
+            .Select(string.IsNullOrEmpty)
+            .DistinctUntilChanged();
+    }
+
+    private void SetupCommands(IObservable<bool> isFormLogicallyValid)
+    {
+        IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+
+        VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
+        VerifyMobileNumberCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
     }
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
+        _mobileErrorSubject.OnNext(string.Empty);
+
         string systemDeviceIdentifier = SystemDeviceIdentifier();
 
         ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
@@ -75,7 +113,12 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
 
         if (result.IsOk)
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.VerificationCodeEntry);
+            VerificationCodeEntryViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen);
+            HostScreen.Router.Navigate.Execute(vm);
+        }
+        else
+        {
+            _mobileErrorSubject.OnNext(result.UnwrapErr().Message);
         }
 
         return Unit.Default;
@@ -95,11 +138,31 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel
         ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
         if (response.Result == VerificationResult.InvalidPhone)
         {
-            ErrorMessage = response.Message;
-            return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+            _mobileErrorSubject.OnNext(response.Message);
+            return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
         }
 
-        ErrorMessage = string.Empty;
+        _mobileErrorSubject.OnNext(string.Empty);
         return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+    }
+
+    public new void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_isDisposed) return;
+        if (disposing)
+        {
+            _mobileErrorSubject.Dispose();
+            _disposables.Dispose();
+        }
+
+        base.Dispose(disposing);
+        _isDisposed = true;
     }
 }
