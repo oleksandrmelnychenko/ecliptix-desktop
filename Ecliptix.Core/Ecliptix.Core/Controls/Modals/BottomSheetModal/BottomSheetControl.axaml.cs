@@ -280,13 +280,37 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         if (_contentControl == null || _sheetBorder == null)
         {
             _sheetHeight = MinHeight;
+            _sheetBorder.Height = _sheetHeight;
             return;
         }
 
+        // Ensure the ContentControl is measured with appropriate constraints
+        var availableSize = new Size(_contentControl.Bounds.Width > 0 ? _contentControl.Bounds.Width : double.PositiveInfinity, double.PositiveInfinity);
+        _contentControl.Measure(availableSize);
+
+        // Invalidate measure if necessary to ensure up-to-date size
+        if (!_contentControl.IsMeasureValid)
+        {
+            _contentControl.InvalidateMeasure();
+            _contentControl.Measure(availableSize);
+        }
+
+        // Calculate height including margins
         double verticalMargin = _contentControl.Margin.Top + _contentControl.Margin.Bottom;
         double contentHeight = _contentControl.DesiredSize.Height + verticalMargin;
-        _sheetHeight = Math.Clamp(contentHeight > 0 ? contentHeight : MinHeight, MinHeight, MaxHeight);
+
+        // Fallback to MinHeight if content height is invalid
+        if (double.IsNaN(contentHeight) || contentHeight <= 0)
+        {
+            contentHeight = MinHeight;
+        }
+
+        // Clamp the height between MinHeight and MaxHeight
+        _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
         _sheetBorder.Height = _sheetHeight;
+
+        // Log for debugging (optional)
+        Log.Debug($"UpdateSheetHeight: ContentHeight={contentHeight}, SheetHeight={_sheetHeight}");
     }
 
     private void CreateAnimations()

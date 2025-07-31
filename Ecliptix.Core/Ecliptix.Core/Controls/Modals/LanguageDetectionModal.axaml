@@ -51,8 +51,8 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Padding="24">
-        <Grid RowDefinitions="Auto, Auto, *,Auto" RowSpacing="24">
+    <Border Padding="24" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Grid RowDefinitions="Auto, Auto, Auto ,Auto" RowSpacing="24">
             <TextBlock
                 Grid.Row="0"
                 TextWrapping="Wrap"
@@ -84,7 +84,7 @@
                 Grid.Row="3"
                 ColumnDefinitions="*,*"
                 ColumnSpacing="12"
-                Margin="0,8,0,0">
+                >
                 <Button
                     Grid.Column="0"
                     x:Name="DeclineButton"
