@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication;
@@ -17,6 +18,7 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
+using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
@@ -55,16 +57,27 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     
     private ByteString VerificationSessionId { get; set; }
 
+    private ISecureStorageProvider _secureStorageProvider;
     public PasswordConfirmationViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen
+        IScreen hostScreen,
+        ISecureStorageProvider secureStorageProvider
     ) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-
-        VerificationSessionId = Membership().UniqueIdentifier;
+        _secureStorageProvider = secureStorageProvider;
+        
+        this.WhenActivated(disposables =>
+        {
+            this.WhenAnyValue(x => x.CanSubmit).BindTo(this, x => x.CanSubmit).DisposeWith(disposables);
+            
+            Observable.FromAsync(LoadMembershipAsync)
+                .Subscribe()
+                .DisposeWith(disposables);
+        });
+        
         IObservable<bool> isFormLogicallyValid = SetupValidation();
 
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
@@ -78,6 +91,19 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
         });
+        
+        
+    }
+
+    private async Task LoadMembershipAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance = await _secureStorageProvider.GetApplicationInstanceSettingsAsync();
+        if (!applicationInstance.IsOk)
+        {
+            //TODO hadle error 
+        }
+        ApplicationInstanceSettings settings = applicationInstance.Unwrap();
+        VerificationSessionId = settings.Membership.UniqueIdentifier;
     }
 
     public void InsertPasswordChars(int index, string chars)
@@ -234,15 +260,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     OprfRegistrationInitResponse createMembershipResponse =
                         OprfRegistrationInitResponse.Parser.ParseFrom(payload);
 
-                    // if (createMembershipResponse.Result ==
-                    //     OprfRegistrationInitResponse.Types.Result.Success)
-                    // {
-                    //     // Handle success
-                    // }
-                    // else
-                    // {
-                    //     // Handle failure
-                    // }
+                    Console.WriteLine("Received OPRF response");
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 },
                 CancellationToken.None

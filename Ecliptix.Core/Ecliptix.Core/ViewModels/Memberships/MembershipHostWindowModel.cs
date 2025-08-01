@@ -162,7 +162,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
             MembershipViewType.MobileVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
                 localizationService, this, secureStorageProvider),
             MembershipViewType.ConfirmSecureKey => new PasswordConfirmationViewModel(systemEvents, networkProvider,
-                localizationService, this),
+                localizationService, this, secureStorageProvider),
             MembershipViewType.PassPhase => new PassPhaseViewModel(systemEvents, localizationService, this,
                 networkProvider),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType))

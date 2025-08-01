@@ -211,7 +211,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             RcpServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
             ServiceFlowType.Single,
-            payload =>
+            async payload =>
             {
                 VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
                 if (verifyCodeReply.Result == VerificationResult.Succeeded)
@@ -219,10 +219,9 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                     
                     Membership membership = verifyCodeReply.Membership;
                     
-                    _ = Task.Run(async () =>
-                    {
-                        await _secureStorageProvider.SetApplicationMembershipAsync(membership);
-                    });
+                   
+                    await _secureStorageProvider.SetApplicationMembershipAsync(membership);
+                
                     
                     
                     NavToPasswordConfirmation.Execute().Subscribe();
@@ -231,7 +230,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 {
                 }
 
-                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+                return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
             },
             CancellationToken.None
         );
