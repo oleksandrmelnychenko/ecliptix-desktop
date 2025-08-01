@@ -86,7 +86,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
                 CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService,
-                    authenticationService)
+                    authenticationService, secureStorageProvider)
             ));
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -150,7 +150,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         MembershipViewType viewType,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IAuthenticationService authenticationService)
+        IAuthenticationService authenticationService,
+        ISecureStorageProvider secureStorageProvider)
     {
         return viewType switch
         {
@@ -159,7 +160,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
             MembershipViewType.Welcome => new WelcomeViewModel(this, systemEvents, localizationService,
                 networkProvider),
             MembershipViewType.MobileVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
-                localizationService, this),
+                localizationService, this, secureStorageProvider),
             MembershipViewType.ConfirmSecureKey => new PasswordConfirmationViewModel(systemEvents, networkProvider,
                 localizationService, this),
             MembershipViewType.PassPhase => new PassPhaseViewModel(systemEvents, localizationService, this,

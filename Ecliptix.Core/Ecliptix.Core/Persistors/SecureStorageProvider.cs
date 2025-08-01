@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using Microsoft.AspNetCore.DataProtection;
@@ -67,6 +68,18 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
         settings.Country = ipCountry.Country;
         settings.IpAddress = ipCountry.IpAddress;
 
+        return await StoreAsync(SettingsKey, settings.ToByteArray());
+    }
+
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership membership)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.Membership = membership;
+        
         return await StoreAsync(SettingsKey, settings.ToByteArray());
     }
 

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
@@ -28,12 +29,15 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
     private readonly Subject<string> _mobileErrorSubject = new();
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
-
+    private ISecureStorageProvider _secureStorageProvider;
+    
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
     public IScreen HostScreen { get; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
+
+    private ByteString PhoneNumberIdentifier { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -47,10 +51,11 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(systemEvents, networkProvider, localizationService)
+        IScreen hostScreen,
+        ISecureStorageProvider secureStorageProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-
+        _secureStorageProvider = secureStorageProvider;
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
     }
@@ -113,8 +118,9 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
 
         if (result.IsOk)
         {
-            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen,MobileNumber);
-            HostScreen.Router.Navigate.Execute(vm);
+            
+            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _secureStorageProvider);
+            ((MembershipHostWindowModel)HostScreen).Router.Navigate.Execute(vm);
         }
         else
         {
@@ -142,6 +148,8 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
             return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
         }
+
+        PhoneNumberIdentifier = response.PhoneNumberIdentifier;
 
         _mobileErrorSubject.OnNext(string.Empty);
         return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));

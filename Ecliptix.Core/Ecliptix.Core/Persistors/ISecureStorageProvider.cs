@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Persistors;
@@ -11,6 +12,7 @@ public interface ISecureStorageProvider : IAsyncDisposable
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string cultureName);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry);
+    Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership membership);
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
 
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
