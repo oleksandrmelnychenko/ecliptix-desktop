@@ -1,4 +1,5 @@
 using System;
+using System.Reactive;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia;
@@ -44,11 +45,11 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
 
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(Background),
-            new SolidColorBrush(Color.Parse("#312e31")));
+            new SolidColorBrush(Color.Parse("#2f2f2f")));
 
     public static readonly StyledProperty<IBrush> EllipseColorProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(EllipseColor),
-            new SolidColorBrush(Color.FromRgb(255, 107, 107)));
+            new SolidColorBrush(Color.Parse("#d81c1c")));
 
     public static readonly StyledProperty<Geometry> IconDataProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, Geometry>(nameof(IconData));
@@ -98,6 +99,8 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         set => SetValue(FlickerDurationProperty, value);
     }
 
+    private ReactiveCommand<bool, Unit> HandleChangeCommand { get; set; }
+
     public NetworkStatusNotification()
     {
         InitializeComponent();
@@ -106,10 +109,12 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
 
         SetIcon();
 
+        HandleChangeCommand = ReactiveCommand.CreateFromTask<bool>(HandleConnectivityChange);
+
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.ViewModel!.IsConnected)
-                .Subscribe(async isConnected => await HandleConnectivityChange(isConnected))
+                .InvokeCommand(HandleChangeCommand)
                 .DisposeWith(disposables);
         });
     }
@@ -274,7 +279,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
             CreateAnimations();
         }
 
-        _flickerAnimation?.RunAsync(_statusEllipse);
+        _flickerAnimation?.RunAsync(_statusEllipse!);
     }
 
     private void StopFlickerAnimation()

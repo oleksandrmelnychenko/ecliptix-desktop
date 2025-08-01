@@ -100,7 +100,8 @@
     "Success": "Успішно",
     "Cancel": "Скасувати",
     "Ok": "Гаразд",
-    "NoInternetConnection": "Немає підключення до інтернету"
+    "NoInternetConnection": "Немає підключення до інтернету",
+    "CheckConnection": "Перевірте ваше інтернет-з'єднання"
   },
   "LanguageDetection": {
     "Title": "Пропозиція мови",

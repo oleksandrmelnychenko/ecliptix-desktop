@@ -100,7 +100,8 @@
     "Success": "Success",
     "Cancel": "Cancel",
     "Ok": "OK",
-    "NoInternetConnection": "No internet connection"
+    "NoInternetConnection": "No internet connection",
+    "CheckConnection": "Check your internet connection"
   },
   "LanguageDetection": {
     "Title": "Language Suggestion",
