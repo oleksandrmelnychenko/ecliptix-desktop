@@ -75,6 +75,9 @@
       "ContainsAppName": "Не може містити назву додатку",
       "InvalidCredentials": "Неправильні облікові дані",
       "NonEnglishLetters": "Лише латинські літери"
+    },
+    "VerifySecureKey": {
+      "DoesNotMatch": "Паролі не збігаються"
     }
   },
   "Welcome": {

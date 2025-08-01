@@ -75,6 +75,9 @@
       "ContainsAppName": "Cannot contain app name",
       "InvalidCredentials": "Invalid credentials",
       "NonEnglishLetters": "Latin letters only"
+    },
+    "VerifySecureKey": {
+      "DoesNotMatch": "Passwords do not match"
     }
   },
   "Welcome": {

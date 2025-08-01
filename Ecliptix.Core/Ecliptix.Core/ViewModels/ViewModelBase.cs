@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -54,6 +55,11 @@ public abstract class ViewModelBase
 
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
+    
+    protected Membership Membership()
+    {
+        return NetworkProvider.ApplicationInstanceSettings.Membership;
+    }
 
     protected virtual void Dispose(bool disposing)
     {

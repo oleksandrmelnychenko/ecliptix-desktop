@@ -108,7 +108,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
-
+                //
             Navigate.Execute(MembershipViewType.Welcome)
                 .Subscribe()
                 .DisposeWith(disposables);

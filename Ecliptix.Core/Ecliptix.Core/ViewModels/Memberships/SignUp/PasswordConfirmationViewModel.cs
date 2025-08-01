@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
@@ -10,6 +11,7 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
@@ -25,279 +27,247 @@ using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 {
-    private PasswordManager? _passwordManager;
     private readonly SecureTextBuffer _passwordBuffer = new();
     private readonly SecureTextBuffer _verifyPasswordBuffer = new();
-    private readonly IDisposable _mobileSubscription;
-
+    private bool _hasPasswordBeenTouched;
+    private bool _hasVerifyPasswordBeenTouched;
+    
+    
     public int CurrentPasswordLength => _passwordBuffer.Length;
     public int CurrentVerifyPasswordLength => _verifyPasswordBuffer.Length;
 
-    private string _passwordErrorMessage = string.Empty;
-    public string PasswordErrorMessage
-    {
-        get => _passwordErrorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _passwordErrorMessage, value);
-    }
-
-    private bool _isPasswordErrorVisible;
-    public bool IsPasswordErrorVisible
-    {
-        get => _isPasswordErrorVisible;
-        private set => this.RaiseAndSetIfChanged(ref _isPasswordErrorVisible, value);
-    }
-
-    private bool _canSubmit;
-    public bool CanSubmit
-    {
-        get => _canSubmit;
-        private set => this.RaiseAndSetIfChanged(ref _canSubmit, value);
-    }
-
-    private bool _isBusy;
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set => this.RaiseAndSetIfChanged(ref _isBusy, value);
-    }
+    [ObservableAsProperty] public string? PasswordError { get; private set; }
+    [ObservableAsProperty] public bool HasPasswordError { get; private set; }
+    [ObservableAsProperty] public string? VerifyPasswordError { get; private set; }
+    [ObservableAsProperty] public bool HasVerifyPasswordError { get; private set; }
+    
+    [Reactive] public bool CanSubmit { get; private set; }
+    [ObservableAsProperty] public bool IsBusy { get; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
     
-    private string VerificationSessionId { get; set; }
+    private ByteString VerificationSessionId { get; set; }
 
     public PasswordConfirmationViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen
-        ): base(systemEvents,networkProvider,localizationService)
+    ) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        
-        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
-            x => x.CanSubmit,
-            x => x.IsBusy,
-            (cs, busy) => cs && !busy);
+
+        VerificationSessionId = Membership().UniqueIdentifier;
+        IObservable<bool> isFormLogicallyValid = SetupValidation();
+
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
+        SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+        canExecuteSubmit.BindTo(this, x => x.CanSubmit);
 
         NavPassConfToPassPhase = ReactiveCommand.Create(() =>
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
         });
-
-        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync, canExecuteSubmit);
-
-        _mobileSubscription = MessageBus.Current.Listen<string>("Mobile")
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(mobile => { VerificationSessionId = mobile; });
     }
 
     public void InsertPasswordChars(int index, string chars)
     {
+        if (!_hasPasswordBeenTouched) _hasPasswordBeenTouched = true;
         _passwordBuffer.Insert(index, chars);
-        ValidatePasswordsFromBuffer();
         this.RaisePropertyChanged(nameof(CurrentPasswordLength));
     }
 
     public void RemovePasswordChars(int index, int count)
     {
+        if (!_hasPasswordBeenTouched) _hasPasswordBeenTouched = true;
         _passwordBuffer.Remove(index, count);
-        ValidatePasswordsFromBuffer();
         this.RaisePropertyChanged(nameof(CurrentPasswordLength));
     }
 
     public void InsertVerifyPasswordChars(int index, string chars)
     {
+        if (!_hasVerifyPasswordBeenTouched) _hasVerifyPasswordBeenTouched = true;
         _verifyPasswordBuffer.Insert(index, chars);
-        ValidatePasswordsFromBuffer();
         this.RaisePropertyChanged(nameof(CurrentVerifyPasswordLength));
     }
 
     public void RemoveVerifyPasswordChars(int index, int count)
     {
+        if (!_hasVerifyPasswordBeenTouched) _hasVerifyPasswordBeenTouched = true;
         _verifyPasswordBuffer.Remove(index, count);
-        ValidatePasswordsFromBuffer();
         this.RaisePropertyChanged(nameof(CurrentVerifyPasswordLength));
     }
 
-    private void ValidatePasswordsFromBuffer()
+    private IObservable<bool> SetupValidation()
     {
-        PasswordErrorMessage = string.Empty;
-        IsPasswordErrorVisible = false;
-        CanSubmit = false;
+        IObservable<(string? Error, string Recommendations)> passwordValidation = this.WhenAnyValue(x => x.CurrentPasswordLength)
+            .Select(_ => ValidatePassword())
+            .Replay(1)
+            .RefCount();
+
+        IObservable<string> passwordErrorStream = passwordValidation
+            .Select(v => _hasPasswordBeenTouched ? FormatError(v.Error, v.Recommendations) : string.Empty)
+            .Replay(1)
+            .RefCount();
+
+        passwordErrorStream.ToPropertyEx(this, x => x.PasswordError);
+        this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e)).ToPropertyEx(this, x => x.HasPasswordError);
+
+        IObservable<bool> isPasswordLogicallyValid = passwordValidation.Select(v => string.IsNullOrEmpty(v.Error));
+
+        IObservable<bool> passwordsMatch = this.WhenAnyValue(x => x.CurrentPasswordLength, x => x.CurrentVerifyPasswordLength)
+            .Select(_ => DoPasswordsMatch())
+            .Replay(1)
+            .RefCount();
+
+        IObservable<string> verifyPasswordErrorStream = passwordsMatch
+            .Select(match => _hasVerifyPasswordBeenTouched && !match ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"] : string.Empty)
+            .Replay(1)
+            .RefCount();
+
+        verifyPasswordErrorStream.ToPropertyEx(this, x => x.VerifyPasswordError);
+        this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e)).ToPropertyEx(this, x => x.HasVerifyPasswordError);
+
+        return isPasswordLogicallyValid.CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
+            .DistinctUntilChanged();
+    }
+
+    private (string? Error, string Recommendations) ValidatePassword()
+    {
+        string? error = null;
+        var recommendations = string.Empty;
+        _passwordBuffer.WithSecureBytes(bytes =>
+        {
+            string password = Encoding.UTF8.GetString(bytes);
+            (error, var recs) = SecureKeyValidator.Validate(password, LocalizationService);
+            if (recs.Any())
+            {
+                recommendations = string.Join(Environment.NewLine, recs);
+            }
+        });
+        return (error, recommendations);
+    }
+    
+    private bool DoPasswordsMatch()
+    {
+        if (_passwordBuffer.Length != _verifyPasswordBuffer.Length)
+        {
+            return false;
+        }
 
         if (_passwordBuffer.Length == 0)
         {
-            if (_verifyPasswordBuffer.Length > 0)
-            {
-                PasswordErrorMessage = "Please enter your password in the first field.";
-                IsPasswordErrorVisible = true;
-            }
-            return;
+            return true;
         }
 
-        // Validate first password compliance
-        var passwordString = string.Empty;
-        var verifyPasswordString = string.Empty;
-        
+        byte[] passwordArray = new byte[_passwordBuffer.Length];
+        byte[] verifyArray = new byte[_verifyPasswordBuffer.Length];
+
         _passwordBuffer.WithSecureBytes(passwordBytes =>
         {
-            passwordString = Encoding.UTF8.GetString(passwordBytes);
+            passwordBytes.CopyTo(passwordArray.AsSpan());
         });
 
-        _passwordManager ??= PasswordManager.Create().Unwrap();
-        Result<Unit, EcliptixProtocolFailure> complianceResult =
-            _passwordManager.CheckPasswordCompliance(passwordString, PasswordPolicy.Default);
-
-        if (complianceResult.IsErr)
+        _verifyPasswordBuffer.WithSecureBytes(verifyBytes =>
         {
-            PasswordErrorMessage = complianceResult.UnwrapErr().Message;
-            IsPasswordErrorVisible = true;
-            return;
-        }
-
-        if (_verifyPasswordBuffer.Length == 0)
-        {
-            PasswordErrorMessage = "Please verify your password.";
-            IsPasswordErrorVisible = true;
-            return;
-        }
-
-        // Compare passwords
-        _verifyPasswordBuffer.WithSecureBytes(verifyPasswordBytes =>
-        {
-            verifyPasswordString = Encoding.UTF8.GetString(verifyPasswordBytes);
+            verifyBytes.CopyTo(verifyArray.AsSpan());
         });
 
-        if (passwordString != verifyPasswordString)
-        {
-            PasswordErrorMessage = "Passwords do not match.";
-            IsPasswordErrorVisible = true;
-            return;
-        }
-
-        IsPasswordErrorVisible = false;
-        PasswordErrorMessage = string.Empty;
-        CanSubmit = true;
+        return passwordArray.AsSpan().SequenceEqual(verifyArray);
     }
 
-   private async Task SubmitRegistrationPasswordAsync()
-{
-    if (!CanSubmit || _passwordBuffer.Length == 0)
+    private static string FormatError(string? error, string recommendations)
     {
-        PasswordErrorMessage = "Submission requirements not met.";
-        IsPasswordErrorVisible = true;
-        return;
+        if (!string.IsNullOrEmpty(error)) return error;
+        return recommendations;
     }
+    
+    
 
-    IsBusy = true;
-    PasswordErrorMessage = string.Empty;
-    IsPasswordErrorVisible = false;
-
-    try
+     private async Task SubmitRegistrationPasswordAsync()
     {
-        byte[] passwordBytes = null;
-        
-        // Extract password bytes from secure buffer
-        _passwordBuffer.WithSecureBytes(bytes =>
+        if (IsBusy || !CanSubmit) return;
+
+        byte[]? passwordBytes = null;
+        try
         {
-            passwordBytes = new byte[bytes.Length];
-            bytes.CopyTo(passwordBytes);
-        });
-
-        string passwordString = Encoding.UTF8.GetString(passwordBytes);
-
-        Result<string, EcliptixProtocolFailure> verifierResult = _passwordManager!.HashPassword(passwordString);
-        if (verifierResult.IsErr)
-        {
-            throw new InvalidOperationException(
-                $"Failed to hash password for server: {verifierResult.UnwrapErr().Message}");
-        }
-
-        Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
-            OpaqueProtocolService.CreateOprfRequest(passwordBytes);
-
-        if (opfrResult.IsErr)
-        {
-            throw new InvalidOperationException(
-                $"Failed to create OPRF request: {opfrResult.UnwrapErr().Message}");
-        }
-
-        (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
-
-        OprfRegistrationInitRequest request = new()
-        {
-            MembershipIdentifier = Helpers.GuidToByteString(Guid.Parse(VerificationSessionId)),
-            PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
-        };
-
-        _ = await NetworkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.OpaqueRegistrationInit,
-            request.ToByteArray(),
-            ServiceFlowType.Single,
-            async payload =>
+            _passwordBuffer.WithSecureBytes(bytes =>
             {
-                OprfRegistrationInitResponse createMembershipResponse =
-                    Helpers.ParseFromBytes<OprfRegistrationInitResponse>(payload);
+                passwordBytes = new byte[bytes.Length];
+                bytes.CopyTo(passwordBytes);
+            });
 
-                if (createMembershipResponse.Result ==
-                    OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
+                OpaqueProtocolService.CreateOprfRequest(passwordBytes);
+
+            if (opfrResult.IsErr)
+            {
+                PasswordError = opfrResult.UnwrapErr().Message;
+                return;
+            }
+
+            (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
+
+            OprfRegistrationInitRequest request = new()
+            {
+                MembershipIdentifier = VerificationSessionId,
+                PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
+            };
+
+            await NetworkProvider.ExecuteServiceRequestAsync(
+                ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                RcpServiceType.OpaqueRegistrationInit,
+                request.ToByteArray(),
+                ServiceFlowType.Single,
+                async payload =>
                 {
-                    Result<byte[], OpaqueFailure> envelope = OpaqueProtocolService.CreateRegistrationRecord(passwordBytes,
-                        createMembershipResponse.PeerOprf.ToByteArray(), opfr.Blind);
+                    OprfRegistrationInitResponse createMembershipResponse =
+                        OprfRegistrationInitResponse.Parser.ParseFrom(payload);
 
-                    OprfRegistrationCompleteRequest r = new()
-                    {
-                        MembershipIdentifier = createMembershipResponse.Membership.UniqueIdentifier,
-                        PeerRegistrationRecord = ByteString.CopyFrom(envelope.Unwrap())
-                    };
-
-                    _ = await NetworkProvider.ExecuteServiceRequestAsync(
-                        ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-                        RcpServiceType.OpaqueRegistrationComplete,
-                        r.ToByteArray(),
-                        ServiceFlowType.Single,
-                        payload =>
-                        {
-                            OprfRegistrationCompleteResponse createMembershipResponse =
-                                Helpers.ParseFromBytes<OprfRegistrationCompleteResponse>(payload);
-
-                            // Registration completed successfully
-                            return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                        });
-                }
-
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-            },
-            CancellationToken.None
-        );
-
-        // Clear sensitive data
-        Array.Clear(passwordBytes, 0, passwordBytes.Length);
+                    // if (createMembershipResponse.Result ==
+                    //     OprfRegistrationInitResponse.Types.Result.Success)
+                    // {
+                    //     // Handle success
+                    // }
+                    // else
+                    // {
+                    //     // Handle failure
+                    // }
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                },
+                CancellationToken.None
+            );
+        }
+        catch (Exception ex)
+        {
+            PasswordError = $"Submission failed: {ex.Message}";
+        }
+        finally
+        {
+            if (passwordBytes != null)
+            {
+                Array.Clear(passwordBytes, 0, passwordBytes.Length);
+            }
+        }
     }
-    catch (Exception ex)
-    {
-        PasswordErrorMessage = $"Submission failed: {ex.Message}";
-        IsPasswordErrorVisible = true;
-    }
-    finally
-    {
-        IsBusy = false;
-    }
-}
+
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _passwordBuffer?.Dispose();
-            _verifyPasswordBuffer?.Dispose();
-            _mobileSubscription?.Dispose();
+            _passwordBuffer.Dispose();
+            _verifyPasswordBuffer.Dispose();
         }
         base.Dispose(disposing);
     }
