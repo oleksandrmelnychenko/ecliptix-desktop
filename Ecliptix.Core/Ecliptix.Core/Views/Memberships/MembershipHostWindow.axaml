@@ -269,7 +269,7 @@
             Width="250"
             Height="40"
             ZIndex="1001"
-            IsConnected="{Binding IsConnected}" />
+            DataContext="{Binding NetworkStatusNotification}" />
 
         <!-- Main Content Border -->
         <Border Classes="main-border"

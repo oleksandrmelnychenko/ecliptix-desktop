@@ -24,8 +24,9 @@ using ShieldUnit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
-public class VerificationCodeEntryViewModel : ViewModelBase, IRoutableViewModel
+public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
 {
+    private readonly string _mobileNumber;
     private readonly IDisposable _mobileSubscription;
     private string _errorMessage = string.Empty;
     private bool _isSent;
@@ -34,18 +35,20 @@ public class VerificationCodeEntryViewModel : ViewModelBase, IRoutableViewModel
 
     private Guid? VerificationSessionIdentifier { get; set; } = null;
 
-    public VerificationCodeEntryViewModel(
+    public VerifyOtpViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen) : base(systemEvents,networkProvider, localizationService)
+        IScreen hostScreen, string mobileNumber) : base(systemEvents, networkProvider, localizationService)
     {
+        _mobileNumber = mobileNumber;
         _verificationCode = string.Empty;
+
         HostScreen = hostScreen;
 
         NavToPasswordConfirmation = ReactiveCommand.Create(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmPassword);
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmSecureKey);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(

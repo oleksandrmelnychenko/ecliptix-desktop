@@ -99,7 +99,8 @@
     "Error": "Error",
     "Success": "Success",
     "Cancel": "Cancel",
-    "Ok": "OK"
+    "Ok": "OK",
+    "NoInternetConnection": "No internet connection"
   },
   "LanguageDetection": {
     "Title": "Language Suggestion",

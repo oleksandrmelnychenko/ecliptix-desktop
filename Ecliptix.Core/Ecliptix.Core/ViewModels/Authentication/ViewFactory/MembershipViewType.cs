@@ -2,12 +2,11 @@ namespace Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 
 public enum MembershipViewType
 {
-    MembershipWelcome,
+    Welcome,
     SignIn,
-    PhoneVerification,
-    VerificationCodeEntry,
+    MobileVerification,
+    VerifyOtp,
     AccountRecovery,
-    ConfirmPassword,
-    NicknameInput,
+    ConfirmSecureKey,
     PassPhase,
 }

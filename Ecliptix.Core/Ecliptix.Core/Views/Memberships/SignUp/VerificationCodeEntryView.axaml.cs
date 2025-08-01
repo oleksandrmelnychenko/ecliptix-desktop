@@ -4,7 +4,7 @@ using Ecliptix.Core.ViewModels.Memberships.SignUp;
 
 namespace Ecliptix.Core.Views.Memberships.SignUp;
 
-public partial class VerificationCodeEntryView : ReactiveUserControl<VerificationCodeEntryViewModel>
+public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpViewModel>
 {
     public VerificationCodeEntryView()
     {

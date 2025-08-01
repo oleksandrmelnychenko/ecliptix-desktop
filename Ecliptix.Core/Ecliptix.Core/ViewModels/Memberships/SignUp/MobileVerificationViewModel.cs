@@ -113,7 +113,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
 
         if (result.IsOk)
         {
-            VerificationCodeEntryViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen);
+            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen,MobileNumber);
             HostScreen.Router.Navigate.Execute(vm);
         }
         else

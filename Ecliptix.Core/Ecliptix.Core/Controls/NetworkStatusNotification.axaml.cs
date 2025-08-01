@@ -1,6 +1,5 @@
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
@@ -10,15 +9,26 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.ReactiveUI;
 using Avalonia.Styling;
+using Ecliptix.Core.Services;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Controls;
 
-public sealed partial class NetworkStatusNotification : UserControl, INotifyPropertyChanged
+public sealed partial class NetworkStatusNotification : ReactiveUserControl<NetworkStatusNotificationViewModel>
 {
-    #region properties
-    public static readonly StyledProperty<bool> IsConnectedProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, bool>(nameof(IsConnected), true);
+    private Animation? _flickerAnimation;
+    private Animation? _appearAnimation;
+    private Animation? _disappearAnimation;
+
+    private Ellipse? _statusEllipse;
+
+    private bool _isVisible;
+
+    private const string DisconnectedIconPath =
+        "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z " +
+        "m.93-9.412-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z";
 
     public static readonly StyledProperty<TimeSpan> AppearDurationProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(AppearDuration),
@@ -31,7 +41,7 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
     public static readonly StyledProperty<TimeSpan> FlickerDurationProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(FlickerDuration),
             TimeSpan.FromMilliseconds(1500));
-    
+
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(Background),
             new SolidColorBrush(Color.Parse("#312e31")));
@@ -43,9 +53,15 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
     public static readonly StyledProperty<Geometry> IconDataProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, Geometry>(nameof(IconData));
 
-    #endregion 
-    
-    #region fields
+    public static readonly StyledProperty<ILocalizationService> LocalizationServiceProperty =
+        AvaloniaProperty.Register<NetworkStatusNotification, ILocalizationService>(nameof(LocalizationService));
+
+    public ILocalizationService LocalizationService
+    {
+        get => GetValue(LocalizationServiceProperty);
+        set => SetValue(LocalizationServiceProperty, value);
+    }
+
     public new IBrush Background
     {
         get => GetValue(BackgroundProperty);
@@ -62,12 +78,6 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
     {
         get => GetValue(IconDataProperty);
         set => SetValue(IconDataProperty, value);
-    }
-
-    public bool IsConnected
-    {
-        get => GetValue(IsConnectedProperty);
-        set => SetValue(IsConnectedProperty, value);
     }
 
     public TimeSpan AppearDuration
@@ -87,32 +97,21 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
         get => GetValue(FlickerDurationProperty);
         set => SetValue(FlickerDurationProperty, value);
     }
-    
-    #endregion
-    
-    private Animation _flickerAnimation;
-    private Animation _appearAnimation;
-    private Animation _disappearAnimation;
-    
-    private Ellipse _statusEllipse;
-
-    private bool _isVisible;
-    
-    
-    private const string DisconnectedIconPath =
-        "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z " +
-        "m.93-9.412-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z";
 
     public NetworkStatusNotification()
     {
         InitializeComponent();
-        
-        IsConnectedProperty.Changed.Subscribe(OnIsConnectedChanged);
-        
+
         IsVisible = false;
-        
+
         SetIcon();
-      
+
+        this.WhenActivated(disposables =>
+        {
+            this.WhenAnyValue(x => x.ViewModel!.IsConnected)
+                .Subscribe(async isConnected => await HandleConnectivityChange(isConnected))
+                .DisposeWith(disposables);
+        });
     }
 
     private void SetIcon()
@@ -139,20 +138,10 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
         CreateAnimations();
     }
 
-    
-    private async void OnIsConnectedChanged(AvaloniaPropertyChangedEventArgs e)
-    {
-        if (e.NewValue is bool isConnected)
-        {
-            await HandleConnectivityChange(isConnected);
-        }
-    }
-
     private async Task HandleConnectivityChange(bool isConnected)
     {
         if (!isConnected)
         {
-            // Show notification when disconnected
             if (!_isVisible)
             {
                 await ShowAsync();
@@ -160,7 +149,6 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
         }
         else
         {
-            // Hide notification when connected
             if (_isVisible)
             {
                 await HideAsync();
@@ -252,41 +240,48 @@ public sealed partial class NetworkStatusNotification : UserControl, INotifyProp
         };
     }
 
-    public async Task ShowAsync()
+    private async Task ShowAsync()
     {
         if (_appearAnimation == null)
+        {
             CreateAnimations();
+        }
 
-        this.IsVisible = true;
+        IsVisible = true;
         _isVisible = true;
-        this.RenderTransform = new TranslateTransform();
-        await _appearAnimation.RunAsync(this);
+        RenderTransform = new TranslateTransform();
+        await _appearAnimation!.RunAsync(this);
         StartFlickerAnimation();
     }
 
-    public async Task HideAsync()
+    private async Task HideAsync()
     {
         if (_disappearAnimation == null)
+        {
             CreateAnimations();
+        }
 
         StopFlickerAnimation();
-        await _disappearAnimation.RunAsync(this);
-        this.IsVisible = false;
+        await _disappearAnimation!.RunAsync(this);
+        IsVisible = false;
         _isVisible = false;
     }
 
-    public void StartFlickerAnimation()
+    private void StartFlickerAnimation()
     {
         if (_flickerAnimation == null)
+        {
             CreateAnimations();
+        }
 
         _flickerAnimation?.RunAsync(_statusEllipse);
     }
 
-    public void StopFlickerAnimation()
+    private void StopFlickerAnimation()
     {
         if (_statusEllipse != null)
+        {
             _statusEllipse.Opacity = 1.0;
+        }
     }
-    
 }

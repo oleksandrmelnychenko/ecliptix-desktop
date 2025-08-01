@@ -190,7 +190,7 @@ public static class Program
         services.AddTransient<MembershipHostWindowModel>();
         services.AddTransient<SignInViewModel>();
         services.AddTransient<MobileVerificationViewModel>();
-        services.AddTransient<VerificationCodeEntryViewModel>();
+        services.AddTransient<VerifyOtpViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<PasswordConfirmationViewModel>();
         services.AddTransient<PassPhaseViewModel>();

@@ -9,7 +9,7 @@
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="400"
-             x:DataType="signUp:VerificationCodeEntryViewModel"
+             x:DataType="signUp:VerifyOtpViewModel"
              x:Class="Ecliptix.Core.Views.Memberships.SignUp.VerificationCodeEntryView"
              MinWidth="320"
              Width="320">

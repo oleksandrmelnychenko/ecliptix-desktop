@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Network;
@@ -25,7 +26,6 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public class MembershipHostWindowModel : ViewModelBase, IScreen
 {
-    private bool _isConnected = true;
     private bool _canNavigateBack;
     private readonly IBottomSheetEvents _bottomSheetEvents;
     private readonly ISecureStorageProvider _secureStorageProvider;
@@ -39,11 +39,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
     public RoutingState Router { get; } = new();
 
-    public bool IsConnected
-    {
-        get => _isConnected;
-        set => this.RaiseAndSetIfChanged(ref _isConnected, value);
-    }
 
     public bool CanNavigateBack
     {
@@ -52,6 +47,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     }
 
     public LanguageSelectorViewModel LanguageSelector { get; }
+
+    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
@@ -74,11 +71,17 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         IAuthenticationService authenticationService)
         : base(systemEvents, networkProvider, localizationService)
     {
-        _bottomSheetEvents = bottomSheetEvents ?? throw new ArgumentNullException(nameof(bottomSheetEvents));
+        _bottomSheetEvents = bottomSheetEvents;
         _secureStorageProvider = secureStorageProvider;
 
-        LanguageSelector = new LanguageSelectorViewModel(localizationService, secureStorageProvider,rpcMetaDataProvider);
-        _connectivitySubscription = connectivityObserver.Subscribe(status => { IsConnected = status; });
+        LanguageSelector =
+            new LanguageSelectorViewModel(localizationService, secureStorageProvider, rpcMetaDataProvider);
+        NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
+
+        _connectivitySubscription = connectivityObserver.Subscribe(status =>
+        {
+            NetworkStatusNotification.ChangeNetworkStatus(status);
+        });
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
@@ -106,7 +109,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
 
-            Navigate.Execute(MembershipViewType.MembershipWelcome)
+            Navigate.Execute(MembershipViewType.Welcome)
                 .Subscribe()
                 .DisposeWith(disposables);
         });
@@ -139,7 +142,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
     private static void OpenUrl(string url)
     {
-        Log.Information($"Opening URL: {url}");
+        Log.Information("Opening URL: {Url}", url);
     }
 
     private IRoutableViewModel CreateViewModelForView(
@@ -153,13 +156,11 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         {
             MembershipViewType.SignIn => new SignInViewModel(systemEvents, networkProvider, localizationService,
                 authenticationService, this),
-            MembershipViewType.MembershipWelcome => new WelcomeViewModel(this, systemEvents, localizationService,
+            MembershipViewType.Welcome => new WelcomeViewModel(this, systemEvents, localizationService,
                 networkProvider),
-            MembershipViewType.PhoneVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
+            MembershipViewType.MobileVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
                 localizationService, this),
-            MembershipViewType.VerificationCodeEntry => new VerificationCodeEntryViewModel(systemEvents,
-                networkProvider, localizationService, this),
-            MembershipViewType.ConfirmPassword => new PasswordConfirmationViewModel(systemEvents, networkProvider,
+            MembershipViewType.ConfirmSecureKey => new PasswordConfirmationViewModel(systemEvents, networkProvider,
                 localizationService, this),
             MembershipViewType.PassPhase => new PassPhaseViewModel(systemEvents, localizationService, this,
                 networkProvider),

@@ -27,7 +27,7 @@ public class WelcomeViewModel : ViewModelBase, IRoutableViewModel
         NavToCreateAccountCommand = ReactiveCommand.Create(() =>
         {
             ((MembershipHostWindowModel)HostScreen).Navigate.Execute(
-                MembershipViewType.PhoneVerification
+                MembershipViewType.MobileVerification
             );
         });
 
