@@ -14,17 +14,18 @@
             VerticalAlignment="Stretch"
             Background="{Binding Background, ElementName=Root}">
 
-        <Grid>
+        <Grid ColumnSpacing="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Image VerticalAlignment="Center" Grid.Column="0" Source="avares://Ecliptix.Core/Assets/wifi_icon.png"
+            <Image Width="25" Height="25" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="0"
+                   Source="avares://Ecliptix.Core/Assets/wifi.png"
                    Stretch="Uniform" />
 
-            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="8,0,0,0" Grid.Column="1">
+            <StackPanel Spacing="3" VerticalAlignment="Center" Margin="0,0,0,0" Grid.Column="1">
                 <TextBlock x:Name="StatusTextBlock"
                            Foreground="White"
                            FontWeight="Medium"
@@ -45,7 +46,7 @@
                      Height="6"
                      VerticalAlignment="Top"
                      HorizontalAlignment="Right"
-                     Margin="8,1,-2,0"
+                     Margin="6,1,-2,0"
                      Fill="{Binding EllipseColor, ElementName=Root}" />
         </Grid>
     </Border>

@@ -266,8 +266,8 @@
             VerticalAlignment="Top"
             Margin="0,50,0,0"
             FontSize="12"
-            Width="350"
-            Height="60"
+            Width="320"
+            Height="70"
             ZIndex="1001"
             DataContext="{Binding NetworkStatusNotification}" />
 
