@@ -39,12 +39,16 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
     {
         if (_handlersAttached)
             return;
-            
+        
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
+            passwordBox.SecureKeyCharactersAdded += OnPasswordCharactersAdded;
+            passwordBox.SecureKeyCharactersRemoved += OnPasswordCharactersRemoved;
         }
         if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
+            verifyPasswordBox.SecureKeyCharactersAdded += OnVerifyPasswordCharactersAdded;
+            verifyPasswordBox.SecureKeyCharactersRemoved += OnVerifyPasswordCharactersRemoved;
         }
         _handlersAttached = true;
     }
@@ -53,30 +57,46 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
     {
         if (!_handlersAttached)
             return;
-            
+        
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
+            passwordBox.SecureKeyCharactersAdded -= OnPasswordCharactersAdded;
+            passwordBox.SecureKeyCharactersRemoved -= OnPasswordCharactersRemoved;
         }
         if (this.FindControl<HintedTextBox>("VerifyPasswordTextBox") is HintedTextBox verifyPasswordBox)
         {
+            verifyPasswordBox.SecureKeyCharactersAdded -= OnVerifyPasswordCharactersAdded;
+            verifyPasswordBox.SecureKeyCharactersRemoved -= OnVerifyPasswordCharactersRemoved;
         }
         _handlersAttached = false;
     }
 
-    private void PasswordBox_TextChanged(object? sender, TextChangedEventArgs e)
+    private void OnPasswordCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox tb)
-        {
-            vm.UpdatePassword(tb.Text);
-        }
+        if (DataContext is not PasswordConfirmationViewModel vm || sender is not HintedTextBox tb) return;
+        vm.InsertPasswordChars(e.Index, e.Characters);
+        tb.SyncSecureKeyState(vm.CurrentPasswordLength);
     }
 
-    private void VerifyPasswordBox_TextChanged(object? sender, TextChangedEventArgs e)
+    private void OnPasswordCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is PasswordConfirmationViewModel vm && sender is HintedTextBox tb)
-        {
-            vm.UpdateVerifyPassword(tb.Text);
-        }
+        if (DataContext is not PasswordConfirmationViewModel vm || sender is not HintedTextBox tb) return;
+        vm.RemovePasswordChars(e.Index, e.Count);
+        tb.SyncSecureKeyState(vm.CurrentPasswordLength);
+    }
+
+    private void OnVerifyPasswordCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
+    {
+        if (DataContext is not PasswordConfirmationViewModel vm || sender is not HintedTextBox tb) return;
+        vm.InsertVerifyPasswordChars(e.Index, e.Characters);
+        tb.SyncSecureKeyState(vm.CurrentVerifyPasswordLength);
+    }
+    
+    private void OnVerifyPasswordCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
+    {
+        if (DataContext is not PasswordConfirmationViewModel vm || sender is not HintedTextBox tb) return;
+        vm.RemoveVerifyPasswordChars(e.Index, e.Count);
+        tb.SyncSecureKeyState(vm.CurrentVerifyPasswordLength);
     }
 }
 
