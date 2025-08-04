@@ -2,6 +2,7 @@ using System.Linq;
 using System;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -173,7 +174,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public string ErrorText
     {
         get => GetValue(ErrorTextProperty);
-        private set => SetValue(ErrorTextProperty, value);
+        private set
+        {
+            _originalErrorText = value;
+            SetValue(ErrorTextProperty, value); 
+        }
     }
 
     public double EllipseOpacity
@@ -259,6 +264,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private bool _isDisposed;
     private bool _isControlInitialized;
     private int _nextCaretPosition;
+    private string _originalErrorText = string.Empty;
 
     public HintedTextBox()
     {
@@ -476,6 +482,17 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             })
             .DisposeWith(_disposables);
 
+        this.WhenAnyValue(x => x.ErrorText)
+            .Scan(string.Empty, (previous, current) =>
+            {
+                return string.IsNullOrEmpty(current) && !string.IsNullOrEmpty(previous) ? previous : current;
+            })
+            .Subscribe(accumulatedError =>
+            {
+                SetValue(ErrorTextProperty, accumulatedError);
+            })
+            .DisposeWith(_disposables);
+        
         this.WhenAnyValue(x => x.HasError)
             .Subscribe(hasError => { EllipseOpacity = hasError ? 1.0 : 0.0; })
             .DisposeWith(_disposables);
