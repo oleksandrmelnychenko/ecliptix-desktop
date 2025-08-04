@@ -165,7 +165,8 @@
             HasError="{Binding HasSecureKeyError, Mode=OneWay}"
             Height="{StaticResource InputHeight}"
             FontWeight="Light"
-            HorizontalAlignment="Stretch" />
+            HorizontalAlignment="Stretch"
+            MaxLength="28"/>
 
         <!-- Action Buttons -->
         <Grid Grid.Row="3"
