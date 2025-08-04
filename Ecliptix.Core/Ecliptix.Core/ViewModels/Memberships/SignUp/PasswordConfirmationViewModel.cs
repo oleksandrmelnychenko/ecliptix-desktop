@@ -30,6 +30,7 @@ using Google.Protobuf;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 
@@ -55,7 +56,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
     
-    private ByteString VerificationSessionId { get; set; }
+    private ByteString? VerificationSessionId { get; set; }
 
     private ISecureStorageProvider _secureStorageProvider;
     public PasswordConfirmationViewModel(
@@ -74,7 +75,13 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             this.WhenAnyValue(x => x.CanSubmit).BindTo(this, x => x.CanSubmit).DisposeWith(disposables);
             
             Observable.FromAsync(LoadMembershipAsync)
-                .Subscribe()
+                .Subscribe(result =>
+                {
+                    if (result.IsErr)
+                    {
+                       Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
+                    }
+                })
                 .DisposeWith(disposables);
         });
         
@@ -95,15 +102,19 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         
     }
 
-    private async Task LoadMembershipAsync()
+    private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance = await _secureStorageProvider.GetApplicationInstanceSettingsAsync();
-        if (!applicationInstance.IsOk)
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
+            await _secureStorageProvider.GetApplicationInstanceSettingsAsync();
+    
+        if (applicationInstance.IsErr)
         {
-            //TODO hadle error 
+            return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
         }
+    
         ApplicationInstanceSettings settings = applicationInstance.Unwrap();
         VerificationSessionId = settings.Membership.UniqueIdentifier;
+        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 
     public void InsertPasswordChars(int index, string chars)
