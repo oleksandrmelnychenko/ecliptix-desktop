@@ -85,6 +85,14 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     }
                 })
                 .DisposeWith(disposables);
+            SubmitCommand
+                .Where(_ => !IsBusy && CanSubmit)
+                .Subscribe(_ =>
+                {
+                    ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+                })
+                .DisposeWith(disposables);
         });
         
         IObservable<bool> isFormLogicallyValid = SetupValidation();
@@ -95,13 +103,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
-
-        NavPassConfToPassPhase = ReactiveCommand.Create(() =>
-        {
-            ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
-        });
-        
         
     }
 
