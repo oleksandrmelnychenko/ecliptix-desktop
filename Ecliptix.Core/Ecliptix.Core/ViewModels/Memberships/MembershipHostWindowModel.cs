@@ -80,6 +80,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
+            Log.Information("Network status changed to: {Status}", status);
             NetworkStatusNotification.ChangeNetworkStatus(status);
         });
 

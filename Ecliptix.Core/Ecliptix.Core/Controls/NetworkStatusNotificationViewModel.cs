@@ -7,7 +7,7 @@ public sealed class NetworkStatusNotificationViewModel(ILocalizationService loca
 {
     public ILocalizationService LocalizationService { get; } = localizationService;
 
-    private bool _isConnected = false;
+    private bool _isConnected = true;
     public bool IsConnected
     {
         get => _isConnected;
