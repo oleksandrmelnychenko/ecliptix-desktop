@@ -80,6 +80,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     if (result.IsErr)
                     {
                        Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
+                       ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+                       ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                     }
                 })
                 .DisposeWith(disposables);
@@ -96,7 +98,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 
         NavPassConfToPassPhase = ReactiveCommand.Create(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+            ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
         });
         
         

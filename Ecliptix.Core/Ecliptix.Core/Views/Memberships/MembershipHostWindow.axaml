@@ -315,7 +315,7 @@
                             <StackPanel HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Spacing="8">
-                                <TextBlock Text="Loading View..."
+                                <TextBlock Text=""
                                            HorizontalAlignment="Center"
                                            FontSize="13"
                                            Opacity="0.6" />
