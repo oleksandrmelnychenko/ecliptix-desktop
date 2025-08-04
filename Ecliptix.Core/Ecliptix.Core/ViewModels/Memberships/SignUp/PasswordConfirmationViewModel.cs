@@ -192,7 +192,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             (error, var recs) = SecureKeyValidator.Validate(password, LocalizationService);
             if (recs.Any())
             {
-                recommendations = string.Join(Environment.NewLine, recs);
+                recommendations = recs.First();
             }
         });
         return (error, recommendations);
