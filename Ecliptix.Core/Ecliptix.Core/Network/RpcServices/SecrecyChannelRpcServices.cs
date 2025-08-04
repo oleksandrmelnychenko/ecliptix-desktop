@@ -48,7 +48,8 @@ public sealed class SecrecyChannelRpcServices(
         return await ExecuteWithRetryAsync(
             networkEvents,
             systemEvents,
-            () => appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request)
+            () =>
+                appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request)
         );
     }
 

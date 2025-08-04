@@ -20,6 +20,16 @@ public class InternalServiceApiFailure
     {
         return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreAccessDenied, details, inner);
     }
+    
+    public static InternalServiceApiFailure ProtocolRecoveryFailed(string details, Exception? inner = null)
+    {
+        return new InternalServiceApiFailure(InternalServiceApiFailureType.ProtocolRecoveryFailed, details, inner);
+    }
+    
+    public static InternalServiceApiFailure ProtocolStateExpired(string details, Exception? inner = null)
+    {
+        return new InternalServiceApiFailure(InternalServiceApiFailureType.ProtocolStateExpired, details, inner);
+    }
 
     public static InternalServiceApiFailure SecureStoreNotFound(string details, Exception? inner = null)
     {
