@@ -1,7 +1,7 @@
-using Ecliptix.Utilities.Failures.Sodium;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -28,7 +28,10 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
     public bool Equals(EcliptixMessageKey? other)
     {
         if (other is null) return false;
-        return Index == other.Index;
+        return
+            Index == other.Index &&
+            _disposed ==
+            other._disposed;
     }
 
     public static Result<EcliptixMessageKey, EcliptixProtocolFailure> New(uint index, ReadOnlySpan<byte> keyMaterial)
@@ -53,6 +56,17 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
         }
 
         EcliptixMessageKey messageKey = new(index, keyHandle);
+
+        Console.WriteLine($"EcliptixMessageKey Created [Index: {index}, Disposed: {messageKey._disposed}]");
+        byte[] tempBuffer = new byte[Constants.X25519KeySize];
+        if (messageKey.ReadKeyMaterial(tempBuffer).IsOk)
+        {
+            Console.WriteLine($"  Key Material: {Convert.ToHexString(tempBuffer)}");
+        }
+        else
+        {
+            Console.WriteLine("  Key Material: <Error reading key>");
+        }
 
         return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(messageKey);
     }

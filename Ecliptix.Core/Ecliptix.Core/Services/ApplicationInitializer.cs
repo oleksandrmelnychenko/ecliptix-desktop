@@ -10,7 +10,6 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Providers;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Settings;
-using Ecliptix.Protocol.System.Core;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
@@ -47,8 +46,11 @@ public class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
-        _ = Task.Run(async () => { await secureStorageProvider.SetApplicationInstanceAsync(isNewInstance); });
-
+        _ = Task.Run(async () =>
+        {
+            await secureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
+        });
+        
         localizationService.SetCulture(settings.Culture);
 
         _ = Task.Run(async () =>
@@ -66,7 +68,6 @@ public class ApplicationInitializer(
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
         if (connectIdResult.IsErr)
         {
-            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
             Log.Error("Failed to establish or restore secrecy channel: {Error}", connectIdResult.UnwrapErr());
             return false;
         }
@@ -86,33 +87,6 @@ public class ApplicationInitializer(
         return true;
     }
 
-    private static Result<EcliptixSecrecyChannelState, InternalServiceApiFailure> TryRestoreInternalState(
-        byte[] storedStateResult)
-    {
-        EcliptixSecrecyChannelState state;
-        try
-        {
-            state = EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult);
-        }
-        catch (InvalidProtocolBufferException ex)
-        {
-            Log.Error("Could not parse stored state, it is likely corrupt: {Error}", ex.Message);
-            return Result<EcliptixSecrecyChannelState, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.ProtocolRecoveryFailed("Could not parse stored state, it is likely corrupt",
-                    ex));
-        }
-
-        if (DateTimeOffset.UtcNow - state.RatchetState.LastActivityAt.ToDateTimeOffset() >
-            EcliptixProtocolConnection.LiveConnectTimeout)
-        {
-            Log.Information("Stored secrecy channel state has expired");
-            return Result<EcliptixSecrecyChannelState, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.ProtocolStateExpired("Stored secrecy channel state has expired"));
-        }
-
-        return Result<EcliptixSecrecyChannelState, InternalServiceApiFailure>.Ok(state);
-    }
-
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
@@ -126,29 +100,21 @@ public class ApplicationInitializer(
                 await secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
             if (storedStateResult.IsOk && storedStateResult.Unwrap().HasValue)
             {
-                byte[] stateBytes = storedStateResult.Unwrap().Value!;
-                Result<EcliptixSecrecyChannelState, InternalServiceApiFailure> restorationResult = TryRestoreInternalState(stateBytes);
-                if (restorationResult.IsOk)
+                EcliptixSecrecyChannelState? state =
+                    EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
+                Result<bool, NetworkFailure> restoreSecrecyChannelResult =
+                    await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
+
+                if (restoreSecrecyChannelResult.IsErr)
+                    return Result<uint, NetworkFailure>.Err(restoreSecrecyChannelResult.UnwrapErr());
+                if (restoreSecrecyChannelResult.IsOk && restoreSecrecyChannelResult.Unwrap())
                 {
-                    Result<bool, NetworkFailure> restoreSyncResult =
-                        await networkProvider.RestoreSecrecyChannelAsync(restorationResult.Unwrap(), applicationInstanceSettings);
-
-                    if (restoreSyncResult.IsOk && restoreSyncResult.Unwrap())
-                    {
-                        Log.Information("Successfully restored and synchronized secrecy channel {ConnectId}",
-                            connectId);
-                        return Result<uint, NetworkFailure>.Ok(connectId);
-                    }
-
-                    Log.Warning(
-                        "Failed to restore and synchronize secrecy channel {ConnectId}. A new channel will be established",
-                        connectId);
-                    return Result<uint, NetworkFailure>.Err(restoreSyncResult.UnwrapErr());
+                    Log.Information("Successfully restored and synchronized secrecy channel {ConnectId}", connectId);
+                    return Result<uint, NetworkFailure>.Ok(connectId);
                 }
 
-                secureStorageProvider.DeleteAsync(connectId.ToString());
-                Log.Warning("Stored state for {ConnectId} is invalid or expired. A new channel will be established",
-                    connectId);
+                Log.Warning(
+                    "Failed to restore secrecy channel or it was out of sync. A new channel will be established");
             }
         }
 

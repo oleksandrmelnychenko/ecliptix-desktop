@@ -5,7 +5,5 @@ public enum InternalServiceApiFailureType
     SecureStoreNotFound,
     SecureStoreKeyNotFound,
     SecureStoreAccessDenied,
-    ApiRequestFailed,
-    ProtocolStateExpired,
-    ProtocolRecoveryFailed,
+    ApiRequestFailed
 }

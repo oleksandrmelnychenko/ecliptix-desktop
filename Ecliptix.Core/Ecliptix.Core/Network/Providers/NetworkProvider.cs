@@ -163,18 +163,12 @@ public sealed class NetworkProvider(
                         NetworkFailure.InvalidRequestType("Connection not found"));
                 }
 
-                Result<ServiceRequest, EcliptixProtocolFailure> requestResult =
-                    BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-                if (requestResult.IsErr)
-                {
-                    return Result<Unit, NetworkFailure>.Err(requestResult.ToNetworkFailure().UnwrapErr());
-                }
-
-                return await SendRequestAsync(protocolSystem, requestResult.Unwrap(), onCompleted, token);
+                ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
+                return await SendRequestAsync(protocolSystem, request, onCompleted, token);
             });
     }
 
-    private static async Task<TResult> RetryExecute<TResult>(
+    public async static Task<TResult> RetryExecute<TResult>(
         Func<int, TimeSpan> retryInterval,
         Func<TResult, bool> shouldRetry,
         Func<int, TResult, Task> onRetryAsync,
@@ -195,6 +189,8 @@ public sealed class NetworkProvider(
 
             attempt++;
         }
+
+        throw new InvalidOperationException("Unreachable code in RetryExecute.");
     }
 
 
@@ -221,9 +217,7 @@ public sealed class NetworkProvider(
             await rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(networkEvents, systemEvents, serviceRequest);
 
         if (restoreAppDeviceSecrecyChannelResponse.IsErr)
-        {
             return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
-        }
 
         RestoreSecrecyChannelResponse response = restoreAppDeviceSecrecyChannelResponse.Unwrap();
 
@@ -396,7 +390,7 @@ public sealed class NetworkProvider(
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private static Result<ServiceRequest, EcliptixProtocolFailure> BuildRequest(
+    private static ServiceRequest BuildRequest(
         EcliptixProtocolSystem protocolSystem,
         RcpServiceType serviceType,
         byte[] plainBuffer,
@@ -405,13 +399,7 @@ public sealed class NetworkProvider(
         Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundMessage(plainBuffer);
 
-        if (outboundPayload.IsOk)
-        {
-            return Result<ServiceRequest, EcliptixProtocolFailure>.Ok(ServiceRequest.New(flowType, serviceType,
-                outboundPayload.Unwrap(), []));
-        }
-
-        return Result<ServiceRequest, EcliptixProtocolFailure>.Err(outboundPayload.UnwrapErr());
+        return ServiceRequest.New(flowType, serviceType, outboundPayload.Unwrap(), []);
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(EcliptixProtocolSystem protocolSystem,

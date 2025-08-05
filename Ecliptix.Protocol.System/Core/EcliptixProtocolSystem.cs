@@ -16,8 +16,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 {
     private EcliptixProtocolConnection? _protocolConnection;
 
-    private readonly HashSet<uint> _seenRequestIds = new();  // For replay protection
-
     public EcliptixSystemIdentityKeys GetIdentityKeys() => ecliptixSystemIdentityKeys;
     
     public void Dispose()
@@ -44,6 +42,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     return session.GetCurrentSenderDhPublicKey()
                         .Map(dhPublicKey =>
                         {
+                            Console.WriteLine($"[EcliptixProtocolSystem] BeginDataCenterPubKeyExchange (ConnectId: {connectId}):");
+                            Console.WriteLine($"  Public Key Bundle: IdentityX25519={Convert.ToHexString(bundle.IdentityX25519)}, SignedPreKeyPublic={Convert.ToHexString(bundle.SignedPreKeyPublic)}");
+                            Console.WriteLine($"  Initial DH Public Key: {Convert.ToHexString(dhPublicKey)}");
                             return new PubKeyExchange
                             {
                                 State = PubKeyExchangeState.Init,
@@ -72,14 +73,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 .AndThen(PublicKeyBundle.FromProtobufExchange)
                 .AndThen(peerBundle =>
                 {
-                    if (!IsValidX25519PublicKey(peerBundle.IdentityX25519) ||
-                        !IsValidX25519PublicKey(peerBundle.SignedPreKeyPublic) ||
-                        !IsValidX25519PublicKey(peerBundle.EphemeralX25519))
-                    {
-                        return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(
-                            EcliptixProtocolFailure.InvalidInput("Invalid peer public key in bundle."));
-                    }
-
+                    Console.WriteLine($"[EcliptixProtocolSystem] ProcessAndRespondToPubKeyExchange (ConnectId: {connectId}):");
+                    Console.WriteLine($"  Peer Public Key Bundle: IdentityX25519={Convert.ToHexString(peerBundle.IdentityX25519)}, SignedPreKeyPublic={Convert.ToHexString(peerBundle.SignedPreKeyPublic)}");
                     return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
                             peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
                         .AndThen(spkValid => Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value, _ => spkValid,
@@ -95,30 +90,34 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                                 _protocolConnection = session;
                                 return ecliptixSystemIdentityKeys.CalculateSharedSecretAsRecipient(
                                         peerBundle.IdentityX25519, peerBundle.EphemeralX25519,
-                                        null, Constants.X3dhInfo) 
+                                        peerBundle.OneTimePreKeys.FirstOrDefault()?.PreKeyId, Constants.X3dhInfo)
                                     .AndThen(derivedKeyHandle =>
                                     {
                                         rootKeyHandle = derivedKeyHandle;
                                         return ReadAndWipeSecureHandle(derivedKeyHandle, Constants.X25519KeySize);
                                     })
-                                    .AndThen(rootKeyBytes => session.FinalizeChainAndDhKeys(rootKeyBytes,
-                                        peerInitialMessageProto.InitialDhPublicKey.ToByteArray()))
+                                    .AndThen(rootKeyBytes =>
+                                    {
+                                        Console.WriteLine($"  Shared Secret (Root Key): {Convert.ToHexString(rootKeyBytes)}");
+                                        return session.FinalizeChainAndDhKeys(rootKeyBytes,
+                                            peerInitialMessageProto.InitialDhPublicKey.ToByteArray());
+                                    })
                                     .AndThen(__ => session.SetPeerBundle(peerBundle))
                                     .AndThen(__ => session.GetCurrentSenderDhPublicKey())
-                                    .Map(dhPublicKey => new PubKeyExchange
+                                    .Map(dhPublicKey =>
                                     {
-                                        State = PubKeyExchangeState.Pending,
-                                        OfType = peerInitialMessageProto.OfType,
-                                        Payload = localBundle.ToProtobufExchange().ToByteString(),
-                                        InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
+                                        Console.WriteLine($"  Response Public Key Bundle: IdentityX25519={Convert.ToHexString(localBundle.IdentityX25519)}, SignedPreKeyPublic={Convert.ToHexString(localBundle.SignedPreKeyPublic)}");
+                                        Console.WriteLine($"  Response Initial DH Public Key: {Convert.ToHexString(dhPublicKey)}");
+                                        return new PubKeyExchange
+                                        {
+                                            State = PubKeyExchangeState.Pending,
+                                            OfType = peerInitialMessageProto.OfType,
+                                            Payload = localBundle.ToProtobufExchange().ToByteString(),
+                                            InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
+                                        };
                                     });
                             }));
                 });
-        }
-        catch (Exception ex)
-        {
-            return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Unexpected error in handshake.", ex));
         }
         finally
         {
@@ -138,13 +137,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 .AndThen(PublicKeyBundle.FromProtobufExchange)
                 .AndThen(peerBundle =>
                 {
-                    if (!IsValidX25519PublicKey(peerBundle.IdentityX25519) ||
-                        !IsValidX25519PublicKey(peerBundle.SignedPreKeyPublic) ||
-                        !IsValidX25519PublicKey(peerBundle.EphemeralX25519))
-                    {
-                        throw new InvalidOperationException("Invalid peer public key in bundle.");
-                    }
-
+                    Console.WriteLine($"[EcliptixProtocolSystem] CompleteDataCenterPubKeyExchange:");
+                    Console.WriteLine($"  Peer Public Key Bundle: IdentityX25519={Convert.ToHexString(peerBundle.IdentityX25519)}, SignedPreKeyPublic={Convert.ToHexString(peerBundle.SignedPreKeyPublic)}");
                     return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
                             peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
                         .AndThen(spkValid => Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value, _ => spkValid,
@@ -155,14 +149,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             rootKeyHandle = derivedKeyHandle;
                             return ReadAndWipeSecureHandle(derivedKeyHandle, Constants.X25519KeySize);
                         })
-                        .AndThen(rootKeyBytes => _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes,
-                            peerMessage.InitialDhPublicKey.ToByteArray()))
+                        .AndThen(rootKeyBytes =>
+                        {
+                            Console.WriteLine($"  Shared Secret (Root Key): {Convert.ToHexString(rootKeyBytes)}");
+                            return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes,
+                                peerMessage.InitialDhPublicKey.ToByteArray());
+                        })
                         .AndThen(_ => _protocolConnection!.SetPeerBundle(peerBundle));
                 });
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Unexpected error in complete handshake.", ex);
         }
         finally
         {
@@ -186,6 +180,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             })
                             .AndThen(peerBundle =>
                             {
+                                byte[] msgKeyTemp = new byte[Constants.AesKeySize];
+                                if (messageKeyClone!.ReadKeyMaterial(msgKeyTemp).IsOk)
+                                {
+                                    Console.WriteLine($"[EcliptixProtocolSystem] ProduceOutboundMessage:");
+                                    Console.WriteLine($"  Message Key (Index: {messageKeyClone.Index}): {Convert.ToHexString(msgKeyTemp)}");
+                                    Console.WriteLine($"  Nonce: {Convert.ToHexString(nonce)}");
+                                    Console.WriteLine($"  DH Public Key: {(newSenderDhPublicKey.Length > 0 ? Convert.ToHexString(newSenderDhPublicKey) : "<none>")}");
+                                }
                                 byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey,
                                     peerBundle.IdentityX25519);
                                 return Encrypt(messageKeyClone!, nonce, plainPayload, ad);
@@ -213,11 +215,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
-            if (_seenRequestIds.Contains(cipherPayloadProto.RequestId)) {
-                return Result<byte[], EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic("Replay detected."));
-            }
-            _seenRequestIds.Add(cipherPayloadProto.RequestId);
-
             byte[]? receivedDhKey = cipherPayloadProto.DhPublicKey.Length > 0
                 ? cipherPayloadProto.DhPublicKey.ToByteArray()
                 : null;
@@ -231,6 +228,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 })
                 .AndThen(peerBundle =>
                 {
+                    byte[] msgKeyTemp = new byte[Constants.AesKeySize];
+                    if (messageKeyClone!.ReadKeyMaterial(msgKeyTemp).IsOk)
+                    {
+                        Console.WriteLine($"[EcliptixProtocolSystem] ProcessInboundMessage:");
+                        Console.WriteLine($"  Received Message Key (Index: {messageKeyClone.Index}): {Convert.ToHexString(msgKeyTemp)}");
+                        Console.WriteLine($"  Received DH Public Key: {(receivedDhKey != null ? Convert.ToHexString(receivedDhKey) : "<none>")}");
+                    }
                     byte[] ad = CreateAssociatedData(peerBundle.IdentityX25519,
                         ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
                     return Decrypt(messageKeyClone!, cipherPayloadProto, ad);
@@ -251,6 +255,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             {
                 if (currentPeerDhKey != null && !receivedDhKey.AsSpan().SequenceEqual(currentPeerDhKey))
                 {
+                    // Log DH ratchet trigger
+                    Console.WriteLine($"[EcliptixProtocolSystem] PerformRatchetIfNeeded: Triggering DH ratchet with new peer DH public key: {Convert.ToHexString(receivedDhKey)}");
                     return _protocolConnection.PerformReceivingRatchet(receivedDhKey);
                 }
 
@@ -312,7 +318,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         catch (Exception ex)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Unexpected error in encryption.", ex));
+                EcliptixProtocolFailure.Generic("AES-GCM encryption failed.", ex));
         }
         finally
         {
@@ -354,6 +360,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             return Result<byte[], EcliptixProtocolFailure>.Ok(result);
         }
+        catch (CryptographicException cryptoEx)
+        {
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("AES-GCM decryption failed (authentication tag mismatch).", cryptoEx));
+        }
         catch (Exception ex)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
@@ -371,6 +382,19 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
         EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
+        // Log connection keys
+        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+        if (ratchetStateResult.IsOk)
+        {
+            RatchetState proto = ratchetStateResult.Unwrap();
+            Console.WriteLine($"[EcliptixProtocolSystem] CreateFrom:");
+            Console.WriteLine($"  Connection Root Key: {Convert.ToHexString(proto.RootKey.ToByteArray())}");
+            Console.WriteLine($"  Connection Peer DH Public Key: {(proto.PeerDhPublicKey.IsEmpty ? "<null>" : Convert.ToHexString(proto.PeerDhPublicKey.ToByteArray()))}");
+        }
+        else
+        {
+            Console.WriteLine($"[EcliptixProtocolSystem] Error retrieving connection state in CreateFrom: {ratchetStateResult.UnwrapErr().Message}");
+        }
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
     
@@ -391,14 +415,5 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         if (_protocolConnection == null) throw new InvalidOperationException("Connection has not been established yet.");
         return _protocolConnection;
-    }
-
-    private static bool IsValidX25519PublicKey(byte[] pk)
-    {
-        if (pk.All(b => b == 0)) return false;
-        byte[] clamped = (byte[])pk.Clone();
-        clamped[0] &= 248;
-        clamped[31] = (byte)((clamped[31] & 127) | 64);
-        return true;
     }
 }
