@@ -16,7 +16,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 {
     private EcliptixProtocolConnection? _protocolConnection;
 
-    private readonly HashSet<uint> _seenRequestIds = new();  // For replay protection
+    private readonly HashSet<uint> _seenRequestIds = []; 
 
     public EcliptixSystemIdentityKeys GetIdentityKeys() => ecliptixSystemIdentityKeys;
     
@@ -42,15 +42,12 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 {
                     _protocolConnection = session;
                     return session.GetCurrentSenderDhPublicKey()
-                        .Map(dhPublicKey =>
+                        .Map(dhPublicKey => new PubKeyExchange
                         {
-                            return new PubKeyExchange
-                            {
-                                State = PubKeyExchangeState.Init,
-                                OfType = exchangeType,
-                                Payload = bundle.ToProtobufExchange().ToByteString(),
-                                InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
-                            };
+                            State = PubKeyExchangeState.Init,
+                            OfType = exchangeType,
+                            Payload = bundle.ToProtobufExchange().ToByteString(),
+                            InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
                         });
                 }));
     }
@@ -213,10 +210,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
-            if (_seenRequestIds.Contains(cipherPayloadProto.RequestId)) {
+            if (!_seenRequestIds.Add(cipherPayloadProto.RequestId)) {
                 return Result<byte[], EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic("Replay detected."));
             }
-            _seenRequestIds.Add(cipherPayloadProto.RequestId);
 
             byte[]? receivedDhKey = cipherPayloadProto.DhPublicKey.Length > 0
                 ? cipherPayloadProto.DhPublicKey.ToByteArray()

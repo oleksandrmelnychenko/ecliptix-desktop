@@ -2,17 +2,8 @@ using System.Security.Cryptography;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
-// Required for AesGcm
-
-// For Constants, ShieldChainStepException
-
 namespace Ecliptix.Protocol.System.Core;
-// Or your preferred namespace
 
-/// <summary>
-///     Provides AES-256-GCM authenticated encryption and decryption services using the built-in .NET API.
-///     WARNING: Nonce uniqueness per key is CRITICAL for AES-GCM security.
-/// </summary>
 public static class AesGcmService
 {
     private const string ErrInvalidKeyLength = "Invalid AES key length";
@@ -21,25 +12,9 @@ public static class AesGcmService
     private const string ErrEncryptFail = "AES-GCM encryption failed";
     private const string ErrDecryptFail = "AES-GCM decryption failed (authentication tag mismatch)";
     private const string ErrBufferTooSmall = "Destination buffer is too small";
+    private const string ErrBufferOverlap = "Source and destination buffers overlap (not supported for in-place operations)";
 
-
-    /// <summary>
-    ///     Encrypts plaintext using AES-256-GCM.
-    /// </summary>
-    /// <param name="key">The 32-byte AES key.</param>
-    /// <param name="nonce">The 12-byte nonce (MUST be unique per key).</param>
-    /// <param name="plaintext">The data to encrypt.</param>
-    /// <param name="ciphertextDestination">The buffer to write the ciphertext to. Must be >= plaintext.Length.</param>
-    /// <param name="tagDestination">The buffer to write the 16-byte authentication tag to.</param>
-    /// <param name="associatedData">Optional associated data (can be ReadOnlySpan<byte>.Empty).</param>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown if key, nonce, plaintext, ciphertextDestination, or tagDestination is
-    ///     implicitly null via default span.
-    /// </exception>
-    /// <exception cref="ArgumentException">Thrown for invalid key/nonce/tag lengths or if ciphertextDestination is too small.</exception>
-    /// <exception cref="CryptographicException">Thrown for other cryptographic errors during encryption.</exception>
-    /// <exception cref="ProtocolChainStepException">Wrapped cryptographic exceptions.</exception>
-    public static void Encrypt(
+    private static void Encrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plaintext,
@@ -54,6 +29,8 @@ public static class AesGcmService
             throw new ArgumentException(ErrInvalidTagLength, nameof(tagDestination));
         if (ciphertextDestination.Length < plaintext.Length)
             throw new ArgumentException(ErrBufferTooSmall, nameof(ciphertextDestination));
+        if (ciphertextDestination.Overlaps(plaintext))
+            throw new ArgumentException(ErrBufferOverlap, nameof(ciphertextDestination));
 
         try
         {
@@ -70,21 +47,8 @@ public static class AesGcmService
         }
     }
 
-    /// <summary>
-    ///     Decrypts ciphertext using AES-256-GCM and verifies the authentication tag.
-    /// </summary>
-    /// <param name="key">The 32-byte AES key.</param>
-    /// <param name="nonce">The 12-byte nonce used during encryption.</param>
-    /// <param name="ciphertext">The encrypted data.</param>
-    /// <param name="tag">The 16-byte authentication tag.</param>
-    /// <param name="plaintextDestination">The buffer to write the decrypted plaintext to. Must be >= ciphertext.Length.</param>
-    /// <param name="associatedData">Optional associated data (must match encryption AD).</param>
-    /// <exception cref="ArgumentNullException">...</exception>
-    /// <exception cref="ArgumentException">Thrown for invalid key/nonce/tag lengths or if plaintextDestination is too small.</exception>
-    /// <exception cref="AuthenticationTagMismatchException">(Subclass of CryptographicException) Thrown if the tag is invalid.</exception>
-    /// <exception cref="CryptographicException">Thrown for other cryptographic errors during decryption.</exception>
-    /// <exception cref="ProtocolChainStepException">Wrapped cryptographic exceptions.</exception>
-    public static void Decrypt(
+
+    private static void Decrypt(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> ciphertext,
@@ -98,6 +62,8 @@ public static class AesGcmService
         if (tag.Length != Constants.AesGcmTagSize) throw new ArgumentException(ErrInvalidTagLength, nameof(tag));
         if (plaintextDestination.Length < ciphertext.Length)
             throw new ArgumentException(ErrBufferTooSmall, nameof(plaintextDestination));
+        if (plaintextDestination.Overlaps(ciphertext))
+            throw new ArgumentException(ErrBufferOverlap, nameof(plaintextDestination));
 
         try
         {
@@ -118,14 +84,6 @@ public static class AesGcmService
         }
     }
 
-
-    // --- Convenience methods returning byte[] (less performant due to allocations) ---
-
-    /// <summary>
-    ///     Encrypts plaintext using AES-256-GCM, allocating and returning ciphertext and tag.
-    ///     Less performant than the Span-based overload due to allocations.
-    /// </summary>
-    /// <returns>A tuple containing the ciphertext and the tag.</returns>
     public static (byte[] Ciphertext, byte[] Tag) EncryptAllocating(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
@@ -138,11 +96,6 @@ public static class AesGcmService
         return (ciphertext, tag);
     }
 
-    /// <summary>
-    ///     Decrypts ciphertext using AES-256-GCM, allocating and returning plaintext.
-    ///     Less performant than the Span-based overload due to allocations.
-    /// </summary>
-    /// <returns>The decrypted plaintext.</returns>
     public static byte[] DecryptAllocating(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
