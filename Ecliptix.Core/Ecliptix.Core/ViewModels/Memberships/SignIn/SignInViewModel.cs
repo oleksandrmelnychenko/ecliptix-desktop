@@ -35,6 +35,8 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     [ObservableAsProperty] public bool HasMobileNumberError { get; private set; }
     [ObservableAsProperty] public string? SecureKeyError { get; private set; }
     [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
+    [ObservableAsProperty] public string? ServerError { get; private set; }
+    [ObservableAsProperty] public bool HasServerError { get; private set; }
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
@@ -105,8 +107,12 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .Replay(1)
             .RefCount();
 
-        keyDisplayErrorStream.Merge(_signInErrorSubject)
-            .ToPropertyEx(this, x => x.SecureKeyError);
+        keyDisplayErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
+        _signInErrorSubject
+            .ToPropertyEx(this, x => x.ServerError);
+        this.WhenAnyValue(x => x.ServerError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasServerError);
 
         this.WhenAnyValue(x => x.SecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))

@@ -46,7 +46,7 @@ public static class GrpcClientServiceExtensions
                 return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
             })
             //  .AddInterceptor<ResilienceInterceptor>()
-            .AddInterceptor<DeadlineInterceptor>()
+            //.AddInterceptor<DeadlineInterceptor>()
             .AddInterceptor<RequestMetaDataInterceptor>();
     }
 }
