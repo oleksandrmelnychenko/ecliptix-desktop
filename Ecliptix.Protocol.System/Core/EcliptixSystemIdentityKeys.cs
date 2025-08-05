@@ -437,6 +437,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             if (validationResult.IsErr)
                 return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(validationResult.UnwrapErr());
 
+            // Add pub validation
             if (!IsValidX25519PublicKey(remoteBundle.IdentityX25519) ||
                 !IsValidX25519PublicKey(remoteBundle.SignedPreKeyPublic) ||
                 (remoteBundle.OneTimePreKeys.Any() &&
@@ -772,9 +773,9 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
     private void SecureCleanupLogic()
     {
-        _ed25519SecretKeyHandle.Dispose();
-        _identityX25519SecretKeyHandle.Dispose();
-        _signedPreKeySecretKeyHandle.Dispose();
+        _ed25519SecretKeyHandle?.Dispose();
+        _identityX25519SecretKeyHandle?.Dispose();
+        _signedPreKeySecretKeyHandle?.Dispose();
         _ephemeralSecretKeyHandle?.Dispose();
         foreach (OneTimePreKeyLocal opk in _oneTimePreKeysInternal) opk.Dispose();
         _oneTimePreKeysInternal.Clear();

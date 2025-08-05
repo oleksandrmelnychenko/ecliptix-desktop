@@ -8,10 +8,10 @@ public record OneTimePreKeyRecord(uint PreKeyId, byte[] PublicKey)
 {
     public static Result<OneTimePreKeyRecord, EcliptixProtocolFailure> Create(uint preKeyId, byte[] publicKey)
     {
-        if (publicKey.Length != Constants.X25519PublicKeySize)
+        if (publicKey.Length != Constants.Ed25519KeySize)
             return Result<OneTimePreKeyRecord, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Decode(
-                    $"One-time prekey public key must be {Constants.X25519PublicKeySize} bytes."));
+                    $"One-time prekey public key must be {Constants.Ed25519KeySize} bytes."));
 
         return Result<OneTimePreKeyRecord, EcliptixProtocolFailure>.Ok(new OneTimePreKeyRecord(preKeyId, publicKey));
     }
@@ -76,20 +76,22 @@ public record PublicKeyBundle(
                 byte[] signedPreKeyPublic = proto.SignedPreKeyPublicKey.ToByteArray();
                 byte[] signedPreKeySignature = proto.SignedPreKeySignature.ToByteArray();
 
-                ValidateKeyLength(identityEd25519, Constants.Ed25519PublicKeySize, "IdentityEd25519");
-                ValidateKeyLength(identityX25519, Constants.X25519PublicKeySize, "IdentityX25519");
-                ValidateKeyLength(signedPreKeyPublic, Constants.X25519PublicKeySize, "SignedPreKeyPublic");
-                ValidateKeyLength(signedPreKeySignature, Constants.Ed25519SignatureSize, "SignedPreKeySignature");
+                if (identityEd25519.Length != Constants.Ed25519KeySize)
+                    throw new ArgumentException($"IdentityEd25519 key must be {Constants.Ed25519KeySize} bytes.");
+                if (identityX25519.Length != Constants.X25519KeySize)
+                    throw new ArgumentException($"IdentityX25519 key must be {Constants.X25519KeySize} bytes.");
+                if (signedPreKeyPublic.Length != Constants.X25519KeySize)
+                    throw new ArgumentException($"SignedPreKeyPublic key must be {Constants.X25519KeySize} bytes.");
+                if (signedPreKeySignature.Length != Constants.Ed25519SignatureSize)
+                    throw new ArgumentException(
+                        $"SignedPreKeySignature must be {Constants.Ed25519SignatureSize} bytes.");
 
                 byte[]? ephemeralX25519 = proto.EphemeralX25519PublicKey.IsEmpty
                     ? null
                     : proto.EphemeralX25519PublicKey.ToByteArray();
-                if (ephemeralX25519 != null)
-                    ValidateKeyLength(ephemeralX25519, Constants.X25519PublicKeySize, "EphemeralX25519");
-
-                const int MaxOpkCount = 100; // Prevent potential DoS from malformed input
-                if (proto.OneTimePreKeys.Count > MaxOpkCount)
-                    throw new ArgumentException($"Too many one-time prekeys (max {MaxOpkCount}).");
+                if (ephemeralX25519 != null && ephemeralX25519.Length != Constants.X25519KeySize)
+                    throw new ArgumentException(
+                        $"EphemeralX25519 key must be {Constants.X25519KeySize} bytes if present.");
 
                 List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
                 foreach (Protobuf.PubKeyExchange.PublicKeyBundle.Types.OneTimePreKey? pOpk in proto.OneTimePreKeys)
@@ -119,18 +121,12 @@ public record PublicKeyBundle(
             ex => ex switch
             {
                 ArgumentException argEx => EcliptixProtocolFailure.Decode(
-                    $"Failed to create PublicKeyBundle from Protobuf due to invalid data: {argEx.Message}", argEx),
+                    $"Failed to create LocalPublicKeyBundle from Protobuf due to invalid data: {argEx.Message}", argEx),
                 _ => EcliptixProtocolFailure.Decode(
-                    $"Unexpected error creating PublicKeyBundle from Protobuf: {ex.Message}",
+                    $"Unexpected error creating LocalPublicKeyBundle from Protobuf: {ex.Message}",
                     ex)
             }
         );
-    }
-
-    private static void ValidateKeyLength(byte[] key, int expectedLength, string keyName)
-    {
-        if (key.Length != expectedLength)
-            throw new ArgumentException($"{keyName} key must be {expectedLength} bytes.");
     }
 
     private readonly struct InternalBundleData
