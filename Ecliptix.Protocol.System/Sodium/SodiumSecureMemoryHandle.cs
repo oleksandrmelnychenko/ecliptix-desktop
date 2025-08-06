@@ -8,6 +8,7 @@ namespace Ecliptix.Protocol.System.Sodium;
 public sealed class SodiumSecureMemoryHandle : SafeHandle
 {
     private readonly ReaderWriterLockSlim _lock = new();
+    private bool _isLocked;
 
     public int Length { get; }
 
@@ -18,6 +19,13 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
     {
         SetHandle(preexistingHandle);
         Length = length;
+        _isLocked = false;
+        
+        // Attempt to lock the memory to prevent swapping to disk
+        if (length > 0 && preexistingHandle != IntPtr.Zero)
+        {
+            TryLockMemory();
+        }
     }
 
     public static Result<SodiumSecureMemoryHandle, SodiumFailure> Allocate(int length)
@@ -218,6 +226,12 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         {
             if (IsInvalid) return true;
 
+            // Unlock memory if it was locked
+            if (_isLocked)
+            {
+                TryUnlockMemory();
+            }
+
             SodiumInterop.sodium_free(handle);
             SetHandleAsInvalid();
             return true;
@@ -225,6 +239,61 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         finally
         {
             _lock.ExitWriteLock();
+        }
+    }
+
+    private void TryLockMemory()
+    {
+        if (handle == IntPtr.Zero || Length <= 0) return;
+
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (VirtualLock(handle, (UIntPtr)Length))
+                {
+                    _isLocked = true;
+                }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                if (mlock(handle, (UIntPtr)Length) == 0)
+                {
+                    _isLocked = true;
+                }
+            }
+        }
+        catch
+        {
+            // Silently fail - memory locking is best-effort
+            _isLocked = false;
+        }
+    }
+
+    private void TryUnlockMemory()
+    {
+        if (handle == IntPtr.Zero || Length <= 0 || !_isLocked) return;
+
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                VirtualUnlock(handle, (UIntPtr)Length);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                munlock(handle, (UIntPtr)Length);
+            }
+        }
+        catch
+        {
+            // Silently fail - memory unlocking is best-effort
+        }
+        finally
+        {
+            _isLocked = false;
         }
     }
 
@@ -242,4 +311,17 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             return Result<T, SodiumFailure>.Err(errorMapper(ex));
         }
     }
+
+    // Platform-specific imports for memory locking
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool VirtualUnlock(IntPtr lpAddress, UIntPtr dwSize);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int mlock(IntPtr addr, UIntPtr len);
+
+    [DllImport("libc", SetLastError = true)]
+    private static extern int munlock(IntPtr addr, UIntPtr len);
 }

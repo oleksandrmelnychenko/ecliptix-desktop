@@ -8,6 +8,7 @@ using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Security;
 using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.CipherPayload;
@@ -23,6 +24,73 @@ using Serilog;
 
 namespace Ecliptix.Core.Network.Providers;
 
+/// <summary>
+/// Adapter to connect protocol events to state persistence callbacks
+/// </summary>
+public class ProtocolEventAdapter : IProtocolEventHandler
+{
+    private readonly IProtocolStateCallbacks? _stateCallbacks;
+    
+    public ProtocolEventAdapter(IProtocolStateCallbacks? stateCallbacks)
+    {
+        _stateCallbacks = stateCallbacks;
+    }
+    
+    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex)
+    {
+        if (_stateCallbacks != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _stateCallbacks.OnDhRatchetPerformed(connectId, isSending, newIndex);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in DH ratchet callback");
+                }
+            });
+        }
+    }
+    
+    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength)
+    {
+        if (_stateCallbacks != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _stateCallbacks.OnChainSynchronized(connectId, localLength, remoteLength);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in chain sync callback");
+                }
+            });
+        }
+    }
+    
+    public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
+    {
+        if (_stateCallbacks != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _stateCallbacks.OnMessageReceived(connectId, messageIndex, hasSkippedKeys);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error in message processed callback");
+                }
+            });
+        }
+    }
+}
+
 public sealed class NetworkProvider(
     RpcServiceManager rpcServiceManager,
     ISecureStorageProvider secureStorageProvider,
@@ -36,18 +104,54 @@ public sealed class NetworkProvider(
 
     private static readonly SemaphoreSlim SecrecyChannelRecoveryLock = new(1, 1);
     private volatile bool _isSecrecyChannelConsideredHealthy;
+    
+    private ProtocolStatePersistence? _statePersistence;
+    private IProtocolStateCallbacks? _stateCallbacks;
+    private ProtocolEventAdapter? _eventAdapter;
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 
+    public EcliptixProtocolSystem? GetProtocolSystem(uint connectId)
+    {
+        return _connections.TryGetValue(connectId, out var system) ? system : null;
+    }
+    
+    public void InitializeStatePersistence(SecureStateStorage secureStorage)
+    {
+        _statePersistence = new ProtocolStatePersistence(secureStorage);
+        _stateCallbacks = new ProtocolStateCallbacks(
+            _statePersistence,
+            GetProtocolSystem,
+            () => _applicationInstanceSettings.HasValue 
+                ? _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8() 
+                : "unknown");
+        _eventAdapter = new ProtocolEventAdapter(_stateCallbacks);
+        
+        // Set the event handler for all existing protocol systems
+        foreach (var kvp in _connections)
+        {
+            kvp.Value.SetEventHandler(_eventAdapter);
+        }
+        
+        Log.Information("Protocol state persistence initialized");
+    }
+    
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
+        // FIX: Generate identity keys once per provider instance
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
+        
+        // Set event handler if available
+        if (_eventAdapter != null)
+        {
+            protocolSystem.SetEventHandler(_eventAdapter);
+        }
 
         _connections.TryAdd(connectId, protocolSystem);
 
@@ -163,8 +267,8 @@ public sealed class NetworkProvider(
                         NetworkFailure.InvalidRequestType("Connection not found"));
                 }
 
-                ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-                return await SendRequestAsync(protocolSystem, request, onCompleted, token);
+                ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType, connectId);
+                return await SendRequestAsync(protocolSystem, request, onCompleted, token, connectId);
             });
     }
 
@@ -225,6 +329,16 @@ public sealed class NetworkProvider(
         {
             Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> syncSecrecyChannelResult =
                 SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+            
+            // Trigger session restored callback
+            if (_stateCallbacks != null && syncSecrecyChannelResult.IsOk)
+            {
+                var connectId = ecliptixSecrecyChannelState.ConnectId;
+                _ = Task.Run(async () =>
+                {
+                    await _stateCallbacks.OnSessionEstablished(connectId, true);
+                });
+            }
 
             return Result<bool, NetworkFailure>.Ok(true);
         }
@@ -289,6 +403,13 @@ public sealed class NetworkProvider(
         }
 
         EcliptixProtocolSystem system = systemResult.Unwrap();
+        
+        // Set event handler for restored system
+        if (_eventAdapter != null)
+        {
+            system.SetEventHandler(_eventAdapter);
+        }
+        
         EcliptixProtocolConnection connection = system.GetConnection();
 
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
@@ -385,46 +506,99 @@ public sealed class NetworkProvider(
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
+        
+        // Trigger session established callback
+        if (_stateCallbacks != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                await _stateCallbacks.OnSessionEstablished(connectId, false);
+            });
+        }
 
         Log.Information("Successfully established new connection");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private static ServiceRequest BuildRequest(
+    private ServiceRequest BuildRequest(
         EcliptixProtocolSystem protocolSystem,
         RcpServiceType serviceType,
         byte[] plainBuffer,
-        ServiceFlowType flowType)
+        ServiceFlowType flowType,
+        uint connectId)
     {
         Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundMessage(plainBuffer);
+        
+        var cipherPayload = outboundPayload.Unwrap();
+        
+        // Trigger state save callback after message sent
+        if (_stateCallbacks != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                await _stateCallbacks.OnMessageSent(
+                    connectId, 
+                    cipherPayload.RatchetIndex, 
+                    cipherPayload.DhPublicKey.Length > 0);
+            });
+        }
 
-        return ServiceRequest.New(flowType, serviceType, outboundPayload.Unwrap(), []);
+        return ServiceRequest.New(flowType, serviceType, cipherPayload, []);
     }
 
-    private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(EcliptixProtocolSystem protocolSystem,
+    private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(
+        EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        CancellationToken token)
+        CancellationToken token,
+        uint connectId = 0)
     {
+        Console.WriteLine($"[DESKTOP] SendRequestAsync - ServiceType: {request.RcpServiceMethod}");
         Result<RpcFlow, NetworkFailure> invokeResult =
             await rpcServiceManager.InvokeServiceRequestAsync(request, token);
 
-        if (invokeResult.IsErr) return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+        if (invokeResult.IsErr) 
+        {
+            Console.WriteLine($"[DESKTOP] InvokeServiceRequestAsync failed: {invokeResult.UnwrapErr().Message}");
+            return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+        }
 
         RpcFlow flow = invokeResult.Unwrap();
         switch (flow)
         {
             case RpcFlow.SingleCall singleCall:
                 Result<CipherPayload, NetworkFailure> callResult = await singleCall.Result;
-                if (callResult.IsErr) return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
+                if (callResult.IsErr) 
+                {
+                    Console.WriteLine($"[DESKTOP] RPC call failed: {callResult.UnwrapErr().Message}");
+                    return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
+                }
 
                 CipherPayload inboundPayload = callResult.Unwrap();
+                Console.WriteLine($"[DESKTOP] Received CipherPayload - Nonce: {Convert.ToHexString(inboundPayload.Nonce.ToByteArray())}, Size: {inboundPayload.Cipher.Length}");
                 Result<byte[], EcliptixProtocolFailure> decryptedData =
                     protocolSystem.ProcessInboundMessage(inboundPayload);
                 if (decryptedData.IsErr)
+                {
+                    Console.WriteLine($"[DESKTOP] Decryption failed: {decryptedData.UnwrapErr().Message}");
                     return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
+                }
 
+                Console.WriteLine($"[DESKTOP] Successfully decrypted response");
+                
+                // Trigger state save callback after message received
+                if (_stateCallbacks != null && connectId > 0)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await _stateCallbacks.OnMessageReceived(
+                            connectId,
+                            inboundPayload.RatchetIndex,
+                            false); // TODO: Determine if keys were skipped
+                    });
+                }
+                
                 Result<Unit, NetworkFailure> callbackOutcome = await onCompleted(decryptedData.Unwrap());
                 if (callbackOutcome.IsErr) return callbackOutcome;
                 break;

@@ -152,7 +152,7 @@ public abstract class RpcFlow
         /// <summary>
         ///     The outbound sink for transmitting payloads.
         /// </summary>
-        public IOutboundSink OutboundSink { get; }
+        public new IOutboundSink OutboundSink { get; }
     }
 }
 

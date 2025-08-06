@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Sodium;
 
 // Required for AesGcm
 
@@ -122,27 +124,167 @@ public static class AesGcmService
     // --- Convenience methods returning byte[] (less performant due to allocations) ---
 
     /// <summary>
+    ///     Encrypts plaintext using AES-256-GCM with secure memory management.
+    ///     Uses secure buffers that are automatically wiped after use.
+    /// </summary>
+    /// <returns>Result containing the operation with secure ciphertext and tag buffers.</returns>
+    public static Result<TResult, ProtocolChainStepException> EncryptWithSecureMemory<TResult>(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> nonce,
+        ReadOnlySpan<byte> plaintext,
+        ReadOnlySpan<byte> associatedData,
+        Func<ReadOnlySpan<byte>, ReadOnlySpan<byte>, TResult> operation)
+    {
+        if (key.Length != Constants.AesKeySize) 
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrInvalidKeyLength));
+        if (nonce.Length != Constants.AesGcmNonceSize)
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrInvalidNonceLength));
+
+        // Convert spans to arrays for use in lambda
+        var keyArray = key.ToArray();
+        var nonceArray = nonce.ToArray();
+        var plaintextArray = plaintext.ToArray();
+        var associatedDataArray = associatedData.ToArray();
+        var plaintextLength = plaintext.Length;
+
+        try
+        {
+            return SecureMemoryUtils.WithSecureBuffers(
+                new[] { plaintextLength, Constants.AesGcmTagSize },
+                buffers =>
+                {
+                    var ciphertextSpan = buffers[0].GetSpan().Slice(0, plaintextLength);
+                    var tagSpan = buffers[1].GetSpan().Slice(0, Constants.AesGcmTagSize);
+                    
+                    using AesGcm aesGcm = new(keyArray, Constants.AesGcmTagSize);
+                    aesGcm.Encrypt(nonceArray, plaintextArray, ciphertextSpan, tagSpan, associatedDataArray);
+                    
+                    return Result<TResult, ProtocolChainStepException>.Ok(
+                        operation(ciphertextSpan, tagSpan));
+                });
+        }
+        catch (CryptographicException cryptoEx)
+        {
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrEncryptFail, cryptoEx));
+        }
+        catch (Exception ex)
+        {
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrEncryptFail, ex));
+        }
+        finally
+        {
+            // Securely wipe the copied arrays
+            CryptographicOperations.ZeroMemory(keyArray);
+            CryptographicOperations.ZeroMemory(nonceArray);
+            CryptographicOperations.ZeroMemory(plaintextArray);
+            CryptographicOperations.ZeroMemory(associatedDataArray);
+        }
+    }
+
+    /// <summary>
     ///     Encrypts plaintext using AES-256-GCM, allocating and returning ciphertext and tag.
-    ///     Less performant than the Span-based overload due to allocations.
+    ///     WARNING: Uses regular memory allocation without secure wiping.
+    ///     Consider using EncryptWithSecureMemory for sensitive data.
     /// </summary>
     /// <returns>A tuple containing the ciphertext and the tag.</returns>
+    [Obsolete("Use EncryptWithSecureMemory for secure handling of sensitive data")]
     public static (byte[] Ciphertext, byte[] Tag) EncryptAllocating(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
         ReadOnlySpan<byte> plaintext,
         ReadOnlySpan<byte> associatedData = default)
     {
-        byte[] ciphertext = new byte[plaintext.Length];
-        byte[] tag = new byte[Constants.AesGcmTagSize];
-        Encrypt(key, nonce, plaintext, ciphertext, tag, associatedData);
-        return (ciphertext, tag);
+        using var ciphertextMemory = ScopedSecureMemory.Allocate(plaintext.Length);
+        using var tagMemory = ScopedSecureMemory.Allocate(Constants.AesGcmTagSize);
+        
+        Encrypt(key, nonce, plaintext, ciphertextMemory.AsSpan(), tagMemory.AsSpan(), associatedData);
+        
+        // Note: We have to copy to regular arrays for the return value
+        // This breaks the secure memory chain but maintains API compatibility
+        return (ciphertextMemory.AsSpan().ToArray(), tagMemory.AsSpan().ToArray());
+    }
+
+    /// <summary>
+    ///     Decrypts ciphertext using AES-256-GCM with secure memory management.
+    ///     Uses secure buffers that are automatically wiped after use.
+    /// </summary>
+    /// <returns>Result containing the operation with secure plaintext buffer.</returns>
+    public static Result<TResult, ProtocolChainStepException> DecryptWithSecureMemory<TResult>(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> nonce,
+        ReadOnlySpan<byte> ciphertext,
+        ReadOnlySpan<byte> tag,
+        ReadOnlySpan<byte> associatedData,
+        Func<ReadOnlySpan<byte>, TResult> operation)
+    {
+        if (key.Length != Constants.AesKeySize)
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrInvalidKeyLength));
+        if (nonce.Length != Constants.AesGcmNonceSize)
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrInvalidNonceLength));
+        if (tag.Length != Constants.AesGcmTagSize)
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrInvalidTagLength));
+
+        // Convert spans to arrays for use in lambda
+        var keyArray = key.ToArray();
+        var nonceArray = nonce.ToArray();
+        var ciphertextArray = ciphertext.ToArray();
+        var tagArray = tag.ToArray();
+        var associatedDataArray = associatedData.ToArray();
+        var ciphertextLength = ciphertext.Length;
+
+        try
+        {
+            return SecureMemoryUtils.WithSecureBuffer(
+                ciphertextLength,
+                plaintextSpan =>
+                {
+                    using AesGcm aesGcm = new(keyArray, Constants.AesGcmTagSize);
+                    aesGcm.Decrypt(nonceArray, ciphertextArray, tagArray, plaintextSpan, associatedDataArray);
+                    
+                    return Result<TResult, ProtocolChainStepException>.Ok(
+                        operation(plaintextSpan));
+                });
+        }
+        catch (AuthenticationTagMismatchException authEx)
+        {
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrDecryptFail, authEx));
+        }
+        catch (CryptographicException cryptoEx)
+        {
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrDecryptFail, cryptoEx));
+        }
+        catch (Exception ex)
+        {
+            return Result<TResult, ProtocolChainStepException>.Err(
+                new ProtocolChainStepException(ErrDecryptFail, ex));
+        }
+        finally
+        {
+            // Securely wipe the copied arrays
+            CryptographicOperations.ZeroMemory(keyArray);
+            CryptographicOperations.ZeroMemory(nonceArray);
+            CryptographicOperations.ZeroMemory(ciphertextArray);
+            CryptographicOperations.ZeroMemory(tagArray);
+            CryptographicOperations.ZeroMemory(associatedDataArray);
+        }
     }
 
     /// <summary>
     ///     Decrypts ciphertext using AES-256-GCM, allocating and returning plaintext.
-    ///     Less performant than the Span-based overload due to allocations.
+    ///     WARNING: Uses regular memory allocation without secure wiping.
+    ///     Consider using DecryptWithSecureMemory for sensitive data.
     /// </summary>
     /// <returns>The decrypted plaintext.</returns>
+    [Obsolete("Use DecryptWithSecureMemory for secure handling of sensitive data")]
     public static byte[] DecryptAllocating(
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> nonce,
@@ -150,8 +292,11 @@ public static class AesGcmService
         ReadOnlySpan<byte> tag,
         ReadOnlySpan<byte> associatedData = default)
     {
-        byte[] plaintext = new byte[ciphertext.Length];
-        Decrypt(key, nonce, ciphertext, tag, plaintext, associatedData);
-        return plaintext;
+        using var plaintextMemory = ScopedSecureMemory.Allocate(ciphertext.Length);
+        Decrypt(key, nonce, ciphertext, tag, plaintextMemory.AsSpan(), associatedData);
+        
+        // Note: We have to copy to regular array for the return value
+        // This breaks the secure memory chain but maintains API compatibility
+        return plaintextMemory.AsSpan().ToArray();
     }
 }

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
@@ -25,26 +26,63 @@ public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
         return Result<(byte[], BigInteger), OpaqueFailure>.Ok((oprfRequestPoint.GetEncoded(true), blind));
     }
 
+    public static Result<byte[], OpaqueFailure> CreateRegistrationRecord(SecureStringHandler password, byte[] oprfResponse,
+        BigInteger blind)
+    {
+        return password.UseBytes(passwordBytes =>
+                CreateRegistrationRecord(passwordBytes.ToArray(), oprfResponse, blind))
+            .MapErr(sodiumFailure => OpaqueFailure.InvalidInput($"Secure string operation failed: {sodiumFailure.Message}"))
+            .Bind(result => result);
+    }
+
     public static Result<byte[], OpaqueFailure> CreateRegistrationRecord(byte[] password, byte[] oprfResponse,
         BigInteger blind)
     {
-        byte[] oprfKey = RecoverOprfKey(oprfResponse, blind);
-        byte[] credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
+        using var passwordMemory = ScopedSecureMemory.Wrap(password, clearOnDispose: false);
+        byte[]? oprfKey = null;
+        byte[]? credentialKey = null;
+        byte[]? clientStaticPrivateKey = null;
 
-        AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
-        byte[] clientStaticPrivateKey = ((ECPrivateKeyParameters)clientStaticKeyPair.Private).D.ToByteArrayUnsigned();
-        byte[] clientStaticPublicKey = ((ECPublicKeyParameters)clientStaticKeyPair.Public).Q.GetEncoded(true);
+        try
+        {
+            oprfKey = RecoverOprfKey(oprfResponse, blind);
+            credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
 
-        Result<byte[], OpaqueFailure> encryptResult =
-            OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, password);
-        if (encryptResult.IsErr) return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
+            AsymmetricCipherKeyPair clientStaticKeyPair = OpaqueCryptoUtilities.GenerateKeyPair();
+            clientStaticPrivateKey = ((ECPrivateKeyParameters)clientStaticKeyPair.Private).D.ToByteArrayUnsigned();
+            byte[] clientStaticPublicKey = ((ECPublicKeyParameters)clientStaticKeyPair.Public).Q.GetEncoded(true);
 
-        byte[] envelope = encryptResult.Unwrap();
-        byte[] registrationRecord = new byte[clientStaticPublicKey.Length + envelope.Length];
-        clientStaticPublicKey.CopyTo(registrationRecord, 0);
-        envelope.CopyTo(registrationRecord, clientStaticPublicKey.Length);
+            Result<byte[], OpaqueFailure> encryptResult =
+                OpaqueCryptoUtilities.Encrypt(clientStaticPrivateKey, credentialKey, passwordMemory.AsSpan().ToArray());
+            if (encryptResult.IsErr) return Result<byte[], OpaqueFailure>.Err(encryptResult.UnwrapErr());
 
-        return Result<byte[], OpaqueFailure>.Ok(registrationRecord);
+            byte[] envelope = encryptResult.Unwrap();
+            byte[] registrationRecord = new byte[clientStaticPublicKey.Length + envelope.Length];
+            clientStaticPublicKey.CopyTo(registrationRecord, 0);
+            envelope.CopyTo(registrationRecord, clientStaticPublicKey.Length);
+
+            return Result<byte[], OpaqueFailure>.Ok(registrationRecord);
+        }
+        finally
+        {
+            if (oprfKey != null)
+                CryptographicOperations.ZeroMemory(oprfKey);
+            if (credentialKey != null)
+                CryptographicOperations.ZeroMemory(credentialKey);
+            if (clientStaticPrivateKey != null)
+                CryptographicOperations.ZeroMemory(clientStaticPrivateKey);
+        }
+    }
+
+    public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[] TranscriptHash),
+            OpaqueFailure>
+        CreateSignInFinalizationRequest(string phoneNumber, SecureStringHandler password,
+            OpaqueSignInInitResponse signInResponse, BigInteger blind)
+    {
+        return password.UseBytes(passwordBytes =>
+                CreateSignInFinalizationRequest(phoneNumber, passwordBytes.ToArray(), signInResponse, blind))
+            .MapErr(sodiumFailure => OpaqueFailure.InvalidInput($"Secure string operation failed: {sodiumFailure.Message}"))
+            .Bind(result => result);
     }
 
     public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[] TranscriptHash),
@@ -52,60 +90,80 @@ public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
         CreateSignInFinalizationRequest(string phoneNumber, byte[] passwordBytes,
             OpaqueSignInInitResponse signInResponse, BigInteger blind)
     {
-        byte[] oprfKey = RecoverOprfKey(signInResponse.ServerOprfResponse.ToByteArray(), blind);
-        byte[] credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
+        using var passwordMemory = ScopedSecureMemory.Wrap(passwordBytes, clearOnDispose: false);
+        byte[]? oprfKey = null;
+        byte[]? credentialKey = null;
+        byte[]? clientStaticPrivateKeyBytes = null;
+        byte[]? akeResult = null;
 
-        if (signInResponse.RegistrationRecord.Length < CompressedPublicKeyLength)
-            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
-                OpaqueFailure.InvalidInput("Invalid registration record: too short."));
-
-        ReadOnlySpan<byte> registrationRecordSpan = signInResponse.RegistrationRecord.ToByteArray();
-        byte[] clientStaticPublicKeyBytes = registrationRecordSpan[..CompressedPublicKeyLength].ToArray();
-        byte[] envelope = registrationRecordSpan[CompressedPublicKeyLength..].ToArray();
-
-        Result<byte[], OpaqueFailure> decryptResult =
-            OpaqueCryptoUtilities.Decrypt(envelope, credentialKey, passwordBytes);
-        if (decryptResult.IsErr)
-            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
-                decryptResult.UnwrapErr());
-
-        byte[] clientStaticPrivateKeyBytes = decryptResult.Unwrap();
-        ECPrivateKeyParameters clientStaticPrivateKey = new(new BigInteger(1, clientStaticPrivateKeyBytes),
-            OpaqueCryptoUtilities.DomainParams);
-
-        AsymmetricCipherKeyPair clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
-        ECPoint? serverStaticPublicKey = ((ECPublicKeyParameters)staticPublicKey).Q;
-        ECPoint? serverEphemeralPublicKey =
-            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(signInResponse.ServerEphemeralPublicKey.ToByteArray());
-        byte[] akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
-            serverEphemeralPublicKey);
-
-        byte[] clientEphemeralPublicKeyBytes = ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(true);
-        byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)staticPublicKey).Q.GetEncoded(true);
-
-        byte[] transcriptHash = HashTranscript(phoneNumber, signInResponse.ServerOprfResponse.ToByteArray(),
-            clientStaticPublicKeyBytes,
-            clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes,
-            signInResponse.ServerEphemeralPublicKey.ToByteArray());
-
-        Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> keysResult = DeriveFinalKeys(akeResult, transcriptHash);
-        if (keysResult.IsErr)
-            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
-                keysResult.UnwrapErr());
-
-        (byte[] sessionKey, byte[] clientMacKey, byte[] serverMacKey) = keysResult.Unwrap();
-        byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
-
-        OpaqueSignInFinalizeRequest request = new()
+        try
         {
-            PhoneNumber = phoneNumber,
-            ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
-            ClientMac = ByteString.CopyFrom(clientMac),
-            ServerStateToken = signInResponse.ServerStateToken
-        };
+            oprfKey = RecoverOprfKey(signInResponse.ServerOprfResponse.ToByteArray(), blind);
+            credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
 
-        return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Ok((request, sessionKey,
-            serverMacKey, transcriptHash));
+            if (signInResponse.RegistrationRecord.Length < CompressedPublicKeyLength)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    OpaqueFailure.InvalidInput("Invalid registration record: too short."));
+
+            ReadOnlySpan<byte> registrationRecordSpan = signInResponse.RegistrationRecord.ToByteArray();
+            byte[] clientStaticPublicKeyBytes = registrationRecordSpan[..CompressedPublicKeyLength].ToArray();
+            byte[] envelope = registrationRecordSpan[CompressedPublicKeyLength..].ToArray();
+
+            Result<byte[], OpaqueFailure> decryptResult =
+                OpaqueCryptoUtilities.Decrypt(envelope, credentialKey, passwordMemory.AsSpan().ToArray());
+            if (decryptResult.IsErr)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    decryptResult.UnwrapErr());
+
+            clientStaticPrivateKeyBytes = decryptResult.Unwrap();
+            ECPrivateKeyParameters clientStaticPrivateKey = new(new BigInteger(1, clientStaticPrivateKeyBytes),
+                OpaqueCryptoUtilities.DomainParams);
+
+            AsymmetricCipherKeyPair clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
+            ECPoint? serverStaticPublicKey = ((ECPublicKeyParameters)staticPublicKey).Q;
+            ECPoint? serverEphemeralPublicKey =
+                OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(signInResponse.ServerEphemeralPublicKey.ToByteArray());
+            akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
+                serverEphemeralPublicKey);
+
+            byte[] clientEphemeralPublicKeyBytes = ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(true);
+            byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)staticPublicKey).Q.GetEncoded(true);
+
+            byte[] transcriptHash = HashTranscript(phoneNumber, signInResponse.ServerOprfResponse.ToByteArray(),
+                clientStaticPublicKeyBytes,
+                clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes,
+                signInResponse.ServerEphemeralPublicKey.ToByteArray());
+
+            Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> keysResult = DeriveFinalKeys(akeResult, transcriptHash);
+            if (keysResult.IsErr)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    keysResult.UnwrapErr());
+
+            (byte[] sessionKey, byte[] clientMacKey, byte[] serverMacKey) = keysResult.Unwrap();
+            byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
+
+            OpaqueSignInFinalizeRequest request = new()
+            {
+                PhoneNumber = phoneNumber,
+                ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
+                ClientMac = ByteString.CopyFrom(clientMac),
+                ServerStateToken = signInResponse.ServerStateToken
+            };
+
+            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Ok((request, sessionKey,
+                serverMacKey, transcriptHash));
+        }
+        finally
+        {
+            if (oprfKey != null)
+                CryptographicOperations.ZeroMemory(oprfKey);
+            if (credentialKey != null)
+                CryptographicOperations.ZeroMemory(credentialKey);
+            if (clientStaticPrivateKeyBytes != null)
+                CryptographicOperations.ZeroMemory(clientStaticPrivateKeyBytes);
+            if (akeResult != null)
+                CryptographicOperations.ZeroMemory(akeResult);
+        }
     }
 
     public Result<byte[], OpaqueFailure> VerifyServerMacAndGetSessionKey(

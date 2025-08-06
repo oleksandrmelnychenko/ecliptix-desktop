@@ -100,7 +100,7 @@
     </Application.Resources>
 
     <Application.Styles>
-        <SimpleTheme />
+        <FluentTheme />
         <StyleInclude Source="/Styles/Buttons.axaml" />
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />

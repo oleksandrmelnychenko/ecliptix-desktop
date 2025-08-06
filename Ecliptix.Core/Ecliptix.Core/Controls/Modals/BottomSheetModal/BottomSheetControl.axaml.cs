@@ -41,10 +41,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     public static readonly StyledProperty<double> DisappearVerticalOffsetProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset));
 
-    public static readonly StyledProperty<double> MinHeightProperty =
+    public new static readonly StyledProperty<double> MinHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
 
-    public static readonly StyledProperty<double> MaxHeightProperty =
+    public new static readonly StyledProperty<double> MaxHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MaxHeight), DefaultBottomSheetVariables.MaxHeight);
 
     public static readonly StyledProperty<IBrush> ScrimColorProperty =
@@ -87,13 +87,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         set => SetValue(DisappearVerticalOffsetProperty, value);
     }
 
-    public double MinHeight
+    public new double MinHeight
     {
         get => GetValue(MinHeightProperty);
         set => SetValue(MinHeightProperty, value);
     }
 
-    public double MaxHeight
+    public new double MaxHeight
     {
         get => GetValue(MaxHeightProperty);
         set => SetValue(MaxHeightProperty, value);

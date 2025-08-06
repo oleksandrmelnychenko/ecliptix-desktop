@@ -1,0 +1,458 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Security.Cryptography;
+using System.Text;
+using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Sodium;
+
+namespace Ecliptix.Protocol.System.Utilities;
+
+/// <summary>
+/// Provides secure handling of sensitive string data like passwords.
+/// </summary>
+public sealed class SecureStringHandler : IDisposable
+{
+    private readonly SodiumSecureMemoryHandle _handle;
+    private readonly int _length;
+    private bool _disposed;
+
+    internal SecureStringHandler(SodiumSecureMemoryHandle handle, int length)
+    {
+        _handle = handle;
+        _length = length;
+    }
+
+    /// <summary>
+    /// Creates a SecureStringHandler from a regular string.
+    /// The input string is securely wiped after copying.
+    /// </summary>
+    public static Result<SecureStringHandler, SodiumFailure> FromString(string? input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return Result<SecureStringHandler, SodiumFailure>.Err(
+                SodiumFailure.InvalidBufferSize("Input string cannot be null or empty"));
+
+        byte[]? bytes = null;
+        try
+        {
+            bytes = Encoding.UTF8.GetBytes(input);
+            
+            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            if (allocResult.IsErr)
+                return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
+
+            var handle = allocResult.Unwrap();
+            var writeResult = handle.Write(bytes);
+            if (writeResult.IsErr)
+            {
+                handle.Dispose();
+                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
+            }
+
+            return Result<SecureStringHandler, SodiumFailure>.Ok(
+                new SecureStringHandler(handle, bytes.Length));
+        }
+        finally
+        {
+            if (bytes != null)
+                CryptographicOperations.ZeroMemory(bytes);
+        }
+    }
+
+    /// <summary>
+    /// Creates a SecureStringHandler from a SecureString.
+    /// </summary>
+    public static Result<SecureStringHandler, SodiumFailure> FromSecureString(SecureString? secureString)
+    {
+        if (secureString == null || secureString.Length == 0)
+            return Result<SecureStringHandler, SodiumFailure>.Err(
+                SodiumFailure.InvalidBufferSize("SecureString cannot be null or empty"));
+
+        IntPtr ptr = IntPtr.Zero;
+        byte[]? bytes = null;
+        
+        try
+        {
+            ptr = Marshal.SecureStringToGlobalAllocUnicode(secureString);
+            int byteCount = Encoding.UTF8.GetByteCount(
+                Marshal.PtrToStringUni(ptr) ?? throw new InvalidOperationException());
+            
+            bytes = new byte[byteCount];
+            unsafe
+            {
+                fixed (byte* bytesPtr = bytes)
+                {
+                    Encoding.UTF8.GetBytes((char*)ptr.ToPointer(), secureString.Length, 
+                        bytesPtr, byteCount);
+                }
+            }
+
+            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            if (allocResult.IsErr)
+                return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
+
+            var handle = allocResult.Unwrap();
+            var writeResult = handle.Write(bytes);
+            if (writeResult.IsErr)
+            {
+                handle.Dispose();
+                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
+            }
+
+            return Result<SecureStringHandler, SodiumFailure>.Ok(
+                new SecureStringHandler(handle, bytes.Length));
+        }
+        finally
+        {
+            if (ptr != IntPtr.Zero)
+                Marshal.ZeroFreeGlobalAllocUnicode(ptr);
+            if (bytes != null)
+                CryptographicOperations.ZeroMemory(bytes);
+        }
+    }
+
+    /// <summary>
+    /// Creates a SecureStringHandler from a char array.
+    /// The input array is securely wiped after copying.
+    /// </summary>
+    public static Result<SecureStringHandler, SodiumFailure> FromChars(char[]? chars)
+    {
+        if (chars == null || chars.Length == 0)
+            return Result<SecureStringHandler, SodiumFailure>.Err(
+                SodiumFailure.InvalidBufferSize("Char array cannot be null or empty"));
+
+        byte[]? bytes = null;
+        try
+        {
+            bytes = Encoding.UTF8.GetBytes(chars);
+            
+            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            if (allocResult.IsErr)
+                return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
+
+            var handle = allocResult.Unwrap();
+            var writeResult = handle.Write(bytes);
+            if (writeResult.IsErr)
+            {
+                handle.Dispose();
+                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
+            }
+
+            return Result<SecureStringHandler, SodiumFailure>.Ok(
+                new SecureStringHandler(handle, bytes.Length));
+        }
+        finally
+        {
+            if (bytes != null)
+                CryptographicOperations.ZeroMemory(bytes);
+            Array.Clear(chars, 0, chars.Length);
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with the decrypted bytes.
+    /// The bytes are only accessible within the operation scope.
+    /// </summary>
+    public Result<T, SodiumFailure> UseBytes<T>(Func<ReadOnlySpan<byte>, T> operation)
+    {
+        if (_disposed)
+            return Result<T, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("SecureStringHandler is disposed"));
+
+        byte[]? tempBytes = null;
+        try
+        {
+            tempBytes = new byte[_length];
+            var readResult = _handle.Read(tempBytes);
+            if (readResult.IsErr)
+                return Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
+
+            T result = operation(tempBytes.AsSpan(0, _length));
+            return Result<T, SodiumFailure>.Ok(result);
+        }
+        finally
+        {
+            if (tempBytes != null)
+                CryptographicOperations.ZeroMemory(tempBytes);
+        }
+    }
+
+    /// <summary>
+    /// Executes an operation with the decrypted string.
+    /// The string is only accessible within the operation scope.
+    /// </summary>
+    public Result<T, SodiumFailure> UseString<T>(Func<string, T> operation)
+    {
+        return UseBytes(bytes =>
+        {
+            string str = Encoding.UTF8.GetString(bytes);
+            try
+            {
+                return operation(str);
+            }
+            finally
+            {
+                // Note: We can't securely wipe a string in .NET
+                // This is a limitation of the platform
+            }
+        });
+    }
+
+    /// <summary>
+    /// Compares this secure string with another in constant time.
+    /// </summary>
+    public Result<bool, SodiumFailure> Equals(SecureStringHandler other)
+    {
+        if (_disposed || other._disposed)
+            return Result<bool, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("One or both handlers are disposed"));
+
+        if (_length != other._length)
+            return Result<bool, SodiumFailure>.Ok(false);
+
+        return UseBytes(thisBytes =>
+        {
+            var thisBytesCopy = thisBytes.ToArray();
+            try
+            {
+                return other.UseBytes(otherBytes =>
+                    SecureMemoryUtils.ConstantTimeEquals(thisBytesCopy, otherBytes)).UnwrapOr(false);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(thisBytesCopy);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Creates a hash of the secure string using a cryptographic hash function.
+    /// </summary>
+    public Result<byte[], SodiumFailure> ComputeHash(HashAlgorithmName algorithm)
+    {
+        return UseBytes(bytes =>
+        {
+            HashAlgorithm hasher = algorithm.Name switch
+            {
+                "SHA256" => SHA256.Create(),
+                "SHA384" => SHA384.Create(),
+                "SHA512" => SHA512.Create(),
+                _ => throw new NotSupportedException($"Hash algorithm {algorithm.Name} not supported")
+            };
+            
+            try
+            {
+                return hasher.ComputeHash(bytes.ToArray());
+            }
+            finally
+            {
+                hasher.Dispose();
+            }
+        });
+    }
+
+    /// <summary>
+    /// Gets the length of the secure string in bytes.
+    /// </summary>
+    public int ByteLength => _length;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _handle?.Dispose();
+    }
+}
+
+/// <summary>
+/// Provides a builder pattern for constructing secure strings character by character.
+/// </summary>
+public sealed class SecureStringBuilder : IDisposable
+{
+    private readonly List<SodiumSecureMemoryHandle> _chunks;
+    private readonly int _chunkSize;
+    private SodiumSecureMemoryHandle? _currentChunk;
+    private int _currentPosition;
+    private int _totalLength;
+    private bool _disposed;
+
+    public SecureStringBuilder(int chunkSize = 256)
+    {
+        if (chunkSize <= 0)
+            throw new ArgumentException("Chunk size must be positive", nameof(chunkSize));
+
+        _chunks = new List<SodiumSecureMemoryHandle>();
+        _chunkSize = chunkSize;
+        _currentPosition = 0;
+        _totalLength = 0;
+    }
+
+    /// <summary>
+    /// Appends a character to the secure string.
+    /// </summary>
+    public Result<Unit, SodiumFailure> Append(char c)
+    {
+        if (_disposed)
+            return Result<Unit, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("Builder is disposed"));
+
+        Span<byte> bytes = stackalloc byte[4]; // Max UTF-8 bytes per char
+        int byteCount = Encoding.UTF8.GetBytes(new[] { c }, bytes);
+        
+        return AppendBytes(bytes.Slice(0, byteCount));
+    }
+
+    /// <summary>
+    /// Appends a string to the secure string.
+    /// </summary>
+    public Result<Unit, SodiumFailure> Append(string str)
+    {
+        if (_disposed)
+            return Result<Unit, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("Builder is disposed"));
+
+        if (string.IsNullOrEmpty(str))
+            return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+
+        byte[]? bytes = null;
+        try
+        {
+            bytes = Encoding.UTF8.GetBytes(str);
+            return AppendBytes(bytes);
+        }
+        finally
+        {
+            if (bytes != null)
+                CryptographicOperations.ZeroMemory(bytes);
+        }
+    }
+
+    private Result<Unit, SodiumFailure> AppendBytes(ReadOnlySpan<byte> bytes)
+    {
+        Span<byte> singleByteBuffer = stackalloc byte[1];
+        
+        foreach (byte b in bytes)
+        {
+            if (_currentChunk == null || _currentPosition >= _chunkSize)
+            {
+                var allocResult = SodiumSecureMemoryHandle.Allocate(_chunkSize);
+                if (allocResult.IsErr)
+                    return Result<Unit, SodiumFailure>.Err(allocResult.UnwrapErr());
+
+                _currentChunk = allocResult.Unwrap();
+                _chunks.Add(_currentChunk);
+                _currentPosition = 0;
+            }
+
+            singleByteBuffer[0] = b;
+            var writeResult = _currentChunk.Write(singleByteBuffer);
+            if (writeResult.IsErr)
+                return Result<Unit, SodiumFailure>.Err(writeResult.UnwrapErr());
+
+            _currentPosition++;
+            _totalLength++;
+        }
+
+        return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+    }
+
+    /// <summary>
+    /// Builds the final SecureStringHandler from the accumulated data.
+    /// </summary>
+    public Result<SecureStringHandler, SodiumFailure> Build()
+    {
+        if (_disposed)
+            return Result<SecureStringHandler, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("Builder is disposed"));
+
+        if (_totalLength == 0)
+            return Result<SecureStringHandler, SodiumFailure>.Err(
+                SodiumFailure.InvalidBufferSize("No data to build"));
+
+        // Allocate final buffer
+        var allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);
+        if (allocResult.IsErr)
+            return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
+
+        var finalHandle = allocResult.Unwrap();
+        byte[]? tempBuffer = null;
+
+        try
+        {
+            tempBuffer = new byte[_totalLength];
+            int offset = 0;
+
+            // Copy all chunks to final buffer
+            for (int i = 0; i < _chunks.Count; i++)
+            {
+                var chunk = _chunks[i];
+                int bytesToRead = (i == _chunks.Count - 1) ? 
+                    _currentPosition : _chunkSize;
+
+                var readResult = chunk.ReadBytes(bytesToRead);
+                if (readResult.IsErr)
+                {
+                    finalHandle.Dispose();
+                    return Result<SecureStringHandler, SodiumFailure>.Err(readResult.UnwrapErr());
+                }
+
+                var chunkData = readResult.Unwrap();
+                Array.Copy(chunkData, 0, tempBuffer, offset, bytesToRead);
+                CryptographicOperations.ZeroMemory(chunkData);
+                offset += bytesToRead;
+            }
+
+            var writeResult = finalHandle.Write(tempBuffer);
+            if (writeResult.IsErr)
+            {
+                finalHandle.Dispose();
+                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
+            }
+
+            return Result<SecureStringHandler, SodiumFailure>.Ok(
+                new SecureStringHandler(finalHandle, _totalLength));
+        }
+        finally
+        {
+            if (tempBuffer != null)
+                CryptographicOperations.ZeroMemory(tempBuffer);
+        }
+    }
+
+    /// <summary>
+    /// Clears all accumulated data.
+    /// </summary>
+    public void Clear()
+    {
+        foreach (var chunk in _chunks)
+            chunk.Dispose();
+        
+        _chunks.Clear();
+        _currentChunk = null;
+        _currentPosition = 0;
+        _totalLength = 0;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        Clear();
+    }
+}
+
+/// <summary>
+/// Represents a cryptographic hash algorithm name.
+/// </summary>
+public readonly struct HashAlgorithmName
+{
+    public string Name { get; }
+
+    private HashAlgorithmName(string name) => Name = name;
+
+    public static HashAlgorithmName SHA256 => new("SHA256");
+    public static HashAlgorithmName SHA384 => new("SHA384");
+    public static HashAlgorithmName SHA512 => new("SHA512");
+}

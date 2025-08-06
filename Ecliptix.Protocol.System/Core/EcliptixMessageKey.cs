@@ -56,17 +56,7 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
         }
 
         EcliptixMessageKey messageKey = new(index, keyHandle);
-
-        Console.WriteLine($"EcliptixMessageKey Created [Index: {index}, Disposed: {messageKey._disposed}]");
-        byte[] tempBuffer = new byte[Constants.X25519KeySize];
-        if (messageKey.ReadKeyMaterial(tempBuffer).IsOk)
-        {
-            Console.WriteLine($"  Key Material: {Convert.ToHexString(tempBuffer)}");
-        }
-        else
-        {
-            Console.WriteLine("  Key Material: <Error reading key>");
-        }
+        // Removed debug logging of sensitive key material for security
 
         return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(messageKey);
     }

@@ -1,8 +1,10 @@
 using Ecliptix.Core.Network;
+using Ecliptix.Core.Security;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 using System;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,6 +29,9 @@ public class ApplicationInitializer(
     IHttpClientFactory httpClientFactory)
     : IApplicationInitializer
 {
+    private SecureStateStorage? _secureStateStorage;
+    private IPlatformSecurityProvider? _platformSecurityProvider;
+    
     public bool IsMembershipConfirmed { get; } = false;
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
@@ -45,6 +50,15 @@ public class ApplicationInitializer(
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
+        
+        // Initialize the secure storage for protocol state
+        await InitializeSecureStorageAsync(settings);
+        
+        // Initialize state persistence in network provider
+        if (_secureStateStorage != null)
+        {
+            networkProvider.InitializeStatePersistence(_secureStateStorage);
+        }
 
         _ = Task.Run(async () =>
         {
@@ -87,6 +101,49 @@ public class ApplicationInitializer(
         return true;
     }
 
+    private async Task InitializeSecureStorageAsync(ApplicationInstanceSettings settings)
+    {
+        await Task.Run(() =>
+        {
+            try
+            {
+                // Get the app data directory for secure storage
+                var appDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Ecliptix");
+                
+                if (!Directory.Exists(appDataPath))
+                {
+                    Directory.CreateDirectory(appDataPath);
+                }
+                
+                // Initialize platform security provider
+                _platformSecurityProvider = new CrossPlatformSecurityProvider(appDataPath);
+                
+                // Create secure storage with device binding
+                var storagePath = Path.Combine(appDataPath, "protocol.state");
+                var deviceId = settings.DeviceId.ToByteArray();
+                
+                _secureStateStorage = new SecureStateStorage(_platformSecurityProvider, storagePath, deviceId);
+                
+                // Check if hardware security is available
+                if (_platformSecurityProvider.IsHardwareSecurityAvailable())
+                {
+                    Log.Information("Hardware security module detected and will be used for enhanced protection");
+                }
+                else
+                {
+                    Log.Information("Using software-based security with platform keychain");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to initialize secure storage");
+                throw;
+            }
+        });
+    }
+
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
@@ -94,27 +151,41 @@ public class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        if (!isNewInstance)
+        if (!isNewInstance && _secureStateStorage != null)
         {
-            Result<Option<byte[]>, InternalServiceApiFailure> storedStateResult =
-                await secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
-            if (storedStateResult.IsOk && storedStateResult.Unwrap().HasValue)
+            try
             {
-                EcliptixSecrecyChannelState? state =
-                    EcliptixSecrecyChannelState.Parser.ParseFrom(storedStateResult.Unwrap().Value);
-                Result<bool, NetworkFailure> restoreSecrecyChannelResult =
-                    await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
-
-                if (restoreSecrecyChannelResult.IsErr)
-                    return Result<uint, NetworkFailure>.Err(restoreSecrecyChannelResult.UnwrapErr());
-                if (restoreSecrecyChannelResult.IsOk && restoreSecrecyChannelResult.Unwrap())
+                // Try to load state from secure storage
+                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                var loadResult = await _secureStateStorage.LoadStateAsync(userId);
+                
+                if (loadResult.IsOk)
                 {
-                    Log.Information("Successfully restored and synchronized secrecy channel {ConnectId}", connectId);
-                    return Result<uint, NetworkFailure>.Ok(connectId);
-                }
+                    var stateBytes = loadResult.Unwrap();
+                    EcliptixSecrecyChannelState? state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
+                    
+                    Result<bool, NetworkFailure> restoreSecrecyChannelResult =
+                        await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
 
-                Log.Warning(
-                    "Failed to restore secrecy channel or it was out of sync. A new channel will be established");
+                    if (restoreSecrecyChannelResult.IsErr)
+                        return Result<uint, NetworkFailure>.Err(restoreSecrecyChannelResult.UnwrapErr());
+                        
+                    if (restoreSecrecyChannelResult.IsOk && restoreSecrecyChannelResult.Unwrap())
+                    {
+                        Log.Information("Successfully restored and synchronized secrecy channel {ConnectId} from secure storage", connectId);
+                        return Result<uint, NetworkFailure>.Ok(connectId);
+                    }
+
+                    Log.Warning("Failed to restore secrecy channel or it was out of sync. A new channel will be established");
+                }
+                else
+                {
+                    Log.Information("No saved protocol state found in secure storage");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to load protocol state from secure storage, establishing new channel");
             }
         }
 
@@ -129,9 +200,36 @@ public class ApplicationInitializer(
         }
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
+        
+        // Save to secure storage
+        if (_secureStateStorage != null)
+        {
+            try
+            {
+                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                var saveResult = await _secureStateStorage.SaveStateAsync(
+                    secrecyChannelState.ToByteArray(), 
+                    userId);
+                    
+                if (saveResult.IsOk)
+                {
+                    Log.Information("Protocol state saved to secure storage for channel {ConnectId}", connectId);
+                }
+                else
+                {
+                    Log.Warning("Failed to save protocol state to secure storage: {Error}", saveResult.UnwrapErr());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Exception while saving protocol state to secure storage");
+            }
+        }
+        
+        // Also save to legacy storage for backward compatibility
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
+        
         Log.Information("Successfully established new secrecy channel {ConnectId}", connectId);
-
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 

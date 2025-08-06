@@ -42,7 +42,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
 
     public ReactiveCommand<Unit, Unit> NavToPasswordConfirmation { get; }
 
-    public ViewModelActivator Activator { get; } = new();
+    public new ViewModelActivator Activator { get; } = new();
 
     private ulong _secondsRemaining;
 

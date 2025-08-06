@@ -1,7 +1,7 @@
 using System;
-using System.Buffers;
 using System.Text;
 using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Utilities;
 
 namespace Ecliptix.Core.Services;
 
@@ -33,32 +33,18 @@ public sealed class SecureTextBuffer : IDisposable
             return;
         }
 
-        byte[]? rentedBytes = null;
-        try
-        {
-            rentedBytes = ArrayPool<byte>.Shared.Rent(_secureHandle.Length);
-            Span<byte> span = rentedBytes.AsSpan(0, _secureHandle.Length);
+        using var rentedBytes = SecureArrayPool.Rent<byte>(_secureHandle.Length);
+        Span<byte> span = rentedBytes.AsSpan();
 
-            _secureHandle.Read(span).Unwrap();
+        _secureHandle.Read(span).Unwrap();
 
-            action(span);
-        }
-        finally
-        {
-            if (rentedBytes != null)
-            {
-                rentedBytes.AsSpan(0, _secureHandle.Length).Clear();
-                ArrayPool<byte>.Shared.Return(rentedBytes);
-            }
-        }
+        action(span);
     }
 
     private void ModifyState(int charIndex, int removeCharCount, string insertChars)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecureTextBuffer));
 
-        byte[]? oldBytes = null;
-        byte[]? newBytes = null;
         SodiumSecureMemoryHandle? newHandle = null;
         bool success = false;
 
@@ -66,17 +52,17 @@ public sealed class SecureTextBuffer : IDisposable
         {
             int oldByteLength = _secureHandle.Length;
             string oldString = string.Empty;
+            
             if (oldByteLength > 0)
             {
-                oldBytes = ArrayPool<byte>.Shared.Rent(oldByteLength);
-                _secureHandle.Read(oldBytes.AsSpan(0, oldByteLength)).Unwrap();
-                oldString = Encoding.UTF8.GetString(oldBytes.AsSpan(0, oldByteLength));
+                using var oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
+                _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
+                oldString = Encoding.UTF8.GetString(oldBytes.AsSpan());
             }
 
             charIndex = Math.Clamp(charIndex, 0, Length);
             removeCharCount = Math.Clamp(removeCharCount, 0, Length - charIndex);
 
-            Span<byte> oldSpan = oldBytes.AsSpan(0, oldByteLength);
             byte[] insertBytes = Encoding.UTF8.GetBytes(insertChars);
 
             int startByte = oldString.Length > 0 ? Encoding.UTF8.GetByteCount(oldString[..charIndex]) : 0;
@@ -85,17 +71,33 @@ public sealed class SecureTextBuffer : IDisposable
                 : 0;
 
             int newByteLength = oldByteLength - (endByte - startByte) + insertBytes.Length;
-            newBytes = ArrayPool<byte>.Shared.Rent(newByteLength);
-            Span<byte> newSpan = newBytes.AsSpan(0, newByteLength);
-
-            oldSpan[..startByte].CopyTo(newSpan);
-            insertBytes.CopyTo(newSpan[startByte..]);
-            oldSpan[endByte..].CopyTo(newSpan[(startByte + insertBytes.Length)..]);
-
-            newHandle = SodiumSecureMemoryHandle.Allocate(newByteLength).Unwrap();
+            
             if (newByteLength > 0)
             {
+                using var newBytes = SecureArrayPool.Rent<byte>(newByteLength);
+                var newSpan = newBytes.AsSpan();
+
+                if (oldByteLength > 0)
+                {
+                    using var oldBytesForCopy = SecureArrayPool.Rent<byte>(oldByteLength);
+                    _secureHandle.Read(oldBytesForCopy.AsSpan()).Unwrap();
+                    var oldSpan = oldBytesForCopy.AsSpan();
+
+                    oldSpan[..startByte].CopyTo(newSpan);
+                    insertBytes.CopyTo(newSpan[startByte..]);
+                    oldSpan[endByte..].CopyTo(newSpan[(startByte + insertBytes.Length)..]);
+                }
+                else
+                {
+                    insertBytes.CopyTo(newSpan);
+                }
+
+                newHandle = SodiumSecureMemoryHandle.Allocate(newByteLength).Unwrap();
                 newHandle.Write(newSpan).Unwrap();
+            }
+            else
+            {
+                newHandle = SodiumSecureMemoryHandle.Allocate(0).Unwrap();
             }
 
             _secureHandle.Dispose();
@@ -105,8 +107,6 @@ public sealed class SecureTextBuffer : IDisposable
         }
         finally
         {
-            if (oldBytes != null) ArrayPool<byte>.Shared.Return(oldBytes, true);
-            if (newBytes != null) ArrayPool<byte>.Shared.Return(newBytes, true);
             if (!success) newHandle?.Dispose();
         }
     }

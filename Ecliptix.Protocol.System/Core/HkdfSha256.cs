@@ -1,7 +1,7 @@
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Utilities;
 using Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
@@ -74,12 +74,11 @@ public sealed class HkdfSha256 : IDisposable
         Span<byte> previousHash = stackalloc byte[HashOutputLength];
 
         int hmacInputSize = HashOutputLength + info.Length + 1;
-        byte[]? hmacInputBuffer = null;
 
+        using var hmacInputBuffer = SecureArrayPool.Rent<byte>(hmacInputSize);
+        
         try
         {
-            hmacInputBuffer = ArrayPool<byte>.Shared.Rent(hmacInputSize);
-
             while (bytesWritten < output.Length)
             {
                 Span<byte> currentInputSpan = hmacInputBuffer.AsSpan();
@@ -119,10 +118,7 @@ public sealed class HkdfSha256 : IDisposable
         {
             prk.Clear();
             previousHash.Clear();
-            if (hmacInputBuffer != null)
-            {
-                ArrayPool<byte>.Shared.Return(hmacInputBuffer, clearArray: true);
-            }
+            // SecureArrayPool handles automatic cleanup via using statement
         }
     }
 

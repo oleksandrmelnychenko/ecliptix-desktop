@@ -7,13 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
       <ProjectReference Include="..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
       <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
+      <PackageReference Include="Polly" Version="8.6.2" />
+      <PackageReference Include="System.Reactive" Version="6.0.1" />
     </ItemGroup>
 
 </Project>

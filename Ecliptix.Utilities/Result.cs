@@ -109,8 +109,8 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
     }
     
-    public static async ValueTask<Result<T, TError>> TryAsync<T, TError>(
-        Func<ValueTask<T>> action,
+    public static async ValueTask<Result<TValue, TError>> TryAsync<TValue, TError>(
+        Func<ValueTask<TValue>> action,
         Func<EcliptixProtocolFailure, TError> errorMapper,
         Action? cleanup = null) where TError : EcliptixProtocolFailure
     {
@@ -119,8 +119,8 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
         try
         {
-            T result = await action().ConfigureAwait(false);
-            return Result<T, TError>.Ok(result);
+            TValue result = await action().ConfigureAwait(false);
+            return Result<TValue, TError>.Ok(result);
         }
         catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
         {
@@ -128,7 +128,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
             TError error = errorMapper(failure);
             if (error == null)
                 throw new InvalidOperationException("Error mapper returned null, violating TError : notnull");
-            return Result<T, TError>.Err(error);
+            return Result<TValue, TError>.Err(error);
         }
         finally
         {
