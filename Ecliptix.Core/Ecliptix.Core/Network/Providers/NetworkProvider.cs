@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
@@ -130,8 +131,7 @@ public sealed class NetworkProvider(
                 : "unknown");
         _eventAdapter = new ProtocolEventAdapter(_stateCallbacks);
         
-        // Set the event handler for all existing protocol systems
-        foreach (var kvp in _connections)
+        foreach (KeyValuePair<uint, EcliptixProtocolSystem> kvp in _connections)
         {
             kvp.Value.SetEventHandler(_eventAdapter);
         }
@@ -139,15 +139,22 @@ public sealed class NetworkProvider(
         Log.Information("Protocol state persistence initialized");
     }
     
+    public void ClearConnection(uint connectId)
+    {
+        if (_connections.TryRemove(connectId, out var system))
+        {
+            system?.Dispose();
+            Log.Information("Cleared connection {ConnectId} from cache", connectId);
+        }
+    }
+
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
-        // FIX: Generate identity keys once per provider instance
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
         
-        // Set event handler if available
         if (_eventAdapter != null)
         {
             protocolSystem.SetEventHandler(_eventAdapter);
@@ -330,7 +337,6 @@ public sealed class NetworkProvider(
             Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> syncSecrecyChannelResult =
                 SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
             
-            // Trigger session restored callback
             if (_stateCallbacks != null && syncSecrecyChannelResult.IsOk)
             {
                 var connectId = ecliptixSecrecyChannelState.ConnectId;
@@ -343,9 +349,7 @@ public sealed class NetworkProvider(
             return Result<bool, NetworkFailure>.Ok(true);
         }
 
-        Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> g =
-            SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
-
+        Log.Information("Session not found on server (status: {Status}), will establish new channel", response.Status);
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
@@ -404,7 +408,6 @@ public sealed class NetworkProvider(
 
         EcliptixProtocolSystem system = systemResult.Unwrap();
         
-        // Set event handler for restored system
         if (_eventAdapter != null)
         {
             system.SetEventHandler(_eventAdapter);
@@ -417,12 +420,13 @@ public sealed class NetworkProvider(
             serverResponse.ReceivingChainLength
         );
 
-        _connections.TryAdd(currentState.ConnectId, system);
-
         if (syncResult.IsErr)
         {
+            system.Dispose(); 
             return Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>.Err(syncResult.UnwrapErr());
         }
+
+        _connections.TryAdd(currentState.ConnectId, system);
 
         CreateStateFromSystem(currentState, system);
 
@@ -459,7 +463,6 @@ public sealed class NetworkProvider(
         });
     }
 
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
     private async Task<Result<Unit, NetworkFailure>> PerformReconnectionLogic()
     {
         if (!_applicationInstanceSettings.HasValue)
@@ -483,7 +486,6 @@ public sealed class NetworkProvider(
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    // NEW ADDED 2025-07-07 16:12 by Vitalik Koliesnikov
     private async Task<Result<Unit, NetworkFailure>> EstablishConnectionOnly(uint connectId)
     {
         if (!_applicationInstanceSettings.HasValue)
@@ -507,7 +509,6 @@ public sealed class NetworkProvider(
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
         
-        // Trigger session established callback
         if (_stateCallbacks != null)
         {
             _ = Task.Run(async () =>
@@ -530,9 +531,8 @@ public sealed class NetworkProvider(
         Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundMessage(plainBuffer);
         
-        var cipherPayload = outboundPayload.Unwrap();
+        CipherPayload cipherPayload = outboundPayload.Unwrap();
         
-        // Trigger state save callback after message sent
         if (_stateCallbacks != null)
         {
             _ = Task.Run(async () =>
@@ -587,7 +587,6 @@ public sealed class NetworkProvider(
 
                 Console.WriteLine($"[DESKTOP] Successfully decrypted response");
                 
-                // Trigger state save callback after message received
                 if (_stateCallbacks != null && connectId > 0)
                 {
                     _ = Task.Run(async () =>
@@ -595,7 +594,7 @@ public sealed class NetworkProvider(
                         await _stateCallbacks.OnMessageReceived(
                             connectId,
                             inboundPayload.RatchetIndex,
-                            false); // TODO: Determine if keys were skipped
+                            false); 
                     });
                 }
                 

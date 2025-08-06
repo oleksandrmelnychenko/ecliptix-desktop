@@ -1,6 +1,33 @@
 <Project>
     <PropertyGroup>
         <Nullable>enable</Nullable>
-        <AvaloniaVersion>11.0.10</AvaloniaVersion>
+        <AvaloniaVersion>11.3.2</AvaloniaVersion>
+        
+        <!-- Centralized Version Management -->
+        <MajorVersion>0</MajorVersion>
+        <MinorVersion>1</MinorVersion>
+        <PatchVersion>3</PatchVersion>
+        <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
+        
+        <!-- Computed Version Properties -->
+        <AssemblyVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).0</AssemblyVersion>
+        <FileVersion>$(MajorVersion).$(MinorVersion).$(PatchVersion).$(BuildNumber)</FileVersion>
+        <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion)</Version>
+        <AssemblyInformationalVersion>$(Version)-build.$(BuildNumber)</AssemblyInformationalVersion>
+        
+        <!-- Product Information -->
+        <Product>Ecliptix Desktop</Product>
+        <Company>Ecliptix</Company>
+        <Copyright>Copyright © Ecliptix $(Year)</Copyright>
+        <Description>Cross-platform desktop application for secure communication and data management</Description>
+        
+        <!-- Build Configuration -->
+        <Year>$([System.DateTime]::Now.Year)</Year>
+        <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
     </PropertyGroup>
 </Project>

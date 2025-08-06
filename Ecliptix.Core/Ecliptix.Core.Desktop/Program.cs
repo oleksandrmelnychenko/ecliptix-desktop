@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Concurrency;
 using System.Runtime.InteropServices;
@@ -89,10 +90,39 @@ public static class Program
 
     private static Logger ConfigureSerilog(IConfiguration configuration)
     {
-        LoggerConfiguration loggerConfig = new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration);
+        try
+        {
+            // For single-file deployment, we'll load the assemblies by name
+            var assemblies = new List<System.Reflection.Assembly>();
+            
+            try
+            {
+                assemblies.Add(System.Reflection.Assembly.Load("Serilog.Sinks.Console"));
+            }
+            catch { /* Console sink not available */ }
+            
+            try
+            {
+                assemblies.Add(System.Reflection.Assembly.Load("Serilog.Sinks.File"));
+            }
+            catch { /* File sink not available */ }
 
-        return loggerConfig.CreateLogger();
+            var options = new ConfigurationReaderOptions(assemblies.ToArray());
+            
+            LoggerConfiguration loggerConfig = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration, options);
+
+            return loggerConfig.CreateLogger();
+        }
+        catch (Exception ex)
+        {
+            // Fallback to basic file logging if configuration fails
+            // Note: Using file-only logging to avoid console window in GUI app
+            return new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.File("logs/ecliptix-.log", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+        }
     }
 
     private static IServiceCollection ConfigureServices(IConfiguration configuration)

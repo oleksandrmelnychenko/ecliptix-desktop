@@ -177,6 +177,8 @@ public class ApplicationInitializer(
                     }
 
                     Log.Warning("Failed to restore secrecy channel or it was out of sync. A new channel will be established");
+                    // Clear any partially restored connection to allow fresh establishment
+                    networkProvider.ClearConnection(connectId);
                 }
                 else
                 {

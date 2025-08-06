@@ -10,6 +10,8 @@
         <!-- Recommended Avalonia trimming settings for Native AOT -->
         <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
         <TrimMode>link</TrimMode>
+        <ApplicationIcon>../Ecliptix.Core/Assets/logo.ico</ApplicationIcon>
+        <AssemblyName>Ecliptix</AssemblyName>
     </PropertyGroup>
     <ItemGroup>
         <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
@@ -38,22 +40,37 @@
 
     <ItemGroup>
         <None Update=".env">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Update="appsettings.Development.json">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </None>
+        <None Update="appsettings.Production.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Ecliptix.Core\Ecliptix.Core.csproj"/>
+        <ProjectReference Include="..\.\Ecliptix.Core\Ecliptix.Core.csproj"/>
     </ItemGroup>
 
-   
-
-    <ItemGroup>
-      <None Update="appsettings.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
+    <!-- Platform-specific icon configurations -->
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
+        <Content Include="../Ecliptix.Core/Assets/logo.ico">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
+        <Content Include="../Ecliptix.Core/Assets/logo.icns">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+        <Content Include="../Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

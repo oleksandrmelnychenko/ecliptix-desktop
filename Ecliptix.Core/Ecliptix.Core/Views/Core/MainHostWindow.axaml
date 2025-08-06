@@ -4,7 +4,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Core.MainHostWindow"
-        Title="MainHostWindow">
+        Title="Ecliptix"
+        Icon="avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png">
     <Window.Styles>
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />

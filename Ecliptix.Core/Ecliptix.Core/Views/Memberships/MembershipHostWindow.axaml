@@ -2,7 +2,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Authentication"
         xmlns:signIn="clr-namespace:Ecliptix.Core.Views.Memberships.SignIn"
         xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
@@ -11,7 +10,6 @@
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.ViewModels.Memberships"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
-        xmlns:vm1="clr-namespace:"
         xmlns:vm11="clr-namespace:Ecliptix.Core.ViewModels.Memberships.SignIn"
         xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
         mc:Ignorable="d"
@@ -26,6 +24,7 @@
         ShowInTaskbar="True"
         Background="Transparent"
         Title=""
+        Icon="avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png"
         TransparencyLevelHint="Transparent"
         x:Class="Ecliptix.Core.Views.Memberships.MembershipHostWindow">
 
