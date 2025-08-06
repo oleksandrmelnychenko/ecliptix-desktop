@@ -100,11 +100,18 @@
     </Application.Resources>
 
     <Application.Styles>
-        <FluentTheme />
+        <!-- Simple Avalonia Theme - Minimal base styling -->
+        <SimpleTheme />
+        
+        <!-- Custom Style Overrides -->
         <StyleInclude Source="/Styles/Buttons.axaml" />
+        
+        <!-- Base Typography -->
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
         </Style>
+        
+        <!-- Base Control Styling -->
         <Style Selector=":is(UserControl)">
             <Setter Property="ClipToBounds" Value="False"/>
         </Style>    
