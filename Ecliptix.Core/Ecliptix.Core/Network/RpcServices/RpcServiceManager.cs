@@ -5,11 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Serilog;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -71,17 +71,18 @@ public class RpcServiceManager
                 out Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>? invoker))
         {
             Result<RpcFlow, NetworkFailure> result = await invoker(request, token);
+            
             if (result.IsOk)
             {
-                Console.WriteLine(
-                    $"Action {request.RcpServiceMethod} executed successfully for req_id: {request.ReqId}");
+                Log.Debug("Action {ServiceMethod} executed successfully for req_id: {ReqId}", 
+                    request.RcpServiceMethod, request.ReqId);
             }
             else
             {
-                Console.WriteLine(
-                    $"Action {request.RcpServiceMethod} failed for req_id: {request.ReqId}. Error: {result.UnwrapErr().Message}");
+                Log.Warning("Action {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}", 
+                    request.RcpServiceMethod, request.ReqId, result.UnwrapErr().Message);
             }
-
+            
             return result;
         }
 

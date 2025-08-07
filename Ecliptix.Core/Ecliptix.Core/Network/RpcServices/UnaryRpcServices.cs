@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.ResilienceStrategy;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.CipherPayload;
@@ -12,7 +11,7 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
-using Polly.Retry;
+using Serilog;
 
 namespace Ecliptix.Core.Network.RpcServices;
 
@@ -205,17 +204,6 @@ public sealed class UnaryRpcServices
     {
         try
         {
-            // AsyncRetryPolicy<CipherPayload> policy =
-            //     RpcResiliencePolicies.CreateSecrecyChannelRetryPolicy<CipherPayload>(networkEvents);
-            //
-            // CipherPayload? response = await policy.ExecuteAsync(async () =>
-            // {
-            //     //CallOptions callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20));
-            //
-            //     AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
-            //     return await call.ResponseAsync;
-            // });
-
             AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
             CipherPayload response = await call.ResponseAsync;
 
@@ -227,6 +215,7 @@ public sealed class UnaryRpcServices
         }
         catch (Exception exc)
         {
+            Log.Warning(exc, "gRPC call failed: {Message}", exc.Message);
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
 
             return Result<CipherPayload, NetworkFailure>.Err(

@@ -51,10 +51,8 @@ public class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
         
-        // Initialize the secure storage for protocol state
         await InitializeSecureStorageAsync(settings);
         
-        // Initialize state persistence in network provider
         if (_secureStateStorage != null)
         {
             networkProvider.InitializeStatePersistence(_secureStateStorage);
@@ -107,8 +105,7 @@ public class ApplicationInitializer(
         {
             try
             {
-                // Get the app data directory for secure storage
-                var appDataPath = Path.Combine(
+                string appDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Ecliptix");
                 
@@ -117,16 +114,13 @@ public class ApplicationInitializer(
                     Directory.CreateDirectory(appDataPath);
                 }
                 
-                // Initialize platform security provider
                 _platformSecurityProvider = new CrossPlatformSecurityProvider(appDataPath);
                 
-                // Create secure storage with device binding
-                var storagePath = Path.Combine(appDataPath, "protocol.state");
-                var deviceId = settings.DeviceId.ToByteArray();
+                string storagePath = Path.Combine(appDataPath, "protocol.state");
+                byte[]? deviceId = settings.DeviceId.ToByteArray();
                 
                 _secureStateStorage = new SecureStateStorage(_platformSecurityProvider, storagePath, deviceId);
                 
-                // Check if hardware security is available
                 if (_platformSecurityProvider.IsHardwareSecurityAvailable())
                 {
                     Log.Information("Hardware security module detected and will be used for enhanced protection");
