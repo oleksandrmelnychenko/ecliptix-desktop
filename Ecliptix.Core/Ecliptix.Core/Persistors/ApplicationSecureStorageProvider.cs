@@ -15,7 +15,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Persistors;
 
-public sealed class SecureStorageProvider : ISecureStorageProvider
+public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorageProvider
 {
     private const string SettingsKey = "ApplicationInstanceSettings";
 
@@ -23,7 +23,7 @@ public sealed class SecureStorageProvider : ISecureStorageProvider
     private readonly string _storagePath;
     private bool _disposed;
 
-    public SecureStorageProvider(
+    public ApplicationSecureStorageProvider(
         IOptions<SecureStoreOptions> options,
         IDataProtectionProvider dataProtectionProvider)
     {

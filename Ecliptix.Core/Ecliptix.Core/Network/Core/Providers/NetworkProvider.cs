@@ -8,12 +8,9 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Advanced;
 using Ecliptix.Core.Network.Contracts.Core;
 using Ecliptix.Core.Network.Contracts.Services;
 using Ecliptix.Core.Network.Contracts.Transport;
-using Ecliptix.Core.Network.Core.Configuration;
-using Ecliptix.Core.Network.Protocol;
 using Ecliptix.Core.Network.Services.Queue;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
@@ -35,7 +32,8 @@ namespace Ecliptix.Core.Network.Core.Providers;
 public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
 {
     private readonly IRpcServiceManager _rpcServiceManager;
-    private readonly ISecureStorageProvider _secureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly ISecureProtocolStateStorage _secureProtocolStateStorage;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
     private readonly INetworkEvents _networkEvents;
     private readonly ISystemEvents _systemEvents;
@@ -53,6 +51,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Result<Unit, NetworkFailure>>> _activeRequests =
         new();
+
     private readonly Lock _cancellationLock = new();
     private CancellationTokenSource? _connectionRecoveryCts;
 
@@ -65,7 +64,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public NetworkProvider(
         IRpcServiceManager rpcServiceManager,
-        ISecureStorageProvider secureStorageProvider,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        ISecureProtocolStateStorage secureProtocolStateStorage,
         IRpcMetaDataProvider rpcMetaDataProvider,
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
@@ -74,14 +74,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         IOperationQueue operationQueue)
     {
         _rpcServiceManager = rpcServiceManager;
-        _secureStorageProvider = secureStorageProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _secureProtocolStateStorage = secureProtocolStateStorage;
         _rpcMetaDataProvider = rpcMetaDataProvider;
         _networkEvents = networkEvents;
         _systemEvents = systemEvents;
         _retryStrategy = retryStrategy;
         _connectionStateManager = connectionStateManager;
         _operationQueue = operationQueue;
-
 
         _connectionStateManager.HealthChanged
             .Where(health => health.Status is ConnectionHealthStatus.Failed or ConnectionHealthStatus.Unhealthy)
@@ -107,7 +107,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Log.Information("Advanced NetworkProvider infrastructure initialized");
     }
-    
+
     private CancellationToken GetConnectionRecoveryToken()
     {
         lock (_cancellationLock)
@@ -115,7 +115,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return _connectionRecoveryCts?.Token ?? CancellationToken.None;
         }
     }
-    
+
     private void CancelActiveRecoveryOperations()
     {
         lock (_cancellationLock)
@@ -126,24 +126,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _connectionRecoveryCts.Cancel();
                 _connectionRecoveryCts.Dispose();
             }
+
             _connectionRecoveryCts = new CancellationTokenSource();
         }
     }
-    
+
     private void CancelActiveRequestsDuringRecovery(string reason)
     {
         if (_activeRequests.IsEmpty) return;
-        
-        Log.Information("Cancelling {Count} active requests during recovery: {Reason}", 
+
+        Log.Information("Cancelling {Count} active requests during recovery: {Reason}",
             _activeRequests.Count, reason);
-            
+
         List<string> keysToCancel = _activeRequests.Keys.ToList();
         foreach (string key in keysToCancel)
         {
             CancelAndRemoveActiveRequest(key, reason);
         }
     }
-    
+
     private void CancelAndRemoveActiveRequest(string requestKey, string reason)
     {
         if (_activeRequests.TryRemove(requestKey, out TaskCompletionSource<Result<Unit, NetworkFailure>>? tcs))
@@ -164,15 +165,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 
-    private EcliptixProtocolSystem? GetProtocolSystem(uint connectId) =>
-        _connections.GetValueOrDefault(connectId);
-
-    public void InitializeStatePersistence(SecureStateStorage secureStorage)
-    {
-        // Use only ISecureStorageProvider for all persistence - no duplicate storage systems
-        Log.Information("Protocol state persistence initialized using unified ISecureStorageProvider");
-    }
-
     public void ClearConnection(uint connectId)
     {
         if (!_connections.TryRemove(connectId, out var system)) return;
@@ -189,12 +181,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
-        // Set up protocol event handler for chain rotation state persistence
         protocolSystem.SetEventHandler(this);
 
         _connections.TryAdd(connectId, protocolSystem);
 
-        var initialHealth = new ConnectionHealth
+        ConnectionHealth initialHealth = new()
         {
             ConnectId = connectId,
             Status = ConnectionHealthStatus.Healthy,
@@ -255,18 +246,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             PubKeyExchangeType.DataCenterEphemeralConnect);
         _connections.TryRemove(connectId, out _);
 
-        // Use only ISecureStorageProvider for state restoration - no duplicate systems
-        Result<Option<byte[]>, InternalServiceApiFailure> stateResult = 
-            await _secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
-            
+        string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+        Result<byte[], SecureStorageFailure> stateResult =
+            await _secureProtocolStateStorage.LoadStateAsync(userId);
+
         bool restorationSucceeded = false;
-        if (stateResult.IsOk && stateResult.Unwrap().HasValue)
+        if (stateResult.IsOk)
         {
             try
             {
-                byte[] stateBytes = stateResult.Unwrap().Value!;
+                byte[] stateBytes = stateResult.Unwrap();
                 EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
-                Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+                Result<bool, NetworkFailure> restoreResult =
+                    await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
                 restorationSucceeded = restoreResult.IsOk && restoreResult.Unwrap();
                 if (restorationSucceeded)
                 {
@@ -275,15 +267,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to parse stored state for connection {ConnectId}, establishing new connection", connectId);
+                Log.Warning(ex, "Failed to parse stored state for connection {ConnectId}, establishing new connection",
+                    connectId);
                 restorationSucceeded = false;
             }
         }
-        
+
         if (!restorationSucceeded)
         {
-            // No state found or restoration failed, establish new connection
-            Result<EcliptixSecrecyChannelState, NetworkFailure> newResult = await EstablishSecrecyChannelAsync(connectId);
+            Result<EcliptixSecrecyChannelState, NetworkFailure> newResult =
+                await EstablishSecrecyChannelAsync(connectId);
             restorationSucceeded = newResult.IsOk;
             if (restorationSucceeded)
             {
@@ -321,8 +314,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        CancellationToken token = default,
-        bool allowDuplicates = false)
+        bool allowDuplicates = false, CancellationToken token = default)
     {
         if (_disposed)
         {
@@ -334,7 +326,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             $"{connectId}_{serviceType}_{Convert.ToHexString(plainBuffer)[..Math.Min(16, plainBuffer.Length)]}";
 
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
-        
+
         if (!shouldAllowDuplicates && _activeRequests.TryGetValue(requestKey,
                 out TaskCompletionSource<Result<Unit, NetworkFailure>>? existingRequest))
         {
@@ -355,7 +347,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         TaskCompletionSource<Result<Unit, NetworkFailure>> requestTcs = new();
         if (!_activeRequests.TryAdd(requestKey, requestTcs))
         {
-            if (_activeRequests.TryGetValue(requestKey, out TaskCompletionSource<Result<Unit, NetworkFailure>>? concurrentRequest))
+            if (_activeRequests.TryGetValue(requestKey,
+                    out TaskCompletionSource<Result<Unit, NetworkFailure>>? concurrentRequest))
             {
                 return await concurrentRequest.Task;
             }
@@ -371,8 +364,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     NetworkFailure.InvalidRequestType("Request cancelled during connection recovery")));
                 return await requestTcs.Task;
             }
-            
-            using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(token, recoveryToken);
+
+            using CancellationTokenSource combinedCts =
+                CancellationTokenSource.CreateLinkedTokenSource(token, recoveryToken);
             DateTime startTime = DateTime.UtcNow;
 
             if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
@@ -459,17 +453,20 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 return;
             }
 
-            // Use only ISecureStorageProvider for state restoration - no duplicate systems  
-            Result<Option<byte[]>, InternalServiceApiFailure> stateResult = 
-                await _secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
-                
+            // Use dedicated ISecureProtocolStateStorage for protocol state restoration
+            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+            Result<byte[], SecureStorageFailure> stateResult =
+                await _secureProtocolStateStorage.LoadStateAsync(userId);
+
             bool restorationSuccessful = false;
-            if (stateResult.IsOk && stateResult.Unwrap().HasValue)
+            if (stateResult.IsOk)
             {
                 try
                 {
-                    EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateResult.Unwrap().Value!);
-                    Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+                    EcliptixSecrecyChannelState state =
+                        EcliptixSecrecyChannelState.Parser.ParseFrom(stateResult.Unwrap());
+                    Result<bool, NetworkFailure> restoreResult =
+                        await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
                     restorationSuccessful = restoreResult.IsOk && restoreResult.Unwrap();
                 }
                 catch (Exception ex)
@@ -481,7 +478,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             else
             {
                 // No state found, establish new connection
-                Result<EcliptixSecrecyChannelState, NetworkFailure> newResult = await EstablishSecrecyChannelAsync(connectId);
+                Result<EcliptixSecrecyChannelState, NetworkFailure> newResult =
+                    await EstablishSecrecyChannelAsync(connectId);
                 restorationSuccessful = newResult.IsOk;
             }
 
@@ -558,7 +556,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Type = MapServiceToOperationType(serviceType),
                 Priority = DetermineOperationPriority(serviceType),
                 IsPersistent = true,
-                ExpiresAfter = TimeSpan.FromHours(24), 
+                ExpiresAfter = TimeSpan.FromHours(24),
                 ExecuteAsync = async cancellationToken =>
                 {
                     Log.Debug("Executing queued operation {ServiceType} for connection {ConnectId}",
@@ -614,13 +612,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _ => OperationPriority.Normal
         };
     }
-    
+
     private static bool ShouldAllowDuplicateRequests(RpcServiceType serviceType)
     {
         return serviceType switch
         {
             RpcServiceType.InitiateVerification => true, // OTP resend operations
-            RpcServiceType.ValidatePhoneNumber => true,   // Phone validation retries
+            RpcServiceType.ValidatePhoneNumber => true, // Phone validation retries
             _ => false
         };
     }
@@ -715,7 +713,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
-        
+
         Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
             await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                 () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
@@ -731,10 +729,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (response.Status == RestoreSecrecyChannelResponse.Types.RestoreStatus.SessionResumed)
         {
-            Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> syncSecrecyChannelResult =
-                SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
-
-            // State callbacks removed - using unified ISecureStorageProvider persistence
+            SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
 
             return Result<bool, NetworkFailure>.Ok(true);
         }
@@ -763,7 +758,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
-        
+
         Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
             await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                 () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
@@ -793,37 +788,35 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return ecliptixSecrecyChannelStateResult.ToNetworkFailure();
     }
 
-    private Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> SyncSecrecyChannel(
+    private Result<Unit, EcliptixProtocolFailure> SyncSecrecyChannel(
         EcliptixSecrecyChannelState currentState,
-        RestoreSecrecyChannelResponse serverResponse)
+        RestoreSecrecyChannelResponse peerSecrecyChannelState)
     {
         Result<EcliptixProtocolSystem, EcliptixProtocolFailure> systemResult = RecreateSystemFromState(currentState);
         if (systemResult.IsErr)
         {
-            return Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>.Err(systemResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(systemResult.UnwrapErr());
         }
 
         EcliptixProtocolSystem system = systemResult.Unwrap();
 
-        // Set up protocol event handler for chain rotation state persistence
         system.SetEventHandler(this);
 
         EcliptixProtocolConnection connection = system.GetConnection();
 
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
-            serverResponse.SendingChainLength,
-            serverResponse.ReceivingChainLength
+            peerSecrecyChannelState.SendingChainLength,
+            peerSecrecyChannelState.ReceivingChainLength
         );
 
         if (syncResult.IsErr)
         {
             system.Dispose();
-            return Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>.Err(syncResult.UnwrapErr());
+            return Result<Unit, EcliptixProtocolFailure>.Err(syncResult.UnwrapErr());
         }
 
         _connections.TryAdd(currentState.ConnectId, system);
-
-        return Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure>.Ok(currentState);
+        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> RecreateSystemFromState(
@@ -837,15 +830,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> connResult =
             EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState);
 
-        if (connResult.IsErr)
-        {
-            idKeysResult.Unwrap().Dispose();
-            return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
-        }
-
-        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap());
+        if (!connResult.IsErr) return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap());
+        idKeysResult.Unwrap().Dispose();
+        return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
     }
-
 
     private async Task<Result<Unit, NetworkFailure>> PerformReconnectionLogic()
     {
@@ -890,11 +878,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
-       
-        await _secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
-        
+
+        // Save protocol state using dedicated secure storage
+        string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+        Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
+            secrecyChannelState.ToByteArray(), userId);
+            
+        if (saveResult.IsOk)
+        {
+            Log.Information("Protocol state saved securely for connection {ConnectId}", connectId);
+        }
+        else
+        {
+            Log.Warning("Failed to save protocol state: {Error}", saveResult.UnwrapErr().Message);
+        }
+
+        // Keep timestamp in application storage for backwards compatibility
         string timestampKey = $"{connectId}_timestamp";
-        await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
+        await _applicationSecureStorageProvider.StoreAsync(timestampKey,
+            BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
 
         Log.Information("Successfully established new connection");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -1085,7 +1087,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     _connectionRecoveryCts?.Dispose();
                     _connectionRecoveryCts = null;
                 }
-                
+
                 Log.Information("Advanced NetworkProvider disposed safely");
             }
             catch (Exception ex)
@@ -1123,33 +1125,48 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 IdentityKeys = idKeysStateResult.Unwrap(),
                                 RatchetState = ratchetStateResult.Unwrap()
                             };
-                            
-                            await _secureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
-                            
+
+                            // Save protocol state using dedicated secure storage
+                            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+                            Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
+                                state.ToByteArray(), userId);
+                                
+                            if (saveResult.IsOk)
+                            {
+                                Log.Information(
+                                    "Protocol state saved successfully after {ChainType} chain rotation - ConnectId: {ConnectId}, Index: {Index}",
+                                    isSending ? "sending" : "receiving", connectId, newIndex);
+                            }
+                            else
+                            {
+                                Log.Warning("Failed to save protocol state after DH ratchet: {Error}", saveResult.UnwrapErr().Message);
+                            }
+
+                            // Keep timestamp in application storage for backwards compatibility
                             string timestampKey = $"{connectId}_timestamp";
-                            await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
-                            
-                            Log.Information(
-                                "Protocol state saved successfully after {ChainType} chain rotation - ConnectId: {ConnectId}, Index: {Index}",
-                                isSending ? "sending" : "receiving", connectId, newIndex);
+                            await _applicationSecureStorageProvider.StoreAsync(timestampKey,
+                                BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
                         }
                         else
                         {
                             Log.Error(
                                 "Failed to create protocol state after chain rotation - ConnectId: {ConnectId}, IdKeysError: {IdKeysError}, RatchetError: {RatchetError}",
-                                connectId, 
+                                connectId,
                                 idKeysStateResult.IsErr ? idKeysStateResult.UnwrapErr().ToString() : "OK",
                                 ratchetStateResult.IsErr ? ratchetStateResult.UnwrapErr().ToString() : "OK");
                         }
                     }
                     catch (Exception innerEx)
                     {
-                        Log.Error(innerEx, "Exception creating protocol state after chain rotation - ConnectId: {ConnectId}", connectId);
+                        Log.Error(innerEx,
+                            "Exception creating protocol state after chain rotation - ConnectId: {ConnectId}",
+                            connectId);
                     }
                 }
                 else
                 {
-                    Log.Warning("Protocol system not found for chain rotation state save - ConnectId: {ConnectId}", connectId);
+                    Log.Warning("Protocol system not found for chain rotation state save - ConnectId: {ConnectId}",
+                        connectId);
                 }
             }
             catch (Exception ex)
@@ -1187,26 +1204,41 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 IdentityKeys = idKeysStateResult.Unwrap(),
                                 RatchetState = ratchetStateResult.Unwrap()
                             };
-                            
-                            await _secureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
-                            
+
+                            // Save protocol state using dedicated secure storage
+                            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+                            Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
+                                state.ToByteArray(), userId);
+                                
+                            if (saveResult.IsOk)
+                            {
+                                Log.Information(
+                                    "Protocol state saved successfully after chain synchronization - ConnectId: {ConnectId}",
+                                    connectId);
+                            }
+                            else
+                            {
+                                Log.Warning("Failed to save protocol state after chain sync: {Error}", saveResult.UnwrapErr().Message);
+                            }
+
+                            // Keep timestamp in application storage for backwards compatibility
                             string timestampKey = $"{connectId}_timestamp";
-                            await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
-                            
-                            Log.Information(
-                                "Protocol state saved successfully after chain synchronization - ConnectId: {ConnectId}",
-                                connectId);
+                            await _applicationSecureStorageProvider.StoreAsync(timestampKey,
+                                BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
                         }
                     }
                     catch (Exception innerEx)
                     {
-                        Log.Error(innerEx, "Exception creating protocol state after chain synchronization - ConnectId: {ConnectId}", connectId);
+                        Log.Error(innerEx,
+                            "Exception creating protocol state after chain synchronization - ConnectId: {ConnectId}",
+                            connectId);
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error saving protocol state after chain synchronization - ConnectId: {ConnectId}", connectId);
+                Log.Error(ex, "Error saving protocol state after chain synchronization - ConnectId: {ConnectId}",
+                    connectId);
             }
         });
     }

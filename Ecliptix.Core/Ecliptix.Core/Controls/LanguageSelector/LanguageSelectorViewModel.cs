@@ -14,7 +14,7 @@ namespace Ecliptix.Core.Controls.LanguageSelector;
 public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableViewModel
 {
     private readonly ILocalizationService _localizationService;
-    private readonly ISecureStorageProvider _secureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
     private LanguageItem _selectedLanguage;
 
@@ -35,10 +35,10 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
 
     public LanguageSelectorViewModel(ILocalizationService localizationService,
-        ISecureStorageProvider secureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider)
     {
         _localizationService = localizationService;
-        _secureStorageProvider = secureStorageProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
 
         _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
@@ -101,7 +101,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                     _localizationService.SetCulture(item.Code,
                         () =>
                         {
-                            _secureStorageProvider.SetApplicationSettingsCultureAsync(item.Code);
+                            _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(item.Code);
                             _rpcMetaDataProvider.SetCulture(item.Code);
                         });
                 })

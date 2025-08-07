@@ -30,7 +30,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
     private readonly Subject<string> _mobileErrorSubject = new();
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
-    private ISecureStorageProvider _secureStorageProvider;
+    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
@@ -53,10 +53,10 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        ISecureStorageProvider secureStorageProvider) : base(systemEvents, networkProvider, localizationService)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        _secureStorageProvider = secureStorageProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
     }
@@ -120,7 +120,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         if (result.IsOk)
         {
             
-            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _secureStorageProvider);
+            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
             ((MembershipHostWindowModel)HostScreen).Router.Navigate.Execute(vm);
         }
         else

@@ -14,9 +14,9 @@ public partial class LanguageSelectorView : ReactiveUserControl<LanguageSelector
     }
 
     public LanguageSelectorView(ILocalizationService localizationService,
-        ISecureStorageProvider secureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider) : this()
+        IApplicationSecureStorageProvider applicationSecureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider) : this()
     {
         AvaloniaXamlLoader.Load(this);
-        DataContext = new LanguageSelectorViewModel(localizationService, secureStorageProvider, rpcMetaDataProvider);
+        DataContext = new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
     }
 }

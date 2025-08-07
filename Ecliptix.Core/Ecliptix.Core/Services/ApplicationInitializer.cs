@@ -24,14 +24,13 @@ public record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool 
 
 public class ApplicationInitializer(
     NetworkProvider networkProvider,
-    ISecureStorageProvider secureStorageProvider,
+    IApplicationSecureStorageProvider applicationSecureStorageProvider,
+    ISecureProtocolStateStorage secureProtocolStateStorage,
     ILocalizationService localizationService,
     ISystemEvents systemEvents,
     IHttpClientFactory httpClientFactory)
     : IApplicationInitializer
 {
-    private SecureStateStorage? _secureStateStorage;
-    private IPlatformSecurityProvider? _platformSecurityProvider;
 
     public bool IsMembershipConfirmed { get; } = false;
 
@@ -40,7 +39,7 @@ public class ApplicationInitializer(
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Initializing));
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await secureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
+            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
 
         if (settingsResult.IsErr)
         {
@@ -51,15 +50,11 @@ public class ApplicationInitializer(
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
-
-        await InitializeSecureStorageAsync(settings);
-
-        if (_secureStateStorage != null)
+        
+        _ = Task.Run(async () =>
         {
-            networkProvider.InitializeStatePersistence(_secureStateStorage);
-        }
-
-        _ = Task.Run(async () => { await secureStorageProvider.SetApplicationInstanceAsync(isNewInstance); });
+            await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
+        });
 
         localizationService.SetCulture(settings.Culture);
 
@@ -70,7 +65,7 @@ public class ApplicationInitializer(
 
             if (countryCode.HasValue)
             {
-                await secureStorageProvider.SetApplicationIpCountryAsync(countryCode.Value!);
+                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryCode.Value!);
             }
         });
 
@@ -97,44 +92,6 @@ public class ApplicationInitializer(
         return true;
     }
 
-    private async Task InitializeSecureStorageAsync(ApplicationInstanceSettings settings)
-    {
-        await Task.Run(() =>
-        {
-            try
-            {
-                string appDataPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "Ecliptix");
-
-                if (!Directory.Exists(appDataPath))
-                {
-                    Directory.CreateDirectory(appDataPath);
-                }
-
-                _platformSecurityProvider = new CrossPlatformSecurityProvider(appDataPath);
-
-                string storagePath = Path.Combine(appDataPath, "protocol.state");
-                byte[]? deviceId = settings.DeviceId.ToByteArray();
-
-                _secureStateStorage = new SecureStateStorage(_platformSecurityProvider, storagePath, deviceId);
-
-                if (_platformSecurityProvider.IsHardwareSecurityAvailable())
-                {
-                    Log.Information("Hardware security module detected and will be used for enhanced protection");
-                }
-                else
-                {
-                    Log.Information("Using software-based security with platform keychain");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to initialize secure storage");
-                throw;
-            }
-        });
-    }
 
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
@@ -149,8 +106,10 @@ public class ApplicationInitializer(
             {
                 string? applicationInstanceId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
 
+                await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
+                
                 Result<byte[], SecureStorageFailure> loadResult =
-                    await _secureStateStorage.LoadStateAsync(applicationInstanceId);
+                    await secureProtocolStateStorage.LoadStateAsync(applicationInstanceId);
 
                 if (loadResult.IsOk)
                 {
@@ -174,6 +133,7 @@ public class ApplicationInitializer(
                     Log.Warning(
                         "Failed to restore secrecy channel or it was out of sync. A new channel will be established");
                     networkProvider.ClearConnection(connectId);
+                    await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
                 }
                 else
                 {
@@ -201,7 +161,7 @@ public class ApplicationInitializer(
         try
         {
             string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
-            Result<Unit, SecureStorageFailure> saveResult = await _secureStateStorage.SaveStateAsync(
+            Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
                 secrecyChannelState.ToByteArray(),
                 userId);
 
@@ -218,8 +178,6 @@ public class ApplicationInitializer(
         {
             Log.Warning(ex, "Exception while saving protocol state to secure storage");
         }
-
-        await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
 
         Log.Information("Successfully established new secrecy channel {ConnectId}", connectId);
         return Result<uint, NetworkFailure>.Ok(connectId);
@@ -252,6 +210,6 @@ public class ApplicationInitializer(
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, CancellationToken.None);
+            }, false, CancellationToken.None);
     }
 }

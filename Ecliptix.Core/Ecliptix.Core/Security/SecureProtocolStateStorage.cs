@@ -11,18 +11,18 @@ using Serilog;
 
 namespace Ecliptix.Core.Security;
 
-public sealed class SecureStateStorage : IDisposable
+public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
-    private const int SALT_SIZE = 32;
-    private const int NONCE_SIZE = 12;
-    private const int TAG_SIZE = 16;
-    private const int KEY_SIZE = 32;
-    private const int ARGON2_ITERATIONS = 4;
-    private const int ARGON2_MEMORY_SIZE = 65536; // 64 MB
-    private const int ARGON2_PARALLELISM = 2;
-    private const string MAGIC_HEADER = "ECLIPTIX_SECURE_V1";
-    private const int CURRENT_VERSION = 1;
-    private const int HMAC_SHA512_SIZE = 64;
+    private const int SaltSize = 32;
+    private const int NonceSize = 12;
+    private const int TagSize = 16;
+    private const int KeySize = 32;
+    private const int Argon2Iterations = 4;
+    private const int Argon2MemorySize = 65536; // 64 MB
+    private const int Argon2Parallelism = 2;
+    private const string MagicHeader = "ECLIPTIX_SECURE_V1";
+    private const int CurrentVersion = 1;
+    private const int HmacSha512Size = 64;
 
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly string _storagePath;
@@ -30,11 +30,11 @@ public sealed class SecureStateStorage : IDisposable
     private byte[]? _masterKey;
     private bool _disposed;
 
-    public SecureStateStorage(IPlatformSecurityProvider platformProvider, string storagePath, byte[] deviceId)
+    public SecureProtocolStateStorage(IPlatformSecurityProvider platformProvider, string storagePath, byte[] deviceId)
     {
-        _platformProvider = platformProvider ?? throw new ArgumentNullException(nameof(platformProvider));
-        _storagePath = storagePath ?? throw new ArgumentNullException(nameof(storagePath));
-        _deviceId = deviceId ?? throw new ArgumentNullException(nameof(deviceId));
+        _platformProvider = platformProvider;
+        _storagePath = storagePath;
+        _deviceId = deviceId;
 
         InitializeSecureStorage();
     }
@@ -63,7 +63,7 @@ public sealed class SecureStateStorage : IDisposable
         {
             (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(userId);
 
-            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NONCE_SIZE);
+            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize);
 
             byte[] associatedData = CreateAssociatedData(userId, _deviceId);
 
@@ -151,28 +151,26 @@ public sealed class SecureStateStorage : IDisposable
         }
     }
 
-    public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string userId)
+    public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key)
     {
         if (_disposed)
             return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
 
         try
         {
-            // Delete the secure state file
             if (File.Exists(_storagePath))
             {
                 File.Delete(_storagePath);
             }
 
-            // Remove the key from keychain
-            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{userId}");
+            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}");
 
-            Log.Information("Protocol state deleted securely for user {UserId}", userId);
+            Log.Information("Protocol state deleted securely for user {Key}", key);
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to delete secure state for user {UserId}", userId);
+            Log.Error(ex, "Failed to delete secure state for user {Key}", key);
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Delete failed: {ex.Message}"));
         }
@@ -180,7 +178,7 @@ public sealed class SecureStateStorage : IDisposable
 
     private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string userId)
     {
-        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SALT_SIZE);
+        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize);
         (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(userId, salt);
         return (key, salt);
     }
@@ -190,23 +188,23 @@ public sealed class SecureStateStorage : IDisposable
         using Argon2id argon2 = new(Encoding.UTF8.GetBytes(userId))
         {
             Salt = salt,
-            DegreeOfParallelism = ARGON2_PARALLELISM,
-            Iterations = ARGON2_ITERATIONS,
-            MemorySize = ARGON2_MEMORY_SIZE
+            DegreeOfParallelism = Argon2Parallelism,
+            Iterations = Argon2Iterations,
+            MemorySize = Argon2MemorySize
         };
 
         argon2.AssociatedData = _deviceId;
 
-        byte[] key = await argon2.GetBytesAsync(KEY_SIZE);
+        byte[] key = await argon2.GetBytesAsync(KeySize);
         return (key, salt);
     }
 
-    private (byte[] ciphertext, byte[] tag) EncryptState(
+    private static (byte[] ciphertext, byte[] tag) EncryptState(
         byte[] plaintext, byte[] key, byte[] nonce, byte[] associatedData)
     {
-        using AesGcm aesGcm = new AesGcm(key, TAG_SIZE);
+        using AesGcm aesGcm = new(key, TagSize);
         byte[] ciphertext = new byte[plaintext.Length];
-        byte[] tag = new byte[TAG_SIZE];
+        byte[] tag = new byte[TagSize];
 
         aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
         return (ciphertext, tag);
@@ -215,7 +213,7 @@ public sealed class SecureStateStorage : IDisposable
     private static byte[] DecryptState(
         byte[] ciphertext, byte[] key, byte[] nonce, byte[] tag, byte[] associatedData)
     {
-        using AesGcm aesGcm = new(key, TAG_SIZE);
+        using AesGcm aesGcm = new(key, TagSize);
         byte[] plaintext = new byte[ciphertext.Length];
 
         aesGcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
@@ -227,7 +225,7 @@ public sealed class SecureStateStorage : IDisposable
         byte[] userIdBytes = Encoding.UTF8.GetBytes(userId);
         byte[] ad = new byte[userIdBytes.Length + deviceId.Length + 4];
 
-        BitConverter.GetBytes(CURRENT_VERSION).CopyTo(ad, 0);
+        BitConverter.GetBytes(CurrentVersion).CopyTo(ad, 0);
         userIdBytes.CopyTo(ad, 4);
         deviceId.CopyTo(ad, 4 + userIdBytes.Length);
 
@@ -240,8 +238,8 @@ public sealed class SecureStateStorage : IDisposable
         using MemoryStream ms = new();
         using BinaryWriter writer = new(ms);
 
-        writer.Write(Encoding.ASCII.GetBytes(MAGIC_HEADER));
-        writer.Write(CURRENT_VERSION);
+        writer.Write(Encoding.ASCII.GetBytes(MagicHeader));
+        writer.Write(CurrentVersion);
 
         writer.Write(salt.Length);
         writer.Write(salt);
@@ -267,12 +265,12 @@ public sealed class SecureStateStorage : IDisposable
         using MemoryStream ms = new(container);
         using BinaryReader reader = new(ms);
 
-        string magic = Encoding.ASCII.GetString(reader.ReadBytes(MAGIC_HEADER.Length));
-        if (magic != MAGIC_HEADER)
+        string magic = Encoding.ASCII.GetString(reader.ReadBytes(MagicHeader.Length));
+        if (magic != MagicHeader)
             throw new InvalidOperationException("Invalid container format");
 
         int version = reader.ReadInt32();
-        if (version != CURRENT_VERSION)
+        if (version != CurrentVersion)
             throw new InvalidOperationException($"Unsupported version: {version}");
 
         int saltLength = reader.ReadInt32();
@@ -308,11 +306,11 @@ public sealed class SecureStateStorage : IDisposable
 
     private async Task<byte[]?> VerifyTamperProtectionAsync(byte[] protectedData)
     {
-        if (protectedData.Length < HMAC_SHA512_SIZE)
+        if (protectedData.Length < HmacSha512Size)
             return null;
 
-        byte[] data = protectedData[..^HMAC_SHA512_SIZE];
-        byte[] mac = protectedData[^HMAC_SHA512_SIZE..];
+        byte[] data = protectedData[..^HmacSha512Size];
+        byte[] mac = protectedData[^HmacSha512Size..];
 
         byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync();
         using HMACSHA512 hmac = new HMACSHA512(hmacKey);
@@ -355,11 +353,7 @@ public sealed class SecureStateStorage : IDisposable
     }
 }
 
-public record SecureStorageFailure : FailureBase
+public record SecureStorageFailure(string Message) : FailureBase(Message)
 {
-    public SecureStorageFailure(string message) : base(message)
-    {
-    }
-
     public override object ToStructuredLog() => new { Message, Type = "SecureStorageFailure" };
 }

@@ -41,8 +41,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     private readonly SecureTextBuffer _verifyPasswordBuffer = new();
     private bool _hasPasswordBeenTouched;
     private bool _hasVerifyPasswordBeenTouched;
-    
-    
+
+
     public int CurrentPasswordLength => _passwordBuffer.Length;
     public int CurrentVerifyPasswordLength => _verifyPasswordBuffer.Length;
 
@@ -50,39 +50,40 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     [ObservableAsProperty] public bool HasPasswordError { get; private set; }
     [ObservableAsProperty] public string? VerifyPasswordError { get; private set; }
     [ObservableAsProperty] public bool HasVerifyPasswordError { get; private set; }
-    
+
     [Reactive] public bool CanSubmit { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
 
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
-    
+
     private ByteString? VerificationSessionId { get; set; }
 
-    private ISecureStorageProvider _secureStorageProvider;
+    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+
     public PasswordConfirmationViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        ISecureStorageProvider secureStorageProvider
+        IApplicationSecureStorageProvider applicationSecureStorageProvider
     ) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        _secureStorageProvider = secureStorageProvider;
-        
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
+
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.CanSubmit).BindTo(this, x => x.CanSubmit).DisposeWith(disposables);
-            
+
             Observable.FromAsync(LoadMembershipAsync)
                 .Subscribe(result =>
                 {
                     if (result.IsErr)
                     {
-                       Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
-                       ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
-                       ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                        Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
+                        ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+                        ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                     }
                 })
                 .DisposeWith(disposables);
@@ -95,7 +96,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                 })
                 .DisposeWith(disposables);
         });
-        
+
         IObservable<bool> isFormLogicallyValid = SetupValidation();
 
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
@@ -104,19 +105,18 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
-        
     }
 
     private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
-            await _secureStorageProvider.GetApplicationInstanceSettingsAsync();
-    
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+
         if (applicationInstance.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
         }
-    
+
         ApplicationInstanceSettings settings = applicationInstance.Unwrap();
         VerificationSessionId = settings.Membership.UniqueIdentifier;
         return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
@@ -152,7 +152,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<(string? Error, string Recommendations)> passwordValidation = this.WhenAnyValue(x => x.CurrentPasswordLength)
+        IObservable<(string? Error, string Recommendations)> passwordValidation = this
+            .WhenAnyValue(x => x.CurrentPasswordLength)
             .Select(_ => ValidatePassword())
             .Replay(1)
             .RefCount();
@@ -163,24 +164,30 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             .RefCount();
 
         passwordErrorStream.ToPropertyEx(this, x => x.PasswordError);
-        this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e)).ToPropertyEx(this, x => x.HasPasswordError);
+        this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasPasswordError);
 
         IObservable<bool> isPasswordLogicallyValid = passwordValidation.Select(v => string.IsNullOrEmpty(v.Error));
 
-        IObservable<bool> passwordsMatch = this.WhenAnyValue(x => x.CurrentPasswordLength, x => x.CurrentVerifyPasswordLength)
+        IObservable<bool> passwordsMatch = this
+            .WhenAnyValue(x => x.CurrentPasswordLength, x => x.CurrentVerifyPasswordLength)
             .Select(_ => DoPasswordsMatch())
             .Replay(1)
             .RefCount();
 
         IObservable<string> verifyPasswordErrorStream = passwordsMatch
-            .Select(match => _hasVerifyPasswordBeenTouched && !match ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"] : string.Empty)
+            .Select(match => _hasVerifyPasswordBeenTouched && !match
+                ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"]
+                : string.Empty)
             .Replay(1)
             .RefCount();
 
         verifyPasswordErrorStream.ToPropertyEx(this, x => x.VerifyPasswordError);
-        this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e)).ToPropertyEx(this, x => x.HasVerifyPasswordError);
+        this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasVerifyPasswordError);
 
-        return isPasswordLogicallyValid.CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
+        return isPasswordLogicallyValid
+            .CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
             .DistinctUntilChanged();
     }
 
@@ -199,7 +206,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         });
         return (error, recommendations);
     }
-    
+
     private bool DoPasswordsMatch()
     {
         if (_passwordBuffer.Length != _verifyPasswordBuffer.Length)
@@ -215,15 +222,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         byte[] passwordArray = new byte[_passwordBuffer.Length];
         byte[] verifyArray = new byte[_verifyPasswordBuffer.Length];
 
-        _passwordBuffer.WithSecureBytes(passwordBytes =>
-        {
-            passwordBytes.CopyTo(passwordArray.AsSpan());
-        });
+        _passwordBuffer.WithSecureBytes(passwordBytes => { passwordBytes.CopyTo(passwordArray.AsSpan()); });
 
-        _verifyPasswordBuffer.WithSecureBytes(verifyBytes =>
-        {
-            verifyBytes.CopyTo(verifyArray.AsSpan());
-        });
+        _verifyPasswordBuffer.WithSecureBytes(verifyBytes => { verifyBytes.CopyTo(verifyArray.AsSpan()); });
 
         return passwordArray.AsSpan().SequenceEqual(verifyArray);
     }
@@ -233,10 +234,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         if (!string.IsNullOrEmpty(error)) return error;
         return recommendations;
     }
-    
-    
 
-     private async Task SubmitRegistrationPasswordAsync()
+
+    private async Task SubmitRegistrationPasswordAsync()
     {
         if (IsBusy || !CanSubmit) return;
 
@@ -278,7 +278,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 
                     Console.WriteLine("Received OPRF response");
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                },
+                }, true,
                 CancellationToken.None
             );
         }
@@ -303,6 +303,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             _passwordBuffer.Dispose();
             _verifyPasswordBuffer.Dispose();
         }
+
         base.Dispose(disposing);
     }
 

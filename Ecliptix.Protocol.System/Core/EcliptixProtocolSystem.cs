@@ -45,7 +45,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
         return ecliptixSystemIdentityKeys.CreatePublicBundle()
             .AndThen(bundle => {
-                // Security: Never log cryptographic keys or sensitive material
                 Console.WriteLine($"[DESKTOP] Client bundle created (keys hidden for security)");
                 
                 return EcliptixProtocolConnection.Create(connectId, true)
@@ -69,74 +68,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             });
     }
 
-    public Result<PubKeyExchange, EcliptixProtocolFailure> ProcessAndRespondToPubKeyExchange(
-        uint connectId, PubKeyExchange peerInitialMessageProto)
-    {
-        SodiumSecureMemoryHandle? rootKeyHandle = null;
-        try
-        {
-            return Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value,
-                    _ => peerInitialMessageProto.State == PubKeyExchangeState.Init,
-                    EcliptixProtocolFailure.InvalidInput(
-                        $"Expected peer message state to be Init, but was {peerInitialMessageProto.State}."))
-                .AndThen(_ => Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
-                    () => Helpers.ParseFromBytes<Protobuf.PubKeyExchange.PublicKeyBundle>(peerInitialMessageProto
-                        .Payload.ToByteArray()),
-                    ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex)))
-                .AndThen(PublicKeyBundle.FromProtobufExchange)
-                .AndThen(peerBundle =>
-                {
-                    // Removed debug logging of sensitive cryptographic material for security
-                    return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
-                            peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
-                        .AndThen(spkValid => Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value, _ => spkValid,
-                            EcliptixProtocolFailure.Handshake("SPK signature validation failed.")))
-                        .AndThen(_ =>
-                        {
-                            ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
-                            return ecliptixSystemIdentityKeys.CreatePublicBundle();
-                        })
-                        .AndThen(localBundle => EcliptixProtocolConnection.Create(connectId, false)
-                            .AndThen(session =>
-                            {
-                                _protocolConnection = session;
-                                _protocolConnection.SetEventHandler(_eventHandler);
-                                return ecliptixSystemIdentityKeys.CalculateSharedSecretAsRecipient(
-                                        peerBundle.IdentityX25519, peerBundle.EphemeralX25519,
-                                        peerBundle.OneTimePreKeys.FirstOrDefault()?.PreKeyId, Constants.X3dhInfo)
-                                    .AndThen(derivedKeyHandle =>
-                                    {
-                                        rootKeyHandle = derivedKeyHandle;
-                                        return ReadAndWipeSecureHandle(derivedKeyHandle, Constants.X25519KeySize);
-                                    })
-                                    .AndThen(rootKeyBytes =>
-                                    {
-                                        // Removed debug logging of sensitive root key for security
-                                        return session.FinalizeChainAndDhKeys(rootKeyBytes,
-                                            peerInitialMessageProto.InitialDhPublicKey.ToByteArray());
-                                    })
-                                    .AndThen(__ => session.SetPeerBundle(peerBundle))
-                                    .AndThen(__ => session.GetCurrentSenderDhPublicKey())
-                                    .Map(dhPublicKey =>
-                                    {
-                                        // Removed debug logging of sensitive cryptographic material for security
-                                        return new PubKeyExchange
-                                        {
-                                            State = PubKeyExchangeState.Pending,
-                                            OfType = peerInitialMessageProto.OfType,
-                                            Payload = localBundle.ToProtobufExchange().ToByteString(),
-                                            InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
-                                        };
-                                    });
-                            }));
-                });
-        }
-        finally
-        {
-            rootKeyHandle?.Dispose();
-        }
-    }
-
     public void CompleteDataCenterPubKeyExchange(PubKeyExchange peerMessage)
     {
         Console.WriteLine($"[DESKTOP] CompleteDataCenterPubKeyExchange - State: {peerMessage.State}");
@@ -151,7 +82,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 .AndThen(PublicKeyBundle.FromProtobufExchange)
                 .AndThen(peerBundle =>
                 {
-                    // Security: Never log cryptographic keys or sensitive material
                     Console.WriteLine($"[DESKTOP] Server bundle received (keys hidden for security)");
                     Console.WriteLine($"[DESKTOP] Server Initial DH received (hidden for security)");
                     
@@ -167,7 +97,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                         })
                         .AndThen(rootKeyBytes =>
                         {
-                            // Security: Never log cryptographic keys
                             Console.WriteLine($"[DESKTOP] Root key established (hidden for security)");
                             Console.WriteLine($"[DESKTOP] Calling FinalizeChainAndDhKeys");
                             return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes,
@@ -205,13 +134,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             })
                             .AndThen(peerBundle =>
                             {
-                                // Always use initiator||responder ordering for AD
-                                // The desktop client is always the initiator in our protocol
                                 byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
                                 return Encrypt(messageKeyClone!, nonce, plainPayload, ad);
                             })
                             .Map(encrypted => {
-                                var payload = new CipherPayload
+                                CipherPayload payload = new()
                                 {
                                     RequestId = Helpers.GenerateRandomUInt32(true),
                                     Nonce = ByteString.CopyFrom(nonce),
@@ -252,8 +179,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 })
                 .AndThen(peerBundle =>
                 {
-                    // Always use initiator||responder ordering for AD
-                    // The desktop client is always the initiator in our protocol
                     byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
                     return Decrypt(messageKeyClone!, cipherPayloadProto, ad);
                 });
@@ -271,13 +196,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         return _protocolConnection!.GetCurrentPeerDhPublicKey()
             .AndThen(currentPeerDhKey =>
             {
-                // Only skip ratcheting if we already have this exact same key
                 if (currentPeerDhKey != null && receivedDhKey.AsSpan().SequenceEqual(currentPeerDhKey))
                 {
                     return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
                 }
                 
-                // Perform ratchet if we don't have a peer key yet or if the key is different
                 return _protocolConnection.PerformReceivingRatchet(receivedDhKey);
             });
     }
@@ -291,7 +214,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     private static Result<EcliptixMessageKey, EcliptixProtocolFailure> CloneMessageKey(EcliptixMessageKey key)
     {
-        using var keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
+        using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         Span<byte> keySpan = keyMaterial.AsSpan();
         key.ReadKeyMaterial(keySpan);
         return EcliptixMessageKey.New(key.Index, keySpan);
@@ -310,21 +233,19 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private static Result<byte[], EcliptixProtocolFailure> Encrypt(EcliptixMessageKey key, byte[] nonce,
         byte[] plaintext, byte[] ad)
     {
-        using var keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
+        using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         try
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
             Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
             if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
 
-            // Security: Never log encryption keys or plaintext
             Console.WriteLine($"[DESKTOP] Encrypt - Nonce: {Convert.ToHexString(nonce)}, Size: {plaintext.Length} bytes");
             
-            // Direct AES-GCM encryption without SecureMemoryUtils
             byte[] ciphertext = new byte[plaintext.Length];
             byte[] tag = new byte[Constants.AesGcmTagSize];
             
-            using (var aesGcm = new global::System.Security.Cryptography.AesGcm(keySpan, Constants.AesGcmTagSize))
+            using (AesGcm aesGcm = new(keySpan, Constants.AesGcmTagSize))
             {
                 aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, ad);
             }
@@ -347,14 +268,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[] ad)
     {
         ReadOnlySpan<byte> fullCipherSpan = payload.Cipher.Span;
-        int tagSize = Constants.AesGcmTagSize;
+        const int tagSize = Constants.AesGcmTagSize;
         int cipherLength = fullCipherSpan.Length - tagSize;
 
         if (cipherLength < 0)
             return Result<byte[], EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.BufferTooSmall(
                 $"Received ciphertext length ({fullCipherSpan.Length}) is smaller than the GCM tag size ({tagSize})."));
 
-        using var keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
+        using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         
         try
         {
@@ -362,12 +283,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
             if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
 
-            // Direct AES-GCM decryption without SecureMemoryUtils
             byte[] ciphertext = fullCipherSpan[..cipherLength].ToArray();
             byte[] tag = fullCipherSpan[cipherLength..].ToArray();
             byte[] plaintext = new byte[cipherLength];
             
-            using (var aesGcm = new global::System.Security.Cryptography.AesGcm(keySpan, Constants.AesGcmTagSize))
+            using (AesGcm aesGcm = new(keySpan, Constants.AesGcmTagSize))
             {
                 aesGcm.Decrypt(payload.Nonce.ToArray(), ciphertext, tag, plaintext, ad);
             }
@@ -390,7 +310,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
         EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
-        // Removed debug logging of sensitive cryptographic material for security
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
     

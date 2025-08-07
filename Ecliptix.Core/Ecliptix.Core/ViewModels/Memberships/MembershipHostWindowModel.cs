@@ -30,7 +30,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 {
     private bool _canNavigateBack;
     private readonly IBottomSheetEvents _bottomSheetEvents;
-    private readonly ISecureStorageProvider _secureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
 
     private static readonly IReadOnlyDictionary<string, string> SupportedCountries = new Dictionary<string, string>
@@ -68,16 +68,16 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
-        ISecureStorageProvider secureStorageProvider,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService)
         : base(systemEvents, networkProvider, localizationService)
     {
         _bottomSheetEvents = bottomSheetEvents;
-        _secureStorageProvider = secureStorageProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
 
         LanguageSelector =
-            new LanguageSelectorViewModel(localizationService, secureStorageProvider, rpcMetaDataProvider);
+            new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
         NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
@@ -89,7 +89,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
                 CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService,
-                    authenticationService, secureStorageProvider)
+                    authenticationService, applicationSecureStorageProvider)
             ));
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -122,7 +122,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private async Task CheckCountryCultureMismatchAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> appSettings =
-            await _secureStorageProvider.GetApplicationInstanceSettingsAsync();
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
 
         if (appSettings.IsOk)
         {
@@ -154,7 +154,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authenticationService,
-        ISecureStorageProvider secureStorageProvider)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider)
     {
         return viewType switch
         {
@@ -163,9 +163,9 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
             MembershipViewType.Welcome => new WelcomeViewModel(this, systemEvents, localizationService,
                 networkProvider),
             MembershipViewType.MobileVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
-                localizationService, this, secureStorageProvider),
+                localizationService, this, applicationSecureStorageProvider),
             MembershipViewType.ConfirmSecureKey => new PasswordConfirmationViewModel(systemEvents, networkProvider,
-                localizationService, this, secureStorageProvider),
+                localizationService, this, applicationSecureStorageProvider),
             MembershipViewType.PassPhase => new PassPhaseViewModel(systemEvents, localizationService, this,
                 networkProvider),
             _ => throw new ArgumentOutOfRangeException(nameof(viewType))

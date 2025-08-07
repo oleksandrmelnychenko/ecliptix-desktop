@@ -32,12 +32,12 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
     private bool _isSent;
     private string _remainingTime = "01:00";
     private string _verificationCode;
-    private ISecureStorageProvider _secureStorageProvider;
-    
+    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
     private Guid? VerificationSessionIdentifier { get; set; } = null;
-    
+
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
 
@@ -74,7 +74,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             this.RaiseAndSetIfChanged(ref _remainingTime, value);
         }
     }
-    
+
     public ulong SecondsRemaining
     {
         get => _secondsRemaining;
@@ -84,18 +84,19 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             RemainingTime = FormatRemainingTime(value);
         }
     }
-    
+
     public VerifyOtpViewModel(
         ISystemEvents systemEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IScreen hostScreen, 
+        IScreen hostScreen,
         ByteString phoneNumberIdentifier,
-        ISecureStorageProvider secureStorageProvider) : base(systemEvents, networkProvider, localizationService)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEvents, networkProvider,
+        localizationService)
     {
         _phoneNumberIdentifier = phoneNumberIdentifier;
         _verificationCode = string.Empty;
-        _secureStorageProvider = secureStorageProvider;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
 
         HostScreen = hostScreen;
 
@@ -115,14 +116,10 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
         canResend.Subscribe(value => Console.WriteLine($"canResend: {value}")); // For debugging
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
-        
-        this.WhenActivated(disposables =>
-        {
-            OnViewLoaded().Subscribe().DisposeWith(disposables);
-        });
 
+        this.WhenActivated(disposables => { OnViewLoaded().Subscribe().DisposeWith(disposables); });
     }
-    
+
     private IObservable<Unit> OnViewLoaded()
     {
         return Observable.FromAsync(async () =>
@@ -133,7 +130,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             );
         });
     }
-    
+
     private async Task InitiateVerification(ByteString phoneNumberIdentifier,
         InitiateVerificationRequest.Types.Type type)
     {
@@ -188,8 +185,8 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
                 return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
-            },
-            cancellationTokenSource.Token,true
+            }, true,
+            cancellationTokenSource.Token
         );
     }
 
@@ -217,14 +214,12 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
                 if (verifyCodeReply.Result == VerificationResult.Succeeded)
                 {
-                    
                     Membership membership = verifyCodeReply.Membership;
-                    
-                   
-                    await _secureStorageProvider.SetApplicationMembershipAsync(membership);
-                
-                    
-                    
+
+
+                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+
                     NavToPasswordConfirmation.Execute().Subscribe();
                 }
                 else if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
@@ -232,7 +227,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 }
 
                 return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
-            },
+            }, true,
             CancellationToken.None
         );
     }
@@ -251,6 +246,4 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         Console.WriteLine(t);
         return t;
     }
-
-   
 }

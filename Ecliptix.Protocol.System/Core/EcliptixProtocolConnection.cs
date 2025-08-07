@@ -633,9 +633,9 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     return sendingStep.SkipKeysUntil(remoteReceivingChainLength);
                 });
             
-            if (result.IsOk && _eventHandler != null)
+            if (result.IsOk)
             {
-                _eventHandler.OnChainSynchronized(_id, 
+                _eventHandler!.OnChainSynchronized(_id, 
                     _sendingStep?.GetCurrentIndex().UnwrapOr(0) ?? 0, 
                     _receivingStep?.GetCurrentIndex().UnwrapOr(0) ?? 0);
             }
@@ -670,11 +670,12 @@ public sealed class EcliptixProtocolConnection : IDisposable
             : Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    private static Result<Unit, EcliptixProtocolFailure> WipeIfNotNull(byte[]? data)
+    private static void WipeIfNotNull(byte[]? data)
     {
-        return data == null
-            ? Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
-            : SodiumInterop.SecureWipe(data).MapSodiumFailure();
+        if (data is not null)
+        {
+            SodiumInterop.SecureWipe(data).MapSodiumFailure();
+        }
     }
 
     private Result<Unit, EcliptixProtocolFailure> EnsureNotExpired()

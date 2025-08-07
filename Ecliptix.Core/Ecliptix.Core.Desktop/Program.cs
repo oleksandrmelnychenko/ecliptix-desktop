@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reactive.Concurrency;
+using System.Reflection;
+using System.Text;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
@@ -27,6 +29,7 @@ using Ecliptix.Core.Network.Transport;
 using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Network.Transport.Resilience;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Security;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
@@ -99,18 +102,17 @@ public static class Program
     {
         try
         {
-            // For single-file deployment, we'll load the assemblies by name
-            var assemblies = new List<System.Reflection.Assembly>();
+            List<Assembly> assemblies = [];
             
             try
             {
-                assemblies.Add(System.Reflection.Assembly.Load("Serilog.Sinks.Console"));
+                assemblies.Add(Assembly.Load("Serilog.Sinks.Console"));
             }
             catch { /* Console sink not available */ }
             
             try
             {
-                assemblies.Add(System.Reflection.Assembly.Load("Serilog.Sinks.File"));
+                assemblies.Add(Assembly.Load("Serilog.Sinks.File"));
             }
             catch { /* File sink not available */ }
 
@@ -123,8 +125,6 @@ public static class Program
         }
         catch (Exception ex)
         {
-            // Fallback to basic file logging if configuration fails
-            // Note: Using file-only logging to avoid console window in GUI app
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.File("logs/ecliptix-.log", rollingInterval: RollingInterval.Day)
@@ -182,17 +182,36 @@ public static class Program
 
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
 
-        services.AddSingleton<ILogger<SecureStorageProvider>>(sp =>
-            sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
+        services.AddSingleton<ILogger<ApplicationSecureStorageProvider>>(sp =>
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger<ApplicationSecureStorageProvider>()
         );
-        services.AddSingleton<ISecureStorageProvider, SecureStorageProvider>();
+        services.AddSingleton<IApplicationSecureStorageProvider, ApplicationSecureStorageProvider>();
+        
+        services.AddSingleton<IPlatformSecurityProvider>(sp =>
+        {
+            string appDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Ecliptix");
+            return new CrossPlatformSecurityProvider(appDataPath);
+        });
+        services.AddSingleton<ISecureProtocolStateStorage>(sp =>
+        {
+            IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
+            IConfiguration configuration = sp.GetRequiredService<IConfiguration>();
+            
+            string storagePath = configuration.GetValue<string>("SecureStorage:StatePath") 
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+                                "Ecliptix", "secure_protocol_state.enc");
+            
+            byte[] deviceId = Encoding.UTF8.GetBytes(Environment.MachineName + Environment.UserName);
+            
+            return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
+        });
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
         
-        // Configuration objects for Network services
         services.AddSingleton<ConnectionStateConfiguration>();
         services.AddSingleton<OperationQueueConfiguration>();
         
-        // New composed services for NetworkProvider
         services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
         services.AddSingleton<IOperationQueue, OperationQueue>();
         services.AddSingleton<IRetryStrategy, IntelligentRetryStrategy>();
