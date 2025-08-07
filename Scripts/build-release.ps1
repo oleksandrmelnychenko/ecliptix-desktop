@@ -39,19 +39,19 @@ if ($args -contains "--help" -or $args -contains "-h") {
 # Update version if requested
 if ($Increment) {
     Write-Host "Updating version..." -ForegroundColor Yellow
-    python3 (Join-Path $ScriptDir "version-helper.py") --action increment --part $Increment
+    python (Join-Path $ScriptDir "version-helper.py") --action increment --part $Increment
 }
 elseif ($Version) {
     Write-Host "Setting version to $Version..." -ForegroundColor Yellow
-    python3 (Join-Path $ScriptDir "version-helper.py") --action set --version $Version
+    python (Join-Path $ScriptDir "version-helper.py") --action set --version $Version
 }
 
 # Generate build info
 Write-Host "Generating build information..." -ForegroundColor Yellow
-python3 (Join-Path $ScriptDir "version-helper.py") --action build
+python (Join-Path $ScriptDir "version-helper.py") --action build
 
 # Get current version
-$VersionOutput = python3 (Join-Path $ScriptDir "version-helper.py") --action current
+$VersionOutput = python (Join-Path $ScriptDir "version-helper.py") --action current
 $CurrentVersion = ($VersionOutput | Select-String "Current version: (.+)").Matches[0].Groups[1].Value
 $BuildNumber = Get-Date -Format "yyMMdd.HHmm"
 $BuildVersion = "${CurrentVersion}-build.${BuildNumber}"
@@ -109,9 +109,9 @@ foreach ($platform in $BuildList) {
         "-c", "Release",
         "-r", $runtime,
         "--self-contained", "true",
-        "-p:PublishAot=true",
+        "-p:PublishAot=false",
         "-p:TrimMode=link", 
-        "-p:PublishTrimmed=true",
+        "-p:PublishTrimmed=false",
         "-p:PublishSingleFile=false",
         "-p:BuildNumber=$BuildNumber",
         "-o", $platformOutput,

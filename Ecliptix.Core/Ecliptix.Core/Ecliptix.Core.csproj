@@ -29,6 +29,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.2" />
     <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Google.Protobuf" Version="3.31.1" />
