@@ -13,16 +13,23 @@ using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
-using Ecliptix.Core.Network;
-using Ecliptix.Core.Network.Interceptors;
-using Ecliptix.Core.Network.Providers;
-using Ecliptix.Core.Network.ResilienceStrategy;
-using Ecliptix.Core.Network.RpcServices;
+using Ecliptix.Core.Network.Advanced;
+using Ecliptix.Core.Network.Contracts.Core;
+using Ecliptix.Core.Network.Contracts.Services;
+using Ecliptix.Core.Network.Contracts.Transport;
+using Ecliptix.Core.Network.Core;
+using Ecliptix.Core.Network.Core.Configuration;
+using Ecliptix.Core.Network.Core.Connectivity;
+using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Queue;
+using Ecliptix.Core.Network.Services.Rpc;
+using Ecliptix.Core.Network.Transport;
+using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
+using Ecliptix.Core.Network.Transport.Resilience;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
-using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
@@ -179,11 +186,21 @@ public static class Program
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<SecureStorageProvider>()
         );
         services.AddSingleton<ISecureStorageProvider, SecureStorageProvider>();
-        services.AddSingleton<RpcServiceManager>();
+        services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
+        
+        // Configuration objects for Network services
+        services.AddSingleton<ConnectionStateConfiguration>();
+        services.AddSingleton<OperationQueueConfiguration>();
+        
+        // New composed services for NetworkProvider
+        services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
+        services.AddSingleton<IOperationQueue, OperationQueue>();
+        services.AddSingleton<IRetryStrategy, IntelligentRetryStrategy>();
+        
         services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<UnaryRpcServices>();
-        services.AddSingleton<SecrecyChannelRpcServices>();
-        services.AddSingleton<ReceiveStreamRpcServices>();
+        services.AddSingleton<IUnaryRpcServices, UnaryRpcServices>();
+        services.AddSingleton<ISecrecyChannelRpcServices, SecrecyChannelRpcServices>();
+        services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<DeadlineInterceptor>();

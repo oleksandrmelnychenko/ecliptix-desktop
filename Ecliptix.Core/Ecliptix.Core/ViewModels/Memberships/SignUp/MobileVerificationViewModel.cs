@@ -5,7 +5,8 @@ using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
@@ -110,7 +111,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
 
         Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
-            RcpServiceType.ValidatePhoneNumber,
+            RpcServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
             ServiceFlowType.Single,
             HandleValidationResponseAsync

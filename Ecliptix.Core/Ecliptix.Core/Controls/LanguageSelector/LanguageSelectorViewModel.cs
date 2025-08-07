@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using ReactiveUI;

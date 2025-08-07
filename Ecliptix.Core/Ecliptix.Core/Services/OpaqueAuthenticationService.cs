@@ -2,7 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -65,7 +66,7 @@ public class OpaqueAuthenticationService(
 
         Result<Unit, NetworkFailure> flowResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.OpaqueSignInInitRequest,
+            RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
             ServiceFlowType.Single,
             onCompleted: async initResponsePayload =>
@@ -118,7 +119,7 @@ public class OpaqueAuthenticationService(
     {
         return await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.OpaqueSignInCompleteRequest,
+            RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
             ServiceFlowType.Single,
             onCompleted: finalizeResponsePayload =>

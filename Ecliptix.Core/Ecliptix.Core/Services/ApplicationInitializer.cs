@@ -9,7 +9,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
@@ -237,7 +238,7 @@ public class ApplicationInitializer(
 
         return await networkProvider.ExecuteServiceRequestAsync(
             connectId,
-            RcpServiceType.RegisterAppDevice,
+            RpcServiceType.RegisterAppDevice,
             appDevice.ToByteArray(),
             ServiceFlowType.Single,
             decryptedPayload =>

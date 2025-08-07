@@ -1,6 +1,6 @@
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 

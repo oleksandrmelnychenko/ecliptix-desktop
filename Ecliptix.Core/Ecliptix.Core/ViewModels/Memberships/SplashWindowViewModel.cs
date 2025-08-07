@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Services;
 
 

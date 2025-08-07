@@ -8,7 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
-using Ecliptix.Core.Network.Providers;
+using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
@@ -151,7 +152,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
         _ = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
-            RcpServiceType.InitiateVerification,
+            RpcServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
             ServiceFlowType.ReceiveStream,
             payload =>
@@ -208,7 +209,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
 
         await NetworkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RcpServiceType.VerifyOtp,
+            RpcServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
             ServiceFlowType.Single,
             async payload =>
