@@ -188,7 +188,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
 
                 return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
             },
-            cancellationTokenSource.Token
+            cancellationTokenSource.Token,true
         );
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -51,7 +52,8 @@ public static class IntelligentRetryStrategy
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 3)
+        int maxRetries = 3,
+        CancellationToken cancellationToken = default)
     {
         string circuitKey = $"SecrecyChannel_{connectId}_{operationName}";
         Exception? lastException = null;
@@ -59,11 +61,13 @@ public static class IntelligentRetryStrategy
         
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             if (IsCircuitBreakerOpen(circuitKey))
             {
                 Log.Warning("Circuit breaker is open for {Operation}, skipping attempt {Attempt}", 
                     operationName, attempt);
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
             }
             
             try
@@ -96,8 +100,14 @@ public static class IntelligentRetryStrategy
                     TimeSpan delay = ContextAwareBackoff(lastFailure, connectId)(attempt);
                     Log.Warning("Secrecy channel operation {Operation} failed on attempt {Attempt}/{MaxRetries}, retrying in {Delay}: {Error}", 
                         operationName, attempt, maxRetries, delay, lastFailure.Message);
-                    await Task.Delay(delay);
+                    await Task.Delay(delay, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.Information("Secrecy channel operation {Operation} cancelled during attempt {Attempt}", 
+                    operationName, attempt);
+                throw;
             }
             catch (Exception ex) when (attempt < maxRetries)
             {
@@ -105,7 +115,7 @@ public static class IntelligentRetryStrategy
                 TimeSpan delay = ContextAwareBackoff(lastFailure, connectId)(attempt);
                 Log.Warning(ex, "Secrecy channel operation {Operation} threw exception on attempt {Attempt}/{MaxRetries}, retrying in {Delay}", 
                     operationName, attempt, maxRetries, delay);
-                await Task.Delay(delay);
+                await Task.Delay(delay, cancellationToken);
             }
         }
         

@@ -13,7 +13,6 @@ using Ecliptix.Core.Network.RpcServices;
 using Ecliptix.Core.Network.ServiceActions;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Security;
-using Ecliptix.Core.Services;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Protobuf.ProtocolState;
@@ -27,109 +26,6 @@ using Google.Protobuf;
 using Serilog;
 
 namespace Ecliptix.Core.Network.Providers;
-
-public class ProtocolEventAdapter : IProtocolEventHandler, IDisposable
-{
-    private readonly IProtocolStateCallbacks? _stateCallbacks;
-    private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly List<Task> _backgroundTasks = new();
-    private readonly object _tasksLock = new();
-
-    public ProtocolEventAdapter(IProtocolStateCallbacks? stateCallbacks)
-    {
-        _stateCallbacks = stateCallbacks;
-    }
-
-    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex)
-    {
-        if (_stateCallbacks != null && !_cancellationTokenSource.Token.IsCancellationRequested)
-        {
-            Task task = ExecuteCallbackSafely(
-                () => _stateCallbacks.OnDhRatchetPerformed(connectId, isSending, newIndex),
-                "DH ratchet callback",
-                _cancellationTokenSource.Token);
-
-            TrackBackgroundTask(task);
-        }
-    }
-
-    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength)
-    {
-        if (_stateCallbacks != null && !_cancellationTokenSource.Token.IsCancellationRequested)
-        {
-            Task task = ExecuteCallbackSafely(
-                () => _stateCallbacks.OnChainSynchronized(connectId, localLength, remoteLength),
-                "chain sync callback",
-                _cancellationTokenSource.Token);
-
-            TrackBackgroundTask(task);
-        }
-    }
-
-    public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
-    {
-        if (_stateCallbacks != null && !_cancellationTokenSource.Token.IsCancellationRequested)
-        {
-            Task task = ExecuteCallbackSafely(
-                () => _stateCallbacks.OnMessageReceived(connectId, messageIndex, hasSkippedKeys),
-                "message processed callback",
-                _cancellationTokenSource.Token);
-
-            TrackBackgroundTask(task);
-        }
-    }
-
-    private async Task ExecuteCallbackSafely(Func<Task> callback, string callbackName,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await Task.Run(callback, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error in {CallbackName}", callbackName);
-        }
-    }
-
-    private void TrackBackgroundTask(Task task)
-    {
-        lock (_tasksLock)
-        {
-            _backgroundTasks.Add(task);
-            _backgroundTasks.RemoveAll(t => t.IsCompleted);
-        }
-    }
-
-    public void Dispose()
-    {
-        _cancellationTokenSource.Cancel();
-
-        try
-        {
-            Task[] tasksToWait;
-            lock (_tasksLock)
-            {
-                tasksToWait = _backgroundTasks.Where(t => !t.IsCompleted).ToArray();
-            }
-
-            if (tasksToWait.Length > 0)
-            {
-                Task.WaitAll(tasksToWait, TimeSpan.FromSeconds(5));
-            }
-        }
-        catch
-        {
-        }
-        finally
-        {
-            _cancellationTokenSource.Dispose();
-        }
-    }
-}
 
 public sealed class NetworkProvider : INetworkProvider, IDisposable
 {
@@ -155,6 +51,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Result<Unit, NetworkFailure>>> _activeRequests =
         new();
+    private readonly Lock _cancellationLock = new();
+    private CancellationTokenSource? _connectionRecoveryCts;
 
     private readonly ConcurrentDictionary<uint, DateTime> _lastRecoveryAttempts = new();
     private readonly SemaphoreSlim _recoveryThrottleLock = new(1, 1);
@@ -187,10 +85,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             .Where(health => health.Status is ConnectionHealthStatus.Failed or ConnectionHealthStatus.Unhealthy)
             .Subscribe(health =>
             {
-                Log.Warning("Connection {ConnectId} health degraded to {Status}, initiating recovery",
+                Log.Warning("Connection {ConnectId} health degraded to {Status}, initiating recovery with cancellation",
                     health.ConnectId, health.Status);
                 ExecuteBackgroundTask(
-                    () => InitiateConnectionRecovery(health.ConnectId),
+                    () => InitiateConnectionRecoveryWithCancellation(health.ConnectId),
                     $"ConnectionRecovery-{health.ConnectId}");
             });
 
@@ -206,6 +104,59 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             });
 
         Log.Information("Advanced NetworkProvider infrastructure initialized");
+    }
+    
+    private CancellationToken GetConnectionRecoveryToken()
+    {
+        lock (_cancellationLock)
+        {
+            return _connectionRecoveryCts?.Token ?? CancellationToken.None;
+        }
+    }
+    
+    private void CancelActiveRecoveryOperations()
+    {
+        lock (_cancellationLock)
+        {
+            if (_connectionRecoveryCts != null)
+            {
+                Log.Information("Cancelling active recovery operations to prevent request spam");
+                _connectionRecoveryCts.Cancel();
+                _connectionRecoveryCts.Dispose();
+            }
+            _connectionRecoveryCts = new CancellationTokenSource();
+        }
+    }
+    
+    private void CancelActiveRequestsDuringRecovery(string reason)
+    {
+        if (_activeRequests.IsEmpty) return;
+        
+        Log.Information("Cancelling {Count} active requests during recovery: {Reason}", 
+            _activeRequests.Count, reason);
+            
+        List<string> keysToCancel = _activeRequests.Keys.ToList();
+        foreach (string key in keysToCancel)
+        {
+            CancelAndRemoveActiveRequest(key, reason);
+        }
+    }
+    
+    private void CancelAndRemoveActiveRequest(string requestKey, string reason)
+    {
+        if (_activeRequests.TryRemove(requestKey, out TaskCompletionSource<Result<Unit, NetworkFailure>>? tcs))
+        {
+            try
+            {
+                tcs.SetResult(Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType(reason)));
+                Log.Debug("Cancelled active request {RequestKey}: {Reason}", requestKey, reason);
+            }
+            catch (InvalidOperationException)
+            {
+                // Task was already completed, ignore
+            }
+        }
     }
 
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
@@ -353,7 +304,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         byte[] plainBuffer,
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        bool allowDuplicates = false)
     {
         if (_disposed)
         {
@@ -364,18 +316,29 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         string requestKey =
             $"{connectId}_{serviceType}_{Convert.ToHexString(plainBuffer)[..Math.Min(16, plainBuffer.Length)]}";
 
-        if (_activeRequests.TryGetValue(requestKey,
+        bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
+        
+        if (!shouldAllowDuplicates && _activeRequests.TryGetValue(requestKey,
                 out TaskCompletionSource<Result<Unit, NetworkFailure>>? existingRequest))
         {
-            Log.Debug("Duplicate request detected for {ServiceType}, waiting for existing request to complete",
-                serviceType);
-            return await existingRequest.Task;
+            CancellationToken recoveryToken = GetConnectionRecoveryToken();
+            if (recoveryToken.IsCancellationRequested)
+            {
+                Log.Debug("Cancelling duplicate request for {ServiceType} due to active recovery", serviceType);
+                CancelAndRemoveActiveRequest(requestKey, "Request cancelled due to connection recovery");
+            }
+            else
+            {
+                Log.Debug("Duplicate request detected for {ServiceType}, waiting for existing request to complete",
+                    serviceType);
+                return await existingRequest.Task;
+            }
         }
 
         TaskCompletionSource<Result<Unit, NetworkFailure>> requestTcs = new();
         if (!_activeRequests.TryAdd(requestKey, requestTcs))
         {
-            if (_activeRequests.TryGetValue(requestKey, out var concurrentRequest))
+            if (_activeRequests.TryGetValue(requestKey, out TaskCompletionSource<Result<Unit, NetworkFailure>>? concurrentRequest))
             {
                 return await concurrentRequest.Task;
             }
@@ -383,8 +346,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
         try
         {
+            CancellationToken recoveryToken = GetConnectionRecoveryToken();
+            if (recoveryToken.IsCancellationRequested)
+            {
+                Log.Debug("Request for {ServiceType} cancelled due to active recovery", serviceType);
+                requestTcs.SetResult(Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType("Request cancelled during connection recovery")));
+                return await requestTcs.Task;
+            }
+            
+            using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(token, recoveryToken);
             DateTime startTime = DateTime.UtcNow;
-
 
             if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
             {
@@ -395,7 +367,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
             ServiceRequest request = BuildRequest(protocolSystem, serviceType, plainBuffer, flowType, connectId);
             Result<Unit, NetworkFailure> result =
-                await SendRequestAsync(protocolSystem, request, onCompleted, token, connectId);
+                await SendRequestAsync(protocolSystem, request, onCompleted, combinedCts.Token, connectId);
 
             if (result.IsErr)
             {
@@ -410,6 +382,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                     {
                         _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow, (_, _) => DateTime.UtcNow);
 
+                        CancelActiveRecoveryOperations();
+                        CancelActiveRequestsDuringRecovery("Server-side failure detected, cancelling active requests");
                         ExecuteBackgroundTask(
                             PerformAdvancedRecoveryLogic,
                             $"CryptographicRecovery-{connectId}");
@@ -452,13 +426,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         return DateTime.UtcNow - lastRecovery < _recoveryThrottleInterval;
     }
 
-    private async Task InitiateConnectionRecovery(uint connectId)
+    private async Task InitiateConnectionRecoveryWithCancellation(uint connectId)
     {
         try
         {
+            CancelActiveRecoveryOperations();
+            CancelActiveRequestsDuringRecovery("Connection recovery initiated");
             _connectionStateManager.MarkConnectionRecovering(connectId);
 
-            Log.Information("Initiating advanced recovery for connection {ConnectId}", connectId);
+            Log.Information("Initiating advanced recovery with cancellation for connection {ConnectId}", connectId);
 
             if (!_applicationInstanceSettings.HasValue)
             {
@@ -602,6 +578,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             _ => OperationPriority.Normal
         };
     }
+    
+    private static bool ShouldAllowDuplicateRequests(RcpServiceType serviceType)
+    {
+        return serviceType switch
+        {
+            RcpServiceType.InitiateVerification => true, // OTP resend operations
+            RcpServiceType.ValidatePhoneNumber => true,   // Phone validation retries
+            _ => false
+        };
+    }
 
     private async Task ProcessQueuedOperationsForConnection(uint connectId)
     {
@@ -691,12 +677,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                 RcpServiceType.RestoreSecrecyChannel,
                 request);
 
+        CancellationToken recoveryToken = GetConnectionRecoveryToken();
+        using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+        
         Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
             await IntelligentRetryStrategy.ExecuteSecrecyChannelOperationAsync(
                 () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
                     serviceRequest),
                 "RestoreSecrecyChannel",
-                ecliptixSecrecyChannelState.ConnectId);
+                ecliptixSecrecyChannelState.ConnectId,
+                cancellationToken: combinedCts.Token);
 
         if (restoreAppDeviceSecrecyChannelResponse.IsErr)
             return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
@@ -741,11 +731,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                 RcpServiceType.EstablishSecrecyChannel,
                 pubKeyExchangeRequest.Unwrap());
 
+        var recoveryToken = GetConnectionRecoveryToken();
+        using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+        
         Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
             await IntelligentRetryStrategy.ExecuteSecrecyChannelOperationAsync(
                 () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
                 "EstablishSecrecyChannel",
-                connectId);
+                connectId,
+                cancellationToken: combinedCts.Token);
 
         PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
 
@@ -1110,6 +1104,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                     }
                 }
 
+                lock (_cancellationLock)
+                {
+                    _connectionRecoveryCts?.Dispose();
+                    _connectionRecoveryCts = null;
+                }
+                
                 Log.Information("Advanced NetworkProvider disposed safely");
             }
             catch (Exception ex)
