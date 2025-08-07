@@ -51,10 +51,8 @@ public class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
         
-        // Initialize the secure storage for protocol state
         await InitializeSecureStorageAsync(settings);
         
-        // Initialize state persistence in network provider
         if (_secureStateStorage != null)
         {
             networkProvider.InitializeStatePersistence(_secureStateStorage);
@@ -107,8 +105,7 @@ public class ApplicationInitializer(
         {
             try
             {
-                // Get the app data directory for secure storage
-                var appDataPath = Path.Combine(
+                string appDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Ecliptix");
                 
@@ -117,16 +114,13 @@ public class ApplicationInitializer(
                     Directory.CreateDirectory(appDataPath);
                 }
                 
-                // Initialize platform security provider
                 _platformSecurityProvider = new CrossPlatformSecurityProvider(appDataPath);
                 
-                // Create secure storage with device binding
-                var storagePath = Path.Combine(appDataPath, "protocol.state");
-                var deviceId = settings.DeviceId.ToByteArray();
+                string storagePath = Path.Combine(appDataPath, "protocol.state");
+                byte[]? deviceId = settings.DeviceId.ToByteArray();
                 
                 _secureStateStorage = new SecureStateStorage(_platformSecurityProvider, storagePath, deviceId);
                 
-                // Check if hardware security is available
                 if (_platformSecurityProvider.IsHardwareSecurityAvailable())
                 {
                     Log.Information("Hardware security module detected and will be used for enhanced protection");
@@ -155,9 +149,8 @@ public class ApplicationInitializer(
         {
             try
             {
-                // Try to load state from secure storage
-                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
-                var loadResult = await _secureStateStorage.LoadStateAsync(userId);
+                string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                Result<byte[], SecureStorageFailure> loadResult = await _secureStateStorage.LoadStateAsync(userId);
                 
                 if (loadResult.IsOk)
                 {
@@ -177,7 +170,6 @@ public class ApplicationInitializer(
                     }
 
                     Log.Warning("Failed to restore secrecy channel or it was out of sync. A new channel will be established");
-                    // Clear any partially restored connection to allow fresh establishment
                     networkProvider.ClearConnection(connectId);
                 }
                 else
@@ -203,13 +195,12 @@ public class ApplicationInitializer(
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
         
-        // Save to secure storage
         if (_secureStateStorage != null)
         {
             try
             {
-                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
-                var saveResult = await _secureStateStorage.SaveStateAsync(
+                string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                Result<Unit, SecureStorageFailure> saveResult = await _secureStateStorage.SaveStateAsync(
                     secrecyChannelState.ToByteArray(), 
                     userId);
                     
@@ -228,7 +219,6 @@ public class ApplicationInitializer(
             }
         }
         
-        // Also save to legacy storage for backward compatibility
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
         
         Log.Information("Successfully established new secrecy channel {ConnectId}", connectId);
