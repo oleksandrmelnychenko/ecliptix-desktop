@@ -151,6 +151,33 @@ public sealed class SecureStateStorage : IDisposable
         }
     }
 
+    public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string userId)
+    {
+        if (_disposed)
+            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
+
+        try
+        {
+            // Delete the secure state file
+            if (File.Exists(_storagePath))
+            {
+                File.Delete(_storagePath);
+            }
+
+            // Remove the key from keychain
+            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{userId}");
+
+            Log.Information("Protocol state deleted securely for user {UserId}", userId);
+            return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to delete secure state for user {UserId}", userId);
+            return Result<Unit, SecureStorageFailure>.Err(
+                new SecureStorageFailure($"Delete failed: {ex.Message}"));
+        }
+    }
+
     private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string userId)
     {
         byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SALT_SIZE);

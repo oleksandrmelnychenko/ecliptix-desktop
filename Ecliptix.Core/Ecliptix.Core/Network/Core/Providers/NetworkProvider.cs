@@ -6,16 +6,14 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Services;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Advanced;
 using Ecliptix.Core.Network.Contracts.Core;
 using Ecliptix.Core.Network.Contracts.Services;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Network.Core.Configuration;
-using Ecliptix.Core.Network.Core.Events;
 using Ecliptix.Core.Network.Protocol;
-using Ecliptix.Core.Network.Protocol.Recovery;
-using Ecliptix.Core.Network.Protocol.State;
 using Ecliptix.Core.Network.Services.Queue;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
@@ -34,7 +32,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Network.Core.Providers;
 
-public sealed class NetworkProvider : INetworkProvider, IDisposable
+public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
 {
     private readonly IRpcServiceManager _rpcServiceManager;
     private readonly ISecureStorageProvider _secureStorageProvider;
@@ -46,7 +44,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
 
     private readonly IConnectionStateManager _connectionStateManager;
-    private readonly StateRestorationEngine _stateRestorationEngine;
     private readonly IOperationQueue _operationQueue;
 
     private const int DefaultOneTimeKeyCount = 5;
@@ -63,9 +60,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
     private readonly SemaphoreSlim _recoveryThrottleLock = new(1, 1);
     private readonly TimeSpan _recoveryThrottleInterval = TimeSpan.FromSeconds(10);
 
-    private ProtocolStatePersistence? _statePersistence;
-    private IProtocolStateCallbacks? _stateCallbacks;
-    private ProtocolEventAdapter? _eventAdapter;
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
@@ -88,9 +82,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         _connectionStateManager = connectionStateManager;
         _operationQueue = operationQueue;
 
-        // TODO: StateRestorationEngine should also be injected via DI
-        var restorationConfig = new StateRestorationConfiguration();
-        _stateRestorationEngine = new StateRestorationEngine(restorationConfig, secureStorageProvider);
 
         _connectionStateManager.HealthChanged
             .Where(health => health.Status is ConnectionHealthStatus.Failed or ConnectionHealthStatus.Unhealthy)
@@ -178,21 +169,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
     public void InitializeStatePersistence(SecureStateStorage secureStorage)
     {
-        _statePersistence = new ProtocolStatePersistence(secureStorage);
-        _stateCallbacks = new ProtocolStateCallbacks(
-            _statePersistence,
-            GetProtocolSystem,
-            () => _applicationInstanceSettings.HasValue
-                ? _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8()
-                : "unknown");
-        _eventAdapter = new ProtocolEventAdapter(_stateCallbacks);
-
-        foreach (KeyValuePair<uint, EcliptixProtocolSystem> kvp in _connections)
-        {
-            kvp.Value.SetEventHandler(_eventAdapter);
-        }
-
-        Log.Information("Protocol state persistence initialized");
+        // Use only ISecureStorageProvider for all persistence - no duplicate storage systems
+        Log.Information("Protocol state persistence initialized using unified ISecureStorageProvider");
     }
 
     public void ClearConnection(uint connectId)
@@ -211,10 +189,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
-        if (_eventAdapter != null)
-        {
-            protocolSystem.SetEventHandler(_eventAdapter);
-        }
+        // Set up protocol event handler for chain rotation state persistence
+        protocolSystem.SetEventHandler(this);
 
         _connections.TryAdd(connectId, protocolSystem);
 
@@ -279,22 +255,46 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             PubKeyExchangeType.DataCenterEphemeralConnect);
         _connections.TryRemove(connectId, out _);
 
-        Result<RestorationResult, NetworkFailure> restorationResult =
-            await _stateRestorationEngine.RestoreConnectionStateAsync(
-                connectId,
-                async state => await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!),
-                async id => await EstablishSecrecyChannelAsync(id)
-            );
-
-        if (restorationResult.IsOk)
+        // Use only ISecureStorageProvider for state restoration - no duplicate systems
+        Result<Option<byte[]>, InternalServiceApiFailure> stateResult = 
+            await _secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
+            
+        bool restorationSucceeded = false;
+        if (stateResult.IsOk && stateResult.Unwrap().HasValue)
         {
-            RestorationResult result = restorationResult.Unwrap();
-            if (result.Success)
+            try
             {
-                Log.Information("Advanced session restoration completed using {Strategy} in {Duration}ms",
-                    result.StrategyUsed, result.Duration.TotalMilliseconds);
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                byte[] stateBytes = stateResult.Unwrap().Value!;
+                EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
+                Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+                restorationSucceeded = restoreResult.IsOk && restoreResult.Unwrap();
+                if (restorationSucceeded)
+                {
+                    Log.Information("Successfully restored existing connection state for {ConnectId}", connectId);
+                }
             }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to parse stored state for connection {ConnectId}, establishing new connection", connectId);
+                restorationSucceeded = false;
+            }
+        }
+        
+        if (!restorationSucceeded)
+        {
+            // No state found or restoration failed, establish new connection
+            Result<EcliptixSecrecyChannelState, NetworkFailure> newResult = await EstablishSecrecyChannelAsync(connectId);
+            restorationSucceeded = newResult.IsOk;
+            if (restorationSucceeded)
+            {
+                Log.Information("Successfully established new connection for {ConnectId}", connectId);
+            }
+        }
+
+        if (restorationSucceeded)
+        {
+            Log.Information("Advanced session restoration completed for {ConnectId}", connectId);
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
         Log.Warning("Advanced restoration failed, falling back to reconnection");
@@ -459,14 +459,33 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                 return;
             }
 
-            Result<RestorationResult, NetworkFailure> restorationResult =
-                await _stateRestorationEngine.RestoreConnectionStateAsync(
-                    connectId,
-                    async state => await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!),
-                    async id => await EstablishSecrecyChannelAsync(id)
-                );
+            // Use only ISecureStorageProvider for state restoration - no duplicate systems  
+            Result<Option<byte[]>, InternalServiceApiFailure> stateResult = 
+                await _secureStorageProvider.TryGetByKeyAsync(connectId.ToString());
+                
+            bool restorationSuccessful = false;
+            if (stateResult.IsOk && stateResult.Unwrap().HasValue)
+            {
+                try
+                {
+                    EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateResult.Unwrap().Value!);
+                    Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+                    restorationSuccessful = restoreResult.IsOk && restoreResult.Unwrap();
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to parse stored state for connection {ConnectId}", connectId);
+                    restorationSuccessful = false;
+                }
+            }
+            else
+            {
+                // No state found, establish new connection
+                Result<EcliptixSecrecyChannelState, NetworkFailure> newResult = await EstablishSecrecyChannelAsync(connectId);
+                restorationSuccessful = newResult.IsOk;
+            }
 
-            if (restorationResult.IsOk && restorationResult.Unwrap().Success)
+            if (restorationSuccessful)
             {
                 Log.Information("Advanced recovery completed for connection {ConnectId}", connectId);
             }
@@ -715,13 +734,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> syncSecrecyChannelResult =
                 SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
 
-            if (_stateCallbacks != null && syncSecrecyChannelResult.IsOk)
-            {
-                uint connectId = ecliptixSecrecyChannelState.ConnectId;
-                ExecuteBackgroundTask(
-                    () => _stateCallbacks.OnSessionEstablished(connectId, true),
-                    $"SessionEstablished-{connectId}");
-            }
+            // State callbacks removed - using unified ISecureStorageProvider persistence
 
             return Result<bool, NetworkFailure>.Ok(true);
         }
@@ -792,10 +805,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
         EcliptixProtocolSystem system = systemResult.Unwrap();
 
-        if (_eventAdapter != null)
-        {
-            system.SetEventHandler(_eventAdapter);
-        }
+        // Set up protocol event handler for chain rotation state persistence
+        system.SetEventHandler(this);
 
         EcliptixProtocolConnection connection = system.GetConnection();
 
@@ -879,16 +890,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
         }
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
+       
         await _secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
-
-        await _stateRestorationEngine.StoreStateTimestamp(connectId, DateTime.UtcNow);
-
-        if (_stateCallbacks != null)
-        {
-            ExecuteBackgroundTask(
-                () => _stateCallbacks.OnSessionEstablished(connectId, false),
-                $"SessionEstablished-{connectId}");
-        }
+        
+        string timestampKey = $"{connectId}_timestamp";
+        await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
 
         Log.Information("Successfully established new connection");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -906,15 +912,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
         CipherPayload cipherPayload = outboundPayload.Unwrap();
 
-        if (_stateCallbacks != null)
-        {
-            ExecuteBackgroundTask(
-                () => _stateCallbacks.OnMessageSent(
-                    connectId,
-                    cipherPayload.RatchetIndex,
-                    cipherPayload.DhPublicKey.Length > 0),
-                $"MessageSent-{connectId}");
-        }
+        // State callbacks removed - using unified ISecureStorageProvider persistence
 
         return ServiceRequest.New(flowType, serviceType, cipherPayload, []);
     }
@@ -960,15 +958,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
 
                 Log.Debug("Successfully decrypted response");
 
-                if (_stateCallbacks != null && connectId > 0)
-                {
-                    ExecuteBackgroundTask(
-                        () => _stateCallbacks.OnMessageReceived(
-                            connectId,
-                            inboundPayload.RatchetIndex,
-                            false),
-                        $"MessageReceived-{connectId}");
-                }
+                // State callbacks removed - using unified ISecureStorageProvider persistence
 
                 Result<Unit, NetworkFailure> callbackOutcome = await onCompleted(decryptedData.Unwrap());
                 if (callbackOutcome.IsErr) return callbackOutcome;
@@ -1051,7 +1041,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
             {
                 _connectionStateManager?.Dispose();
                 _operationQueue?.Dispose();
-                _eventAdapter?.Dispose();
+                // Event adapter removed - using direct INetworkEvents instead
 
                 _activeRequests.Clear();
                 _lastRecoveryAttempts.Clear();
@@ -1103,5 +1093,130 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable
                 Log.Error(ex, "Error during NetworkProvider disposal");
             }
         }
+    }
+
+    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                Log.Information(
+                    "DH Ratchet performed - ConnectId: {ConnectId}, Type: {Type}, Index: {Index}. Saving protocol state...",
+                    connectId, isSending ? "Sending" : "Receiving", newIndex);
+
+                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+                {
+                    try
+                    {
+                        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+                        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+
+                        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+                        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+                        if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
+                        {
+                            EcliptixSecrecyChannelState state = new()
+                            {
+                                ConnectId = connectId,
+                                IdentityKeys = idKeysStateResult.Unwrap(),
+                                RatchetState = ratchetStateResult.Unwrap()
+                            };
+                            
+                            await _secureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
+                            
+                            string timestampKey = $"{connectId}_timestamp";
+                            await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
+                            
+                            Log.Information(
+                                "Protocol state saved successfully after {ChainType} chain rotation - ConnectId: {ConnectId}, Index: {Index}",
+                                isSending ? "sending" : "receiving", connectId, newIndex);
+                        }
+                        else
+                        {
+                            Log.Error(
+                                "Failed to create protocol state after chain rotation - ConnectId: {ConnectId}, IdKeysError: {IdKeysError}, RatchetError: {RatchetError}",
+                                connectId, 
+                                idKeysStateResult.IsErr ? idKeysStateResult.UnwrapErr().ToString() : "OK",
+                                ratchetStateResult.IsErr ? ratchetStateResult.UnwrapErr().ToString() : "OK");
+                        }
+                    }
+                    catch (Exception innerEx)
+                    {
+                        Log.Error(innerEx, "Exception creating protocol state after chain rotation - ConnectId: {ConnectId}", connectId);
+                    }
+                }
+                else
+                {
+                    Log.Warning("Protocol system not found for chain rotation state save - ConnectId: {ConnectId}", connectId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error saving protocol state after chain rotation - ConnectId: {ConnectId}", connectId);
+            }
+        });
+    }
+
+    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                Log.Information(
+                    "Chain synchronized - ConnectId: {ConnectId}, Local: {Local}, Remote: {Remote}. Saving protocol state...",
+                    connectId, localLength, remoteLength);
+
+                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+                {
+                    try
+                    {
+                        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+                        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+
+                        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+                        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+                        if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
+                        {
+                            EcliptixSecrecyChannelState state = new()
+                            {
+                                ConnectId = connectId,
+                                IdentityKeys = idKeysStateResult.Unwrap(),
+                                RatchetState = ratchetStateResult.Unwrap()
+                            };
+                            
+                            await _secureStorageProvider.StoreAsync(connectId.ToString(), state.ToByteArray());
+                            
+                            string timestampKey = $"{connectId}_timestamp";
+                            await _secureStorageProvider.StoreAsync(timestampKey, BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
+                            
+                            Log.Information(
+                                "Protocol state saved successfully after chain synchronization - ConnectId: {ConnectId}",
+                                connectId);
+                        }
+                    }
+                    catch (Exception innerEx)
+                    {
+                        Log.Error(innerEx, "Exception creating protocol state after chain synchronization - ConnectId: {ConnectId}", connectId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error saving protocol state after chain synchronization - ConnectId: {ConnectId}", connectId);
+            }
+        });
+    }
+
+    public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
+    {
+        // For performance, we don't save state after every message
+        // Only save after DH ratchets and chain synchronization
+        Log.Debug(
+            "Message processed - ConnectId: {ConnectId}, Index: {Index}, SkippedKeys: {SkippedKeys}",
+            connectId, messageIndex, hasSkippedKeys);
     }
 }
