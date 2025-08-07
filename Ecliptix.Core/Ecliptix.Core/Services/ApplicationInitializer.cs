@@ -149,9 +149,8 @@ public class ApplicationInitializer(
         {
             try
             {
-                // Try to load state from secure storage
-                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
-                var loadResult = await _secureStateStorage.LoadStateAsync(userId);
+                string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                Result<byte[], SecureStorageFailure> loadResult = await _secureStateStorage.LoadStateAsync(userId);
                 
                 if (loadResult.IsOk)
                 {
@@ -171,7 +170,6 @@ public class ApplicationInitializer(
                     }
 
                     Log.Warning("Failed to restore secrecy channel or it was out of sync. A new channel will be established");
-                    // Clear any partially restored connection to allow fresh establishment
                     networkProvider.ClearConnection(connectId);
                 }
                 else
@@ -197,13 +195,12 @@ public class ApplicationInitializer(
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
         
-        // Save to secure storage
         if (_secureStateStorage != null)
         {
             try
             {
-                var userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
-                var saveResult = await _secureStateStorage.SaveStateAsync(
+                string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                Result<Unit, SecureStorageFailure> saveResult = await _secureStateStorage.SaveStateAsync(
                     secrecyChannelState.ToByteArray(), 
                     userId);
                     
@@ -222,7 +219,6 @@ public class ApplicationInitializer(
             }
         }
         
-        // Also save to legacy storage for backward compatibility
         await secureStorageProvider.StoreAsync(connectId.ToString(), secrecyChannelState.ToByteArray());
         
         Log.Information("Successfully established new secrecy channel {ConnectId}", connectId);
