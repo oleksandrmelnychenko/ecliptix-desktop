@@ -23,7 +23,7 @@ public class OpaqueAuthenticationService(
     ISystemEvents systemEvents)
     : IAuthenticationService
 {
-    public Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword)
+    public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword)
     {
         byte[]? passwordBytes = null;
         try
@@ -32,10 +32,10 @@ public class OpaqueAuthenticationService(
             if (passwordBytes == null || passwordBytes.Length == 0)
             {
                 string requiredError = localizationService["ValidationErrors.SecureKey.Required"];
-                return Task.FromResult(Result<byte[], string>.Err(requiredError));
+                return await Task.FromResult(Result<byte[], string>.Err(requiredError));
             }
 
-            return ExecuteSignInFlowAsync(mobileNumber, passwordBytes);
+            return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes);
         }
         finally
         {
