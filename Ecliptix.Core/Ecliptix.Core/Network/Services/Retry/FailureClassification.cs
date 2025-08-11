@@ -51,4 +51,27 @@ public static class FailureClassification
                msg.Contains("desync") ||
                msg.Contains("rekey");
     }
+    
+    public static bool IsChainRotationMismatch(NetworkFailure failure)
+    {
+        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
+
+        return msg.Contains("requested index") && msg.Contains("not future") ||
+               msg.Contains("chain rotation") ||
+               msg.Contains("sequence mismatch") ||
+               msg.Contains("protocol state") && msg.Contains("mismatch") ||
+               msg.Contains("dhpublic") && msg.Contains("unknown") ||
+               msg.Contains("sender chain") && msg.Contains("invalid") ||
+               msg.Contains("receiver chain") && msg.Contains("invalid");
+    }
+    
+    public static bool IsProtocolStateMismatch(NetworkFailure failure)
+    {
+        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
+        
+        return IsChainRotationMismatch(failure) ||
+               msg.Contains("protocol version") ||
+               msg.Contains("state version") ||
+               msg.Contains("channel state") && msg.Contains("invalid");
+    }
 }

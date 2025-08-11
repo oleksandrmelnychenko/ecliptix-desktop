@@ -108,7 +108,7 @@ public class ApplicationInitializer(
             {
                 string? applicationInstanceId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
 
-             //   await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
+                //await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
                 
                 Result<byte[], SecureStorageFailure> loadResult =
                     await secureProtocolStateStorage.LoadStateAsync(applicationInstanceId);

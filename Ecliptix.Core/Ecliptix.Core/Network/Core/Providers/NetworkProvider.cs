@@ -236,6 +236,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                     $"CryptographicRecovery-{connectId}");
                             }
                         }
+                        else if (FailureClassification.IsChainRotationMismatch(failure))
+                        {
+                            Log.Warning(
+                                "Chain rotation mismatch detected for connection {ConnectId}: {Message}. Initiating protocol resynchronization",
+                                connectId, failure.Message);
+                            if (!ShouldThrottleRecovery(connectId))
+                            {
+                                _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
+                                    (_, _) => DateTime.UtcNow);
+                                ExecuteBackgroundTask(() => PerformProtocolResynchronization(connectId),
+                                    $"ProtocolResync-{connectId}");
+                            }
+                        }
+                        else if (FailureClassification.IsProtocolStateMismatch(failure))
+                        {
+                            Log.Warning(
+                                "Protocol state mismatch detected for connection {ConnectId}: {Message}. Forcing fresh protocol establishment",
+                                connectId, failure.Message);
+                            ExecuteBackgroundTask(() => PerformFreshProtocolEstablishment(connectId),
+                                $"FreshProtocol-{connectId}");
+                        }
                         else
                         {
                             return result;
@@ -683,7 +704,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancelActiveRecoveryOperations();
         CancelActiveRequestsDuringRecovery("Server shutdown detected");
 
-        ExecuteBackgroundTask(() => ServerShutdownRecoveryLoop(connectId), $"ServerShutdownRecovery-{connectId}");
+        ExecuteBackgroundTask(() => ServerShutdownRecoveryLoop(), $"ServerShutdownRecovery-{connectId}");
     }
 
     private void ExitOutage()
@@ -699,7 +720,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Outage cleared. Secrecy channel is healthy; resuming requests");
     }
 
-    private async Task ServerShutdownRecoveryLoop(uint connectId)
+    private async Task ServerShutdownRecoveryLoop()
     {
         try
         {
@@ -1112,6 +1133,133 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 Log.Error(ex, "Error during NetworkProvider disposal");
             }
+        }
+    }
+    
+    private async Task<Result<Unit, NetworkFailure>> PerformProtocolResynchronization(uint connectId)
+    {
+        Log.Information("Starting protocol resynchronization for connection {ConnectId}", connectId);
+        
+        try
+        {
+            if (!_applicationInstanceSettings.HasValue)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType("Application instance settings not available for resync"));
+            }
+
+            if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
+            {
+                try
+                {
+                    oldSystem.Dispose();
+                    Log.Debug("Disposed old protocol system for connection {ConnectId}", connectId);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Error disposing old protocol system for connection {ConnectId}", connectId);
+                }
+            }
+            
+            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+            await _secureProtocolStateStorage.DeleteStateAsync(userId);
+            Log.Debug("Cleared stored protocol state for resynchronization");
+            
+            InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
+            
+            Result<EcliptixSecrecyChannelState, NetworkFailure> establishResult = 
+                await EstablishSecrecyChannelAsync(connectId);
+                
+            if (establishResult.IsErr)
+            {
+                Log.Error("Failed to re-establish secrecy channel during resynchronization: {Error}", 
+                    establishResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
+            }
+            
+            EcliptixSecrecyChannelState newState = establishResult.Unwrap();
+            Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
+                newState.ToByteArray(), userId);
+                
+            if (saveResult.IsOk)
+            {
+                Log.Information("Protocol resynchronization completed successfully for connection {ConnectId}", connectId);
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+            else
+            {
+                Log.Warning("Protocol resynchronized but failed to save state: {Error}", saveResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value); // Still success, just couldn't save
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Exception during protocol resynchronization for connection {ConnectId}", connectId);
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding($"Resynchronization failed: {ex.Message}"));
+        }
+    }
+    
+    private async Task<Result<Unit, NetworkFailure>> PerformFreshProtocolEstablishment(uint connectId)
+    {
+        Log.Information("Starting fresh protocol establishment for connection {ConnectId}", connectId);
+        
+        try
+        {
+            if (!_applicationInstanceSettings.HasValue)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType("Application instance settings not available"));
+            }
+
+            if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
+            {
+                try
+                {
+                    oldSystem.Dispose();
+                    Log.Debug("Disposed old protocol system for fresh establishment");
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Error disposing old protocol system");
+                }
+            }
+            
+            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
+            await _secureProtocolStateStorage.DeleteStateAsync(userId);
+            Log.Debug("Deleted all stored protocol state for fresh establishment");
+            
+            InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
+            
+            Result<EcliptixSecrecyChannelState, NetworkFailure> establishResult = 
+                await EstablishSecrecyChannelAsync(connectId);
+                
+            if (establishResult.IsErr)
+            {
+                Log.Error("Failed fresh protocol establishment: {Error}", establishResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
+            }
+            
+            EcliptixSecrecyChannelState freshState = establishResult.Unwrap();
+            Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
+                freshState.ToByteArray(), userId);
+                
+            if (saveResult.IsOk)
+            {
+                Log.Information("Fresh protocol establishment completed successfully for connection {ConnectId}", connectId);
+            }
+            else
+            {
+                Log.Warning("Fresh protocol established but failed to save state: {Error}", saveResult.UnwrapErr());
+            }
+            
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Exception during fresh protocol establishment for connection {ConnectId}", connectId);
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding($"Fresh establishment failed: {ex.Message}"));
         }
     }
 }
