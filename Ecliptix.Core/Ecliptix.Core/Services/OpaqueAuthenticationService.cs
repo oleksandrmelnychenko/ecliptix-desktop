@@ -49,7 +49,7 @@ public class OpaqueAuthenticationService(
         {
             OpaqueFailure opaqueError = oprfResult.UnwrapErr();
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError, opaqueError.Message));
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
+            Result<byte[], string> errorResult = Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
             return errorResult;
         }
 
@@ -68,7 +68,7 @@ public class OpaqueAuthenticationService(
         }
 
         OpaqueSignInInitResponse initResponse = initResult.Unwrap();
-        
+
         Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
         if (validationResult.IsErr)
         {
@@ -93,7 +93,7 @@ public class OpaqueAuthenticationService(
 
         Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
             clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash);
-        
+
         return finalResult;
     }
 
@@ -134,10 +134,11 @@ public class OpaqueAuthenticationService(
     private byte[] ServerPublicKey() =>
         networkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
 
-    private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(OpaqueSignInInitRequest initRequest)
+    private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
+        OpaqueSignInInitRequest initRequest)
     {
         OpaqueSignInInitResponse? capturedResponse = null;
-        
+
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInInitRequest,
@@ -156,7 +157,7 @@ public class OpaqueAuthenticationService(
         }
 
         return capturedResponse == null
-            ? Result<OpaqueSignInInitResponse, string>.Err(localizationService["Errors.Generic.Unexpected"])
+            ? Result<OpaqueSignInInitResponse, string>.Err(localizationService["Common.Unexpected"])
             : Result<OpaqueSignInInitResponse, string>.Ok(capturedResponse);
     }
 
@@ -168,7 +169,7 @@ public class OpaqueAuthenticationService(
         byte[] transcriptHash)
     {
         OpaqueSignInFinalizeResponse? capturedResponse = null;
-        
+
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInCompleteRequest,
@@ -188,7 +189,7 @@ public class OpaqueAuthenticationService(
 
         if (capturedResponse == null)
         {
-            return Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
+            return Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
         }
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
@@ -202,14 +203,10 @@ public class OpaqueAuthenticationService(
         Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
             capturedResponse, sessionKey, serverMacKey, transcriptHash);
 
-        if (verificationResult.IsErr)
-        {
-            string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
-            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                verificationResult.UnwrapErr().Message));
-            return Result<byte[], string>.Err(errorMessage);
-        }
-
-        return Result<byte[], string>.Ok(verificationResult.Unwrap());
+        if (!verificationResult.IsErr) return Result<byte[], string>.Ok(verificationResult.Unwrap());
+        string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
+        systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+            verificationResult.UnwrapErr().Message));
+        return Result<byte[], string>.Err(errorMessage);
     }
 }

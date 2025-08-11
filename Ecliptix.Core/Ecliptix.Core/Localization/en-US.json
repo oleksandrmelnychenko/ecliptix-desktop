@@ -102,6 +102,7 @@
     "Error": "Error",
     "Success": "Success",
     "Cancel": "Cancel",
+    "UnexpectedError": "An unexpected error occurred",
     "Ok": "OK",
     "NoInternetConnection": "No internet connection",
     "CheckConnection": "Check your internet connection"
