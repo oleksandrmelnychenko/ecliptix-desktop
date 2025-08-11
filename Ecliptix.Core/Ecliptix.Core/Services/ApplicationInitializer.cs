@@ -105,8 +105,6 @@ public class ApplicationInitializer(
         {
             try
             {
-                //string applicationInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId).ToString();
-
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
                 
                 Result<byte[], SecureStorageFailure> loadResult =
