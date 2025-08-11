@@ -186,20 +186,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType("Duplicate request rejected"));
         }
 
-        CancellationToken recoveryToken = GetConnectionRecoveryToken();
-        using CancellationTokenSource combinedCts =
-            CancellationTokenSource.CreateLinkedTokenSource(token, recoveryToken);
-        CancellationToken combinedToken = combinedCts.Token;
+        CancellationToken operationToken = token;
 
         try
         {
-            await WaitForOutageRecoveryAsync(combinedToken);
+            await WaitForOutageRecoveryAsync(operationToken);
 
             string operationName = $"{serviceType}";
             Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                 operation: async () =>
                 {
-                    if (combinedToken.IsCancellationRequested)
+                    if (operationToken.IsCancellationRequested)
                     {
                         return Result<Unit, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding("Request cancelled"));
@@ -228,7 +225,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     try
                     {
                         Result<Unit, NetworkFailure> result =
-                            await SendRequestAsync(protocolSystem, request, onCompleted, combinedToken);
+                            await SendRequestAsync(protocolSystem, request, onCompleted, operationToken);
 
                         if (!result.IsErr) return result;
                         NetworkFailure failure = result.UnwrapErr();
@@ -295,7 +292,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 operationName: operationName,
                 connectId: connectId,
                 maxRetries: 10,
-                cancellationToken: combinedToken);
+                cancellationToken: operationToken);
 
             return networkResult;
         }
@@ -373,10 +370,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Log.Information("Session successfully re-established via reconnection");
-
-        ResetRetryStrategyAfterOutage();
+        
         ExitOutage();
-
+        ResetRetryStrategyAfterOutage();
+        
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
@@ -700,9 +697,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             waitTask = _outageRecoveredTcs.Task;
         }
 
-        await Task.WhenAny(waitTask, Task.Delay(Timeout.Infinite, token));
-        token.ThrowIfCancellationRequested();
-        await waitTask;
+        // Use single await with proper cancellation handling - more efficient than double await
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        await waitTask.WaitAsync(cts.Token);
     }
 
     private void EnterOutage(string reason, uint connectId)
@@ -751,8 +748,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (result.IsOk)
                 {
-                    ResetRetryStrategyAfterOutage();
                     ExitOutage();
+                    ResetRetryStrategyAfterOutage();
                     return;
                 }
 
@@ -878,8 +875,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (restorationSuccessful)
             {
                 Log.Information("Recovery completed for connection {ConnectId}", connectId);
-                ResetRetryStrategyAfterOutage();
                 ExitOutage();
+                ResetRetryStrategyAfterOutage();
             }
             else
             {
@@ -1284,6 +1281,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Resetting retry strategy state after successful outage recovery");
 
         _retryStrategy.ResetConnectionState();
+
+        // Explicitly mark all active connections as healthy to reset circuit breakers immediately
+        foreach (var connection in _connections)
+        {
+            _retryStrategy.MarkConnectionHealthy(connection.Key);
+            Log.Debug("Marked connection {ConnectId} as healthy after outage recovery", connection.Key);
+        }
 
         _lastRecoveryAttempts.Clear();
 

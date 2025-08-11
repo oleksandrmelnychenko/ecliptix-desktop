@@ -51,17 +51,25 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
         if (connectId.HasValue && !IsConnectionHealthy(connectId.Value))
         {
-            Log.Debug("{Operation} skipped due to circuit breaker for connection {ConnectId}",
-                operationName, connectId.Value);
+            ConnectionRetryState? state = GetConnectionState(connectId.Value);
+            Log.Warning("Circuit breaker BLOCKED operation: {Operation} for connection {ConnectId} " +
+                       "(ConsecutiveFailures: {Failures}, CircuitOpenSince: {Since})",
+                operationName, connectId.Value, 
+                state?.ConsecutiveFailures ?? 0,
+                state?.CircuitOpenedAt?.ToString("HH:mm:ss.fff") ?? "Unknown");
             return Result<TResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Connection circuit breaker is open"));
         }
+
+        Log.Information("Starting retry operation: {Operation} (MaxRetries: {MaxRetries}){ConnHint}", 
+            operationName, maxRetries, connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
 
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             attempt++;
+            DateTime attemptStart = DateTime.UtcNow;
             Result<TResponse, NetworkFailure> result;
 
             try
@@ -90,6 +98,15 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
             if (result.IsOk)
             {
+                TimeSpan successAttemptDuration = DateTime.UtcNow - attemptStart;
+                TimeSpan totalDuration = DateTime.UtcNow - operationStart;
+                
+                Log.Information("Retry operation succeeded: {Operation} on attempt {Attempt}/{MaxRetries} " +
+                               "(AttemptTime: {AttemptTime}ms, TotalTime: {TotalTime}ms){ConnHint}",
+                    operationName, attempt, maxRetries, (int)successAttemptDuration.TotalMilliseconds, 
+                    (int)totalDuration.TotalMilliseconds,
+                    connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
+                
                 RecordSuccess(connectId, operationStart);
                 return result;
             }
@@ -108,8 +125,11 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
             if (attempt >= maxRetries)
             {
-                Log.Warning("{Operation} failed after {Attempts} attempts: {Error}{ConnHint}",
-                    operationName, attempt, failure.Message,
+                TimeSpan totalDuration = DateTime.UtcNow - operationStart;
+                
+                Log.Warning("Retry operation exhausted: {Operation} failed after {Attempts} attempts " +
+                           "(TotalTime: {TotalTime}ms) - Final error: {Error}{ConnHint}",
+                    operationName, attempt, (int)totalDuration.TotalMilliseconds, failure.Message,
                     connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
 
                 RecordFailure(connectId, operationStart);
@@ -117,9 +137,13 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
                 return result;
             }
 
+            TimeSpan attemptDuration = DateTime.UtcNow - attemptStart;
             TimeSpan delay = GetAdaptiveRetryDelay(attempt, connectId, failure);
-            Log.Debug("{Operation} transient error, retrying attempt {Attempt} after {Delay} ms: {Error}{ConnHint}",
-                operationName, attempt + 1, (int)delay.TotalMilliseconds, failure.Message,
+            
+            Log.Information("Retry attempt {Attempt}/{MaxRetries} failed: {Operation} " +
+                           "(AttemptTime: {AttemptTime}ms, RetryDelay: {Delay}ms) - {Error}{ConnHint}",
+                operationName, attempt, maxRetries, (int)attemptDuration.TotalMilliseconds, 
+                (int)delay.TotalMilliseconds, failure.Message,
                 connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
 
             try
@@ -144,7 +168,7 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
         if (connectId.HasValue)
         {
             ConnectionRetryState? state = GetConnectionState(connectId.Value);
-            if (state != null && state.ConsecutiveFailures > 2)
+            if (state is { ConsecutiveFailures: > 2 })
             {
                 double multiplier = Math.Min(state.ConsecutiveFailures * 0.5, 3.0);
                 baseDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * multiplier);
@@ -254,8 +278,11 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
         if (!state.CircuitOpenedAt.HasValue ||
             DateTime.UtcNow - state.CircuitOpenedAt.Value <= CircuitOpenDuration) return false;
-        Log.Information("Circuit breaker reset for connection {ConnectId} after {Duration}",
-            connectId, CircuitOpenDuration);
+        
+        TimeSpan actualDuration = DateTime.UtcNow - state.CircuitOpenedAt.Value;
+        Log.Information("Circuit breaker RESET for connection {ConnectId} after {Duration}ms " +
+                       "(Previous failures: {Failures})",
+            connectId, (int)actualDuration.TotalMilliseconds, state.ConsecutiveFailures);
         MarkConnectionHealthy(connectId);
         return true;
     }
