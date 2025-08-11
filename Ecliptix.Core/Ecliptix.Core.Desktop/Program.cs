@@ -68,7 +68,7 @@ public static class Program
         catch (Exception ex)
         {
             Log.Fatal(ex, "Application terminated unexpectedly during startup or runtime");
-            if (configuration.GetValue<string>("AppSettings:Environment") != "Development")
+            if (configuration["AppSettings:Environment"] != "Development")
                 Environment.Exit(1);
             throw;
         }
@@ -121,7 +121,7 @@ public static class Program
 
             return loggerConfig.CreateLogger();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
@@ -145,13 +145,30 @@ public static class Program
             .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
         services.AddSingleton(configuration);
-        services.Configure<DefaultSystemSettings>(configuration.GetSection("DefaultAppSettings"));
-        services.Configure<SecureStoreOptions>(options =>
+        services.AddSingleton<IOptions<DefaultSystemSettings>>(_ =>
+        {
+            IConfigurationSection section = configuration.GetSection("DefaultAppSettings");
+            DefaultSystemSettings settings = new()
+            {
+                DefaultTheme = section["DefaultTheme"] ?? string.Empty,
+                Environment = section["Environment"] ?? "Production",
+                DataCenterConnectionString = section["DataCenterConnectionString"] ?? string.Empty,
+                CountryCodeApi = section["CountryCodeApi"] ?? string.Empty,
+                DomainName = section["DomainName"] ?? string.Empty,
+                Culture = section["Culture"] ?? string.Empty
+            };
+            return Options.Create(settings);
+        });
+        services.AddSingleton<IOptions<SecureStoreOptions>>(_ =>
         {
             IConfigurationSection section = configuration.GetSection("SecureStoreOptions");
-            options.EncryptedStatePath = ResolvePath(
-                section["EncryptedStatePath"] ?? "Storage/state"
-            );
+            SecureStoreOptions options = new()
+            {
+                EncryptedStatePath = ResolvePath(
+                    section["EncryptedStatePath"] ?? "Storage/state"
+                )
+            };
+            return Options.Create(options);
         });
 
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
@@ -185,7 +202,7 @@ public static class Program
         );
         services.AddSingleton<IApplicationSecureStorageProvider, ApplicationSecureStorageProvider>();
         
-        services.AddSingleton<IPlatformSecurityProvider>(sp =>
+        services.AddSingleton<IPlatformSecurityProvider>(_ =>
         {
             string appDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -195,9 +212,9 @@ public static class Program
         services.AddSingleton<ISecureProtocolStateStorage>(sp =>
         {
             IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
-            IConfiguration configuration = sp.GetRequiredService<IConfiguration>();
+            IConfiguration config = sp.GetRequiredService<IConfiguration>();
             
-            string storagePath = configuration.GetValue<string>("SecureStorage:StatePath") 
+            string storagePath = config["SecureStorage:StatePath"] 
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
                                 "Ecliptix", "secure_protocol_state.enc");
             
@@ -218,8 +235,6 @@ public static class Program
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
-        //services.AddSingleton<DeadlineInterceptor>();
-        //services.AddTransient<ResilienceInterceptor>();
 
         ConfigureGrpc(services);
         ConfigureViewModels(services);
@@ -233,7 +248,7 @@ public static class Program
         {
             DefaultSystemSettings settings = services.BuildServiceProvider()
                 .GetRequiredService<DefaultSystemSettings>();
-            string? endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+            string endpoint = settings.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
                 ? settings.DataCenterConnectionString
                 : string.Empty;
 
