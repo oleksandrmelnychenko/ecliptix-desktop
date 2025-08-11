@@ -2,15 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
@@ -32,13 +29,10 @@ public class OpaqueAuthenticationService(
         try
         {
             securePassword.WithSecureBytes(bytes => passwordBytes = bytes.ToArray());
-            if (passwordBytes == null || passwordBytes.Length == 0)
-            {
-                string requiredError = localizationService["ValidationErrors.SecureKey.Required"];
-                return await Task.FromResult(Result<byte[], string>.Err(requiredError));
-            }
-
-            return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes);
+            if (passwordBytes != null && passwordBytes.Length != 0)
+                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes);
+            string requiredError = localizationService["ValidationErrors.SecureKey.Required"];
+            return await Task.FromResult(Result<byte[], string>.Err(requiredError));
         }
         finally
         {
@@ -103,7 +97,6 @@ public class OpaqueAuthenticationService(
         return finalResult;
     }
 
-
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
     {
         return initResponse.Result switch
@@ -145,7 +138,7 @@ public class OpaqueAuthenticationService(
     {
         OpaqueSignInInitResponse? capturedResponse = null;
         
-        Result<Unit, ValidationFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
@@ -153,7 +146,7 @@ public class OpaqueAuthenticationService(
             async initResponsePayload =>
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
-                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None
         );
 
@@ -176,7 +169,7 @@ public class OpaqueAuthenticationService(
     {
         OpaqueSignInFinalizeResponse? capturedResponse = null;
         
-        Result<Unit, ValidationFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
@@ -184,7 +177,7 @@ public class OpaqueAuthenticationService(
             async finalizeResponsePayload =>
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
-                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None
         );
 
@@ -198,7 +191,6 @@ public class OpaqueAuthenticationService(
             return Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
         }
 
-        // Business logic validation - this should not be retried
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
         {
             string message = capturedResponse.HasMessage
@@ -207,7 +199,6 @@ public class OpaqueAuthenticationService(
             return Result<byte[], string>.Err(message);
         }
 
-        // Cryptographic verification - this should not be retried
         Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
             capturedResponse, sessionKey, serverMacKey, transcriptHash);
 

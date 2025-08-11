@@ -268,7 +268,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
-            Result<Unit, ValidationFailure> createMembershipResult = await NetworkProvider.ExecuteServiceRequestAsync(
+            Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteServiceRequestAsync(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RpcServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
@@ -283,7 +283,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     if (createMembershipResponse.Result != OprfRegistrationInitResponse.Types.UpdateResult.Succeeded )
                     {
                         PasswordError = $"Registration failed: {createMembershipResponse.Message}";
-                        return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
                     
                     Result<byte[], OpaqueFailure> registrationRecordResult =
@@ -295,7 +295,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     if (registrationRecordResult.IsErr)
                     {
                         PasswordError = registrationRecordResult.UnwrapErr().Message;
-                        return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
 
                     byte[] registrationRecord = registrationRecordResult.Unwrap();
@@ -320,16 +320,16 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 
                                 Console.WriteLine("[SUCCESSFULL RESPONSE FROM REGISTRAION]" + completeResponse.Message);
 
-                                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                             }
                             catch (Exception ex)
                             {
                                 PasswordError = $"Error processing registration completion: {ex.Message}";
-                                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                             }
                         });
 
-                        return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true,
                 CancellationToken.None
             );

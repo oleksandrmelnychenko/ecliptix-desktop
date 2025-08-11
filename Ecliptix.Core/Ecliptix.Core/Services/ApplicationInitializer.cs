@@ -81,7 +81,7 @@ public class ApplicationInitializer(
 
         uint connectId = connectIdResult.Unwrap();
 
-        Result<Unit, ValidationFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
+        Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
         if (registrationResult.IsErr)
         {
             Log.Error("Device registration failed: {Error}", registrationResult.UnwrapErr());
@@ -108,7 +108,7 @@ public class ApplicationInitializer(
             {
                 string? applicationInstanceId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
 
-                await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
+             //   await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
                 
                 Result<byte[], SecureStorageFailure> loadResult =
                     await secureProtocolStateStorage.LoadStateAsync(applicationInstanceId);
@@ -185,7 +185,7 @@ public class ApplicationInitializer(
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 
-    private async Task<Result<Unit, ValidationFailure>> RegisterDeviceAsync(uint connectId,
+    private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
         AppDevice appDevice = new()
@@ -211,7 +211,7 @@ public class ApplicationInitializer(
 
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);
-                return Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None);
     }
 }

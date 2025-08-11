@@ -111,7 +111,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Result<ShieldUnit, ValidationFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
+        Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
@@ -142,20 +142,20 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         };
     }
 
-    private Task<Result<ShieldUnit, ValidationFailure>> HandleValidationResponseAsync(byte[] payload)
+    private Task<Result<ShieldUnit, NetworkFailure>> HandleValidationResponseAsync(byte[] payload)
     {
         ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
         if (response.Result == VerificationResult.InvalidPhone)
         {
             _mobileErrorSubject.OnNext(response.Message);
-            return Task.FromResult(Result<ShieldUnit, ValidationFailure>.Err(
-                ValidationFailure.SignInFailed(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
+            return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
         }
 
         PhoneNumberIdentifier = response.PhoneNumberIdentifier;
 
         _mobileErrorSubject.OnNext(string.Empty);
-        return Task.FromResult(Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value));
+        return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
     }
 
     public new void Dispose()

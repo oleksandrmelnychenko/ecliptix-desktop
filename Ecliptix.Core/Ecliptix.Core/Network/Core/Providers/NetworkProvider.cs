@@ -145,19 +145,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Cleared connection {ConnectId} from cache and monitoring", connectId);
     }
 
-    public async Task<Result<Unit, ValidationFailure>> ExecuteServiceRequestAsync(
+    public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestAsync(
         uint connectId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, ValidationFailure>>> onCompleted,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
         CancellationToken token = default)
     {
         if (_disposed)
         {
-            return Result<Unit, ValidationFailure>.Err(
-                ValidationFailure.SignInFailed("NetworkProvider is disposed"));
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("NetworkProvider is disposed"));
         }
 
         string hex = Convert.ToHexString(plainBuffer);
@@ -168,8 +168,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, 0))
         {
             Log.Debug("Duplicate request detected for {ServiceType}, rejecting", serviceType);
-            return Result<Unit, ValidationFailure>.Err(
-                ValidationFailure.SignInFailed("Duplicate request rejected"));
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Duplicate request rejected"));
         }
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
@@ -262,7 +262,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: 10,
                 cancellationToken: combinedToken);
 
-            return networkResult.ToValidationFailure();
+            return networkResult;
         }
         finally
         {
@@ -588,7 +588,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
-        Func<byte[], Task<Result<Unit, ValidationFailure>>> onCompleted,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token)
     {
         Log.Debug("SendRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);

@@ -186,7 +186,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 RxApp.MainThreadScheduler.Schedule(() =>
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
-                return Task.FromResult(Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
             }, true,
             cancellationTokenSource.Token
         );
@@ -228,7 +228,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 {
                 }
 
-                return Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value);
+                return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
             }, true,
             CancellationToken.None
         );
