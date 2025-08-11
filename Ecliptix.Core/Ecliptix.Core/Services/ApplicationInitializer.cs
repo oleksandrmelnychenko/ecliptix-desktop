@@ -99,19 +99,18 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
         uint connectId =
-            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
+            networkProvider.ComputeUniqueConnectId(applicationInstanceSettings,PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (!isNewInstance)
         {
             try
             {
-                string? applicationInstanceId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+                //string applicationInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId).ToString();
 
-                //await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
+                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
                 
                 Result<byte[], SecureStorageFailure> loadResult =
-                    await secureProtocolStateStorage.LoadStateAsync(applicationInstanceId);
+                    await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
                 if (loadResult.IsOk)
                 {
@@ -135,7 +134,7 @@ public class ApplicationInitializer(
                     Log.Warning(
                         "Failed to restore secrecy channel or it was out of sync. A new channel will be established");
                     networkProvider.ClearConnection(connectId);
-                    await secureProtocolStateStorage.DeleteStateAsync(applicationInstanceId);
+                    await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
                 }
                 else
                 {
@@ -162,10 +161,10 @@ public class ApplicationInitializer(
 
         try
         {
-            string? userId = applicationInstanceSettings.AppInstanceId.ToStringUtf8();
+            //string userId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId).ToString();
             Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
                 secrecyChannelState.ToByteArray(),
-                userId);
+                connectId.ToString());
 
             if (saveResult.IsOk)
             {

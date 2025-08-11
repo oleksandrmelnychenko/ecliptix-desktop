@@ -23,14 +23,15 @@ public class OpaqueAuthenticationService(
     ISystemEvents systemEvents)
     : IAuthenticationService
 {
-    public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword)
+    public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
+        uint connectId)
     {
         byte[]? passwordBytes = null;
         try
         {
             securePassword.WithSecureBytes(bytes => passwordBytes = bytes.ToArray());
             if (passwordBytes != null && passwordBytes.Length != 0)
-                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes);
+                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId);
             string requiredError = localizationService["ValidationErrors.SecureKey.Required"];
             return await Task.FromResult(Result<byte[], string>.Err(requiredError));
         }
@@ -40,7 +41,8 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<byte[], string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes)
+    private async Task<Result<byte[], string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
+        uint connectId)
     {
         OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
         Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
@@ -60,7 +62,7 @@ public class OpaqueAuthenticationService(
             PeerOprf = ByteString.CopyFrom(oprfRequest),
         };
 
-        Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest);
+        Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
         if (initResult.IsErr)
         {
             Result<byte[], string> errorResult = Result<byte[], string>.Err(initResult.UnwrapErr());
@@ -92,7 +94,7 @@ public class OpaqueAuthenticationService(
             byte[] transcriptHash) = finalizationResult.Unwrap();
 
         Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
-            clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash);
+            clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
 
         return finalResult;
     }
@@ -123,24 +125,16 @@ public class OpaqueAuthenticationService(
         return new OpaqueProtocolService(serverStaticPublicKeyParam);
     }
 
-    private uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
-    {
-        return Helpers.ComputeUniqueConnectId(
-            networkProvider.ApplicationInstanceSettings.AppInstanceId.Span,
-            networkProvider.ApplicationInstanceSettings.DeviceId.Span,
-            pubKeyExchangeType);
-    }
-
     private byte[] ServerPublicKey() =>
         networkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
 
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
-        OpaqueSignInInitRequest initRequest)
+        OpaqueSignInInitRequest initRequest, uint connectId)
     {
         OpaqueSignInInitResponse? capturedResponse = null;
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            connectId,
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
             ServiceFlowType.Single,
@@ -166,12 +160,12 @@ public class OpaqueAuthenticationService(
         OpaqueSignInFinalizeRequest finalizeRequest,
         byte[] sessionKey,
         byte[] serverMacKey,
-        byte[] transcriptHash)
+        byte[] transcriptHash, uint connectId)
     {
         OpaqueSignInFinalizeResponse? capturedResponse = null;
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            connectId,
             RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
             ServiceFlowType.Single,

@@ -41,11 +41,11 @@ public abstract class ViewModelBase
         });
     }
 
-    protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
+    protected uint ComputeConnectId()
     {
-        uint connectId = Helpers.ComputeUniqueConnectId(
-            NetworkProvider.ApplicationInstanceSettings.AppInstanceId.Span,
-            NetworkProvider.ApplicationInstanceSettings.DeviceId.Span, pubKeyExchangeType);
+        uint connectId =
+            NetworkProvider.ComputeUniqueConnectId(NetworkProvider.ApplicationInstanceSettings,
+                PubKeyExchangeType.DataCenterEphemeralConnect);
 
         return connectId;
     }
@@ -55,7 +55,7 @@ public abstract class ViewModelBase
 
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
-    
+
     protected Membership Membership()
     {
         return NetworkProvider.ApplicationInstanceSettings.Membership;

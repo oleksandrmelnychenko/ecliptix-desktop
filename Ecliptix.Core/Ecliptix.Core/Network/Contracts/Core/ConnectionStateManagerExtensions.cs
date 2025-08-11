@@ -81,6 +81,6 @@ public static class ConnectionStateManagerExtensions
     {
         const double alpha = 0.1;
         double newValue = wasSuccess ? 1.0 : 0.0;
-        return (alpha * newValue) + ((1 - alpha) * currentRate);
+        return alpha * newValue + (1 - alpha) * currentRate;
     }
 }

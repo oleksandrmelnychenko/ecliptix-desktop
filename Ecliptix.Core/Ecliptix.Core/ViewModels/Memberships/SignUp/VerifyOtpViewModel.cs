@@ -15,7 +15,6 @@ using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
@@ -148,7 +147,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             Type = type
         };
 
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        uint connectId = ComputeConnectId();
         _ = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
@@ -207,7 +206,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         };
 
         _ = await NetworkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            ComputeConnectId(),
             RpcServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
             ServiceFlowType.Single,

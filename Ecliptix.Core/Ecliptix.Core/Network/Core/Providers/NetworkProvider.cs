@@ -104,12 +104,26 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 
-    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
-        PubKeyExchangeType pubKeyExchangeType) =>
-        Helpers.ComputeUniqueConnectId(
-            applicationInstanceSettings.AppInstanceId.Span,
-            applicationInstanceSettings.DeviceId.Span,
+    public uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
+        PubKeyExchangeType pubKeyExchangeType)
+    {
+        Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
+        Guid deviceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+
+        string appInstanceIdString = appInstanceGuid.ToString();
+        string deviceIdString = deviceGuid.ToString();
+
+        uint connectId = Helpers.ComputeUniqueConnectId(
+            appInstanceIdString,
+            deviceIdString,
             pubKeyExchangeType);
+
+        Log.Debug(
+            "[CLIENT] ConnectId Calculation: AppInstanceId={AppInstanceId}, DeviceId={DeviceId}, ContextType={ContextType}, ConnectId={ConnectId}",
+            appInstanceIdString, deviceIdString, pubKeyExchangeType, connectId);
+
+        return connectId;
+    }
 
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
@@ -348,6 +362,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Log.Information("Session restoration completed for {ConnectId}", connectId);
             ExitOutage();
+            ResetRetryStrategyAfterOutage();
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
@@ -359,7 +374,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Log.Information("Session successfully re-established via reconnection");
+
+        ResetRetryStrategyAfterOutage();
         ExitOutage();
+
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
@@ -704,7 +722,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancelActiveRecoveryOperations();
         CancelActiveRequestsDuringRecovery("Server shutdown detected");
 
-        ExecuteBackgroundTask(() => ServerShutdownRecoveryLoop(), $"ServerShutdownRecovery-{connectId}");
+        ExecuteBackgroundTask(ServerShutdownRecoveryLoop, $"ServerShutdownRecovery-{connectId}");
     }
 
     private void ExitOutage()
@@ -735,6 +753,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (result.IsOk)
                 {
+                    ResetRetryStrategyAfterOutage();
                     ExitOutage();
                     return;
                 }
@@ -820,6 +839,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             CancelActiveRecoveryOperations();
             CancelActiveRequestsDuringRecovery("Connection recovery initiated");
+
             _connectionStateManager.MarkConnectionRecovering(connectId);
 
             Log.Information("Initiating recovery with cancellation for connection {ConnectId}", connectId);
@@ -861,6 +881,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (restorationSuccessful)
             {
                 Log.Information("Recovery completed for connection {ConnectId}", connectId);
+                ResetRetryStrategyAfterOutage();
                 ExitOutage();
             }
             else
@@ -1161,8 +1182,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
             }
 
-            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
-            await _secureProtocolStateStorage.DeleteStateAsync(userId);
+            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
             Log.Debug("Cleared stored protocol state for resynchronization");
 
             InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
@@ -1179,19 +1199,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             EcliptixSecrecyChannelState newState = establishResult.Unwrap();
             Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
-                newState.ToByteArray(), userId);
+                newState.ToByteArray(), connectId.ToString());
 
             if (saveResult.IsOk)
             {
                 Log.Information("Protocol resynchronization completed successfully for connection {ConnectId}",
                     connectId);
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
             }
             else
             {
                 Log.Warning("Protocol resynchronized but failed to save state: {Error}", saveResult.UnwrapErr());
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value); // Still success, just couldn't save
             }
+
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
@@ -1226,8 +1246,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
             }
 
-            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
-            await _secureProtocolStateStorage.DeleteStateAsync(userId);
+            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
             Log.Debug("Deleted all stored protocol state for fresh establishment");
 
             InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
@@ -1243,7 +1262,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             EcliptixSecrecyChannelState freshState = establishResult.Unwrap();
             Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
-                freshState.ToByteArray(), userId);
+                freshState.ToByteArray(), connectId.ToString());
 
             if (saveResult.IsOk)
             {
@@ -1263,5 +1282,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding($"Fresh establishment failed: {ex.Message}"));
         }
+    }
+
+    private void ResetRetryStrategyAfterOutage()
+    {
+        Log.Information("Resetting retry strategy state after successful outage recovery");
+
+        _retryStrategy.ResetConnectionState();
+
+        _lastRecoveryAttempts.Clear();
+
+        Log.Debug("Retry strategy state cleared - fresh retry cycles will begin for subsequent operations");
     }
 }

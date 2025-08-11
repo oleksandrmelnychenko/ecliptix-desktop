@@ -135,7 +135,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
         SignInCommand = ReactiveCommand.CreateFromTask(
-            () => _authService.SignInAsync(MobileNumber, _secureKeyBuffer),
+            () => _authService.SignInAsync(MobileNumber, _secureKeyBuffer, ComputeConnectId()),
             canSignIn);
 
         SignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);

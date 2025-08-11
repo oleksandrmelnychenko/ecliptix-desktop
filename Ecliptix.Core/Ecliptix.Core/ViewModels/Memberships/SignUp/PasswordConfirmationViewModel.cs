@@ -21,7 +21,6 @@ using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
@@ -269,7 +268,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             };
 
             Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteServiceRequestAsync(
-                ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                ComputeConnectId(),
                 RpcServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
                 ServiceFlowType.Single,
@@ -307,7 +306,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     };
 
                     await NetworkProvider.ExecuteServiceRequestAsync(
-                        ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+                        ComputeConnectId(),
                         RpcServiceType.OpaqueRegistrationComplete,
                         completeRequest.ToByteArray(),
                         ServiceFlowType.Single,

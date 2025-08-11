@@ -119,6 +119,34 @@ public static class Helpers
         return BinaryPrimitives.ReadUInt32BigEndian(hash[..4]);
     }
 
+    /// <summary>
+    /// Computes ConnectId using Guid strings (consistent with server-side calculation)
+    /// </summary>
+    public static uint ComputeUniqueConnectId(
+        string appInstanceIdString,
+        string appDeviceIdString, 
+        PubKeyExchangeType contextType,
+        Guid? operationContextId = null)
+    {
+        // Parse strings to Guid and use ToByteArray() to match server-side calculation
+        if (!Guid.TryParse(appInstanceIdString, out Guid appInstanceGuid))
+            throw new ArgumentException($"Invalid AppInstanceId format: {appInstanceIdString}");
+        
+        if (!Guid.TryParse(appDeviceIdString, out Guid appDeviceGuid))
+            throw new ArgumentException($"Invalid AppDeviceId format: {appDeviceIdString}");
+            
+        byte[] appInstanceBytes = appInstanceGuid.ToByteArray();
+        byte[] appDeviceBytes = appDeviceGuid.ToByteArray();
+        
+        // Use existing method with consistent byte arrays
+        return ComputeUniqueConnectId(
+            appInstanceBytes.AsSpan(),
+            appDeviceBytes.AsSpan(), 
+            contextType,
+            operationContextId);
+    }
+    
+    
     public static uint GenerateRandomUInt32()
     {
         using RandomNumberGenerator rng = RandomNumberGenerator.Create();

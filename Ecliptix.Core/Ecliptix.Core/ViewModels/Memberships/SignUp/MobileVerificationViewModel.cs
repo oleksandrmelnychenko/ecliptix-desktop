@@ -12,7 +12,6 @@ using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
@@ -109,7 +108,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         string systemDeviceIdentifier = SystemDeviceIdentifier();
 
         ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        uint connectId = ComputeConnectId();
 
         Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
