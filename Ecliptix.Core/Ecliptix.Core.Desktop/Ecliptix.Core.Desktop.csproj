@@ -5,7 +5,6 @@
         One for Windows with net8.0-windows TFM, one for MacOS with net8.0-macos and one with net8.0 TFM for Linux.-->
         <TargetFramework>net9.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <PublishAot>true</PublishAot>
         <!-- Recommended Avalonia trimming settings for Native AOT -->
         <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -35,7 +34,6 @@
         <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
         <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-        <PackageReference Include="Sodium.Core" Version="1.4.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -9,7 +9,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Ecliptix.Core.Services;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Controls;
 

@@ -1,5 +1,3 @@
-using Grpc.Core;
-
 namespace Ecliptix.Utilities.Failures;
 
 public interface IFailureBase
