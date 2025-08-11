@@ -54,18 +54,18 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string userId)
+    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId)
     {
         if (_disposed)
             return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
 
         try
         {
-            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(userId);
+            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(connectId);
 
             byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize);
 
-            byte[] associatedData = CreateAssociatedData(userId, _deviceId);
+            byte[] associatedData = CreateAssociatedData(connectId, _deviceId);
 
             (byte[] ciphertext, byte[] tag) = EncryptState(protocolState, encryptionKey, nonce, associatedData);
 
@@ -75,7 +75,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             await WriteSecureFileAsync(protectedContainer);
 
-            await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{userId}", encryptionKey);
+            await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{connectId}", encryptionKey);
 
             CryptographicOperations.ZeroMemory(encryptionKey);
             CryptographicOperations.ZeroMemory(protocolState);
@@ -91,7 +91,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string userId)
+    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId)
     {
         if (_disposed)
             return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
@@ -116,14 +116,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             (byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData) =
                 ParseSecureContainer(container);
 
-            byte[] expectedAd = CreateAssociatedData(userId, _deviceId);
+            byte[] expectedAd = CreateAssociatedData(connectId, _deviceId);
             if (!CryptographicOperations.FixedTimeEquals(associatedData, expectedAd))
             {
                 return Result<byte[], SecureStorageFailure>.Err(
                     new SecureStorageFailure("Associated data mismatch"));
             }
 
-            byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{userId}");
+            byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{connectId}");
             byte[] encryptionKey;
 
             if (storedKey != null)
@@ -132,7 +132,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
             else
             {
-                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(userId, salt);
+                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(connectId, salt);
                 encryptionKey = derivedKey;
             }
 
@@ -176,16 +176,16 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string userId)
+    private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string connectId)
     {
         byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize);
-        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(userId, salt);
+        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(connectId, salt);
         return (key, salt);
     }
 
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyWithSaltAsync(string userId, byte[] salt)
+    private async Task<(byte[] key, byte[] salt)> DeriveKeyWithSaltAsync(string connectId, byte[] salt)
     {
-        using Argon2id argon2 = new(Encoding.UTF8.GetBytes(userId))
+        using Argon2id argon2 = new(Encoding.UTF8.GetBytes(connectId))
         {
             Salt = salt,
             DegreeOfParallelism = Argon2Parallelism,
@@ -220,14 +220,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         return plaintext;
     }
 
-    private static byte[] CreateAssociatedData(string userId, byte[] deviceId)
+    private static byte[] CreateAssociatedData(string connectId, byte[] deviceId)
     {
-        byte[] userIdBytes = Encoding.UTF8.GetBytes(userId);
-        byte[] ad = new byte[userIdBytes.Length + deviceId.Length + 4];
+        byte[] connectIdBytes = Encoding.UTF8.GetBytes(connectId);
+        byte[] ad = new byte[connectIdBytes.Length + deviceId.Length + 4];
 
         BitConverter.GetBytes(CurrentVersion).CopyTo(ad, 0);
-        userIdBytes.CopyTo(ad, 4);
-        deviceId.CopyTo(ad, 4 + userIdBytes.Length);
+        connectIdBytes.CopyTo(ad, 4);
+        deviceId.CopyTo(ad, 4 + connectIdBytes.Length);
 
         return ad;
     }

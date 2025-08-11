@@ -161,7 +161,6 @@ public class ApplicationInitializer(
 
         try
         {
-            //string userId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId).ToString();
             Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
                 secrecyChannelState.ToByteArray(),
                 connectId.ToString());

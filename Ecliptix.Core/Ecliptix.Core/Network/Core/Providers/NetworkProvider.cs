@@ -320,9 +320,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             PubKeyExchangeType.DataCenterEphemeralConnect);
         _connections.TryRemove(connectId, out _);
 
-        string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
         Result<byte[], SecureStorageFailure> stateResult =
-            await _secureProtocolStateStorage.LoadStateAsync(userId);
+            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
         bool restorationSucceeded = false;
         if (stateResult.IsOk)
@@ -425,9 +424,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
 
-        string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
         Result<Unit, SecureStorageFailure> saveResult = await _secureProtocolStateStorage.SaveStateAsync(
-            secrecyChannelState.ToByteArray(), userId);
+            secrecyChannelState.ToByteArray(), connectId.ToString());
 
         if (saveResult.IsOk)
         {
@@ -850,9 +848,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 return;
             }
 
-            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
             Result<byte[], SecureStorageFailure> stateResult =
-                await _secureProtocolStateStorage.LoadStateAsync(userId);
+                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
             bool restorationSuccessful;
             if (stateResult.IsOk)
@@ -936,10 +933,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 RatchetState = ratchetStateResult.Unwrap()
                             };
 
-                            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
                             Result<Unit, SecureStorageFailure> saveResult =
                                 await _secureProtocolStateStorage.SaveStateAsync(
-                                    state.ToByteArray(), userId);
+                                    state.ToByteArray(), connectId.ToString());
 
                             if (saveResult.IsOk)
                             {
@@ -1015,10 +1011,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 RatchetState = ratchetStateResult.Unwrap()
                             };
 
-                            string userId = _applicationInstanceSettings.Value!.AppInstanceId.ToStringUtf8();
                             Result<Unit, SecureStorageFailure> saveResult =
                                 await _secureProtocolStateStorage.SaveStateAsync(
-                                    state.ToByteArray(), userId);
+                                    state.ToByteArray(), connectId.ToString());
 
                             if (saveResult.IsOk)
                             {
