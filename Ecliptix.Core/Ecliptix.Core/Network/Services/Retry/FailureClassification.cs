@@ -74,4 +74,11 @@ public static class FailureClassification
                msg.Contains("state version") ||
                msg.Contains("channel state") && msg.Contains("invalid");
     }
+    
+    public static bool IsOutageRecoveryWait(NetworkFailure failure)
+    {
+        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
+        
+        return msg.Contains("connection unavailable") && msg.Contains("server may be recovering");
+    }
 }

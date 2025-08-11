@@ -26,7 +26,6 @@ using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Network.Transport;
 using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
-using Ecliptix.Core.Network.Transport.Resilience;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Security;
 using Ecliptix.Core.Services;

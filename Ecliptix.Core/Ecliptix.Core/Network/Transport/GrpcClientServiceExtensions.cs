@@ -1,5 +1,4 @@
 using System;
-using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Settings;
 using Ecliptix.Protobuf.AppDeviceServices;
@@ -8,20 +7,20 @@ using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Ecliptix.Core.Network.Transport.Resilience;
+namespace Ecliptix.Core.Network.Transport;
 
 public static class GrpcClientServiceExtensions
 {
     public static void AddConfiguredGrpcClients(this IServiceCollection services)
     {
         services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(ConfigureClient)
-            .AddDefaultGrpcConfiguration(); 
-
+            .AddInterceptor<RequestMetaDataInterceptor>();
+        
         services.AddGrpcClient<MembershipServices.MembershipServicesClient>(ConfigureClient)
-            .AddDefaultGrpcConfiguration();
-
+            .AddInterceptor<RequestMetaDataInterceptor>();
+        
         services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(ConfigureClient)
-            .AddDefaultGrpcConfiguration();
+            .AddInterceptor<RequestMetaDataInterceptor>();
     }
 
     private static void ConfigureClient(IServiceProvider serviceProvider, GrpcClientFactoryOptions options)
@@ -38,15 +37,4 @@ public static class GrpcClientServiceExtensions
         options.Address = new Uri(endpoint);
     }
 
-    private static void AddDefaultGrpcConfiguration(this IHttpClientBuilder builder)
-    {
-        builder.AddPolicyHandler((sp, _) =>
-            {
-                INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
-                return RpcResiliencePolicies.CreateUnaryResiliencePolicy(networkEvents);
-            })
-            //  .AddInterceptor<ResilienceInterceptor>()
-            //.AddInterceptor<DeadlineInterceptor>()
-            .AddInterceptor<RequestMetaDataInterceptor>();
-    }
 }

@@ -17,11 +17,13 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
     [
         TimeSpan.Zero,
         TimeSpan.FromSeconds(1),
-        TimeSpan.FromSeconds(2),
-        TimeSpan.FromSeconds(5),
-        TimeSpan.FromSeconds(10),
-        TimeSpan.FromSeconds(20),
-        TimeSpan.FromSeconds(30)
+        TimeSpan.FromSeconds(3),
+        TimeSpan.FromSeconds(6),
+        TimeSpan.FromSeconds(9),
+        TimeSpan.FromSeconds(15),
+        TimeSpan.FromSeconds(24),
+        TimeSpan.FromSeconds(39),
+        TimeSpan.FromSeconds(63)
     ];
 
     private static readonly Random SharedRandom = new();
@@ -43,7 +45,7 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 7,
+        int maxRetries = 9,
         CancellationToken cancellationToken = default)
     {
         DateTime operationStart = DateTime.UtcNow;
@@ -140,21 +142,32 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
             TimeSpan attemptDuration = DateTime.UtcNow - attemptStart;
             TimeSpan delay = GetAdaptiveRetryDelay(attempt, connectId, failure);
             
-            Log.Information("Retry attempt {Attempt}/{MaxRetries} failed: {Operation} " +
-                           "(AttemptTime: {AttemptTime}ms, RetryDelay: {Delay}ms) - {Error}{ConnHint}",
-                operationName, attempt, maxRetries, (int)attemptDuration.TotalMilliseconds, 
-                (int)delay.TotalMilliseconds, failure.Message,
-                connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
-
-            try
+            if (FailureClassification.IsOutageRecoveryWait(failure))
             {
-                await Task.Delay(delay, cancellationToken);
+                Log.Information("Retry attempt {Attempt}/{MaxRetries} failed: {Operation} " +
+                               "(AttemptTime: {AttemptTime}ms, RetryDelay: 0ms - outage recovery) - {Error}{ConnHint}",
+                    operationName, attempt, maxRetries, (int)attemptDuration.TotalMilliseconds, 
+                    failure.Message,
+                    connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
             }
-            catch (OperationCanceledException)
+            else
             {
-                RecordFailure(connectId, operationStart);
-                return Result<TResponse, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding("Retry cancelled"));
+                Log.Information("Retry attempt {Attempt}/{MaxRetries} failed: {Operation} " +
+                               "(AttemptTime: {AttemptTime}ms, RetryDelay: {Delay}ms) - {Error}{ConnHint}",
+                    operationName, attempt, maxRetries, (int)attemptDuration.TotalMilliseconds, 
+                    (int)delay.TotalMilliseconds, failure.Message,
+                    connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty);
+
+                try
+                {
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    RecordFailure(connectId, operationStart);
+                    return Result<TResponse, NetworkFailure>.Err(
+                        NetworkFailure.DataCenterNotResponding("Retry cancelled"));
+                }
             }
         }
     }
@@ -163,14 +176,14 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
     {
         TimeSpan baseDelay = attempt <= BaseRetryDelays.Length
             ? BaseRetryDelays[attempt - 1]
-            : TimeSpan.FromSeconds(30);
+            : TimeSpan.FromSeconds(63);
 
         if (connectId.HasValue)
         {
             ConnectionRetryState? state = GetConnectionState(connectId.Value);
-            if (state is { ConsecutiveFailures: > 2 })
+            if (state is { ConsecutiveFailures: > 3 })
             {
-                double multiplier = Math.Min(state.ConsecutiveFailures * 0.5, 3.0);
+                double multiplier = Math.Min(state.ConsecutiveFailures * 0.3, 2.5);
                 baseDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * multiplier);
             }
         }
@@ -366,10 +379,5 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
         {
             Log.Debug("Cleaned up metrics for {Count} expired connections", expiredConnections.Length);
         }
-    }
-
-    public void Dispose()
-    {
-        _cleanupTimer?.Dispose();
     }
 }
