@@ -56,7 +56,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
-    private volatile int _outageState;
+    private int _outageState;
     private readonly Lock _outageLock = new();
     private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
 
@@ -224,8 +224,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                     try
                     {
-                        Result<Unit, NetworkFailure> result =
-                            await SendRequestAsync(protocolSystem, request, onCompleted, operationToken);
+                        Result<Unit, NetworkFailure> result = flowType switch
+                        {
+                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            _ => Result<Unit, NetworkFailure>.Err(NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                        };
 
                         if (!result.IsErr) return result;
                         NetworkFailure failure = result.UnwrapErr();
@@ -287,6 +293,199 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         Log.Warning(ex, "Exception during request execution for {ServiceType}", serviceType);
                         return Result<Unit, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding($"Request execution failed: {ex.Message}"));
+                    }
+                },
+                operationName: operationName,
+                connectId: connectId,
+                maxRetries: 10,
+                cancellationToken: operationToken);
+
+            return networkResult;
+        }
+        finally
+        {
+            if (!shouldAllowDuplicates)
+            {
+                _inFlightRequests.TryRemove(requestKey, out _);
+            }
+        }
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> ExecuteUnaryRequestAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        bool allowDuplicates = false,
+        CancellationToken token = default)
+    {
+        return await ExecuteServiceRequestInternalAsync(
+            connectId, serviceType, plainBuffer, ServiceFlowType.Single,
+            onCompleted, allowDuplicates, token);
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> ExecuteReceiveStreamRequestAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        bool allowDuplicates = false,
+        CancellationToken token = default)
+    {
+        return await ExecuteServiceRequestInternalAsync(
+            connectId, serviceType, plainBuffer, ServiceFlowType.ReceiveStream,
+            onStreamItem, allowDuplicates, token);
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> ExecuteSendStreamRequestAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        bool allowDuplicates = false,
+        CancellationToken token = default)
+    {
+        return await ExecuteServiceRequestInternalAsync(
+            connectId, serviceType, plainBuffer, ServiceFlowType.SendStream,
+            onCompleted, allowDuplicates, token);
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> ExecuteBidirectionalStreamRequestAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        bool allowDuplicates = false,
+        CancellationToken token = default)
+    {
+        return await ExecuteServiceRequestInternalAsync(
+            connectId, serviceType, plainBuffer, ServiceFlowType.BidirectionalStream,
+            onStreamItem, allowDuplicates, token);
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestInternalAsync(
+        uint connectId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        ServiceFlowType flowType,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        bool allowDuplicates = false,
+        CancellationToken token = default)
+    {
+        if (_disposed)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("NetworkProvider is disposed"));
+        }
+
+        string hex = Convert.ToHexString(plainBuffer);
+        string prefix = hex[..Math.Min(hex.Length, 16)];
+        string requestKey = $"{connectId}_{serviceType}_{prefix}";
+
+        bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
+        if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, 0))
+        {
+            Log.Debug("Duplicate request detected for {ServiceType}, rejecting", serviceType);
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Duplicate request rejected"));
+        }
+
+        CancellationToken operationToken = token;
+
+        try
+        {
+            await WaitForOutageRecoveryAsync(operationToken);
+
+            string operationName = $"{serviceType}";
+            Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+                operation: async () =>
+                {
+                    if (operationToken.IsCancellationRequested)
+                    {
+                        return Result<Unit, NetworkFailure>.Err(
+                            NetworkFailure.DataCenterNotResponding("Request cancelled"));
+                    }
+
+                    if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+                    {
+                        return Result<Unit, NetworkFailure>.Err(
+                            NetworkFailure.DataCenterNotResponding(
+                                "Connection unavailable - server may be recovering"));
+                    }
+
+                    Result<ServiceRequest, NetworkFailure> requestResult =
+                        BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
+                    if (requestResult.IsErr)
+                    {
+                        NetworkFailure buildFailure = requestResult.UnwrapErr();
+                        if (FailureClassification.IsServerShutdown(buildFailure))
+                            EnterOutage(buildFailure.Message, connectId);
+
+                        return Result<Unit, NetworkFailure>.Err(buildFailure);
+                    }
+
+                    ServiceRequest request = requestResult.Unwrap();
+
+                    try
+                    {
+                        Result<Unit, NetworkFailure> result = flowType switch
+                        {
+                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
+                            _ => Result<Unit, NetworkFailure>.Err(NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                        };
+
+                        if (!result.IsErr) return result;
+                        NetworkFailure failure = result.UnwrapErr();
+
+                        if (FailureClassification.IsServerShutdown(failure))
+                        {
+                            EnterOutage(failure.Message, connectId);
+                        }
+                        else if (FailureClassification.IsCryptoDesync(failure))
+                        {
+                            Log.Warning(
+                                "Cryptographic desync detected for connection {ConnectId}, initiating recovery",
+                                connectId);
+                            if (!ShouldThrottleRecovery(connectId))
+                            {
+                                _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
+                                    (_, _) => DateTime.UtcNow);
+                                ExecuteBackgroundTask(PerformAdvancedRecoveryLogic,
+                                    $"CryptographicRecovery-{connectId}");
+                            }
+                        }
+                        else if (FailureClassification.IsChainRotationMismatch(failure))
+                        {
+                            Log.Warning(
+                                "Chain rotation mismatch detected for connection {ConnectId}: {Message}. Initiating protocol resynchronization",
+                                connectId, failure.Message);
+                            if (!ShouldThrottleRecovery(connectId))
+                            {
+                                _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
+                                    (_, _) => DateTime.UtcNow);
+                                ExecuteBackgroundTask(() => PerformProtocolResynchronization(connectId),
+                                    $"ProtocolResync-{connectId}");
+                            }
+                        }
+                        else if (FailureClassification.IsProtocolStateMismatch(failure))
+                        {
+                            Log.Warning(
+                                "Protocol state mismatch detected for connection {ConnectId}: {Message}. Forcing fresh protocol establishment",
+                                connectId, failure.Message);
+                            ExecuteBackgroundTask(() => PerformFreshProtocolEstablishment(connectId),
+                                $"FreshProtocol-{connectId}");
+                        }
+
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Unexpected error during {ServiceType} request", serviceType);
+                        return Result<Unit, NetworkFailure>.Err(
+                            NetworkFailure.DataCenterNotResponding("Unexpected error during request"));
                     }
                 },
                 operationName: operationName,
@@ -619,13 +818,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ServiceRequest.New(flowType, serviceType, cipherPayload, []));
     }
 
-    private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(
+    /// <summary>
+    /// Handles unary (single request-response) RPC calls
+    /// </summary>
+    private async Task<Result<Unit, NetworkFailure>> SendUnaryRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         CancellationToken token)
     {
-        Log.Debug("SendRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
+        Log.Debug("SendUnaryRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
         Result<RpcFlow, NetworkFailure> invokeResult =
             await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
 
@@ -636,55 +838,147 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         RpcFlow flow = invokeResult.Unwrap();
-        switch (flow)
+        if (flow is not RpcFlow.SingleCall singleCall)
         {
-            case RpcFlow.SingleCall singleCall:
-                Result<CipherPayload, NetworkFailure> callResult = await singleCall.Result;
-                if (callResult.IsErr)
-                {
-                    Log.Warning("RPC call failed: {Error}", callResult.UnwrapErr().Message);
-                    return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
-                }
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Expected SingleCall flow but received {flow.GetType().Name}"));
+        }
 
-                CipherPayload inboundPayload = callResult.Unwrap();
-                Log.Debug("Received CipherPayload - Nonce: {Nonce}, Size: {Size}",
-                    Convert.ToHexString(inboundPayload.Nonce.ToByteArray()), inboundPayload.Cipher.Length);
-                Result<byte[], EcliptixProtocolFailure> decryptedData =
-                    protocolSystem.ProcessInboundMessage(inboundPayload);
-                if (decryptedData.IsErr)
-                {
-                    Log.Warning("Decryption failed: {Error}", decryptedData.UnwrapErr().Message);
-                    return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
-                }
+        Result<CipherPayload, NetworkFailure> callResult = await singleCall.Result;
+        if (callResult.IsErr)
+        {
+            Log.Warning("RPC call failed: {Error}", callResult.UnwrapErr().Message);
+            return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
+        }
 
-                Log.Debug("Successfully decrypted response");
+        CipherPayload inboundPayload = callResult.Unwrap();
+        Log.Debug("Received CipherPayload - Nonce: {Nonce}, Size: {Size}",
+            Convert.ToHexString(inboundPayload.Nonce.ToByteArray()), inboundPayload.Cipher.Length);
+        
+        Result<byte[], EcliptixProtocolFailure> decryptedData =
+            protocolSystem.ProcessInboundMessage(inboundPayload);
+        if (decryptedData.IsErr)
+        {
+            Log.Warning("Decryption failed: {Error}", decryptedData.UnwrapErr().Message);
+            return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
+        }
 
-                await onCompleted(decryptedData.Unwrap());
-                break;
+        Log.Debug("Successfully decrypted unary response");
+        await onCompleted(decryptedData.Unwrap());
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
 
-            case RpcFlow.InboundStream inboundStream:
-                await foreach (Result<CipherPayload, NetworkFailure> streamItem in
-                               inboundStream.Stream.WithCancellation(token))
-                {
-                    if (streamItem.IsErr) continue;
+    /// <summary>
+    /// Handles server streaming (receive stream) RPC calls
+    /// </summary>
+    private async Task<Result<Unit, NetworkFailure>> SendReceiveStreamRequestAsync(
+        EcliptixProtocolSystem protocolSystem,
+        ServiceRequest request,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        CancellationToken token)
+    {
+        Log.Debug("SendReceiveStreamRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
+        Result<RpcFlow, NetworkFailure> invokeResult =
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
 
-                    CipherPayload streamPayload = streamItem.Unwrap();
-                    Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
-                        protocolSystem.ProcessInboundMessage(streamPayload);
-                    if (streamDecryptedData.IsErr) continue;
+        if (invokeResult.IsErr)
+        {
+            Log.Warning("InvokeServiceRequestAsync failed: {Error}", invokeResult.UnwrapErr().Message);
+            return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+        }
 
-                    await onCompleted(streamDecryptedData.Unwrap());
-                }
+        RpcFlow flow = invokeResult.Unwrap();
+        if (flow is not RpcFlow.InboundStream inboundStream)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
+        }
 
-                break;
+        await foreach (Result<CipherPayload, NetworkFailure> streamItem in
+                       inboundStream.Stream.WithCancellation(token))
+        {
+            if (streamItem.IsErr) 
+            {
+                Log.Warning("Stream item error: {Error}", streamItem.UnwrapErr().Message);
+                continue;
+            }
 
-            case RpcFlow.OutboundSink _:
-            case RpcFlow.BidirectionalStream _:
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.InvalidRequestType("Unsupported stream type"));
+            CipherPayload streamPayload = streamItem.Unwrap();
+            Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
+                protocolSystem.ProcessInboundMessage(streamPayload);
+            if (streamDecryptedData.IsErr) 
+            {
+                Log.Warning("Stream decryption failed: {Error}", streamDecryptedData.UnwrapErr().Message);
+                continue;
+            }
+
+            Log.Debug("Successfully decrypted stream item");
+            await onStreamItem(streamDecryptedData.Unwrap());
         }
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    /// <summary>
+    /// Handles client streaming (send stream) RPC calls - Currently not implemented
+    /// </summary>
+    private async Task<Result<Unit, NetworkFailure>> SendSendStreamRequestAsync(
+        EcliptixProtocolSystem protocolSystem,
+        ServiceRequest request,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        CancellationToken token)
+    {
+        Log.Debug("SendSendStreamRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
+        Result<RpcFlow, NetworkFailure> invokeResult =
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+
+        if (invokeResult.IsErr)
+        {
+            Log.Warning("InvokeServiceRequestAsync failed: {Error}", invokeResult.UnwrapErr().Message);
+            return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+        }
+
+        RpcFlow flow = invokeResult.Unwrap();
+        if (flow is not RpcFlow.OutboundSink)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Expected OutboundSink flow but received {flow.GetType().Name}"));
+        }
+
+        // TODO: Implement client streaming logic when needed
+        return Result<Unit, NetworkFailure>.Err(
+            NetworkFailure.InvalidRequestType("Client streaming is not yet implemented"));
+    }
+
+    /// <summary>
+    /// Handles bidirectional streaming RPC calls - Currently not implemented
+    /// </summary>
+    private async Task<Result<Unit, NetworkFailure>> SendBidirectionalStreamRequestAsync(
+        EcliptixProtocolSystem protocolSystem,
+        ServiceRequest request,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        CancellationToken token)
+    {
+        Log.Debug("SendBidirectionalStreamRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
+        Result<RpcFlow, NetworkFailure> invokeResult =
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+
+        if (invokeResult.IsErr)
+        {
+            Log.Warning("InvokeServiceRequestAsync failed: {Error}", invokeResult.UnwrapErr().Message);
+            return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+        }
+
+        RpcFlow flow = invokeResult.Unwrap();
+        if (flow is not RpcFlow.BidirectionalStream)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Expected BidirectionalStream flow but received {flow.GetType().Name}"));
+        }
+
+        // TODO: Implement bidirectional streaming logic when needed
+        return Result<Unit, NetworkFailure>.Err(
+            NetworkFailure.InvalidRequestType("Bidirectional streaming is not yet implemented"));
     }
 
     private async Task WaitForOutageRecoveryAsync(CancellationToken token)
@@ -697,8 +991,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             waitTask = _outageRecoveredTcs.Task;
         }
 
-        // Use single await with proper cancellation handling - more efficient than double await
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         await waitTask.WaitAsync(cts.Token);
     }
 
@@ -1282,8 +1575,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         _retryStrategy.ResetConnectionState();
 
-        // Explicitly mark all active connections as healthy to reset circuit breakers immediately
-        foreach (var connection in _connections)
+        foreach (KeyValuePair<uint, EcliptixProtocolSystem> connection in _connections)
         {
             _retryStrategy.MarkConnectionHealthy(connection.Key);
             Log.Debug("Marked connection {ConnectId} as healthy after outage recovery", connection.Key);
@@ -1294,31 +1586,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Debug("Retry strategy state cleared - fresh retry cycles will begin for subsequent operations");
     }
 
-    /// <summary>
-    /// Gets retry statistics for network operations - useful for monitoring and diagnostics
-    /// </summary>
-    /// <param name="connectId">Optional connection ID to get metrics for specific connection, or null for all connections</param>
-    /// <returns>Retry metrics including success rates, failure counts, and timing information</returns>
     public RetryMetrics GetRetryMetrics(uint? connectId = null)
     {
         return _retryStrategy.GetRetryMetrics(connectId);
     }
 
-    /// <summary>
-    /// Gets detailed connection retry state for debugging purposes
-    /// </summary>
-    /// <param name="connectId">Connection ID to get state for</param>
-    /// <returns>Connection retry state including circuit breaker status and failure counts, or null if connection not found</returns>
     public ConnectionRetryState? GetConnectionRetryState(uint connectId)
     {
         return _retryStrategy.GetConnectionState(connectId);
     }
 
-    /// <summary>
-    /// Gets comprehensive connection diagnostics combining health and retry information
-    /// </summary>
-    /// <param name="connectId">Connection ID to get diagnostics for</param>
-    /// <returns>Combined diagnostics information for monitoring and debugging</returns>
     public ConnectionDiagnostics? GetConnectionDiagnostics(uint connectId)
     {
         ConnectionHealth? health = _connectionStateManager.GetConnectionHealth(connectId);

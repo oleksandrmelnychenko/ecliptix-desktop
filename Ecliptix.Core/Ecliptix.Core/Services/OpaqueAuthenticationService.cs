@@ -133,11 +133,10 @@ public class OpaqueAuthenticationService(
     {
         OpaqueSignInInitResponse? capturedResponse = null;
 
-        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
-            ServiceFlowType.Single,
             async initResponsePayload =>
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
@@ -164,11 +163,10 @@ public class OpaqueAuthenticationService(
     {
         OpaqueSignInFinalizeResponse? capturedResponse = null;
 
-        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
-            ServiceFlowType.Single,
             async finalizeResponsePayload =>
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);

@@ -191,11 +191,10 @@ public class ApplicationInitializer(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
-        return await networkProvider.ExecuteServiceRequestAsync(
+        return await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
             appDevice.ToByteArray(),
-            ServiceFlowType.Single,
             decryptedPayload =>
             {
                 AppDeviceRegisteredStateReply reply =

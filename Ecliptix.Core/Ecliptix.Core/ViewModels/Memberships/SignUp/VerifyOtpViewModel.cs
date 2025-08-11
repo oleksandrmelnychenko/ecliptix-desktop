@@ -148,11 +148,10 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         };
 
         uint connectId = ComputeConnectId();
-        _ = await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteReceiveStreamRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
-            ServiceFlowType.ReceiveStream,
             payload =>
             {
                 VerificationCountdownUpdate timerTick =
@@ -205,11 +204,10 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
         };
 
-        _ = await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteUnaryRequestAsync(
             ComputeConnectId(),
             RpcServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
-            ServiceFlowType.Single,
             async payload =>
             {
                 VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);

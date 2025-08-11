@@ -267,11 +267,10 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
-            Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteServiceRequestAsync(
+            Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 ComputeConnectId(),
                 RpcServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
-                ServiceFlowType.Single,
                 async payload =>
                 {
                     OprfRegistrationInitResponse createMembershipResponse =
@@ -305,11 +304,10 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                         PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord)!
                     };
 
-                    await NetworkProvider.ExecuteServiceRequestAsync(
+                    await NetworkProvider.ExecuteUnaryRequestAsync(
                         ComputeConnectId(),
                         RpcServiceType.OpaqueRegistrationComplete,
                         completeRequest.ToByteArray(),
-                        ServiceFlowType.Single,
                         async completePayload =>
                         {
                             try
