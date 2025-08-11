@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network;
@@ -54,7 +55,8 @@ public class OpaqueAuthenticationService(
         {
             OpaqueFailure opaqueError = oprfResult.UnwrapErr();
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError, opaqueError.Message));
-            return Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
+            Result<byte[], string> errorResult = Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
+            return errorResult;
         }
 
         (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
@@ -64,101 +66,43 @@ public class OpaqueAuthenticationService(
             PeerOprf = ByteString.CopyFrom(oprfRequest),
         };
 
-        byte[]? capturedSessionKey = null;
-
-        Result<Unit, ValidationFailure> flowResult = await networkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RpcServiceType.OpaqueSignInInitRequest,
-            initRequest.ToByteArray(),
-            ServiceFlowType.Single,
-            onCompleted: async initResponsePayload =>
-            {
-                OpaqueSignInInitResponse initResponse =
-                    Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
-
-                Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
-                if (validationResult.IsErr)
-                    return validationResult;
-
-                Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
-                    TranscriptHash), OpaqueFailure> finalizationResult =
-                    clientOpaqueService.CreateSignInFinalizationRequest(
-                        mobileNumber, passwordBytes, initResponse, blind);
-
-                if (finalizationResult.IsErr)
-                {
-                    return Result<Unit, ValidationFailure>.Err(
-                        ValidationFailure.SignInFailed(
-                            localizationService["ValidationErrors.SecureKey.InvalidCredentials"]));
-                }
-
-                (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
-                    byte[] transcriptHash) = finalizationResult.Unwrap();
-
-                return await SendFinalizeRequestAndVerify(
-                    clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash,
-                    onSuccess: finalKey => capturedSessionKey = finalKey);
-            }, false
-        );
-
-        if (flowResult.IsErr)
+        Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest);
+        if (initResult.IsErr)
         {
-            return Result<byte[], string>.Err(flowResult.UnwrapErr().Message);
+            Result<byte[], string> errorResult = Result<byte[], string>.Err(initResult.UnwrapErr());
+            return errorResult;
         }
 
-        return capturedSessionKey == null
-            ? Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"])
-            : Result<byte[], string>.Ok(capturedSessionKey);
-    }
-
-    private async Task<Result<Unit, ValidationFailure>> SendFinalizeRequestAndVerify(
-        OpaqueProtocolService clientOpaqueService,
-        OpaqueSignInFinalizeRequest finalizeRequest,
-        byte[] sessionKey,
-        byte[] serverMacKey,
-        byte[] transcriptHash,
-        Action<byte[]> onSuccess)
-    {
-        Result<Unit, ValidationFailure> result = await networkProvider.ExecuteServiceRequestAsync(
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
-            RpcServiceType.OpaqueSignInCompleteRequest,
-            finalizeRequest.ToByteArray(),
-            ServiceFlowType.Single,
-            onCompleted: finalizeResponsePayload =>
-            {
-                OpaqueSignInFinalizeResponse finalizeResponse =
-                    Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
-
-                if (finalizeResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
-                {
-                    string message = finalizeResponse.HasMessage
-                        ? finalizeResponse.Message
-                        : localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
-                    return Task.FromResult(
-                        Result<Unit, ValidationFailure>.Err(ValidationFailure.SignInFailed(message)));
-                }
-
-                Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
-                    finalizeResponse, sessionKey, serverMacKey, transcriptHash);
-
-                if (verificationResult.IsErr)
-                {
-                    string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
-
-                    systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-                        verificationResult.UnwrapErr().Message));
-
-                    return Task.FromResult(
-                        Result<Unit, ValidationFailure>.Err(ValidationFailure.SignInFailed(errorMessage)));
-                }
-
-                onSuccess(verificationResult.Unwrap());
-                return Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
-            }
-        );
+        OpaqueSignInInitResponse initResponse = initResult.Unwrap();
         
-        return result;
+        Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
+        if (validationResult.IsErr)
+        {
+            Result<byte[], string> errorResult = Result<byte[], string>.Err(validationResult.UnwrapErr().Message);
+            return errorResult;
+        }
+
+        Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
+            TranscriptHash), OpaqueFailure> finalizationResult =
+            clientOpaqueService.CreateSignInFinalizationRequest(
+                mobileNumber, passwordBytes, initResponse, blind);
+
+        if (finalizationResult.IsErr)
+        {
+            Result<byte[], string> errorResult = Result<byte[], string>.Err(
+                localizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
+            return errorResult;
+        }
+
+        (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
+            byte[] transcriptHash) = finalizationResult.Unwrap();
+
+        Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
+            clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash);
+        
+        return finalResult;
     }
+
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
     {
@@ -196,4 +140,85 @@ public class OpaqueAuthenticationService(
 
     private byte[] ServerPublicKey() =>
         networkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
+
+    private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(OpaqueSignInInitRequest initRequest)
+    {
+        OpaqueSignInInitResponse? capturedResponse = null;
+        
+        Result<Unit, ValidationFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            RpcServiceType.OpaqueSignInInitRequest,
+            initRequest.ToByteArray(),
+            ServiceFlowType.Single,
+            async initResponsePayload =>
+            {
+                capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
+                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+            }, false, CancellationToken.None
+        );
+
+        if (networkResult.IsErr)
+        {
+            return Result<OpaqueSignInInitResponse, string>.Err(networkResult.UnwrapErr().Message);
+        }
+
+        return capturedResponse == null
+            ? Result<OpaqueSignInInitResponse, string>.Err(localizationService["Errors.Generic.Unexpected"])
+            : Result<OpaqueSignInInitResponse, string>.Ok(capturedResponse);
+    }
+
+    private async Task<Result<byte[], string>> SendFinalizeRequestAndVerifyAsync(
+        OpaqueProtocolService clientOpaqueService,
+        OpaqueSignInFinalizeRequest finalizeRequest,
+        byte[] sessionKey,
+        byte[] serverMacKey,
+        byte[] transcriptHash)
+    {
+        OpaqueSignInFinalizeResponse? capturedResponse = null;
+        
+        Result<Unit, ValidationFailure> networkResult = await networkProvider.ExecuteServiceRequestAsync(
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
+            RpcServiceType.OpaqueSignInCompleteRequest,
+            finalizeRequest.ToByteArray(),
+            ServiceFlowType.Single,
+            async finalizeResponsePayload =>
+            {
+                capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
+                return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+            }, false, CancellationToken.None
+        );
+
+        if (networkResult.IsErr)
+        {
+            return Result<byte[], string>.Err(networkResult.UnwrapErr().Message);
+        }
+
+        if (capturedResponse == null)
+        {
+            return Result<byte[], string>.Err(localizationService["Errors.Generic.Unexpected"]);
+        }
+
+        // Business logic validation - this should not be retried
+        if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+        {
+            string message = capturedResponse.HasMessage
+                ? capturedResponse.Message
+                : localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
+            return Result<byte[], string>.Err(message);
+        }
+
+        // Cryptographic verification - this should not be retried
+        Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
+            capturedResponse, sessionKey, serverMacKey, transcriptHash);
+
+        if (verificationResult.IsErr)
+        {
+            string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
+            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
+                verificationResult.UnwrapErr().Message));
+            return Result<byte[], string>.Err(errorMessage);
+        }
+
+        return Result<byte[], string>.Ok(verificationResult.Unwrap());
+    }
 }

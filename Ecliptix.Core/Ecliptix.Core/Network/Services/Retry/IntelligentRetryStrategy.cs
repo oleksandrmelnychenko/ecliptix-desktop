@@ -10,25 +10,24 @@ namespace Ecliptix.Core.Network.Services.Retry;
 
 public sealed class IntelligentRetryStrategy : IRetryStrategy
 {
-    // Messaging app-inspired retry strategy similar to Telegram, Signal, Viber
-    private static readonly TimeSpan[] RetryDelays = 
-    {
-        TimeSpan.Zero,                    // 1st retry: immediate (0ms)
-        TimeSpan.FromSeconds(1),          // 2nd retry: 1 second
-        TimeSpan.FromSeconds(2),          // 3rd retry: 2 seconds  
-        TimeSpan.FromSeconds(5),          // 4th retry: 5 seconds
-        TimeSpan.FromSeconds(10),         // 5th retry: 10 seconds
-        TimeSpan.FromSeconds(20),         // 6th retry: 20 seconds
-        TimeSpan.FromSeconds(30)          // 7th retry: 30 seconds
-    };
-    
+    private static readonly TimeSpan[] RetryDelays =
+    [
+        TimeSpan.Zero, 
+        TimeSpan.FromSeconds(1), 
+        TimeSpan.FromSeconds(2),  
+        TimeSpan.FromSeconds(5),
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromSeconds(20),
+        TimeSpan.FromSeconds(30)
+    ];
+
     private static readonly Random SharedRandom = new();
 
     public async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 7,  // Increased to match messaging app behavior
+        int maxRetries = 7,
         CancellationToken cancellationToken = default)
     {
         int attempt = 0;
@@ -52,7 +51,7 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "{Operation} threw exception on attempt {Attempt}{ConnHint}: {ExceptionType}", 
+                Log.Warning(ex, "{Operation} threw exception on attempt {Attempt}{ConnHint}: {ExceptionType}",
                     operationName, attempt,
                     connectId.HasValue ? $" (ConnectId: {connectId.Value})" : string.Empty,
                     ex.GetType().Name);
@@ -100,28 +99,21 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
         }
     }
 
-    /// <summary>
-    /// Gets retry delay based on messaging app patterns (Telegram, Signal, Viber)
-    /// with added jitter to prevent thundering herd effect
-    /// </summary>
     private static TimeSpan GetRetryDelayWithJitter(int attempt)
     {
-        // Use predefined delays for first attempts, then fallback to exponential backoff
-        TimeSpan baseDelay = attempt <= RetryDelays.Length 
-            ? RetryDelays[attempt - 1] 
-            : TimeSpan.FromSeconds(30); // Cap at 30 seconds for subsequent attempts
+        TimeSpan baseDelay = attempt <= RetryDelays.Length
+            ? RetryDelays[attempt - 1]
+            : TimeSpan.FromSeconds(30);
 
-        // Skip jitter for immediate retry (first attempt)
         if (baseDelay == TimeSpan.Zero)
         {
             return baseDelay;
         }
 
-        // Add ±20% jitter to prevent thundering herd
         double jitterPercent;
         lock (SharedRandom)
         {
-            jitterPercent = (SharedRandom.NextDouble() - 0.5) * 0.4; // -0.2 to +0.2 (±20%)
+            jitterPercent = (SharedRandom.NextDouble() - 0.5) * 0.4;
         }
 
         double jitteredMs = baseDelay.TotalMilliseconds * (1 + jitterPercent);

@@ -12,6 +12,6 @@ public interface IRetryStrategy
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 7,  // Increased to match messaging app behavior
+        int maxRetries = 7, 
         CancellationToken cancellationToken = default);
 }
