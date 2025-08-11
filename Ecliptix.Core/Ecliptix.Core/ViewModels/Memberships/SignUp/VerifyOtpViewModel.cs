@@ -149,7 +149,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = (await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
@@ -189,7 +189,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 return Task.FromResult(Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value));
             }, true,
             cancellationTokenSource.Token
-        )).ToValidationFailure();
+        );
     }
 
     private async Task SendVerificationCode()
@@ -206,7 +206,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
         };
 
-        _ = (await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = await NetworkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
@@ -231,7 +231,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 return Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value);
             }, true,
             CancellationToken.None
-        )).ToValidationFailure();
+        );
     }
 
     private void ReSendVerificationCode()

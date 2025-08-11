@@ -145,7 +145,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Cleared connection {ConnectId} from cache and monitoring", connectId);
     }
 
-    public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestAsync(
+    public async Task<Result<Unit, ValidationFailure>> ExecuteServiceRequestAsync(
         uint connectId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
@@ -156,8 +156,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (_disposed)
         {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("NetworkProvider is disposed"));
+            return Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.SignInFailed("NetworkProvider is disposed"));
         }
 
         string hex = Convert.ToHexString(plainBuffer);
@@ -168,8 +168,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, 0))
         {
             Log.Debug("Duplicate request detected for {ServiceType}, rejecting", serviceType);
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Duplicate request rejected"));
+            return Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.SignInFailed("Duplicate request rejected"));
         }
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
@@ -182,7 +182,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             await WaitForOutageRecoveryAsync(combinedToken);
 
             string operationName = $"{serviceType}";
-            return await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+            Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                 operation: async () =>
                 {
                     if (combinedToken.IsCancellationRequested)
@@ -194,7 +194,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                     {
                         return Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
+                            NetworkFailure.DataCenterNotResponding(
+                                "Connection unavailable - server may be recovering"));
                     }
 
                     Result<ServiceRequest, NetworkFailure> requestResult =
@@ -260,6 +261,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 connectId: connectId,
                 maxRetries: 10,
                 cancellationToken: combinedToken);
+
+            return networkResult.ToValidationFailure();
         }
         finally
         {
@@ -457,8 +460,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
-            // During outage/recovery, treat missing connections as transient failures
-            // This allows retry logic to work properly when server is temporarily unavailable
             return Result<EcliptixSecrecyChannelState, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
         }

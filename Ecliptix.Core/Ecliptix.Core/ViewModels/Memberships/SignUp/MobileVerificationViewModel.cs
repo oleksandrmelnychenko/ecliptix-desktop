@@ -111,13 +111,13 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Result<ShieldUnit, ValidationFailure> result = (await NetworkProvider.ExecuteServiceRequestAsync(
+        Result<ShieldUnit, ValidationFailure> result = await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.ValidatePhoneNumber,
             request.ToByteArray(),
             ServiceFlowType.Single,
             HandleValidationResponseAsync
-        )).ToValidationFailure();
+        );
 
         if (result.IsOk)
         {

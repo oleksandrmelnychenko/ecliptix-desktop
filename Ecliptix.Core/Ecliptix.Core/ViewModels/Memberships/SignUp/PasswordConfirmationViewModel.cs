@@ -268,7 +268,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
             };
 
-            Result<Unit, ValidationFailure> createMembershipResult = (await NetworkProvider.ExecuteServiceRequestAsync(
+            Result<Unit, ValidationFailure> createMembershipResult = await NetworkProvider.ExecuteServiceRequestAsync(
                 ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
                 RpcServiceType.OpaqueRegistrationInit,
                 request.ToByteArray(),
@@ -332,7 +332,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                         return await Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
                 }, true,
                 CancellationToken.None
-            )).ToValidationFailure();
+            );
         }
         catch (Exception ex)
         {

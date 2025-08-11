@@ -66,7 +66,7 @@ public class OpaqueAuthenticationService(
 
         byte[]? capturedSessionKey = null;
 
-        Result<Unit, ValidationFailure> flowResult = (await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, ValidationFailure> flowResult = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
@@ -99,7 +99,7 @@ public class OpaqueAuthenticationService(
                     clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash,
                     onSuccess: finalKey => capturedSessionKey = finalKey);
             }, false
-        )).ToValidationFailure();
+        );
 
         if (flowResult.IsErr)
         {
@@ -119,7 +119,7 @@ public class OpaqueAuthenticationService(
         byte[] transcriptHash,
         Action<byte[]> onSuccess)
     {
-        Result<Unit, NetworkFailure> result = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, ValidationFailure> result = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
@@ -157,7 +157,7 @@ public class OpaqueAuthenticationService(
             }
         );
         
-        return result.ToValidationFailure();
+        return result;
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)

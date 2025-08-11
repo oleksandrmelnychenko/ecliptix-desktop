@@ -195,7 +195,7 @@ public class ApplicationInitializer(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
-        return (await networkProvider.ExecuteServiceRequestAsync(
+        return await networkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
             appDevice.ToByteArray(),
@@ -212,6 +212,6 @@ public class ApplicationInitializer(
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);
                 return Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None)).ToValidationFailure();
+            }, false, CancellationToken.None);
     }
 }
