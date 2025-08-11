@@ -177,7 +177,7 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
         if (FailureClassification.IsServerShutdown(failure))
         {
-            baseDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * 2.0);
+            baseDelay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * 0.3);
         }
         else if (FailureClassification.IsChainRotationMismatch(failure))
         {

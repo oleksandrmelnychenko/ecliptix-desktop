@@ -1293,4 +1293,49 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Log.Debug("Retry strategy state cleared - fresh retry cycles will begin for subsequent operations");
     }
+
+    /// <summary>
+    /// Gets retry statistics for network operations - useful for monitoring and diagnostics
+    /// </summary>
+    /// <param name="connectId">Optional connection ID to get metrics for specific connection, or null for all connections</param>
+    /// <returns>Retry metrics including success rates, failure counts, and timing information</returns>
+    public RetryMetrics GetRetryMetrics(uint? connectId = null)
+    {
+        return _retryStrategy.GetRetryMetrics(connectId);
+    }
+
+    /// <summary>
+    /// Gets detailed connection retry state for debugging purposes
+    /// </summary>
+    /// <param name="connectId">Connection ID to get state for</param>
+    /// <returns>Connection retry state including circuit breaker status and failure counts, or null if connection not found</returns>
+    public ConnectionRetryState? GetConnectionRetryState(uint connectId)
+    {
+        return _retryStrategy.GetConnectionState(connectId);
+    }
+
+    /// <summary>
+    /// Gets comprehensive connection diagnostics combining health and retry information
+    /// </summary>
+    /// <param name="connectId">Connection ID to get diagnostics for</param>
+    /// <returns>Combined diagnostics information for monitoring and debugging</returns>
+    public ConnectionDiagnostics? GetConnectionDiagnostics(uint connectId)
+    {
+        ConnectionHealth? health = _connectionStateManager.GetConnectionHealth(connectId);
+        if (health == null)
+        {
+            return null;
+        }
+
+        RetryMetrics retryMetrics = _retryStrategy.GetRetryMetrics(connectId);
+        ConnectionRetryState? retryState = _retryStrategy.GetConnectionState(connectId);
+
+        return new ConnectionDiagnostics(
+            ConnectId: connectId,
+            Health: health,
+            RetryMetrics: retryMetrics,
+            RetryState: retryState,
+            IsInOutage: Volatile.Read(ref _outageState) != 0
+        );
+    }
 }

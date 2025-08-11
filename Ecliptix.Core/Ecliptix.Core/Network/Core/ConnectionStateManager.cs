@@ -277,16 +277,6 @@ public class ConnectionStateManager : IConnectionStateManager
         _healthChangedSubject.OnNext(updated);
     }
 
-    public async Task<bool> IsConnectionHealthyAsync(uint connectId)
-    {
-        await Task.CompletedTask;
-        if (!_connections.TryGetValue(connectId, out ConnectionHealth? health))
-        {
-            return false;
-        }
-
-        return health.Status == ConnectionHealthStatus.Healthy;
-    }
 
 
     public void Dispose()
