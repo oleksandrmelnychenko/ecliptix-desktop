@@ -14,7 +14,9 @@ using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using Serilog;
 
@@ -79,7 +81,7 @@ public class ApplicationInitializer(
 
         uint connectId = connectIdResult.Unwrap();
 
-        Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
+        Result<Unit, ValidationFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
         if (registrationResult.IsErr)
         {
             Log.Error("Device registration failed: {Error}", registrationResult.UnwrapErr());
@@ -183,7 +185,7 @@ public class ApplicationInitializer(
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 
-    private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
+    private async Task<Result<Unit, ValidationFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
         AppDevice appDevice = new()
@@ -193,7 +195,7 @@ public class ApplicationInitializer(
             DeviceType = AppDevice.Types.DeviceType.Desktop
         };
 
-        return await networkProvider.ExecuteServiceRequestAsync(
+        return (await networkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
             appDevice.ToByteArray(),
@@ -209,7 +211,7 @@ public class ApplicationInitializer(
 
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);
-                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None);
+                return Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
+            }, false, CancellationToken.None)).ToValidationFailure();
     }
 }

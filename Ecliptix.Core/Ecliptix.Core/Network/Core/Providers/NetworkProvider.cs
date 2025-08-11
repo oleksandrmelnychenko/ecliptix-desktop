@@ -23,6 +23,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using Serilog;
 
@@ -149,7 +150,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         RpcServiceType serviceType,
         byte[] plainBuffer,
         ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        Func<byte[], Task<Result<Unit, ValidationFailure>>> onCompleted,
         bool allowDuplicates = false,
         CancellationToken token = default)
     {
@@ -193,7 +194,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                     {
                         return Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.InvalidRequestType("Connection not found"));
+                            NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
                     }
 
                     Result<ServiceRequest, NetworkFailure> requestResult =
@@ -233,6 +234,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 ExecuteBackgroundTask(PerformAdvancedRecoveryLogic,
                                     $"CryptographicRecovery-{connectId}");
                             }
+                        }
+                        else
+                        {
+                            return result;
                         }
 
                         _connectionStateManager.UpdateConnectionHealth(connectId, result);
@@ -438,7 +443,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Result<Unit, EcliptixProtocolFailure>
                 syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
-            return syncResult.IsErr ? Result<bool, NetworkFailure>.Err(syncResult.UnwrapErr().ToNetworkFailure()) : Result<bool, NetworkFailure>.Ok(true);
+            return syncResult.IsErr
+                ? Result<bool, NetworkFailure>.Err(syncResult.UnwrapErr().ToNetworkFailure())
+                : Result<bool, NetworkFailure>.Ok(true);
         }
 
         Log.Information("Session not found on server (status: {Status}), will establish new channel", response.Status);
@@ -450,8 +457,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
+            // During outage/recovery, treat missing connections as transient failures
+            // This allows retry logic to work properly when server is temporarily unavailable
             return Result<EcliptixSecrecyChannelState, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Connection not found"));
+                NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
         }
 
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
@@ -578,7 +587,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task<Result<Unit, NetworkFailure>> SendRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        Func<byte[], Task<Result<Unit, ValidationFailure>>> onCompleted,
         CancellationToken token)
     {
         Log.Debug("SendRequestAsync - ServiceType: {ServiceType}", request.RpcServiceMethod);
@@ -615,8 +624,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 Log.Debug("Successfully decrypted response");
 
-                Result<Unit, NetworkFailure> callbackOutcome = await onCompleted(decryptedData.Unwrap());
-                if (callbackOutcome.IsErr) return callbackOutcome;
+                await onCompleted(decryptedData.Unwrap());
                 break;
 
             case RpcFlow.InboundStream inboundStream:
@@ -630,12 +638,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         protocolSystem.ProcessInboundMessage(streamPayload);
                     if (streamDecryptedData.IsErr) continue;
 
-                    Result<Unit, NetworkFailure> streamCallbackOutcome =
-                        await onCompleted(streamDecryptedData.Unwrap());
-                    if (streamCallbackOutcome.IsErr)
-                    {
-                        Log.Warning("Stream callback failed: {Error}", streamCallbackOutcome.UnwrapErr());
-                    }
+                    await onCompleted(streamDecryptedData.Unwrap());
                 }
 
                 break;

@@ -8,8 +8,10 @@ using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
@@ -64,7 +66,7 @@ public class OpaqueAuthenticationService(
 
         byte[]? capturedSessionKey = null;
 
-        Result<Unit, NetworkFailure> flowResult = await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, ValidationFailure> flowResult = (await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
@@ -74,7 +76,7 @@ public class OpaqueAuthenticationService(
                 OpaqueSignInInitResponse initResponse =
                     Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
 
-                Result<Unit, NetworkFailure> validationResult = ValidateInitResponse(initResponse);
+                Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
                 if (validationResult.IsErr)
                     return validationResult;
 
@@ -85,9 +87,9 @@ public class OpaqueAuthenticationService(
 
                 if (finalizationResult.IsErr)
                 {
-                    return Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(
-                            localizationService["ValidationErrors.SecureKey.InvalidCredentials"])
-                        .ToNetworkFailure());
+                    return Result<Unit, ValidationFailure>.Err(
+                        ValidationFailure.SignInFailed(
+                            localizationService["ValidationErrors.SecureKey.InvalidCredentials"]));
                 }
 
                 (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
@@ -97,7 +99,7 @@ public class OpaqueAuthenticationService(
                     clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash,
                     onSuccess: finalKey => capturedSessionKey = finalKey);
             }, false
-        );
+        )).ToValidationFailure();
 
         if (flowResult.IsErr)
         {
@@ -109,7 +111,7 @@ public class OpaqueAuthenticationService(
             : Result<byte[], string>.Ok(capturedSessionKey);
     }
 
-    private async Task<Result<Unit, NetworkFailure>> SendFinalizeRequestAndVerify(
+    private async Task<Result<Unit, ValidationFailure>> SendFinalizeRequestAndVerify(
         OpaqueProtocolService clientOpaqueService,
         OpaqueSignInFinalizeRequest finalizeRequest,
         byte[] sessionKey,
@@ -117,7 +119,7 @@ public class OpaqueAuthenticationService(
         byte[] transcriptHash,
         Action<byte[]> onSuccess)
     {
-        return await networkProvider.ExecuteServiceRequestAsync(
+        Result<Unit, NetworkFailure> result = await networkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.OpaqueSignInCompleteRequest,
             finalizeRequest.ToByteArray(),
@@ -133,7 +135,7 @@ public class OpaqueAuthenticationService(
                         ? finalizeResponse.Message
                         : localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
                     return Task.FromResult(
-                        Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(message).ToNetworkFailure()));
+                        Result<Unit, ValidationFailure>.Err(ValidationFailure.SignInFailed(message)));
                 }
 
                 Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
@@ -147,33 +149,30 @@ public class OpaqueAuthenticationService(
                         verificationResult.UnwrapErr().Message));
 
                     return Task.FromResult(
-                        Result<Unit, NetworkFailure>.Err(EcliptixProtocolFailure.Generic(errorMessage)
-                            .ToNetworkFailure()));
+                        Result<Unit, ValidationFailure>.Err(ValidationFailure.SignInFailed(errorMessage)));
                 }
 
                 onSuccess(verificationResult.Unwrap());
-                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                return Task.FromResult(Result<Unit, ValidationFailure>.Ok(Unit.Value));
             }
         );
+        
+        return result.ToValidationFailure();
     }
 
-    private Result<Unit, NetworkFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
+    private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
     {
         return initResponse.Result switch
         {
-            OpaqueSignInInitResponse.Types.SignInResult.InvalidCredentials => Result<Unit, NetworkFailure>.Err(
-                EcliptixProtocolFailure.Generic(
-                        initResponse.Message)
-                    .ToNetworkFailure()),
-            OpaqueSignInInitResponse.Types.SignInResult.LoginAttemptExceeded => Result<Unit, NetworkFailure>.Err(
-                EcliptixProtocolFailure.Generic(
-                        initResponse.Message)
-                    .ToNetworkFailure()),
-            var other when !string.IsNullOrEmpty(initResponse.Message) =>
-                Result<Unit, NetworkFailure>.Err(
-                    EcliptixProtocolFailure.Generic(initResponse.Message).ToNetworkFailure()),
+            OpaqueSignInInitResponse.Types.SignInResult.InvalidCredentials => Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.SignInFailed(initResponse.Message)),
+            OpaqueSignInInitResponse.Types.SignInResult.LoginAttemptExceeded => Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.LoginAttemptExceeded(initResponse.Message)),
+            _ when !string.IsNullOrEmpty(initResponse.Message) =>
+                Result<Unit, ValidationFailure>.Err(
+                    ValidationFailure.SignInFailed(initResponse.Message)),
 
-            _ => Result<Unit, NetworkFailure>.Ok(Unit.Value)
+            _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
         };
     }
 

@@ -14,6 +14,7 @@ public static class FailureClassification
             message.Contains("not responding") ||
             message.Contains("connection reset") ||
             message.Contains("connection refused") ||
+            message.Contains("recovering") ||
             message.Contains("network") ||
             message.Contains("retry") ||
             message.Contains("backoff"))

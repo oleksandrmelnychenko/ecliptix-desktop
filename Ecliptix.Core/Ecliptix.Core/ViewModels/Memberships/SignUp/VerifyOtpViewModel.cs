@@ -17,7 +17,9 @@ using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -147,7 +149,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         };
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        _ = await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = (await NetworkProvider.ExecuteServiceRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
             membershipVerificationRequest.ToByteArray(),
@@ -184,10 +186,10 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 RxApp.MainThreadScheduler.Schedule(() =>
                     RemainingTime = FormatRemainingTime(timerTick.SecondsRemaining));
 
-                return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
+                return Task.FromResult(Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value));
             }, true,
             cancellationTokenSource.Token
-        );
+        )).ToValidationFailure();
     }
 
     private async Task SendVerificationCode()
@@ -204,7 +206,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
         };
 
-        await NetworkProvider.ExecuteServiceRequestAsync(
+        _ = (await NetworkProvider.ExecuteServiceRequestAsync(
             ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect),
             RpcServiceType.VerifyOtp,
             verifyCodeRequest.ToByteArray(),
@@ -226,10 +228,10 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
                 {
                 }
 
-                return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
+                return Result<ShieldUnit, ValidationFailure>.Ok(ShieldUnit.Value);
             }, true,
             CancellationToken.None
-        );
+        )).ToValidationFailure();
     }
 
     private void ReSendVerificationCode()
