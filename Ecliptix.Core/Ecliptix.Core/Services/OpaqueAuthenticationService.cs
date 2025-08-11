@@ -73,11 +73,11 @@ public class OpaqueAuthenticationService(
             {
                 OpaqueSignInInitResponse initResponse =
                     Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
-                
+
                 Result<Unit, NetworkFailure> validationResult = ValidateInitResponse(initResponse);
                 if (validationResult.IsErr)
                     return validationResult;
-                
+
                 Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
                     TranscriptHash), OpaqueFailure> finalizationResult =
                     clientOpaqueService.CreateSignInFinalizationRequest(
@@ -96,8 +96,8 @@ public class OpaqueAuthenticationService(
                 return await SendFinalizeRequestAndVerify(
                     clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash,
                     onSuccess: finalKey => capturedSessionKey = finalKey);
-            }
-            );
+            }, false
+        );
 
         if (flowResult.IsErr)
         {
@@ -156,7 +156,7 @@ public class OpaqueAuthenticationService(
             }
         );
     }
-    
+
     private Result<Unit, NetworkFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
     {
         return initResponse.Result switch
@@ -171,12 +171,12 @@ public class OpaqueAuthenticationService(
                     .ToNetworkFailure()),
             var other when !string.IsNullOrEmpty(initResponse.Message) =>
                 Result<Unit, NetworkFailure>.Err(
-                EcliptixProtocolFailure.Generic(initResponse.Message).ToNetworkFailure()),
+                    EcliptixProtocolFailure.Generic(initResponse.Message).ToNetworkFailure()),
 
             _ => Result<Unit, NetworkFailure>.Ok(Unit.Value)
         };
     }
-    
+
     private OpaqueProtocolService CreateOpaqueService()
     {
         byte[] serverPublicKeyBytes = ServerPublicKey();

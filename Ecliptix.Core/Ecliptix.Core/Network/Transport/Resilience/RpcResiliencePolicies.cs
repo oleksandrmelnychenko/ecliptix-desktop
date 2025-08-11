@@ -98,9 +98,7 @@ public static class RpcResiliencePolicies
         return Policy.WrapAsync(sessionRecoveryPolicy, circuitBreakerPolicy, transientRetryPolicy);
     }
 
-    public static IAsyncPolicy<TResponse> CreateGrpcResiliencePolicy<TResponse>(
-        INetworkEvents networkEvents
-    )
+    public static IAsyncPolicy<TResponse> CreateGrpcResiliencePolicy<TResponse>()
     {
         const int retryCount = 3;
         const double baseBackoffSeconds = 2.0;
@@ -125,51 +123,8 @@ public static class RpcResiliencePolicies
                         retryAttempt,
                         retryCount
                     );
-                    Console.Write(
-                        $"gRPC call failed. Retrying in {timespan} seconds. Attempt {retryAttempt}/{retryCount}"
-                    );
-                    Debug.WriteLine(
-                        $"gRPC call failed. Retrying in {timespan} seconds. Attempt {retryAttempt}/{retryCount}"
-                    );
                 }
             );
-
-        // AsyncCircuitBreakerPolicy<TResponse>? circuitBreakerPolicy = Policy<TResponse>
-        //     .Handle<RpcException>(ex =>
-        //         ex.StatusCode
-        //             is StatusCode.Unavailable
-        //                 or StatusCode.DeadlineExceeded
-        //                 or StatusCode.ResourceExhausted
-        //     )
-        //     .CircuitBreakerAsync(
-        //         2,
-        //         TimeSpan.FromSeconds(30),
-        //         onBreak: (result, breakDuration) =>
-        //         {
-        //             Log.Warning(
-        //                 "Circuit breaker opened for {BreakDuration} seconds",
-        //                 breakDuration.TotalSeconds
-        //             );
-        //             Console.WriteLine($"Circuit breaker opened for {breakDuration} seconds");
-        //             Debug.WriteLine($"Circuit breaker opened for {breakDuration} seconds");
-        //             networkEvents.InitiateChangeState(
-        //                 NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected)
-        //             );
-        //         },
-        //         onReset: () =>
-        //         {
-        //             Log.Information("Circuit breaker reset");
-        //             Console.WriteLine("Circuit breaker reset");
-        //             Debug.WriteLine("Circuit breaker reset");
-        //             networkEvents.InitiateChangeState(
-        //                 NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-        //             );
-        //         }
-        //     );
-
-        // return Policy.WrapAsync(
-        //     retryPolicy /*, circuitBreakerPolicy*/
-        // );
 
         return retryPolicy;
     }

@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Network.Advanced;
 using Ecliptix.Core.Network.Contracts.Core;
 using Ecliptix.Core.Network.Core.Configuration;
 using Ecliptix.Core.Network.Services.Queue;

@@ -7,13 +7,13 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Serilog;
 
-namespace Ecliptix.Core.Network.Advanced;
+namespace Ecliptix.Core.Network.Services.Retry;
 
 public class IntelligentRetryStrategy : IRetryStrategy
 {
     private readonly ConcurrentDictionary<string, CircuitBreakerState> _circuitBreakerStates = new();
 
-    private Func<int, TimeSpan> IntelligentBackoff(
+    private static Func<int, TimeSpan> IntelligentBackoff(
         TimeSpan baseDelay = default,
         double multiplier = 2.0,
         TimeSpan maxDelay = default,
@@ -41,19 +41,14 @@ public class IntelligentRetryStrategy : IRetryStrategy
         TimeSpan maxDelay = TimeSpan.FromMinutes(3 * baseMultiplier);
 
         string circuitKey = $"{connectId}_{lastFailure?.FailureType}";
-        if (IsCircuitBreakerOpen(circuitKey))
-        {
-            return _ => TimeSpan.FromMinutes(5);
-        }
-
-        return IntelligentBackoff(baseDelay, 2.0, maxDelay);
+        return IsCircuitBreakerOpen(circuitKey) ? _ => TimeSpan.FromMinutes(5) : IntelligentBackoff(baseDelay, 2.0, maxDelay);
     }
 
     public async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 3,
+        int maxRetries = 10,
         CancellationToken cancellationToken = default)
     {
         string circuitKey = $"SecrecyChannel_{connectId}_{operationName}";
@@ -69,6 +64,7 @@ public class IntelligentRetryStrategy : IRetryStrategy
                 Log.Warning("Circuit breaker is open for {Operation}, skipping attempt {Attempt}", 
                     operationName, attempt);
                 await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                continue;
             }
             
             try
@@ -87,6 +83,12 @@ public class IntelligentRetryStrategy : IRetryStrategy
                 }
                 
                 lastFailure = result.UnwrapErr();
+                
+                if (IsServerDownFailure(lastFailure))
+                {
+                    Log.Warning("Server down detected for {Operation} on attempt {Attempt}/{MaxRetries}, will retry: {Error}", 
+                        operationName, attempt, maxRetries, lastFailure.Message);
+                }
                 
                 if (!ShouldRetryFailure(lastFailure))
                 {
@@ -141,38 +143,84 @@ public class IntelligentRetryStrategy : IRetryStrategy
             NetworkFailure.DataCenterNotResponding($"Operation {operationName} failed after {maxRetries} attempts"));
     }
 
-    private bool ShouldRetryFailure(NetworkFailure failure)
+    private static bool ShouldRetryFailure(NetworkFailure failure)
     {
-        string message = failure.Message.ToLowerInvariant();
+        return failure.FailureType switch
+        {
+            NetworkFailureType.DataCenterShutdown or NetworkFailureType.DataCenterNotResponding => true,
+            NetworkFailureType.InvalidRequestType => IsTransientNetworkIssue(failure.Message),
+            NetworkFailureType.EcliptixProtocolFailure => IsRecoverableProtocolFailure(failure.Message),
+            _ => false
+        };
+    }
 
-        if (message.Contains("network") || message.Contains("connection") || 
-            message.Contains("unreachable") || message.Contains("timeout"))
+    private static bool IsTransientNetworkIssue(string message)
+    {
+        string lowerMessage = message.ToLowerInvariant();
+        
+        if (lowerMessage.Contains("network") || lowerMessage.Contains("connection") ||
+            lowerMessage.Contains("unreachable") || lowerMessage.Contains("timeout") ||
+            lowerMessage.Contains("deadline") || lowerMessage.Contains("unavailable") ||
+            lowerMessage.Contains("connection refused") || lowerMessage.Contains("subchannel"))
             return true;
-
-        if (message.Contains("server") || message.Contains("internal") || 
-            message.Contains("service unavailable"))
+            
+        if (lowerMessage.Contains("server error") || lowerMessage.Contains("internal server") ||
+            lowerMessage.Contains("service unavailable") || lowerMessage.Contains("502") ||
+            lowerMessage.Contains("503") || lowerMessage.Contains("504"))
             return true;
-
-        if (message.Contains("auth") || message.Contains("unauthorized") || 
-            message.Contains("forbidden"))
-            return false;
-
-        if (message.Contains("bad request") || message.Contains("invalid"))
-            return false;
-
-        if (message.Contains("desync") || message.Contains("decrypt") || message.Contains("rekey"))
+            
+        return false;
+    }
+    
+    private static bool IsRecoverableProtocolFailure(string message)
+    {
+        string lowerMessage = message.ToLowerInvariant();
+        
+        if (lowerMessage.Contains("desync") || lowerMessage.Contains("decrypt") ||
+            lowerMessage.Contains("rekey") || lowerMessage.Contains("chain"))
             return true;
+            
+        if (lowerMessage.Contains("auth") || lowerMessage.Contains("unauthorized") ||
+            lowerMessage.Contains("forbidden") || lowerMessage.Contains("bad request") ||
+            lowerMessage.Contains("invalid") || lowerMessage.Contains("validation"))
+        {
+        }
 
-        return true;
+        return false; 
+    }
+    
+    private static bool IsServerDownFailure(NetworkFailure failure)
+    {
+        if (failure.FailureType == NetworkFailureType.DataCenterShutdown)
+            return true;
+            
+        if (failure.FailureType == NetworkFailureType.DataCenterNotResponding)
+        {
+            string message = failure.Message.ToLowerInvariant();
+            return message.Contains("server shutdown") || 
+                   message.Contains("server unavailable") ||
+                   message.Contains("service unavailable") ||
+                   message.Contains("connection refused") ||
+                   message.Contains("host unreachable") ||
+                   message.Contains("statuscode=\"unavailable\"") || 
+                   message.Contains("error connecting to subchannel"); 
+        }
+        
+        return false;
     }
 
 
-    private double CategorizeFailureForRetry(NetworkFailure? failure)
+    private static double CategorizeFailureForRetry(NetworkFailure? failure)
     {
         if (failure == null) return 1.0;
 
         string message = failure.Message.ToLowerInvariant();
 
+        if (IsServerDownFailure(new NetworkFailure(NetworkFailureType.DataCenterNotResponding, message ?? "")))
+        {
+            return 5.0;
+        }
+        
         return message switch
         {
             not null when message.Contains("rate") || message.Contains("limit") => 3.0,
@@ -186,19 +234,17 @@ public class IntelligentRetryStrategy : IRetryStrategy
 
     private bool IsCircuitBreakerOpen(string circuitKey)
     {
-        if (_circuitBreakerStates.TryGetValue(circuitKey, out CircuitBreakerState? state))
+        if (!_circuitBreakerStates.TryGetValue(circuitKey, out CircuitBreakerState? state)) return false;
+        DateTime now = DateTime.UtcNow;
+            
+        if (now - state.LastFailureTime < TimeSpan.FromMinutes(5))
         {
-            DateTime now = DateTime.UtcNow;
-            
-            if (now - state.LastFailureTime < TimeSpan.FromMinutes(5))
-            {
-                return true;
-            }
-            
-            CircuitBreakerState updatedState = state with { LastFailureTime = DateTime.MinValue };
-            _circuitBreakerStates.TryUpdate(circuitKey, updatedState, state);
+            return true;
         }
-        
+            
+        CircuitBreakerState updatedState = state with { LastFailureTime = DateTime.MinValue };
+        _circuitBreakerStates.TryUpdate(circuitKey, updatedState, state);
+
         return false;
     }
 

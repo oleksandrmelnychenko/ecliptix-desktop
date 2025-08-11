@@ -1,4 +1,4 @@
-using Ecliptix.Core.AppEvents.Network;
+using System.Threading.Tasks;
 using Ecliptix.Core.Network.Transport.Resilience;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -6,7 +6,7 @@ using Polly;
 
 namespace Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 
-public class ResilienceInterceptor(INetworkEvents networkEvents) : Interceptor
+public class ResilienceInterceptor : Interceptor
 {
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
@@ -14,12 +14,12 @@ public class ResilienceInterceptor(INetworkEvents networkEvents) : Interceptor
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation
     )
     {
-        var policy = RpcResiliencePolicies.CreateGrpcResiliencePolicy<TResponse>(networkEvents);
+        IAsyncPolicy<TResponse> policy = RpcResiliencePolicies.CreateGrpcResiliencePolicy<TResponse>();
 
         return InterceptAsyncUnaryCall(request, context, continuation, policy);
     }
 
-    private AsyncUnaryCall<TResponse> InterceptAsyncUnaryCall<TRequest, TResponse>(
+    private static AsyncUnaryCall<TResponse> InterceptAsyncUnaryCall<TRequest, TResponse>(
         TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context,
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation,
@@ -28,11 +28,11 @@ public class ResilienceInterceptor(INetworkEvents networkEvents) : Interceptor
         where TRequest : class
         where TResponse : class
     {
-        var originalCall = continuation(request, context);
+        AsyncUnaryCall<TResponse> originalCall = continuation(request, context);
 
-        var responseAsync = policy.ExecuteAsync(async () =>
+        Task<TResponse>? responseAsync = policy.ExecuteAsync(async () =>
         {
-            var call = continuation(request, context);
+            AsyncUnaryCall<TResponse> call = continuation(request, context);
             return await call.ResponseAsync;
         });
 
