@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -18,6 +20,17 @@ public sealed class SplashWindowViewModel : ViewModelBase
     private static readonly Color DisconnectedColor = Color.Parse("#FF5F57");
     private static readonly Color DefaultColor = Color.Parse("#9966CC");
 
+    private static readonly FrozenDictionary<NetworkStatus, Color> StatusColorMap =
+        new Dictionary<NetworkStatus, Color>
+        {
+            [NetworkStatus.DataCenterConnecting] = ConnectingColor,
+            [NetworkStatus.RestoreSecrecyChannel] = ConnectingColor,
+            [NetworkStatus.DataCenterConnected] = ConnectedColor,
+            [NetworkStatus.DataCenterDisconnected] = DisconnectedColor
+        }.ToFrozenDictionary();
+
+    private static readonly Func<NetworkStatusChangedEvent, NetworkStatus> StateSelector = e => e.State;
+
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
     private Color _glowColor = DefaultColor;
     private bool _isShuttingDown;
@@ -36,41 +49,37 @@ public sealed class SplashWindowViewModel : ViewModelBase
 
     public TaskCompletionSource IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(ISystemEvents systemEvents, INetworkEvents networkEvents, 
-        ILocalizationService localizationService, NetworkProvider networkProvider) 
+    public SplashWindowViewModel(ISystemEvents systemEvents, INetworkEvents networkEvents,
+        ILocalizationService localizationService, NetworkProvider networkProvider)
         : base(systemEvents, networkProvider, localizationService)
     {
-        SetupNetworkStatusBinding(networkEvents);
+        SetupPrecompiledNetworkBinding(networkEvents);
     }
 
-    private void SetupNetworkStatusBinding(INetworkEvents networkEvents)
+    private void SetupPrecompiledNetworkBinding(INetworkEvents networkEvents)
     {
         this.WhenActivated(disposables =>
         {
             networkEvents.NetworkStatusChanged
-                .Select(e => e.State)
+                .Select(StateSelector)
                 .DistinctUntilChanged()
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(new Action<NetworkStatus>(status =>
-                {
-                    if (_isShuttingDown) return;
-                    NetworkStatus = status;
-                    GlowColor = GetColorForStatus(status);
-                }))
+                .Subscribe(ProcessNetworkStatusChange)
                 .DisposeWith(disposables);
 
             IsSubscribed.TrySetResult();
         });
     }
 
-    private static Color GetColorForStatus(NetworkStatus status) => status switch
+    private void ProcessNetworkStatusChange(NetworkStatus status)
     {
-        NetworkStatus.DataCenterConnecting => ConnectingColor,
-        NetworkStatus.RestoreSecrecyChannel => ConnectingColor,
-        NetworkStatus.DataCenterConnected => ConnectedColor,
-        NetworkStatus.DataCenterDisconnected => DisconnectedColor,
-        _ => DefaultColor
-    };
+        if (_isShuttingDown) return;
+        NetworkStatus = status;
+        GlowColor = GetColorForStatusFast(status);
+    }
+
+    private static Color GetColorForStatusFast(NetworkStatus status) =>
+        StatusColorMap.GetValueOrDefault(status, DefaultColor);
 
     public Task PrepareForShutdownAsync()
     {

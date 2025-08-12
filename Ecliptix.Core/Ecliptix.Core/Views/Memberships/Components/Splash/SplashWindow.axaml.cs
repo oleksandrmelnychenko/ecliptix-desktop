@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Interactivity;
-using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.ViewModels.Memberships;
@@ -12,15 +13,30 @@ namespace Ecliptix.Core.Views.Memberships.Components.Splash;
 
 public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
 {
+    private const string ConnectedClass = "connected";
+    private const string ConnectingClass = "connecting";
+    private const string DisconnectedClass = "disconnected";
+    private const string RestoreClass = "restore";
+    private const string DefaultClass = "default";
+
+    private static readonly FrozenDictionary<NetworkStatus, string> StatusClassMap =
+        new Dictionary<NetworkStatus, string>
+        {
+            [NetworkStatus.DataCenterConnected] = ConnectedClass,
+            [NetworkStatus.DataCenterConnecting] = ConnectingClass,
+            [NetworkStatus.DataCenterDisconnected] = DisconnectedClass,
+            [NetworkStatus.RestoreSecrecyChannel] = RestoreClass
+        }.ToFrozenDictionary();
+
     private NetworkStatus _currentNetworkStatus = NetworkStatus.DataCenterDisconnected;
-    
+
     public SplashWindow()
     {
-        AvaloniaXamlLoader.Load(this);
-        SetupBindings();
+        InitializeComponent();
+        SetupPrecompiledBindings();
     }
 
-    private void SetupBindings()
+    private void SetupPrecompiledBindings()
     {
         this.WhenActivated(disposables =>
         {
@@ -37,26 +53,20 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
     private void UpdateWindowClass(NetworkStatus status)
     {
         if (_currentNetworkStatus == status) return;
-        
+
         if (_currentNetworkStatus != NetworkStatus.DataCenterDisconnected)
         {
-            string oldClass = GetClassForStatus(_currentNetworkStatus);
+            string oldClass = GetClassForStatusFast(_currentNetworkStatus);
             Classes.Remove(oldClass);
         }
-        
-        string newClass = GetClassForStatus(status);
+
+        string newClass = GetClassForStatusFast(status);
         Classes.Add(newClass);
         _currentNetworkStatus = status;
     }
 
-    private static string GetClassForStatus(NetworkStatus status) => status switch
-    {
-        NetworkStatus.DataCenterConnected => "connected",
-        NetworkStatus.DataCenterConnecting => "connecting",
-        NetworkStatus.DataCenterDisconnected => "disconnected",
-        NetworkStatus.RestoreSecrecyChannel => "restore",
-        _ => "default"
-    };
+    private static string GetClassForStatusFast(NetworkStatus status) =>
+        StatusClassMap.GetValueOrDefault(status, DefaultClass);
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
