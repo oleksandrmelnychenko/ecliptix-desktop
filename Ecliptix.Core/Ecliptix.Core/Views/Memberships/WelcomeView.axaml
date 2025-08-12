@@ -26,10 +26,7 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                     Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
-                                      Easing="CubicEaseOut" />
+                    <BrushTransition Property="Background" Duration="0:0:0.15" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
         </Style>

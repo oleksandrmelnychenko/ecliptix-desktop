@@ -31,20 +31,14 @@ public partial class WelcomeView : ReactiveUserControl<WelcomeViewModel>
             ["CreateAccountButtonCornerRadius"] = new CornerRadius(12),
             ["CircleImageCornerRadius"] = new CornerRadius(90),
             ["InnerCircleCornerRadius"] = new CornerRadius(85),
-            ["GrayButtonHoverBrush"] = GrayButtonHoverBrush,
-            ["GrayButtonPressedBrush"] = GrayButtonPressedBrush,
-            ["DarkButtonHoverBrush"] = DarkButtonHoverBrush,
-            ["DarkButtonPressedBrush"] = DarkButtonPressedBrush,
+            ["GrayButtonHoverBrush"] = new SolidColorBrush(Color.Parse("#F5F5F5")),
+            ["GrayButtonPressedBrush"] = new SolidColorBrush(Color.Parse("#EEEEEE")),
+            ["DarkButtonHoverBrush"] = new SolidColorBrush(Color.Parse("#262626")),
+            ["DarkButtonPressedBrush"] = new SolidColorBrush(Color.Parse("#1f1f1f")),
             ["CircleBorderColor"] = Colors.White,
-            ["ButtonTransitionDuration"] = TimeSpan.FromMilliseconds(250),
             ["CircleBorderThickness"] = new Thickness(4),
             ["ContainerMargin"] = new Thickness(0, 8, 0, 8)
         }.ToFrozenDictionary();
-    
-    private static readonly SolidColorBrush GrayButtonHoverBrush = new(Color.Parse("#F5F5F5"));
-    private static readonly SolidColorBrush GrayButtonPressedBrush = new(Color.Parse("#EEEEEE"));
-    private static readonly SolidColorBrush DarkButtonHoverBrush = new(Color.Parse("#262626"));
-    private static readonly SolidColorBrush DarkButtonPressedBrush = new(Color.Parse("#1f1f1f"));
     
     private bool _resourcesApplied;
 
