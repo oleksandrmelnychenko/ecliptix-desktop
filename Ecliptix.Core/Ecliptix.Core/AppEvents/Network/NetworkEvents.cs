@@ -24,8 +24,9 @@ public class NetworkEvents(IEventAggregator aggregator) : INetworkEvents
 
     public void InitiateChangeState(NetworkStatusChangedEvent message)
     {
-        if (_currentState != Option<NetworkStatus>.None &&
-            (!_currentState.HasValue || _currentState.Value == message.State)) return;
+        // Only skip if we have the same state as before
+        if (_currentState.HasValue && _currentState.Value == message.State) 
+            return;
         
         _currentState = Option<NetworkStatus>.Some(message.State);
         aggregator.Publish(message);

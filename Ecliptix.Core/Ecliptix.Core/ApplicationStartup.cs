@@ -5,9 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Memberships;
-using Ecliptix.Core.Views;
 using Ecliptix.Core.Views.Core;
 using Ecliptix.Core.Views.Memberships;
 using Ecliptix.Core.Views.Memberships.Components.Splash;
@@ -19,7 +17,7 @@ public class ApplicationStartup
 {
     private readonly IClassicDesktopStyleApplicationLifetime _desktop;
     private readonly IApplicationInitializer _initializer;
-    private SplashWindowViewModel? _splashViewModel;
+    private readonly SplashWindowViewModel _splashViewModel;
     private SplashWindow? _splashScreen;
 
     private const string RootContentName = "MainContentGrid";
@@ -37,7 +35,7 @@ public class ApplicationStartup
         _desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
-        await _splashViewModel?.IsSubscribed.Task!;
+        await _splashViewModel.IsSubscribed.Task;
 
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
@@ -46,11 +44,7 @@ public class ApplicationStartup
         }
         else
         {
-            if (_splashViewModel != null)
-            {
-                await _splashViewModel.PrepareForShutdownAsync();
-            }
-
+            await _splashViewModel.PrepareForShutdownAsync();
             _desktop.Shutdown();
         }
     }
@@ -59,52 +53,87 @@ public class ApplicationStartup
     {
         if (_splashScreen is null) return;
 
-        Window nextWindow;
-        if (!_initializer.IsMembershipConfirmed)
-        {
-            nextWindow = new MembershipHostWindow
-            {
-                DataContext = Locator.Current.GetService<MembershipHostWindowModel>()
-            };
-        }
-        else
-        {
-            nextWindow = new MainHostWindow
-            {
-            };
-        }
+        Window nextWindow = CreateNextWindow();
 
         nextWindow.WindowStartupLocation = WindowStartupLocation.Manual;
-        PixelPoint splashPos = _splashScreen.Position;
-        Size splashSize = _splashScreen.ClientSize;
+        nextWindow.Opacity = 0;
 
-        const int n = 2;
+        await ShowAndWaitForWindow(nextWindow);
 
-        int centeredX = splashPos.X + (int)((splashSize.Width - nextWindow.Width) / n);
-        int centeredY = splashPos.Y + (int)((splashSize.Height - nextWindow.Height) / n);
-        nextWindow.Position = new PixelPoint(centeredX, centeredY);
+        PositionWindow(nextWindow, _splashScreen);
 
-        Grid? contentToFadeIn = nextWindow.FindControl<Grid>(RootContentName);
-
-        nextWindow.Show();
         _desktop.MainWindow = nextWindow;
 
-        if (_splashScreen.Content is Grid splashContentToFadeOut && contentToFadeIn != null)
-        {
-            TimeSpan duration = TimeSpan.FromMilliseconds(700);
-
-            Task fadeOutTask = splashContentToFadeOut.FadeOutAsync(duration);
-            Task fadeInTask = contentToFadeIn.FadeInAsync(duration);
-            await Task.WhenAll(fadeOutTask, fadeInTask);
-        }
-        else
-        {
-            if (contentToFadeIn != null) contentToFadeIn.Opacity = 1;
-        }
+        await PerformCrossfadeTransition(nextWindow);
 
         _splashScreen.Close();
-
         _splashScreen = null;
-        _splashViewModel = null;
+    }
+
+    private Window CreateNextWindow()
+    {
+        if (_initializer.IsMembershipConfirmed) return new MainHostWindow();
+        MembershipHostWindowModel viewModel = Locator.Current.GetService<MembershipHostWindowModel>()!;
+        return new MembershipHostWindow { DataContext = viewModel };
+    }
+
+    private static async Task ShowAndWaitForWindow(Window window)
+    {
+        TaskCompletionSource openedTcs = new();
+
+        window.Opened += OnOpened;
+        window.Show();
+        await openedTcs.Task;
+        return;
+
+        void OnOpened(object? sender, EventArgs e)
+        {
+            window.Opened -= OnOpened;
+            openedTcs.TrySetResult();
+        }
+    }
+
+    private static void PositionWindow(Window nextWindow, Window splashScreen)
+    {
+        PixelPoint splashPos = splashScreen.Position;
+        Size splashSize = splashScreen.ClientSize;
+        Size nextSize = nextWindow.ClientSize;
+
+        int centeredX = splashPos.X + (int)((splashSize.Width - nextSize.Width) / 2);
+        int centeredY = splashPos.Y + (int)((splashSize.Height - nextSize.Height) / 2);
+        nextWindow.Position = new PixelPoint(centeredX, centeredY);
+    }
+
+    private async Task PerformCrossfadeTransition(Window nextWindow)
+    {
+        const int fadeTransitionMs = 700;
+        TimeSpan duration = TimeSpan.FromMilliseconds(fadeTransitionMs);
+
+        Grid? contentToFadeIn = nextWindow.FindControl<Grid>(RootContentName);
+        if (contentToFadeIn is not null)
+            contentToFadeIn.Opacity = 1;
+
+        await Task.WhenAll(
+            AnimateWindowOpacity(_splashScreen, 1, 0, duration),
+            AnimateWindowOpacity(nextWindow, 0, 1, duration)
+        );
+    }
+
+    private static async Task AnimateWindowOpacity(Window? window, double from, double to, TimeSpan duration)
+    {
+        if (window == null) return;
+
+        const int steps = 30;
+        TimeSpan stepDuration = TimeSpan.FromTicks(duration.Ticks / steps);
+        double stepChange = (to - from) / steps;
+
+        for (int i = 0; i <= steps; i++)
+        {
+            double currentOpacity = from + (stepChange * i);
+            window.Opacity = Math.Clamp(currentOpacity, 0, 1);
+            await Task.Delay(stepDuration);
+        }
+
+        window.Opacity = to;
     }
 }

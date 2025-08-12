@@ -33,16 +33,6 @@
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="Window">
-            <Setter Property="(Classes.connected)"
-                    Value="{Binding NetworkStatus, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static network:NetworkStatus.DataCenterConnected}}" />
-            <Setter Property="(Classes.connecting)"
-                    Value="{Binding NetworkStatus, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static network:NetworkStatus.DataCenterConnecting}}" />
-            <Setter Property="(Classes.disconnected)"
-                    Value="{Binding NetworkStatus, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static network:NetworkStatus.DataCenterDisconnected}}" />
-            <Setter Property="(Classes.restore)"
-                    Value="{Binding NetworkStatus, Converter={StaticResource EqualityConverter}, ConverterParameter={x:Static network:NetworkStatus.RestoreSecrecyChannel}}" />
-        </Style>
         <Style Selector="Border#BackgroundBlurBorder">
             <Setter Property="Background" Value="{StaticResource BrushBlurDefault}" />
             <Setter Property="Transitions">
@@ -51,17 +41,18 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="Window:connected Border#BackgroundBlurBorder">
+        <Style Selector="Window.connected Border#BackgroundBlurBorder">
             <Setter Property="Background" Value="{StaticResource BrushBlurConnected}" />
         </Style>
-        <Style Selector="Window:connecting Border#BackgroundBlurBorder, Window:restore Border#BackgroundBlurBorder">
+        <Style Selector="Window.connecting Border#BackgroundBlurBorder, Window.restore Border#BackgroundBlurBorder">
             <Setter Property="Background" Value="{StaticResource BrushBlurConnecting}" />
         </Style>
-        <Style Selector="Window:disconnected Border#BackgroundBlurBorder">
+        <Style Selector="Window.disconnected Border#BackgroundBlurBorder">
             <Setter Property="Background" Value="{StaticResource BrushBlurDisconnected}" />
         </Style>
         <Style Selector="Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDefault}" />
+            <Setter Property="BorderBrush" Value="#9966CC" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.3" />
@@ -69,14 +60,17 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="Window:connected Border#ContentBorder">
+        <Style Selector="Window.connected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnected}" />
+            <Setter Property="BorderBrush" Value="#28C940" />
         </Style>
-        <Style Selector="Window:connecting Border#ContentBorder, Window:restore Border#ContentBorder">
+        <Style Selector="Window.connecting Border#ContentBorder, Window.restore Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnecting}" />
+            <Setter Property="BorderBrush" Value="#FFBD2E" />
         </Style>
-        <Style Selector="Window:disconnected Border#ContentBorder">
+        <Style Selector="Window.disconnected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDisconnected}" />
+            <Setter Property="BorderBrush" Value="#FF5F57" />
         </Style>
     </Window.Styles>
 
@@ -92,8 +86,7 @@
                 CornerRadius="22"
                 Padding="4"
                 Background="#3b3c40"
-                Margin="10"
-                BorderBrush="{Binding GlowColor, Converter={StaticResource ColorToBrushConverter}}">
+                Margin="10">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="15" Opacity="0.8" OffsetX="0" OffsetY="0" Color="{Binding GlowColor}">
                     <DropShadowEffect.Transitions>
