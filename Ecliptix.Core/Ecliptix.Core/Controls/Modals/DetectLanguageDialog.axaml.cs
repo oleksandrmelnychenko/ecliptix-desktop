@@ -27,6 +27,19 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
     
     public ViewModelActivator Activator { get; } = new();
     
+    public DetectLanguageDialog()
+    {
+        InitializeComponent();
+        ApplyPrecompiledResources();
+        _animationContainer = this.FindControl<Border>("AnimationContainer");
+    }
+    
+    public void SetLocalizationService(ILocalizationService localizationService)
+    {
+        DataContext = new DetectLanguageDialogVideModel(localizationService);
+        SetupLazyAnimationLoading();
+    }
+    
     public DetectLanguageDialog(ILocalizationService localizationService)
     {
         InitializeComponent();

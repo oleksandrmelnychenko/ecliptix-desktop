@@ -9,20 +9,20 @@ public static class DefaultBottomSheetVariables
     public const double MinHeight = 200.0;
     public const double MaxHeight = 600.0;
     
-    public const double DefaultAnimationDuration = 420.0;
-    public const double ContentDelayMs = 70.0;
+    public const double DefaultAnimationDuration = 280.0;
+    public const double ContentDelayMs = 40.0;
     
     public const double StartOpacity = 0.0;
     public const double EndOpacity = 1.0;
-    public const double ScaleStart = 0.96;
+    public const double ScaleStart = 0.98;
     public const double ScaleEnd = 1.0;
-    public const double ScaleOvershoot = 1.01;
-    public const double DefaultScrimOpacity = 0.3;
+    public const double ScaleOvershoot = 1.005;
+    public const double DefaultScrimOpacity = 0.15;
     
     public const double KeyframeStart = 0.0;
-    public const double KeyframeMid = 0.65;
+    public const double KeyframeMid = 0.7;
     public const double KeyframeEnd = 1.0;
-    public const double VerticalOvershoot = -4.0;
+    public const double VerticalOvershoot = -2.0;
     
     public static readonly SolidColorBrush ScrimBrush = new(Color.Parse("#000000"));
     public static readonly FillMode AnimationFillMode = FillMode.Forward;

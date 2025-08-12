@@ -36,6 +36,7 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.DataContext)
+                .Where(dc => dc != null)
                 .OfType<MembershipHostWindowModel>()
                 .Take(1)
                 .Where(_ => !_languageSelectorLoaded)

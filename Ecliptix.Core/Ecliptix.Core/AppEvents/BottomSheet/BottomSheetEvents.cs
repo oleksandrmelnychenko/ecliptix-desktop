@@ -32,14 +32,19 @@ public record BottomSheetChangedEvent
 public sealed class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
     : IBottomSheetEvents
 {
-    private readonly Func<UserControl> _languageDetectionModalFactory = () => new DetectLanguageDialog(localizationService);
+    private readonly Func<UserControl> _languageDetectionModalFactory = () =>
+    {
+        DetectLanguageDialog dialog = new();
+        dialog.SetLocalizationService(localizationService);
+        return dialog;
+    };
 
     public IObservable<BottomSheetChangedEvent> BottomSheetChanged { get; } =
         aggregator.GetEvent<BottomSheetChangedEvent>();
 
     public void BottomSheetChangedState(BottomSheetChangedEvent message)
     {
-        Log.Information($"BottomSheetChangedState called with ComponentType={message.ComponentType}, ShowScrim={message.ShowScrim}, Control={message.Control}");
+        Log.Information("BottomSheetChangedState called with ComponentType={ComponentType}, ShowScrim={ShowScrim}, Control={@Control}", message.ComponentType, message.ShowScrim, message.Control);
         
         UserControl? userControl = message.Control ?? GetBottomSheetControl(message.ComponentType);
         

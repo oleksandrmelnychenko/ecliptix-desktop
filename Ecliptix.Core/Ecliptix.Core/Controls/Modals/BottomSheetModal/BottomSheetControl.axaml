@@ -15,8 +15,13 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="LightGray"></Setter>
             <Setter Property="MinHeight" Value="200" />
-            <!--<Setter Property="MaxHeight" Value="600" />-->
             <Setter Property="ZIndex" Value="1" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35" Easing="CubicEaseOut" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.35" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Border.scrim">
             <Setter Property="Background"
@@ -24,6 +29,11 @@
             <Setter Property="Opacity" Value="0" />
             <Setter Property="ZIndex" Value="0" />
             <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
         </Style>
     </UserControl.Styles>
 
