@@ -98,8 +98,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         get => GetValue(FlickerDurationProperty);
         set => SetValue(FlickerDurationProperty, value);
     }
-
-    private ReactiveCommand<bool, Unit> HandleChangeCommand { get; set; }
+    
 
     public NetworkStatusNotification()
     {
@@ -108,15 +107,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         IsVisible = false;
 
         SetIcon();
-
-        HandleChangeCommand = ReactiveCommand.CreateFromTask<bool>(HandleConnectivityChange);
-
-        this.WhenActivated(disposables =>
-        {
-            this.WhenAnyValue(x => x.ViewModel!.IsConnected)
-                .InvokeCommand(HandleChangeCommand)
-                .DisposeWith(disposables);
-        });
+        
     }
 
     private void SetIcon()

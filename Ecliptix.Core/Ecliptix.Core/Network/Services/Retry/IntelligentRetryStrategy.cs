@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Contracts.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -35,9 +36,11 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
     private readonly ConcurrentDictionary<uint, ConnectionRetryState> _connectionStates = new();
     private readonly ConcurrentDictionary<uint, RetryMetrics> _connectionMetrics = new();
     private readonly Timer _cleanupTimer;
+    private readonly INetworkEvents _networkEvents;
 
-    public IntelligentRetryStrategy()
+    public IntelligentRetryStrategy(INetworkEvents networkEvents)
     {
+        _networkEvents = networkEvents;
         _cleanupTimer = new Timer(CleanupExpiredMetrics, null, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10));
     }
 
@@ -136,6 +139,7 @@ public sealed class IntelligentRetryStrategy : IRetryStrategy
 
                 RecordFailure(connectId, operationStart);
                 UpdateCircuitBreakerState(connectId);
+                _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
                 return result;
             }
 

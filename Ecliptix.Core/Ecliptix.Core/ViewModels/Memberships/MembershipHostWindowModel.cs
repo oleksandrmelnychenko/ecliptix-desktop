@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
+using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
@@ -20,6 +21,7 @@ using Ecliptix.Core.ViewModels.Memberships.SignIn;
 using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Network;
 using ReactiveUI;
 using Serilog;
 using Unit = System.Reactive.Unit;
@@ -32,6 +34,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private readonly IBottomSheetEvents _bottomSheetEvents;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
+    private readonly INetworkEvents _networkEvents;
+    private readonly NetworkProvider _networkProvider;
 
     private static readonly IReadOnlyDictionary<string, string> SupportedCountries = new Dictionary<string, string>
     {
@@ -71,6 +75,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public MembershipHostWindowModel(
         IBottomSheetEvents bottomSheetEvents,
         ISystemEvents systemEvents,
+        INetworkEvents networkEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
@@ -79,12 +84,14 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         IAuthenticationService authenticationService)
         : base(systemEvents, networkProvider, localizationService)
     {
+        _networkEvents = networkEvents;
+        _networkProvider = networkProvider;
         _bottomSheetEvents = bottomSheetEvents;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
-        NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
+        NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService, networkEvents);
         
         // Initialize version information
         AppVersion = VersionHelper.GetApplicationVersion();
@@ -95,9 +102,17 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
             Log.Information("Network status changed to: {Status}", status);
-            NetworkStatusNotification.ChangeNetworkStatus(status);
+            
+            if (status)
+            {
+                _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
+            }
+            else
+            {
+                _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+            }
         });
-
+        
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(
                 CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService,
@@ -119,6 +134,27 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
         this.WhenActivated(disposables =>
         {
+            
+            _networkEvents.ManualRetryRequested
+                .SelectMany(async e =>
+                {
+                    Result<Utilities.Unit, NetworkFailure> recoveryResult = 
+                        await _networkProvider.ForceFreshConnectionAsync();
+            
+                    if (recoveryResult.IsOk)
+                    {
+                        _networkEvents.InitiateChangeState(
+                            NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected));
+                    }
+                    else
+                    {
+                        Log.Warning("Manual retry failed: {Error}", recoveryResult.UnwrapErr().Message);
+                    }
+                    
+                    return Unit.Default;
+                })
+                .Subscribe()
+                .DisposeWith(disposables);
             Observable.Timer(TimeSpan.FromSeconds(2), RxApp.MainThreadScheduler)
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
                 .Subscribe(_ => { })
