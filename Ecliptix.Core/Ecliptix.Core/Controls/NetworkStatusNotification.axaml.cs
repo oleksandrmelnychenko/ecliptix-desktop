@@ -1,32 +1,16 @@
 using System;
-using System.Reactive;
-using System.Reactive.Disposables;
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Animation;
-using Avalonia.Animation.Easings;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
-using Avalonia.Styling;
 using Ecliptix.Core.Services;
-using ReactiveUI;
 
 namespace Ecliptix.Core.Controls;
 
 public sealed partial class NetworkStatusNotification : ReactiveUserControl<NetworkStatusNotificationViewModel>
 {
-    private Animation? _flickerAnimation;
-    private Animation? _appearAnimation;
-    private Animation? _disappearAnimation;
-
-    private Ellipse? _statusEllipse;
-
-    private bool _isVisible;
-
     private const string DisconnectedIconPath =
         "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z " +
         "m.93-9.412-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z";
@@ -99,24 +83,11 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         set => SetValue(FlickerDurationProperty, value);
     }
 
-    private ReactiveCommand<bool, Unit> HandleChangeCommand { get; set; }
-
     public NetworkStatusNotification()
     {
         InitializeComponent();
-
         IsVisible = false;
-
         SetIcon();
-
-        HandleChangeCommand = ReactiveCommand.CreateFromTask<bool>(HandleConnectivityChange);
-
-        this.WhenActivated(disposables =>
-        {
-            this.WhenAnyValue(x => x.ViewModel!.IsConnected)
-                .InvokeCommand(HandleChangeCommand)
-                .DisposeWith(disposables);
-        });
     }
 
     private void SetIcon()
@@ -134,159 +105,37 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-        _statusEllipse = this.FindControl<Ellipse>("StatusEllipse");
     }
 
-    protected override void OnLoaded(RoutedEventArgs e)
+    protected override void OnDataContextChanged(EventArgs e)
     {
-        base.OnLoaded(e);
-        CreateAnimations();
-    }
-
-    private async Task HandleConnectivityChange(bool isConnected)
-    {
-        if (!isConnected)
+        base.OnDataContextChanged(e);
+        
+        // Pass the view reference to the ViewModel when DataContext is set
+        if (DataContext is NetworkStatusNotificationViewModel viewModel)
         {
-            if (!_isVisible)
-            {
-                await ShowAsync();
-            }
-        }
-        else
-        {
-            if (_isVisible)
-            {
-                await HideAsync();
-            }
+            viewModel.SetView(this);
+            
+            // Sync animation durations from view properties to ViewModel
+            viewModel.AppearDuration = AppearDuration;
+            viewModel.DisappearDuration = DisappearDuration;
+            viewModel.FlickerDuration = FlickerDuration;
         }
     }
 
-    private void CreateAnimations()
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        _appearAnimation = new Animation
+        base.OnPropertyChanged(change);
+        
+        // Keep ViewModel animation durations in sync with view properties
+        if (DataContext is NetworkStatusNotificationViewModel viewModel)
         {
-            Duration = AppearDuration,
-            Easing = new QuadraticEaseOut(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 0d),
-                        new Setter(TranslateTransform.YProperty, -20d)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 1d),
-                        new Setter(TranslateTransform.YProperty, 0d)
-                    }
-                }
-            }
-        };
-
-        _disappearAnimation = new Animation
-        {
-            Duration = DisappearDuration,
-            Easing = new QuadraticEaseIn(),
-            FillMode = FillMode.Both,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 1d),
-                        new Setter(TranslateTransform.YProperty, 0d)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 0d),
-                        new Setter(TranslateTransform.YProperty, -15d)
-                    }
-                }
-            }
-        };
-
-        _flickerAnimation = new Animation
-        {
-            Duration = FlickerDuration,
-            IterationCount = IterationCount.Infinite,
-            Easing = new SineEaseInOut(),
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters = { new Setter(OpacityProperty, 0.3d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(0.5d),
-                    Setters = { new Setter(OpacityProperty, 1d) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters = { new Setter(OpacityProperty, 0.3d) }
-                }
-            }
-        };
-    }
-
-    private async Task ShowAsync()
-    {
-        if (_appearAnimation == null)
-        {
-            CreateAnimations();
-        }
-
-        IsVisible = true;
-        _isVisible = true;
-        RenderTransform = new TranslateTransform();
-        await _appearAnimation!.RunAsync(this);
-        StartFlickerAnimation();
-    }
-
-    private async Task HideAsync()
-    {
-        if (_disappearAnimation == null)
-        {
-            CreateAnimations();
-        }
-
-        StopFlickerAnimation();
-        await _disappearAnimation!.RunAsync(this);
-        IsVisible = false;
-        _isVisible = false;
-    }
-
-    private void StartFlickerAnimation()
-    {
-        if (_flickerAnimation == null)
-        {
-            CreateAnimations();
-        }
-
-        _flickerAnimation?.RunAsync(_statusEllipse!);
-    }
-
-    private void StopFlickerAnimation()
-    {
-        if (_statusEllipse != null)
-        {
-            _statusEllipse.Opacity = 1.0;
+            if (change.Property == AppearDurationProperty)
+                viewModel.AppearDuration = AppearDuration;
+            else if (change.Property == DisappearDurationProperty)
+                viewModel.DisappearDuration = DisappearDuration;
+            else if (change.Property == FlickerDurationProperty)
+                viewModel.FlickerDuration = FlickerDuration;
         }
     }
 }
