@@ -1,15 +1,11 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
-using Avalonia.VisualTree;
 using ReactiveUI;
 using Splat;
 
@@ -104,7 +100,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         ViewModel = Locator.Current.GetService<BottomSheetViewModel>();
         IsDismissableOnScrimClick = DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick;
         
-        // Force ViewModel activation for event subscriptions
         if (ViewModel is IActivatableViewModel activatableViewModel)
         {
             activatableViewModel.Activator.Activate();
@@ -159,10 +154,5 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             ViewModel.IsVisible = false;
         }
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
     }
 }
