@@ -42,6 +42,7 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
         {
             this.WhenAnyValue(x => x.DataContext)
                 .Where(dc => dc != null)
+                .Select(dc => dc!)
                 .OfType<SplashWindowViewModel>()
                 .SelectMany(vm => vm.WhenAnyValue(x => x.NetworkStatus))
                 .DistinctUntilChanged()
