@@ -11,7 +11,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public partial class DetectLanguageDialog : UserControl, IActivatableView
+public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisposable
 {
     private static readonly FrozenDictionary<string, object> PrecompiledResources = 
         new Dictionary<string, object>()
@@ -106,5 +106,20 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+    }
+    
+    public void Dispose()
+    {
+        if (_animationContainer?.Child is IDisposable disposableChild)
+        {
+            disposableChild.Dispose();
+        }
+        
+        if (_animationContainer != null)
+        {
+            _animationContainer.Child = null;
+        }
+        
+        _animationLoaded = false;
     }
 }

@@ -351,13 +351,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             return;
         }
 
-        if (_isAnimating)
-        {
-            Log.Debug("Animation in progress but forcing hide animation");
-            _isAnimating = false;
-        }
-
         Log.Debug("Starting hide animation");
+        
+        DisposeCurrentContent();
         
         _scrimBorder!.ZIndex = 0;
         _sheetBorder!.ZIndex = 1;
@@ -366,24 +362,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         if (_scrimBorder!.IsVisible)
         {
-            Log.Debug("Starting scrim hide animation");
             hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
         }
 
         await Task.WhenAll(hideTasks);
         
-        Log.Debug("Hide animations completed, adding small delay before cleanup");
-        
-        await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None);
-        
-        DisposeCurrentContent();
-        
-        if (ViewModel != null)
-        {
-            ViewModel.Content = null;
-            ViewModel.IsVisible = false;
-            Log.Debug("ViewModel state reset - Content cleared, IsVisible = false");
-        }
+        await Task.Delay(TimeSpan.FromMilliseconds(5), CancellationToken.None);
         
         IsVisible = false;
         _scrimBorder.IsVisible = false;
@@ -393,13 +377,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             _contentControl.IsVisible = false;
         }
         
-        _scrimBorder.Opacity = 0;
-        _sheetBorder.Opacity = 0;
-        
-        _isAnimating = false;
         _contentLoaded = false;
         
-        Log.Debug("Hide animation cleanup complete - ViewModel and UI elements hidden");
+        Log.Debug("Hide animation complete");
     }
     
     private async Task LoadContentAfterDelay()
@@ -644,53 +624,53 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, 0.0),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity), 
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity),
                         new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd),
                         new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.05), 
+                    Cue = new Cue(0.05),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.02),
+                        new Setter(TranslateTransform.YProperty, -0.1),
+                        new Setter(OpacityProperty, 0.99),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.0005),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.0005)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.12),
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, -0.3),
                         new Setter(OpacityProperty, 0.97),
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.001),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.001)
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.001),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.001)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.12), 
+                    Cue = new Cue(0.2),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.06),
-                        new Setter(OpacityProperty, 0.92), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.002),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.002)
+                        new Setter(TranslateTransform.YProperty, -0.8),
+                        new Setter(OpacityProperty, 0.92),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.002),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.002)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.2), 
+                    Cue = new Cue(0.28),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.12),
-                        new Setter(OpacityProperty, 0.86), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.004),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.004)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(0.28), 
-                    Setters =
-                    {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.2),
-                        new Setter(OpacityProperty, 0.78), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.007),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.007)
+                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot * 0.6),
+                        new Setter(OpacityProperty, 0.86),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.004),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.004)
                     }
                 },
                 new KeyFrame
@@ -698,98 +678,98 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Cue = new Cue(0.35),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.28),
-                        new Setter(OpacityProperty, 0.68), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.01),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.01)
+                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot * 1.5),
+                        new Setter(OpacityProperty, 0.78),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleOvershoot),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleOvershoot)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.42), 
+                    Cue = new Cue(0.42),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.38),
-                        new Setter(OpacityProperty, 0.58), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.013),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.013)
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.25),
+                        new Setter(OpacityProperty, 0.68),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.019),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.019)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.5),
+                    Cue = new Cue(0.48),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.48),
-                        new Setter(OpacityProperty, 0.48), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.016),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.016)
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.35),
+                        new Setter(OpacityProperty, 0.58),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.017),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.017)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.58),
+                    Cue = new Cue(0.55),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.58),
-                        new Setter(OpacityProperty, 0.38),
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.019),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.019)
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.45),
+                        new Setter(OpacityProperty, 0.46),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.014),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.014)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.65), 
+                    Cue = new Cue(0.62),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.68),
-                        new Setter(OpacityProperty, 0.28), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.012),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.012)
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.55),
+                        new Setter(OpacityProperty, 0.35),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.011),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.011)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.72), 
+                    Cue = new Cue(0.7),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.78),
-                        new Setter(OpacityProperty, 0.18),
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.65),
+                        new Setter(OpacityProperty, 0.25),
                         new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.008),
                         new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.008)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.8), 
+                    Cue = new Cue(0.78),
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.78),
+                        new Setter(OpacityProperty, 0.15),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.006),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.006)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.85),
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, hiddenPosition * 0.88),
-                        new Setter(OpacityProperty, 0.1),
+                        new Setter(OpacityProperty, 0.08),
                         new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.004),
                         new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.004)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.88), 
+                    Cue = new Cue(0.92),
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, hiddenPosition * 0.95),
-                        new Setter(OpacityProperty, 0.04), 
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.001),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.001)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(0.95),
-                    Setters =
-                    {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.98),
-                        new Setter(OpacityProperty, 0.01),
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart - 0.005),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart - 0.005)
+                        new Setter(OpacityProperty, 0.03),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.002),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.002)
                     }
                 },
                 new KeyFrame
@@ -797,10 +777,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity),
-                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart - 0.02),
-                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart - 0.02)
+                        new Setter(TranslateTransform.YProperty, hiddenPosition + 10),
+                        new Setter(OpacityProperty, 0.0),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart - 0.03),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart - 0.03)
                     }
                 }
             }
@@ -911,58 +891,73 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 },
                 new KeyFrame
                 {
+                    Cue = new Cue(0.05),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.999) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.12),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.995) }
+                },
+                new KeyFrame
+                {
                     Cue = new Cue(0.2),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity) }
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.98) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.3),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.92) }
+                    Cue = new Cue(0.28),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.95) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.4),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.8) }
+                    Cue = new Cue(0.35),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.9) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.5),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.65) }
+                    Cue = new Cue(0.42),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.82) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.6), 
+                    Cue = new Cue(0.48),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.72) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.55),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.6) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.62),
                     Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.48) }
                 },
                 new KeyFrame
                 {
                     Cue = new Cue(0.7),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.3) }
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.35) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.8),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.15) }
+                    Cue = new Cue(0.78),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.22) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.88), 
+                    Cue = new Cue(0.85),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.12) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.92),
                     Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.05) }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(0.94), 
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.015) }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(0.98),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.005) }
-                },
-                new KeyFrame
-                {
                     Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
-                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity) }
+                    Setters = { new Setter(OpacityProperty, 0.0) }
                 }
             }
         };
@@ -977,24 +972,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        Log.Debug("OnScrimPointerPressed called - IsDismissableOnScrimClick: {IsDismissableOnScrimClick}, ViewModel: {Unknown}", IsDismissableOnScrimClick, ViewModel != null);
-        
-        if (IsDismissableOnScrimClick && ViewModel != null)
+        if (IsDismissableOnScrimClick && ViewModel != null && !_isAnimating)
         {
             Log.Debug("Dismissing bottom sheet via scrim click");
-            
-            _isAnimating = false;
-            
-            ViewModel.Content = null;
             ViewModel.IsVisible = false;
-            
-            Log.Debug("Forced ViewModel state to close - Content=null, IsVisible=false");
-            
-            ViewModel.HideCommand.Execute().Subscribe();
-        }
-        else
-        {
-            Log.Debug("Scrim click ignored - dismissal disabled or no ViewModel");
         }
     }
 
