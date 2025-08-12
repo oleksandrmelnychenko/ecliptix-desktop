@@ -116,7 +116,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
-        NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
 
         NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService, networkEvents);
         
