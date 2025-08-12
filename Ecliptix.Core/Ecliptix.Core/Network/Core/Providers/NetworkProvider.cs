@@ -1466,6 +1466,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
+    public async Task<Result<Unit, NetworkFailure>> ForceFreshConnectionAsync()
+    {
+        Log.Information("Manual retry requested. Forcing fresh protocol establishment");
+        return await PerformAdvancedRecoveryLogic();
+    }
+    
     private async Task<Result<Unit, NetworkFailure>> PerformFreshProtocolEstablishment(uint connectId)
     {
         Log.Information("Starting fresh protocol establishment for connection {ConnectId}", connectId);

@@ -6,6 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.NetworkStatusNotification"
              x:Name="Root"
+               IsVisible="{Binding IsVisible}"
              x:DataType="controls:NetworkStatusNotificationViewModel">
     <Border x:Name="MainBorder"
             CornerRadius="12"
@@ -39,7 +40,40 @@
                            TextWrapping="NoWrap"
                            Text="{Binding  LocalizationService[Common.CheckConnection]}" />
             </StackPanel>
+            
+            <Button Name="ManualRetryButton" 
+                    Grid.Column="1"
+                    BorderBrush="Transparent"
+                    Background="Transparent"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Width="25"
+                    Height="25"
+                    ToolTip.Tip="Retry connection"
+                    Command="{Binding RequestManualRetryCommand}">
 
+                <!-- TODO now working -->
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Style Selector="^:pointerover Path#RetryIcon">
+                            <Setter Property="Fill" Value="#549639"/>
+                        </Style>
+                    </Style>
+                </Button.Styles>
+
+
+
+                <Path x:Name="RetryIcon"
+                      Data="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.66-.67 3.16-1.76 4.24l1.42 1.42A7.963 7.963 0 0020 12c0-4.42-3.58-8-8-8zm-6.24 1.76A7.963 7.963 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.66.67-3.16 1.76-4.24L6.34 5.76z"
+                      Fill="#84cd57"
+                      Stretch="Uniform"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      
+                      />
+            </Button>
             <Ellipse x:Name="StatusEllipse"
                      Grid.Column="2"
                      Width="6"
