@@ -6,30 +6,27 @@ using System.Text.Json.Serialization;
 
 namespace Ecliptix.Core;
 
-// AOT-friendly JSON source generation context
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(BuildInfo))]
-public partial class VersionJsonContext : JsonSerializerContext
-{
-}
+public partial class VersionJsonContext : JsonSerializerContext;
 
 public static class VersionHelper
 {
-    private static readonly Lazy<string> _applicationVersion = new(CalculateApplicationVersion);
-    private static readonly Lazy<string> _fullVersion = new(CalculateFullVersion);
-    private static readonly Lazy<string> _informationalVersion = new(CalculateInformationalVersion);
-    private static readonly Lazy<BuildInfo?> _buildInfo = new(LoadBuildInfo);
-    private static readonly Lazy<string> _displayVersion = new(CalculateDisplayVersion);
+    private static readonly Lazy<string> ApplicationVersion = new(CalculateApplicationVersion);
+    private static readonly Lazy<string> FullVersion = new(CalculateFullVersion);
+    private static readonly Lazy<string> InformationalVersion = new(CalculateInformationalVersion);
+    private static readonly Lazy<BuildInfo?> BuildInfo = new(LoadBuildInfo);
+    private static readonly Lazy<string> DisplayVersion = new(CalculateDisplayVersion);
     
-    public static string GetApplicationVersion() => _applicationVersion.Value;
+    public static string GetApplicationVersion() => ApplicationVersion.Value;
     
-    public static string GetFullVersion() => _fullVersion.Value;
+    public static string GetFullVersion() => FullVersion.Value;
     
-    public static string GetInformationalVersion() => _informationalVersion.Value;
+    public static string GetInformationalVersion() => InformationalVersion.Value;
     
-    public static BuildInfo? GetBuildInfo() => _buildInfo.Value;
+    public static BuildInfo? GetBuildInfo() => BuildInfo.Value;
     
-    public static string GetDisplayVersion() => _displayVersion.Value;
+    public static string GetDisplayVersion() => DisplayVersion.Value;
     
     private static string CalculateApplicationVersion()
     {
@@ -41,16 +38,16 @@ public static class VersionHelper
     
     private static string CalculateFullVersion()
     {
-        var version = Assembly.GetExecutingAssembly().GetName().Version
-                      ?? Assembly.GetEntryAssembly()?.GetName().Version
-                      ?? new Version(0, 1, 0, 0);
+        Version version = Assembly.GetExecutingAssembly().GetName().Version
+                          ?? Assembly.GetEntryAssembly()?.GetName().Version
+                          ?? new Version(0, 1, 0, 0);
         return version.ToString();
     }
     
     private static string CalculateInformationalVersion()
     {
-        var assembly = Assembly.GetExecutingAssembly() ?? Assembly.GetEntryAssembly();
-        var attribute = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+        Assembly? assembly = Assembly.GetExecutingAssembly() ?? Assembly.GetEntryAssembly();
+        AssemblyInformationalVersionAttribute? attribute = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         return attribute?.InformationalVersion ?? GetApplicationVersion();
     }
     
@@ -58,12 +55,11 @@ public static class VersionHelper
     {
         try
         {
-            var buildInfoPath = Path.Combine(AppContext.BaseDirectory, "build-info.json");
+            string buildInfoPath = Path.Combine(AppContext.BaseDirectory, "build-info.json");
             if (!File.Exists(buildInfoPath))
                 return null;
                 
-            var json = File.ReadAllText(buildInfoPath);
-            // Use AOT-friendly JSON source generation
+            string json = File.ReadAllText(buildInfoPath);
             return JsonSerializer.Deserialize(json, VersionJsonContext.Default.BuildInfo);
         }
         catch
@@ -74,7 +70,7 @@ public static class VersionHelper
     
     private static string CalculateDisplayVersion()
     {
-        var buildInfo = GetBuildInfo();
+        BuildInfo? buildInfo = GetBuildInfo();
         return buildInfo?.FullVersion ?? GetInformationalVersion();
     }
 }

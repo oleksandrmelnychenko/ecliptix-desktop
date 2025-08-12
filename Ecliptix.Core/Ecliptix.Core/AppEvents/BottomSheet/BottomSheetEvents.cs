@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Ecliptix.Core.Controls.Modals;
@@ -28,14 +29,10 @@ public record BottomSheetChangedEvent
     }
 }
 
-public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
+public sealed class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
     : IBottomSheetEvents
 {
-    private readonly IReadOnlyDictionary<BottomSheetComponentType, Func<UserControl>> _bottomSheetComponents =
-        new Dictionary<BottomSheetComponentType, Func<UserControl>>
-        {
-            { BottomSheetComponentType.DetectedLocalization, () => new LanguageDetectionModal(localizationService) }
-        }.AsReadOnly();
+    private readonly Func<UserControl> _languageDetectionModalFactory = () => new LanguageDetectionModal(localizationService);
 
     public IObservable<BottomSheetChangedEvent> BottomSheetChanged { get; } =
         aggregator.GetEvent<BottomSheetChangedEvent>();
@@ -50,6 +47,13 @@ public class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService
         aggregator.Publish(updatedMessage);
     }
 
-    private UserControl? GetBottomSheetControl(BottomSheetComponentType componentType) =>
-        _bottomSheetComponents.TryGetValue(componentType, out Func<UserControl>? factory) ? factory() : null;
+    private UserControl? GetBottomSheetControl(BottomSheetComponentType componentType)
+    {
+        // Direct switch for single enum value - no dictionary overhead
+        return componentType switch
+        {
+            BottomSheetComponentType.DetectedLocalization => _languageDetectionModalFactory(),
+            _ => null
+        };
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -33,14 +34,37 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
 
-    private static readonly IReadOnlyDictionary<string, string> SupportedCountries = new Dictionary<string, string>
-    {
-        { "UA", "uk-UA" },
-        { "US", "en-US" },
-    }.AsReadOnly();
+    private readonly ISystemEvents _systemEvents;
+    private readonly NetworkProvider _networkProvider;
+    private readonly IAuthenticationService _authenticationService;
+    private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
+
+    private static readonly FrozenDictionary<string, string> SupportedCountries =
+        new Dictionary<string, string>
+        {
+            { "UA", "uk-UA" },
+            { "US", "en-US" },
+        }.ToFrozenDictionary();
+
+    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, NetworkProvider,
+        ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
+        IRoutableViewModel>> ViewModelFactories =
+        new Dictionary<MembershipViewType, Func<ISystemEvents, NetworkProvider, ILocalizationService,
+            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>>
+        {
+            [MembershipViewType.SignIn] = (sys, net, loc, auth, storage, host) =>
+                new SignInViewModel(sys, net, loc, auth, host),
+            [MembershipViewType.Welcome] =
+                (sys, net, loc, auth, storage, host) => new WelcomeViewModel(host, sys, loc, net),
+            [MembershipViewType.MobileVerification] = (sys, net, loc, auth, storage, host) =>
+                new MobileVerificationViewModel(sys, net, loc, host, storage),
+            [MembershipViewType.ConfirmSecureKey] = (sys, net, loc, auth, storage, host) =>
+                new PasswordConfirmationViewModel(sys, net, loc, host, storage),
+            [MembershipViewType.PassPhase] = (sys, net, loc, auth, storage, host) =>
+                new PassPhaseViewModel(sys, loc, host, net)
+        }.ToFrozenDictionary();
 
     public RoutingState Router { get; } = new();
-
 
     public bool CanNavigateBack
     {
@@ -53,9 +77,9 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
 
     public string AppVersion { get; }
-    
+
     public string BuildInfo { get; }
-    
+
     public string FullVersionInfo { get; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
@@ -81,14 +105,16 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     {
         _bottomSheetEvents = bottomSheetEvents;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _systemEvents = systemEvents;
+        _networkProvider = networkProvider;
+        _authenticationService = authenticationService;
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
         NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
-        
-        // Initialize version information
+
         AppVersion = VersionHelper.GetApplicationVersion();
-        var buildInfo = VersionHelper.GetBuildInfo();
+        BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
         BuildInfo = buildInfo?.BuildNumber ?? "dev";
         FullVersionInfo = VersionHelper.GetDisplayVersion();
 
@@ -99,10 +125,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         });
 
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
-            Router.Navigate.Execute(
-                CreateViewModelForView(systemEvents, viewType, networkProvider, localizationService,
-                    authenticationService, applicationSecureStorageProvider)
-            ));
+            Router.Navigate.Execute(GetOrCreateViewModelForView(viewType)));
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -123,7 +146,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
-                //
+            //
             Navigate.Execute(MembershipViewType.Welcome)
                 .Subscribe()
                 .DisposeWith(disposables);
@@ -160,28 +183,26 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         Log.Information("Opening URL: {Url}", url);
     }
 
-    private IRoutableViewModel CreateViewModelForView(
-        ISystemEvents systemEvents,
-        MembershipViewType viewType,
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IAuthenticationService authenticationService,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider)
+    private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType)
     {
-        return viewType switch
+        if (_viewModelCache.TryGetValue(viewType, out WeakReference<IRoutableViewModel>? weakRef) &&
+            weakRef.TryGetTarget(out IRoutableViewModel? cachedViewModel))
         {
-            MembershipViewType.SignIn => new SignInViewModel(systemEvents, networkProvider, localizationService,
-                authenticationService, this),
-            MembershipViewType.Welcome => new WelcomeViewModel(this, systemEvents, localizationService,
-                networkProvider),
-            MembershipViewType.MobileVerification => new MobileVerificationViewModel(systemEvents, networkProvider,
-                localizationService, this, applicationSecureStorageProvider),
-            MembershipViewType.ConfirmSecureKey => new PasswordConfirmationViewModel(systemEvents, networkProvider,
-                localizationService, this, applicationSecureStorageProvider),
-            MembershipViewType.PassPhase => new PassPhaseViewModel(systemEvents, localizationService, this,
-                networkProvider),
-            _ => throw new ArgumentOutOfRangeException(nameof(viewType))
-        };
+            return cachedViewModel;
+        }
+
+        if (!ViewModelFactories.TryGetValue(viewType,
+                out Func<ISystemEvents, NetworkProvider, ILocalizationService, IAuthenticationService,
+                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>? factory))
+        {
+            throw new ArgumentOutOfRangeException(nameof(viewType));
+        }
+
+        IRoutableViewModel newViewModel = factory(_systemEvents, _networkProvider, LocalizationService,
+            _authenticationService, _applicationSecureStorageProvider, this);
+        _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
+
+        return newViewModel;
     }
 
     protected override void Dispose(bool disposing)

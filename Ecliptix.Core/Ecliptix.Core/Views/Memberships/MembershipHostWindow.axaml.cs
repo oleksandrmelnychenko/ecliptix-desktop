@@ -1,19 +1,60 @@
+using System;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Memberships;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Views.Memberships;
 
 public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowModel>
 {
+    private bool _languageSelectorLoaded;
+    private readonly Border? _languageSelectorContainer;
+    
     public MembershipHostWindow()
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
+        
+        _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
+        
+        SetupLazyLanguageSelector();
+        
     #if DEBUG
             this.AttachDevTools();
     #endif
+    }
+    
+    private void SetupLazyLanguageSelector()
+    {
+        this.WhenActivated(disposables =>
+        {
+            this.WhenAnyValue(x => x.DataContext)
+                .OfType<MembershipHostWindowModel>()
+                .Take(1)
+                .Where(_ => !_languageSelectorLoaded)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(LoadLanguageSelector)
+                .DisposeWith(disposables);
+        });
+    }
+    
+    private void LoadLanguageSelector(MembershipHostWindowModel viewModel)
+    {
+        if (_languageSelectorLoaded || _languageSelectorContainer == null) return;
+        
+        LanguageSelectorView languageSelector = new()
+        {
+            DataContext = viewModel.LanguageSelector
+        };
+        
+        _languageSelectorContainer.Child = languageSelector;
+        _languageSelectorLoaded = true;
     }
 }

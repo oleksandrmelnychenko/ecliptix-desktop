@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
@@ -20,11 +22,15 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
 
     public ViewModelActivator Activator { get; } = new();
 
+    private static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = 
+        new Dictionary<string, LanguageItem>
+        {
+            ["en-US"] = new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
+            ["uk-UA"] = new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
+        }.ToFrozenDictionary();
+        
     public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
-    [
-        new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
-        new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
-    ];
+        new(LanguageCodeMap.Values);
 
     public LanguageItem SelectedLanguage
     {
@@ -41,7 +47,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
 
-        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? AvailableLanguages[0];
+        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? LanguageCodeMap.Values.First();
 
         IObservable<string> languageChanges = CreateLanguageObservable();
 
@@ -50,21 +56,18 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         SetupReactiveBindings(languageChanges);
     }
 
-    private LanguageItem? GetLanguageByCode(string cultureCode) =>
-        AvailableLanguages.FirstOrDefault(lang => lang.Code == cultureCode);
+    private static LanguageItem? GetLanguageByCode(string cultureCode) =>
+        LanguageCodeMap.TryGetValue(cultureCode, out LanguageItem? item) ? item : null;
 
-    private int GetLanguageIndex(string cultureCode)
-    {
-        for (int i = 0; i < AvailableLanguages.Count; i++)
+    private static readonly FrozenDictionary<string, int> LanguageIndexMap = 
+        new Dictionary<string, int>
         {
-            if (AvailableLanguages[i].Code == cultureCode)
-            {
-                return i;
-            }
-        }
-
-        return 0;
-    }
+            ["en-US"] = 0,
+            ["uk-UA"] = 1
+        }.ToFrozenDictionary();
+        
+    private static int GetLanguageIndex(string cultureCode) =>
+        LanguageIndexMap.TryGetValue(cultureCode, out int index) ? index : 0;
 
     private void ToggleLanguage()
     {

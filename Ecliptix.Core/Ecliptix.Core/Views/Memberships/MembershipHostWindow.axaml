@@ -262,13 +262,13 @@
                    Height="18" />
         </Button>
 
-        <languageSelector:LanguageSelectorView
-            Name="LanguageSwitcherView"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            DataContext="{Binding LanguageSelector}"
-            Margin="16"
-            ZIndex="12" />
+        <!-- Lazy-loaded Language Selector Container -->
+        <Border Name="LanguageSelectorContainer"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="16"
+                ZIndex="12"
+                Background="Transparent" />
 
         <controls:NetworkStatusNotification
             x:Name="NetworkNotification"

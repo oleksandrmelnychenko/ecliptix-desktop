@@ -77,8 +77,10 @@
                     Text="Switch to Ukrainian?" />
             </StackPanel>
             <Grid Grid.Row="2">
-                <Image Width="126" Height="96"  anim:ImageBehavior.RepeatBehavior="3"
-                       anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/language.gif" />
+                <Border Name="AnimationContainer" 
+                        Width="126" 
+                        Height="96" 
+                        Background="Transparent" />
             </Grid>
             <Grid
                 Grid.Row="3"

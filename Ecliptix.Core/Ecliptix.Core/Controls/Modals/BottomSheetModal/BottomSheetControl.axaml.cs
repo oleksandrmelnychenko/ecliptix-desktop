@@ -22,8 +22,8 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
 {
-    private readonly TimeSpan _animationDuration =
-        TimeSpan.FromMilliseconds(DefaultBottomSheetVariables.DefaultAnimationDuration);
+    private bool _contentLoaded;
+    private object? _pendingContent;
 
     private double _sheetHeight;
     private Border? _sheetBorder;
@@ -34,6 +34,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private Animation? _hideAnimation;
     private Animation? _scrimShowAnimation;
     private Animation? _scrimHideAnimation;
+    private bool _isAnimating;
 
     public static readonly StyledProperty<double> AppearVerticalOffsetProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset));
@@ -49,7 +50,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     public static readonly StyledProperty<IBrush> ScrimColorProperty =
         AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(ScrimColor),
-            DefaultBottomSheetVariables.DefaultScrimColor);
+            DefaultBottomSheetVariables.ScrimBrush);
 
     public static readonly StyledProperty<bool> IsDismissableOnScrimClickProperty =
         AvaloniaProperty.Register<BottomSheetControl, bool>(nameof(IsDismissableOnScrimClick),
@@ -57,11 +58,11 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     public static readonly StyledProperty<IBrush> DismissableScrimColorProperty =
         AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(DismissableScrimColor),
-            DefaultBottomSheetVariables.DefaultDismissableScrimColor);
+            DefaultBottomSheetVariables.ScrimBrush);
 
     public static readonly StyledProperty<IBrush> UnDismissableScrimColorProperty =
         AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(UnDismissableScrimColor),
-            DefaultBottomSheetVariables.DefaultUnDismissableScrimColor);
+            DefaultBottomSheetVariables.ScrimBrush);
 
     public IBrush DismissableScrimColor
     {
@@ -158,11 +159,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     (bounds, margin) => new { Content = content, Bounds = bounds, Margin = margin });
             })
             .Throttle(TimeSpan.FromMilliseconds(100), RxApp.MainThreadScheduler)
+            .Where(_ => !_isAnimating)
             .Subscribe(state =>
             {
                 Log.Debug($"ContentObservables triggered: Content={state.Content}, Bounds={state.Bounds}, Margin={state.Margin}");
                 UpdateSheetHeight();
-                CreateAnimations();
+                if (_showAnimation == null) CreateAnimations();
             })
             .DisposeWith(disposables);
     }
@@ -184,9 +186,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
    private void SetupVisibilityObservable(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.ViewModel!.IsVisible, x => x.ViewModel!.ShowScrim)
-            .Buffer(2, 1) 
+            .Buffer(2, 1)
             .Select(b => (Previous: b[0], Current: b.Count > 1 ? b[1] : b[0]))
             .DistinctUntilChanged()
+            .Where(_ => !_isAnimating)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async states =>
             {
@@ -201,29 +204,11 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 
                 if (isVisible && !wasVisible)
                 {
-                    CreateAnimations();
-                    if (_showAnimation == null || _scrimShowAnimation == null)
-                    {
-                        IsVisible = true;
-                        return;
-                    }
-
-                    IsVisible = true;
-                    SetupViewForAnimation(_sheetBorder);
-
-                    var showTasks = new List<Task> { _showAnimation.RunAsync(_sheetBorder, CancellationToken.None) };
-
-                    if (showScrim)
-                    {
-                        SetupScrimForAnimation(_scrimBorder);
-                        showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
-                    }
-                    else
-                    {
-                        _scrimBorder.IsVisible = false;
-                    }
-
-                    await Task.WhenAll(showTasks);
+                    if (_isAnimating) return;
+                    
+                    _isAnimating = true;
+                    await ShowWithIOSStyleAnimation(showScrim);
+                    _isAnimating = false;
                 }
                 else if (isVisible && showScrim && !wasScrimShowing)
                 {
@@ -235,23 +220,11 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 }
                 else if (!isVisible && wasVisible)
                 {
-                    if (_hideAnimation == null || _scrimHideAnimation == null)
-                    {
-                        IsVisible = false;
-                        return;
-                    }
-
-                    var hideTasks = new List<Task> { _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None) };
-
-                    if (_scrimBorder.IsVisible)
-                    {
-                        hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
-                    }
-
-                    await Task.WhenAll(hideTasks);
-
-                    IsVisible = false;
-                    _scrimBorder.IsVisible = false;
+                    if (_isAnimating) return;
+                    
+                    _isAnimating = true;
+                    await HideWithIOSStyleAnimation();
+                    _isAnimating = false;
                 }
             })
             .DisposeWith(disposables);
@@ -312,122 +285,219 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         double hiddenPosition = _sheetHeight + DisappearVerticalOffset;
 
-        _showAnimation = new Animation
+        _showAnimation ??= CreateOptimizedShowAnimation(hiddenPosition);
+
+        _hideAnimation ??= CreateOptimizedHideAnimation(hiddenPosition);
+
+        _scrimShowAnimation ??= CreateOptimizedScrimShowAnimation();
+        _scrimHideAnimation ??= CreateOptimizedScrimHideAnimation();
+    }
+
+    private async Task ShowWithIOSStyleAnimation(bool showScrim)
+    {
+        CreateAnimations();
+        if (_showAnimation == null || _scrimShowAnimation == null)
         {
-            Duration = _animationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Forward,
+            IsVisible = true;
+            return;
+        }
+
+        // Phase 1: Show container without content (iOS style)
+        IsVisible = true;
+        SetupViewForAnimation(_sheetBorder!);
+        
+        // Defer content loading
+        _pendingContent = _contentControl?.Content;
+        if (_contentControl != null) _contentControl.Content = null;
+        
+        List<Task> showTasks = [_showAnimation.RunAsync(_sheetBorder!, CancellationToken.None)];
+
+        if (showScrim)
+        {
+            SetupScrimForAnimation(_scrimBorder!);
+            showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder!, CancellationToken.None));
+        }
+        else
+        {
+            _scrimBorder!.IsVisible = false;
+        }
+
+        // Start animation and content loading in parallel (iOS timing)
+        Task animationTask = Task.WhenAll(showTasks);
+        Task contentTask = LoadContentAfterDelay();
+        
+        await Task.WhenAll(animationTask, contentTask);
+    }
+    
+    private async Task HideWithIOSStyleAnimation()
+    {
+        if (_hideAnimation == null || _scrimHideAnimation == null)
+        {
+            IsVisible = false;
+            return;
+        }
+
+        List<Task> hideTasks = [_hideAnimation.RunAsync(_sheetBorder!, CancellationToken.None)];
+
+        if (_scrimBorder!.IsVisible)
+        {
+            hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+        }
+
+        await Task.WhenAll(hideTasks);
+
+        IsVisible = false;
+        _scrimBorder.IsVisible = false;
+        _contentLoaded = false;
+    }
+    
+    private async Task LoadContentAfterDelay()
+    {
+        if (_contentLoaded || _pendingContent == null || _contentControl == null) return;
+        
+        // iOS-style delay: load content after animation starts
+        await Task.Delay(DefaultBottomSheetVariables.ContentDelay, CancellationToken.None);
+        
+        _contentControl.Content = _pendingContent;
+        _contentLoaded = true;
+        _pendingContent = null;
+    }
+    
+    private void SetupViewForAnimation(Visual view)
+    {
+        view.RenderTransformOrigin = RelativePoint.Center;
+        TranslateTransform translateTransform = EnsureTransform<TranslateTransform>(view);
+        ScaleTransform scaleTransform = EnsureTransform<ScaleTransform>(view);
+        
+        translateTransform.Y = _sheetHeight + DisappearVerticalOffset;
+        scaleTransform.ScaleX = DefaultBottomSheetVariables.ScaleStart;
+        scaleTransform.ScaleY = DefaultBottomSheetVariables.ScaleStart;
+        
+        view.Opacity = DefaultBottomSheetVariables.StartOpacity;
+        view.IsVisible = true;
+    }
+    
+    private static Animation CreateOptimizedShowAnimation(double hiddenPosition)
+    {
+        return new Animation
+        {
+            Duration = DefaultBottomSheetVariables.AnimationDuration,
+            Easing = new SpringEasing(),
+            FillMode = DefaultBottomSheetVariables.AnimationFillMode,
             Children =
             {
                 new KeyFrame
                 {
-                    Cue = new Cue(0.0),
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, hiddenPosition),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultOpacity)
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(1.0),
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeMid),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
-                    }
-                }
-            }
-        };
-
-        _hideAnimation = new Animation
-        {
-            Duration = _animationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0.0),
-                    Setters =
-                    {
-                        new Setter(TranslateTransform.YProperty, AppearVerticalOffset),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultToOpacity)
+                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot),
+                        new Setter(OpacityProperty, 0.98), // Smoother opacity transition
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleOvershoot),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleOvershoot)
                     }
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(1.0),
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, hiddenPosition),
-                        new Setter(OpacityProperty, 0)
-                    }
-                }
-            }
-        };
-
-        _scrimShowAnimation = new Animation
-        {
-            Duration = _animationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0.0),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 0.0)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1.0),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity)
-                    }
-                }
-            }
-        };
-
-        _scrimHideAnimation = new Animation
-        {
-            Duration = _animationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame
-                {
-                    Cue = new Cue(0.0),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity)
-                    }
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1.0),
-                    Setters =
-                    {
-                        new Setter(OpacityProperty, 0.0)
+                        new Setter(TranslateTransform.YProperty, 0.0),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity),
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd)
                     }
                 }
             }
         };
     }
-
-    private void SetupViewForAnimation(Visual view)
+    
+    private static Animation CreateOptimizedHideAnimation(double hiddenPosition)
     {
-        view.RenderTransformOrigin = RelativePoint.TopLeft;
-        TranslateTransform translateTransform = EnsureTransform<TranslateTransform>(view);
-        translateTransform.Y = _sheetHeight + DisappearVerticalOffset;
-        view.Opacity = DefaultBottomSheetVariables.DefaultOpacity;
-        view.IsVisible = true;
+        return new Animation
+        {
+            Duration = DefaultBottomSheetVariables.AnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = DefaultBottomSheetVariables.AnimationFillMode,
+            Children =
+            {
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, 0.0),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity)
+                    }
+                }
+            }
+        };
+    }
+    
+    private static Animation CreateOptimizedScrimShowAnimation()
+    {
+        return new Animation
+        {
+            Duration = DefaultBottomSheetVariables.AnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = DefaultBottomSheetVariables.AnimationFillMode,
+            Children =
+            {
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity) }
+                }
+            }
+        };
+    }
+    
+    private static Animation CreateOptimizedScrimHideAnimation()
+    {
+        return new Animation
+        {
+            Duration = DefaultBottomSheetVariables.AnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = DefaultBottomSheetVariables.AnimationFillMode,
+            Children =
+            {
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeEnd),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity) }
+                }
+            }
+        };
     }
 
     private static void SetupScrimForAnimation(Visual view)
