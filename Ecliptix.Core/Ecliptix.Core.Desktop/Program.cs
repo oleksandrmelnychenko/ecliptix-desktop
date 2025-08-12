@@ -182,21 +182,7 @@ public static class Program
             client.Timeout = options.ProbeTimeout;
         });
         
-        IConfigurationSection countryApiSection = configuration.GetSection("CountryApi");
-        CountryApiOptions countryApiOptions = new()
-        {
-            BaseAddress = countryApiSection["BaseAddress"] ?? "https://api.country.is/",
-            PathTemplate = countryApiSection["PathTemplate"] ?? "/",
-            ApiKeyHeaderName = countryApiSection["ApiKeyHeaderName"],
-            ApiKey = countryApiSection["ApiKey"]
-        };
-        services.AddSingleton(countryApiOptions);
-        
-        services.AddHttpClient<IIpGeolocationService, IpGeolocationService>((sp, http) =>
-            {
-                CountryApiOptions opts = sp.GetRequiredService<CountryApiOptions>();
-                http.BaseAddress = new Uri(opts.BaseAddress, UriKind.Absolute);
-            })
+        services.AddHttpClient<IIpGeolocationService, IpGeolocationService>()
             .SetHandlerLifetime(TimeSpan.FromMinutes(5))
             .AddPolicyHandler(HttpPolicyExtensions
                 .HandleTransientHttpError()

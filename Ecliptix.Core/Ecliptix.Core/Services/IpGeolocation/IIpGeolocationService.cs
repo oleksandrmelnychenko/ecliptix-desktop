@@ -7,6 +7,5 @@ namespace Ecliptix.Core.Services.IpGeolocation;
 public interface IIpGeolocationService
 {
     Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
-        string ip,
         CancellationToken cancellationToken = default);
 }

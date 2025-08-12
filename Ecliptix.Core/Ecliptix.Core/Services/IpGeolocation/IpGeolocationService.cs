@@ -7,35 +7,19 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Options;
 
 namespace Ecliptix.Core.Services.IpGeolocation;
 
-public sealed class IpGeolocationService(
-    HttpClient http,
-    IOptions<CountryApiOptions> options) : IIpGeolocationService
+public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
 {
-    private readonly CountryApiOptions _options = options.Value;
+    private const string BaseUrl = "https://api.country.is/";
 
     public async Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
-        string ip,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(ip))
-        {
-            return Result<IpCountry, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.ApiRequestFailed("IP must be provided."));
-        }
-
-        string path = _options.PathTemplate.Replace("{ip}", Uri.EscapeDataString(ip), StringComparison.Ordinal);
-        using HttpRequestMessage req = new(HttpMethod.Get, path);
+       
+        using HttpRequestMessage req = new(HttpMethod.Get, BaseUrl);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        if (!string.IsNullOrWhiteSpace(_options.ApiKeyHeaderName) &&
-            !string.IsNullOrWhiteSpace(_options.ApiKey))
-        {
-            req.Headers.TryAddWithoutValidation(_options.ApiKeyHeaderName!, _options.ApiKey!);
-        }
 
         try
         {
@@ -53,7 +37,7 @@ public sealed class IpGeolocationService(
             using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             JsonElement root = doc.RootElement;
 
-            string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query") ?? ip;
+            string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query");
             string? country =
                 TryGetAnyCaseInsensitive(root, "country", "country_name", "countryName") ??
                 TryGetAnyCaseInsensitive(root, "countryCode", "country_code");

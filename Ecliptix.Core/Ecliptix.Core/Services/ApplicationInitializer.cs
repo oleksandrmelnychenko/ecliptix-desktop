@@ -61,7 +61,7 @@ public class ApplicationInitializer(
             try
             {
                 Result<IpCountry, InternalServiceApiFailure> countryResult = 
-                    await ipGeolocationService.GetIpCountryAsync("me", CancellationToken.None);
+                    await ipGeolocationService.GetIpCountryAsync(CancellationToken.None);
 
                 if (countryResult.IsOk)
                 {
