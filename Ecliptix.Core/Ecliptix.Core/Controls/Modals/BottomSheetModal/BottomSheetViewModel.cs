@@ -4,10 +4,8 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Controls;
 using Ecliptix.Core.AppEvents.BottomSheet;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Services;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
@@ -53,16 +51,12 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public BottomSheetViewModel(IBottomSheetEvents bottomSheetEvents, ILocalizationService localizationService)
     {
-        ArgumentNullException.ThrowIfNull(bottomSheetEvents, nameof(bottomSheetEvents));
-        ArgumentNullException.ThrowIfNull(localizationService, nameof(localizationService));
-
         _content = null;
         _isVisible = false;
         _isDismissableOnScrimClick = true;
 
         ShowCommand = ReactiveCommand.Create(() =>
         {
-            Log.Information("Executing ShowCommand: Setting IsVisible=true");
             return Unit.Default;
         });
 
