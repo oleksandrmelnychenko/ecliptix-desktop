@@ -1,22 +1,18 @@
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Security;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
 using System;
-using System.IO;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Services.IpGeolocation;
 using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using Serilog;
 
@@ -30,7 +26,7 @@ public class ApplicationInitializer(
     ISecureProtocolStateStorage secureProtocolStateStorage,
     ILocalizationService localizationService,
     ISystemEvents systemEvents,
-    IHttpClientFactory httpClientFactory)
+    IIpGeolocationService ipGeolocationService)
     : IApplicationInitializer
 {
 
@@ -62,12 +58,19 @@ public class ApplicationInitializer(
 
         _ = Task.Run(async () =>
         {
-            Option<IpCountry> countryCode =
-                await IpGeolocationService.GetIpCountryAsync(httpClientFactory, defaultSystemSettings.CountryCodeApi);
-
-            if (countryCode.HasValue)
+            try
             {
-                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryCode.Value!);
+                Result<IpCountry, InternalServiceApiFailure> countryResult = 
+                    await ipGeolocationService.GetIpCountryAsync("me", CancellationToken.None);
+
+                if (countryResult.IsOk)
+                {
+                    await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to get IP country information");
             }
         });
 

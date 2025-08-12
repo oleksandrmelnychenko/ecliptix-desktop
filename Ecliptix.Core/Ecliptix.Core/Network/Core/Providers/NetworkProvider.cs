@@ -44,8 +44,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private const int DefaultOneTimeKeyCount = 5;
 
-    private volatile bool _isSecrecyChannelConsideredHealthy;
-
     private readonly ConcurrentDictionary<string, byte> _inFlightRequests = new();
 
     private readonly Lock _cancellationLock = new();
@@ -334,32 +332,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await ExecuteServiceRequestInternalAsync(
             connectId, serviceType, plainBuffer, ServiceFlowType.ReceiveStream,
-            onStreamItem, allowDuplicates, token);
-    }
-
-    public async Task<Result<Unit, NetworkFailure>> ExecuteSendStreamRequestAsync(
-        uint connectId,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        bool allowDuplicates = false,
-        CancellationToken token = default)
-    {
-        return await ExecuteServiceRequestInternalAsync(
-            connectId, serviceType, plainBuffer, ServiceFlowType.SendStream,
-            onCompleted, allowDuplicates, token);
-    }
-
-    public async Task<Result<Unit, NetworkFailure>> ExecuteBidirectionalStreamRequestAsync(
-        uint connectId,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
-        bool allowDuplicates = false,
-        CancellationToken token = default)
-    {
-        return await ExecuteServiceRequestInternalAsync(
-            connectId, serviceType, plainBuffer, ServiceFlowType.BidirectionalStream,
             onStreamItem, allowDuplicates, token);
     }
 
@@ -818,9 +790,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ServiceRequest.New(flowType, serviceType, cipherPayload, []));
     }
 
-    /// <summary>
-    /// Handles unary (single request-response) RPC calls
-    /// </summary>
     private async Task<Result<Unit, NetworkFailure>> SendUnaryRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
@@ -868,9 +837,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    /// <summary>
-    /// Handles server streaming (receive stream) RPC calls
-    /// </summary>
     private async Task<Result<Unit, NetworkFailure>> SendReceiveStreamRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
@@ -919,9 +885,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    /// <summary>
-    /// Handles client streaming (send stream) RPC calls - Currently not implemented
-    /// </summary>
     private async Task<Result<Unit, NetworkFailure>> SendSendStreamRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
@@ -950,9 +913,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             NetworkFailure.InvalidRequestType("Client streaming is not yet implemented"));
     }
 
-    /// <summary>
-    /// Handles bidirectional streaming RPC calls - Currently not implemented
-    /// </summary>
     private async Task<Result<Unit, NetworkFailure>> SendBidirectionalStreamRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,

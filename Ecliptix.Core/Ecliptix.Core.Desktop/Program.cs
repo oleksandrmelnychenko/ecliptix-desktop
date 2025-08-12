@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Reactive.Concurrency;
 using System.Reflection;
 using System.Text;
@@ -29,6 +31,7 @@ using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Security;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.IpGeolocation;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -41,6 +44,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
 using Serilog;
 using Serilog.Core;
 using Serilog.Settings.Configuration;
@@ -114,7 +119,7 @@ public static class Program
             }
             catch { /* File sink not available */ }
 
-            var options = new ConfigurationReaderOptions(assemblies.ToArray());
+            ConfigurationReaderOptions options = new(assemblies.ToArray());
             
             LoggerConfiguration loggerConfig = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration, options);
@@ -176,6 +181,31 @@ public static class Program
             InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
             client.Timeout = options.ProbeTimeout;
         });
+        
+        // AOT-friendly configuration binding
+        var countryApiSection = configuration.GetSection("CountryApi");
+        var countryApiOptions = new CountryApiOptions
+        {
+            BaseAddress = countryApiSection["BaseAddress"] ?? "https://api.country.is/",
+            PathTemplate = countryApiSection["PathTemplate"] ?? "/",
+            ApiKeyHeaderName = countryApiSection["ApiKeyHeaderName"],
+            ApiKey = countryApiSection["ApiKey"]
+        };
+        services.AddSingleton(countryApiOptions);
+        
+        services.AddHttpClient<IIpGeolocationService, IpGeolocationService>((sp, http) =>
+            {
+                var opts = sp.GetRequiredService<CountryApiOptions>();
+                http.BaseAddress = new Uri(opts.BaseAddress, UriKind.Absolute);
+            })
+            .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+            .AddPolicyHandler(HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
+                .WaitAndRetryAsync( 
+                    retryCount: 3,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))))
+            .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(5)));
 
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
         services.AddSingleton<InternetConnectivityObserver>();
