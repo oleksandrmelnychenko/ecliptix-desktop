@@ -6,8 +6,8 @@
              xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
              xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
-             x:DataType="modals:LanguageDetectionViewModel"
-             x:Class="Ecliptix.Core.Controls.Modals.LanguageDetectionModal">
+             x:DataType="modals:DetectLanguageDialogVideModel"
+             x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
 
     <UserControl.Resources>
         <x:Double x:Key="ButtonHeight">44</x:Double>

@@ -6,13 +6,12 @@ using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia.ReactiveUI;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public partial class LanguageDetectionModal : UserControl, IActivatableView
+public partial class DetectLanguageDialog : UserControl, IActivatableView
 {
     private static readonly FrozenDictionary<string, object> PrecompiledResources = 
         new Dictionary<string, object>()
@@ -28,10 +27,10 @@ public partial class LanguageDetectionModal : UserControl, IActivatableView
     
     public ViewModelActivator Activator { get; } = new();
     
-    public LanguageDetectionModal(ILocalizationService localizationService)
+    public DetectLanguageDialog(ILocalizationService localizationService)
     {
         InitializeComponent();
-        DataContext = new LanguageDetectionViewModel(localizationService);
+        DataContext = new DetectLanguageDialogVideModel(localizationService);
         
         ApplyPrecompiledResources();
         

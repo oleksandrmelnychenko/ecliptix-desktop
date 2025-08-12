@@ -32,7 +32,7 @@ public record BottomSheetChangedEvent
 public sealed class BottomSheetEvents(IEventAggregator aggregator, ILocalizationService localizationService)
     : IBottomSheetEvents
 {
-    private readonly Func<UserControl> _languageDetectionModalFactory = () => new LanguageDetectionModal(localizationService);
+    private readonly Func<UserControl> _languageDetectionModalFactory = () => new DetectLanguageDialog(localizationService);
 
     public IObservable<BottomSheetChangedEvent> BottomSheetChanged { get; } =
         aggregator.GetEvent<BottomSheetChangedEvent>();
