@@ -6,39 +6,29 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Ecliptix.Core.Controls.Modals.BottomSheetModal.BottomSheetControl"
              x:DataType="bottomSheetModal:BottomSheetViewModel"
-             IsVisible="{Binding IsVisible}"
              ZIndex="10">
 
     <UserControl.Styles>
+        <!-- Base Sheet Styles -->
         <Style Selector="Border.sheet">
             <Setter Property="Background" Value="White" />
             <Setter Property="CornerRadius" Value="16,16,16,16" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="LightGray"></Setter>
+            <Setter Property="BorderBrush" Value="LightGray" />
             <Setter Property="MinHeight" Value="200" />
             <Setter Property="ZIndex" Value="1" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35" Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.35" Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
         </Style>
+
+        <!-- Base Scrim Styles -->
         <Style Selector="Border.scrim">
             <Setter Property="Background"
                     Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=ScrimColor}" />
-            <Setter Property="Opacity" Value="0" />
             <Setter Property="ZIndex" Value="0" />
             <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
         </Style>
     </UserControl.Styles>
 
-    <Grid>
+    <Grid IsVisible="{Binding IsVisible}">
         <Border
             x:Name="ScrimBorder"
             Classes="scrim"

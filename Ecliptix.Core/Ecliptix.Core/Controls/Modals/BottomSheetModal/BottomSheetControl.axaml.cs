@@ -2,9 +2,11 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Media.Transformation;
 using Avalonia.ReactiveUI;
 using ReactiveUI;
 using Splat;
@@ -93,6 +95,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         InitializeComponent();
         InitializeDefaults();
+        InitializeAnimationState();
     }
 
     private void InitializeDefaults()
@@ -118,6 +121,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             SetupDismissableBindings(disposables);
             SetupScrimColorBinding(disposables);
+            SetupAnimationBindings(disposables);
         });
     }
 
@@ -146,6 +150,56 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         this.WhenAnyValue(x => x.ViewModel!.IsDismissableOnScrimClick)
             .Subscribe(isDismissable => IsDismissableOnScrimClick = isDismissable)
             .DisposeWith(disposables);
+    }
+
+    private void SetupAnimationBindings(CompositeDisposable disposables)
+    {
+        this.WhenAnyValue(x => x.ViewModel!.IsVisible)
+            .Subscribe(isVisible =>
+            {
+                var scrimBorder = this.FindControl<Border>("ScrimBorder");
+                var sheetBorder = this.FindControl<Border>("SheetBorder");
+
+                if (scrimBorder != null && sheetBorder != null)
+                {
+                    if (isVisible)
+                    {
+                        // Show animation - slide up from bottom
+                        scrimBorder.Opacity = 0.5;
+                        sheetBorder.RenderTransform = TransformOperations.Parse("translateY(0px)");
+                        sheetBorder.Opacity = 1;
+                    }
+                    else
+                    {
+                        // Hide animation - slide down to bottom (opposite of show)
+                        scrimBorder.Opacity = 0;
+                        sheetBorder.RenderTransform = TransformOperations.Parse("translateY(400px)");
+                        sheetBorder.Opacity = 0;
+                    }
+                }
+            })
+            .DisposeWith(disposables);
+    }
+
+    private void InitializeAnimationState()
+    {
+        // Set initial state - sheet should be hidden offscreen
+        this.WhenAnyValue(x => x.ViewModel)
+            .WhereNotNull()
+            .Take(1)
+            .Subscribe(_ =>
+            {
+                var scrimBorder = this.FindControl<Border>("ScrimBorder");
+                var sheetBorder = this.FindControl<Border>("SheetBorder");
+
+                if (scrimBorder != null && sheetBorder != null)
+                {
+                    // Initialize in hidden state
+                    scrimBorder.Opacity = 0;
+                    sheetBorder.RenderTransform = TransformOperations.Parse("translateY(400px)");
+                    sheetBorder.Opacity = 0;
+                }
+            });
     }
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
