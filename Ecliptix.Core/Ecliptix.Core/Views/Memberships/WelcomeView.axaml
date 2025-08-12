@@ -12,42 +12,6 @@
              MinWidth="320"
              Width="320">
 
-    <UserControl.Resources>
-        <!-- Layout Dimensions -->
-        <x:Double x:Key="ButtonHeight">44</x:Double>
-        <x:Double x:Key="StandardFontSize">14</x:Double>
-        <x:Double x:Key="LogoHeight">36</x:Double>
-        <x:Double x:Key="TaglineHeight">18</x:Double>
-        <x:Double x:Key="CircleSize">180</x:Double>
-        <x:Double x:Key="InnerCircleSize">170</x:Double>
-        <x:Double x:Key="BlurRadius">8</x:Double>
-
-        <!-- Spacing -->
-        <x:Double x:Key="HeaderSpacing">12</x:Double>
-        <x:Double x:Key="ButtonSpacing">8</x:Double>
-
-        <!-- Corner Radius -->
-        <CornerRadius x:Key="SignInButtonCornerRadius">10</CornerRadius>
-        <CornerRadius x:Key="CreateAccountButtonCornerRadius">12</CornerRadius>
-        <CornerRadius x:Key="CircleImageCornerRadius">90</CornerRadius>
-        <CornerRadius x:Key="InnerCircleCornerRadius">85</CornerRadius>
-
-        <!-- Button Colors -->
-        <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
-        <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
-        <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
-
-        <!-- UI Colors -->
-        <Color x:Key="CircleBorderColor">White</Color>
-
-        <!-- Animation Durations -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-
-        <!-- Layout Values -->
-        <Thickness x:Key="CircleBorderThickness">4</Thickness>
-        <Thickness x:Key="ContainerMargin">0,8,0,8</Thickness>
-    </UserControl.Resources>
 
     <UserControl.Styles>
         <!-- Base Button Styles -->
@@ -81,11 +45,11 @@
         </Style>
 
         <Style Selector="Button.signin-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource GrayButtonHoverColor}" />
+            <Setter Property="Background" Value="{StaticResource GrayButtonHoverBrush}" />
         </Style>
 
         <Style Selector="Button.signin-button:pressed">
-            <Setter Property="Background" Value="{StaticResource GrayButtonPressedColor}" />
+            <Setter Property="Background" Value="{StaticResource GrayButtonPressedBrush}" />
         </Style>
 
         <!-- Create Account Button (Dark) -->
@@ -96,11 +60,11 @@
         </Style>
 
         <Style Selector="Button.create-account-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
+            <Setter Property="Background" Value="{StaticResource DarkButtonHoverBrush}" />
         </Style>
 
         <Style Selector="Button.create-account-button:pressed">
-            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
+            <Setter Property="Background" Value="{StaticResource DarkButtonPressedBrush}" />
         </Style>
 
         <!-- Layout Styles -->
@@ -145,38 +109,32 @@
             </Border>
         </StackPanel>
 
-        <!-- Central Circle Image -->
-        <Viewbox Grid.Row="1"
-                 MaxWidth="{StaticResource CircleSize}"
-                 MaxHeight="{StaticResource CircleSize}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center">
-
-            <Grid Width="{StaticResource CircleSize}"
-                  Height="{StaticResource CircleSize}">
-
-                <!-- Background Blur Circle -->
-                <Border Classes="circle-container"
-                        CornerRadius="{StaticResource CircleImageCornerRadius}"
-                        BorderThickness="{StaticResource CircleBorderThickness}"
-                        Background="{StaticResource CircleBorderColor}">
-                    <Border.Effect>
-                        <BlurEffect Radius="{StaticResource BlurRadius}" />
-                    </Border.Effect>
-                </Border>
-
-                <!-- Main Image Circle -->
-                <Border Width="{StaticResource InnerCircleSize}"
-                        Height="{StaticResource InnerCircleSize}"
-                        CornerRadius="{StaticResource InnerCircleCornerRadius}"
-                        ClipToBounds="True"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
-                           Stretch="UniformToFill" />
-                </Border>
-            </Grid>
-        </Viewbox>
+        <!-- Optimized Central Circle Image -->
+        <Border Grid.Row="1"
+                Width="{StaticResource CircleSize}"
+                Height="{StaticResource CircleSize}"
+                CornerRadius="{StaticResource CircleImageCornerRadius}"
+                Background="{StaticResource CircleBorderColor}"
+                BorderThickness="{StaticResource CircleBorderThickness}"
+                BorderBrush="{StaticResource CircleBorderColor}"
+                ClipToBounds="True"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" Color="#20000000" OffsetX="0" OffsetY="2" />
+            </Border.Effect>
+            
+            <Border Width="{StaticResource InnerCircleSize}"
+                    Height="{StaticResource InnerCircleSize}"
+                    CornerRadius="{StaticResource InnerCircleCornerRadius}"
+                    ClipToBounds="True"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
+                       Stretch="UniformToFill"
+                       RenderOptions.BitmapInterpolationMode="HighQuality" />
+            </Border>
+        </Border>
 
         <!-- Action Buttons -->
         <Grid Grid.Row="2"
