@@ -52,6 +52,12 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
 
     public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
 
+    public string AppVersion { get; }
+    
+    public string BuildInfo { get; }
+    
+    public string FullVersionInfo { get; }
+
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
@@ -79,6 +85,12 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
         NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService);
+        
+        // Initialize version information
+        AppVersion = VersionHelper.GetApplicationVersion();
+        var buildInfo = VersionHelper.GetBuildInfo();
+        BuildInfo = buildInfo?.BuildNumber ?? "dev";
+        FullVersionInfo = VersionHelper.GetDisplayVersion();
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {

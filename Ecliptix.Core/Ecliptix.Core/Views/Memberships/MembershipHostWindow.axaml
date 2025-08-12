@@ -61,6 +61,9 @@
         <Color x:Key="FooterTextColor">#808080</Color>
         <Color x:Key="FooterLinkColor">#6a5acd</Color>
         <Color x:Key="FooterLinkHoverColor">#553c9a</Color>
+        
+        <!-- Version Colors -->
+        <Color x:Key="VersionTextColor">#999999</Color>
 
         <!-- Animation Durations -->
         <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
@@ -128,6 +131,14 @@
             <Setter Property="Spacing" Value="{StaticResource FooterSpacing}" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="Margin" Value="{StaticResource FooterMargin}" />
+        </Style>
+
+        <!-- Version Display Styles -->
+        <Style Selector="TextBlock.version-info">
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="Foreground" Value="{StaticResource VersionTextColor}" />
+            <Setter Property="Opacity" Value="0.8" />
+            <Setter Property="FontFamily" Value="Consolas, Monaco, 'Courier New', monospace" />
         </Style>
 
         <!-- Window Frame Styles -->
@@ -363,6 +374,27 @@
                                Classes="footer-text"
                                Opacity="0.7" />
                 </StackPanel>
+                <!-- Version Information (Classical Corners) -->
+                <!-- Bottom-left corner: App Version -->
+                <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
+                          Classes="version-info"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          Margin="12,0,0,8"
+                          Grid.Row="2"
+                          ZIndex="5"
+                          ToolTip.Tip="{Binding FullVersionInfo}" />
+                
+                <!-- Bottom-right corner: Build Info -->
+                <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
+                          Classes="version-info"
+                          HorizontalAlignment="Right"
+                          VerticalAlignment="Bottom"
+                          Margin="0,0,12,8"
+                          Grid.Row="2"
+                          ZIndex="5"
+                          ToolTip.Tip="{Binding FullVersionInfo}" />
+
                 <bottomSheetModal:BottomSheetControl
                     x:Name="BottomSheetControl"
                     ZIndex="111"

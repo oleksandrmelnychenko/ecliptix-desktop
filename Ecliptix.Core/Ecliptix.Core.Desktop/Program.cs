@@ -182,9 +182,8 @@ public static class Program
             client.Timeout = options.ProbeTimeout;
         });
         
-        // AOT-friendly configuration binding
-        var countryApiSection = configuration.GetSection("CountryApi");
-        var countryApiOptions = new CountryApiOptions
+        IConfigurationSection countryApiSection = configuration.GetSection("CountryApi");
+        CountryApiOptions countryApiOptions = new()
         {
             BaseAddress = countryApiSection["BaseAddress"] ?? "https://api.country.is/",
             PathTemplate = countryApiSection["PathTemplate"] ?? "/",
@@ -195,7 +194,7 @@ public static class Program
         
         services.AddHttpClient<IIpGeolocationService, IpGeolocationService>((sp, http) =>
             {
-                var opts = sp.GetRequiredService<CountryApiOptions>();
+                CountryApiOptions opts = sp.GetRequiredService<CountryApiOptions>();
                 http.BaseAddress = new Uri(opts.BaseAddress, UriKind.Absolute);
             })
             .SetHandlerLifetime(TimeSpan.FromMinutes(5))
@@ -274,6 +273,10 @@ public static class Program
 
     private static void ConfigureGrpc(IServiceCollection services)
     {
+        services.AddSingleton((Action<GrpcClientFactoryOptions>)ConfigureClientOptions);
+        services.AddConfiguredGrpcClients();
+        return;
+
         void ConfigureClientOptions(GrpcClientFactoryOptions options)
         {
             DefaultSystemSettings settings = services.BuildServiceProvider()
@@ -287,9 +290,6 @@ public static class Program
 
             options.Address = new Uri(endpoint);
         }
-
-        services.AddSingleton((Action<GrpcClientFactoryOptions>)ConfigureClientOptions);
-        services.AddConfiguredGrpcClients();
     }
 
     private static void ConfigureViewModels(IServiceCollection services)

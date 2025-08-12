@@ -2,12 +2,36 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Ecliptix.Core;
 
+// AOT-friendly JSON source generation context
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(BuildInfo))]
+public partial class VersionJsonContext : JsonSerializerContext
+{
+}
+
 public static class VersionHelper
 {
-    public static string GetApplicationVersion()
+    private static readonly Lazy<string> _applicationVersion = new(CalculateApplicationVersion);
+    private static readonly Lazy<string> _fullVersion = new(CalculateFullVersion);
+    private static readonly Lazy<string> _informationalVersion = new(CalculateInformationalVersion);
+    private static readonly Lazy<BuildInfo?> _buildInfo = new(LoadBuildInfo);
+    private static readonly Lazy<string> _displayVersion = new(CalculateDisplayVersion);
+    
+    public static string GetApplicationVersion() => _applicationVersion.Value;
+    
+    public static string GetFullVersion() => _fullVersion.Value;
+    
+    public static string GetInformationalVersion() => _informationalVersion.Value;
+    
+    public static BuildInfo? GetBuildInfo() => _buildInfo.Value;
+    
+    public static string GetDisplayVersion() => _displayVersion.Value;
+    
+    private static string CalculateApplicationVersion()
     {
         Version version = Assembly.GetExecutingAssembly().GetName().Version
                           ?? Assembly.GetEntryAssembly()?.GetName().Version
@@ -15,7 +39,7 @@ public static class VersionHelper
         return $"{version.Major}.{version.Minor}.{version.Build}"; 
     }
     
-    public static string GetFullVersion()
+    private static string CalculateFullVersion()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version
                       ?? Assembly.GetEntryAssembly()?.GetName().Version
@@ -23,14 +47,14 @@ public static class VersionHelper
         return version.ToString();
     }
     
-    public static string GetInformationalVersion()
+    private static string CalculateInformationalVersion()
     {
         var assembly = Assembly.GetExecutingAssembly() ?? Assembly.GetEntryAssembly();
         var attribute = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         return attribute?.InformationalVersion ?? GetApplicationVersion();
     }
     
-    public static BuildInfo? GetBuildInfo()
+    private static BuildInfo? LoadBuildInfo()
     {
         try
         {
@@ -39,10 +63,8 @@ public static class VersionHelper
                 return null;
                 
             var json = File.ReadAllText(buildInfoPath);
-            return JsonSerializer.Deserialize<BuildInfo>(json, new JsonSerializerOptions 
-            { 
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
-            });
+            // Use AOT-friendly JSON source generation
+            return JsonSerializer.Deserialize(json, VersionJsonContext.Default.BuildInfo);
         }
         catch
         {
@@ -50,7 +72,7 @@ public static class VersionHelper
         }
     }
     
-    public static string GetDisplayVersion()
+    private static string CalculateDisplayVersion()
     {
         var buildInfo = GetBuildInfo();
         return buildInfo?.FullVersion ?? GetInformationalVersion();
