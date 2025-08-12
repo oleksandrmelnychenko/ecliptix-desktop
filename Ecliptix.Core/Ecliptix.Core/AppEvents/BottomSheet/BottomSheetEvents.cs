@@ -39,8 +39,10 @@ public sealed class BottomSheetEvents(IEventAggregator aggregator, ILocalization
 
     public void BottomSheetChangedState(BottomSheetChangedEvent message)
     {
-        Log.Information($"BottomSheetChangedState called with ComponentType={message.ComponentType}, ShowScrim={message.ShowScrim}");
-        UserControl? userControl = GetBottomSheetControl(message.ComponentType);
+        Log.Information($"BottomSheetChangedState called with ComponentType={message.ComponentType}, ShowScrim={message.ShowScrim}, Control={message.Control}");
+        
+        UserControl? userControl = message.Control ?? GetBottomSheetControl(message.ComponentType);
+        
         BottomSheetChangedEvent updatedMessage =
             BottomSheetChangedEvent.New(message.ComponentType, message.ShowScrim, userControl);
 
@@ -49,7 +51,6 @@ public sealed class BottomSheetEvents(IEventAggregator aggregator, ILocalization
 
     private UserControl? GetBottomSheetControl(BottomSheetComponentType componentType)
     {
-        // Direct switch for single enum value - no dictionary overhead
         return componentType switch
         {
             BottomSheetComponentType.DetectedLocalization => _languageDetectionModalFactory(),

@@ -14,8 +14,8 @@ public sealed class SpringEasing : Easing
     static SpringEasing()
     {
         Dictionary<int, double> values = new(LUT_SIZE + 1);
-        const double damping = 1.0; // Smoother damping
-        const double stiffness = 0.88; // Higher stiffness for smoothness
+        const double damping = 1.0;
+        const double stiffness = 0.88;
         
         for (int i = 0; i <= LUT_SIZE; i++)
         {
@@ -31,10 +31,9 @@ public sealed class SpringEasing : Easing
                 continue;
             }
             
-            // Ultra-smooth calculation with refined parameters
-            double expApprox = FastExp(-damping * t * 0.9); // Gentler damping
-            double cosApprox = FastCos((1 - stiffness) * Math.PI * t * 5.5); // Smoother oscillation
-            values[i] = 1 - expApprox * (1 - t) * cosApprox * 0.95; // Reduced intensity
+            double expApprox = FastExp(-damping * t * 0.9);
+            double cosApprox = FastCos((1 - stiffness) * Math.PI * t * 5.5);
+            values[i] = 1 - expApprox * (1 - t) * cosApprox * 0.95;
         }
         
         PrecomputedValues = values.ToFrozenDictionary();
@@ -45,14 +44,12 @@ public sealed class SpringEasing : Easing
         if (progress <= 0) return 0;
         if (progress >= 1) return 1;
 
-        // Use lookup table for maximum performance
         int index = (int)(progress * LUT_SIZE);
         return PrecomputedValues.GetValueOrDefault(index, progress);
     }
     
     private static double FastExp(double x)
     {
-        // Fast exp approximation using polynomial (Pade approximant)
         if (x < -10) return 0;
         if (x > 10) return 22026.4658;
         
@@ -63,7 +60,6 @@ public sealed class SpringEasing : Easing
     
     private static double FastCos(double x)
     {
-        // Fast cosine approximation using Chebyshev polynomial
         x = x % (2 * Math.PI);
         if (x < 0) x += 2 * Math.PI;
         

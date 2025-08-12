@@ -117,6 +117,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         InitializeComponent();
         ViewModel = Locator.Current.GetService<BottomSheetViewModel>();
         IsVisible = false;
+        
+        // Ensure default value is set
+        IsDismissableOnScrimClick = DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick;
+        Log.Debug($"BottomSheetControl initialized - IsDismissableOnScrimClick: {IsDismissableOnScrimClick}");
     }
 
     private void InitializeComponent()
@@ -139,6 +143,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentControl = this.FindControl<ContentControl>("ContentControl");
+        
+        // Ensure all elements are initially hidden
+        if (_sheetBorder != null) _sheetBorder.IsVisible = false;
+        if (_scrimBorder != null) _scrimBorder.IsVisible = false;
+        if (_contentControl != null) _contentControl.IsVisible = false;
+        
+        Log.Debug("BottomSheetControl elements initialized and hidden");
     }
 
     private void SetupContentObservables(CompositeDisposable disposables)
@@ -304,6 +315,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         // Phase 1: Show container without content (iOS style)
         IsVisible = true;
+        _sheetBorder!.IsVisible = true;
+        _scrimBorder!.IsVisible = true;
+        if (_contentControl != null)
+        {
+            _contentControl.IsVisible = true;
+        }
+        
         SetupViewForAnimation(_sheetBorder!);
         
         // Defer content loading
@@ -312,14 +330,19 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         
         List<Task> showTasks = [_showAnimation.RunAsync(_sheetBorder!, CancellationToken.None)];
 
+        // Always show scrim for hit testing (even if transparent) to allow dismissal clicks
+        SetupScrimForAnimation(_scrimBorder!);
+        
         if (showScrim)
         {
-            SetupScrimForAnimation(_scrimBorder!);
+            // Show scrim with animation
             showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder!, CancellationToken.None));
         }
         else
         {
-            _scrimBorder!.IsVisible = false;
+            // Keep scrim transparent but visible for hit testing
+            _scrimBorder!.Opacity = 0.0;
+            _scrimBorder!.IsVisible = true;
         }
 
         // Start animation and content loading in parallel (iOS timing)
@@ -333,22 +356,60 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         if (_hideAnimation == null || _scrimHideAnimation == null)
         {
+            DisposeCurrentContent();
             IsVisible = false;
             return;
         }
 
+        if (_isAnimating)
+        {
+            Log.Debug("Animation in progress but forcing hide animation");
+            _isAnimating = false;
+        }
+
+        Log.Debug("Starting hide animation");
+        
+        _scrimBorder!.ZIndex = 0;
+        _sheetBorder!.ZIndex = 1;
+        
         List<Task> hideTasks = [_hideAnimation.RunAsync(_sheetBorder!, CancellationToken.None)];
 
         if (_scrimBorder!.IsVisible)
         {
+            Log.Debug("Starting scrim hide animation");
             hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
         }
 
         await Task.WhenAll(hideTasks);
-
+        
+        Log.Debug("Hide animations completed, adding small delay before cleanup");
+        
+        await Task.Delay(TimeSpan.FromMilliseconds(16), CancellationToken.None);
+        
+        DisposeCurrentContent();
+        
+        if (ViewModel != null)
+        {
+            ViewModel.Content = null;
+            ViewModel.IsVisible = false;
+            Log.Debug("ViewModel state reset - Content cleared, IsVisible = false");
+        }
+        
         IsVisible = false;
         _scrimBorder.IsVisible = false;
+        _sheetBorder!.IsVisible = false;
+        if (_contentControl != null)
+        {
+            _contentControl.IsVisible = false;
+        }
+        
+        _scrimBorder.Opacity = 0;
+        _sheetBorder.Opacity = 0;
+        
+        _isAnimating = false;
         _contentLoaded = false;
+        
+        Log.Debug("Hide animation cleanup complete - ViewModel and UI elements hidden");
     }
     
     private async Task LoadContentAfterDelay()
@@ -361,6 +422,30 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _contentControl.Content = _pendingContent;
         _contentLoaded = true;
         _pendingContent = null;
+    }
+    
+    private void DisposeCurrentContent()
+    {
+        if (_contentControl?.Content is IDisposable disposable)
+        {
+            try
+            {
+                disposable.Dispose();
+                Log.Debug("Successfully disposed current bottom sheet content");
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to dispose bottom sheet content");
+            }
+        }
+        
+        if (_contentControl != null)
+        {
+            _contentControl.Content = null;
+        }
+        
+        _pendingContent = null;
+        _contentLoaded = false;
     }
     
     private void SetupViewForAnimation(Visual view)
@@ -399,13 +484,145 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 },
                 new KeyFrame
                 {
-                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeMid),
+                    Cue = new Cue(0.08), // Ultra-early emergence
                     Setters =
                     {
-                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot),
-                        new Setter(OpacityProperty, 0.98), // Smoother opacity transition
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.95),
+                        new Setter(OpacityProperty, 0.03), // Barely visible start
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.002),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.002)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.15), // Very early gentle emergence
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.88),
+                        new Setter(OpacityProperty, 0.08), // Ultra-gentle start
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.004),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.004)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.22), // Early progression
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.78),
+                        new Setter(OpacityProperty, 0.15), // Gentle build
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.006),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.006)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.3), // Gradual build-up
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.65),
+                        new Setter(OpacityProperty, 0.25), // Slow progressive fade
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.008),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.008)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.38), // Continuing progression
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.55),
+                        new Setter(OpacityProperty, 0.35), // Building visibility
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.011),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.011)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.45), // Mid-fade continuation
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.45),
+                        new Setter(OpacityProperty, 0.46), // Approaching halfway
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.014),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.014)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.52), // Mid-point refinement
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.35),
+                        new Setter(OpacityProperty, 0.58), // Past halfway
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.017),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.017)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.58), // Building momentum
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.25),
+                        new Setter(OpacityProperty, 0.68), // Strong visibility
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.019),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.019)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(DefaultBottomSheetVariables.KeyframeMid), // 0.65
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot * 1.5), // More overshoot
+                        new Setter(OpacityProperty, 0.78), // Building to overshoot
                         new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleOvershoot),
                         new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleOvershoot)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.72), // Post-overshoot settle
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, DefaultBottomSheetVariables.VerticalOvershoot * 0.6),
+                        new Setter(OpacityProperty, 0.86), // Nearly there
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.004),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.004)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.8), // Pre-final gentle approach
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, -0.8), // Subtle pre-settle
+                        new Setter(OpacityProperty, 0.92), // Almost complete
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.002),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.002)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.88), // Final approach
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, -0.3), // Micro-settle
+                        new Setter(OpacityProperty, 0.97), // Nearly perfect
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.001),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.001)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.95), // Ultra-fine final approach
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, -0.1), // Micro adjustment
+                        new Setter(OpacityProperty, 0.99), // Almost there
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd + 0.0005),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd + 0.0005)
                     }
                 },
                 new KeyFrame
@@ -414,7 +631,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, 0.0),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity),
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity), // Final perfection
                         new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd),
                         new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd)
                     }
@@ -428,7 +645,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         return new Animation
         {
             Duration = DefaultBottomSheetVariables.AnimationDuration,
-            Easing = new CubicEaseInOut(),
+            Easing = new SpringEasing(), // Use same easing as show for consistency
             FillMode = DefaultBottomSheetVariables.AnimationFillMode,
             Children =
             {
@@ -438,7 +655,152 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, 0.0),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity)
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.EndOpacity), // Start fully visible
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.05), // Ultra-early fade start
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.02),
+                        new Setter(OpacityProperty, 0.97), // Barely noticeable start
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.001),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.001)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.12), // Very early fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.06),
+                        new Setter(OpacityProperty, 0.92), // Gentle beginning
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.002),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.002)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.2), // Early gentle fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.12),
+                        new Setter(OpacityProperty, 0.86), // Progressive fade start
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.004),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.004)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.28), // Building fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.2),
+                        new Setter(OpacityProperty, 0.78), // Continuing fade
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.007),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.007)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.35), // Progressive fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.28),
+                        new Setter(OpacityProperty, 0.68), // More transparent
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.01),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.01)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.42), // Approaching mid-point
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.38),
+                        new Setter(OpacityProperty, 0.58), // Past halfway visibility
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.013),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.013)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.5), // Mid-point fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.48),
+                        new Setter(OpacityProperty, 0.48), // True halfway
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.016),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.016)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.58), // Post mid-point
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.58),
+                        new Setter(OpacityProperty, 0.38), // More fade
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleEnd - 0.019),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleEnd - 0.019)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.65), // Accelerating fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.68),
+                        new Setter(OpacityProperty, 0.28), // Strong transparency
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.012),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.012)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.72), // Strong fade
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.78),
+                        new Setter(OpacityProperty, 0.18), // Very transparent
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.008),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.008)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.8), // Near completion
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.88),
+                        new Setter(OpacityProperty, 0.1), // Almost invisible
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.004),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.004)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.88), // Final approach
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.95),
+                        new Setter(OpacityProperty, 0.04), // Nearly gone
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart + 0.001),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart + 0.001)
+                    }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.95), // Ultra-final
+                    Setters =
+                    {
+                        new Setter(TranslateTransform.YProperty, hiddenPosition * 0.98),
+                        new Setter(OpacityProperty, 0.01), // Barely there
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart - 0.005),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart - 0.005)
                     }
                 },
                 new KeyFrame
@@ -447,7 +809,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Setters =
                     {
                         new Setter(TranslateTransform.YProperty, hiddenPosition),
-                        new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity)
+                        new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity), // Fully transparent
+                        new Setter(ScaleTransform.ScaleXProperty, DefaultBottomSheetVariables.ScaleStart - 0.02),
+                        new Setter(ScaleTransform.ScaleYProperty, DefaultBottomSheetVariables.ScaleStart - 0.02)
                     }
                 }
             }
@@ -459,7 +823,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         return new Animation
         {
             Duration = DefaultBottomSheetVariables.AnimationDuration,
-            Easing = new CubicEaseInOut(),
+            Easing = new SpringEasing(), // Match main animation easing
             FillMode = DefaultBottomSheetVariables.AnimationFillMode,
             Children =
             {
@@ -467,6 +831,71 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 {
                     Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
                     Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.StartOpacity) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.08),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.05) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.15),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.12) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.22),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.22) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.3),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.35) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.38),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.48) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.45),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.6) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.52),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.72) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.58),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.82) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.65),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.9) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.72),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.95) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.8),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.98) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.88),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.995) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.95),
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.999) }
                 },
                 new KeyFrame
                 {
@@ -482,7 +911,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         return new Animation
         {
             Duration = DefaultBottomSheetVariables.AnimationDuration,
-            Easing = new CubicEaseInOut(),
+            Easing = new SpringEasing(), // Match show animation easing
             FillMode = DefaultBottomSheetVariables.AnimationFillMode,
             Children =
             {
@@ -490,6 +919,56 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 {
                     Cue = new Cue(DefaultBottomSheetVariables.KeyframeStart),
                     Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.2), // Keep full opacity longer to prevent background bleed
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.3), // Start fade later
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.92) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.4), // Progressive fade
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.8) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.5), // Mid-point fade
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.65) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.6), // Continuing fade
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.48) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.7), // Accelerated fade
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.3) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.8), // Strong fade
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.15) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.88), // Nearly gone
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.05) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.94), // Final approach
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.015) }
+                },
+                new KeyFrame
+                {
+                    Cue = new Cue(0.98), // Ultra-final hold
+                    Setters = { new Setter(OpacityProperty, DefaultBottomSheetVariables.DefaultScrimOpacity * 0.005) }
                 },
                 new KeyFrame
                 {
@@ -504,13 +983,29 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         view.Opacity = 0.0;
         view.IsVisible = true;
+        Log.Debug($"SetupScrimForAnimation: Scrim set to visible with opacity 0.0, IsHitTestVisible: {((Border)view).IsHitTestVisible}");
     }
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        Log.Debug("OnScrimPointerPressed called - IsDismissableOnScrimClick: {IsDismissableOnScrimClick}, ViewModel: {Unknown}", IsDismissableOnScrimClick, ViewModel != null);
+        
         if (IsDismissableOnScrimClick && ViewModel != null)
         {
+            Log.Debug("Dismissing bottom sheet via scrim click");
+            
+            _isAnimating = false;
+            
+            ViewModel.Content = null;
+            ViewModel.IsVisible = false;
+            
+            Log.Debug("Forced ViewModel state to close - Content=null, IsVisible=false");
+            
             ViewModel.HideCommand.Execute().Subscribe();
+        }
+        else
+        {
+            Log.Debug("Scrim click ignored - dismissal disabled or no ViewModel");
         }
     }
 

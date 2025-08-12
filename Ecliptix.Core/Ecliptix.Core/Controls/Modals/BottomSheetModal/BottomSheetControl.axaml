@@ -31,17 +31,21 @@
         <Border
             x:Name="ScrimBorder"
             Classes="scrim"
-            IsHitTestVisible="{Binding RelativeSource={RelativeSource AncestorType={x:Type bottomSheetModal:BottomSheetControl}}, Path=IsDismissableOnScrimClick}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            IsHitTestVisible="True"
             PointerPressed="OnScrimPointerPressed" />
         <Border x:Name="SheetBorder"
                 Classes="sheet"
                 VerticalAlignment="Bottom"
                 Width="400"
                 Margin="0,0,0,24"
-                Background="White">
+                Background="White"
+                IsHitTestVisible="False">
                 <ContentControl 
                     x:Name="ContentControl"
-                    Content="{Binding Content}" />
+                    Content="{Binding Content}"
+                    IsHitTestVisible="False" />
         </Border>
     </Grid>
 </UserControl>
