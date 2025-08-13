@@ -79,20 +79,31 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(eventArgs =>
                 {
-                    if (_content != eventArgs.Control)
-                    {
-                        Content = eventArgs.Control;
-                    }
-
                     bool shouldBeVisible = eventArgs.Control != null;
+            
+                    if (shouldBeVisible)
+                    {
+                        if (_content != eventArgs.Control)
+                        {
+                            Content = eventArgs.Control;
+                        }
+                    }
+            
                     if (_isVisible != shouldBeVisible)
                     {
                         IsVisible = shouldBeVisible;
                     }
-                    
+
                     if (_showScrim != eventArgs.ShowScrim)
                     {
                         ShowScrim = eventArgs.ShowScrim;
+                    }
+                    if (!shouldBeVisible && _content != null)
+                    {
+                        Observable.Timer(BottomSheetAnimationConstants.HideAnimationDuration)
+                            .ObserveOn(RxApp.MainThreadScheduler)
+                            .Subscribe(_ => Content = null)
+                            .DisposeWith(disposables);
                     }
                 })
                 .DisposeWith(disposables);

@@ -17,10 +17,14 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
+public static class BottomSheetAnimationConstants
+{
+    public static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(400);
+    public static readonly TimeSpan HideAnimationDuration = TimeSpan.FromMilliseconds(400);
+}
+
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
 {
-    private readonly TimeSpan _showAnimationDuration = TimeSpan.FromMilliseconds(400);
-    private readonly TimeSpan _hideAnimationDuration = TimeSpan.FromMilliseconds(400);
     private bool _isAnimating;
 
     private Border? _sheetBorder;
@@ -198,6 +202,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         }
 
         _isAnimating = true;
+        _sheetBorder.IsHitTestVisible = false;
 
         _rootGrid.IsVisible = true;
         _sheetBorder.IsVisible = true;
@@ -215,6 +220,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         finally
         {
             _isAnimating = false;
+            _sheetBorder.IsHitTestVisible = true;
         }
     }
 
@@ -226,6 +232,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         }
 
         _isAnimating = true;
+        _sheetBorder.IsHitTestVisible = false;
 
         try
         {
@@ -255,7 +262,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _showAnimation = new Animation
         {
-            Duration = _showAnimationDuration,
+            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
             Easing = showEasing,
             FillMode = FillMode.Both,
             Children =
@@ -267,7 +274,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _hideAnimation = new Animation
         {
-            Duration = _hideAnimationDuration,
+            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
             Easing = hideEasing,
             FillMode = FillMode.Both,
             Children =
@@ -279,7 +286,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _scrimShowAnimation = new Animation
         {
-            Duration = _showAnimationDuration,
+            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
             Easing = new CubicEaseInOut(),
             FillMode = FillMode.Both,
             Children =
@@ -291,7 +298,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _scrimHideAnimation = new Animation
         {
-            Duration = _hideAnimationDuration,
+            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
             Easing = new CubicEaseInOut(),
             FillMode = FillMode.Both,
             Children =
