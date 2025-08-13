@@ -11,6 +11,7 @@ using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Network.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Serilog;
 
 namespace Ecliptix.Core.Network.Services.Retry;
 
@@ -63,9 +64,9 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         try
         {
             object result = await _retryPolicy.ExecuteAsync(
-                async (ctx, ct) => await operation(),
+                async (ctx, ct) => await operation().ConfigureAwait(false),
                 context,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             return (Result<TResponse, NetworkFailure>)result;
         }
@@ -114,7 +115,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             }
 
 
-            Result<bool, NetworkFailure> restoreResult = await networkProvider.TryRestoreConnectionAsync(connectId);
+            Result<bool, NetworkFailure> restoreResult = await networkProvider.TryRestoreConnectionAsync(connectId).ConfigureAwait(false);
             
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
@@ -167,7 +168,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
                     if (RequiresConnectionRecovery(outcome.Result))
                     {
-                        await EnsureSecrecyChannelAsync((uint)connectId, CancellationToken.None);
+                        await EnsureSecrecyChannelAsync((uint)connectId, CancellationToken.None).ConfigureAwait(false);
                     }
                 });
 
@@ -189,9 +190,14 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 });
 
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromMinutes(1),
+            TimeSpan.FromSeconds(30), // Reduced from 1 minute to prevent deadlocks
             onTimeoutAsync: (context, timespan, task) =>
             {
+                if (context.ContainsKey("OperationName"))
+                {
+                    Log.Warning("Operation {OperationName} timed out after {Timeout}", 
+                        context["OperationName"], timespan);
+                }
                 return Task.CompletedTask;
             });
 

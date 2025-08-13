@@ -36,7 +36,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         _deduplicationService = deduplicationService;
         _pendingRequestManager = pendingRequestManager;
         _configuration = GetRetryConfiguration(configuration);
-        
+
         _retryPolicy = CreateRetryPolicy();
     }
 
@@ -46,7 +46,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
         AsyncUnaryCall<TResponse> newCall = continuation(request, context);
-        
+
         return new AsyncUnaryCall<TResponse>(
             HandleUnaryAsync(newCall.ResponseAsync, request, context, continuation),
             newCall.ResponseHeadersAsync,
@@ -62,7 +62,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
     {
         uint connectId = ExtractConnectionId(context);
         Task<bool> connectionTask = EnsureSecrecyChannelAsync(connectId);
-        
+
         return new AsyncServerStreamingCall<TResponse>(
             new SecrecyChannelAwareStreamReader<TResponse>(
                 connectionTask,
@@ -83,18 +83,23 @@ public class SecrecyChannelRetryInterceptor : Interceptor
     {
         uint connectId = ExtractConnectionId(context);
         string operationName = context.Method.FullName;
-        string requestId = $"{operationName}_{connectId}_{Guid.NewGuid():N}";
-        
-        byte[] requestData = System.Text.Encoding.UTF8.GetBytes($"{operationName}_{request}");
-        if (await _deduplicationService.IsDuplicateRequestAsync(operationName, requestData, connectId))
+
+        // Extract existing request-id from metadata instead of generating new GUID
+        string? existingRequestId = context.Options.Headers?.Get("request-id")?.Value;
+        string requestId = existingRequestId ?? $"{operationName}_{connectId}_{Guid.NewGuid():N}";
+
+        // Use the consistent request-id for deduplication instead of request content
+        byte[] requestIdBytes = System.Text.Encoding.UTF8.GetBytes(requestId);
+        if (await _deduplicationService.IsDuplicateRequestAsync(operationName, requestIdBytes, connectId))
         {
-            throw new RpcException(new Status(StatusCode.AlreadyExists, "Duplicate request detected"));
+            throw new RpcException(new Status(StatusCode.AlreadyExists,
+                $"Duplicate request detected for {operationName}, rejecting"));
         }
-        
+
         try
         {
             bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
-            
+
             if (!connectionResult)
             {
                 throw new RpcException(new Status(
@@ -108,17 +113,38 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         catch (RpcException ex) when (IsServerShutdown(ex))
         {
             TaskCompletionSource<TResponse> taskCompletionSource = new();
-            
+
             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
             {
-                AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
-                return await retryCall.ResponseAsync;
+                try
+                {
+                    // Wait for connection to be restored before retrying
+                    bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
+                    if (!connectionRestored)
+                    {
+                        throw new RpcException(new Status(StatusCode.Unavailable, "Failed to restore connection"));
+                    }
+
+                    // Remove the original request from deduplication cache to allow retry
+                    _deduplicationService.RemoveRequest(operationName, requestIdBytes, connectId);
+
+                    // Make the call again with original context
+                    AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
+                    TResponse result = await retryCall.ResponseAsync;
+                    taskCompletionSource.SetResult(result);
+                    return result;
+                }
+                catch (Exception retryEx)
+                {
+                    taskCompletionSource.SetException(retryEx);
+                    throw;
+                }
             }, taskCompletionSource);
-            
+
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown));
-            
-            throw;
+
+            return await taskCompletionSource.Task;
         }
         catch (RpcException ex)
         {
@@ -150,17 +176,19 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             {
                 return true;
             }
-            
-            
-            Utilities.Result<bool, NetworkFailure> restoreResult = await _networkProvider.TryRestoreConnectionAsync(connectId);
-            
+
+
+            Utilities.Result<bool, NetworkFailure> restoreResult =
+                await _networkProvider.TryRestoreConnectionAsync(connectId);
+
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
                 return true;
             }
-            
-            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> establishResult = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
-            
+
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> establishResult =
+                await _networkProvider.EstablishSecrecyChannelAsync(connectId);
+
             return establishResult.IsOk;
         }
         catch (Exception)
@@ -174,9 +202,10 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         try
         {
             _networkProvider.ClearConnection(connectId);
-            
-            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> result = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
-            
+
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> result =
+                await _networkProvider.EstablishSecrecyChannelAsync(connectId);
+
             if (result.IsErr)
             {
             }
@@ -189,7 +218,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
 
     private IAsyncPolicy CreateRetryPolicy()
     {
-        System.Collections.Generic.IEnumerable<TimeSpan> retryDelays = _configuration.UseAdaptiveRetry 
+        System.Collections.Generic.IEnumerable<TimeSpan> retryDelays = _configuration.UseAdaptiveRetry
             ? Backoff.DecorrelatedJitterBackoffV2(
                 medianFirstRetryDelay: _configuration.InitialRetryDelay,
                 retryCount: _configuration.MaxRetries,
@@ -206,24 +235,16 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             .Or<OperationCanceledException>()
             .WaitAndRetryAsync(
                 retryDelays,
-                onRetry: (_, _, _, _) =>
-                {
-                });
+                onRetry: (_, _, _, _) => { });
 
         IAsyncPolicy circuitBreakerPolicy = Policy
             .Handle<RpcException>(IsCircuitBreakerException)
             .CircuitBreakerAsync(
                 _configuration.CircuitBreakerThreshold,
                 _configuration.CircuitBreakerDuration,
-                onBreak: (_, _) =>
-                {
-                },
-                onReset: () =>
-                {
-                },
-                onHalfOpen: () =>
-                {
-                });
+                onBreak: (_, _) => { },
+                onReset: () => { },
+                onHalfOpen: () => { });
 
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
             _configuration.HealthCheckTimeout,
@@ -262,7 +283,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         return ex.StatusCode == StatusCode.Unavailable ||
                ex.StatusCode == StatusCode.ResourceExhausted;
     }
-    
+
     private static bool IsServerShutdown(RpcException ex)
     {
         return ex.StatusCode == StatusCode.Unavailable &&
@@ -280,15 +301,19 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             return connectId;
         }
-        
+
         return 1;
     }
-    
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Configuration binding is safe for simple types")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling", Justification = "Configuration binding is safe for simple types")]
+
+    [UnconditionalSuppressMessage("Trimming",
+        "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
+        Justification = "Configuration binding is safe for simple types")]
+    [UnconditionalSuppressMessage("AOT",
+        "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
+        Justification = "Configuration binding is safe for simple types")]
     private static ImprovedRetryConfiguration GetRetryConfiguration(IConfiguration configuration)
     {
-        return configuration.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>() 
+        return configuration.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>()
                ?? ImprovedRetryConfiguration.Production;
     }
 
@@ -303,19 +328,17 @@ public class SecrecyChannelRetryInterceptor : Interceptor
 
         public async Task<bool> MoveNext(System.Threading.CancellationToken cancellationToken)
         {
-            if (_stream == null)
+            if (_stream != null) return await _stream.MoveNext(cancellationToken);
+            bool connected = await connectionTask;
+            if (!connected)
             {
-                bool connected = await connectionTask;
-                if (!connected)
-                {
-                    throw new RpcException(new Status(
-                        StatusCode.Unavailable,
-                        "Failed to establish SecrecyChannel for streaming"));
-                }
-                
-                _stream = streamFactory();
+                throw new RpcException(new Status(
+                    StatusCode.Unavailable,
+                    "Failed to establish SecrecyChannel for streaming"));
             }
-            
+
+            _stream = streamFactory();
+
             return await _stream.MoveNext(cancellationToken);
         }
     }

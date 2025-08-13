@@ -150,7 +150,7 @@ public class OpaqueAuthenticationService(
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None, waitForRecovery: false
+            }, false, CancellationToken.None, waitForRecovery: true
         );
 
         if (networkResult.IsErr)
@@ -180,7 +180,7 @@ public class OpaqueAuthenticationService(
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None, waitForRecovery: false
+            }, false, CancellationToken.None, waitForRecovery: true
         );
 
         if (networkResult.IsErr)

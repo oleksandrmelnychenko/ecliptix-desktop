@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
@@ -18,6 +19,7 @@ namespace Ecliptix.Core.ViewModels.Memberships.SignIn;
 public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDisposable
 {
     private readonly IAuthenticationService _authService;
+    private readonly INetworkEvents _networkEvents;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
@@ -30,6 +32,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
     [ObservableAsProperty] public bool IsBusy { get; }
+    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
 
     [ObservableAsProperty] public string? MobileNumberError { get; private set; }
     [ObservableAsProperty] public bool HasMobileNumberError { get; private set; }
@@ -45,6 +48,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     public SignInViewModel(
         ISystemEvents systemEvents,
+        INetworkEvents networkEvents,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
@@ -52,6 +56,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
     {
         HostScreen = hostScreen;
         _authService = authService;
+        _networkEvents = networkEvents;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -131,8 +136,25 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
-            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+        // Monitor network outage state - outage is true for problematic states, false for healthy states
+        var networkStatusStream = _networkEvents.NetworkStatusChanged
+            .Select(e => e.State switch
+            {
+                NetworkStatus.DataCenterDisconnected => true,
+                NetworkStatus.ServerShutdown => true,
+                NetworkStatus.ConnectionRecovering => true,
+                NetworkStatus.ConnectionRestored => false,
+                NetworkStatus.DataCenterConnected => false,
+                _ => false
+            })
+            .StartWith(false)
+            .DistinctUntilChanged();
+
+        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
+
+        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage, 
+                (isBusy, isInOutage) => !isBusy && !isInOutage)
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SignInCommand = ReactiveCommand.CreateFromTask(
             () => _authService.SignInAsync(MobileNumber, _secureKeyBuffer, ComputeConnectId()),

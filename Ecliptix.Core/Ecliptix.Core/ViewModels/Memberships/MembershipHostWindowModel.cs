@@ -52,22 +52,22 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
             { "US", "en-US" },
         }.ToFrozenDictionary();
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, NetworkProvider,
+    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
         IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<ISystemEvents, NetworkProvider, ILocalizationService,
+        new Dictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider, ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, net, loc, auth, storage, host) =>
-                new SignInViewModel(sys, net, loc, auth, host),
+            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+                new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, net, loc, auth, storage, host) => new WelcomeViewModel(host, sys, loc, net),
-            [MembershipViewType.MobileVerification] = (sys, net, loc, auth, storage, host) =>
-                new MobileVerificationViewModel(sys, net, loc, host, storage),
-            [MembershipViewType.ConfirmSecureKey] = (sys, net, loc, auth, storage, host) =>
-                new PasswordConfirmationViewModel(sys, net, loc, host, storage),
-            [MembershipViewType.PassPhase] = (sys, net, loc, auth, storage, host) =>
-                new PassPhaseViewModel(sys, loc, host, net)
+                (sys, netEvents, netProvider, loc, auth, storage, host) => new WelcomeViewModel(host, sys, loc, netProvider),
+            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+                new MobileVerificationViewModel(sys, netProvider, loc, host, storage),
+            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+                new PasswordConfirmationViewModel(sys, netProvider, loc, host, storage),
+            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+                new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
 
     public RoutingState Router { get; } = new();
@@ -238,13 +238,13 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
         }
 
         if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<ISystemEvents, NetworkProvider, ILocalizationService, IAuthenticationService,
+                out Func<ISystemEvents, INetworkEvents, NetworkProvider, ILocalizationService, IAuthenticationService,
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>? factory))
         {
             throw new ArgumentOutOfRangeException(nameof(viewType));
         }
 
-        IRoutableViewModel newViewModel = factory(_systemEvents, _networkProvider, LocalizationService,
+        IRoutableViewModel newViewModel = factory(_systemEvents, _networkEvents, _networkProvider, LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this);
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 

@@ -215,7 +215,7 @@
                              Value="{Binding RetryProgress}"
                              Height="3"
                              Background="#1a1a1a"
-                             Foreground="{Binding RetryProgressColor}"
+                             Foreground="Red"
                              IsIndeterminate="{Binding IsRetrying}">
                     <ProgressBar.Styles>
                         <Style Selector="ProgressBar:indeterminate /template/ Border#PART_Indicator">

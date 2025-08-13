@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace Ecliptix.Core.Network.Services;
 
@@ -21,6 +23,8 @@ public class PendingRequestManager : IPendingRequestManager
 {
     private readonly ConcurrentDictionary<string, Func<Task>> _pendingRequests = new();
     private readonly ConcurrentDictionary<string, object> _typedPendingRequests = new();
+    private readonly ConcurrentDictionary<string, bool> _retryingRequests = new(); // Track currently retrying requests
+    private readonly SemaphoreSlim _retryAllSemaphore = new(1, 1); // Prevent multiple simultaneous retryAll calls
     private int _pendingCount;
     
     public event EventHandler<int>? PendingCountChanged;
@@ -64,37 +68,83 @@ public class PendingRequestManager : IPendingRequestManager
     
     public async Task<int> RetryAllPendingRequestsAsync(CancellationToken cancellationToken = default)
     {
-        var untypedRequests = _pendingRequests.ToArray();
-        var typedRequests = _typedPendingRequests.ToArray();
-        int successCount = 0;
-        
-        Task[] untypedTasks = new Task[untypedRequests.Length];
-        for (int i = 0; i < untypedRequests.Length; i++)
+        // CRITICAL FIX: Single-flight protection to prevent duplicate retry operations
+        await _retryAllSemaphore.WaitAsync(cancellationToken);
+        try
         {
-            var request = untypedRequests[i];
-            untypedTasks[i] = RetryRequestAsync(request.Key, request.Value, cancellationToken);
+            var untypedRequests = _pendingRequests.ToArray();
+            var typedRequests = _typedPendingRequests.ToArray();
+            int successCount = 0;
+            
+            Log.Information("Starting retry for {UntypedCount} untyped and {TypedCount} typed pending requests", 
+                untypedRequests.Length, typedRequests.Length);
+            
+            // Filter out requests that are already being retried
+            var filteredUntypedRequests = new List<KeyValuePair<string, Func<Task>>>();
+            var filteredTypedRequests = new List<KeyValuePair<string, object>>();
+            
+            foreach (var request in untypedRequests)
+            {
+                if (_retryingRequests.TryAdd(request.Key, true))
+                {
+                    filteredUntypedRequests.Add(request);
+                }
+                else
+                {
+                    Log.Debug("Skipping retry for request {RequestId} - already being retried", request.Key);
+                }
+            }
+            
+            foreach (var request in typedRequests)
+            {
+                if (_retryingRequests.TryAdd(request.Key, true))
+                {
+                    filteredTypedRequests.Add(request);
+                }
+                else
+                {
+                    Log.Debug("Skipping retry for typed request {RequestId} - already being retried", request.Key);
+                }
+            }
+            
+            Task[] untypedTasks = new Task[filteredUntypedRequests.Count];
+            for (int i = 0; i < filteredUntypedRequests.Count; i++)
+            {
+                var request = filteredUntypedRequests[i];
+                untypedTasks[i] = RetryRequestAsync(request.Key, request.Value, cancellationToken);
+            }
+            
+            Task[] typedTasks = new Task[filteredTypedRequests.Count];
+            for (int i = 0; i < filteredTypedRequests.Count; i++)
+            {
+                var request = filteredTypedRequests[i];
+                typedTasks[i] = RetryTypedRequestAsync(request.Key, request.Value, cancellationToken);
+            }
+            
+            var allTasks = new Task[untypedTasks.Length + typedTasks.Length];
+            Array.Copy(untypedTasks, allTasks, untypedTasks.Length);
+            Array.Copy(typedTasks, 0, allTasks, untypedTasks.Length, typedTasks.Length);
+            
+            if (allTasks.Length > 0)
+            {
+                await Task.WhenAll(allTasks);
+                
+                foreach (Task task in allTasks)
+                {
+                    if (task.IsCompletedSuccessfully)
+                        successCount++;
+                }
+            }
+            
+            Log.Information("Completed retry operation: {SuccessCount}/{TotalCount} requests succeeded", 
+                successCount, allTasks.Length);
+            
+            return successCount;
         }
-        
-        Task[] typedTasks = new Task[typedRequests.Length];
-        for (int i = 0; i < typedRequests.Length; i++)
+        finally
         {
-            var request = typedRequests[i];
-            typedTasks[i] = RetryTypedRequestAsync(request.Key, request.Value, cancellationToken);
+            _retryAllSemaphore.Release();
         }
-        
-        var allTasks = new Task[untypedTasks.Length + typedTasks.Length];
-        Array.Copy(untypedTasks, allTasks, untypedTasks.Length);
-        Array.Copy(typedTasks, 0, allTasks, untypedTasks.Length, typedTasks.Length);
-        
-        await Task.WhenAll(allTasks);
-        
-        foreach (Task task in allTasks)
-        {
-            if (task.IsCompletedSuccessfully)
-                successCount++;
-        }
-        
-        return successCount;
     }
     
     private async Task RetryRequestAsync(string requestId, Func<Task> retryAction, CancellationToken cancellationToken)
@@ -103,9 +153,16 @@ public class PendingRequestManager : IPendingRequestManager
         {
             await retryAction();
             RemovePendingRequest(requestId);
+            Log.Debug("Successfully retried request {RequestId}", requestId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Warning(ex, "Failed to retry request {RequestId}", requestId);
+        }
+        finally
+        {
+            // Always clear retrying flag regardless of success/failure
+            _retryingRequests.TryRemove(requestId, out _);
         }
     }
     
@@ -121,9 +178,16 @@ public class PendingRequestManager : IPendingRequestManager
                 await task;
             }
             RemovePendingRequest(requestId);
+            Log.Debug("Successfully retried typed request {RequestId}", requestId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Warning(ex, "Failed to retry typed request {RequestId}", requestId);
+        }
+        finally
+        {
+            // Always clear retrying flag regardless of success/failure
+            _retryingRequests.TryRemove(requestId, out _);
         }
     }
     
@@ -141,6 +205,9 @@ public class PendingRequestManager : IPendingRequestManager
             }
         }
         _typedPendingRequests.Clear();
+        
+        // Also clear retrying requests since all are cancelled
+        _retryingRequests.Clear();
         
         Interlocked.Exchange(ref _pendingCount, 0);
         PendingCountChanged?.Invoke(this, 0);

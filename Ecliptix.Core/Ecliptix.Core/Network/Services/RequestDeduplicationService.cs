@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -21,7 +22,7 @@ public class RequestDeduplicationService : IDisposable
         _deduplicationWindow = deduplicationWindow;
         _recentRequests = new ConcurrentDictionary<string, RequestInfo>();
         _cleanupSemaphore = new SemaphoreSlim(1, 1);
-        
+
         _cleanupTimer = new Timer(
             CleanupExpiredEntries,
             null,
@@ -36,7 +37,7 @@ public class RequestDeduplicationService : IDisposable
     {
         string requestHash = ComputeRequestHash(serviceType, requestData, connectId);
         DateTime now = DateTime.UtcNow;
-        
+
         if (_recentRequests.TryGetValue(requestHash, out RequestInfo? existingRequest))
         {
             if (now - existingRequest.Timestamp < _deduplicationWindow)
@@ -44,15 +45,15 @@ public class RequestDeduplicationService : IDisposable
                 return Task.FromResult(true);
             }
         }
-        
-        RequestInfo requestInfo = new RequestInfo
+
+        RequestInfo requestInfo = new()
         {
             ServiceType = serviceType,
             ConnectId = connectId,
             Timestamp = now,
             RequestCount = 1
         };
-        
+
         _recentRequests.AddOrUpdate(
             requestHash,
             requestInfo,
@@ -62,69 +63,57 @@ public class RequestDeduplicationService : IDisposable
                 existing.Timestamp = now;
                 return existing;
             });
-        
+
         if (requestInfo.RequestCount > 3)
         {
         }
-        
+
         return Task.FromResult(false);
     }
 
-    public RequestStatistics GetStatistics()
+    public void RemoveRequest(string serviceType, byte[] requestData, uint connectId)
     {
-        RequestStatistics stats = new RequestStatistics
-        {
-            TotalRequests = _recentRequests.Count,
-            DuplicatesDetected = 0,
-            UniqueServiceTypes = new HashSet<string>()
-        };
-        
-        foreach (RequestInfo request in _recentRequests.Values)
-        {
-            if (request.RequestCount > 1)
-                stats.DuplicatesDetected += request.RequestCount - 1;
-            stats.UniqueServiceTypes.Add(request.ServiceType);
-        }
-        
-        return stats;
+        string requestHash = ComputeRequestHash(serviceType, requestData, connectId);
+        _recentRequests.TryRemove(requestHash, out _);
     }
 
-    private string ComputeRequestHash(string serviceType, byte[] requestData, uint connectId)
+    private static string ComputeRequestHash(string serviceType, byte[] requestData, uint connectId)
     {
-        using SHA256 sha256 = SHA256.Create();
         string input = $"{serviceType}:{connectId}:{Convert.ToBase64String(requestData)}";
-        byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+        byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToBase64String(hashBytes);
     }
 
     private async void CleanupExpiredEntries(object? state)
     {
-        if (!await _cleanupSemaphore.WaitAsync(0))
-            return;
-        
         try
         {
-            DateTime cutoff = DateTime.UtcNow - _deduplicationWindow;
-            List<string> keysToRemove = new List<string>();
-            
-            foreach (KeyValuePair<string, RequestInfo> kvp in _recentRequests)
+            if (!await _cleanupSemaphore.WaitAsync(0))
+                return;
+
+            try
             {
-                if (kvp.Value.Timestamp < cutoff)
-                    keysToRemove.Add(kvp.Key);
+                DateTime cutoff = DateTime.UtcNow - _deduplicationWindow;
+                List<string> keysToRemove = [];
+                keysToRemove.AddRange(from kvp in _recentRequests where kvp.Value.Timestamp < cutoff select kvp.Key);
+
+                foreach (string key in keysToRemove)
+                {
+                    _recentRequests.TryRemove(key, out _);
+                }
+
+                if (keysToRemove.Count > 0)
+                {
+                }
             }
-            
-            foreach (string key in keysToRemove)
+            finally
             {
-                _recentRequests.TryRemove(key, out _);
-            }
-            
-            if (keysToRemove.Count > 0)
-            {
+                _cleanupSemaphore.Release();
             }
         }
-        finally
+        catch (Exception)
         {
-            _cleanupSemaphore.Release();
+            //
         }
     }
 
@@ -140,12 +129,5 @@ public class RequestDeduplicationService : IDisposable
         public uint ConnectId { get; set; }
         public DateTime Timestamp { get; set; }
         public int RequestCount { get; set; }
-    }
-
-    public class RequestStatistics
-    {
-        public int TotalRequests { get; set; }
-        public int DuplicatesDetected { get; set; }
-        public HashSet<string> UniqueServiceTypes { get; set; } = new();
     }
 }
