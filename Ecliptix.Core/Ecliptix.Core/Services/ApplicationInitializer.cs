@@ -102,7 +102,7 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
         uint connectId =
-            networkProvider.ComputeUniqueConnectId(applicationInstanceSettings,PubKeyExchangeType.DataCenterEphemeralConnect);
+            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (!isNewInstance)
         {

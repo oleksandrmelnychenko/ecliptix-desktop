@@ -91,7 +91,6 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             throw new RpcException(new Status(StatusCode.AlreadyExists, "Duplicate request detected"));
         }
         
-        // First, try the request without retry policy to detect server shutdown immediately
         try
         {
             bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
@@ -108,19 +107,10 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
         catch (RpcException ex) when (IsServerShutdown(ex))
         {
-            // Server shutdown detected - register pending request for retry when server recovers
-            var taskCompletionSource = new TaskCompletionSource<TResponse>();
+            TaskCompletionSource<TResponse> taskCompletionSource = new();
             
             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
             {
-                bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
-                if (!connectionResult)
-                {
-                    throw new RpcException(new Status(
-                        StatusCode.Unavailable,
-                        "Failed to establish SecrecyChannel"));
-                }
-                
                 AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
                 return await retryCall.ResponseAsync;
             }, taskCompletionSource);
@@ -128,21 +118,16 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown));
             
-            // Let the original exception propagate to trigger outage mode
             throw;
         }
         catch (RpcException ex)
         {
-            // For other RPC errors, use the retry policy
             return await _retryPolicy.ExecuteAsync(async () =>
             {
-                if (!ShouldRetry(ex)) throw ex;
+                if (!ShouldRetry(ex) || !RequiresConnectionRecovery(ex)) throw ex;
 
-                if (!RequiresConnectionRecovery(ex)) throw ex;
-                        
                 await ReestablishSecrecyChannelAsync(connectId);
 
-                // Try again with fresh connection
                 bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
                 if (!connectionResult)
                 {
@@ -167,22 +152,16 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             }
             
             
-            Ecliptix.Utilities.Result<bool, NetworkFailure> restoreResult = await _networkProvider.TryRestoreConnectionAsync(connectId);
+            Utilities.Result<bool, NetworkFailure> restoreResult = await _networkProvider.TryRestoreConnectionAsync(connectId);
             
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
                 return true;
             }
             
-            Ecliptix.Utilities.Result<Ecliptix.Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> establishResult = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> establishResult = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
             
-            if (establishResult.IsOk)
-            {
-                return true;
-            }
-            
-            
-            return false;
+            return establishResult.IsOk;
         }
         catch (Exception)
         {
@@ -196,7 +175,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             _networkProvider.ClearConnection(connectId);
             
-            Ecliptix.Utilities.Result<Ecliptix.Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> result = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> result = await _networkProvider.EstablishSecrecyChannelAsync(connectId);
             
             if (result.IsErr)
             {
@@ -204,6 +183,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
         catch (Exception)
         {
+            // ignored
         }
     }
 
@@ -226,16 +206,16 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             .Or<OperationCanceledException>()
             .WaitAndRetryAsync(
                 retryDelays,
-                onRetry: (exception, delay, retryCount, context) =>
+                onRetry: (_, _, _, _) =>
                 {
                 });
 
         IAsyncPolicy circuitBreakerPolicy = Policy
-            .Handle<RpcException>(ex => IsCircuitBreakerException(ex))
+            .Handle<RpcException>(IsCircuitBreakerException)
             .CircuitBreakerAsync(
                 _configuration.CircuitBreakerThreshold,
                 _configuration.CircuitBreakerDuration,
-                onBreak: (exception, duration) =>
+                onBreak: (_, _) =>
                 {
                 },
                 onReset: () =>
@@ -247,17 +227,14 @@ public class SecrecyChannelRetryInterceptor : Interceptor
 
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
             _configuration.HealthCheckTimeout,
-            onTimeoutAsync: (context, timespan, task) =>
-            {
-                return Task.CompletedTask;
-            });
+            onTimeoutAsync: (_, _, _) => Task.CompletedTask);
 
         return retryPolicy
             .WrapAsync(circuitBreakerPolicy)
             .WrapAsync(timeoutPolicy);
     }
 
-    private bool ShouldRetry(RpcException ex)
+    private static bool ShouldRetry(RpcException ex)
     {
         return ex.StatusCode switch
         {
@@ -267,21 +244,11 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             StatusCode.Aborted => true,
             StatusCode.Internal => true,
             StatusCode.Unknown => true,
-            StatusCode.DataLoss => false,
-            StatusCode.Unauthenticated => false,
-            StatusCode.PermissionDenied => false,
-            StatusCode.InvalidArgument => false,
-            StatusCode.NotFound => false,
-            StatusCode.AlreadyExists => false,
-            StatusCode.FailedPrecondition => false,
-            StatusCode.OutOfRange => false,
-            StatusCode.Unimplemented => false,
-            StatusCode.Cancelled => false,
             _ => false
         };
     }
 
-    private bool RequiresConnectionRecovery(RpcException ex)
+    private static bool RequiresConnectionRecovery(RpcException ex)
     {
         return ex.StatusCode == StatusCode.Unauthenticated ||
                ex.StatusCode == StatusCode.PermissionDenied ||
@@ -290,13 +257,13 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                (ex.Status.Detail?.Contains("chain", StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
-    private bool IsCircuitBreakerException(RpcException ex)
+    private static bool IsCircuitBreakerException(RpcException ex)
     {
         return ex.StatusCode == StatusCode.Unavailable ||
                ex.StatusCode == StatusCode.ResourceExhausted;
     }
     
-    private bool IsServerShutdown(RpcException ex)
+    private static bool IsServerShutdown(RpcException ex)
     {
         return ex.StatusCode == StatusCode.Unavailable &&
                ((ex.Status.Detail?.Contains("server", StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -304,7 +271,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 (ex.Status.Detail?.Contains("connection refused", StringComparison.OrdinalIgnoreCase) ?? false));
     }
 
-    private uint ExtractConnectionId<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context)
+    private static uint ExtractConnectionId<TRequest, TResponse>(ClientInterceptorContext<TRequest, TResponse> context)
         where TRequest : class
         where TResponse : class
     {
@@ -325,19 +292,12 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                ?? ImprovedRetryConfiguration.Production;
     }
 
-    private class SecrecyChannelAwareStreamReader<T> : IAsyncStreamReader<T>
+    private class SecrecyChannelAwareStreamReader<T>(
+        Task<bool> connectionTask,
+        Func<IAsyncStreamReader<T>> streamFactory)
+        : IAsyncStreamReader<T>
     {
-        private readonly Task<bool> _connectionTask;
-        private readonly Func<IAsyncStreamReader<T>> _streamFactory;
         private IAsyncStreamReader<T>? _stream;
-
-        public SecrecyChannelAwareStreamReader(
-            Task<bool> connectionTask,
-            Func<IAsyncStreamReader<T>> streamFactory)
-        {
-            _connectionTask = connectionTask;
-            _streamFactory = streamFactory;
-        }
 
         public T Current => _stream != null ? _stream.Current : default!;
 
@@ -345,7 +305,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             if (_stream == null)
             {
-                bool connected = await _connectionTask;
+                bool connected = await connectionTask;
                 if (!connected)
                 {
                     throw new RpcException(new Status(
@@ -353,7 +313,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                         "Failed to establish SecrecyChannel for streaming"));
                 }
                 
-                _stream = _streamFactory();
+                _stream = streamFactory();
             }
             
             return await _stream.MoveNext(cancellationToken);

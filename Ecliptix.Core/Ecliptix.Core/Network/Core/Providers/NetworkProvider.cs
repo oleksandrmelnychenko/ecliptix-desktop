@@ -54,7 +54,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly ConcurrentDictionary<uint, DateTime> _lastRecoveryAttempts = new();
     private readonly TimeSpan _recoveryThrottleInterval = TimeSpan.FromSeconds(10);
 
-    // Request debouncing to prevent spam
     private readonly ConcurrentDictionary<string, DateTime> _lastRequestAttempts = new();
     private readonly TimeSpan _requestDebounceInterval = TimeSpan.FromMilliseconds(500);
 
@@ -110,7 +109,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 
-    public uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
+    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
         PubKeyExchangeType pubKeyExchangeType)
     {
         Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
@@ -165,7 +164,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Cleared connection {ConnectId} from cache and monitoring", connectId);
     }
 
-    public async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestAsync(
+    private async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestAsync(
         uint connectId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
@@ -185,12 +184,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string prefix = hex[..Math.Min(hex.Length, 16)];
         string requestKey = $"{connectId}_{serviceType}_{prefix}";
 
-        // Check if we're in outage mode and not waiting for recovery
-        // In this case, don't add to in-flight requests to avoid blocking future attempts
         bool isInOutageAndNotWaiting = !waitForRecovery && Volatile.Read(ref _outageState) != 0;
-        
-        // Request debouncing - prevent rapid successive calls for the same operation
-        // Skip debouncing for retry operations (when waitForRecovery = true) as these are automatic recovery
+
         if (!waitForRecovery)
         {
             DateTime now = DateTime.UtcNow;
@@ -200,15 +195,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 TimeSpan timeSinceLastRequest = now - lastAttempt;
                 if (timeSinceLastRequest < _requestDebounceInterval)
                 {
-                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)", 
+                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)",
                         serviceType, timeSinceLastRequest);
                     return Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType("Request too frequent, please wait"));
                 }
             }
+
             _lastRequestAttempts.AddOrUpdate(debounceKey, now, (_, _) => now);
         }
-        
+
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
         if (!shouldAllowDuplicates && !isInOutageAndNotWaiting && !_inFlightRequests.TryAdd(requestKey, 0))
         {
@@ -222,8 +218,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             await WaitForOutageRecoveryAsync(operationToken, waitForRecovery);
-            
-            // If we're in outage and not waiting for recovery, return error immediately
+
             if (isInOutageAndNotWaiting)
             {
                 return Result<Unit, NetworkFailure>.Err(
@@ -264,11 +259,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         Result<Unit, NetworkFailure> result = flowType switch
                         {
-                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            _ => Result<Unit, NetworkFailure>.Err(NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted,
+                                operationToken),
+                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
+                                request, onCompleted, operationToken),
+                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request,
+                                onCompleted, operationToken),
+                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(
+                                protocolSystem, request, onCompleted, operationToken),
+                            _ => Result<Unit, NetworkFailure>.Err(
+                                NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                         };
 
                         if (!result.IsErr) return result;
@@ -277,19 +277,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         if (FailureClassification.IsServerShutdown(failure))
                         {
                             EnterOutage(failure.Message, connectId);
-                            
-                            // Register this request as pending to be retried when connection is restored
-                            var requestId = Guid.NewGuid().ToString();
+
+                            string requestId = Guid.NewGuid().ToString();
                             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
                             {
-                                // Retry the exact same request when connection is restored
                                 await ExecuteServiceRequestAsync(
-                                    connectId, 
-                                    serviceType, 
-                                    plainBuffer, 
-                                    flowType, 
-                                    onCompleted, 
-                                    allowDuplicates, 
+                                    connectId,
+                                    serviceType,
+                                    plainBuffer,
+                                    flowType,
+                                    onCompleted,
+                                    allowDuplicates,
                                     token);
                             });
                         }
@@ -353,12 +351,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: 10,
                 cancellationToken: operationToken);
 
-            // If we were in outage mode and this request succeeded, clear the outage
-            if (networkResult.IsOk && Volatile.Read(ref _outageState) != 0)
-            {
-                Log.Information("Request succeeded after outage - clearing outage state");
-                ExitOutage();
-            }
+            if (!networkResult.IsOk || Volatile.Read(ref _outageState) == 0) return networkResult;
+            Log.Information("Request succeeded after outage - clearing outage state");
+            ExitOutage();
 
             return networkResult;
         }
@@ -418,12 +413,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string prefix = hex[..Math.Min(hex.Length, 16)];
         string requestKey = $"{connectId}_{serviceType}_{prefix}";
 
-        // Check if we're in outage mode and not waiting for recovery
-        // In this case, don't add to in-flight requests to avoid blocking future attempts
         bool isInOutageAndNotWaiting = !waitForRecovery && Volatile.Read(ref _outageState) != 0;
-        
-        // Request debouncing - prevent rapid successive calls for the same operation
-        // Skip debouncing for retry operations (when waitForRecovery = true) as these are automatic recovery
+
         if (!waitForRecovery)
         {
             DateTime now = DateTime.UtcNow;
@@ -433,15 +424,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 TimeSpan timeSinceLastRequest = now - lastAttempt;
                 if (timeSinceLastRequest < _requestDebounceInterval)
                 {
-                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)", 
+                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)",
                         serviceType, timeSinceLastRequest);
                     return Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType("Request too frequent, please wait"));
                 }
             }
+
             _lastRequestAttempts.AddOrUpdate(debounceKey, now, (_, _) => now);
         }
-        
+
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
         if (!shouldAllowDuplicates && !isInOutageAndNotWaiting && !_inFlightRequests.TryAdd(requestKey, 0))
         {
@@ -455,8 +447,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             await WaitForOutageRecoveryAsync(operationToken, waitForRecovery);
-            
-            // If we're in outage and not waiting for recovery, return error immediately
+
             if (isInOutageAndNotWaiting)
             {
                 return Result<Unit, NetworkFailure>.Err(
@@ -497,11 +488,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         Result<Unit, NetworkFailure> result = flowType switch
                         {
-                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem, request, onCompleted, operationToken),
-                            _ => Result<Unit, NetworkFailure>.Err(NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted,
+                                operationToken),
+                            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
+                                request, onCompleted, operationToken),
+                            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request,
+                                onCompleted, operationToken),
+                            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(
+                                protocolSystem, request, onCompleted, operationToken),
+                            _ => Result<Unit, NetworkFailure>.Err(
+                                NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                         };
 
                         if (!result.IsErr) return result;
@@ -510,19 +506,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         if (FailureClassification.IsServerShutdown(failure))
                         {
                             EnterOutage(failure.Message, connectId);
-                            
-                            // Register this request as pending to be retried when connection is restored
-                            var requestId = Guid.NewGuid().ToString();
+
+                            string requestId = Guid.NewGuid().ToString();
                             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
                             {
-                                // Retry the exact same request when connection is restored
                                 await ExecuteServiceRequestAsync(
-                                    connectId, 
-                                    serviceType, 
-                                    plainBuffer, 
-                                    flowType, 
-                                    onCompleted, 
-                                    allowDuplicates, 
+                                    connectId,
+                                    serviceType,
+                                    plainBuffer,
+                                    flowType,
+                                    onCompleted,
+                                    allowDuplicates,
                                     token);
                             });
                         }
@@ -531,26 +525,22 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             Log.Warning(
                                 "Cryptographic desync detected for connection {ConnectId}, initiating recovery",
                                 connectId);
-                            if (!ShouldThrottleRecovery(connectId))
-                            {
-                                _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
-                                    (_, _) => DateTime.UtcNow);
-                                ExecuteBackgroundTask(PerformAdvancedRecoveryLogic,
-                                    $"CryptographicRecovery-{connectId}");
-                            }
+                            if (ShouldThrottleRecovery(connectId)) return result;
+                            _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
+                                (_, _) => DateTime.UtcNow);
+                            ExecuteBackgroundTask(PerformAdvancedRecoveryLogic,
+                                $"CryptographicRecovery-{connectId}");
                         }
                         else if (FailureClassification.IsChainRotationMismatch(failure))
                         {
                             Log.Warning(
                                 "Chain rotation mismatch detected for connection {ConnectId}: {Message}. Initiating protocol resynchronization",
                                 connectId, failure.Message);
-                            if (!ShouldThrottleRecovery(connectId))
-                            {
-                                _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
-                                    (_, _) => DateTime.UtcNow);
-                                ExecuteBackgroundTask(() => PerformProtocolResynchronization(connectId),
-                                    $"ProtocolResync-{connectId}");
-                            }
+                            if (ShouldThrottleRecovery(connectId)) return result;
+                            _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
+                                (_, _) => DateTime.UtcNow);
+                            ExecuteBackgroundTask(() => PerformProtocolResynchronization(connectId),
+                                $"ProtocolResync-{connectId}");
                         }
                         else if (FailureClassification.IsProtocolStateMismatch(failure))
                         {
@@ -575,12 +565,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: 10,
                 cancellationToken: operationToken);
 
-            // If we were in outage mode and this request succeeded, clear the outage
-            if (networkResult.IsOk && Volatile.Read(ref _outageState) != 0)
-            {
-                Log.Information("Request succeeded after outage - clearing outage state");
-                ExitOutage();
-            }
+            if (!networkResult.IsOk || Volatile.Read(ref _outageState) == 0) return networkResult;
+            Log.Information("Request succeeded after outage - clearing outage state");
+            ExitOutage();
 
             return networkResult;
         }
@@ -647,10 +634,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Log.Information("Session restoration completed for {ConnectId}", connectId);
             ExitOutage();
             ResetRetryStrategyAfterOutage();
-            
-            // Retry any pending requests that were queued during the outage
+
             await RetryPendingRequestsAfterRecovery();
-            
+
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
@@ -662,13 +648,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Log.Information("Session successfully re-established via reconnection");
-        
+
         ExitOutage();
         ResetRetryStrategyAfterOutage();
-        
-        // Retry any pending requests that were queued during the outage
+
         await RetryPendingRequestsAfterRecovery();
-        
+
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
@@ -699,17 +684,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             Log.Information("Retrying pending requests after successful connection recovery");
-            
-            // Retry all pending requests that were queued during the outage
+
             await _pendingRequestManager.RetryAllPendingRequestsAsync();
-            
+
             Log.Information("Completed retrying pending requests");
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error while retrying pending requests after recovery");
-            // Don't fail the recovery if pending request retry fails
-            // The requests will timeout on their own or be retried by the caller
         }
     }
 
@@ -967,7 +949,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CipherPayload inboundPayload = callResult.Unwrap();
         Log.Debug("Received CipherPayload - Nonce: {Nonce}, Size: {Size}",
             Convert.ToHexString(inboundPayload.Nonce.ToByteArray()), inboundPayload.Cipher.Length);
-        
+
         Result<byte[], EcliptixProtocolFailure> decryptedData =
             protocolSystem.ProcessInboundMessage(inboundPayload);
         if (decryptedData.IsErr)
@@ -1007,7 +989,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         await foreach (Result<CipherPayload, NetworkFailure> streamItem in
                        inboundStream.Stream.WithCancellation(token))
         {
-            if (streamItem.IsErr) 
+            if (streamItem.IsErr)
             {
                 Log.Warning("Stream item error: {Error}", streamItem.UnwrapErr().Message);
                 continue;
@@ -1016,7 +998,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             CipherPayload streamPayload = streamItem.Unwrap();
             Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
                 protocolSystem.ProcessInboundMessage(streamPayload);
-            if (streamDecryptedData.IsErr) 
+            if (streamDecryptedData.IsErr)
             {
                 Log.Warning("Stream decryption failed: {Error}", streamDecryptedData.UnwrapErr().Message);
                 continue;
@@ -1077,7 +1059,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (flow is not RpcFlow.BidirectionalStream)
         {
             return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType($"Expected BidirectionalStream flow but received {flow.GetType().Name}"));
+                NetworkFailure.InvalidRequestType(
+                    $"Expected BidirectionalStream flow but received {flow.GetType().Name}"));
         }
 
         // TODO: Implement bidirectional streaming logic when needed
@@ -1089,7 +1072,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (Volatile.Read(ref _outageState) == 0) return;
 
-        // For UI requests during outage, don't block - return immediately
         if (!waitForRecovery) return;
 
         Task waitTask;
@@ -1604,9 +1586,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Warning("Protocol resynchronized but failed to save state: {Error}", saveResult.UnwrapErr());
             }
 
-            // Retry any pending requests after successful resynchronization
             await RetryPendingRequestsAfterRecovery();
-            
+
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -1622,7 +1603,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Manual retry requested. Forcing fresh protocol establishment");
         return await PerformAdvancedRecoveryLogic();
     }
-    
+
     private async Task<Result<Unit, NetworkFailure>> PerformFreshProtocolEstablishment(uint connectId)
     {
         Log.Information("Starting fresh protocol establishment for connection {ConnectId}", connectId);
@@ -1676,9 +1657,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Warning("Fresh protocol established but failed to save state: {Error}", saveResult.UnwrapErr());
             }
 
-            // Retry any pending requests after successful fresh protocol establishment
             await RetryPendingRequestsAfterRecovery();
-            
+
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -1706,60 +1686,23 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Debug("Retry strategy state cleared - fresh retry cycles will begin for subsequent operations");
     }
 
-    public Contracts.Services.RetryMetrics GetRetryMetrics(uint? connectId = null)
-    {
-        return _retryStrategy.GetRetryMetrics(connectId);
-    }
-
-    public ConnectionRetryState? GetConnectionRetryState(uint connectId)
-    {
-        return _retryStrategy.GetConnectionState(connectId);
-    }
-
-    public ConnectionDiagnostics? GetConnectionDiagnostics(uint connectId)
-    {
-        ConnectionHealth? health = _connectionStateManager.GetConnectionHealth(connectId);
-        if (health == null)
-        {
-            return null;
-        }
-
-        RetryMetrics retryMetrics = _retryStrategy.GetRetryMetrics(connectId);
-        ConnectionRetryState? retryState = _retryStrategy.GetConnectionState(connectId);
-
-        return new ConnectionDiagnostics(
-            ConnectId: connectId,
-            Health: health,
-            RetryMetrics: retryMetrics,
-            RetryState: retryState,
-            IsInOutage: Volatile.Read(ref _outageState) != 0
-        );
-    }
-    
-    public IRetryStrategy GetRetryStrategy()
-    {
-        return _retryStrategy;
-    }
-    
-    // Helper methods for retry strategy
     public bool IsConnectionHealthy(uint connectId)
     {
-        if (!_connections.TryGetValue(connectId, out var protocolSystem))
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem _))
             return false;
-            
-        // Check if connection exists in the dictionary
-        var health = _connections.ContainsKey(connectId) 
-            ? ConnectionHealthStatus.Healthy 
+
+        ConnectionHealthStatus health = _connections.ContainsKey(connectId)
+            ? ConnectionHealthStatus.Healthy
             : ConnectionHealthStatus.Failed;
         return health == ConnectionHealthStatus.Healthy;
     }
-    
+
     public async Task<Result<bool, NetworkFailure>> TryRestoreConnectionAsync(uint connectId)
     {
         try
         {
-            // Try to restore from saved state
-            var stateResult = await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+            Result<byte[], SecureStorageFailure> stateResult =
+                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
             if (stateResult.IsErr)
             {
                 Log.Debug("No saved state found for connection {ConnectId}", connectId);
@@ -1768,8 +1711,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             byte[] stateBytes = stateResult.Unwrap();
             EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
-            Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
-            
+            Result<bool, NetworkFailure> restoreResult =
+                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+
             return restoreResult;
         }
         catch (Exception ex)
