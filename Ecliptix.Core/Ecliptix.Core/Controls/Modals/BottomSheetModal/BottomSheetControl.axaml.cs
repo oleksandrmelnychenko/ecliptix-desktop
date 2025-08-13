@@ -1,13 +1,17 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using Avalonia.Media.Transformation;
 using Avalonia.ReactiveUI;
+using Avalonia.Styling;
 using ReactiveUI;
 using Splat;
 
@@ -15,11 +19,18 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
 {
-    public static readonly StyledProperty<double> AppearVerticalOffsetProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(AppearVerticalOffset));
+    private readonly TimeSpan _showAnimationDuration = TimeSpan.FromMilliseconds(400);
+    private readonly TimeSpan _hideAnimationDuration = TimeSpan.FromMilliseconds(400);
+    private bool _isAnimating;
 
-    public static readonly StyledProperty<double> DisappearVerticalOffsetProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(DisappearVerticalOffset));
+    private Border? _sheetBorder;
+    private Border? _scrimBorder;
+    private Grid? _rootGrid;
+
+    private Animation? _showAnimation;
+    private Animation? _hideAnimation;
+    private Animation? _scrimShowAnimation;
+    private Animation? _scrimHideAnimation;
 
     public new static readonly StyledProperty<double> MinHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
@@ -54,18 +65,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         get => GetValue(UnDismissableScrimColorProperty);
         set => SetValue(UnDismissableScrimColorProperty, value);
     }
-    
-    public double AppearVerticalOffset
-    {
-        get => GetValue(AppearVerticalOffsetProperty);
-        set => SetValue(AppearVerticalOffsetProperty, value);
-    }
-
-    public double DisappearVerticalOffset
-    {
-        get => GetValue(DisappearVerticalOffsetProperty);
-        set => SetValue(DisappearVerticalOffsetProperty, value);
-    }
 
     public new double MinHeight
     {
@@ -95,14 +94,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         InitializeComponent();
         InitializeDefaults();
-        InitializeAnimationState();
     }
 
     private void InitializeDefaults()
     {
         ViewModel = Locator.Current.GetService<BottomSheetViewModel>();
         IsDismissableOnScrimClick = DefaultBottomSheetVariables.DefaultIsDismissableOnScrimClick;
-        
+
         if (ViewModel is IActivatableViewModel activatableViewModel)
         {
             activatableViewModel.Activator.Activate();
@@ -112,7 +110,24 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
+        InitializeControls();
+        CreateAnimations();
         SetupReactiveBindings();
+    }
+
+    private void InitializeControls()
+    {
+        _rootGrid = this.FindControl<Grid>("RootGrid");
+        _sheetBorder = this.FindControl<Border>("SheetBorder");
+        _scrimBorder = this.FindControl<Border>("ScrimBorder");
+
+        if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
+        {
+            EnsureTransform<TranslateTransform>(_sheetBorder);
+            _rootGrid.IsVisible = false;
+            _sheetBorder.IsVisible = false;
+            _scrimBorder.IsVisible = false;
+        }
     }
 
     private void SetupReactiveBindings()
@@ -128,12 +143,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private void SetupScrimColorBinding(CompositeDisposable disposables)
     {
         this.WhenAnyValue(
-                x => x.IsDismissableOnScrimClick, 
+                x => x.IsDismissableOnScrimClick,
                 x => x.DismissableScrimColor,
                 x => x.UnDismissableScrimColor)
             .Subscribe(tuple =>
             {
-                (bool isDismissable, IBrush dismissableColor, IBrush unDismissableColor) = tuple;
+                var (isDismissable, dismissableColor, unDismissableColor) = tuple;
                 ScrimColor = isDismissable ? dismissableColor : unDismissableColor;
             })
             .DisposeWith(disposables);
@@ -155,58 +170,182 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private void SetupAnimationBindings(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.ViewModel!.IsVisible)
-            .Subscribe(isVisible =>
-            {
-                var scrimBorder = this.FindControl<Border>("ScrimBorder");
-                var sheetBorder = this.FindControl<Border>("SheetBorder");
-
-                if (scrimBorder != null && sheetBorder != null)
-                {
-                    if (isVisible)
-                    {
-                        // Show animation - slide up from bottom
-                        scrimBorder.Opacity = 0.5;
-                        sheetBorder.RenderTransform = TransformOperations.Parse("translateY(0px)");
-                        sheetBorder.Opacity = 1;
-                    }
-                    else
-                    {
-                        // Hide animation - slide down to bottom (opposite of show)
-                        scrimBorder.Opacity = 0;
-                        sheetBorder.RenderTransform = TransformOperations.Parse("translateY(400px)");
-                        sheetBorder.Opacity = 0;
-                    }
-                }
-            })
+            .Skip(1) // Skip initial value
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(async isVisible => await OnVisibilityChanged(isVisible))
             .DisposeWith(disposables);
     }
 
-    private void InitializeAnimationState()
+    private async Task OnVisibilityChanged(bool isVisible)
     {
-        // Set initial state - sheet should be hidden offscreen
-        this.WhenAnyValue(x => x.ViewModel)
-            .WhereNotNull()
-            .Take(1)
-            .Subscribe(_ =>
-            {
-                var scrimBorder = this.FindControl<Border>("ScrimBorder");
-                var sheetBorder = this.FindControl<Border>("SheetBorder");
+        if (_isAnimating || _rootGrid is null) return;
 
-                if (scrimBorder != null && sheetBorder != null)
-                {
-                    // Initialize in hidden state
-                    scrimBorder.Opacity = 0;
-                    sheetBorder.RenderTransform = TransformOperations.Parse("translateY(400px)");
-                    sheetBorder.Opacity = 0;
-                }
-            });
+        if (isVisible)
+        {
+            await ShowBottomSheet();
+        }
+        else
+        {
+            await HideBottomSheet();
+        }
+    }
+
+    private async Task ShowBottomSheet()
+    {
+        if (_showAnimation is null || _scrimShowAnimation is null || _sheetBorder is null || _scrimBorder is null || _rootGrid is null)
+        {
+            return;
+        }
+
+        _isAnimating = true;
+
+        _rootGrid.IsVisible = true;
+        _sheetBorder.IsVisible = true;
+        _scrimBorder.IsVisible = true;
+
+        try
+        {
+            var showTasks = new[]
+            {
+                _showAnimation.RunAsync(_sheetBorder, CancellationToken.None),
+                _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+            };
+            await Task.WhenAll(showTasks);
+        }
+        finally
+        {
+            _isAnimating = false;
+        }
+    }
+
+    private async Task HideBottomSheet()
+    {
+        if (_hideAnimation is null || _scrimHideAnimation is null || _sheetBorder is null || _scrimBorder is null || _rootGrid is null)
+        {
+            return;
+        }
+
+        _isAnimating = true;
+
+        try
+        {
+            var hideTasks = new[]
+            {
+                _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None),
+                _scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+            };
+            await Task.WhenAll(hideTasks);
+
+            _sheetBorder.IsVisible = false;
+            _scrimBorder.IsVisible = false;
+            _rootGrid.IsVisible = false;
+        }
+        finally
+        {
+            _isAnimating = false;
+        }
+    }
+
+    private void CreateAnimations()
+    {
+        double hiddenPosition = this.FindControl<Border>("SheetBorder")?.Height ?? 400;
+
+        var showEasing = new ElasticEaseOut1();
+        var hideEasing = new CubicEaseInOut();
+
+        _showAnimation = new Animation
+        {
+            Duration = _showAnimationDuration,
+            Easing = showEasing,
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(TranslateTransform.YProperty, hiddenPosition), new Setter(OpacityProperty, 1.0) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(TranslateTransform.YProperty, 0.0) } }
+            }
+        };
+
+        _hideAnimation = new Animation
+        {
+            Duration = _hideAnimationDuration,
+            Easing = hideEasing,
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(TranslateTransform.YProperty, 0.0), new Setter(OpacityProperty, 1.0) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(TranslateTransform.YProperty, hiddenPosition), new Setter(OpacityProperty, 0.0) } }
+            }
+        };
+
+        _scrimShowAnimation = new Animation
+        {
+            Duration = _showAnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } }
+            }
+        };
+
+        _scrimHideAnimation = new Animation
+        {
+            Duration = _hideAnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } }
+            }
+        };
     }
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (IsDismissableOnScrimClick && ViewModel is not null)
+        if (IsDismissableOnScrimClick && ViewModel is not null && !_isAnimating)
         {
             ViewModel.IsVisible = false;
+        }
+    }
+
+    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    {
+        var existingTransform = visual.RenderTransform;
+        if (existingTransform is TransformGroup existingGroup)
+        {
+            foreach (var child in existingGroup.Children)
+            {
+                if (child is T specificTransform)
+                {
+                    return specificTransform;
+                }
+            }
+            var newTransformFromGroup = new T();
+            existingGroup.Children.Add(newTransformFromGroup);
+            return newTransformFromGroup;
+        }
+
+        var group = new TransformGroup();
+        if (existingTransform is Transform singleTransform)
+        {
+            group.Children.Add(singleTransform);
+        }
+
+        var newTransform = new T();
+        group.Children.Add(newTransform);
+        visual.RenderTransform = group;
+        return newTransform;
+    }
+
+    public class ElasticEaseOut1 : Easing
+    {
+        public override double Ease(double p)
+        {
+            const double halfPi = Math.PI / 2;
+            const double frequency = -5.5d;
+            return Math.Sin(frequency * halfPi * (p + 1)) * Math.Pow(2d, -10d * p) + 1d;
         }
     }
 }

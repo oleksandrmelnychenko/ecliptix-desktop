@@ -28,7 +28,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid IsVisible="{Binding IsVisible}">
+    <Grid x:Name="RootGrid">
         <Border
             x:Name="ScrimBorder"
             Classes="scrim"
@@ -40,10 +40,11 @@
                 Classes="sheet"
                 VerticalAlignment="Bottom"
                 Width="400"
+                Height="300"
                 Margin="0,0,0,24"
                 Background="White"
                 IsHitTestVisible="True">
-                <ContentControl 
+                <ContentControl
                     x:Name="ContentControl"
                     Content="{Binding Content}"
                     IsHitTestVisible="True" />

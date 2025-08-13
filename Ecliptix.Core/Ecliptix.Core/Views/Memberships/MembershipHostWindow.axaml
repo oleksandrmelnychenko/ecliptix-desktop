@@ -400,8 +400,6 @@
                     ZIndex="111"
                     VerticalAlignment="Stretch"
                     HorizontalAlignment="Stretch"
-                    AppearVerticalOffset="0"
-                    DisappearVerticalOffset="0"
                     MinHeight="200"
                     MaxHeight="600"
                     DismissableScrimColor="DarkGray"
