@@ -10,6 +10,7 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Contracts.Core;
 using Ecliptix.Core.Network.Contracts.Services;
 using Ecliptix.Core.Network.Contracts.Transport;
+using Ecliptix.Core.Network.Services;
 using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
@@ -39,6 +40,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly ISystemEvents _systemEvents;
     private readonly IRetryStrategy _retryStrategy;
     private readonly IConnectionStateManager _connectionStateManager;
+    private readonly IPendingRequestManager _pendingRequestManager;
 
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
 
@@ -51,6 +53,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private readonly ConcurrentDictionary<uint, DateTime> _lastRecoveryAttempts = new();
     private readonly TimeSpan _recoveryThrottleInterval = TimeSpan.FromSeconds(10);
+
+    // Request debouncing to prevent spam
+    private readonly ConcurrentDictionary<string, DateTime> _lastRequestAttempts = new();
+    private readonly TimeSpan _requestDebounceInterval = TimeSpan.FromMilliseconds(500);
 
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
 
@@ -74,7 +80,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
         IRetryStrategy retryStrategy,
-        IConnectionStateManager connectionStateManager)
+        IConnectionStateManager connectionStateManager,
+        IPendingRequestManager pendingRequestManager)
     {
         _rpcServiceManager = rpcServiceManager;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -84,6 +91,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _systemEvents = systemEvents;
         _retryStrategy = retryStrategy;
         _connectionStateManager = connectionStateManager;
+        _pendingRequestManager = pendingRequestManager;
 
         _connectionStateManager.HealthChanged
             .Where(health => health.Status is ConnectionHealthStatus.Failed or ConnectionHealthStatus.Unhealthy)
@@ -164,7 +172,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        bool waitForRecovery = true)
     {
         if (_disposed)
         {
@@ -176,8 +185,32 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string prefix = hex[..Math.Min(hex.Length, 16)];
         string requestKey = $"{connectId}_{serviceType}_{prefix}";
 
+        // Check if we're in outage mode and not waiting for recovery
+        // In this case, don't add to in-flight requests to avoid blocking future attempts
+        bool isInOutageAndNotWaiting = !waitForRecovery && Volatile.Read(ref _outageState) != 0;
+        
+        // Request debouncing - prevent rapid successive calls for the same operation
+        // Skip debouncing for retry operations (when waitForRecovery = true) as these are automatic recovery
+        if (!waitForRecovery)
+        {
+            DateTime now = DateTime.UtcNow;
+            string debounceKey = $"{connectId}_{serviceType}";
+            if (_lastRequestAttempts.TryGetValue(debounceKey, out DateTime lastAttempt))
+            {
+                TimeSpan timeSinceLastRequest = now - lastAttempt;
+                if (timeSinceLastRequest < _requestDebounceInterval)
+                {
+                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)", 
+                        serviceType, timeSinceLastRequest);
+                    return Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType("Request too frequent, please wait"));
+                }
+            }
+            _lastRequestAttempts.AddOrUpdate(debounceKey, now, (_, _) => now);
+        }
+        
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
-        if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, 0))
+        if (!shouldAllowDuplicates && !isInOutageAndNotWaiting && !_inFlightRequests.TryAdd(requestKey, 0))
         {
             Log.Debug("Duplicate request detected for {ServiceType}, rejecting", serviceType);
             return Result<Unit, NetworkFailure>.Err(
@@ -188,7 +221,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
-            await WaitForOutageRecoveryAsync(operationToken);
+            await WaitForOutageRecoveryAsync(operationToken, waitForRecovery);
+            
+            // If we're in outage and not waiting for recovery, return error immediately
+            if (isInOutageAndNotWaiting)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Server is temporarily unavailable. Please try again."));
+            }
 
             string operationName = $"{serviceType}";
             Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
@@ -237,6 +277,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         if (FailureClassification.IsServerShutdown(failure))
                         {
                             EnterOutage(failure.Message, connectId);
+                            
+                            // Register this request as pending to be retried when connection is restored
+                            var requestId = Guid.NewGuid().ToString();
+                            _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
+                            {
+                                // Retry the exact same request when connection is restored
+                                await ExecuteServiceRequestAsync(
+                                    connectId, 
+                                    serviceType, 
+                                    plainBuffer, 
+                                    flowType, 
+                                    onCompleted, 
+                                    allowDuplicates, 
+                                    token);
+                            });
                         }
                         else if (FailureClassification.IsCryptoDesync(failure))
                         {
@@ -298,11 +353,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: 10,
                 cancellationToken: operationToken);
 
+            // If we were in outage mode and this request succeeded, clear the outage
+            if (networkResult.IsOk && Volatile.Read(ref _outageState) != 0)
+            {
+                Log.Information("Request succeeded after outage - clearing outage state");
+                ExitOutage();
+            }
+
             return networkResult;
         }
         finally
         {
-            if (!shouldAllowDuplicates)
+            if (!shouldAllowDuplicates && !isInOutageAndNotWaiting)
             {
                 _inFlightRequests.TryRemove(requestKey, out _);
             }
@@ -315,11 +377,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        bool waitForRecovery = true)
     {
         return await ExecuteServiceRequestInternalAsync(
             connectId, serviceType, plainBuffer, ServiceFlowType.Single,
-            onCompleted, allowDuplicates, token);
+            onCompleted, allowDuplicates, token, waitForRecovery);
     }
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteReceiveStreamRequestAsync(
@@ -342,7 +405,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
-        CancellationToken token = default)
+        CancellationToken token = default,
+        bool waitForRecovery = true)
     {
         if (_disposed)
         {
@@ -354,8 +418,32 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string prefix = hex[..Math.Min(hex.Length, 16)];
         string requestKey = $"{connectId}_{serviceType}_{prefix}";
 
+        // Check if we're in outage mode and not waiting for recovery
+        // In this case, don't add to in-flight requests to avoid blocking future attempts
+        bool isInOutageAndNotWaiting = !waitForRecovery && Volatile.Read(ref _outageState) != 0;
+        
+        // Request debouncing - prevent rapid successive calls for the same operation
+        // Skip debouncing for retry operations (when waitForRecovery = true) as these are automatic recovery
+        if (!waitForRecovery)
+        {
+            DateTime now = DateTime.UtcNow;
+            string debounceKey = $"{connectId}_{serviceType}";
+            if (_lastRequestAttempts.TryGetValue(debounceKey, out DateTime lastAttempt))
+            {
+                TimeSpan timeSinceLastRequest = now - lastAttempt;
+                if (timeSinceLastRequest < _requestDebounceInterval)
+                {
+                    Log.Debug("Request debounced for {ServiceType} (last attempt {TimeSince} ago)", 
+                        serviceType, timeSinceLastRequest);
+                    return Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType("Request too frequent, please wait"));
+                }
+            }
+            _lastRequestAttempts.AddOrUpdate(debounceKey, now, (_, _) => now);
+        }
+        
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
-        if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, 0))
+        if (!shouldAllowDuplicates && !isInOutageAndNotWaiting && !_inFlightRequests.TryAdd(requestKey, 0))
         {
             Log.Debug("Duplicate request detected for {ServiceType}, rejecting", serviceType);
             return Result<Unit, NetworkFailure>.Err(
@@ -366,7 +454,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
-            await WaitForOutageRecoveryAsync(operationToken);
+            await WaitForOutageRecoveryAsync(operationToken, waitForRecovery);
+            
+            // If we're in outage and not waiting for recovery, return error immediately
+            if (isInOutageAndNotWaiting)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Server is temporarily unavailable. Please try again."));
+            }
 
             string operationName = $"{serviceType}";
             Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
@@ -415,6 +510,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         if (FailureClassification.IsServerShutdown(failure))
                         {
                             EnterOutage(failure.Message, connectId);
+                            
+                            // Register this request as pending to be retried when connection is restored
+                            var requestId = Guid.NewGuid().ToString();
+                            _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
+                            {
+                                // Retry the exact same request when connection is restored
+                                await ExecuteServiceRequestAsync(
+                                    connectId, 
+                                    serviceType, 
+                                    plainBuffer, 
+                                    flowType, 
+                                    onCompleted, 
+                                    allowDuplicates, 
+                                    token);
+                            });
                         }
                         else if (FailureClassification.IsCryptoDesync(failure))
                         {
@@ -465,11 +575,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: 10,
                 cancellationToken: operationToken);
 
+            // If we were in outage mode and this request succeeded, clear the outage
+            if (networkResult.IsOk && Volatile.Read(ref _outageState) != 0)
+            {
+                Log.Information("Request succeeded after outage - clearing outage state");
+                ExitOutage();
+            }
+
             return networkResult;
         }
         finally
         {
-            if (!shouldAllowDuplicates)
+            if (!shouldAllowDuplicates && !isInOutageAndNotWaiting)
             {
                 _inFlightRequests.TryRemove(requestKey, out _);
             }
@@ -530,6 +647,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Log.Information("Session restoration completed for {ConnectId}", connectId);
             ExitOutage();
             ResetRetryStrategyAfterOutage();
+            
+            // Retry any pending requests that were queued during the outage
+            await RetryPendingRequestsAfterRecovery();
+            
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
@@ -544,6 +665,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         
         ExitOutage();
         ResetRetryStrategyAfterOutage();
+        
+        // Retry any pending requests that were queued during the outage
+        await RetryPendingRequestsAfterRecovery();
         
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
@@ -568,6 +692,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Log.Information("Successfully reconnected and established new session");
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private async Task RetryPendingRequestsAfterRecovery()
+    {
+        try
+        {
+            Log.Information("Retrying pending requests after successful connection recovery");
+            
+            // Retry all pending requests that were queued during the outage
+            await _pendingRequestManager.RetryAllPendingRequestsAsync();
+            
+            Log.Information("Completed retrying pending requests");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Error while retrying pending requests after recovery");
+            // Don't fail the recovery if pending request retry fails
+            // The requests will timeout on their own or be retried by the caller
+        }
     }
 
     private async Task<Result<Unit, NetworkFailure>> EstablishConnectionOnly(uint connectId)
@@ -692,6 +835,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
                 "EstablishSecrecyChannel",
                 connectId,
+                maxRetries: 15,
                 cancellationToken: combinedCts.Token);
 
         if (establishAppDeviceSecrecyChannelResult.IsErr)
@@ -941,9 +1085,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             NetworkFailure.InvalidRequestType("Bidirectional streaming is not yet implemented"));
     }
 
-    private async Task WaitForOutageRecoveryAsync(CancellationToken token)
+    private async Task WaitForOutageRecoveryAsync(CancellationToken token, bool waitForRecovery = true)
     {
         if (Volatile.Read(ref _outageState) == 0) return;
+
+        // For UI requests during outage, don't block - return immediately
+        if (!waitForRecovery) return;
 
         Task waitTask;
         lock (_outageLock)
@@ -1348,6 +1495,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 _inFlightRequests.Clear();
                 _lastRecoveryAttempts.Clear();
+                _lastRequestAttempts.Clear();
 
                 lock (_outageLock)
                 {
@@ -1456,6 +1604,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Warning("Protocol resynchronized but failed to save state: {Error}", saveResult.UnwrapErr());
             }
 
+            // Retry any pending requests after successful resynchronization
+            await RetryPendingRequestsAfterRecovery();
+            
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -1525,6 +1676,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Warning("Fresh protocol established but failed to save state: {Error}", saveResult.UnwrapErr());
             }
 
+            // Retry any pending requests after successful fresh protocol establishment
+            await RetryPendingRequestsAfterRecovery();
+            
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -1552,7 +1706,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Debug("Retry strategy state cleared - fresh retry cycles will begin for subsequent operations");
     }
 
-    public RetryMetrics GetRetryMetrics(uint? connectId = null)
+    public Contracts.Services.RetryMetrics GetRetryMetrics(uint? connectId = null)
     {
         return _retryStrategy.GetRetryMetrics(connectId);
     }
@@ -1580,5 +1734,48 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             RetryState: retryState,
             IsInOutage: Volatile.Read(ref _outageState) != 0
         );
+    }
+    
+    public IRetryStrategy GetRetryStrategy()
+    {
+        return _retryStrategy;
+    }
+    
+    // Helper methods for retry strategy
+    public bool IsConnectionHealthy(uint connectId)
+    {
+        if (!_connections.TryGetValue(connectId, out var protocolSystem))
+            return false;
+            
+        // Check if connection exists in the dictionary
+        var health = _connections.ContainsKey(connectId) 
+            ? ConnectionHealthStatus.Healthy 
+            : ConnectionHealthStatus.Failed;
+        return health == ConnectionHealthStatus.Healthy;
+    }
+    
+    public async Task<Result<bool, NetworkFailure>> TryRestoreConnectionAsync(uint connectId)
+    {
+        try
+        {
+            // Try to restore from saved state
+            var stateResult = await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+            if (stateResult.IsErr)
+            {
+                Log.Debug("No saved state found for connection {ConnectId}", connectId);
+                return Result<bool, NetworkFailure>.Ok(false);
+            }
+
+            byte[] stateBytes = stateResult.Unwrap();
+            EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
+            Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+            
+            return restoreResult;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to restore connection {ConnectId}", connectId);
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
     }
 }

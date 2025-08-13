@@ -11,14 +11,12 @@ using Ecliptix.Core.Network.Core.Configuration;
 using Ecliptix.Core.Network.Services.Queue;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Serilog;
 
 namespace Ecliptix.Core.Network.Core;
 
 public class ConnectionStateManager : IConnectionStateManager
 {
     private readonly ConnectionStateConfiguration _config;
-    private readonly ILogger _logger;
     private readonly ConcurrentDictionary<uint, ConnectionHealth> _connections = new();
     private readonly Subject<ConnectionHealth> _healthChangedSubject = new();
     private readonly Timer _healthCheckTimer;
@@ -27,10 +25,9 @@ public class ConnectionStateManager : IConnectionStateManager
 
     public IObservable<ConnectionHealth> HealthChanged => _healthChangedSubject.AsObservable();
 
-    public ConnectionStateManager(ConnectionStateConfiguration config, ILogger? logger = null)
+    public ConnectionStateManager(ConnectionStateConfiguration config)
     {
         _config = config;
-        _logger = logger ?? Log.Logger;
 
         _healthCheckTimer = new Timer(PerformHealthCheck, null, 
             _config.HealthCheckInterval, _config.HealthCheckInterval);
@@ -41,7 +38,6 @@ public class ConnectionStateManager : IConnectionStateManager
                 _config.AutoRecoveryInterval, _config.AutoRecoveryInterval);
         }
 
-        _logger.Information("Advanced ConnectionStateManager initialized");
     }
 
     private ConnectionHealth UpdateHealthMetrics(ConnectionHealth current, OperationType operation,
@@ -182,7 +178,6 @@ public class ConnectionStateManager : IConnectionStateManager
     public void RemoveConnection(uint connectId)
     {
         _connections.TryRemove(connectId, out _);
-        _logger.Debug("Removed connection {ConnectId} from advanced monitoring", connectId);
     }
 
     private void PerformHealthCheck(object? state)
@@ -207,14 +202,11 @@ public class ConnectionStateManager : IConnectionStateManager
                     _connections.TryUpdate(connection.ConnectId, updated, connection);
                     _healthChangedSubject.OnNext(updated);
                     
-                    _logger.Warning("Connection {ConnectId} marked as disconnected due to staleness", 
-                        connection.ConnectId);
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.Error(ex, "Error during advanced health check");
         }
     }
 
@@ -232,15 +224,12 @@ public class ConnectionStateManager : IConnectionStateManager
 
             foreach (ConnectionHealth connection in unhealthyConnections)
             {
-                _logger.Information("Initiating auto-recovery for unhealthy connection {ConnectId}", 
-                    connection.ConnectId);
                 
                 MarkConnectionRecovering(connection.ConnectId);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.Error(ex, "Error during auto-recovery check");
         }
     }
 
@@ -248,8 +237,6 @@ public class ConnectionStateManager : IConnectionStateManager
     {
         _connections.AddOrUpdate(connectId, initialHealth, (id, existing) => initialHealth);
         _healthChangedSubject.OnNext(initialHealth);
-        _logger.Debug("Registered connection {ConnectId} with initial health status {Status}", 
-            connectId, initialHealth.Status);
     }
 
     public void UpdateConnectionHealth(uint connectId, ConnectionHealthStatus status, NetworkFailure? failure = null)

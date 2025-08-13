@@ -324,16 +324,44 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private async Task WriteSecureFileAsync(byte[] data)
     {
-        string tempPath = $"{_storagePath}.tmp";
-
-        await File.WriteAllBytesAsync(tempPath, data);
-
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        string? directory = Path.GetDirectoryName(_storagePath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
-            File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            Directory.CreateDirectory(directory);
+            
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                File.SetUnixFileMode(directory,
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            }
         }
 
-        File.Move(tempPath, _storagePath, true);
+        string tempPath = $"{_storagePath}.tmp";
+
+        try
+        {
+            await File.WriteAllBytesAsync(tempPath, data);
+
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+
+            if (File.Exists(_storagePath))
+            {
+                File.Delete(_storagePath);
+            }
+
+            File.Move(tempPath, _storagePath);
+        }
+        catch (Exception)
+        {
+            if (File.Exists(tempPath))
+            {
+                try { File.Delete(tempPath); } catch { }
+            }
+            throw;
+        }
     }
 
     private async Task<byte[]?> ReadSecureFileAsync() =>

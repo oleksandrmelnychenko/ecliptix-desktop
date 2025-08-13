@@ -20,12 +20,10 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
 {
     private bool _isAnimating;
-    private double _sheetHeight;
 
     private Border? _sheetBorder;
     private Border? _scrimBorder;
     private Grid? _rootGrid;
-    private ContentControl? _contentControl;
 
     private Animation? _showAnimation;
     private Animation? _hideAnimation;
@@ -111,6 +109,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         AvaloniaXamlLoader.Load(this);
         InitializeControls();
+        CreateAnimations();
         SetupReactiveBindings();
     }
 
@@ -119,7 +118,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _rootGrid = this.FindControl<Grid>("RootGrid");
         _sheetBorder = this.FindControl<Border>("SheetBorder");
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
-        _contentControl = this.FindControl<ContentControl>("ContentControl");
 
         if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
         {
@@ -170,7 +168,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private void SetupAnimationBindings(CompositeDisposable disposables)
     {
         this.WhenAnyValue(x => x.ViewModel!.IsVisible)
-            .Skip(1)
+            .Skip(1) // Skip initial value
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async isVisible => await OnVisibilityChanged(isVisible))
             .DisposeWith(disposables);
@@ -190,39 +188,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         }
     }
 
-    private void UpdateSheetHeight()
-    {
-        if (_contentControl == null || _sheetBorder == null)
-        {
-            _sheetHeight = MinHeight;
-            return;
-        }
-
-        Size availableSize = new Size(double.PositiveInfinity, double.PositiveInfinity);
-        _contentControl.Measure(availableSize);
-
-        double contentHeight = _contentControl.DesiredSize.Height;
-        
-        if (double.IsNaN(contentHeight) || contentHeight <= 0)
-        {
-            contentHeight = MinHeight;
-        }
-
-        _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
-        _sheetBorder.Height = _sheetHeight;
-    }
-
     private async Task ShowBottomSheet()
     {
-        if (_sheetBorder is null || _scrimBorder is null || _rootGrid is null)
-        {
-            return;
-        }
-        
-        UpdateSheetHeight();
-        CreateAnimations();
-
-        if (_showAnimation is null || _scrimShowAnimation is null)
+        if (_showAnimation is null || _scrimShowAnimation is null || _sheetBorder is null || _scrimBorder is null || _rootGrid is null)
         {
             return;
         }
@@ -281,7 +249,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private void CreateAnimations()
     {
-        double hiddenPosition = _sheetHeight;
+        double hiddenPosition = this.FindControl<Border>("SheetBorder")?.Height ?? 400;
 
         ElasticEaseOut1 showEasing = new ElasticEaseOut1();
         CubicEaseInOut hideEasing = new CubicEaseInOut();
@@ -381,8 +349,4 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             return Math.Sin(frequency * halfPi * (p + 1)) * Math.Pow(2d, -10d * p) + 1d;
         }
     }
-}
-
-public class BottomSheetControlImpl : BottomSheetControl
-{
 }

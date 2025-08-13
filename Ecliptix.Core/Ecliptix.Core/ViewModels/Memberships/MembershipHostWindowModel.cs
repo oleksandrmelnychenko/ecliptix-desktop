@@ -14,6 +14,7 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Network.Core.Connectivity;
 using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -29,7 +30,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.ViewModels.Memberships;
 
-public class MembershipHostWindowModel : ViewModelBase, IScreen
+public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
 {
     private bool _canNavigateBack;
     private readonly IBottomSheetEvents _bottomSheetEvents;
@@ -41,6 +42,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     private readonly ISystemEvents _systemEvents;
     private readonly IAuthenticationService _authenticationService;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
+    // Operation queue removed - retry handled by Polly
+    private readonly CompositeDisposable _disposables = new();
 
     private static readonly FrozenDictionary<string, string> SupportedCountries =
         new Dictionary<string, string>
@@ -104,7 +107,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         InternetConnectivityObserver connectivityObserver,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        IAuthenticationService authenticationService)
+        IAuthenticationService authenticationService,
+        NetworkStatusNotificationViewModel networkStatusNotification)
         : base(systemEvents, networkProvider, localizationService)
     {
         _networkEvents = networkEvents;
@@ -117,7 +121,14 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
 
-        NetworkStatusNotification = new NetworkStatusNotificationViewModel(localizationService, networkEvents);
+        // Initialize the operation queue
+        // Operation queue removed - retry handled by Polly
+        
+        // Use the injected NetworkStatusNotification
+        NetworkStatusNotification = networkStatusNotification;
+        
+        // Add to disposables for cleanup
+        _disposables.Add(NetworkStatusNotification);
         
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
@@ -244,9 +255,16 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen
     {
         if (disposing)
         {
-            _connectivitySubscription.Dispose();
+            _connectivitySubscription?.Dispose();
+            _disposables?.Dispose();
         }
 
         base.Dispose(disposing);
+    }
+    
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

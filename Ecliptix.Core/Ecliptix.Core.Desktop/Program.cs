@@ -15,6 +15,7 @@ using Ecliptix.Core.AppEvents;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Network.Contracts.Core;
@@ -24,6 +25,7 @@ using Ecliptix.Core.Network.Core;
 using Ecliptix.Core.Network.Core.Configuration;
 using Ecliptix.Core.Network.Core.Connectivity;
 using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Network.Services;
 using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Network.Transport;
@@ -242,14 +244,40 @@ public static class Program
         services.AddSingleton<ConnectionStateConfiguration>();
         
         services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
-        services.AddSingleton<IRetryStrategy, IntelligentRetryStrategy>();
+        services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
         
+        // Register NetworkProvider first so it's available for other services
         services.AddSingleton<NetworkProvider>();
+        
+        // Register RequestDeduplicationService with ImprovedRetryConfiguration
+        services.AddSingleton<RequestDeduplicationService>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var retryConfig = config.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>() 
+                              ?? ImprovedRetryConfiguration.Production;
+            return new RequestDeduplicationService(retryConfig.RequestDeduplicationWindow);
+        });
+        
+        // Register IRetryStrategy with lazy NetworkProvider resolution to avoid circular dependency
+        services.AddSingleton<IRetryStrategy>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            
+            var retryStrategy = new SecrecyChannelRetryStrategy(config);
+            
+            // Use lazy resolution to set NetworkProvider after construction
+            var lazyProvider = new Lazy<NetworkProvider>(() => sp.GetRequiredService<NetworkProvider>());
+            retryStrategy.SetLazyNetworkProvider(lazyProvider);
+            
+            return retryStrategy;
+        });
+        
         services.AddSingleton<IUnaryRpcServices, UnaryRpcServices>();
         services.AddSingleton<ISecrecyChannelRpcServices, SecrecyChannelRpcServices>();
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
+        services.AddSingleton<SecrecyChannelRetryInterceptor>();
 
         ConfigureGrpc(services);
         ConfigureViewModels(services);
@@ -291,6 +319,7 @@ public static class Program
         services.AddTransient<WelcomeViewModel>();
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
+        services.AddSingleton<NetworkStatusNotificationViewModel>();
     }
 
     private static string ResolvePath(string path)

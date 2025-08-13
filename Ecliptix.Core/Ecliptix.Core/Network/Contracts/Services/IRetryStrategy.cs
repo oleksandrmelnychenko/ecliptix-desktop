@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Utilities;
@@ -28,7 +29,16 @@ public interface IRetryStrategy
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 7, 
+        int maxRetries = 15, 
+        CancellationToken cancellationToken = default);
+
+    Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
+        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        string operationName,
+        uint? connectId,
+        IReadOnlyList<TimeSpan> backoffSchedule,
+        bool useJitter = true,
+        double jitterRatio = 0.25,
         CancellationToken cancellationToken = default);
         
     void ResetConnectionState(uint? connectId = null);

@@ -44,59 +44,68 @@ public class OpaqueAuthenticationService(
     private async Task<Result<byte[], string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
-        Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
-            OpaqueProtocolService.CreateOprfRequest(passwordBytes);
-        if (oprfResult.IsErr)
+        try
         {
-            OpaqueFailure opaqueError = oprfResult.UnwrapErr();
-            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError, opaqueError.Message));
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
-            return errorResult;
+            OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
+            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult =
+                OpaqueProtocolService.CreateOprfRequest(passwordBytes);
+            if (oprfResult.IsErr)
+            {
+                OpaqueFailure opaqueError = oprfResult.UnwrapErr();
+                systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError, opaqueError.Message));
+                Result<byte[], string> errorResult =
+                    Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
+                return errorResult;
+            }
+
+            (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
+            OpaqueSignInInitRequest initRequest = new()
+            {
+                PhoneNumber = mobileNumber,
+                PeerOprf = ByteString.CopyFrom(oprfRequest),
+            };
+
+            Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
+            if (initResult.IsErr)
+            {
+                Result<byte[], string> errorResult = Result<byte[], string>.Err(initResult.UnwrapErr());
+                return errorResult;
+            }
+
+            OpaqueSignInInitResponse initResponse = initResult.Unwrap();
+
+            Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
+            if (validationResult.IsErr)
+            {
+                Result<byte[], string> errorResult = Result<byte[], string>.Err(validationResult.UnwrapErr().Message);
+                return errorResult;
+            }
+
+            Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
+                TranscriptHash), OpaqueFailure> finalizationResult =
+                clientOpaqueService.CreateSignInFinalizationRequest(
+                    mobileNumber, passwordBytes, initResponse, blind);
+
+            if (finalizationResult.IsErr)
+            {
+                Result<byte[], string> errorResult = Result<byte[], string>.Err(
+                    localizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
+                return errorResult;
+            }
+
+            (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
+                byte[] transcriptHash) = finalizationResult.Unwrap();
+
+            Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
+                clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+
+            return finalResult;
         }
-
-        (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
-        OpaqueSignInInitRequest initRequest = new()
+        catch (Exception)
         {
-            PhoneNumber = mobileNumber,
-            PeerOprf = ByteString.CopyFrom(oprfRequest),
-        };
-
-        Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
-        if (initResult.IsErr)
-        {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(initResult.UnwrapErr());
-            return errorResult;
+            // If any unexpected exception occurs, return a generic error
+            return Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
         }
-
-        OpaqueSignInInitResponse initResponse = initResult.Unwrap();
-
-        Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
-        if (validationResult.IsErr)
-        {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(validationResult.UnwrapErr().Message);
-            return errorResult;
-        }
-
-        Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
-            TranscriptHash), OpaqueFailure> finalizationResult =
-            clientOpaqueService.CreateSignInFinalizationRequest(
-                mobileNumber, passwordBytes, initResponse, blind);
-
-        if (finalizationResult.IsErr)
-        {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(
-                localizationService["ValidationErrors.SecureKey.InvalidCredentials"]);
-            return errorResult;
-        }
-
-        (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
-            byte[] transcriptHash) = finalizationResult.Unwrap();
-
-        Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
-            clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
-
-        return finalResult;
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
@@ -141,7 +150,7 @@ public class OpaqueAuthenticationService(
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None
+            }, false, CancellationToken.None, waitForRecovery: false
         );
 
         if (networkResult.IsErr)
@@ -171,7 +180,7 @@ public class OpaqueAuthenticationService(
             {
                 capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None
+            }, false, CancellationToken.None, waitForRecovery: false
         );
 
         if (networkResult.IsErr)
