@@ -31,6 +31,12 @@ public static class FailureClassification
 
     public static bool IsServerShutdown(NetworkFailure failure)
     {
+        // CRITICAL FIX: DataCenterNotResponding failures should trigger server shutdown recovery
+        if (failure.FailureType == NetworkFailureType.DataCenterNotResponding)
+        {
+            return true;
+        }
+
         string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
 
         return msg.Contains("shutdown") ||
@@ -40,7 +46,13 @@ public static class FailureClassification
                msg.Contains("connection refused") ||
                msg.Contains("connection reset") ||
                msg.Contains("temporarily") ||
-               msg.Contains("maintenance");
+               msg.Contains("maintenance") ||
+               // CRITICAL FIX: Detect gRPC connection failures as server shutdown
+               msg.Contains("error connecting to subchannel") ||
+               msg.Contains("no connection could be made") ||
+               msg.Contains("connection actively refused") ||
+               // Handle gRPC Unavailable status codes
+               (msg.Contains("status") && msg.Contains("unavailable"));
     }
     
     public static bool IsCryptoDesync(NetworkFailure failure)

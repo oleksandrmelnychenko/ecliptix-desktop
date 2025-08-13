@@ -140,16 +140,27 @@ public class OpaqueAuthenticationService(
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
-        OpaqueSignInInitResponse? capturedResponse = null;
-
+        // CRITICAL FIX: Use TaskCompletionSource to coordinate retry response back to original caller
+        var responseCompletionSource = new TaskCompletionSource<OpaqueSignInInitResponse>();
+        
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,
             initRequest.ToByteArray(),
             async initResponsePayload =>
             {
-                capturedResponse = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
-                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                try
+                {
+                    var response = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
+                    responseCompletionSource.TrySetResult(response);
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                }
+                catch (Exception ex)
+                {
+                    responseCompletionSource.TrySetException(ex);
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.DataCenterNotResponding($"Failed to parse response: {ex.Message}")));
+                }
             }, false, CancellationToken.None, waitForRecovery: true
         );
 
@@ -158,9 +169,16 @@ public class OpaqueAuthenticationService(
             return Result<OpaqueSignInInitResponse, string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        return capturedResponse == null
-            ? Result<OpaqueSignInInitResponse, string>.Err(localizationService["Common.Unexpected"])
-            : Result<OpaqueSignInInitResponse, string>.Ok(capturedResponse);
+        // CRITICAL FIX: Wait for the actual response from callback (original or retry)
+        try
+        {
+            var response = await responseCompletionSource.Task;
+            return Result<OpaqueSignInInitResponse, string>.Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return Result<OpaqueSignInInitResponse, string>.Err($"Failed to get response: {ex.Message}");
+        }
     }
 
     private async Task<Result<byte[], string>> SendFinalizeRequestAndVerifyAsync(
@@ -170,7 +188,8 @@ public class OpaqueAuthenticationService(
         byte[] serverMacKey,
         byte[] transcriptHash, uint connectId)
     {
-        OpaqueSignInFinalizeResponse? capturedResponse = null;
+        // CRITICAL FIX: Use TaskCompletionSource to coordinate retry response back to original caller
+        var responseCompletionSource = new TaskCompletionSource<OpaqueSignInFinalizeResponse>();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -178,8 +197,18 @@ public class OpaqueAuthenticationService(
             finalizeRequest.ToByteArray(),
             async finalizeResponsePayload =>
             {
-                capturedResponse = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
-                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                try
+                {
+                    var response = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
+                    responseCompletionSource.TrySetResult(response);
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                }
+                catch (Exception ex)
+                {
+                    responseCompletionSource.TrySetException(ex);
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.DataCenterNotResponding($"Failed to parse response: {ex.Message}")));
+                }
             }, false, CancellationToken.None, waitForRecovery: true
         );
 
@@ -188,9 +217,15 @@ public class OpaqueAuthenticationService(
             return Result<byte[], string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        if (capturedResponse == null)
+        // CRITICAL FIX: Wait for the actual response from callback (original or retry)
+        OpaqueSignInFinalizeResponse capturedResponse;
+        try
         {
-            return Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
+            capturedResponse = await responseCompletionSource.Task;
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], string>.Err($"Failed to get response: {ex.Message}");
         }
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)

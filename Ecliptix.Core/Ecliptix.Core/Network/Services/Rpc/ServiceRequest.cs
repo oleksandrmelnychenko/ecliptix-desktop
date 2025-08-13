@@ -32,4 +32,10 @@ public class ServiceRequest
         uint reqId = Helpers.GenerateRandomUInt32InRange(10, uint.MaxValue);
         return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
     }
+
+    public static ServiceRequest New(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
+        CipherPayload payload, List<CipherPayload> encryptedChunks)
+    {
+        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
+    }
 }

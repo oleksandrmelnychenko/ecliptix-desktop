@@ -57,9 +57,12 @@ public sealed class SecrecyChannelRpcServices(
             AsyncUnaryCall<TResponse> call = grpcCallFactory();
             TResponse response = await call.ResponseAsync;
 
-            networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-            );
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                networkEvents.InitiateChangeState(
+                    NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
+                );
+            });
 
             return Result<TResponse, NetworkFailure>.Ok(response);
         }

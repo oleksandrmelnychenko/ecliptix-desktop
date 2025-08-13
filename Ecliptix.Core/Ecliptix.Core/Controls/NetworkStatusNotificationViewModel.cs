@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -16,12 +15,13 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Contracts.Services;
-using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services;
 using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Services;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Network;
 using ReactiveUI;
 using Serilog;
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls;
 
@@ -29,11 +29,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 {
     public ILocalizationService LocalizationService { get; }
 
-    private readonly INetworkEvents _networkEvents;
     private readonly IRetryStrategy _retryStrategy;
-    private readonly NetworkProvider _networkProvider;
-    private readonly IPendingRequestManager _pendingRequestManager;
-
     private readonly CompositeDisposable _disposables = new();
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
 
@@ -41,151 +37,70 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private Ellipse? _statusEllipse;
     private Border? _mainBorder;
 
-    private CancellationTokenSource? _retryCts;           // cancel manual retry
-    private CancellationTokenSource? _uiTransitionCts;    // cancel show/hide + delays
-
-    // Animations
     private Animation? _flickerAnimation;
     private Animation? _appearAnimation;
     private Animation? _disappearAnimation;
 
-    // Animation durations
     public TimeSpan AppearDuration { get; set; } = TimeSpan.FromMilliseconds(300);
     public TimeSpan DisappearDuration { get; set; } = TimeSpan.FromMilliseconds(250);
     public TimeSpan FlickerDuration { get; set; } = TimeSpan.FromMilliseconds(1500);
 
-    private bool _isVisible;
-    public bool IsVisible
-    {
-        get => _isVisible;
-        set => this.RaiseAndSetIfChanged(ref _isVisible, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _isVisible;
+    public bool IsVisible => _isVisible.Value;
 
-    private bool _isAnimating;
-    public bool IsAnimating
-    {
-        get => _isAnimating;
-        set => this.RaiseAndSetIfChanged(ref _isAnimating, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _isAnimating;
+    public bool IsAnimating => _isAnimating.Value;
 
-    private string _statusText = "No Internet Connection";
-    public string StatusText
-    {
-        get => _statusText;
-        set => this.RaiseAndSetIfChanged(ref _statusText, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _statusText;
+    public string StatusText => _statusText.Value;
 
-    private string _statusDescription = "Check your connection";
-    public string StatusDescription
-    {
-        get => _statusDescription;
-        set => this.RaiseAndSetIfChanged(ref _statusDescription, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _statusDescription;
+    public string StatusDescription => _statusDescription.Value;
 
-    private bool _showRetryMetrics;
-    public bool ShowRetryMetrics
-    {
-        get => _showRetryMetrics;
-        set => this.RaiseAndSetIfChanged(ref _showRetryMetrics, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _showRetryMetrics;
+    public bool ShowRetryMetrics => _showRetryMetrics.Value;
 
-    private int _currentAttempt;
-    public int CurrentAttempt
-    {
-        get => _currentAttempt;
-        set => this.RaiseAndSetIfChanged(ref _currentAttempt, value);
-    }
+    private readonly ObservableAsPropertyHelper<int> _currentAttempt;
+    public int CurrentAttempt => _currentAttempt.Value;
 
-    private int _maxAttempts = 15;
-    public int MaxAttempts
-    {
-        get => _maxAttempts;
-        set => this.RaiseAndSetIfChanged(ref _maxAttempts, value);
-    }
+    private readonly ObservableAsPropertyHelper<int> _maxAttempts;
+    public int MaxAttempts => _maxAttempts.Value;
 
-    private string _successRate = "0%";
-    public string SuccessRate
-    {
-        get => _successRate;
-        set => this.RaiseAndSetIfChanged(ref _successRate, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _successRate;
+    public string SuccessRate => _successRate.Value;
 
-    private IBrush _successRateColor = new SolidColorBrush(Color.Parse("#808080"));
-    public IBrush SuccessRateColor
-    {
-        get => _successRateColor;
-        set => this.RaiseAndSetIfChanged(ref _successRateColor, value);
-    }
+    private readonly ObservableAsPropertyHelper<IBrush> _successRateColor;
+    public IBrush SuccessRateColor => _successRateColor.Value;
 
-    private bool _showCircuitStatus;
-    public bool ShowCircuitStatus
-    {
-        get => _showCircuitStatus;
-        set => this.RaiseAndSetIfChanged(ref _showCircuitStatus, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _showCircuitStatus;
+    public bool ShowCircuitStatus => _showCircuitStatus.Value;
 
-    private string _circuitStatusText = "CLOSED";
-    public string CircuitStatusText
-    {
-        get => _circuitStatusText;
-        set => this.RaiseAndSetIfChanged(ref _circuitStatusText, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _circuitStatusText;
+    public string CircuitStatusText => _circuitStatusText.Value;
 
-    private IBrush _circuitStatusColor = new SolidColorBrush(Color.Parse("#84cd57"));
-    public IBrush CircuitStatusColor
-    {
-        get => _circuitStatusColor;
-        set => this.RaiseAndSetIfChanged(ref _circuitStatusColor, value);
-    }
+    private readonly ObservableAsPropertyHelper<IBrush> _circuitStatusColor;
+    public IBrush CircuitStatusColor => _circuitStatusColor.Value;
 
-    private bool _isRetrying;
-    public bool IsRetrying
-    {
-        get => _isRetrying;
-        set => this.RaiseAndSetIfChanged(ref _isRetrying, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _isRetrying;
+    public bool IsRetrying => _isRetrying.Value;
 
-    private bool _canRetry = true;
-    public bool CanRetry
-    {
-        get => _canRetry;
-        set => this.RaiseAndSetIfChanged(ref _canRetry, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _canRetry;
+    public bool CanRetry => _canRetry.Value;
 
-    private string _retryButtonTooltip = "Retry connection";
-    public string RetryButtonTooltip
-    {
-        get => _retryButtonTooltip;
-        set => this.RaiseAndSetIfChanged(ref _retryButtonTooltip, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _retryButtonTooltip;
+    public string RetryButtonTooltip => _retryButtonTooltip.Value;
 
-    private bool _showRetryProgress;
-    public bool ShowRetryProgress
-    {
-        get => _showRetryProgress;
-        set => this.RaiseAndSetIfChanged(ref _showRetryProgress, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _showRetryProgress;
+    public bool ShowRetryProgress => _showRetryProgress.Value;
 
-    private double _retryProgress;
-    public double RetryProgress
-    {
-        get => _retryProgress;
-        set => this.RaiseAndSetIfChanged(ref _retryProgress, value);
-    }
+    private readonly ObservableAsPropertyHelper<double> _retryProgress;
+    public double RetryProgress => _retryProgress.Value;
 
-    private bool _showNextRetryCountdown;
-    public bool ShowNextRetryCountdown
-    {
-        get => _showNextRetryCountdown;
-        set => this.RaiseAndSetIfChanged(ref _showNextRetryCountdown, value);
-    }
+    private readonly ObservableAsPropertyHelper<bool> _showNextRetryCountdown;
+    public bool ShowNextRetryCountdown => _showNextRetryCountdown.Value;
 
-    private string _nextRetryText = "";
-    public string NextRetryText
-    {
-        get => _nextRetryText;
-        set => this.RaiseAndSetIfChanged(ref _nextRetryText, value);
-    }
+    private readonly ObservableAsPropertyHelper<string> _nextRetryText;
+    public string NextRetryText => _nextRetryText.Value;
 
     public ReactiveCommand<Unit, Unit> RequestManualRetryCommand { get; }
 
@@ -200,100 +115,160 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
         INetworkEvents networkEvents,
-        IRetryStrategy retryStrategy,
-        NetworkProvider networkProvider,
-        IPendingRequestManager pendingRequestManager)
+        IRetryStrategy retryStrategy)
     {
         LocalizationService = localizationService;
-        _networkEvents = networkEvents;
         _retryStrategy = retryStrategy;
-        _networkProvider = networkProvider;
-        _pendingRequestManager = pendingRequestManager;
 
-        _networkEvents.NetworkStatusChanged
-            .DistinctUntilChanged(e => e.State)                      
-            .ObserveOn(RxApp.MainThreadScheduler)                   
-            .Select(evt => Observable.FromAsync(ct => HandleNetworkStatusChange(evt, ct)))
-            .Switch()                                              
-            .Subscribe(_ => { }, ex => Log.Warning(ex, "Network status stream failed"))
-            .DisposeWith(_disposables);
+        var networkStatusEvents = networkEvents.NetworkStatusChanged
+            .DistinctUntilChanged(e => e.State)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Replay(1)
+            .RefCount();
+
+        var statusTextObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.RetriesExhausted => "Connection Failed",
+                NetworkStatus.DataCenterDisconnected or NetworkStatus.ServerShutdown => "Server Unavailable",
+                NetworkStatus.DataCenterConnecting or NetworkStatus.RestoreSecrecyChannel or NetworkStatus.ConnectionRecovering => "Connecting...",
+                NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => "Connected",
+                _ => "No Internet Connection"
+            })
+            .StartWith("No Internet Connection");
+
+        var statusDescriptionObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.RetriesExhausted => "",
+                NetworkStatus.DataCenterDisconnected or NetworkStatus.ServerShutdown => "Click retry to reconnect",
+                NetworkStatus.DataCenterConnecting => "Establishing connection",
+                NetworkStatus.RestoreSecrecyChannel => "Restoring previous session",
+                NetworkStatus.ConnectionRecovering => "Recovering connection",
+                NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => "Connection restored",
+                _ => "Check your connection"
+            })
+            .StartWith("Check your connection");
+
+        var canRetryObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.DataCenterConnecting or NetworkStatus.RestoreSecrecyChannel or NetworkStatus.ConnectionRecovering => false,
+                _ => true
+            })
+            .StartWith(true);
+
+        var showRetryMetricsObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.RetriesExhausted or 
+                NetworkStatus.DataCenterDisconnected or 
+                NetworkStatus.ServerShutdown or
+                NetworkStatus.DataCenterConnecting or 
+                NetworkStatus.RestoreSecrecyChannel or 
+                NetworkStatus.ConnectionRecovering => true,
+                _ => false
+            })
+            .StartWith(false);
+
+        var isRetryingObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.DataCenterConnecting or NetworkStatus.RestoreSecrecyChannel or NetworkStatus.ConnectionRecovering => true,
+                _ => false
+            })
+            .StartWith(false);
+
+        var isVisibleObservable = networkStatusEvents
+            .Select(evt => evt.State switch
+            {
+                NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => Observable.Return(true)
+                    .Delay(TimeSpan.FromMilliseconds(2000))
+                    .Select(_ => false),
+                NetworkStatus.RetriesExhausted or 
+                NetworkStatus.DataCenterDisconnected or 
+                NetworkStatus.ServerShutdown or
+                NetworkStatus.DataCenterConnecting or 
+                NetworkStatus.RestoreSecrecyChannel or 
+                NetworkStatus.ConnectionRecovering => Observable.Return(true),
+                _ => Observable.Return(false)
+            })
+            .Switch()
+            .StartWith(false);
+
+        var retryMetricsObservable = Observable.Interval(TimeSpan.FromSeconds(1))
+            .StartWith(0L)
+            .Select(_ => _retryStrategy.GetRetryMetrics())
+            .DistinctUntilChanged();
+
+        var successRateObservable = retryMetricsObservable
+            .Select(metrics => metrics.TotalAttempts > 0 
+                ? $"{(double)metrics.SuccessfulAttempts / metrics.TotalAttempts * 100.0:F0}%" 
+                : "0%");
+
+        var successRateColorObservable = retryMetricsObservable
+            .Select(metrics =>
+            {
+                if (metrics.TotalAttempts == 0) return new SolidColorBrush(Color.Parse("#808080"));
+                double rate = (double)metrics.SuccessfulAttempts / metrics.TotalAttempts * 100.0;
+                return rate switch
+                {
+                    >= 80 => new SolidColorBrush(Color.Parse("#84cd57")),
+                    >= 50 => new SolidColorBrush(Color.Parse("#ffa500")),
+                    _ => new SolidColorBrush(Color.Parse("#d81c1c"))
+                };
+            });
+
+        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText, scheduler: RxApp.MainThreadScheduler);
+        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription, scheduler: RxApp.MainThreadScheduler);
+        _canRetry = canRetryObservable.ToProperty(this, x => x.CanRetry, scheduler: RxApp.MainThreadScheduler);
+        _showRetryMetrics = showRetryMetricsObservable.ToProperty(this, x => x.ShowRetryMetrics, scheduler: RxApp.MainThreadScheduler);
+        _isRetrying = isRetryingObservable.ToProperty(this, x => x.IsRetrying, scheduler: RxApp.MainThreadScheduler);
+        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible, scheduler: RxApp.MainThreadScheduler);
+        _successRate = successRateObservable.ToProperty(this, x => x.SuccessRate, scheduler: RxApp.MainThreadScheduler);
+        _successRateColor = successRateColorObservable.ToProperty(this, x => x.SuccessRateColor, scheduler: RxApp.MainThreadScheduler);
+
+        _currentAttempt = Observable.Return(0).ToProperty(this, x => x.CurrentAttempt, scheduler: RxApp.MainThreadScheduler);
+        _maxAttempts = Observable.Return(15).ToProperty(this, x => x.MaxAttempts, scheduler: RxApp.MainThreadScheduler);
+        _showCircuitStatus = Observable.Return(false).ToProperty(this, x => x.ShowCircuitStatus, scheduler: RxApp.MainThreadScheduler);
+        _circuitStatusText = Observable.Return("CLOSED").ToProperty(this, x => x.CircuitStatusText, scheduler: RxApp.MainThreadScheduler);
+        _circuitStatusColor = Observable.Return<IBrush>(new SolidColorBrush(Color.Parse("#84cd57"))).ToProperty(this, x => x.CircuitStatusColor, scheduler: RxApp.MainThreadScheduler);
+        _retryButtonTooltip = Observable.Return("Retry connection").ToProperty(this, x => x.RetryButtonTooltip, scheduler: RxApp.MainThreadScheduler);
+        _showRetryProgress = Observable.Return(false).ToProperty(this, x => x.ShowRetryProgress, scheduler: RxApp.MainThreadScheduler);
+        _retryProgress = Observable.Return(0.0).ToProperty(this, x => x.RetryProgress, scheduler: RxApp.MainThreadScheduler);
+        _showNextRetryCountdown = Observable.Return(false).ToProperty(this, x => x.ShowNextRetryCountdown, scheduler: RxApp.MainThreadScheduler);
+        _nextRetryText = Observable.Return("").ToProperty(this, x => x.NextRetryText, scheduler: RxApp.MainThreadScheduler);
+        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler);
 
         RequestManualRetryCommand = ReactiveCommand.CreateFromTask(
-            (CancellationToken ct) => RetryAllOperationsAsync(ct),
+            (CancellationToken ct) => Task.CompletedTask,
             this.WhenAnyValue(x => x.CanRetry, x => x.IsRetrying, (canRetry, isRetrying) => canRetry && !isRetrying)
         );
+
+        networkStatusEvents
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(evt => HandleNetworkStatusVisualEffects(evt))
+            .DisposeWith(_disposables);
+
+        isVisibleObservable
+            .DistinctUntilChanged()
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(async visible =>
+            {
+                if (visible)
+                    await ShowAsync(CancellationToken.None);
+                else
+                    await HideAsync(CancellationToken.None);
+            })
+            .DisposeWith(_disposables);
     }
 
-    private async Task HandleNetworkStatusChange(NetworkStatusChangedEvent evt, CancellationToken token)
+    private void HandleNetworkStatusVisualEffects(NetworkStatusChangedEvent evt)
     {
-        // cancel any pending UI transition or delay and create a fresh token
-        _uiTransitionCts?.Cancel();
-        _uiTransitionCts?.Dispose();
-        _uiTransitionCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        var uiToken = _uiTransitionCts.Token;
-
-        await _statusUpdateSemaphore.WaitAsync(uiToken);
-        try
-        {
-            switch (evt.State)
-            {
-                case NetworkStatus.RetriesExhausted:
-                    StatusText = "Connection Failed";
-                    StatusDescription = $"{_pendingRequestManager.PendingRequestCount} requests pending";
-                    ShowRetryMetrics = true;
-                    UpdateRetryMetrics();
-                    CanRetry = true;
-                    ApplyClasses(circuitOpen: true, retrying: false);
-
-                    if (!IsVisible)
-                        await ShowAsync(uiToken);
-                    break;
-
-                case NetworkStatus.DataCenterDisconnected:
-                case NetworkStatus.ServerShutdown:
-                    StatusText = "Server Unavailable";
-                    StatusDescription = "Click retry to reconnect";
-                    ShowRetryMetrics = true;
-                    CanRetry = true;
-                    ApplyClasses(circuitOpen: false, retrying: false);
-
-                    if (!IsVisible)
-                        await ShowAsync(uiToken);
-                    break;
-
-                case NetworkStatus.DataCenterConnected:
-                case NetworkStatus.ConnectionRestored:
-                    StatusText = "Connected";
-                    StatusDescription = "Connection restored";
-
-                    try { await RetryPendingRequestsAsync(uiToken); }
-                    catch (OperationCanceledException) { /* ignore */ }
-
-                    if (IsVisible)
-                    {
-                        await DelaySafe(TimeSpan.FromMilliseconds(2000), uiToken);
-                        await HideAsync(uiToken);
-                    }
-                    break;
-
-                default:
-                    // unknown states: keep silent but update metrics
-                    UpdateRetryMetrics();
-                    break;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Newer event arrived or disposal – safely ignore
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Error handling network status change: {StatusEvent}", evt.State);
-        }
-        finally
-        {
-            _statusUpdateSemaphore.Release();
-        }
+        ApplyClasses(
+            circuitOpen: evt.State == NetworkStatus.RetriesExhausted,
+            retrying: evt.State is NetworkStatus.DataCenterConnecting or NetworkStatus.RestoreSecrecyChannel or NetworkStatus.ConnectionRecovering
+        );
     }
 
     private void ApplyClasses(bool circuitOpen, bool retrying)
@@ -305,123 +280,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         if (retrying) _mainBorder.Classes.Add("Retrying");
         else _mainBorder.Classes.Remove("Retrying");
-    }
-
-    private void UpdateRetryMetrics()
-    {
-        var metrics = _retryStrategy.GetRetryMetrics();
-        if (metrics.TotalAttempts > 0)
-        {
-            var rate = (double)metrics.SuccessfulAttempts / metrics.TotalAttempts * 100.0;
-            SuccessRate = $"{rate:F0}%";
-            SuccessRateColor = rate switch
-            {
-                >= 80 => new SolidColorBrush(Color.Parse("#84cd57")),
-                >= 50 => new SolidColorBrush(Color.Parse("#ffa500")),
-                _ => new SolidColorBrush(Color.Parse("#d81c1c"))
-            };
-        }
-        else
-        {
-            SuccessRate = "0%";
-            SuccessRateColor = new SolidColorBrush(Color.Parse("#808080"));
-        }
-    }
-
-    private async Task<int> RetryPendingRequestsAsync(CancellationToken token)
-    {
-        try
-        {
-            var count = await _pendingRequestManager.RetryAllPendingRequestsAsync(token);
-            Log.Information("Retried {Count} pending requests", count);
-            return count;
-        }
-        catch (OperationCanceledException)
-        {
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error retrying pending requests");
-            return 0;
-        }
-    }
-
-    private async Task RetryAllOperationsAsync(CancellationToken commandToken = default)
-    {
-        // Cancel any existing retry flow
-        _retryCts?.Cancel();
-        _retryCts?.Dispose();
-        _retryCts = CancellationTokenSource.CreateLinkedTokenSource(commandToken);
-        var token = _retryCts.Token;
-
-        try
-        {
-            Log.Information("User initiated manual retry with SecrecyChannel restoration");
-
-            IsRetrying = true;
-            CanRetry = false;
-            CurrentAttempt = 0;
-            StatusText = "Restoring Connection";
-            StatusDescription = "Establishing secure channel...";
-
-            // Reset retry/circuit state to start fresh
-            _retryStrategy.ResetConnectionState();
-
-            // Use provider’s built-in recovery path (no hard-coded connectId)
-            var result = await _networkProvider.ForceFreshConnectionAsync();
-            if (result.IsErr)
-            {
-                StatusText = "Connection Failed";
-                StatusDescription = $"Failed to restore connection: {result.UnwrapErr().Message}";
-                Log.Error("ForceFreshConnectionAsync failed: {Error}", result.UnwrapErr().Message);
-                return;
-            }
-
-            StatusText = "Connection Restored";
-            StatusDescription = "Retrying pending requests...";
-
-            var successCount = await RetryPendingRequestsAsync(token);
-            var remaining = _pendingRequestManager.PendingRequestCount;
-
-            if (successCount > 0 && remaining == 0)
-            {
-                StatusText = "All Requests Successful";
-                StatusDescription = $"{successCount} requests completed successfully";
-                await DelaySafe(TimeSpan.FromMilliseconds(3000), token);
-                await HideAsync(token);
-            }
-            else if (successCount > 0)
-            {
-                StatusText = "Partial Success";
-                StatusDescription = $"{successCount} succeeded, {remaining} still pending";
-            }
-            else
-            {
-                StatusText = "Connection Restored";
-                StatusDescription = "Ready to process new requests";
-                await DelaySafe(TimeSpan.FromMilliseconds(2000), token);
-                await HideAsync(token);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // user initiated another retry or VM disposed – ignore
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error during manual retry");
-            StatusText = "Retry Error";
-            StatusDescription = "An error occurred during retry";
-        }
-        finally
-        {
-            IsRetrying = false;
-            // CRITICAL FIX: Always allow retry if there are pending requests OR if connection failed
-            // This ensures consistent button behavior between first and subsequent clicks
-            CanRetry = _pendingRequestManager.PendingRequestCount > 0;
-            UpdateRetryMetrics();
-        }
     }
 
     private void CreateAnimations()
@@ -484,66 +342,36 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private async Task ShowAsync(CancellationToken token)
     {
-        if (_view == null || IsAnimating) return;
+        if (_view == null) return;
 
-        IsAnimating = true;
         try
         {
             _view.RenderTransform = new TranslateTransform();
-            IsVisible = true;
-
             if (_appearAnimation == null) CreateAnimations();
-
             await _appearAnimation!.RunAsync(_view, token);
-
             StartFlickerAnimation();
         }
-        catch (OperationCanceledException)
-        {
-            IsVisible = false;
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error showing notification popup");
-            IsVisible = false;
-        }
-        finally
-        {
-            IsAnimating = false;
         }
     }
 
     private async Task HideAsync(CancellationToken token)
     {
-        if (_view == null || IsAnimating) return;
+        if (_view == null) return;
 
-        IsAnimating = true;
         try
         {
             StopFlickerAnimation();
-
             if (_disappearAnimation == null) CreateAnimations();
-
             await _disappearAnimation!.RunAsync(_view, token);
-
-            IsVisible = false;
-
-            ShowRetryMetrics = false;
-            ShowCircuitStatus = false;
-            ShowRetryProgress = false;
         }
-        catch (OperationCanceledException)
-        {
-            IsVisible = false;
-        }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error hiding notification popup");
-            IsVisible = false; 
-        }
-        finally
-        {
-            IsAnimating = false;
         }
     }
 
@@ -568,19 +396,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         }
     }
 
-    private static async Task DelaySafe(TimeSpan delay, CancellationToken token)
-    {
-        try { await Task.Delay(delay, token); }
-        catch (OperationCanceledException) { /* ignore */ }
-    }
-
     public void Dispose()
     {
-        _retryCts?.Cancel();
-        _retryCts?.Dispose();
-        _uiTransitionCts?.Cancel();
-        _uiTransitionCts?.Dispose();
-
         _disposables.Dispose();
         _statusUpdateSemaphore.Dispose();
     }
