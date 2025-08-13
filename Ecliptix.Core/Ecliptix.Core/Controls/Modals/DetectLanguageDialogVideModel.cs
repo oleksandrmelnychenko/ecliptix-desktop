@@ -1,4 +1,7 @@
 using System.Reactive;
+using Ecliptix.Core.AppEvents.BottomSheet;
+using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
+using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
@@ -7,12 +10,15 @@ namespace Ecliptix.Core.Controls.Modals;
 public class DetectLanguageDialogVideModel : ReactiveObject
 {
     public ILocalizationService LocalizationService { get; }
-    
+    private readonly ILanguageDetectionEvents _languageDetectionEvents;
     public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
-    public DetectLanguageDialogVideModel(ILocalizationService localizationService)
+    public DetectLanguageDialogVideModel(
+        ILocalizationService localizationService,
+        ILanguageDetectionEvents languageDetectionEvents)
     {
+        _languageDetectionEvents = languageDetectionEvents;
         LocalizationService = localizationService;
         ConfirmCommand = ReactiveCommand.Create(OnConfirm);
         DeclineCommand = ReactiveCommand.Create(OnDecline);
@@ -20,11 +26,11 @@ public class DetectLanguageDialogVideModel : ReactiveObject
 
     private void OnConfirm()
     {
-        // TODO: Implement language confirmation logic
+        _languageDetectionEvents.Invoke(LanguageDetectionDialogEvent.Confirm("uk-UA"));
     }
 
     private void OnDecline()
     {
-        // TODO: Implement language decline logic
+        _languageDetectionEvents.Invoke(LanguageDetectionDialogEvent.Decline());
     }
 }

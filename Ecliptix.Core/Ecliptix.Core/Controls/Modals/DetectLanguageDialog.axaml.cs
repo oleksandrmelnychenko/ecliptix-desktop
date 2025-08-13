@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Ecliptix.Core.AppEvents.BottomSheet;
+using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
 using Ecliptix.Core.Services;
 using ReactiveUI;
 
@@ -38,9 +40,11 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
         ApplyPrecompiledResources();
     }
 
-    public void SetLocalizationService(ILocalizationService localizationService)
+    public void SetLocalizationService(
+        ILocalizationService localizationService,
+        ILanguageDetectionEvents languageDetectionEvents)
     {
-        DataContext = new DetectLanguageDialogVideModel(localizationService);
+        DataContext = new DetectLanguageDialogVideModel(localizationService, languageDetectionEvents);
         SetupReactiveBindings();
     }
 

@@ -42,11 +42,11 @@
                 Width="400"
                 Margin="0,0,0,24"
                 Background="White"
-                IsHitTestVisible="False">
+                IsHitTestVisible="True">
                 <ContentControl 
                     x:Name="ContentControl"
                     Content="{Binding Content}"
-                    IsHitTestVisible="False" />
+                    IsHitTestVisible="True" />
         </Border>
     </Grid>
 </UserControl>

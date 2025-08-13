@@ -41,7 +41,8 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     public ReactiveCommand<Unit, Unit> ToggleLanguageCommand { get; }
 
     public LanguageSelectorViewModel(ILocalizationService localizationService,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider, IRpcMetaDataProvider rpcMetaDataProvider)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        IRpcMetaDataProvider rpcMetaDataProvider)
     {
         _localizationService = localizationService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
