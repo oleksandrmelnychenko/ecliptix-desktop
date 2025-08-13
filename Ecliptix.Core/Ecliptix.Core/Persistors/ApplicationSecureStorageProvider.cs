@@ -36,7 +36,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         InitializeStorageDirectory();
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string culture)
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? culture)
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
@@ -109,7 +109,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
     }
 
     public async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
-        string defaultCulture)
+        string? defaultCulture)
     {
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)

@@ -10,14 +10,14 @@ namespace Ecliptix.Core.Persistors;
 
 public interface IApplicationSecureStorageProvider : IAsyncDisposable
 {
-    Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string cultureName);
+    Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? cultureName);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership membership);
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
 
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(
-        string defaultCulture);
+        string? defaultCulture);
 
     Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data);
     Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key);

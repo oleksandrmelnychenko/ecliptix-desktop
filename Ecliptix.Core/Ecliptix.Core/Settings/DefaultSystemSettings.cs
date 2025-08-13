@@ -9,5 +9,5 @@ public class DefaultSystemSettings
     
     public required string DomainName { get; set; }
     
-    public string Culture { get; set; } 
+    public string? Culture { get; set; } 
 }

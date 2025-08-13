@@ -264,8 +264,6 @@ public class ConnectionStateManager : IConnectionStateManager
         _healthChangedSubject.OnNext(updated);
     }
 
-
-
     public void Dispose()
     {
         _healthCheckTimer?.Dispose();

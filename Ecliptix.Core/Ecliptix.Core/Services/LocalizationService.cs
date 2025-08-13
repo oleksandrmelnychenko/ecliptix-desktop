@@ -29,7 +29,7 @@ public sealed class LocalizationService : ILocalizationService
 
     public LocalizationService(DefaultSystemSettings defaultSystemSettings)
     {
-        string defaultCultureName = defaultSystemSettings.Culture;
+        string? defaultCultureName = defaultSystemSettings.Culture;
 
         _assembly = Assembly.GetExecutingAssembly();
         _resourceNamespace = "Ecliptix.Core.Localization";
@@ -42,7 +42,7 @@ public sealed class LocalizationService : ILocalizationService
         LoadCulture(defaultCultureName);
     }
 
-    private static CultureInfo CreateCultureInfo(string cultureName)
+    private static CultureInfo CreateCultureInfo(string? cultureName)
     {
         try
         {
@@ -60,7 +60,7 @@ public sealed class LocalizationService : ILocalizationService
         LoadEmbeddedJsonFile(resourceName, _defaultCultureStrings);
     }
 
-    private void LoadCulture(string cultureName)
+    private void LoadCulture(string? cultureName)
     {
         string resourceName = $"{_resourceNamespace}.{cultureName}.json";
         LoadEmbeddedJsonFile(resourceName, _localizedStrings);
@@ -140,7 +140,7 @@ public sealed class LocalizationService : ILocalizationService
         }
     }
 
-    public void SetCulture(string cultureName, Action? onCultureChanged = null)
+    public void SetCulture(string? cultureName, Action? onCultureChanged = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName, nameof(cultureName));
 

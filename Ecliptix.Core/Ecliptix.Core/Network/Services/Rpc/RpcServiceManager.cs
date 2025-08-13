@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +15,6 @@ namespace Ecliptix.Core.Network.Services.Rpc;
 public class RpcServiceManager : IRpcServiceManager
 {
     private readonly ISecrecyChannelRpcServices _secrecyChannelRpcServices;
-    private readonly ConcurrentDictionary<RpcServiceType, Task> _activeStreamHandles = new();
 
     private readonly
         Dictionary<ServiceFlowType,

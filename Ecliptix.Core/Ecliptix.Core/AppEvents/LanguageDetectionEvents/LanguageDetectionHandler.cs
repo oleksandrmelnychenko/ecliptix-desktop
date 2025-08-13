@@ -61,14 +61,14 @@ public sealed class LanguageDetectionHandler
         }
     }
     
-    private async Task SaveLanguageSettingsAsync(string cultureName)
+    private async Task SaveLanguageSettingsAsync(string? cultureName)
     {
         try
         {
             await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(cultureName);
             _rpcMetaDataProvider.SetCulture(cultureName);
         }
-        catch (Exception ex)
+        catch (Exception? ex)
         {
             Log.Error(ex, "Failed to save language settings for culture {Culture}", cultureName);
         }

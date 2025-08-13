@@ -31,7 +31,6 @@ public static class FailureClassification
 
     public static bool IsServerShutdown(NetworkFailure failure)
     {
-        // CRITICAL FIX: DataCenterNotResponding failures should trigger server shutdown recovery
         if (failure.FailureType == NetworkFailureType.DataCenterNotResponding)
         {
             return true;
@@ -47,11 +46,9 @@ public static class FailureClassification
                msg.Contains("connection reset") ||
                msg.Contains("temporarily") ||
                msg.Contains("maintenance") ||
-               // CRITICAL FIX: Detect gRPC connection failures as server shutdown
                msg.Contains("error connecting to subchannel") ||
                msg.Contains("no connection could be made") ||
                msg.Contains("connection actively refused") ||
-               // Handle gRPC Unavailable status codes
                (msg.Contains("status") && msg.Contains("unavailable"));
     }
     
@@ -66,7 +63,7 @@ public static class FailureClassification
     
     public static bool IsChainRotationMismatch(NetworkFailure failure)
     {
-        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
+        string msg = failure.Message.ToLowerInvariant();
 
         return msg.Contains("requested index") && msg.Contains("not future") ||
                msg.Contains("chain rotation") ||
@@ -79,18 +76,11 @@ public static class FailureClassification
     
     public static bool IsProtocolStateMismatch(NetworkFailure failure)
     {
-        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
+        string msg = failure.Message.ToLowerInvariant();
         
         return IsChainRotationMismatch(failure) ||
                msg.Contains("protocol version") ||
                msg.Contains("state version") ||
                msg.Contains("channel state") && msg.Contains("invalid");
-    }
-    
-    public static bool IsOutageRecoveryWait(NetworkFailure failure)
-    {
-        string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
-        
-        return msg.Contains("connection unavailable") && msg.Contains("server may be recovering");
     }
 }

@@ -159,7 +159,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
-        string culture = applicationInstanceSettings.Culture;
+        string? culture = applicationInstanceSettings.Culture;
 
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
@@ -1754,7 +1754,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public bool IsConnectionHealthy(uint connectId)
     {
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem _))
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? _))
             return false;
 
         ConnectionHealth? health = _connectionStateManager.GetConnectionHealth(connectId);

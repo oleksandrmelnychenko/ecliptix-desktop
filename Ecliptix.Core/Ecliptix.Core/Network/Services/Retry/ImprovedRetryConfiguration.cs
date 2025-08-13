@@ -4,7 +4,7 @@ namespace Ecliptix.Core.Network.Services.Retry;
 
 public class ImprovedRetryConfiguration
 {
-    public TimeSpan InitialRetryDelay { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan InitialRetryDelay { get; init; } = TimeSpan.FromSeconds(5);
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromMinutes(2);
     public int MaxRetries { get; set; } = 10;
     public int CircuitBreakerThreshold { get; set; } = 5;

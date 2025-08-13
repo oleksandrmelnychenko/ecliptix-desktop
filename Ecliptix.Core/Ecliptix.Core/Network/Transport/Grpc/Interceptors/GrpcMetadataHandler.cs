@@ -23,7 +23,7 @@ public static class GrpcMetadataHandler
     private const string ConnectionContextId = "c-context-id";
     private const string OperationContextId = "o-context-id";
 
-    public static Metadata GenerateMetadata(string appInstanceId, string appDeviceId, string culture,
+    public static Metadata GenerateMetadata(string appInstanceId, string appDeviceId, string? culture,
         Guid operationId = default)
     {
         Metadata metadata = new()
