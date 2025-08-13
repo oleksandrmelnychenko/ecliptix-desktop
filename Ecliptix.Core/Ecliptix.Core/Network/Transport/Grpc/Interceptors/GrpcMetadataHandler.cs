@@ -67,9 +67,9 @@ public static class GrpcMetadataHandler
     {
         try
         {
-            using var client = new UdpClient();
+            using UdpClient client = new();
             client.Connect("8.8.8.8", 80);
-            var endpoint = client.Client.LocalEndPoint as IPEndPoint;
+            IPEndPoint? endpoint = client.Client.LocalEndPoint as IPEndPoint;
             return endpoint?.Address.ToString() ?? GetLocalIpAddress();
         }
         catch
