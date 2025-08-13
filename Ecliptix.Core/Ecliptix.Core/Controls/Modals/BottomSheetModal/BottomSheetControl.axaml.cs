@@ -283,7 +283,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         double hiddenPosition = _sheetHeight;
 
-        ElasticEaseOut1 showEasing = new ElasticEaseOut1();
+        CubicEaseInOut showEasing = new CubicEaseInOut();
         CubicEaseInOut hideEasing = new CubicEaseInOut();
 
         _showAnimation = new Animation
