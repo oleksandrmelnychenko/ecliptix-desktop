@@ -148,7 +148,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 x => x.UnDismissableScrimColor)
             .Subscribe(tuple =>
             {
-                var (isDismissable, dismissableColor, unDismissableColor) = tuple;
+                (bool isDismissable, IBrush dismissableColor, IBrush unDismissableColor) = tuple;
                 ScrimColor = isDismissable ? dismissableColor : unDismissableColor;
             })
             .DisposeWith(disposables);
@@ -205,7 +205,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         try
         {
-            var showTasks = new[]
+            Task[] showTasks = new[]
             {
                 _showAnimation.RunAsync(_sheetBorder, CancellationToken.None),
                 _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None)
@@ -229,7 +229,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         try
         {
-            var hideTasks = new[]
+            Task[] hideTasks = new[]
             {
                 _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None),
                 _scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None)
@@ -250,8 +250,8 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         double hiddenPosition = this.FindControl<Border>("SheetBorder")?.Height ?? 400;
 
-        var showEasing = new ElasticEaseOut1();
-        var hideEasing = new CubicEaseInOut();
+        ElasticEaseOut1 showEasing = new ElasticEaseOut1();
+        CubicEaseInOut hideEasing = new CubicEaseInOut();
 
         _showAnimation = new Animation
         {
@@ -312,28 +312,28 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
     {
-        var existingTransform = visual.RenderTransform;
+        ITransform? existingTransform = visual.RenderTransform;
         if (existingTransform is TransformGroup existingGroup)
         {
-            foreach (var child in existingGroup.Children)
+            foreach (Transform? child in existingGroup.Children)
             {
                 if (child is T specificTransform)
                 {
                     return specificTransform;
                 }
             }
-            var newTransformFromGroup = new T();
+            T newTransformFromGroup = new T();
             existingGroup.Children.Add(newTransformFromGroup);
             return newTransformFromGroup;
         }
 
-        var group = new TransformGroup();
+        TransformGroup group = new TransformGroup();
         if (existingTransform is Transform singleTransform)
         {
             group.Children.Add(singleTransform);
         }
 
-        var newTransform = new T();
+        T newTransform = new T();
         group.Children.Add(newTransform);
         visual.RenderTransform = group;
         return newTransform;
