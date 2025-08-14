@@ -278,7 +278,8 @@ public static class Program
         services.AddSingleton<IRetryStrategy>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
-            SecrecyChannelRetryStrategy retryStrategy = new(config);
+            INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
+            SecrecyChannelRetryStrategy retryStrategy = new(config, networkEvents);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;

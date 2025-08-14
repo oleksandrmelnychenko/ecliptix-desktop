@@ -93,6 +93,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Replay(1)
             .RefCount();
 
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents = networkEvents.ManualRetryRequested
+            .ObserveOn(RxApp.MainThreadScheduler);
+
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
             {
@@ -124,8 +127,15 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 _ => "avares://Ecliptix.Core/Assets/wifi.png"
             });
 
-        IObservable<bool> showRetryButtonObservable = networkStatusEvents
-            .Select(evt => evt.State == NetworkStatus.RetriesExhausted)
+        IObservable<bool> showRetryButtonObservable = Observable.Merge(
+                networkStatusEvents
+                    .Where(evt => evt.State == NetworkStatus.RetriesExhausted)
+                    .Select(_ => true),
+                manualRetryEvents.Select(_ => false),
+                networkStatusEvents
+                    .Where(evt => evt.State is NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored)
+                    .Select(_ => false)
+            )
             .StartWith(false);
 
         IObservable<bool> isVisibleObservable = networkStatusEvents
@@ -155,6 +165,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 try
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
+                    
+                    networkEvents.RequestManualRetry(ManualRetryRequestedEvent.New());
+                    
                     int retriedCount = await pendingRequestManager1.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
                 }
