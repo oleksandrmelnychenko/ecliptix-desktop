@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
@@ -37,6 +38,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
+            secureKeyBox.KeyDown += OnSecureKeyBoxKeyDown;
             _handlersAttached = true;
         }
     }
@@ -48,6 +50,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
+            secureKeyBox.KeyDown -= OnSecureKeyBoxKeyDown;
         }
 
         _handlersAttached = false;
@@ -65,5 +68,15 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
         vm.RemoveSecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
+    }
+    
+    private void OnSecureKeyBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        
+        if (DataContext is not SignInViewModel vm) return;
+        
+        vm.HandleEnterKeyPress();
+        e.Handled = true;
     }
 }

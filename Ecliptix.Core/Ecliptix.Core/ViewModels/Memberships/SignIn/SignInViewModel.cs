@@ -224,4 +224,12 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         base.Dispose(disposing);
         _isDisposed = true;
     }
+    
+    public async void HandleEnterKeyPress()
+    {
+        if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())
+        {
+            SignInCommand.Execute().Subscribe();
+        }
+    }
 }
