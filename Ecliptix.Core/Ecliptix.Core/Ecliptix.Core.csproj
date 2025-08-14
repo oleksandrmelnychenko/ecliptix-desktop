@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
-    <ApplicationIcon>Assets/logo.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/ecliptix.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
@@ -105,10 +105,6 @@
     <UpToDateCheckInput Remove="Themes\Generic.axaml" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Localization\en-US.json" />
-    <EmbeddedResource Include="Localization\uk-UA.json" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
     <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
   </ItemGroup>
@@ -117,17 +113,17 @@
     <Folder Include="Views\Core\Components\" />
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
-    <Content Include="Assets/logo.ico">
+    <Content Include="Assets/ecliptix.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
-    <Content Include="Assets/logo.icns">
+    <Content Include="Assets/EcliptixLogo.icns">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <Content Include="Assets/logo.png">
+    <Content Include="Assets/Ecliptix-logo/logo_256x256.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

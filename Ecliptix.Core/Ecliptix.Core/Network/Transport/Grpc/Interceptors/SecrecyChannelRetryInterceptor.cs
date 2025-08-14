@@ -12,6 +12,7 @@ using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Network.Services;
 using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Utilities.Failures.Network;
+using Serilog;
 
 namespace Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 
@@ -114,36 +115,36 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             TaskCompletionSource<TResponse> taskCompletionSource = new();
 
+            // Create a detached retry action that can be retried independently of the original request
             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
             {
-                try
+                // Wait for connection to be restored before retrying
+                bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
+                if (!connectionRestored)
                 {
-                    // Wait for connection to be restored before retrying
-                    bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
-                    if (!connectionRestored)
-                    {
-                        throw new RpcException(new Status(StatusCode.Unavailable, "Failed to restore connection"));
-                    }
-
-                    // Remove the original request from deduplication cache to allow retry
-                    _deduplicationService.RemoveRequest(operationName, requestIdBytes, connectId);
-
-                    // Make the call again with original context
-                    AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
-                    TResponse result = await retryCall.ResponseAsync;
-                    taskCompletionSource.SetResult(result);
-                    return result;
+                    Log.Information("🔄 PENDING REQUEST: Connection not restored for {RequestId}, will retry later", requestId);
+                    throw new RpcException(new Status(StatusCode.Unavailable, "Failed to restore connection"));
                 }
-                catch (Exception retryEx)
-                {
-                    taskCompletionSource.SetException(retryEx);
-                    throw;
-                }
-            }, taskCompletionSource);
+
+                // Remove the original request from deduplication cache to allow retry
+                _deduplicationService.RemoveRequest(operationName, requestIdBytes, connectId);
+
+                // Make the call again with original context  
+                AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
+                TResponse result = await retryCall.ResponseAsync;
+                
+                Log.Information("🔄 PENDING REQUEST SUCCESS: Request {RequestId} succeeded on retry", requestId);
+                // Don't return the result since this is a detached retry - just complete successfully
+            });
 
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown));
 
+            // Complete the original request with server shutdown error, 
+            // but the retry action runs independently and stays in pending queue
+            taskCompletionSource.SetException(new RpcException(new Status(StatusCode.Unavailable, 
+                $"Server shutdown detected. Request {requestId} has been queued for retry.")));
+            
             return await taskCompletionSource.Task;
         }
         catch (RpcException ex)

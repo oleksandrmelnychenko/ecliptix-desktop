@@ -1,10 +1,8 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
-using System.IO;
-using System.Reflection;
-using System.Text.Json;
 using System.Threading;
 using Avalonia.Threading;
 using Ecliptix.Core.Settings;
@@ -13,11 +11,9 @@ namespace Ecliptix.Core.Services;
 
 public sealed class LocalizationService : ILocalizationService
 {
-    private readonly Dictionary<string, string> _localizedStrings;
+    private FrozenDictionary<string, string> _currentLanguageStrings;
     private CultureInfo _currentCultureInfo;
-    private readonly Dictionary<string, string> _defaultCultureStrings;
-    private readonly Assembly _assembly;
-    private readonly string _resourceNamespace;
+    private readonly FrozenDictionary<string, string> _defaultLanguageStrings;
 
     private readonly Lock _cultureChangeLock = new();
 
@@ -30,72 +26,31 @@ public sealed class LocalizationService : ILocalizationService
     public LocalizationService(DefaultSystemSettings defaultSystemSettings)
     {
         string? defaultCultureName = defaultSystemSettings.Culture;
-
-        _assembly = Assembly.GetExecutingAssembly();
-        _resourceNamespace = "Ecliptix.Core.Localization";
-
-        _defaultCultureStrings = new Dictionary<string, string>();
-        _localizedStrings = new Dictionary<string, string>();
+        
         _currentCultureInfo = CreateCultureInfo(defaultCultureName);
-
-        LoadDefaultCulture();
-        LoadCulture(defaultCultureName);
+        _defaultLanguageStrings = LocalizationData.EnglishStrings;
+        
+        _currentLanguageStrings = GetLanguageStrings(defaultCultureName) ?? _defaultLanguageStrings;
     }
 
     private static CultureInfo CreateCultureInfo(string? cultureName)
     {
         try
         {
-            return CultureInfo.GetCultureInfo(cultureName);
+            return CultureInfo.GetCultureInfo(cultureName ?? "en-US");
         }
         catch (CultureNotFoundException)
         {
-            return CultureInfo.InvariantCulture;
+            return CultureInfo.GetCultureInfo("en-US");
         }
     }
-
-    private void LoadDefaultCulture()
+    
+    private static FrozenDictionary<string, string>? GetLanguageStrings(string? cultureName)
     {
-        string resourceName = $"{_resourceNamespace}.en-US.json";
-        LoadEmbeddedJsonFile(resourceName, _defaultCultureStrings);
-    }
-
-    private void LoadCulture(string? cultureName)
-    {
-        string resourceName = $"{_resourceNamespace}.{cultureName}.json";
-        LoadEmbeddedJsonFile(resourceName, _localizedStrings);
-    }
-
-    private void LoadEmbeddedJsonFile(string resourceName, Dictionary<string, string> targetDictionary)
-    {
-        using Stream? stream = _assembly.GetManifestResourceStream(resourceName);
-        if (stream == null)
-        {
-            return;
-        }
-
-        using StreamReader reader = new(stream);
-        string jsonContent = reader.ReadToEnd();
-
-        JsonDocument document = JsonDocument.Parse(jsonContent);
-        FlattenJsonObject(document.RootElement, string.Empty, targetDictionary);
-    }
-
-    private static void FlattenJsonObject(JsonElement element, string prefix, Dictionary<string, string> result)
-    {
-        foreach (JsonProperty property in element.EnumerateObject())
-        {
-            string key = string.IsNullOrEmpty(prefix) ? property.Name : $"{prefix}.{property.Name}";
-
-            if (property.Value.ValueKind == JsonValueKind.Object)
-            {
-                FlattenJsonObject(property.Value, key, result);
-            }
-            else if (property.Value.ValueKind == JsonValueKind.String)
-            {
-                result[key] = property.Value.GetString() ?? string.Empty;
-            }
-        }
+        if (string.IsNullOrEmpty(cultureName))
+            return null;
+            
+        return LocalizationData.AllLanguages.TryGetValue(cultureName, out var strings) ? strings : null;
     }
 
     public string this[string key]
@@ -107,12 +62,12 @@ public sealed class LocalizationService : ILocalizationService
                 return "[INVALID_KEY]";
             }
 
-            if (_localizedStrings.TryGetValue(key, out string? value))
+            if (_currentLanguageStrings.TryGetValue(key, out string? value))
             {
                 return value;
             }
 
-            if (_defaultCultureStrings.TryGetValue(key, out string? defaultValue))
+            if (_defaultLanguageStrings.TryGetValue(key, out string? defaultValue))
             {
                 return defaultValue;
             }
@@ -154,8 +109,7 @@ public sealed class LocalizationService : ILocalizationService
             }
 
             _currentCultureInfo = newCultureInfo;
-            _localizedStrings.Clear();
-            LoadCulture(cultureName);
+            _currentLanguageStrings = GetLanguageStrings(cultureName) ?? _defaultLanguageStrings;
         }
 
         if (onCultureChanged is not null)

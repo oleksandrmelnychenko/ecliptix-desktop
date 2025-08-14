@@ -9,12 +9,42 @@
         <!-- Recommended Avalonia trimming settings for Native AOT -->
         <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
         <TrimMode>link</TrimMode>
-        <ApplicationIcon>../Ecliptix.Core/Assets/logo.ico</ApplicationIcon>
+        <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">../Ecliptix.Core/Assets/ecliptix.ico</ApplicationIcon>
         <AssemblyName>Ecliptix</AssemblyName>
+        
+        <!-- Single-file deployment -->
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">osx-arm64</RuntimeIdentifier>
+        
+        <!-- macOS specific settings -->
+        <UseAppHost>true</UseAppHost>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        
+        <!-- AOT optimizations -->
+        <InvariantGlobalization>false</InvariantGlobalization>
+        <EventSourceSupport>false</EventSourceSupport>
+        <UseSystemResourceKeys>true</UseSystemResourceKeys>
+        <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+        <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+        
+        <!-- Suppress AOT analysis warnings -->
+        <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+        <TrimmerSingleWarn>false</TrimmerSingleWarn>
     </PropertyGroup>
     <ItemGroup>
         <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
+        <TrimmerRootAssembly Include="Ecliptix.Core" />
+        <TrimmerRootAssembly Include="ReactiveUI" />
+        <TrimmerRootAssembly Include="System.Reactive" />
+        <TrimmerRootAssembly Include="Grpc.Net.Client" />
+        <TrimmerRootAssembly Include="Serilog" />
+        <TrimmerRootAssembly Include="Microsoft.Extensions.Configuration" />
+        <TrimmerRootAssembly Include="Microsoft.Extensions.DependencyInjection" />
     </ItemGroup>
+    
+    <!-- gRPC AOT compatibility -->
     <PropertyGroup>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
@@ -64,13 +94,21 @@
     </ItemGroup>
 
     <!-- Platform-specific icon configurations -->
+    <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
+        <CFBundleIconFile>EcliptixLogo.icns</CFBundleIconFile>
+    </PropertyGroup>
+    
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
-        <Content Include="../Ecliptix.Core/Assets/logo.ico">
+        <Content Include="../Ecliptix.Core/Assets/ecliptix.ico">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
-        <Content Include="../Ecliptix.Core/Assets/logo.icns">
+        <Content Include="../Ecliptix.Core/Assets/EcliptixLogo.icns">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>EcliptixLogo.icns</Link>
+        </Content>
+        <Content Include="Info.plist">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
