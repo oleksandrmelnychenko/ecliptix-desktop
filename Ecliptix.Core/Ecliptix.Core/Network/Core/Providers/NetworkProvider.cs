@@ -250,7 +250,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType("Duplicate request rejected"));
         }
 
-        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, perRequestCts.Token);
+        using CancellationTokenSource linkedCts =
+            CancellationTokenSource.CreateLinkedTokenSource(token, perRequestCts.Token);
         CancellationToken operationToken = linkedCts.Token;
 
         try
@@ -485,18 +486,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         // The user should manually trigger reconnection via retry button
         if (_retryStrategy is SecrecyChannelRetryStrategy retryStrategy)
         {
-            // Get the current retry tracking state to see if operations are exhausted
-            var currentConnectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
-            
-            // If there are exhausted operations, don't auto-reconnect - wait for manual retry
             Log.Information("Restoration failed. Checking retry strategy status before automatic reconnection");
-            
-            // For now, let's skip automatic reconnection if we're in an outage state
-            // This prevents the unwanted background sync behavior
-            if (Volatile.Read(ref _outageState) != 0)
+
+            // If there are exhausted operations, don't auto-reconnect - wait for manual retry
+            if (retryStrategy.HasExhaustedOperations())
             {
-                Log.Information("System is in outage state - skipping automatic reconnection to allow manual retry");
+                Log.Information("System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
                 return Result<Unit, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
             }
@@ -669,9 +664,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting)
-            );
+            _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
         });
 
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
@@ -1123,6 +1116,20 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 attempt++;
 
+                // Stop recovery loop if retry strategy has exhausted operations - manual retry required
+                if (_retryStrategy.HasExhaustedOperations())
+                {
+                    Log.Information("🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
+                    
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        _networkEvents.InitiateChangeState(
+                            NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                    });
+                    
+                    return;
+                }
+
                 Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryLogic();
 
                 if (result.IsOk)
@@ -1150,6 +1157,23 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         catch (Exception ex)
         {
             Log.Error(ex, "Error in server shutdown recovery loop");
+            
+            // Ensure we still show the retry button if recovery fails due to exhaustion
+            if (_retryStrategy.HasExhaustedOperations())
+            {
+                try
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        _networkEvents.InitiateChangeState(
+                            NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                    });
+                }
+                catch (Exception uiEx)
+                {
+                    Log.Error(uiEx, "Failed to dispatch retry exhausted status to UI thread");
+                }
+            }
         }
     }
 
@@ -1687,8 +1711,141 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public async Task<Result<Unit, NetworkFailure>> ForceFreshConnectionAsync()
     {
-        Log.Information("Manual retry requested. Forcing fresh protocol establishment");
-        return await PerformAdvancedRecoveryLogic();
+        Log.Information("Manual retry requested. Forcing immediate fresh protocol establishment");
+        
+        // First attempt: Try immediate RestoreSecrecyChannel without retry strategy delays
+        Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic();
+        
+        if (immediateResult.IsOk)
+        {
+            Log.Information("🔄 MANUAL RETRY SUCCESS: Immediate RestoreSecrecyChannel succeeded");
+            return immediateResult;
+        }
+        
+        Log.Information("🔄 MANUAL RETRY: Immediate attempt failed, falling back to advanced recovery logic");
+        
+        // Fallback: Use the full recovery logic with retry strategy
+        Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryLogic();
+        
+        // If manual retry fails and operations are exhausted, show retry button again
+        if (result.IsErr && _retryStrategy.HasExhaustedOperations())
+        {
+            Log.Information("🔄 MANUAL RETRY FAILED: Showing retry button again for user to retry");
+            
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _networkEvents.InitiateChangeState(
+                    NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+            });
+        }
+        
+        return result;
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> PerformImmediateRecoveryLogic()
+    {
+        if (!_applicationInstanceSettings.HasValue)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Application instance settings not available"));
+        }
+
+        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+        _connections.TryRemove(connectId, out _);
+
+        Result<byte[], SecureStorageFailure> stateResult =
+            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+
+        if (stateResult.IsErr)
+        {
+            Log.Information("🔄 IMMEDIATE RECOVERY: No stored state found, cannot perform immediate restore");
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("No stored state for immediate recovery"));
+        }
+
+        try
+        {
+            byte[] stateBytes = stateResult.Unwrap();
+            EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
+            
+            // Call RestoreSecrecyChannelAsync directly without retry strategy
+            Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelDirectAsync(state, _applicationInstanceSettings.Value!);
+            
+            if (restoreResult.IsOk && restoreResult.Unwrap())
+            {
+                Log.Information("🔄 IMMEDIATE RECOVERY: Successfully restored connection state for {ConnectId}", connectId);
+                
+                ExitOutage();
+                ResetRetryStrategyAfterOutage();
+                await RetryPendingRequestsAfterRecovery().ConfigureAwait(false);
+                
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+            else
+            {
+                Log.Information("🔄 IMMEDIATE RECOVERY: Restore failed, session not found on server");
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Session not found on server"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "🔄 IMMEDIATE RECOVERY: Failed to parse stored state for connection {ConnectId}", connectId);
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding($"Failed to parse stored state: {ex.Message}"));
+        }
+    }
+
+    private async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannelDirectAsync(
+        EcliptixSecrecyChannelState ecliptixSecrecyChannelState,
+        ApplicationInstanceSettings applicationInstanceSettings)
+    {
+        _rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
+            Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), applicationInstanceSettings.Culture);
+
+        RestoreSecrecyChannelRequest request = new();
+        SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest =
+            SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse>.New(
+                ServiceFlowType.Single,
+                RpcServiceType.RestoreSecrecyChannel,
+                request);
+
+        try
+        {
+            // Call RPC service directly without retry strategy
+            Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
+                await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, serviceRequest);
+
+            if (restoreAppDeviceSecrecyChannelResponse.IsErr)
+            {
+                Log.Information("🔄 DIRECT RESTORE: RestoreSecrecyChannel RPC failed: {Error}", restoreAppDeviceSecrecyChannelResponse.UnwrapErr().Message);
+                return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
+            }
+
+            RestoreSecrecyChannelResponse response = restoreAppDeviceSecrecyChannelResponse.Unwrap();
+
+            if (response.Status == RestoreSecrecyChannelResponse.Types.RestoreStatus.SessionResumed)
+            {
+                Result<Unit, EcliptixProtocolFailure> syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+                if (syncResult.IsErr)
+                {
+                    Log.Information("🔄 DIRECT RESTORE: Protocol sync failed: {Error}", syncResult.UnwrapErr().Message);
+                    return Result<bool, NetworkFailure>.Err(syncResult.UnwrapErr().ToNetworkFailure());
+                }
+                
+                Log.Information("🔄 DIRECT RESTORE: Session resumed and synced successfully");
+                return Result<bool, NetworkFailure>.Ok(true);
+            }
+
+            Log.Information("🔄 DIRECT RESTORE: Session not found on server (status: {Status})", response.Status);
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Information("🔄 DIRECT RESTORE: Exception during direct restore: {Message}", ex.Message);
+            return Result<bool, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));
+        }
     }
 
     private async Task<Result<Unit, NetworkFailure>> PerformFreshProtocolEstablishment(uint connectId)

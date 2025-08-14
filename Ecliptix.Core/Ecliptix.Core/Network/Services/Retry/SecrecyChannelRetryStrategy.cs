@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
@@ -24,6 +25,8 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     private readonly INetworkEvents _networkEvents;
     private Lazy<NetworkProvider>? _lazyNetworkProvider;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
+    
+    private volatile bool _globallyExhausted = false;
 
     private class RetryOperationInfo
     {
@@ -45,7 +48,6 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         _networkEvents = networkEvents;
         _retryPolicy = CreateRetryPolicy();
         
-        // Listen for manual retry requests
         _networkEvents.ManualRetryRequested
             .Subscribe(async evt => await HandleManualRetryRequestAsync(evt));
     }
@@ -54,24 +56,32 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     {
         Log.Information("🔄 MANUAL RETRY REQUEST: Received manual retry request for ConnectId {ConnectId}", evt.ConnectId);
         
+        // Reset global exhaustion state when manual retry is requested
+        _globallyExhausted = false;
+        
         bool anySucceeded = await RetryAllExhaustedOperationsAsync();
         
-        // If no operations succeeded, they remain exhausted and button should reappear after a small delay
         if (!anySucceeded && AreAllRetryOperationsExhausted())
         {
             Log.Warning("🔄 MANUAL RETRY: All operations still exhausted after manual retry. Button will reappear");
             
-            // Give a short delay before showing the button again
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            // Set global exhaustion state since all operations failed again
+            _globallyExhausted = true;
             
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _networkEvents.InitiateChangeState(
+                    NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+            });
         }
         else if (anySucceeded)
         {
             Log.Information("🔄 MANUAL RETRY: Some operations succeeded. Connection restored");
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRestored));
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _networkEvents.InitiateChangeState(
+                    NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRestored));
+            });
         }
     }
 
@@ -160,11 +170,11 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
     private async Task<bool> RetryAllExhaustedOperationsAsync()
     {
-        var exhaustedOperations = _activeRetryOperations.Values
+        List<RetryOperationInfo> exhaustedOperations = _activeRetryOperations.Values
             .Where(op => op.IsExhausted && op.Operation != null)
             .ToList();
 
-        if (!exhaustedOperations.Any())
+        if (exhaustedOperations.Count == 0)
         {
             Log.Debug("🔄 MANUAL RETRY: No exhausted operations to retry");
             return false;
@@ -173,7 +183,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         Log.Information("🔄 MANUAL RETRY: Retrying {Count} exhausted operations", exhaustedOperations.Count);
 
         bool anySucceeded = false;
-        foreach (var operation in exhaustedOperations)
+        foreach (RetryOperationInfo operation in exhaustedOperations)
         {
             try
             {
@@ -216,25 +226,33 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 NetworkFailure.InvalidRequestType("Connection ID is required"));
         }
 
+        // Prevent new operations when globally exhausted - user must manually retry
+        if (_globallyExhausted)
+        {
+            Log.Information("🚫 OPERATION BLOCKED: Cannot start new operation '{OperationName}' - system is globally exhausted, manual retry required", operationName);
+            return Result<TResponse, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("All operations exhausted, manual retry required"));
+        }
+
         DateTime operationStartTime = DateTime.UtcNow;
         string operationKey = CreateOperationKey(operationName, connectId.Value, operationStartTime);
 
-        Func<Task<Result<object, NetworkFailure>>> wrappedOperation = async () =>
+        async Task<Result<object, NetworkFailure>> WrappedOperation()
         {
-            var result = await operation();
-            return result.IsOk 
+            Result<TResponse, NetworkFailure> result = await operation();
+            return result.IsOk
                 ? Result<object, NetworkFailure>.Ok(result.Unwrap()!)
                 : Result<object, NetworkFailure>.Err(result.UnwrapErr());
-        };
+        }
 
-        Context context = new Context
+        Context context = new()
         {
             ["OperationName"] = operationName,
             ["ConnectId"] = connectId.Value,
             ["MaxRetries"] = maxRetries,
             ["OperationKey"] = operationKey,
             ["OperationStartTime"] = operationStartTime,
-            ["WrappedOperation"] = wrappedOperation
+            ["WrappedOperation"] = (Func<Task<Result<object, NetworkFailure>>>)WrappedOperation
         };
 
         try
@@ -252,8 +270,6 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             }
             else
             {
-                // Operation failed after all retries - ensure it's marked as completed (not just exhausted)
-                // This will allow UI buttons to be re-enabled
                 Log.Warning("🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {Error}", 
                     operationName, typedResult.UnwrapErr().Message);
                 StopTrackingOperation(operationKey, $"Failed after retries: {typedResult.UnwrapErr().Message}");
@@ -279,7 +295,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId,
-        System.Collections.Generic.IReadOnlyList<TimeSpan> backoffSchedule,
+        IReadOnlyList<TimeSpan> backoffSchedule,
         bool useJitter = true,
         double jitterRatio = 0.25,
         CancellationToken cancellationToken = default)
@@ -325,7 +341,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
     private IAsyncPolicy<object> CreateRetryPolicy()
     {
-        System.Collections.Generic.IEnumerable<TimeSpan> rawDelays = _configuration.UseAdaptiveRetry 
+        IEnumerable<TimeSpan> rawDelays = _configuration.UseAdaptiveRetry 
             ? Backoff.DecorrelatedJitterBackoffV2(
                 medianFirstRetryDelay: _configuration.InitialRetryDelay,
                 retryCount: _configuration.MaxRetries,
@@ -355,17 +371,16 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 retryDelays,
                 onRetry: async (outcome, delay, retryCount, context) =>
                 {
-                    object operation = context.ContainsKey("OperationName") ? context["OperationName"] : "Unknown";
-                    object connectId = context.ContainsKey("ConnectId") ? context["ConnectId"] : 0;
-                    string operationKey = context.ContainsKey("OperationKey") ? (string)context["OperationKey"] : string.Empty;
-                    int maxRetries = context.ContainsKey("MaxRetries") ? (int)context["MaxRetries"] : retryDelays.Length;
+                    object operation = context.GetValueOrDefault("OperationName", "Unknown");
+                    object connectId = context.TryGetValue("ConnectId", out object? value) ? value : 0;
+                    string operationKey = context.TryGetValue("OperationKey", out object? value1) ? (string)value1 : string.Empty;
+                    int maxRetries = context.TryGetValue("MaxRetries", out object? value2) ? (int)value2 : retryDelays.Length;
 
-                    // Start tracking on first retry (retryCount == 1)
                     if (retryCount == 1)
                     {
                         Func<Task<Result<object, NetworkFailure>>>? wrappedOp = 
-                            context.ContainsKey("WrappedOperation") 
-                                ? (Func<Task<Result<object, NetworkFailure>>>)context["WrappedOperation"] 
+                            context.TryGetValue("WrappedOperation", out object? value3) 
+                                ? (Func<Task<Result<object, NetworkFailure>>>)value3 
                                 : null;
                         StartTrackingOperation(operation.ToString()!, (uint)connectId, maxRetries, operationKey, wrappedOp);
                     }
@@ -374,30 +389,29 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                         UpdateOperationRetryCount(operationKey, retryCount);
                     }
 
-                    // Check if this is the FINAL retry attempt (all delays exhausted)
                     if (retryCount >= retryDelays.Length)
                     {
                         Log.Warning("🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries} exhausted all retries", 
                             operation, connectId, retryCount, maxRetries);
                         
-                        // Mark this operation as exhausted but keep it in tracking for potential manual retry
                         MarkOperationAsExhausted(operationKey);
                         
-                        // Only emit RetriesExhausted signal if ALL operations are now exhausted
                         if (AreAllRetryOperationsExhausted())
                         {
-                            Log.Warning("🔴 ALL OPERATIONS EXHAUSTED: All retry operations are exhausted. Now showing retry button");
-                            _networkEvents.InitiateChangeState(
-                                NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                            Log.Warning("🔴 ALL OPERATIONS EXHAUSTED: All retry operations are exhausted. Recovery loop will handle retry button display");
+                            _globallyExhausted = true;
                         }
                         else
                         {
-                            // First operation exhausted - show window without retry button
                             if (_activeRetryOperations.Values.Count(op => op.IsExhausted) == 1)
                             {
                                 Log.Information("🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
-                                _networkEvents.InitiateChangeState(
-                                    NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+                                
+                                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                                {
+                                    _networkEvents.InitiateChangeState(
+                                        NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+                                });
                             }
                             
                             Log.Debug("⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}", 
@@ -434,7 +448,7 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 });
 
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromSeconds(30), // Reduced from 1 minute to prevent deadlocks
+            TimeSpan.FromSeconds(30), 
             onTimeoutAsync: (context, timespan, task) =>
             {
                 if (context.ContainsKey("OperationName"))
@@ -506,6 +520,11 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public bool IsConnectionHealthy(uint connectId)
     {
         return GetNetworkProvider()?.IsConnectionHealthy(connectId) ?? false;
+    }
+
+    public bool HasExhaustedOperations()
+    {
+        return _globallyExhausted || AreAllRetryOperationsExhausted();
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "Configuration binding is safe for simple types")]
