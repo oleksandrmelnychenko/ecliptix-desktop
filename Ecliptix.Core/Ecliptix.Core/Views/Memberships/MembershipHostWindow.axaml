@@ -238,49 +238,75 @@
                 <BlurEffect Radius="{StaticResource BackgroundBlurRadius}" />
             </Border.Effect>
         </Border>
-
-        <!-- Title Bar -->
+        
         <comp:TitleBar
             VerticalAlignment="Top"
             ZIndex="11"
             DisableMinimizeButton="False"
             DisableCloseButton="False"
             Margin="8" />
+        
+        <Grid 
+            x:Name="GeneralConrolsGrid"
+            ZIndex="5">
+            <!-- Title Bar -->
+            
+            <!-- Back Navigation Button -->
+            <Button HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Command="{Binding Router.NavigateBack}"
+                    Margin="24,64,0,0"
+                    ZIndex="2"
+                    Classes="back-button"
+                    Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
 
-        <!-- Back Navigation Button -->
-        <Button HorizontalAlignment="Left"
+                <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
+                       Stretch="Uniform"
+                       Width="18"
+                       Height="18" />
+            </Button>
+
+            <!-- Lazy-loaded Language Selector Container -->
+            <Border Name="LanguageSelectorContainer"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="16"
+                    ZIndex="12"
+                    Background="Transparent" />
+
+            <controls:NetworkStatusNotification
+                x:Name="NetworkNotification"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Top"
-                Command="{Binding Router.NavigateBack}"
-                Margin="24,64,0,0"
-                ZIndex="2"
-                Classes="back-button"
-                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+                Margin="0,50,0,0"
+                FontSize="12"
+                Width="320"
+                Height="70"
+                ZIndex="1001"
+                DataContext="{Binding NetworkStatusNotification}" />
 
-            <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
-                   Stretch="Uniform"
-                   Width="18"
-                   Height="18" />
-        </Button>
-
-        <!-- Lazy-loaded Language Selector Container -->
-        <Border Name="LanguageSelectorContainer"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="16"
-                ZIndex="12"
-                Background="Transparent" />
-
-        <controls:NetworkStatusNotification
-            x:Name="NetworkNotification"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Margin="0,50,0,0"
-            FontSize="12"
-            Width="320"
-            Height="70"
-            ZIndex="1001"
-            DataContext="{Binding NetworkStatusNotification}" />
-
+        </Grid>
+        
+        <Border
+            Margin="8"
+            CornerRadius="12"
+            ClipToBounds="True"
+            ZIndex="10"
+            x:Name="BottomSheetContainer">
+            <bottomSheetModal:BottomSheetControl
+                x:Name="BottomSheetControl"
+                ZIndex="111"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                MinHeight="200"
+                MaxHeight="600"
+                DismissableScrimColor="DarkGray"
+                UnDismissableScrimColor="Black"
+                IsDismissableOnScrimClick="True"
+            />
+        </Border>
+      
+        
         <!-- Main Content Border -->
         <Border Classes="main-border"
                 Margin="8"
@@ -395,18 +421,7 @@
                           ZIndex="5"
                           ToolTip.Tip="{Binding FullVersionInfo}" />
 
-                <bottomSheetModal:BottomSheetControl
-                    x:Name="BottomSheetControl"
-                    ZIndex="111"
-                    VerticalAlignment="Stretch"
-                    HorizontalAlignment="Stretch"
-                    MinHeight="200"
-                    MaxHeight="600"
-                    DismissableScrimColor="DarkGray"
-                    UnDismissableScrimColor="Black"
-                    IsDismissableOnScrimClick="True"
-                    Grid.Row="0"
-                    Grid.RowSpan="3" />
+              
             </Grid>
 
         </Border>

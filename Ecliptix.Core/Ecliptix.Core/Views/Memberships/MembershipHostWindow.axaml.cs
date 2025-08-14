@@ -1,11 +1,14 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Memberships;
 using ReactiveUI;
@@ -16,21 +19,28 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
 {
     private bool _languageSelectorLoaded;
     private readonly Border? _languageSelectorContainer;
-    
+    private readonly BottomSheetControl? _bottomSheetControl;
+    private readonly Border? _mainBorder;
+    private readonly Grid? _generalControlsGrid;
+
     public MembershipHostWindow()
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
-        
+
         _languageSelectorContainer = this.FindControl<Border>("LanguageSelectorContainer");
-        
+        _bottomSheetControl = this.FindControl<BottomSheetControl>("BottomSheetControl");
+        _mainBorder = this.FindControl<Border>("MainBorder");
+        _generalControlsGrid = this.FindControl<Grid>("GeneralConrolsGrid");
+
         SetupLazyLanguageSelector();
-        
+        SetupBottomSheetFocusManagement();
+
     #if DEBUG
             this.AttachDevTools();
     #endif
     }
-    
+
     private void SetupLazyLanguageSelector()
     {
         this.WhenActivated(disposables =>
@@ -46,16 +56,48 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
                 .DisposeWith(disposables);
         });
     }
-    
+
+    private void SetupBottomSheetFocusManagement()
+    {
+        this.WhenActivated(disposables =>
+        {
+            if (_bottomSheetControl?.ViewModel == null || _mainBorder == null || _generalControlsGrid == null) return;
+
+            _bottomSheetControl.ViewModel
+                .WhenAnyValue(x => x.IsVisible)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(async isVisible =>
+                {
+                    if (isVisible)
+                    {
+                        await Task.Delay(200);
+
+                        if (_bottomSheetControl.ViewModel.IsVisible) // Re-check in case it was closed during the delay
+                        {
+                            _mainBorder.IsEnabled = false;
+                            _generalControlsGrid.IsEnabled = false;
+                            _bottomSheetControl.Focus(NavigationMethod.Tab);
+                        }
+                    }
+                    else
+                    {
+                        _mainBorder.IsEnabled = true;
+                        _generalControlsGrid.IsEnabled = true;
+                    }
+                })
+                .DisposeWith(disposables);
+        });
+    }
+
     private void LoadLanguageSelector(MembershipHostWindowModel viewModel)
     {
         if (_languageSelectorLoaded || _languageSelectorContainer == null) return;
-        
+
         LanguageSelectorView languageSelector = new()
         {
             DataContext = viewModel.LanguageSelector
         };
-        
+
         _languageSelectorContainer.Child = languageSelector;
         _languageSelectorLoaded = true;
     }
