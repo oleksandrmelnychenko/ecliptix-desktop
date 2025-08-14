@@ -87,7 +87,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
-        IPendingRequestManager pendingRequestManager1 = pendingRequestManager;
 
         IObservable<NetworkStatusChangedEvent> networkStatusEvents = networkEvents.NetworkStatusChanged
             .DistinctUntilChanged(e => e.State)
@@ -103,6 +102,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             {
                 NetworkStatus.RetriesExhausted or 
                 NetworkStatus.DataCenterDisconnected or 
+                NetworkStatus.DataCenterConnecting or
                 NetworkStatus.ServerShutdown => NetworkConnectionState.ServerNotResponding,
                 _ => NetworkConnectionState.NoInternet
             })
@@ -166,6 +166,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 NetworkStatus.RetriesExhausted or 
                 NetworkStatus.DataCenterDisconnected or 
                 NetworkStatus.ServerShutdown => Observable.Return(true),
+                NetworkStatus.DataCenterConnecting => Observable.Empty<bool>(),
                 _ => Observable.Return(false)
             })
             .Switch()
@@ -187,7 +188,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                     
                     networkEvents.RequestManualRetry(ManualRetryRequestedEvent.New());
                     
-                    int retriedCount = await pendingRequestManager1.RetryAllPendingRequestsAsync(ct);
+                    int retriedCount = await pendingRequestManager.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
                 }
                 catch (Exception ex)

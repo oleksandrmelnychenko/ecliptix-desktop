@@ -50,4 +50,6 @@ public interface IRetryStrategy
     void MarkConnectionHealthy(uint connectId);
     
     bool IsConnectionHealthy(uint connectId);
+    
+    bool HasExhaustedOperations();
 }

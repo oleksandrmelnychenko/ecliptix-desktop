@@ -68,7 +68,7 @@ public sealed class SecrecyChannelRpcServices(
         }
         catch (Exception exc)
         {
-            Log.Warning(exc, "Secrecy channel gRPC call failed: {Message}", exc.Message);
+            Log.Debug(exc, "Secrecy channel gRPC call failed: {Message}", exc.Message);
             systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
             return Result<TResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterShutdown(exc.Message)
