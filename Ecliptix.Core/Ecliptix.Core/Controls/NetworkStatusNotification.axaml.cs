@@ -23,9 +23,6 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(DisappearDuration),
             TimeSpan.FromMilliseconds(250));
 
-    public static readonly StyledProperty<TimeSpan> FlickerDurationProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(FlickerDuration),
-            TimeSpan.FromMilliseconds(1500));
 
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(Background),
@@ -77,11 +74,6 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         set => SetValue(DisappearDurationProperty, value);
     }
 
-    public TimeSpan FlickerDuration
-    {
-        get => GetValue(FlickerDurationProperty);
-        set => SetValue(FlickerDurationProperty, value);
-    }
 
     public NetworkStatusNotification()
     {
@@ -110,32 +102,24 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        
-        // Pass the view reference to the ViewModel when DataContext is set
-        if (DataContext is NetworkStatusNotificationViewModel viewModel)
-        {
-            viewModel.SetView(this);
-            
-            // Sync animation durations from view properties to ViewModel
-            viewModel.AppearDuration = AppearDuration;
-            viewModel.DisappearDuration = DisappearDuration;
-            viewModel.FlickerDuration = FlickerDuration;
-        }
+
+        if (DataContext is not NetworkStatusNotificationViewModel viewModel) return;
+        viewModel.SetView(this);
+
+        viewModel.AppearDuration = AppearDuration;
+        viewModel.DisappearDuration = DisappearDuration;
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        
-        // Keep ViewModel animation durations in sync with view properties
+
         if (DataContext is NetworkStatusNotificationViewModel viewModel)
         {
             if (change.Property == AppearDurationProperty)
                 viewModel.AppearDuration = AppearDuration;
             else if (change.Property == DisappearDurationProperty)
                 viewModel.DisappearDuration = DisappearDuration;
-            else if (change.Property == FlickerDurationProperty)
-                viewModel.FlickerDuration = FlickerDuration;
         }
     }
 }

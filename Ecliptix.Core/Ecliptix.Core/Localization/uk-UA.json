@@ -107,6 +107,16 @@
     "NoInternetConnection": "Немає підключення до інтернету",
     "CheckConnection": "Перевірте ваше інтернет-з'єднання"
   },
+  "NetworkNotification": {
+    "NoInternet": {
+      "Title": "Немає підключення до інтернету",
+      "Description": "Перевірте з'єднання та спробуйте знову"
+    },
+    "ServerNotResponding": {
+      "Title": "Сервер недоступний",
+      "Description": "Наші сервери не відповідають"
+    }
+  },
   "LanguageDetection": {
     "Title": "Пропозиція мови",
     "Prompt": "Перемкнутись на {0}?",

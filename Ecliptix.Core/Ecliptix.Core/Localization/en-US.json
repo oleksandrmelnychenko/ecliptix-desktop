@@ -107,6 +107,16 @@
     "NoInternetConnection": "No internet connection",
     "CheckConnection": "Check your internet connection"
   },
+  "NetworkNotification": {
+    "NoInternet": {
+      "Title": "No Internet Connection",
+      "Description": "Check your connection and try again"
+    },
+    "ServerNotResponding": {
+      "Title": "Server Unavailable",
+      "Description": "Our servers are not responding"
+    }
+  },
   "LanguageDetection": {
     "Title": "Language Suggestion",
     "Prompt": "Switch to {0}?",
