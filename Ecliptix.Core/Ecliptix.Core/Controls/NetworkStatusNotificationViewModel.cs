@@ -95,6 +95,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Replay(1)
             .RefCount();
 
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents = networkEvents.ManualRetryRequested
+            .ObserveOn(RxApp.MainThreadScheduler);
+
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
             {
@@ -139,8 +142,19 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 }
             });
 
-        IObservable<bool> showRetryButtonObservable = networkStatusEvents
-            .Select(evt => evt.State == NetworkStatus.RetriesExhausted)
+        IObservable<bool> showRetryButtonObservable = Observable.Merge(
+                networkStatusEvents
+                    .Where(evt => evt.State == NetworkStatus.RetriesExhausted)
+                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Showing retry button"))
+                    .Select(_ => true),
+                manualRetryEvents
+                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)"))
+                    .Select(_ => false),
+                networkStatusEvents
+                    .Where(evt => evt.State is NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored)
+                    .Do(evt => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (connection {Status})", evt.State))
+                    .Select(_ => false)
+            )
             .StartWith(false);
 
         IObservable<bool> isVisibleObservable = networkStatusEvents
@@ -170,6 +184,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 try
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
+                    
+                    networkEvents.RequestManualRetry(ManualRetryRequestedEvent.New());
+                    
                     int retriedCount = await pendingRequestManager1.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
                 }
@@ -183,7 +200,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         networkStatusEvents
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(evt => HandleNetworkStatusVisualEffects(evt))
+            .Subscribe(evt => 
+            {
+                Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", evt.State);
+                HandleNetworkStatusVisualEffects(evt);
+            })
             .DisposeWith(_disposables);
 
         isVisibleObservable
@@ -191,6 +212,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async visible =>
             {
+                Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
                 if (visible)
                     await ShowAsync(CancellationToken.None);
                 else

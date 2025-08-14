@@ -481,6 +481,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
+        // Check if retries are exhausted - if so, don't attempt automatic reconnection
+        // The user should manually trigger reconnection via retry button
+        if (_retryStrategy is SecrecyChannelRetryStrategy retryStrategy)
+        {
+            // Get the current retry tracking state to see if operations are exhausted
+            var currentConnectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
+                PubKeyExchangeType.DataCenterEphemeralConnect);
+            
+            // If there are exhausted operations, don't auto-reconnect - wait for manual retry
+            Log.Information("Restoration failed. Checking retry strategy status before automatic reconnection");
+            
+            // For now, let's skip automatic reconnection if we're in an outage state
+            // This prevents the unwanted background sync behavior
+            if (Volatile.Read(ref _outageState) != 0)
+            {
+                Log.Information("System is in outage state - skipping automatic reconnection to allow manual retry");
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
+            }
+        }
+
         Log.Warning("Restoration failed, falling back to reconnection");
         Result<Unit, NetworkFailure> reconnectionResult = await PerformReconnectionLogic();
         if (reconnectionResult.IsErr)
