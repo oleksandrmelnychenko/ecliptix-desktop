@@ -152,7 +152,8 @@
                 WatermarkFontSize="{StaticResource WatermarkFontSize}"
                 Background="{DynamicResource TextBoxBackgroundColor}"
                 FontWeight="Light"
-                HorizontalAlignment="Stretch" />
+                HorizontalAlignment="Stretch"
+                IsEnabled="{Binding !IsBusy}"/>
 
             <!-- SecureKey Input -->
             <controls:HintedTextBox
@@ -175,7 +176,8 @@
                 Height="{StaticResource InputHeight}"
                 FontWeight="Light"
                 HorizontalAlignment="Stretch"
-                MaxLength="28"/>
+                MaxLength="28"
+                IsEnabled="{Binding !IsBusy}"/>
 
             <!-- Action Buttons -->
             <Grid Grid.Row="3"
@@ -185,6 +187,7 @@
                 <Button Grid.Column="0"
                         Content="{Binding LocalizationService[Authentication.SignIn.AccountRecovery]}"
                         Command="{Binding AccountRecoveryCommand}"
+                        IsEnabled="{Binding !IsBusy}"
                         Classes="auth-button recovery-button" />
 
                 <Button Grid.Column="1"
