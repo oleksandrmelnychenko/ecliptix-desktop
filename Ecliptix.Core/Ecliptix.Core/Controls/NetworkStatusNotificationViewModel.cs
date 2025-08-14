@@ -14,7 +14,6 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.Network.Contracts.Services;
 using Ecliptix.Core.Network.Services;
 using Ecliptix.Core.Network.Services.Retry;
 using Ecliptix.Core.Services;
@@ -83,7 +82,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
         INetworkEvents networkEvents,
-        IRetryStrategy retryStrategy,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
