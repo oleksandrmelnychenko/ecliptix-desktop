@@ -140,7 +140,6 @@ public class OpaqueAuthenticationService(
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
-        // CRITICAL FIX: Use TaskCompletionSource to coordinate retry response back to original caller
         var responseCompletionSource = new TaskCompletionSource<OpaqueSignInInitResponse>();
         
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
@@ -151,7 +150,7 @@ public class OpaqueAuthenticationService(
             {
                 try
                 {
-                    var response = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
+                    OpaqueSignInInitResponse response = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                     responseCompletionSource.TrySetResult(response);
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
@@ -166,13 +165,16 @@ public class OpaqueAuthenticationService(
 
         if (networkResult.IsErr)
         {
-            return Result<OpaqueSignInInitResponse, string>.Err(networkResult.UnwrapErr().Message);
+            // CRITICAL FIX: If network operation failed, complete the TaskCompletionSource with the error
+            NetworkFailure failure = networkResult.UnwrapErr();
+            responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
+            return Result<OpaqueSignInInitResponse, string>.Err(failure.Message);
         }
 
-        // CRITICAL FIX: Wait for the actual response from callback (original or retry)
+        // Wait for the actual response from callback (original or retry)
         try
         {
-            var response = await responseCompletionSource.Task;
+            OpaqueSignInInitResponse response = await responseCompletionSource.Task;
             return Result<OpaqueSignInInitResponse, string>.Ok(response);
         }
         catch (Exception ex)
@@ -188,7 +190,6 @@ public class OpaqueAuthenticationService(
         byte[] serverMacKey,
         byte[] transcriptHash, uint connectId)
     {
-        // CRITICAL FIX: Use TaskCompletionSource to coordinate retry response back to original caller
         var responseCompletionSource = new TaskCompletionSource<OpaqueSignInFinalizeResponse>();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
@@ -199,7 +200,7 @@ public class OpaqueAuthenticationService(
             {
                 try
                 {
-                    var response = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
+                    OpaqueSignInFinalizeResponse response = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
                     responseCompletionSource.TrySetResult(response);
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
@@ -214,10 +215,13 @@ public class OpaqueAuthenticationService(
 
         if (networkResult.IsErr)
         {
-            return Result<byte[], string>.Err(networkResult.UnwrapErr().Message);
+            // CRITICAL FIX: If network operation failed, complete the TaskCompletionSource with the error
+            NetworkFailure failure = networkResult.UnwrapErr();
+            responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
+            return Result<byte[], string>.Err(failure.Message);
         }
 
-        // CRITICAL FIX: Wait for the actual response from callback (original or retry)
+        // Wait for the actual response from callback (original or retry)
         OpaqueSignInFinalizeResponse capturedResponse;
         try
         {

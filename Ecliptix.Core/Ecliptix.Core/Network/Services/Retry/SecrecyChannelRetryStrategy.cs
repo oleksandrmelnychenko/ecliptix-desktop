@@ -250,6 +250,14 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             {
                 StopTrackingOperation(operationKey, "Completed successfully");
             }
+            else
+            {
+                // Operation failed after all retries - ensure it's marked as completed (not just exhausted)
+                // This will allow UI buttons to be re-enabled
+                Log.Warning("🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {Error}", 
+                    operationName, typedResult.UnwrapErr().Message);
+                StopTrackingOperation(operationKey, $"Failed after retries: {typedResult.UnwrapErr().Message}");
+            }
 
             return typedResult;
         }
@@ -375,14 +383,6 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                         // Mark this operation as exhausted but keep it in tracking for potential manual retry
                         MarkOperationAsExhausted(operationKey);
                         
-                        // First show window without retry button (server not responding)
-                        if (_activeRetryOperations.Values.Count(op => op.IsExhausted) == 1)
-                        {
-                            Log.Information("🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
-                            _networkEvents.InitiateChangeState(
-                                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
-                        }
-                        
                         // Only emit RetriesExhausted signal if ALL operations are now exhausted
                         if (AreAllRetryOperationsExhausted())
                         {
@@ -392,6 +392,14 @@ public class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                         }
                         else
                         {
+                            // First operation exhausted - show window without retry button
+                            if (_activeRetryOperations.Values.Count(op => op.IsExhausted) == 1)
+                            {
+                                Log.Information("🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
+                                _networkEvents.InitiateChangeState(
+                                    NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+                            }
+                            
                             Log.Debug("⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}", 
                                 _activeRetryOperations.Values.Count(op => op.IsExhausted));
                         }

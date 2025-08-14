@@ -130,10 +130,14 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<bool> showRetryButtonObservable = Observable.Merge(
                 networkStatusEvents
                     .Where(evt => evt.State == NetworkStatus.RetriesExhausted)
+                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Showing retry button"))
                     .Select(_ => true),
-                manualRetryEvents.Select(_ => false),
+                manualRetryEvents
+                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)"))
+                    .Select(_ => false),
                 networkStatusEvents
                     .Where(evt => evt.State is NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored)
+                    .Do(evt => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (connection {Status})", evt.State))
                     .Select(_ => false)
             )
             .StartWith(false);
@@ -181,7 +185,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         networkStatusEvents
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(evt => HandleNetworkStatusVisualEffects(evt))
+            .Subscribe(evt => 
+            {
+                Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", evt.State);
+                HandleNetworkStatusVisualEffects(evt);
+            })
             .DisposeWith(_disposables);
 
         isVisibleObservable
@@ -189,6 +197,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(async visible =>
             {
+                Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
                 if (visible)
                     await ShowAsync(CancellationToken.None);
                 else
