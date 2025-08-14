@@ -49,7 +49,7 @@
         <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
         <Thickness x:Key="ContentPadding">20,0</Thickness>
         <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
-        <Thickness x:Key="FooterMargin">0,0,0,16</Thickness>
+        <Thickness x:Key="FooterMargin">12,0,12,16</Thickness>
 
         <!-- Window Colors -->
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
@@ -129,7 +129,7 @@
 
         <Style Selector="StackPanel.footer-section">
             <Setter Property="Spacing" Value="{StaticResource FooterSpacing}" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="Margin" Value="{StaticResource FooterMargin}" />
         </Style>
 
@@ -241,14 +241,14 @@
         
         <comp:TitleBar
             VerticalAlignment="Top"
-            ZIndex="11"
+            ZIndex="5"
             DisableMinimizeButton="False"
             DisableCloseButton="False"
             Margin="8" />
         
         <Grid 
             x:Name="GeneralConrolsGrid"
-            ZIndex="5">
+            ZIndex="10">
             <!-- Title Bar -->
             
             <!-- Back Navigation Button -->
@@ -291,7 +291,7 @@
             Margin="8"
             CornerRadius="12"
             ClipToBounds="True"
-            ZIndex="10"
+            ZIndex="15"
             x:Name="BottomSheetContainer">
             <bottomSheetModal:BottomSheetControl
                 x:Name="BottomSheetControl"
@@ -396,30 +396,29 @@
                                TextWrapping="Wrap"
                                MaxWidth="280" />
 
-                    <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
-                               Classes="footer-text"
-                               Opacity="0.7" />
+                    <Grid ColumnDefinitions="*, *, *">
+                        <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
+                                   Classes="version-info"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Bottom"
+                                   Grid.Column="0"
+                                   ZIndex="5"
+                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                        <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                                   Classes="footer-text"
+                                   Opacity="0.7" 
+                                   Grid.Column="1"/>
+                        <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
+                                   Classes="version-info"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Bottom"
+                                   Grid.Column="2"
+                                   ZIndex="5"
+                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                    </Grid>
+                   
                 </StackPanel>
-                <!-- Version Information (Classical Corners) -->
-                <!-- Bottom-left corner: App Version -->
-                <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
-                          Classes="version-info"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Bottom"
-                          Margin="12,0,0,8"
-                          Grid.Row="2"
-                          ZIndex="5"
-                          ToolTip.Tip="{Binding FullVersionInfo}" />
-                
-                <!-- Bottom-right corner: Build Info -->
-                <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
-                          Classes="version-info"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Bottom"
-                          Margin="0,0,12,8"
-                          Grid.Row="2"
-                          ZIndex="5"
-                          ToolTip.Tip="{Binding FullVersionInfo}" />
+    
 
               
             </Grid>

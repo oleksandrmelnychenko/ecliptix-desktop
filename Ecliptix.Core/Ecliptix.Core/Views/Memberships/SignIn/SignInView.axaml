@@ -39,6 +39,7 @@
             <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
             <Color x:Key="DarkButtonHoverColor">#262626</Color>
             <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
+            <Color x:Key="ErrorForegroundColor">#ef3a3a</Color>
 
             <!-- Animation Durations -->
             <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
@@ -201,22 +202,34 @@
                     Background="Transparent"
                     HorizontalAlignment="Stretch"
                     CornerRadius="8"
-                    IsVisible="{Binding HasServerError, Mode=OneWay}">
+                    IsVisible="{Binding HasServerError, Mode=OneWay}"
+                    ClipToBounds="True">
                 <Grid Margin="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="⚠️"
-                               FontSize="18"
-                               VerticalAlignment="Center"
-                               Margin="0,0,2,0"/>
+                    <Rectangle Width="2"
+                               VerticalAlignment="Stretch"
+                               Fill="{StaticResource ErrorForegroundColor}"
+                               RadiusX="1"
+                               RadiusY="1"
+                               Margin="0,0,6,0"/>
                     <TextBlock Grid.Column="1"
                                Text="{Binding ServerError, Mode=OneWay}"
                                Classes="server-error"
                                TextAlignment="Center"
                                VerticalAlignment="Center"
-                               TextWrapping="WrapWithOverflow"/>
+                               TextWrapping="WrapWithOverflow"
+                               Foreground="{StaticResource ErrorForegroundColor}"/>
+                    <Rectangle Width="2"
+                               Grid.Column="2"
+                               VerticalAlignment="Stretch"
+                               Fill="{StaticResource ErrorForegroundColor}"
+                               RadiusX="1"
+                               RadiusY="1"
+                               Margin="0,0,6,0"/>
                 </Grid>
             </Border>
         </Grid>
