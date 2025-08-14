@@ -7,14 +7,14 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class DetectLanguageDialogVideModel : ReactiveObject
+public class DetectLanguageDialogViewModel : ReactiveObject
 {
     public ILocalizationService LocalizationService { get; }
     private readonly ILanguageDetectionEvents _languageDetectionEvents;
     public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
-    public DetectLanguageDialogVideModel(
+    public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
         ILanguageDetectionEvents languageDetectionEvents)
     {

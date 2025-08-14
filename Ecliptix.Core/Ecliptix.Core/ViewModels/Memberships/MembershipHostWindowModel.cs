@@ -208,7 +208,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
         if (appSettings.IsOk)
         {
             ApplicationInstanceSettings applicationInstanceSettings = appSettings.Unwrap();
-            if (!string.IsNullOrEmpty(applicationInstanceSettings.Country))
+            if (!string.IsNullOrEmpty(applicationInstanceSettings.Country) && applicationInstanceSettings.IsNewInstance)
             {
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
 

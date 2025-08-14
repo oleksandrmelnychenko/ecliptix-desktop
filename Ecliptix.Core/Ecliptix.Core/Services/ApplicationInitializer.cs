@@ -56,23 +56,27 @@ public class ApplicationInitializer(
 
         localizationService.SetCulture(settings.Culture);
 
-        _ = Task.Run(async () =>
+        if (isNewInstance)
         {
-            try
+            _ = Task.Run(async () =>
             {
-                Result<IpCountry, InternalServiceApiFailure> countryResult = 
-                    await ipGeolocationService.GetIpCountryAsync(CancellationToken.None);
-
-                if (countryResult.IsOk)
+                try
                 {
-                    await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
+                    Result<IpCountry, InternalServiceApiFailure> countryResult = 
+                        await ipGeolocationService.GetIpCountryAsync(CancellationToken.None);
+
+                    if (countryResult.IsOk)
+                    {
+                        await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to get IP country information");
-            }
-        });
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to get IP country information");
+                }
+            });
+        }
+       
 
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);

@@ -44,7 +44,7 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
         ILocalizationService localizationService,
         ILanguageDetectionEvents languageDetectionEvents)
     {
-        DataContext = new DetectLanguageDialogVideModel(localizationService, languageDetectionEvents);
+        DataContext = new DetectLanguageDialogViewModel(localizationService, languageDetectionEvents);
         SetupReactiveBindings();
     }
 

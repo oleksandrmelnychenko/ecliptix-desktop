@@ -5,7 +5,7 @@
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
-             x:DataType="modals:DetectLanguageDialogVideModel"
+             x:DataType="modals:DetectLanguageDialogViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
 
     <UserControl.Resources>
