@@ -49,8 +49,8 @@
 
             <!-- Connection icon -->
             <Image x:Name="StatusIcon"
-                   Width="24" 
-                   Height="24" 
+                   Width="30" 
+                   Height="30" 
                    Grid.Column="0"
                    HorizontalAlignment="Center" 
                    VerticalAlignment="Center" 
@@ -112,7 +112,7 @@
                      Grid.Column="3"
                      Width="8"
                      Height="8"
-                     VerticalAlignment="Center"
+                     VerticalAlignment="Top"
                      HorizontalAlignment="Center"
                      Fill="#d81c1c">
                 <Ellipse.Styles>

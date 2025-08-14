@@ -11,6 +11,8 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Ecliptix.Core.AppEvents.Network;
@@ -60,8 +62,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private readonly ObservableAsPropertyHelper<string> _statusDescription;
     public string StatusDescription => _statusDescription.Value;
 
-    private readonly ObservableAsPropertyHelper<string> _statusIconSource;
-    public string StatusIconSource => _statusIconSource.Value;
+    private readonly ObservableAsPropertyHelper<Bitmap?> _statusIconSource;
+    public Bitmap? StatusIconSource => _statusIconSource.Value;
 
     private readonly ObservableAsPropertyHelper<bool> _showRetryButton;
     public bool ShowRetryButton => _showRetryButton.Value;
@@ -117,11 +119,24 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 _ => LocalizationService["NetworkNotification.NoInternet.Description"]
             });
 
-        IObservable<string> statusIconObservable = connectionStateObservable
-            .Select(state => state switch
+        IObservable<Bitmap?> statusIconObservable = connectionStateObservable
+            .Select(state =>
             {
-                NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/server-error.png",
-                _ => "avares://Ecliptix.Core/Assets/wifi.png"
+                var uriString = state switch
+                {
+                    NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/ServerShutdownAmber30x30.png",
+                    _ => "avares://Ecliptix.Core/Assets/wifi.png"
+                };
+                try
+                {
+                    var uri = new Uri(uriString, UriKind.Absolute);
+                    return new Bitmap(AssetLoader.Open(uri));
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to load image asset from URI: {Uri}", uriString);
+                    return null;
+                }
             });
 
         IObservable<bool> showRetryButtonObservable = networkStatusEvents
