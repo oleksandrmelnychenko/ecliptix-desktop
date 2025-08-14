@@ -396,7 +396,7 @@
                                TextWrapping="Wrap"
                                MaxWidth="280" />
 
-                    <Grid ColumnDefinitions="*, *, *">
+                    <Grid ColumnDefinitions="*">
                         <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
                                    Classes="version-info"
                                    HorizontalAlignment="Left"
@@ -407,22 +407,18 @@
                         <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                                    Classes="footer-text"
                                    Opacity="0.7" 
-                                   Grid.Column="1"/>
+                                   Grid.Column="0"
+                                   HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
                                    Classes="version-info"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Bottom"
-                                   Grid.Column="2"
+                                   Grid.Column="0"
                                    ZIndex="5"
                                    ToolTip.Tip="{Binding FullVersionInfo}" />
                     </Grid>
-                   
                 </StackPanel>
-    
-
-              
             </Grid>
-
         </Border>
     </Grid>
 </Window>
