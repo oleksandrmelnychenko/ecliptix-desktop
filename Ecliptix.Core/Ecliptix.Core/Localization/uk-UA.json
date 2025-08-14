@@ -74,7 +74,8 @@
       "LacksDiversity": "Потрібно {0} типи символів (A, a, 1, $)",
       "ContainsAppName": "Не може містити назву додатку",
       "InvalidCredentials": "Неправильні облікові дані",
-      "NonEnglishLetters": "Лише латинські літери"
+      "NonEnglishLetters": "Лише латинські літери",
+      "NoSpecialChar": "Потрібен спеціальний символ"
     },
     "VerifySecureKey": {
       "DoesNotMatch": "Паролі не збігаються"

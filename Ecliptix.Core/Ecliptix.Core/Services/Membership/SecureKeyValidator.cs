@@ -44,10 +44,11 @@ public static partial class SecureKeyValidator
 
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> hardValidationRules =
         [
+            (s => HasNonEnglishLetters(s), "ValidationErrors.SecureKey.NonEnglishLetters", null),
             (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
             (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
-            (s => HasNonEnglishLetters(s), "ValidationErrors.SecureKey.NonEnglishLetters", null),
-            (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null)
+            (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null),
+            (s => !HasSpecialCharRegex.IsMatch(s), "ValidationErrors.SecureKey.NoSpecialChar", null) 
         ];
 
         List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> recommendationRules =

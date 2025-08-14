@@ -74,7 +74,8 @@
       "LacksDiversity": "Requires {0} character types (A, a, 1, $)",
       "ContainsAppName": "Cannot contain app name",
       "InvalidCredentials": "Invalid credentials",
-      "NonEnglishLetters": "Latin letters only"
+      "NonEnglishLetters": "Latin letters only",
+      "NoSpecialChar": "Requires a special character"
     },
     "VerifySecureKey": {
       "DoesNotMatch": "Passwords do not match"
