@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Configuration;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
@@ -45,12 +46,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
     // Operation queue removed - retry handled by Polly
     private readonly CompositeDisposable _disposables = new();
 
-    private static readonly FrozenDictionary<string, string> SupportedCountries =
-        new Dictionary<string, string>
-        {
-            { "UA", "uk-UA" },
-            { "US", "en-US" },
-        }.ToFrozenDictionary();
+    private static readonly FrozenDictionary<string, string> SupportedCountries = LanguageConfiguration.
+        SupportedCountries;
 
     private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
@@ -208,6 +205,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> appSettings =
             await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+        
 
         if (appSettings.IsOk)
         {
@@ -215,7 +213,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
             if (!string.IsNullOrEmpty(applicationInstanceSettings.Country) && applicationInstanceSettings.IsNewInstance)
             {
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
-
+                
                 string expectedCulture =
                     SupportedCountries.GetValueOrDefault(applicationInstanceSettings.Country, "en-US");
 

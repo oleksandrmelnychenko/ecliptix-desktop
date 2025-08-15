@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Ecliptix.Core.Configuration;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
@@ -22,12 +23,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
 
     public ViewModelActivator Activator { get; } = new();
 
-    private static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = 
-        new Dictionary<string, LanguageItem>
-        {
-            ["en-US"] = new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
-            ["uk-UA"] = new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
-        }.ToFrozenDictionary();
+    private static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = LanguageConfiguration.LanguageCodeMap;
         
     public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
         new(LanguageCodeMap.Values);
@@ -58,17 +54,12 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     }
 
     private static LanguageItem? GetLanguageByCode(string cultureCode) =>
-        LanguageCodeMap.TryGetValue(cultureCode, out LanguageItem? item) ? item : null;
-
-    private static readonly FrozenDictionary<string, int> LanguageIndexMap = 
-        new Dictionary<string, int>
-        {
-            ["en-US"] = 0,
-            ["uk-UA"] = 1
-        }.ToFrozenDictionary();
+        LanguageConfiguration.GetLanguageByCode(cultureCode);
+    
+    private static readonly FrozenDictionary<string, int> LanguageIndexMap = LanguageConfiguration.LanguageIndexMap;
         
     private static int GetLanguageIndex(string cultureCode) =>
-        LanguageIndexMap.TryGetValue(cultureCode, out int index) ? index : 0;
+        LanguageConfiguration.GetLanguageIndex(cultureCode);
 
     private void ToggleLanguage()
     {

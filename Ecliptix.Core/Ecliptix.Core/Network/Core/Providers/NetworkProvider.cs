@@ -116,6 +116,20 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("NetworkProvider initialized");
     }
 
+    //TODO test logic if okay Vitalik 8 15 2025
+    private readonly Lock _appInstanceSetterLock = new();
+    
+    public void SetCountry(string country)
+    {
+        lock (_appInstanceSetterLock)
+        {
+            if (_applicationInstanceSettings.Value != null) 
+                _applicationInstanceSettings.Value.Country = country;
+        }
+    }
+    
+    // TODO test logic if okay Vitalik 8 15 2025
+    
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 

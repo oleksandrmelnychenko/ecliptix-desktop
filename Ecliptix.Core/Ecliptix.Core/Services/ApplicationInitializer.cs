@@ -67,6 +67,8 @@ public class ApplicationInitializer(
 
                     if (countryResult.IsOk)
                     {
+                        //TODO test logic Vitalik 8 15 2025 
+                        networkProvider.SetCountry(countryResult.Unwrap().Country);
                         await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
                     }
                 }

@@ -57,10 +57,14 @@ public abstract class ViewModelBase
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
 
-    protected Membership Membership()
-    {
-        return NetworkProvider.ApplicationInstanceSettings.Membership;
-    }
+    protected Membership Membership() => 
+        NetworkProvider.ApplicationInstanceSettings.Membership;
+    
+    protected string Culture() =>
+        NetworkProvider.ApplicationInstanceSettings.Culture;
+
+    protected string Country() =>
+        NetworkProvider.ApplicationInstanceSettings.Country;
 
     protected virtual void Dispose(bool disposing)
     {

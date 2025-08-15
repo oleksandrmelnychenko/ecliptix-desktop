@@ -50,22 +50,27 @@
         </Style>
     </UserControl.Styles>
 
-    <Border Padding="24" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <Grid RowDefinitions="Auto, Auto, Auto ,Auto" RowSpacing="24">
+    <Border 
+        Padding="24"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch">
+        <Grid 
+            RowDefinitions="Auto, Auto, Auto ,Auto"
+            RowSpacing="24">
             <TextBlock
                 Grid.Row="0"
                 TextWrapping="Wrap"
                 FontSize="{StaticResource TitleFontSize}"
                 FontWeight="SemiBold"
                 HorizontalAlignment="Center"
-                Text="{Binding LocalizationService[LanguageDetection.Title]}" />
+                Text="{Binding Title}" />
             <StackPanel
                 Grid.Row="1"
                 Orientation="Horizontal"
                 HorizontalAlignment="Center"
                 Spacing="8">
                 <Svg
-                    Path="avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg"
+                    Path="{Binding FlagPath}"
                     VerticalAlignment="Center"
                     Width="22"
                     Height="22" />
@@ -73,7 +78,7 @@
                     x:Name="PromptText"
                     FontSize="{StaticResource SubtitleFontSize}"
                     VerticalAlignment="Center"
-                    Text="Switch to Ukrainian?" />
+                    Text="{Binding PromptText}" />
             </StackPanel>
             <Grid Grid.Row="2">
                 <Image Source="avares://Ecliptix.Core/Assets/language.gif"
@@ -91,13 +96,13 @@
                 <Button
                     Grid.Column="0"
                     x:Name="DeclineButton"
-                    Content="{Binding LocalizationService[LanguageDetection.Button.Decline]}"
+                    Content="{Binding DeclineButtonText}"
                     Command="{Binding DeclineCommand}"
                     Classes="modal-button secondary" />
                 <Button
                     Grid.Column="1"
                     x:Name="ConfirmButton"
-                    Content="{Binding LocalizationService[LanguageDetection.Button.Confirm]}"
+                    Content="{Binding ConfirmButtonText}"
                     Command="{Binding ConfirmCommand}"
                     Classes="modal-button primary" />
             </Grid>
