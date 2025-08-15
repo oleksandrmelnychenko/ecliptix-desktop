@@ -139,7 +139,7 @@ public class OpaqueAuthenticationService(
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
-        TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new TaskCompletionSource<OpaqueSignInInitResponse>();
+        TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
         
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -166,7 +166,7 @@ public class OpaqueAuthenticationService(
         {
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
-            return Result<OpaqueSignInInitResponse, string>.Err(failure.Message);
+            return Result<OpaqueSignInInitResponse, string>.Err(string.Empty);
         }
 
         try
