@@ -173,8 +173,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
             .Subscribe(error =>
             {
                 _hasSecureKeyBeenTouched = true;
-                if (!FilteredErrorMessages.Contains(error))
-                    _signInErrorSubject.OnNext(error);
+                _signInErrorSubject.OnNext(error);
             })
             .DisposeWith(_disposables);
 
