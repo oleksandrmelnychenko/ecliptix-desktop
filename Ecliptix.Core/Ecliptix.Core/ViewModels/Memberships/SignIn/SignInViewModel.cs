@@ -136,15 +136,12 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        // Monitor network outage state - outage is true for problematic states, false for healthy states
-        var networkStatusStream = _networkEvents.NetworkStatusChanged
+        IObservable<bool> networkStatusStream = _networkEvents.NetworkStatusChanged
             .Select(e => e.State switch
             {
                 NetworkStatus.DataCenterDisconnected => true,
                 NetworkStatus.ServerShutdown => true,
                 NetworkStatus.ConnectionRecovering => true,
-                NetworkStatus.ConnectionRestored => false,
-                NetworkStatus.DataCenterConnected => false,
                 _ => false
             })
             .StartWith(false)

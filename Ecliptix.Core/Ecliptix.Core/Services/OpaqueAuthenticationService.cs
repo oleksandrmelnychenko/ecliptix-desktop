@@ -103,7 +103,6 @@ public class OpaqueAuthenticationService(
         }
         catch (Exception)
         {
-            // If any unexpected exception occurs, return a generic error
             return Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
         }
     }
@@ -140,7 +139,7 @@ public class OpaqueAuthenticationService(
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
-        var responseCompletionSource = new TaskCompletionSource<OpaqueSignInInitResponse>();
+        TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new TaskCompletionSource<OpaqueSignInInitResponse>();
         
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -165,13 +164,11 @@ public class OpaqueAuthenticationService(
 
         if (networkResult.IsErr)
         {
-            // CRITICAL FIX: If network operation failed, complete the TaskCompletionSource with the error
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
             return Result<OpaqueSignInInitResponse, string>.Err(failure.Message);
         }
 
-        // Wait for the actual response from callback (original or retry)
         try
         {
             OpaqueSignInInitResponse response = await responseCompletionSource.Task;
@@ -190,7 +187,7 @@ public class OpaqueAuthenticationService(
         byte[] serverMacKey,
         byte[] transcriptHash, uint connectId)
     {
-        var responseCompletionSource = new TaskCompletionSource<OpaqueSignInFinalizeResponse>();
+        TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -215,13 +212,11 @@ public class OpaqueAuthenticationService(
 
         if (networkResult.IsErr)
         {
-            // CRITICAL FIX: If network operation failed, complete the TaskCompletionSource with the error
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
             return Result<byte[], string>.Err(failure.Message);
         }
 
-        // Wait for the actual response from callback (original or retry)
         OpaqueSignInFinalizeResponse capturedResponse;
         try
         {
