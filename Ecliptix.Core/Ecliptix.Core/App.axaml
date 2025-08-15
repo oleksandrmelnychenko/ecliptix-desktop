@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
 
@@ -100,79 +101,39 @@
     </Application.Resources>
 
     <Application.Styles>
-        <!-- Simple Avalonia Theme - Minimal base styling -->
         <SimpleTheme />
         
-        <!-- Custom Style Overrides -->
         <StyleInclude Source="/Styles/Buttons.axaml" />
         
-        <!-- Base Typography -->
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
         </Style>
         
-        <!-- Base Control Styling -->
         <Style Selector=":is(UserControl)">
             <Setter Property="ClipToBounds" Value="False"/>
         </Style>    
     
-        <!-- <Style Selector=":is(Control):focus-visible"> -->
-        <!--     <Setter Property="FocusAdorner" Value="{x:Null}" /> -->
-        <!-- </Style> -->
-        <!-- -->
-        <!-- <Style Selector=":is(Control)"> -->
-        <!--     <Setter Property="IsTabStop" Value="False" /> -->
-        <!-- </Style> -->
-        
-         <Style Selector="Button:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="10"/>
-                </FocusAdornerTemplate>
-            </Setter>
+        <Style Selector=":is(Control):focus-visible">
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
         </Style>
         
-        <Style Selector="Button.signin-button:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#6a5acd" BorderThickness="2" CornerRadius="10">
-                    </Border>
-                </FocusAdornerTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="Button.footer-link:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
-                    </Border>
-                </FocusAdornerTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="ComboBox:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
-                    </Border>
-                </FocusAdornerTemplate>
-            </Setter>
-        </Style>
-        <Style Selector="ComboBoxItem:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#6a5acd" BorderThickness="1" CornerRadius="5">
-                    </Border>
-                </FocusAdornerTemplate>
-            </Setter>
+        <Style Selector=":is(Control)">
+            <Setter Property="IsTabStop" Value="False" />
         </Style>
         
-        <Style Selector="Button.create-account-button:focus-visible">
-            <Setter Property="FocusAdorner">
-                <FocusAdornerTemplate>
-                    <Border BorderBrush="#A698FF" BorderThickness="2" CornerRadius="10">
-                    </Border>
-                </FocusAdornerTemplate>
-            </Setter>
+        <Style Selector=":is(controls|HintedTextBox)">
+            <Setter Property="IsTabStop" Value="True" />
         </Style>
+        
+        <Style Selector="controls|HintedTextBox TextBox">
+            <Setter Property="IsTabStop" Value="True" />
+        </Style>
+        
+        <Style Selector="TextBox">
+            <Setter Property="SelectionBrush" Value="{DynamicResource TipsColor}" />
+            <Setter Property="SelectionForegroundBrush" Value="White" />
+        </Style>
+        
     </Application.Styles>
 
 
