@@ -203,19 +203,8 @@
                     HorizontalAlignment="Stretch"
                     CornerRadius="8"
                     IsVisible="{Binding HasServerError, Mode=OneWay}"
-                    ClipToBounds="True">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Rectangle Width="2"
-                               VerticalAlignment="Stretch"
-                               Fill="{StaticResource ErrorForegroundColor}"
-                               RadiusX="1"
-                               RadiusY="1"
-                               Margin="0,0,6,0"/>
+                    ClipToBounds="True"
+                    Margin="8">
                     <TextBlock Grid.Column="1"
                                Text="{Binding ServerError, Mode=OneWay}"
                                Classes="server-error"
@@ -223,14 +212,6 @@
                                VerticalAlignment="Center"
                                TextWrapping="WrapWithOverflow"
                                Foreground="{StaticResource ErrorForegroundColor}"/>
-                    <Rectangle Width="2"
-                               Grid.Column="2"
-                               VerticalAlignment="Stretch"
-                               Fill="{StaticResource ErrorForegroundColor}"
-                               RadiusX="1"
-                               RadiusY="1"
-                               Margin="0,0,6,0"/>
-                </Grid>
             </Border>
         </Grid>
     </UserControl>
