@@ -13,9 +13,6 @@ public partial class MainHostWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);
-#if DEBUG
-        this.AttachDevTools();
-#endif
     }
 
     private void TitleBarArea_PointerPressed(object? sender, PointerPressedEventArgs e)

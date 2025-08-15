@@ -23,13 +23,13 @@ public record ConnectionRetryState(
     bool IsCircuitOpen,
     DateTime? CircuitOpenedAt);
 
-public interface IRetryStrategy
+public interface IRetryStrategy : IDisposable
 {
     Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int maxRetries = 15, 
+        int? maxRetries = null, 
         CancellationToken cancellationToken = default);
 
     Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
@@ -39,6 +39,13 @@ public interface IRetryStrategy
         IReadOnlyList<TimeSpan> backoffSchedule,
         bool useJitter = true,
         double jitterRatio = 0.25,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryOperationAsync<TResponse>(
+        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        string operationName,
+        uint? connectId = null,
+        int? maxRetries = null,
         CancellationToken cancellationToken = default);
         
     void ResetConnectionState(uint? connectId = null);
@@ -52,4 +59,6 @@ public interface IRetryStrategy
     bool IsConnectionHealthy(uint connectId);
     
     bool HasExhaustedOperations();
+    
+    void ClearExhaustedOperations();
 }

@@ -35,10 +35,6 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
 
         SetupLazyLanguageSelector();
         SetupBottomSheetFocusManagement();
-
-    #if DEBUG
-            this.AttachDevTools();
-    #endif
     }
 
     private void SetupLazyLanguageSelector()
@@ -66,18 +62,14 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
             _bottomSheetControl.ViewModel
                 .WhenAnyValue(x => x.IsVisible)
                 .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(async isVisible =>
+                .Subscribe(isVisible =>
                 {
                     if (isVisible)
                     {
-                        await Task.Delay(200);
-
-                        if (_bottomSheetControl.ViewModel.IsVisible) // Re-check in case it was closed during the delay
-                        {
-                            _mainBorder.IsEnabled = false;
-                            _generalControlsGrid.IsEnabled = false;
-                            _bottomSheetControl.Focus(NavigationMethod.Tab);
-                        }
+                        if (!_bottomSheetControl.ViewModel.IsVisible) return;
+                        _mainBorder.IsEnabled = false;
+                        _generalControlsGrid.IsEnabled = false;
+                        _bottomSheetControl.Focus(NavigationMethod.Tab);
                     }
                     else
                     {

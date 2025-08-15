@@ -275,11 +275,19 @@ public static class Program
             return new RequestDeduplicationService(retryConfig.RequestDeduplicationWindow);
         });
         
+        // Register UI Dispatcher abstraction
+        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
+        
         services.AddSingleton<IRetryStrategy>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
             INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
-            SecrecyChannelRetryStrategy retryStrategy = new(config, networkEvents);
+            IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
+            
+            ImprovedRetryConfiguration retryConfig = config.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>() 
+                ?? ImprovedRetryConfiguration.Production;
+            
+            SecrecyChannelRetryStrategy retryStrategy = new(retryConfig, networkEvents, uiDispatcher);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;
