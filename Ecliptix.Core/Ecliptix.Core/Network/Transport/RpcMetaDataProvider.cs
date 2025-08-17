@@ -15,7 +15,7 @@ public sealed class RpcMetaDataProvider : IRpcMetaDataProvider
         DeviceId = deviceId;
         Culture = culture;
     }
-    
+
     public void SetCulture(string? culture)
     {
         Culture = culture;

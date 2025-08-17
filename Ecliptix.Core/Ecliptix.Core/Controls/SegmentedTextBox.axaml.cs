@@ -26,7 +26,7 @@ namespace Ecliptix.Core.Controls
     {
         private List<TextBox> _segments = new();
         private bool _lastIsComplete;
-        private int _currentActiveIndex; 
+        private int _currentActiveIndex;
 
         public static readonly StyledProperty<int> SegmentCountProperty =
             AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(SegmentCount), SegmentedTextBoxConstants.DefaultSegmentCount, validate: value => value > 0);
@@ -50,7 +50,7 @@ namespace Ecliptix.Core.Controls
         public static readonly StyledProperty<bool> IsCompleteProperty =
             AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsComplete), false,
                 defaultBindingMode: Avalonia.Data.BindingMode.OneWayToSource);
-        
+
         public static readonly StyledProperty<double> SegmentSpacingProperty =
             AvaloniaProperty.Register<SegmentedTextBox, double>(nameof(SegmentSpacing), SegmentedTextBoxConstants.DefaultSegmentSpacing);
 
@@ -65,7 +65,7 @@ namespace Ecliptix.Core.Controls
             get => GetValue(BaseTabIndexProperty);
             set => SetValue(BaseTabIndexProperty, value);
         }
-        
+
         public double SegmentSpacing
         {
             get => GetValue(SegmentSpacingProperty);
@@ -77,15 +77,15 @@ namespace Ecliptix.Core.Controls
             get => GetValue(SegmentWidthProperty);
             set => SetValue(SegmentWidthProperty, value);
         }
-        
+
         public string Value
         {
             get => GetValue(ValueProperty);
             set => SetValue(ValueProperty, value);
         }
-        
-        
-        
+
+
+
         public IBrush SegmentBackground
         {
             get => GetValue(SegmentBackgroundProperty);
@@ -97,7 +97,7 @@ namespace Ecliptix.Core.Controls
             get => GetValue(ActiveSegmentBorderColorProperty);
             set => SetValue(ActiveSegmentBorderColorProperty, value);
         }
-        
+
         public int SegmentCount
         {
             get => GetValue(SegmentCountProperty);
@@ -115,13 +115,13 @@ namespace Ecliptix.Core.Controls
             get => GetValue(IsPointerInteractionEnabledProperty);
             set => SetValue(IsPointerInteractionEnabledProperty, value);
         }
-        
+
         public bool IsComplete
         {
             get => GetValue(IsCompleteProperty);
             private set => SetValue(IsCompleteProperty, value);
         }
-        
+
         public SegmentedTextBox()
         {
             InitializeComponent();
@@ -132,7 +132,7 @@ namespace Ecliptix.Core.Controls
             base.OnAttachedToLogicalTree(e);
             BuildSegments();
         }
-        
+
         protected override void OnDetachedFromLogicalTree(LogicalTreeAttachmentEventArgs e)
         {
             base.OnDetachedFromLogicalTree(e);
@@ -147,7 +147,7 @@ namespace Ecliptix.Core.Controls
                 BuildSegments();
             }
         }
-        
+
         private string GetConcatenatedValue()
         {
             return string.Concat(_segments.Select(tb => tb.Text ?? ""));
@@ -156,7 +156,7 @@ namespace Ecliptix.Core.Controls
         private static string ValidateNumericInput(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;
-    
+
             var firstDigit = input.FirstOrDefault(char.IsDigit);
             return firstDigit != default ? firstDigit.ToString() : "";
         }
@@ -165,7 +165,7 @@ namespace Ecliptix.Core.Controls
         {
             return IsPointerInteractionEnabled || segmentIndex == _currentActiveIndex;
         }
-        
+
         private void ProcessTextInput(TextBox textBox, int index)
         {
             if (AllowOnlyNumbers)
@@ -182,7 +182,7 @@ namespace Ecliptix.Core.Controls
                 MoveToNextSegment();
             }
         }
-        
+
         private void UpdateTextBoxText(TextBox textBox, string newText)
         {
             var selectionStart = textBox.SelectionStart;
@@ -190,7 +190,7 @@ namespace Ecliptix.Core.Controls
             textBox.SelectionStart = Math.Min(selectionStart, newText.Length);
             textBox.SelectionEnd = textBox.SelectionStart;
         }
-        
+
         private void BuildSegments()
         {
             if (SegmentsPanel == null) return;
@@ -211,21 +211,21 @@ namespace Ecliptix.Core.Controls
                 tb.AddHandler(KeyDownEvent, Segment_KeyDown, RoutingStrategies.Tunnel);
                 tb.TextChanged += Segment_TextChanged;
                 tb.LostFocus += Segment_LostFocus;
-                tb.GotFocus += Segment_GotFocus; 
+                tb.GotFocus += Segment_GotFocus;
                 _segments.Add(tb);
                 SegmentsPanel.Children.Add(tb);
             }
             UpdateTabIndexes();
-            
+
         }
-        
+
         private void CleanupSegments()
         {
             foreach (var segment in _segments)
             {
                 UnsubscribeSegmentEvents(segment);
             }
-    
+
             _segments.Clear();
         }
 
@@ -236,7 +236,7 @@ namespace Ecliptix.Core.Controls
             textBox.LostFocus -= Segment_LostFocus;
             textBox.GotFocus -= Segment_GotFocus;
         }
-        
+
         private void Segment_GotFocus(object? sender, RoutedEventArgs e)
         {
             if (sender is TextBox tb)
@@ -254,7 +254,7 @@ namespace Ecliptix.Core.Controls
         {
             HandleFocusChange();
         }
-        
+
         private void HandleFocusChange()
         {
             Dispatcher.UIThread.Post(() =>
@@ -273,7 +273,7 @@ namespace Ecliptix.Core.Controls
                 tb.Classes.Remove(SegmentedTextBoxConstants.ActiveStyleClass);
             }
         }
-        
+
         private void OverlayRectangle_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
             if (_currentActiveIndex >= 0 && _currentActiveIndex < _segments.Count)
@@ -291,13 +291,13 @@ namespace Ecliptix.Core.Controls
             }
             e.Handled = true;
         }
-        
+
         private void Segment_TextChanged(object? sender, TextChangedEventArgs e)
         {
             if (sender is not TextBox tb) return;
 
             int index = _segments.IndexOf(tb);
-    
+
             if (!ShouldProcessInput(index))
             {
                 tb.Text = "";
@@ -311,9 +311,9 @@ namespace Ecliptix.Core.Controls
         private void Segment_KeyDown(object? sender, KeyEventArgs e)
         {
             if (sender is not TextBox tb) return;
-            
+
             int index = _segments.IndexOf(tb);
-            
+
             if (e.Key == Key.Back)
             {
                 HandleBackspaceKey(index);
@@ -342,7 +342,7 @@ namespace Ecliptix.Core.Controls
         private void HandleBackspaceKey(int currentIndex)
         {
             var currentTextBox = _segments[currentIndex];
-    
+
             if (!string.IsNullOrEmpty(currentTextBox.Text))
             {
                 currentTextBox.Text = "";
@@ -354,7 +354,7 @@ namespace Ecliptix.Core.Controls
                 _segments[previousIndex].Text = "";
             }
         }
-        
+
         private void SetActiveSegment(int index)
         {
             if (index >= 0 && index < _segments.Count)
@@ -375,7 +375,7 @@ namespace Ecliptix.Core.Controls
 
             FocusCurrentSegment();
         }
-        
+
         public void ClearAllSegments()
         {
             foreach (var segment in _segments)
@@ -394,14 +394,14 @@ namespace Ecliptix.Core.Controls
                 SetActiveSegment(activeIndex);
             }
         }
-        
+
         private void FocusCurrentSegment()
         {
             if (_currentActiveIndex >= 0 && _currentActiveIndex < _segments.Count)
             {
                 var currentSegment = _segments[_currentActiveIndex];
                 currentSegment.Focus();
-        
+
                 if (!string.IsNullOrEmpty(currentSegment.Text))
                 {
                     currentSegment.SelectionStart = currentSegment.Text.Length;
@@ -409,7 +409,7 @@ namespace Ecliptix.Core.Controls
                 }
             }
         }
-        
+
         private void MoveToNextSegment()
         {
             if (_currentActiveIndex < _segments.Count - 1)
@@ -417,22 +417,22 @@ namespace Ecliptix.Core.Controls
                 SetActiveSegment(_currentActiveIndex + 1);
             }
         }
-        
+
         private void OnSegmentChanged()
         {
             string newValue = GetConcatenatedValue();
             bool newIsComplete = _segments.All(tb => !string.IsNullOrEmpty(tb.Text));
-            
+
             SetValue(ValueProperty, newValue);
             SetValue(IsCompleteProperty, newIsComplete);
-            
+
             bool wasComplete = _lastIsComplete;
             if (wasComplete != newIsComplete)
             {
                 _lastIsComplete = newIsComplete;
             }
         }
-        
+
         private void UpdateTabIndexes()
         {
             for (int i = 0; i < _segments.Count; i++)
@@ -441,7 +441,7 @@ namespace Ecliptix.Core.Controls
                 _segments[i].IsTabStop = i == _currentActiveIndex;
             }
         }
-        
+
         public void SetValue(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -454,12 +454,12 @@ namespace Ecliptix.Core.Controls
             {
                 _segments[i].Text = value[i].ToString();
             }
-            
+
             for (int i = value.Length; i < _segments.Count; i++)
             {
                 _segments[i].Text = string.Empty;
             }
-            
+
             int nextActiveIndex = Math.Min(value.Length, _segments.Count - 1);
             SetActiveSegment(nextActiveIndex);
             OnSegmentChanged();

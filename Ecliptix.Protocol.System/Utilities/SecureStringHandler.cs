@@ -38,7 +38,7 @@ public sealed class SecureStringHandler : IDisposable
         try
         {
             bytes = Encoding.UTF8.GetBytes(input);
-            
+
             var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -72,19 +72,19 @@ public sealed class SecureStringHandler : IDisposable
 
         IntPtr ptr = IntPtr.Zero;
         byte[]? bytes = null;
-        
+
         try
         {
             ptr = Marshal.SecureStringToGlobalAllocUnicode(secureString);
             int byteCount = Encoding.UTF8.GetByteCount(
                 Marshal.PtrToStringUni(ptr) ?? throw new InvalidOperationException());
-            
+
             bytes = new byte[byteCount];
             unsafe
             {
                 fixed (byte* bytesPtr = bytes)
                 {
-                    Encoding.UTF8.GetBytes((char*)ptr.ToPointer(), secureString.Length, 
+                    Encoding.UTF8.GetBytes((char*)ptr.ToPointer(), secureString.Length,
                         bytesPtr, byteCount);
                 }
             }
@@ -127,7 +127,7 @@ public sealed class SecureStringHandler : IDisposable
         try
         {
             bytes = Encoding.UTF8.GetBytes(chars);
-            
+
             var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -241,7 +241,7 @@ public sealed class SecureStringHandler : IDisposable
                 "SHA512" => SHA512.Create(),
                 _ => throw new NotSupportedException($"Hash algorithm {algorithm.Name} not supported")
             };
-            
+
             try
             {
                 return hasher.ComputeHash(bytes.ToArray());
@@ -300,7 +300,7 @@ public sealed class SecureStringBuilder : IDisposable
 
         Span<byte> bytes = stackalloc byte[4]; // Max UTF-8 bytes per char
         int byteCount = Encoding.UTF8.GetBytes(new[] { c }, bytes);
-        
+
         return AppendBytes(bytes.Slice(0, byteCount));
     }
 
@@ -332,7 +332,7 @@ public sealed class SecureStringBuilder : IDisposable
     private Result<Unit, SodiumFailure> AppendBytes(ReadOnlySpan<byte> bytes)
     {
         Span<byte> singleByteBuffer = stackalloc byte[1];
-        
+
         foreach (byte b in bytes)
         {
             if (_currentChunk == null || _currentPosition >= _chunkSize)
@@ -388,7 +388,7 @@ public sealed class SecureStringBuilder : IDisposable
             for (int i = 0; i < _chunks.Count; i++)
             {
                 var chunk = _chunks[i];
-                int bytesToRead = (i == _chunks.Count - 1) ? 
+                int bytesToRead = (i == _chunks.Count - 1) ?
                     _currentPosition : _chunkSize;
 
                 var readResult = chunk.ReadBytes(bytesToRead);
@@ -428,7 +428,7 @@ public sealed class SecureStringBuilder : IDisposable
     {
         foreach (var chunk in _chunks)
             chunk.Dispose();
-        
+
         _chunks.Clear();
         _currentChunk = null;
         _currentPosition = 0;

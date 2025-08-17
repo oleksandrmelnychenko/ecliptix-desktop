@@ -51,7 +51,7 @@ public static class FailureClassification
                msg.Contains("connection actively refused") ||
                (msg.Contains("status") && msg.Contains("unavailable"));
     }
-    
+
     public static bool IsCryptoDesync(NetworkFailure failure)
     {
         string msg = failure.Message?.ToLowerInvariant() ?? string.Empty;
@@ -60,7 +60,7 @@ public static class FailureClassification
                msg.Contains("desync") ||
                msg.Contains("rekey");
     }
-    
+
     public static bool IsChainRotationMismatch(NetworkFailure failure)
     {
         string msg = failure.Message.ToLowerInvariant();
@@ -73,11 +73,11 @@ public static class FailureClassification
                msg.Contains("sender chain") && msg.Contains("invalid") ||
                msg.Contains("receiver chain") && msg.Contains("invalid");
     }
-    
+
     public static bool IsProtocolStateMismatch(NetworkFailure failure)
     {
         string msg = failure.Message.ToLowerInvariant();
-        
+
         return IsChainRotationMismatch(failure) ||
                msg.Contains("protocol version") ||
                msg.Contains("state version") ||

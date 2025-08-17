@@ -15,14 +15,14 @@ public static class LanguageConfiguration
             { "US", "en-US" },
         }.ToFrozenDictionary();
 
-    public static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = 
+    public static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap =
         new Dictionary<string, LanguageItem>
         {
             ["en-US"] = new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
             ["uk-UA"] = new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
         }.ToFrozenDictionary();
 
-    public static readonly FrozenDictionary<string, string> FlagMap = 
+    public static readonly FrozenDictionary<string, string> FlagMap =
         LanguageCodeMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FlagImagePath).ToFrozenDictionary();
 
     public static readonly FrozenDictionary<string, int> LanguageIndexMap =

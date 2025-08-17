@@ -93,7 +93,7 @@ public sealed class ScopedSecureMemoryCollection : IDisposable
     public ScopedSecureMemory Allocate(int size)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        
+
         var memory = ScopedSecureMemory.Allocate(size);
         _resources.Add(memory);
         return memory;
@@ -105,7 +105,7 @@ public sealed class ScopedSecureMemoryCollection : IDisposable
     public Result<SodiumSecureMemoryHandle, SodiumFailure> AllocateHandle(int size)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        
+
         var result = SodiumSecureMemoryHandle.Allocate(size);
         if (result.IsOk)
         {
@@ -257,7 +257,7 @@ public static class SecureMemoryExtensions
 
         using var temp = ScopedSecureMemory.Allocate(first.Length);
         var tempSpan = temp.AsSpan();
-        
+
         first.CopyTo(tempSpan);
         second.CopyTo(first);
         tempSpan.CopyTo(second);

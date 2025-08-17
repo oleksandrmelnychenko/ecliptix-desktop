@@ -15,10 +15,10 @@ public static class GrpcClientServiceExtensions
     {
         services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(ConfigureClient)
             .AddInterceptor<RequestMetaDataInterceptor>();
-        
+
         services.AddGrpcClient<MembershipServices.MembershipServicesClient>(ConfigureClient)
             .AddInterceptor<RequestMetaDataInterceptor>();
-        
+
         services.AddGrpcClient<AuthVerificationServices.AuthVerificationServicesClient>(ConfigureClient)
             .AddInterceptor<RequestMetaDataInterceptor>();
     }
@@ -26,9 +26,9 @@ public static class GrpcClientServiceExtensions
     private static void ConfigureClient(IServiceProvider serviceProvider, GrpcClientFactoryOptions options)
     {
         DefaultSystemSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultSystemSettings>>().Value;
-        
+
         string? endpoint = settings.DataCenterConnectionString;
-        
+
         if (string.IsNullOrEmpty(endpoint))
         {
             throw new InvalidOperationException("gRPC DataCenterConnectionString is not configured.");

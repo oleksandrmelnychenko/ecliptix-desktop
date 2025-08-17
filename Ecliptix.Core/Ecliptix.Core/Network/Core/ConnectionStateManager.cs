@@ -29,7 +29,7 @@ public class ConnectionStateManager : IConnectionStateManager
     {
         _config = config;
 
-        _healthCheckTimer = new Timer(PerformHealthCheck, null, 
+        _healthCheckTimer = new Timer(PerformHealthCheck, null,
             _config.HealthCheckInterval, _config.HealthCheckInterval);
 
         if (_config.AutoRecoveryEnabled)
@@ -114,17 +114,17 @@ public class ConnectionStateManager : IConnectionStateManager
 
         return message switch
         {
-            not null when message.Contains("network") || message.Contains("connection") || message.Contains("unreachable") 
+            not null when message.Contains("network") || message.Contains("connection") || message.Contains("unreachable")
                 => FailureCategory.NetworkConnectivity,
-            not null when message.Contains("timeout") || message.Contains("deadline") 
+            not null when message.Contains("timeout") || message.Contains("deadline")
                 => FailureCategory.Timeout,
-            not null when message.Contains("rate") || message.Contains("limit") || message.Contains("throttl") 
+            not null when message.Contains("rate") || message.Contains("limit") || message.Contains("throttl")
                 => FailureCategory.RateLimit,
-            not null when message.Contains("auth") || message.Contains("unauthorized") || message.Contains("forbidden") 
+            not null when message.Contains("auth") || message.Contains("unauthorized") || message.Contains("forbidden")
                 => FailureCategory.Authentication,
-            not null when message.Contains("server") || message.Contains("internal") || message.Contains("500") 
+            not null when message.Contains("server") || message.Contains("internal") || message.Contains("500")
                 => FailureCategory.ServerError,
-            not null when message.Contains("protocol") || message.Contains("invalid") 
+            not null when message.Contains("protocol") || message.Contains("invalid")
                 => FailureCategory.Protocol,
             not null when message.Contains("desync") || message.Contains("decrypt") || message.Contains("rekey")
                 => FailureCategory.CryptographicDesync,
@@ -141,7 +141,7 @@ public class ConnectionStateManager : IConnectionStateManager
         double currentMs = current.TotalMilliseconds;
         double newMs = newLatency.TotalMilliseconds;
         double averageMs = (alpha * newMs) + ((1 - alpha) * currentMs);
-        
+
         return TimeSpan.FromMilliseconds(averageMs);
     }
 
@@ -150,7 +150,7 @@ public class ConnectionStateManager : IConnectionStateManager
         const double alpha = 0.1;
         double currentRate = metrics.SuccessRate;
         double newValue = wasSuccess ? 1.0 : 0.0;
-        
+
         return alpha * newValue + (1 - alpha) * currentRate;
     }
 
@@ -169,7 +169,7 @@ public class ConnectionStateManager : IConnectionStateManager
                 RecoveryAttempts = attemptCount,
                 Status = ConnectionHealthStatus.Reconnecting
             };
-            
+
             _connections.TryUpdate(connectId, updated, current);
             _healthChangedSubject.OnNext(updated);
         }
@@ -201,7 +201,7 @@ public class ConnectionStateManager : IConnectionStateManager
 
                     _connections.TryUpdate(connection.ConnectId, updated, connection);
                     _healthChangedSubject.OnNext(updated);
-                    
+
                 }
             }
         }
@@ -218,13 +218,13 @@ public class ConnectionStateManager : IConnectionStateManager
         try
         {
             List<ConnectionHealth> unhealthyConnections = _connections.Values
-                .Where(h => h.Status is ConnectionHealthStatus.Unhealthy or ConnectionHealthStatus.Failed 
+                .Where(h => h.Status is ConnectionHealthStatus.Unhealthy or ConnectionHealthStatus.Failed
                     && !h.IsRecovering)
                 .ToList();
 
             foreach (ConnectionHealth connection in unhealthyConnections)
             {
-                
+
                 MarkConnectionRecovering(connection.ConnectId);
             }
         }

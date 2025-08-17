@@ -13,7 +13,7 @@ public class ImprovedRetryConfiguration
     public TimeSpan RequestDeduplicationWindow { get; set; } = TimeSpan.FromSeconds(10);
     public bool UseAdaptiveRetry { get; set; } = true;
     public TimeSpan HealthCheckTimeout { get; set; } = TimeSpan.FromSeconds(5);
-    
+
     public static ImprovedRetryConfiguration Production => new()
     {
         InitialRetryDelay = TimeSpan.FromSeconds(5),
@@ -23,7 +23,7 @@ public class ImprovedRetryConfiguration
         CircuitBreakerDuration = TimeSpan.FromMinutes(1),
         UseAdaptiveRetry = true
     };
-    
+
     public static ImprovedRetryConfiguration Development => new()
     {
         InitialRetryDelay = TimeSpan.FromSeconds(2),

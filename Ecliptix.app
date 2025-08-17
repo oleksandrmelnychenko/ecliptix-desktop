@@ -1,0 +1,1 @@
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/publish/osx-arm64/Ecliptix.app

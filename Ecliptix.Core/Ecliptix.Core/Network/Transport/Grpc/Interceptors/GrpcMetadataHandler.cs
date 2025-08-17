@@ -54,7 +54,7 @@ public static class GrpcMetadataHandler
                 .Where(x => x.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(x.Address))
                 .Select(x => x.Address.ToString())
                 .FirstOrDefault() ?? "127.0.0.1";
-            
+
             return localIp;
         }
         catch
@@ -77,7 +77,7 @@ public static class GrpcMetadataHandler
             return GetLocalIpAddress();
         }
     }
-    
+
     private static string GenerateLinkId()
     {
         return $"link-{Guid.NewGuid():N}"[..16];

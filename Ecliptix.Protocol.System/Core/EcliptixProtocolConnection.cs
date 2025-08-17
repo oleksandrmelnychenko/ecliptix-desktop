@@ -92,7 +92,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _disposed = false;
         _lock = new Lock();
     }
-    
+
     public void SetEventHandler(IProtocolEventHandler? handler)
     {
         _eventHandler = handler;
@@ -120,7 +120,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     .Bind(initialSendKeys =>
                     {
                         (initialSendingDhPrivateKeyHandle, initialSendingDhPublicKey) = initialSendKeys;
-                       
+
                         return initialSendingDhPrivateKeyHandle.ReadBytes(Constants.X25519PrivateKeySize)
                             .MapSodiumFailure()
                             .Map(bytes =>
@@ -133,7 +133,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     .Bind(persistentKeys =>
                     {
                         (persistentDhPrivateKeyHandle, persistentDhPublicKey) = persistentKeys;
-                        
+
                         byte[] tempChainKey = new byte[Constants.X25519KeySize];
                         Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult =
                             EcliptixProtocolChainStep.Create(ChainStepType.Sender, tempChainKey,
@@ -317,87 +317,89 @@ public sealed class EcliptixProtocolConnection : IDisposable
             byte[]? peerDhPublicCopy = null;
             byte[]? senderChainKey = null;
             byte[]? receiverChainKey = null;
-            
+
             try
             {
-                        return CheckDisposed()
-                            .Bind(_ => CheckIfNotFinalized())
-                            .Bind(_ => ValidateInitialKeys(initialRootKey, initialPeerDhPublicKey))
-                            .Bind(_ =>
-                            {
-                                peerDhPublicCopy = (byte[])initialPeerDhPublicKey.Clone();
-                                return SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize).MapSodiumFailure()
-                                    .Bind(handle =>
-                                    {
-                                        tempRootHandle = handle;
-                                        return handle.Write(initialRootKey).MapSodiumFailure();
-                                    });
-                            })
+                return CheckDisposed()
+                    .Bind(_ => CheckIfNotFinalized())
+                    .Bind(_ => ValidateInitialKeys(initialRootKey, initialPeerDhPublicKey))
                     .Bind(_ =>
                     {
-                        return Result<Unit, EcliptixProtocolFailure>.Try(() =>
+                        peerDhPublicCopy = (byte[])initialPeerDhPublicKey.Clone();
+                        return SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize).MapSodiumFailure()
+                            .Bind(handle =>
+                            {
+                                tempRootHandle = handle;
+                                return handle.Write(initialRootKey).MapSodiumFailure();
+                            });
+                    })
+            .Bind(_ =>
+            {
+                return Result<Unit, EcliptixProtocolFailure>.Try(() =>
+                {
+                    byte[] sendKeyBytes = new byte[Constants.X25519KeySize];
+                    byte[] recvKeyBytes = new byte[Constants.X25519KeySize];
+
+                    Console.WriteLine($"[DESKTOP] DeriveInitialChainKeys (keys hidden for security)");
+                    using (HkdfSha256 hkdfSend = new(initialRootKey, null))
+                    {
+                        hkdfSend.Expand(InitialSenderChainInfo, sendKeyBytes);
+                    }
+
+                    using (HkdfSha256 hkdfRecv = new(initialRootKey, null))
+                    {
+                        hkdfRecv.Expand(InitialReceiverChainInfo, recvKeyBytes);
+                    }
+                    Console.WriteLine($"[DESKTOP] HKDF key derivation completed (keys hidden for security)");
+                    Console.WriteLine($"[DESKTOP] Is Initiator: {_isInitiator}");
+
+                    if (_isInitiator)
+                    {
+                        senderChainKey = sendKeyBytes;
+                        receiverChainKey = recvKeyBytes;
+                        Console.WriteLine($"[DESKTOP] As initiator - Chain keys established (hidden for security)");
+                    }
+                    else
+                    {
+                        senderChainKey = recvKeyBytes;
+                        receiverChainKey = sendKeyBytes;
+                        Console.WriteLine($"[DESKTOP] As responder - Chain keys established (hidden for security)");
+                    }
+                    return Unit.Value;
+                }, ex => EcliptixProtocolFailure.DeriveKey("Failed to derive initial chain keys.", ex));
+            })
+                    .Bind(_ => _persistentDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize)
+                        .MapSodiumFailure()
+                        .Map(bytes =>
                         {
-                            byte[] sendKeyBytes = new byte[Constants.X25519KeySize];
-                            byte[] recvKeyBytes = new byte[Constants.X25519KeySize];
-                                    
-                            Console.WriteLine($"[DESKTOP] DeriveInitialChainKeys (keys hidden for security)");
-                            using (HkdfSha256 hkdfSend = new(initialRootKey, null))
-                            {
-                                hkdfSend.Expand(InitialSenderChainInfo, sendKeyBytes);
-                            }
-
-                            using (HkdfSha256 hkdfRecv = new(initialRootKey, null))
-                            {
-                                hkdfRecv.Expand(InitialReceiverChainInfo, recvKeyBytes);
-                            }
-                            Console.WriteLine($"[DESKTOP] HKDF key derivation completed (keys hidden for security)");
-                            Console.WriteLine($"[DESKTOP] Is Initiator: {_isInitiator}");
-
-                            if (_isInitiator)
-                            {
-                                senderChainKey = sendKeyBytes;
-                                receiverChainKey = recvKeyBytes;
-                                Console.WriteLine($"[DESKTOP] As initiator - Chain keys established (hidden for security)");
-                            }
-                            else
-                            {
-                                senderChainKey = recvKeyBytes;
-                                receiverChainKey = sendKeyBytes;
-                                Console.WriteLine($"[DESKTOP] As responder - Chain keys established (hidden for security)");
-                            }
+                            persistentPrivKeyBytes = bytes;
                             return Unit.Value;
-                        }, ex => EcliptixProtocolFailure.DeriveKey("Failed to derive initial chain keys.", ex));
-                    })
-                            .Bind(_ => _persistentDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize)
-                                .MapSodiumFailure()
-                                .Map(bytes =>
-                                {
-                                    persistentPrivKeyBytes = bytes;
-                                    return Unit.Value;
-                                }))
-                    .Bind(_ => {
-                        Console.WriteLine($"[DESKTOP] Updating sender chain keys after DH ratchet");
-                        return _sendingStep.UpdateKeysAfterDhRatchet(senderChainKey!);
-                    })
-                    .Bind(_ => {
-                        Console.WriteLine($"[DESKTOP] Creating receiver step with new chain key");
-                        return EcliptixProtocolChainStep.Create(ChainStepType.Receiver,
-                            receiverChainKey!, persistentPrivKeyBytes, _persistentDhPublicKey);
-                    })
-                    .Map(receivingStep =>
-                    {
-                        _rootKeyHandle = tempRootHandle;
-                        tempRootHandle = null;
-                        _receivingStep = receivingStep;
-                        _peerDhPublicKey = peerDhPublicCopy;
-                        peerDhPublicCopy = null;
-                        return Unit.Value;
-                    })
-                    .MapErr(err =>
-                    {
-                        tempRootHandle?.Dispose();
-                        return err;
-                    });
+                        }))
+            .Bind(_ =>
+            {
+                Console.WriteLine($"[DESKTOP] Updating sender chain keys after DH ratchet");
+                return _sendingStep.UpdateKeysAfterDhRatchet(senderChainKey!);
+            })
+            .Bind(_ =>
+            {
+                Console.WriteLine($"[DESKTOP] Creating receiver step with new chain key");
+                return EcliptixProtocolChainStep.Create(ChainStepType.Receiver,
+                    receiverChainKey!, persistentPrivKeyBytes, _persistentDhPublicKey);
+            })
+            .Map(receivingStep =>
+            {
+                _rootKeyHandle = tempRootHandle;
+                tempRootHandle = null;
+                _receivingStep = receivingStep;
+                _peerDhPublicKey = peerDhPublicCopy;
+                peerDhPublicCopy = null;
+                return Unit.Value;
+            })
+            .MapErr(err =>
+            {
+                tempRootHandle?.Dispose();
+                return err;
+            });
             }
             finally
             {
@@ -423,12 +425,12 @@ public sealed class EcliptixProtocolConnection : IDisposable
                             .Bind(derivedKey =>
                                 sendingStep.SetCurrentIndex(currentIndex + 1)
                                     .Map(_ => (derivedKey, includeDhKey))))));
-            
+
             if (operationsResult.IsErr)
                 return Result<(EcliptixMessageKey, bool), EcliptixProtocolFailure>.Err(operationsResult.UnwrapErr());
-                
+
             (EcliptixMessageKey originalKey, bool includeDhKey) = operationsResult.Unwrap();
-            
+
             return SecureMemoryUtils.WithSecureBuffer(
                 Constants.AesKeySize,
                 keySpan =>
@@ -498,7 +500,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 else
                 {
                     if (_receivingStep == null || receivedDhPublicKeyBytes is not
-                            { Length: Constants.X25519PublicKeySize })
+                        { Length: Constants.X25519PublicKeySize })
                         throw new InvalidOperationException("Receiver ratchet pre-conditions not met.");
                     localPrivateKeyBytes = _currentSendingDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize)
                         .Unwrap();
@@ -510,7 +512,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
             currentRootKey = _rootKeyHandle!.ReadBytes(Constants.X25519KeySize).Unwrap();
             using SecurePooledArray<byte> hkdfOutputBuffer = SecureArrayPool.Rent<byte>(Constants.X25519KeySize * 2);
             Span<byte> hkdfOutputSpan = hkdfOutputBuffer.AsSpan();
-            
+
             using (HkdfSha256 hkdf = new(dhSecret!, currentRootKey))
             {
                 hkdf.Expand(DhRatchetInfo, hkdfOutputSpan);
@@ -545,15 +547,15 @@ public sealed class EcliptixProtocolConnection : IDisposable
             if (updateResult.IsErr) return updateResult;
 
             _receivedNewDhKey = false;
-            
+
             if (_eventHandler != null)
             {
-                uint newIndex = isSender 
-                    ? _sendingStep.GetCurrentIndex().UnwrapOr(0) 
+                uint newIndex = isSender
+                    ? _sendingStep.GetCurrentIndex().UnwrapOr(0)
                     : _receivingStep!.GetCurrentIndex().UnwrapOr(0);
                 _eventHandler.OnDhRatchetPerformed(_id, isSender, newIndex);
             }
-            
+
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
         finally
@@ -621,25 +623,25 @@ public sealed class EcliptixProtocolConnection : IDisposable
             Console.WriteLine($"Syncing: remoteSending={remoteSendingChainLength}, remoteReceiving={remoteReceivingChainLength}");
             Result<Unit, EcliptixProtocolFailure> result = CheckDisposed()
                 .Bind(_ => EnsureReceivingStepInitialized())
-                .Bind(receivingStep => 
+                .Bind(receivingStep =>
                 {
                     Console.WriteLine($"Receiving chain current index: {receivingStep.GetCurrentIndex().Unwrap()}");
                     return receivingStep.SkipKeysUntil(remoteSendingChainLength);
                 })
                 .Bind(_ => EnsureSendingStepInitialized())
-                .Bind(sendingStep => 
+                .Bind(sendingStep =>
                 {
                     Console.WriteLine($"Sending chain current index: {sendingStep.GetCurrentIndex().Unwrap()}");
                     return sendingStep.SkipKeysUntil(remoteReceivingChainLength);
                 });
-            
+
             if (result.IsOk)
             {
-                _eventHandler!.OnChainSynchronized(_id, 
-                    _sendingStep?.GetCurrentIndex().UnwrapOr(0) ?? 0, 
+                _eventHandler!.OnChainSynchronized(_id,
+                    _sendingStep?.GetCurrentIndex().UnwrapOr(0) ?? 0,
                     _receivingStep?.GetCurrentIndex().UnwrapOr(0) ?? 0);
             }
-            
+
             return result;
         }
     }

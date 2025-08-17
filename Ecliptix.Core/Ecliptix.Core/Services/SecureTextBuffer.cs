@@ -52,7 +52,7 @@ public sealed class SecureTextBuffer : IDisposable
         {
             int oldByteLength = _secureHandle.Length;
             string oldString = string.Empty;
-            
+
             if (oldByteLength > 0)
             {
                 using var oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
@@ -71,7 +71,7 @@ public sealed class SecureTextBuffer : IDisposable
                 : 0;
 
             int newByteLength = oldByteLength - (endByte - startByte) + insertBytes.Length;
-            
+
             if (newByteLength > 0)
             {
                 using var newBytes = SecureArrayPool.Rent<byte>(newByteLength);

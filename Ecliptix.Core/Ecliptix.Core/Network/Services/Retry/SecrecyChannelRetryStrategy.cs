@@ -51,21 +51,21 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         public required DateTime StartTime { get; init; }
         public required int MaxRetries { get; init; }
         public required string UniqueKey { get; init; }
-        
+
         // Thread-safe fields with Interlocked operations
         private int _currentRetryCount;
         private int _isExhausted;
-        
-        public int CurrentRetryCount 
-        { 
-            get => _currentRetryCount; 
-            set => Interlocked.Exchange(ref _currentRetryCount, value); 
+
+        public int CurrentRetryCount
+        {
+            get => _currentRetryCount;
+            set => Interlocked.Exchange(ref _currentRetryCount, value);
         }
-        
-        public bool IsExhausted 
-        { 
-            get => _isExhausted == 1; 
-            set => Interlocked.Exchange(ref _isExhausted, value ? 1 : 0); 
+
+        public bool IsExhausted
+        {
+            get => _isExhausted == 1;
+            set => Interlocked.Exchange(ref _isExhausted, value ? 1 : 0);
         }
 
         public Func<Task<Result<object, NetworkFailure>>>? Operation { get; init; }
@@ -93,8 +93,8 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
         // Setup cleanup timer to prevent memory leaks
         _cleanupTimer = new Timer(
-            CleanupAbandonedOperations, 
-            null, 
+            CleanupAbandonedOperations,
+            null,
             TimeSpan.FromMinutes(CLEANUP_INTERVAL_MINUTES),
             TimeSpan.FromMinutes(CLEANUP_INTERVAL_MINUTES));
 
@@ -111,7 +111,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             throw;
         }
 
-        Log.Information("SecrecyChannelRetryStrategy initialized with configuration: MaxRetries={MaxRetries}, InitialDelay={InitialDelay}", 
+        Log.Information("SecrecyChannelRetryStrategy initialized with configuration: MaxRetries={MaxRetries}, InitialDelay={InitialDelay}",
             _configuration.MaxRetries, _configuration.InitialRetryDelay);
     }
 
@@ -177,7 +177,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 NetworkFailure.DataCenterNotResponding("All operations exhausted, manual retry required"));
         }
 
-        Log.Information("🚀 EXECUTE OPERATION: Starting operation '{OperationName}' on ConnectId {ConnectId}", 
+        Log.Information("🚀 EXECUTE OPERATION: Starting operation '{OperationName}' on ConnectId {ConnectId}",
             operationName, connectId.Value);
 
         // Create operation tracking
@@ -194,10 +194,11 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
             // Execute with full error handling
             var result = await retryPolicy.ExecuteAsync(
-                async (ctx, ct) => {
+                async (ctx, ct) =>
+                {
                     ct.ThrowIfCancellationRequested();
                     var opResult = await operation().ConfigureAwait(false);
-                    Log.Debug("🔧 RETRY POLICY: Operation '{OperationName}' returned IsOk: {IsOk}", 
+                    Log.Debug("🔧 RETRY POLICY: Operation '{OperationName}' returned IsOk: {IsOk}",
                         operationName, opResult.IsOk);
                     return opResult;
                 },
@@ -211,9 +212,9 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             }
             else
             {
-                Log.Warning("🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {Error}", 
+                Log.Warning("🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {Error}",
                     operationName, result.UnwrapErr().Message);
-                
+
                 // Keep exhausted operations tracked for global exhaustion detection
                 // They will be cleaned up on manual retry or connection restore
                 Log.Debug("🔴 KEEPING EXHAUSTED: Keeping operation {OperationName} tracked for retry button detection", operationName);
@@ -256,7 +257,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public void ResetConnectionState(uint? connectId = null)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         try
         {
             if (connectId.HasValue)
@@ -274,7 +275,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public RetryMetrics GetRetryMetrics(uint? connectId = null)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         // For now, return empty metrics - this could be enhanced later
         return new RetryMetrics(0, 0, 0, TimeSpan.Zero, DateTime.MinValue, DateTime.MinValue);
     }
@@ -282,7 +283,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public ConnectionRetryState? GetConnectionState(uint connectId)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         try
         {
             bool isHealthy = GetNetworkProvider()?.IsConnectionHealthy(connectId) ?? false;
@@ -304,7 +305,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public void MarkConnectionHealthy(uint connectId)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         _ = Task.Run(async () =>
         {
             try
@@ -322,14 +323,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                         operation.CurrentRetryCount = 0;
                         Log.Information("🔄 CONNECTION HEALTHY: Marking operation {OperationName} as healthy for ConnectId {ConnectId}",
                             operation.OperationName, connectId);
-                        
+
                         // Clean up the operation from tracking since connection is healthy
                         StopTrackingOperation(operation.UniqueKey, "Connection restored");
                     }
 
                     if (exhaustedOperations.Any())
                     {
-                        Log.Information("🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations", 
+                        Log.Information("🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
                             connectId, exhaustedOperations.Count);
                     }
                 }
@@ -348,7 +349,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public bool IsConnectionHealthy(uint connectId)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         try
         {
             return GetNetworkProvider()?.IsConnectionHealthy(connectId) ?? false;
@@ -363,7 +364,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public bool HasExhaustedOperations()
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         try
         {
             return _activeRetryOperations.Values.Any(op => op.IsExhausted);
@@ -378,7 +379,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     public void ClearExhaustedOperations()
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        
+
         try
         {
             var exhaustedKeys = _activeRetryOperations.Values
@@ -417,7 +418,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             _manualRetrySubscription?.Dispose();
             _cleanupTimer?.Dispose();
             _stateLock?.Dispose();
-            
+
             Log.Information("SecrecyChannelRetryStrategy disposed successfully");
         }
         catch (Exception ex)
@@ -461,15 +462,15 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             return;
 
         Log.Information("🔄 MANUAL RETRY REQUEST: Received manual retry request for ConnectId {ConnectId}", evt.ConnectId);
-        
+
         try
         {
             // First: Clear all exhausted operations to allow fresh retry
             ClearExhaustedOperations();
-            
+
             // Second: Attempt to retry operations (they should now proceed without exhaustion blocks)
             bool anySucceeded = await RetryAllExhaustedOperationsAsync();
-            
+
             if (anySucceeded)
             {
                 Log.Information("🔄 MANUAL RETRY: Operations succeeded. Connection restored");
@@ -528,7 +529,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             {
                 operation.IsExhausted = false;
                 operation.CurrentRetryCount = 0;
-                
+
                 Result<object, NetworkFailure> result = await operation.Operation!();
                 if (result.IsOk)
                 {
@@ -576,7 +577,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         operationInfo.IsExhausted = false;
 
         _activeRetryOperations.TryAdd(operationKey, operationInfo);
-        Log.Debug("🟡 STARTED TRACKING: Operation {OperationName} on ConnectId {ConnectId} - Key: {OperationKey}. Active operations: {ActiveCount}", 
+        Log.Debug("🟡 STARTED TRACKING: Operation {OperationName} on ConnectId {ConnectId} - Key: {OperationKey}. Active operations: {ActiveCount}",
             operationName, connectId, operationKey, _activeRetryOperations.Count);
     }
 
@@ -585,7 +586,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
         if (_activeRetryOperations.TryGetValue(operationKey, out RetryOperationInfo? operation))
         {
             operation.CurrentRetryCount = retryCount;
-            Log.Debug("📊 UPDATED TRACKING: Key {OperationKey} - Retry count: {RetryCount}/{MaxRetries}", 
+            Log.Debug("📊 UPDATED TRACKING: Key {OperationKey} - Retry count: {RetryCount}/{MaxRetries}",
                 operationKey, retryCount, operation.MaxRetries);
         }
     }
@@ -626,7 +627,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
             {
                 if (_activeRetryOperations.TryRemove(key, out var operation))
                 {
-                    Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes", 
+                    Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
                         operation.OperationName, OPERATION_TIMEOUT_MINUTES);
                 }
             }
@@ -647,13 +648,13 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
     #region Private Methods - AOT-Compatible Retry Policies
 
     private AsyncPolicyWrap<Result<TResponse, NetworkFailure>> CreateTypedRetryPolicy<TResponse>(
-        int maxRetries, 
-        string operationKey, 
-        string operationName, 
+        int maxRetries,
+        string operationKey,
+        string operationName,
         uint connectId)
     {
         // Create retry delays
-        IEnumerable<TimeSpan> rawDelays = _configuration.UseAdaptiveRetry 
+        IEnumerable<TimeSpan> rawDelays = _configuration.UseAdaptiveRetry
             ? Backoff.DecorrelatedJitterBackoffV2(
                 medianFirstRetryDelay: _configuration.InitialRetryDelay,
                 retryCount: maxRetries,
@@ -663,8 +664,8 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 retryCount: maxRetries,
                 factor: 2.0,
                 fastFirst: true);
-        
-        TimeSpan[] retryDelays = rawDelays.Select(delay => 
+
+        TimeSpan[] retryDelays = rawDelays.Select(delay =>
             delay > _configuration.MaxRetryDelay ? _configuration.MaxRetryDelay : delay).ToArray();
 
         // Create AOT-compatible delegates
@@ -678,7 +679,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                 retryDelays,
                 onRetry: (outcome, delay, retryCount, context) =>
                 {
-                    Log.Information("🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries}, delay: {DelayMs}ms", 
+                    Log.Information("🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries}, delay: {DelayMs}ms",
                         operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
 
                     if (retryCount == 1)
@@ -692,17 +693,17 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
                     if (retryCount >= retryDelays.Length)
                     {
-                        Log.Warning("🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries} exhausted all retries", 
+                        Log.Warning("🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries} exhausted all retries",
                             operationName, connectId, retryCount, retryDelays.Length);
-                        
+
                         MarkOperationAsExhausted(operationKey);
-                        
+
                         // Check if this triggers global exhaustion
                         bool allExhausted = IsGloballyExhausted();
                         if (allExhausted)
                         {
                             Log.Warning("🔴 ALL OPERATIONS EXHAUSTED: All retry operations are exhausted. Recovery will handle retry button display");
-                            
+
                             _uiDispatcher.Post(() =>
                             {
                                 try
@@ -723,7 +724,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                             if (exhaustedCount == 1)
                             {
                                 Log.Information("🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
-                                
+
                                 _uiDispatcher.Post(() =>
                                 {
                                     try
@@ -737,7 +738,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
                                     }
                                 });
                             }
-                            
+
                             Log.Debug("⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}", exhaustedCount);
                         }
                     }
@@ -755,7 +756,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
         // Create timeout policy
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromSeconds(30), 
+            TimeSpan.FromSeconds(30),
             onTimeoutAsync: (_, timespan, _) =>
             {
                 Log.Warning("Operation {OperationName} timed out after {Timeout}", operationName, timespan);
@@ -787,7 +788,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy, IDisposable
 
             Log.Debug("Attempting to restore connection for ConnectId {ConnectId}", connectId);
             Result<bool, NetworkFailure> restoreResult = await networkProvider.TryRestoreConnectionAsync(connectId).ConfigureAwait(false);
-            
+
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
                 Log.Information("Successfully restored connection for ConnectId {ConnectId}", connectId);

@@ -48,7 +48,7 @@ public class ApplicationInitializer(
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
-        
+
         _ = Task.Run(async () =>
         {
             await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
@@ -62,7 +62,7 @@ public class ApplicationInitializer(
             {
                 try
                 {
-                    Result<IpCountry, InternalServiceApiFailure> countryResult = 
+                    Result<IpCountry, InternalServiceApiFailure> countryResult =
                         await ipGeolocationService.GetIpCountryAsync(CancellationToken.None);
 
                     if (countryResult.IsOk)
@@ -78,7 +78,7 @@ public class ApplicationInitializer(
                 }
             });
         }
-       
+
 
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
@@ -108,14 +108,14 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
         uint connectId =
-            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,PubKeyExchangeType.DataCenterEphemeralConnect);
+            NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings, PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (!isNewInstance)
         {
             try
             {
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-                
+
                 Result<byte[], SecureStorageFailure> loadResult =
                     await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 

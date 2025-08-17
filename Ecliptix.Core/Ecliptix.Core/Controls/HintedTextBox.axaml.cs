@@ -175,7 +175,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         private set
         {
             _originalErrorText = value;
-            SetValue(ErrorTextProperty, value); 
+            SetValue(ErrorTextProperty, value);
         }
     }
 
@@ -326,7 +326,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             {
                 int oldLength = _shadowText.Length;
                 _nextCaretPosition = 0;
-                _shadowText = string.Empty; 
+                _shadowText = string.Empty;
                 RaiseEvent(new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, 0, oldLength));
                 UpdateTextBox(_shadowText, 0);
                 UpdateSecureKeyMaskOverlay(0);
@@ -490,7 +490,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 SetValue(ErrorTextProperty, accumulatedError);
             })
             .DisposeWith(_disposables);
-        
+
         this.WhenAnyValue(x => x.HasError)
             .Subscribe(hasError => { EllipseOpacity = hasError ? 1.0 : 0.0; })
             .DisposeWith(_disposables);

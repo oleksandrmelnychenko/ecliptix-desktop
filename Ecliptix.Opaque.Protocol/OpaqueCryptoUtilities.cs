@@ -15,7 +15,7 @@ public static class OpaqueCryptoUtilities
 {
     private static readonly X9ECParameters CurveParams = ECNamedCurveTable.GetByName("secp256r1");
     public static readonly ECDomainParameters DomainParams = new(CurveParams.Curve, CurveParams.G, CurveParams.N, CurveParams.H);
-    
+
     private static readonly ThreadLocal<Sha256Digest> DigestPool = new(() => new Sha256Digest());
     private static readonly SecureRandom SecureRandomInstance = new();
 
@@ -28,7 +28,7 @@ public static class OpaqueCryptoUtilities
 
         try
         {
-            hmac.Init(new KeyParameter(effectiveSalt.ToArray())); 
+            hmac.Init(new KeyParameter(effectiveSalt.ToArray()));
             hmac.BlockUpdate(ikm.ToArray(), 0, ikm.Length);
             byte[] prk = new byte[hmac.GetMacSize()];
             hmac.DoFinal(prk, 0);
@@ -39,11 +39,11 @@ public static class OpaqueCryptoUtilities
             return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.InvalidKeySignature(ex.Message, ex));
         }
     }
-    
+
     public static byte[] HkdfExpand(byte[] prk, ReadOnlySpan<byte> info, int outputLength)
     {
         HkdfBytesGenerator hkdf = new(new Sha256Digest());
-        hkdf.Init(HkdfParameters.SkipExtractParameters(prk, info.ToArray())); 
+        hkdf.Init(HkdfParameters.SkipExtractParameters(prk, info.ToArray()));
         byte[] okm = new byte[outputLength];
         hkdf.GenerateBytes(okm, 0, outputLength);
         return okm;
@@ -96,7 +96,7 @@ public static class OpaqueCryptoUtilities
         Buffer.BlockCopy(xBytes, 0, compressed, 1, xBytes.Length);
         return compressed;
     }
-    
+
     public static BigInteger GenerateRandomScalar()
     {
         BigInteger scalar;
@@ -121,18 +121,18 @@ public static class OpaqueCryptoUtilities
             IBufferedCipher cipher = CipherUtilities.GetCipher("AES/GCM/NoPadding");
             byte[] nonce = new byte[OpaqueConstants.AesGcmNonceLengthBytes];
             SecureRandomInstance.NextBytes(nonce);
-            
+
             AeadParameters cipherParams = new(new KeyParameter(key), OpaqueConstants.AesGcmTagLengthBits, nonce, associatedData);
             cipher.Init(true, cipherParams);
-            
+
             int outputSize = cipher.GetOutputSize(plaintext.Length);
             byte[] result = new byte[OpaqueConstants.AesGcmNonceLengthBytes + outputSize];
-            
+
             nonce.CopyTo(result, 0);
-            
+
             int len = cipher.ProcessBytes(plaintext, 0, plaintext.Length, result, OpaqueConstants.AesGcmNonceLengthBytes);
             cipher.DoFinal(result, OpaqueConstants.AesGcmNonceLengthBytes + len);
-            
+
             return Result<byte[], OpaqueFailure>.Ok(result);
         }
         catch (Exception ex)
@@ -140,7 +140,7 @@ public static class OpaqueCryptoUtilities
             return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.EncryptFailed(ex.Message, ex));
         }
     }
-    
+
     public static Result<byte[], OpaqueFailure> Decrypt(byte[] ciphertextWithNonce, byte[] key, byte[]? associatedData)
     {
         if (ciphertextWithNonce.Length < OpaqueConstants.AesGcmNonceLengthBytes)
@@ -155,7 +155,7 @@ public static class OpaqueCryptoUtilities
             IBufferedCipher cipher = CipherUtilities.GetCipher("AES/GCM/NoPadding");
             AeadParameters cipherParams = new(new KeyParameter(key), OpaqueConstants.AesGcmTagLengthBits, nonce.ToArray(), associatedData);
             cipher.Init(false, cipherParams);
-            
+
             return Result<byte[], OpaqueFailure>.Ok(cipher.DoFinal(ciphertext.ToArray()));
         }
         catch (InvalidCipherTextException ex)

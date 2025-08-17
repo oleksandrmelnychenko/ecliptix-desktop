@@ -19,7 +19,7 @@ public class App : Application
     {
         Locator.CurrentMutable.Register(() => new AppViewLocator(), typeof(IViewLocator));
         DefaultSystemSettings defaultSystemSettings = Locator.Current.GetService<DefaultSystemSettings>()!;
-        
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _ = new ApplicationStartup(desktop).RunAsync(defaultSystemSettings);

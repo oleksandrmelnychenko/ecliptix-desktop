@@ -328,7 +328,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
-            
+
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 File.SetUnixFileMode(directory,

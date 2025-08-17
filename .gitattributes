@@ -1,0 +1,86 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code files
+*.cs text eol=lf
+*.csproj text eol=lf
+*.sln text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.ruleset text eol=lf
+
+# Avalonia UI files
+*.axaml text eol=lf
+*.xaml text eol=lf
+
+# Configuration files
+*.json text eol=lf
+*.xml text eol=lf
+*.config text eol=lf
+*.settings text eol=lf
+
+# Protocol buffer files
+*.proto text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Web files
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+
+# Git files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files
+*.dll binary
+*.exe binary
+*.pdb binary
+*.lib binary
+*.so binary
+*.dylib binary
+*.a binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.svg text eol=lf
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Certificates and keys
+*.pfx binary
+*.p12 binary
+*.key binary
+*.pem text eol=lf
+*.crt text eol=lf
+*.cer binary
+
+# Language statistics
+*.cs linguist-language=C#
+*.axaml linguist-language=XML
+*.proto linguist-language=Protocol Buffer

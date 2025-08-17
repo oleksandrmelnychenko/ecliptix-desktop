@@ -14,6 +14,6 @@ public static class OpaqueMessageKeys
 
     public const string EncryptFailed = "Opaque encryption failed";
     public const string TokenExpired = "Opaque token has expired";
-    
+
     public const string MacVerificationFailed = "Opaque MAC verification failed";
 }

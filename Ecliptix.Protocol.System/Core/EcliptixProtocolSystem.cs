@@ -18,13 +18,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private IProtocolEventHandler? _eventHandler;
 
     public EcliptixSystemIdentityKeys GetIdentityKeys() => ecliptixSystemIdentityKeys;
-    
+
     public void SetEventHandler(IProtocolEventHandler? handler)
     {
         _eventHandler = handler;
         _protocolConnection?.SetEventHandler(handler);
     }
-    
+
     public void Dispose()
     {
         _protocolConnection?.Dispose();
@@ -41,12 +41,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         PubKeyExchangeType exchangeType)
     {
         Console.WriteLine($"[DESKTOP] BeginDataCenterPubKeyExchange - ConnectId: {connectId}");
-        
+
         ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
         return ecliptixSystemIdentityKeys.CreatePublicBundle()
-            .AndThen(bundle => {
+            .AndThen(bundle =>
+            {
                 Console.WriteLine($"[DESKTOP] Client bundle created (keys hidden for security)");
-                
+
                 return EcliptixProtocolConnection.Create(connectId, true)
                     .AndThen(session =>
                     {
@@ -71,7 +72,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     public void CompleteDataCenterPubKeyExchange(PubKeyExchange peerMessage)
     {
         Console.WriteLine($"[DESKTOP] CompleteDataCenterPubKeyExchange - State: {peerMessage.State}");
-        
+
         SodiumSecureMemoryHandle? rootKeyHandle = null;
         try
         {
@@ -84,7 +85,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 {
                     Console.WriteLine($"[DESKTOP] Server bundle received (keys hidden for security)");
                     Console.WriteLine($"[DESKTOP] Server Initial DH received (hidden for security)");
-                    
+
                     return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
                             peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
                         .AndThen(spkValid => Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value, _ => spkValid,
@@ -102,7 +103,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes,
                                 peerMessage.InitialDhPublicKey.ToByteArray());
                         })
-                        .AndThen(_ => {
+                        .AndThen(_ =>
+                        {
                             Console.WriteLine($"[DESKTOP] FinalizeChainAndDhKeys completed");
                             return _protocolConnection!.SetPeerBundle(peerBundle);
                         });
@@ -118,7 +120,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         Console.WriteLine($"[DESKTOP] ProduceOutboundMessage - Payload size: {plainPayload.Length}");
         Console.WriteLine($"[DESKTOP] ProduceOutboundMessage - Payload content: {Convert.ToHexString(plainPayload)}");
-        
+
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
@@ -137,7 +139,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                                 byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
                                 return Encrypt(messageKeyClone!, nonce, plainPayload, ad);
                             })
-                            .Map(encrypted => {
+                            .Map(encrypted =>
+                            {
                                 CipherPayload payload = new()
                                 {
                                     RequestId = Helpers.GenerateRandomUInt32(true),
@@ -162,7 +165,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     public Result<byte[], EcliptixProtocolFailure> ProcessInboundMessage(CipherPayload cipherPayloadProto)
     {
         Console.WriteLine($"[DESKTOP] ProcessInboundMessage - Nonce: {Convert.ToHexString(cipherPayloadProto.Nonce.ToByteArray())}, RatchetIndex: {cipherPayloadProto.RatchetIndex}, CipherSize: {cipherPayloadProto.Cipher.Length}");
-        
+
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
@@ -200,7 +203,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 {
                     return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
                 }
-                
+
                 return _protocolConnection.PerformReceivingRatchet(receivedDhKey);
             });
     }
@@ -241,20 +244,20 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
 
             Console.WriteLine($"[DESKTOP] Encrypt - Nonce: {Convert.ToHexString(nonce)}, Size: {plaintext.Length} bytes");
-            
+
             byte[] ciphertext = new byte[plaintext.Length];
             byte[] tag = new byte[Constants.AesGcmTagSize];
-            
+
             using (AesGcm aesGcm = new(keySpan, Constants.AesGcmTagSize))
             {
                 aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, ad);
             }
-            
+
             byte[] result = new byte[ciphertext.Length + tag.Length];
             Buffer.BlockCopy(ciphertext, 0, result, 0, ciphertext.Length);
             Buffer.BlockCopy(tag, 0, result, ciphertext.Length, tag.Length);
             Console.WriteLine($"[DESKTOP] Encrypt - Ciphertext: {Convert.ToHexString(result)}");
-            
+
             return Result<byte[], EcliptixProtocolFailure>.Ok(result);
         }
         catch (Exception ex)
@@ -276,7 +279,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 $"Received ciphertext length ({fullCipherSpan.Length}) is smaller than the GCM tag size ({tagSize})."));
 
         using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
-        
+
         try
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
@@ -286,12 +289,12 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             byte[] ciphertext = fullCipherSpan[..cipherLength].ToArray();
             byte[] tag = fullCipherSpan[cipherLength..].ToArray();
             byte[] plaintext = new byte[cipherLength];
-            
+
             using (AesGcm aesGcm = new(keySpan, Constants.AesGcmTagSize))
             {
                 aesGcm.Decrypt(payload.Nonce.ToArray(), ciphertext, tag, plaintext, ad);
             }
-            
+
             return Result<byte[], EcliptixProtocolFailure>.Ok(plaintext);
         }
         catch (CryptographicException cryptoEx)
@@ -305,14 +308,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 EcliptixProtocolFailure.Generic("Unexpected error during AES-GCM decryption.", ex));
         }
     }
-    
+
     public static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> CreateFrom(EcliptixSystemIdentityKeys keys,
         EcliptixProtocolConnection connection)
     {
         EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
-    
+
     private static Result<byte[], EcliptixProtocolFailure> ReadAndWipeSecureHandle(SodiumSecureMemoryHandle handle,
         int size)
     {
@@ -325,7 +328,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }).MapSodiumFailure();
         return t;
     }
-    
+
     public EcliptixProtocolConnection GetConnection()
     {
         if (_protocolConnection == null) throw new InvalidOperationException("Connection has not been established yet.");

@@ -15,13 +15,13 @@ namespace Ecliptix.Core.ViewModels.Memberships;
 
 public sealed class WelcomeViewModel : ViewModelBase, IRoutableViewModel
 {
-    private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache = 
+    private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>()
         {
             ["CreateAccount"] = MembershipViewType.MobileVerification,
             ["SignIn"] = MembershipViewType.SignIn
         }.ToFrozenDictionary();
-    
+
     public string UrlPathSegment => "/welcome";
     public IScreen HostScreen { get; }
 

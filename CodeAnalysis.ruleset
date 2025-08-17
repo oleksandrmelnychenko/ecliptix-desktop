@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Ecliptix Code Analysis Rules" ToolsVersion="16.0">
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.CSharp" RuleNamespace="Microsoft.CodeAnalysis.CSharp">
+    <!-- Enforce explicit types (no var) -->
+    <Rule Id="IDE0007" Action="Error" />
+    <Rule Id="IDE0008" Action="None" />
+    
+    <!-- Expression-bodied members -->
+    <Rule Id="IDE0021" Action="Info" />
+    <Rule Id="IDE0022" Action="Info" />
+    <Rule Id="IDE0024" Action="Info" />
+    <Rule Id="IDE0025" Action="Info" />
+    <Rule Id="IDE0026" Action="Info" />
+    <Rule Id="IDE0027" Action="Info" />
+    
+    <!-- Code style -->
+    <Rule Id="IDE0040" Action="Error" />  <!-- Add accessibility modifiers -->
+    <Rule Id="IDE0044" Action="Info" />  <!-- Add readonly modifier -->
+    <Rule Id="IDE0049" Action="Error" />  <!-- Use language keywords instead of framework type names -->
+    
+    <!-- Unnecessary code -->
+    <Rule Id="IDE0051" Action="Warning" />  <!-- Remove unused private members -->
+    <Rule Id="IDE0052" Action="Warning" />  <!-- Remove unread private members -->
+    <Rule Id="IDE0058" Action="None" />     <!-- Expression value is never used -->
+    <Rule Id="IDE0059" Action="Info" />  <!-- Unnecessary assignment of a value -->
+    <Rule Id="IDE0060" Action="Warning" />  <!-- Remove unused parameter -->
+    
+    <!-- Naming conventions -->
+    <Rule Id="IDE1006" Action="Error" />   <!-- Naming rule violation -->
+    
+    <!-- Pattern matching -->
+    <Rule Id="IDE0019" Action="Info" />  <!-- Use pattern matching -->
+    <Rule Id="IDE0020" Action="Info" />  <!-- Use pattern matching -->
+    <Rule Id="IDE0078" Action="Info" />  <!-- Use pattern matching -->
+    
+    <!-- Null checking -->
+    <Rule Id="IDE0029" Action="Info" />  <!-- Use coalesce expression -->
+    <Rule Id="IDE0030" Action="Info" />  <!-- Use coalesce expression -->
+    <Rule Id="IDE0031" Action="Info" />  <!-- Use null propagation -->
+    
+    <!-- Security rules -->
+    <Rule Id="CA2007" Action="None" />     <!-- Do not directly await a Task -->
+    <Rule Id="CA1062" Action="Info" />  <!-- Validate arguments of public methods -->
+    <Rule Id="CA1303" Action="None" />     <!-- Do not pass literals as localized parameters -->
+    <Rule Id="CA1304" Action="Info" />  <!-- Specify CultureInfo -->
+    <Rule Id="CA1305" Action="Info" />  <!-- Specify IFormatProvider -->
+    <Rule Id="CA1307" Action="Info" />  <!-- Specify StringComparison -->
+    <Rule Id="CA1308" Action="Warning" />  <!-- Normalize strings to uppercase -->
+    <Rule Id="CA1309" Action="Info" />  <!-- Use ordinal StringComparison -->
+    
+    <!-- Performance rules -->
+    <Rule Id="CA1805" Action="Info" />  <!-- Do not initialize unnecessarily -->
+    <Rule Id="CA1806" Action="Info" />  <!-- Do not ignore method results -->
+    <Rule Id="CA1810" Action="Info" />  <!-- Initialize reference type static fields inline -->
+    <Rule Id="CA1812" Action="None" />     <!-- Avoid uninstantiated internal classes -->
+    <Rule Id="CA1813" Action="Warning" />  <!-- Avoid unsealed attributes -->
+    <Rule Id="CA1814" Action="Warning" />  <!-- Prefer jagged arrays over multidimensional -->
+    <Rule Id="CA1815" Action="Info" />  <!-- Override equals and operator equals on value types -->
+    
+    <!-- Cryptography rules -->
+    <Rule Id="CA5350" Action="Error" />    <!-- Do Not Use Weak Cryptographic Algorithms -->
+    <Rule Id="CA5351" Action="Error" />    <!-- Do Not Use Broken Cryptographic Algorithms -->
+    <Rule Id="CA5358" Action="Error" />    <!-- Review cipher mode usage with cryptography experts -->
+    <Rule Id="CA5359" Action="Error" />    <!-- Do Not Disable Certificate Validation -->
+    <Rule Id="CA5360" Action="Error" />    <!-- Do Not Call Dangerous Methods In Deserialization -->
+    <Rule Id="CA5361" Action="Error" />    <!-- Do Not Disable SChannel Use of Strong Crypto -->
+    <Rule Id="CA5362" Action="Error" />    <!-- Potential reference cycle in deserialized object graph -->
+    <Rule Id="CA5363" Action="Error" />    <!-- Do Not Disable Request Validation -->
+    <Rule Id="CA5364" Action="Error" />    <!-- Do Not Use Deprecated Security Protocols -->
+    <Rule Id="CA5365" Action="Error" />    <!-- Do Not Disable HTTP Header Checking -->
+    <Rule Id="CA5366" Action="Error" />    <!-- Use XmlReader For DataSet Read Xml -->
+    <Rule Id="CA5367" Action="Error" />    <!-- Do Not Serialize Types With Pointer Fields -->
+    <Rule Id="CA5368" Action="Error" />    <!-- Set ViewStateUserKey For Classes Derived From Page -->
+    <Rule Id="CA5369" Action="Error" />    <!-- Use XmlReader For Deserialize -->
+    <Rule Id="CA5370" Action="Error" />    <!-- Use XmlReader For Validating Reader -->
+    <Rule Id="CA5371" Action="Error" />    <!-- Use XmlReader For Schema Read -->
+    <Rule Id="CA5372" Action="Error" />    <!-- Use XmlReader For XPathDocument -->
+    <Rule Id="CA5373" Action="Error" />    <!-- Do not use obsolete key derivation function -->
+    <Rule Id="CA5374" Action="Error" />    <!-- Do Not Use XslTransform -->
+    <Rule Id="CA5375" Action="Error" />    <!-- Do Not Use Account Shared Access Signature -->
+    <Rule Id="CA5376" Action="Error" />    <!-- Use SharedAccessProtocol HttpsOnly -->
+    <Rule Id="CA5377" Action="Error" />    <!-- Use Container Level Access Policy -->
+    <Rule Id="CA5378" Action="Error" />    <!-- Do not disable ServicePointManagerSecurityProtocols -->
+    <Rule Id="CA5379" Action="Error" />    <!-- Ensure Key Derivation Function algorithm is sufficiently strong -->
+    <Rule Id="CA5380" Action="Error" />    <!-- Do Not Add Certificates To Root Store -->
+    <Rule Id="CA5381" Action="Error" />    <!-- Ensure Certificates Are Not Added To Root Store -->
+    <Rule Id="CA5382" Action="Error" />    <!-- Use Secure Cookies In ASP.Net Core -->
+    <Rule Id="CA5383" Action="Error" />    <!-- Ensure Use Secure Cookies In ASP.Net Core -->
+    <Rule Id="CA5384" Action="Error" />    <!-- Do Not Use Digital Signature Algorithm (DSA) -->
+    <Rule Id="CA5385" Action="Error" />    <!-- Use Rivest–Shamir–Adleman (RSA) Algorithm With Sufficient Key Size -->
+    <Rule Id="CA5386" Action="Error" />    <!-- Avoid hardcoding SecurityProtocolType value -->
+    <Rule Id="CA5387" Action="Error" />    <!-- Do Not Use Weak Key Derivation Function With Insufficient Iteration Count -->
+    <Rule Id="CA5388" Action="Error" />    <!-- Ensure Sufficient Iteration Count When Using Weak Key Derivation Function -->
+    <Rule Id="CA5389" Action="Error" />    <!-- Do Not Add Archive Item's Path To The Target File System Path -->
+    <Rule Id="CA5390" Action="Error" />    <!-- Do not hard-code encryption key -->
+    <Rule Id="CA5391" Action="Error" />    <!-- Use antiforgery tokens in ASP.NET Core MVC controllers -->
+    <Rule Id="CA5392" Action="Info" />    <!-- Use DefaultDllImportSearchPaths attribute for P/Invokes -->
+    <Rule Id="CA5393" Action="Error" />    <!-- Do not use unsafe DllImportSearchPath value -->
+    <Rule Id="CA5394" Action="Error" />    <!-- Do not use insecure randomness -->
+    <Rule Id="CA5395" Action="Error" />    <!-- Miss HttpVerb attribute for action methods -->
+    <Rule Id="CA5396" Action="Error" />    <!-- Set HttpOnly to true for HttpCookie -->
+    <Rule Id="CA5397" Action="Error" />    <!-- Do not use deprecated SslProtocols values -->
+    <Rule Id="CA5398" Action="Error" />    <!-- Avoid hardcoded SslProtocols values -->
+    <Rule Id="CA5399" Action="Error" />    <!-- HttpClients should enable certificate revocation list checks -->
+    <Rule Id="CA5400" Action="Error" />    <!-- Ensure HttpClient certificate revocation list check is not disabled -->
+    <Rule Id="CA5401" Action="Error" />    <!-- Do not use CreateEncryptor with non-default IV -->
+    <Rule Id="CA5402" Action="Error" />    <!-- Use CreateEncryptor with the default IV -->
+    <Rule Id="CA5403" Action="Error" />    <!-- Do not hard-code certificate -->
+  </Rules>
+</RuleSet>

@@ -15,11 +15,11 @@ public interface IRpcServiceManager
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest);
-    
+
     Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEvents networkEvents,
         ISystemEvents systemEvents,
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest);
-    
+
     Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request, CancellationToken token);
 }

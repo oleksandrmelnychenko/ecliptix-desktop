@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal --logger trx --results-directory TestResults
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}
+        path: TestResults/*.trx
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Run security scan
+      run: dotnet list package --vulnerable --include-transitive
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: csharp
+        
+    - name: Build for CodeQL
+      run: dotnet build --configuration Release
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Check code formatting
+      run: dotnet format --verify-no-changes --verbosity diagnostic
+      
+    - name: Run analyzers
+      run: dotnet build --configuration Release --verbosity normal /p:TreatWarningsAsErrors=true
+
+  crypto-validation:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for crypto best practices
+      run: |
+        # Check for hardcoded secrets
+        if grep -r "password\|secret\|key" --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "Password\|Secret\|Key" | grep -v "//"; then
+          echo "⚠️ Potential hardcoded secrets found"
+          exit 1
+        fi
+        
+        # Check for insecure random usage
+        if grep -r "Random(" --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "RNGCryptoServiceProvider\|RandomNumberGenerator"; then
+          echo "⚠️ Insecure Random usage found - use RNGCryptoServiceProvider instead"
+          exit 1
+        fi
+        
+        # Check for deprecated crypto
+        if grep -r "MD5\|SHA1\|DES\|RC4" --include="*.cs" --exclude-dir=obj --exclude-dir=bin .; then
+          echo "⚠️ Deprecated cryptographic algorithms found"
+          exit 1
+        fi
+        
+        echo "✅ Crypto validation passed"

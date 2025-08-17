@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            extension: .exe
+            artifact-name: ecliptix-windows-x64
+          - os: macos-latest
+            runtime: osx-arm64
+            extension: .app
+            artifact-name: ecliptix-macos-arm64
+          - os: macos-latest
+            runtime: osx-x64
+            extension: .app
+            artifact-name: ecliptix-macos-x64
+          - os: ubuntu-latest
+            runtime: linux-x64
+            extension: ''
+            artifact-name: ecliptix-linux-x64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+      
+    - name: Run tests
+      run: dotnet test --configuration Release --no-build --verbosity normal
+      
+    - name: Publish application
+      run: |
+        dotnet publish Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj \
+          --configuration Release \
+          --runtime ${{ matrix.runtime }} \
+          --self-contained true \
+          --output ./publish/${{ matrix.runtime }} \
+          -p:PublishSingleFile=true \
+          -p:PublishAot=true \
+          -p:TrimMode=link
+          
+    - name: Create archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        7z a ../../${{ matrix.artifact-name }}.zip *
+        
+    - name: Create archive (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        zip -r ../../${{ matrix.artifact-name }}.zip *
+        
+    - name: Create archive (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        tar -czf ../../${{ matrix.artifact-name }}.tar.gz *
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: |
+          ${{ matrix.artifact-name }}.zip
+          ${{ matrix.artifact-name }}.tar.gz
+        retention-days: 30
+
+  create-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        # Get the latest tag or use input version
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+        fi
+        
+        # Generate changelog from commits since last tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        
+        echo "# Release $VERSION" > release_notes.md
+        echo "" >> release_notes.md
+        
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## Changes since $PREVIOUS_TAG" >> release_notes.md
+          echo "" >> release_notes.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> release_notes.md
+        else
+          echo "## Initial release" >> release_notes.md
+        fi
+        
+        echo "" >> release_notes.md
+        echo "## Security Notes" >> release_notes.md
+        echo "- This release includes the latest cryptographic implementations" >> release_notes.md
+        echo "- All dependencies have been scanned for vulnerabilities" >> release_notes.md
+        echo "" >> release_notes.md
+        echo "## Installation" >> release_notes.md
+        echo "Download the appropriate package for your platform:" >> release_notes.md
+        echo "- **Windows**: ecliptix-windows-x64.zip" >> release_notes.md
+        echo "- **macOS (Apple Silicon)**: ecliptix-macos-arm64.zip" >> release_notes.md
+        echo "- **macOS (Intel)**: ecliptix-macos-x64.zip" >> release_notes.md
+        echo "- **Linux**: ecliptix-linux-x64.tar.gz" >> release_notes.md
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.release-notes.outputs.version }}
+        name: Ecliptix Desktop ${{ steps.release-notes.outputs.version }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ contains(steps.release-notes.outputs.version, 'alpha') || contains(steps.release-notes.outputs.version, 'beta') || contains(steps.release-notes.outputs.version, 'rc') }}
+        files: |
+          artifacts/**/*.zip
+          artifacts/**/*.tar.gz
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

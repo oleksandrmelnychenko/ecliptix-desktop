@@ -277,13 +277,13 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                         OprfRegistrationInitResponse.Parser.ParseFrom(payload);
 
                     Console.WriteLine("Received OPRF response");
-                    
-                    if (createMembershipResponse.Result != OprfRegistrationInitResponse.Types.UpdateResult.Succeeded )
+
+                    if (createMembershipResponse.Result != OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
                         PasswordError = $"Registration failed: {createMembershipResponse.Message}";
                         return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
-                    
+
                     Result<byte[], OpaqueFailure> registrationRecordResult =
                         OpaqueProtocolService.CreateRegistrationRecord(
                             passwordBytes,
@@ -297,7 +297,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     }
 
                     byte[] registrationRecord = registrationRecordResult.Unwrap();
-                    
+
                     OprfRegistrationCompleteRequest completeRequest = new()
                     {
                         MembershipIdentifier = VerificationSessionId,
@@ -326,7 +326,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                             }
                         });
 
-                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true,
                 CancellationToken.None
             );

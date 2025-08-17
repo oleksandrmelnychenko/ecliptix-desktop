@@ -8,7 +8,7 @@ public interface ILocalizationService : INotifyPropertyChanged
 {
     string this[string key] { get; }
     void SetCulture(string? cultureName, Action? onCultureChanged = null);
-    string GetString(string key,params object[] args);
+    string GetString(string key, params object[] args);
     CultureInfo CurrentCultureInfo { get; }
     string CurrentCultureName { get; }
     event Action? LanguageChanged;

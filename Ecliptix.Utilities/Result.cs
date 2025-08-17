@@ -108,7 +108,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
             cleanup?.Invoke();
         }
     }
-    
+
     public static async ValueTask<Result<TValue, TError>> TryAsync<TValue, TError>(
         Func<ValueTask<TValue>> action,
         Func<EcliptixProtocolFailure, TError> errorMapper,

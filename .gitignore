@@ -1,5 +1,78 @@
+# Build outputs
 bin/
 obj/
+publish/
+*.pdb
+*.dll.config
+*.cache
+*.log
+
+# NuGet
 /packages/
+*.nupkg
+*.snupkg
+
+# IDE - JetBrains Rider
+.idea/
 riderModule.iml
 /_ReSharper.Caches/
+*.DotSettings.user
+
+# IDE - Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+
+# MCP servers
+.mcp/servers/node_modules/
+.mcp/servers/package-lock.json
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+secrets.json
+
+# Runtime files
+*.tmp
+*.temp
+TestResults/
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific
+Ecliptix.app/
+app-output.log
+*.dSYM/
+
+# Crypto keys (security)
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Logs
+logs/
+*.log
+
+# Debug symbols
+*.pdb
+*.dbg
+
+# Build artifacts and publish output
+publish/
+*.dSYM/

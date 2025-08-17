@@ -69,18 +69,18 @@ public class RpcServiceManager : IRpcServiceManager
                 out Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>? invoker))
         {
             Result<RpcFlow, NetworkFailure> result = await invoker(request, token);
-            
+
             if (result.IsOk)
             {
-                Log.Debug("Action {ServiceMethod} executed successfully for req_id: {ReqId}", 
+                Log.Debug("Action {ServiceMethod} executed successfully for req_id: {ReqId}",
                     request.RpcServiceMethod, request.ReqId);
             }
             else
             {
-                Log.Warning("Action {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}", 
+                Log.Warning("Action {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}",
                     request.RpcServiceMethod, request.ReqId, result.UnwrapErr().Message);
             }
-            
+
             return result;
         }
 

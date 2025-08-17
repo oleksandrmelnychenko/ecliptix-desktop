@@ -202,7 +202,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _contentControl.Measure(availableSize);
 
         double contentHeight = _contentControl.DesiredSize.Height;
-        
+
         if (double.IsNaN(contentHeight) || contentHeight <= 0)
         {
             contentHeight = MinHeight;
@@ -218,7 +218,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             return;
         }
-        
+
         UpdateSheetHeight();
         CreateAnimations();
 

@@ -17,7 +17,7 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
     public async Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
         CancellationToken ct = default)
     {
-       
+
         using HttpRequestMessage req = new(HttpMethod.Get, BaseUrl);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -81,9 +81,9 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
         }
 
         return (from p in root.EnumerateObject()
-            from n in names
-            where p.Name.Equals(n, StringComparison.OrdinalIgnoreCase) && p.Value.ValueKind == JsonValueKind.String
-            select p.Value.GetString()).FirstOrDefault();
+                from n in names
+                where p.Name.Equals(n, StringComparison.OrdinalIgnoreCase) && p.Value.ValueKind == JsonValueKind.String
+                select p.Value.GetString()).FirstOrDefault();
     }
 
     private static async Task<string> SafeReadAsStringAsync(HttpContent content, CancellationToken ct)

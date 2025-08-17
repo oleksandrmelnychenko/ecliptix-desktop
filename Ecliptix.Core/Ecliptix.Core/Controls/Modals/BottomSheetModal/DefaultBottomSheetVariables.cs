@@ -9,11 +9,11 @@ public static class DefaultBottomSheetVariables
     public const double MaxHeight = 600.0;
 
     private const double ContentDelayMs = 40.0;
-    
+
     public const double DefaultScrimOpacity = 0.15;
-    
+
     public static readonly SolidColorBrush ScrimBrush = new(Color.Parse("#000000"));
     public static readonly TimeSpan ContentDelay = TimeSpan.FromMilliseconds(ContentDelayMs);
-    
+
     public const bool DefaultIsDismissableOnScrimClick = true;
 }

@@ -17,7 +17,7 @@ public sealed class LanguageDetectionHandler
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
 
     public LanguageDetectionHandler(
-        ILocalizationService localizationService, 
+        ILocalizationService localizationService,
         IBottomSheetEvents bottomSheetEvents,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider)
@@ -60,7 +60,7 @@ public sealed class LanguageDetectionHandler
             Log.Error(ex, "Error handling LanguageDetectionDialogEvent");
         }
     }
-    
+
     private async Task SaveLanguageSettingsAsync(string? cultureName)
     {
         try

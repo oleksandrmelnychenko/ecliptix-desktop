@@ -70,7 +70,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private int _outageState;
     private readonly Lock _outageLock = new();
     private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
-    
+
     private SystemState _currentSystemState = SystemState.Running;
 
     private static TaskCompletionSource<bool> CreateOutageTcs() =>
@@ -118,18 +118,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     //TODO test logic if okay Vitalik 8 15 2025
     private readonly Lock _appInstanceSetterLock = new();
-    
+
     public void SetCountry(string country)
     {
         lock (_appInstanceSetterLock)
         {
-            if (_applicationInstanceSettings.Value != null) 
+            if (_applicationInstanceSettings.Value != null)
                 _applicationInstanceSettings.Value.Country = country;
         }
     }
-    
+
     // TODO test logic if okay Vitalik 8 15 2025
-    
+
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 
@@ -449,7 +449,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task<Result<Unit, NetworkFailure>> PerformAdvancedRecoveryLogic()
     {
         Log.Information("🔄 RECOVERY: Starting advanced recovery logic");
-        
+
         if (!_applicationInstanceSettings.HasValue)
         {
             return Result<Unit, NetworkFailure>.Err(
@@ -1096,7 +1096,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         // Update system state to Recovering
         _currentSystemState = SystemState.Recovering;
-        
+
         Log.Warning("Server appears unavailable/shutdown (ConnectId: {ConnectId}). Entering recovery mode: {Reason}",
             connectId, reason);
 
@@ -1105,7 +1105,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown)
             );
-            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Recovering, 
+            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Recovering,
                 $"Entering recovery mode: {reason}"));
         });
 
@@ -1127,13 +1127,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         // Update system state to Running
         _currentSystemState = SystemState.Running;
-        
+
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRestored)
             );
-            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running, 
+            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running,
                 "Recovery completed, resuming normal operations"));
         });
 
@@ -1155,13 +1155,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (_retryStrategy.HasExhaustedOperations())
                 {
                     Log.Information("🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
-                    
+
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _networkEvents.InitiateChangeState(
                             NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
                     });
-                    
+
                     return;
                 }
 
@@ -1192,7 +1192,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         catch (Exception ex)
         {
             Log.Error(ex, "Error in server shutdown recovery loop");
-            
+
             // Ensure we still show the retry button if recovery fails due to exhaustion
             if (_retryStrategy.HasExhaustedOperations())
             {
@@ -1747,25 +1747,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public async Task<Result<Unit, NetworkFailure>> ForceFreshConnectionAsync()
     {
         Log.Information("Manual retry requested. Forcing immediate fresh protocol establishment");
-        
+
         // Clear exhausted operations to allow fresh retry
         _retryStrategy.ClearExhaustedOperations();
-        
+
         // First attempt: Try immediate RestoreSecrecyChannel without retry strategy delays
         Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic();
-        
+
         if (immediateResult.IsOk)
         {
             Log.Information("🔄 MANUAL RETRY SUCCESS: Immediate RestoreSecrecyChannel succeeded");
             return immediateResult;
         }
-        
+
         Log.Information("🔄 MANUAL RETRY: Immediate attempt failed, falling back to advanced recovery logic");
-        
+
         // Fallback: Use the full recovery logic with retry strategy
         // Since we cleared exhausted operations, this should now proceed
         Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync();
-        
+
         return result;
     }
 
@@ -1791,7 +1791,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 byte[] stateBytes = stateResult.Unwrap();
                 EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
-                
+
                 // Use manual retry method to bypass exhaustion checks  
                 Result<bool, NetworkFailure> restoreResult =
                     await RestoreSecrecyChannelForManualRetryAsync(state, _applicationInstanceSettings.Value!);
@@ -1906,18 +1906,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             byte[] stateBytes = stateResult.Unwrap();
             EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
-            
+
             // Call RestoreSecrecyChannelAsync directly without retry strategy
             Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelDirectAsync(state, _applicationInstanceSettings.Value!);
-            
+
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
                 Log.Information("🔄 IMMEDIATE RECOVERY: Successfully restored connection state for {ConnectId}", connectId);
-                
+
                 ExitOutage();
                 ResetRetryStrategyAfterOutage();
                 await RetryPendingRequestsAfterRecovery().ConfigureAwait(false);
-                
+
                 return Result<Unit, NetworkFailure>.Ok(Unit.Value);
             }
             else
@@ -1971,7 +1971,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Log.Information("🔄 DIRECT RESTORE: Protocol sync failed: {Error}", syncResult.UnwrapErr().Message);
                     return Result<bool, NetworkFailure>.Err(syncResult.UnwrapErr().ToNetworkFailure());
                 }
-                
+
                 Log.Information("🔄 DIRECT RESTORE: Session resumed and synced successfully");
                 return Result<bool, NetworkFailure>.Ok(true);
             }

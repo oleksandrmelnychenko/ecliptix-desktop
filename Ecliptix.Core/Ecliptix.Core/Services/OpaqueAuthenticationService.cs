@@ -140,7 +140,7 @@ public class OpaqueAuthenticationService(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
-        
+
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,

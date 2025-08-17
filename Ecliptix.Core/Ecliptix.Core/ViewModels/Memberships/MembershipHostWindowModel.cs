@@ -120,13 +120,13 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
 
         // Initialize the operation queue
         // Operation queue removed - retry handled by Polly
-        
+
         // Use the injected NetworkStatusNotification
         NetworkStatusNotification = networkStatusNotification;
-        
+
         // Add to disposables for cleanup
         _disposables.Add(NetworkStatusNotification);
-        
+
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
         BuildInfo = buildInfo?.BuildNumber ?? "dev";
@@ -135,7 +135,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
             Log.Information("Network status changed to: {Status}", status);
-            
+
             if (status)
             {
                 _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
@@ -145,7 +145,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
                 _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
             }
         });
-        
+
         Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
             Router.Navigate.Execute(GetOrCreateViewModelForView(viewType)));
 
@@ -164,16 +164,16 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
 
         this.WhenActivated(disposables =>
         {
-            
+
             _networkEvents.ManualRetryRequested
                 .SelectMany(async e =>
                 {
                     Log.Information("🔄 MANUAL RETRY: Starting immediate RestoreSecrecyChannel attempt");
-                    
+
                     // Start RestoreSecrecyChannel immediately when retry is clicked
-                    Result<Utilities.Unit, NetworkFailure> recoveryResult = 
+                    Result<Utilities.Unit, NetworkFailure> recoveryResult =
                         await _networkProvider.ForceFreshConnectionAsync();
-            
+
                     if (recoveryResult.IsOk)
                     {
                         Log.Information("🔄 MANUAL RETRY: RestoreSecrecyChannel succeeded - connection restored");
@@ -184,7 +184,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
                     {
                         Log.Warning("🔄 MANUAL RETRY: RestoreSecrecyChannel failed: {Error}", recoveryResult.UnwrapErr().Message);
                     }
-                    
+
                     return Unit.Default;
                 })
                 .Subscribe()
@@ -205,7 +205,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> appSettings =
             await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
-        
+
 
         if (appSettings.IsOk)
         {
@@ -213,7 +213,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
             if (!string.IsNullOrEmpty(applicationInstanceSettings.Country) && applicationInstanceSettings.IsNewInstance)
             {
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
-                
+
                 string expectedCulture =
                     SupportedCountries.GetValueOrDefault(applicationInstanceSettings.Country, "en-US");
 
@@ -263,8 +263,8 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
 
         base.Dispose(disposing);
     }
-    
-    public void Dispose()
+
+    public new void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);

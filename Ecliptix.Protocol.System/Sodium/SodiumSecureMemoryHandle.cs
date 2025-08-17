@@ -20,7 +20,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         SetHandle(preexistingHandle);
         Length = length;
         _isLocked = false;
-        
+
         // Attempt to lock the memory to prevent swapping to disk
         if (length > 0 && preexistingHandle != IntPtr.Zero)
         {
@@ -67,9 +67,9 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
     public Result<Unit, SodiumFailure> Write(ReadOnlySpan<byte> data)
     {
         _lock.EnterWriteLock();
-        
+
         bool success = false;
-        
+
         try
         {
             if (IsInvalid || IsClosed)
@@ -255,7 +255,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                     _isLocked = true;
                 }
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 if (mlock(handle, (UIntPtr)Length) == 0)
@@ -281,7 +281,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
             {
                 VirtualUnlock(handle, (UIntPtr)Length);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || 
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 munlock(handle, (UIntPtr)Length);

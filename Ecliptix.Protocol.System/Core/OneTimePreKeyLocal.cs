@@ -18,7 +18,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
         PrivateKeyHandle = privateKeyHandle;
         PublicKey = publicKey;
     }
-    
+
     public static OneTimePreKeyLocal CreateFromParts(uint preKeyId, SodiumSecureMemoryHandle privateKeyHandle,
         byte[] publicKey)
     {

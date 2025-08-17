@@ -39,7 +39,7 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
     {
         if (_handlersAttached)
             return;
-        
+
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
             passwordBox.SecureKeyCharactersAdded += OnPasswordCharactersAdded;
@@ -57,7 +57,7 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
     {
         if (!_handlersAttached)
             return;
-        
+
         if (this.FindControl<HintedTextBox>("PasswordTextBox") is HintedTextBox passwordBox)
         {
             passwordBox.SecureKeyCharactersAdded -= OnPasswordCharactersAdded;
@@ -91,7 +91,7 @@ public partial class PasswordConfirmationView : ReactiveUserControl<PasswordConf
         vm.InsertVerifyPasswordChars(e.Index, e.Characters);
         tb.SyncSecureKeyState(vm.CurrentVerifyPasswordLength);
     }
-    
+
     private void OnVerifyPasswordCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
         if (DataContext is not PasswordConfirmationViewModel vm || sender is not HintedTextBox tb) return;

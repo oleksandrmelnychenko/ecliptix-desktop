@@ -135,7 +135,7 @@ public static class AesGcmService
         ReadOnlySpan<byte> associatedData,
         Func<ReadOnlySpan<byte>, ReadOnlySpan<byte>, TResult> operation)
     {
-        if (key.Length != Constants.AesKeySize) 
+        if (key.Length != Constants.AesKeySize)
             return Result<TResult, ProtocolChainStepException>.Err(
                 new ProtocolChainStepException(ErrInvalidKeyLength));
         if (nonce.Length != Constants.AesGcmNonceSize)
@@ -157,10 +157,10 @@ public static class AesGcmService
                 {
                     var ciphertextSpan = buffers[0].GetSpan().Slice(0, plaintextLength);
                     var tagSpan = buffers[1].GetSpan().Slice(0, Constants.AesGcmTagSize);
-                    
+
                     using AesGcm aesGcm = new(keyArray, Constants.AesGcmTagSize);
                     aesGcm.Encrypt(nonceArray, plaintextArray, ciphertextSpan, tagSpan, associatedDataArray);
-                    
+
                     return Result<TResult, ProtocolChainStepException>.Ok(
                         operation(ciphertextSpan, tagSpan));
                 });
@@ -200,9 +200,9 @@ public static class AesGcmService
     {
         using var ciphertextMemory = ScopedSecureMemory.Allocate(plaintext.Length);
         using var tagMemory = ScopedSecureMemory.Allocate(Constants.AesGcmTagSize);
-        
+
         Encrypt(key, nonce, plaintext, ciphertextMemory.AsSpan(), tagMemory.AsSpan(), associatedData);
-        
+
         // Note: We have to copy to regular arrays for the return value
         // This breaks the secure memory chain but maintains API compatibility
         return (ciphertextMemory.AsSpan().ToArray(), tagMemory.AsSpan().ToArray());
@@ -247,7 +247,7 @@ public static class AesGcmService
                 {
                     using AesGcm aesGcm = new(keyArray, Constants.AesGcmTagSize);
                     aesGcm.Decrypt(nonceArray, ciphertextArray, tagArray, plaintextSpan, associatedDataArray);
-                    
+
                     return Result<TResult, ProtocolChainStepException>.Ok(
                         operation(plaintextSpan));
                 });
@@ -294,7 +294,7 @@ public static class AesGcmService
     {
         using var plaintextMemory = ScopedSecureMemory.Allocate(ciphertext.Length);
         Decrypt(key, nonce, ciphertext, tag, plaintextMemory.AsSpan(), associatedData);
-        
+
         // Note: We have to copy to regular array for the return value
         // This breaks the secure memory chain but maintains API compatibility
         return plaintextMemory.AsSpan().ToArray();

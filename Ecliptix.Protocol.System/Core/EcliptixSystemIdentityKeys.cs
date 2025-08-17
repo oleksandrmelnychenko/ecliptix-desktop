@@ -63,12 +63,13 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
             List<OneTimePreKeySecret> opkProtos = [];
             opkProtos.AddRange(from opk in _oneTimePreKeysInternal
-                let opkSkBytes = opk.PrivateKeyHandle.ReadBytes(Constants.X25519PrivateKeySize).Unwrap()
-                select new OneTimePreKeySecret
-                {
-                    PreKeyId = opk.PreKeyId, PrivateKey = ByteString.CopyFrom(opkSkBytes),
-                    PublicKey = ByteString.CopyFrom(opk.PublicKey)
-                });
+                               let opkSkBytes = opk.PrivateKeyHandle.ReadBytes(Constants.X25519PrivateKeySize).Unwrap()
+                               select new OneTimePreKeySecret
+                               {
+                                   PreKeyId = opk.PreKeyId,
+                                   PrivateKey = ByteString.CopyFrom(opkSkBytes),
+                                   PublicKey = ByteString.CopyFrom(opk.PublicKey)
+                               });
 
             IdentityKeysState proto = new()
             {
@@ -182,14 +183,14 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(edKeys =>
                     {
                         (edSkHandle, edPk) = edKeys;
-                       
+
                         // Removed debug logging of private key generation for security
                         return GenerateX25519IdentityKeys();
                     })
                     .Bind(idKeys =>
                     {
                         (idXSkHandle, idXPk) = idKeys;
-                       
+
                         // Removed debug logging of identity key generation for security
                         spkId = GenerateRandomUInt32();
                         return GenerateX25519SignedPreKey(spkId);
@@ -197,7 +198,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     .Bind(spkKeys =>
                     {
                         (spkSkHandle, spkPk) = spkKeys;
-                     
+
                         // Removed debug logging of signed prekey generation for security
                         return SignSignedPreKey(edSkHandle!, spkPk!);
                     })
@@ -342,7 +343,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 }
 
                 OneTimePreKeyLocal opk = opkResult.Unwrap();
-               
+
                 // Removed debug logging of one-time prekey generation for security
                 opks.Add(opk);
             }
@@ -405,7 +406,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             {
                 _ephemeralSecretKeyHandle = keys.skHandle;
                 _ephemeralX25519PublicKey = keys.pk;
-               
+
                 // Removed debug logging of ephemeral key generation for security
             },
             _ =>
@@ -472,12 +473,12 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     var dh1 = ScalarMult.Mult(ephemeralSecretSpan.ToArray(), remoteBundle.IdentityX25519);
                     var dh2 = ScalarMult.Mult(ephemeralSecretSpan.ToArray(), remoteBundle.SignedPreKeyPublic);
                     var dh3 = ScalarMult.Mult(identitySecretSpan.ToArray(), remoteBundle.SignedPreKeyPublic);
-                    
+
                     Console.WriteLine($"[DESKTOP] X3DH AS INITIATOR:");
                     Console.WriteLine($"  DH1 (Eph * RemoteId): {Convert.ToHexString(dh1)}");
                     Console.WriteLine($"  DH2 (Eph * RemoteSpk): {Convert.ToHexString(dh2)}");
                     Console.WriteLine($"  DH3 (Id * RemoteSpk): {Convert.ToHexString(dh3)}");
-                    
+
                     int dhOffset = 0;
                     dh1.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                     dhOffset += Constants.X25519KeySize;
@@ -577,7 +578,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             // Use secure memory for all DH operations
             int totalDhLength = Constants.X25519KeySize * 3 + (opkSecretHandle != null ? Constants.X25519KeySize : 0);
             return SecureMemoryUtils.WithSecureBuffers(
-                new[] { Constants.X25519PrivateKeySize, Constants.X25519PrivateKeySize, Constants.X25519PrivateKeySize, 
+                new[] { Constants.X25519PrivateKeySize, Constants.X25519PrivateKeySize, Constants.X25519PrivateKeySize,
                         Constants.X25519KeySize * 4, Constants.X25519KeySize + totalDhLength, Constants.X25519KeySize },
                 buffers =>
                 {
@@ -619,12 +620,12 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     var dh1 = ScalarMult.Mult(identitySecretSpan.ToArray(), remoteEphemeralArray);
                     var dh2 = ScalarMult.Mult(signedPreKeySecretSpan.ToArray(), remoteEphemeralArray);
                     var dh3 = ScalarMult.Mult(signedPreKeySecretSpan.ToArray(), remoteIdentityArray);
-                    
+
                     Console.WriteLine($"[DESKTOP] X3DH AS RECIPIENT:");
                     Console.WriteLine($"  DH1 (Id * RemoteEph): {Convert.ToHexString(dh1)}");
                     Console.WriteLine($"  DH2 (Spk * RemoteEph): {Convert.ToHexString(dh2)}");
                     Console.WriteLine($"  DH3 (Spk * RemoteId): {Convert.ToHexString(dh3)}");
-                    
+
                     int dhOffset = 0;
                     dh1.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                     dhOffset += Constants.X25519KeySize;

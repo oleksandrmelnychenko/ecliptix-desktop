@@ -14,15 +14,15 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
     private bool _showScrim;
-    
+
     private UserControl? _content;
-   
+
     public UserControl? Content
     {
         get => _content;
         set => this.RaiseAndSetIfChanged(ref _content, value);
     }
-    
+
     public bool ShowScrim
     {
         get => _showScrim;
@@ -80,7 +80,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                 .Subscribe(eventArgs =>
                 {
                     bool shouldBeVisible = eventArgs.Control != null;
-            
+
                     if (shouldBeVisible)
                     {
                         if (_content != eventArgs.Control)
@@ -88,7 +88,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                             Content = eventArgs.Control;
                         }
                     }
-            
+
                     if (_isVisible != shouldBeVisible)
                     {
                         IsVisible = shouldBeVisible;
@@ -109,6 +109,6 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                 .DisposeWith(disposables);
         });
     }
-    
-    
+
+
 }

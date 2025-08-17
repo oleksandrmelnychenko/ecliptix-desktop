@@ -393,7 +393,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         // Security: Never log cryptographic keys
         if (newDhPublicKey != null)
             Console.WriteLine($"[DESKTOP] New DH public key provided (hidden for security)");
-        
+
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value)
             .Bind(_ => CheckDisposed())
             .Bind(_ => ValidateNewChainKey(newChainKey))
@@ -423,7 +423,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
     private Result<Unit, EcliptixProtocolFailure> HandleDhKeyUpdate(byte[]? newDhPrivateKey, byte[]? newDhPublicKey)
     {
         _messageKeys.Clear();
-        
+
         if (newDhPrivateKey == null && newDhPublicKey == null) return OkResult;
 
         return ValidateAll(
@@ -437,7 +437,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                     .MapSodiumFailure()
                     .Bind(handle => handle.Write(newDhPrivateKey!.AsSpan())
                         .MapSodiumFailure()
-                        .Map(_ => handle) 
+                        .Map(_ => handle)
                         .MapErr(err =>
                         {
                             handle.Dispose();

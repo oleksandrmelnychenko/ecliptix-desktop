@@ -18,12 +18,12 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
     private static class ResourceKeys
     {
         public const string ButtonHeight = nameof(ButtonHeight);
-        public const string TitleFontSize = nameof(TitleFontSize); 
+        public const string TitleFontSize = nameof(TitleFontSize);
         public const string SubtitleFontSize = nameof(SubtitleFontSize);
         public const string ButtonTransitionDuration = nameof(ButtonTransitionDuration);
     }
 
-    private static readonly FrozenDictionary<string, object> PrecompiledResources = 
+    private static readonly FrozenDictionary<string, object> PrecompiledResources =
         new Dictionary<string, object>
         {
             [ResourceKeys.ButtonHeight] = 44.0,

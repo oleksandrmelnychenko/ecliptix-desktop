@@ -29,10 +29,10 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         IDataProtectionProvider dataProtectionProvider)
     {
         SecureStoreOptions opts = options.Value;
-       
+
         _storagePath = opts.EncryptedStatePath;
         _protector = dataProtectionProvider.CreateProtector("Ecliptix.SecureStorage.v1");
-        
+
         InitializeStorageDirectory();
     }
 
@@ -80,7 +80,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membership;
-        
+
         return await StoreAsync(SettingsKey, settings.ToByteArray());
     }
 

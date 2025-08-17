@@ -16,7 +16,7 @@ public record NetworkFailure(
             Timestamp
         };
     }
-    
+
     public static NetworkFailure InvalidRequestType(string details, Exception? inner = null) =>
         new(NetworkFailureType.InvalidRequestType, details, inner);
 
@@ -25,6 +25,6 @@ public record NetworkFailure(
 
     public static NetworkFailure DataCenterShutdown(string details, Exception? inner = null) =>
         new(NetworkFailureType.DataCenterShutdown, details, inner);
-    
-    
+
+
 }

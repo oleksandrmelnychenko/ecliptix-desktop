@@ -567,7 +567,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             string output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 
-            return output.Trim() == "1"; 
+            return output.Trim() == "1";
         }
         catch
         {

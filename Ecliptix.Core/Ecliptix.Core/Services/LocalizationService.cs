@@ -26,10 +26,10 @@ public sealed class LocalizationService : ILocalizationService
     public LocalizationService(DefaultSystemSettings defaultSystemSettings)
     {
         string? defaultCultureName = defaultSystemSettings.Culture;
-        
+
         _currentCultureInfo = CreateCultureInfo(defaultCultureName);
         _defaultLanguageStrings = LocalizationData.EnglishStrings;
-        
+
         _currentLanguageStrings = GetLanguageStrings(defaultCultureName) ?? _defaultLanguageStrings;
     }
 
@@ -44,12 +44,12 @@ public sealed class LocalizationService : ILocalizationService
             return CultureInfo.GetCultureInfo("en-US");
         }
     }
-    
+
     private static FrozenDictionary<string, string>? GetLanguageStrings(string? cultureName)
     {
         if (string.IsNullOrEmpty(cultureName))
             return null;
-            
+
         return LocalizationData.AllLanguages.TryGetValue(cultureName, out var strings) ? strings : null;
     }
 
@@ -136,8 +136,8 @@ public sealed class LocalizationService : ILocalizationService
     {
         if (Dispatcher.UIThread.CheckAccess())
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));    
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]")); 
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item"));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Item[]"));
         }
         else
         {

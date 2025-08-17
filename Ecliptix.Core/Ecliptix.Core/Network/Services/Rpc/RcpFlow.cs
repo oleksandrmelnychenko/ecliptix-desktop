@@ -16,7 +16,8 @@ public abstract class RpcFlow
     {
         async IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> EmptyStream()
         {
-            yield break; 
+            await Task.CompletedTask; // Satisfy async requirement
+            yield break;
         }
 
         return new InboundStream(EmptyStream());

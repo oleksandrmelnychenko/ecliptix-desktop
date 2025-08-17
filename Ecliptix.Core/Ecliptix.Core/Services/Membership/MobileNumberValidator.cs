@@ -29,7 +29,7 @@ public static partial class MobileNumberValidator
                     string formatString = localizationService[errorMessageKey];
                     return string.Format(formatString, MinDigits, MaxDigits);
                 }
-                
+
                 return localizationService[errorMessageKey];
             }
         }

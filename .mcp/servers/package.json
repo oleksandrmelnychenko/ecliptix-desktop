@@ -1,0 +1,17 @@
+{
+  "name": "ecliptix-mcp-servers",
+  "version": "1.0.0",
+  "description": "MCP servers for Ecliptix Desktop development",
+  "type": "module",
+  "scripts": {
+    "start:ecliptix": "node ecliptix-dev.js",
+    "start:dotnet": "node dotnet-project.js",
+    "start:security": "node security-protocol.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

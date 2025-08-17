@@ -22,10 +22,10 @@ public record ValidationFailure(
             Timestamp
         };
     }
-    
+
     public static ValidationFailure SignInFailed(string details, Exception? inner = null) =>
         new(ValidationFailureType.SignInFailed, details, inner);
-    
+
     public static ValidationFailure LoginAttemptExceeded(string details, Exception? inner = null) =>
         new(ValidationFailureType.LoginAttemptExceeded, details, inner);
 }

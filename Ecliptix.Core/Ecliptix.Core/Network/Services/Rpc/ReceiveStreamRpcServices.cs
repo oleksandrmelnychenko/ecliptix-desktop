@@ -43,23 +43,23 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
             try
             {
                 Result<RpcFlow, NetworkFailure> result = handler(request.Payload, token);
-                    
+
                 if (result.IsOk)
                 {
-                    Log.Debug("Stream service {ServiceMethod} processed successfully for req_id: {ReqId}", 
+                    Log.Debug("Stream service {ServiceMethod} processed successfully for req_id: {ReqId}",
                         request.RpcServiceMethod, request.ReqId);
                 }
                 else
                 {
-                    Log.Warning("Stream service {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}", 
+                    Log.Warning("Stream service {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}",
                         request.RpcServiceMethod, request.ReqId, result.UnwrapErr().Message);
                 }
-                    
+
                 return Task.FromResult(result);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Stream service {ServiceMethod} threw exception for req_id: {ReqId}", 
+                Log.Error(ex, "Stream service {ServiceMethod} threw exception for req_id: {ReqId}",
                     request.RpcServiceMethod, request.ReqId);
                 return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding(ex.Message, ex)
@@ -67,7 +67,7 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
             }
         }
 
-        Log.Warning("Unsupported stream service method: {ServiceMethod} for req_id: {ReqId}", 
+        Log.Warning("Unsupported stream service method: {ServiceMethod} for req_id: {ReqId}",
             request.RpcServiceMethod, request.ReqId);
         return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(
             NetworkFailure.InvalidRequestType("Unsupported service method")
@@ -80,14 +80,15 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         try
         {
             Log.Debug("Initiating verification stream with payload size: {PayloadSize}", payload?.Cipher?.Length ?? 0);
-                
+
             AsyncServerStreamingCall<CipherPayload> streamingCall =
                 _authenticationServicesClient.InitiateVerification(payload, cancellationToken: token);
 
             IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> stream =
                 streamingCall.ResponseStream.ReadAllAsync(token)
                     .ToObservable()
-                    .Select(response => {
+                    .Select(response =>
+                    {
                         Log.Debug("Received stream response with size: {ResponseSize}", response?.Cipher?.Length ?? 0);
                         return Result<CipherPayload, NetworkFailure>.Ok(response);
                     })

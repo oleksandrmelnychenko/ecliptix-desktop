@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Views.Memberships.SignIn;
 public partial class SignInView : ReactiveUserControl<SignInViewModel>
 {
     private const string SecureKeyTextBoxControlName = "SecureKeyTextBox";
-    
+
     private bool _handlersAttached;
 
     public SignInView()
@@ -69,13 +69,13 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         vm.RemoveSecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
-    
+
     private void OnSecureKeyBoxKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return) return;
-        
+
         if (DataContext is not SignInViewModel vm) return;
-        
+
         vm.HandleEnterKeyPress();
         e.Handled = true;
     }

@@ -48,7 +48,7 @@ public static partial class SecureKeyValidator
             (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
             (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
             (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null),
-            (s => !HasSpecialCharRegex.IsMatch(s), "ValidationErrors.SecureKey.NoSpecialChar", null) 
+            (s => !HasSpecialCharRegex.IsMatch(s), "ValidationErrors.SecureKey.NoSpecialChar", null)
         ];
 
         List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> recommendationRules =

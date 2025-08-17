@@ -30,7 +30,7 @@ public class InternalServiceApiFailure
     {
         return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreKeyNotFound, details, inner);
     }
-    
+
     public static InternalServiceApiFailure ApiRequestFailed(string details, Exception? inner = null)
     {
         return new InternalServiceApiFailure(InternalServiceApiFailureType.ApiRequestFailed, details, inner);

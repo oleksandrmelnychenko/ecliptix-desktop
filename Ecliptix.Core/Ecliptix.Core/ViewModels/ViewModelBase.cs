@@ -57,9 +57,9 @@ public abstract class ViewModelBase
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
 
-    protected Membership Membership() => 
+    protected Membership Membership() =>
         NetworkProvider.ApplicationInstanceSettings.Membership;
-    
+
     protected string Culture() =>
         NetworkProvider.ApplicationInstanceSettings.Culture;
 
@@ -83,5 +83,5 @@ public abstract class ViewModelBase
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-    
+
 }

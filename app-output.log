@@ -1,0 +1,37 @@
+[DESKTOP] BeginDataCenterPubKeyExchange - ConnectId: 3980366264
+[DESKTOP] Client bundle created (keys hidden for security)
+[DESKTOP] Initial DH key exchange prepared
+[DESKTOP] CompleteDataCenterPubKeyExchange - State: Pending
+[DESKTOP] Server bundle received (keys hidden for security)
+[DESKTOP] Server Initial DH received (hidden for security)
+[DESKTOP] X3DH AS INITIATOR:
+  DH1 (Eph * RemoteId): 6EC944DFF79A8114626AA1531A22199BB955A98E4E6DE1D7548BC2B7BF68AE7C
+  DH2 (Eph * RemoteSpk): B30F12C078308A3770A69DF25602B69E81CD5FAC8CDFC2E8B93113BDEB7BCC3F
+  DH3 (Id * RemoteSpk): 2EC883539F0A2FDC9A8AD2626EB5A17018D9C050618AA882101BCA35C948E37F
+[DESKTOP] Root key established (hidden for security)
+[DESKTOP] Calling FinalizeChainAndDhKeys
+[DESKTOP] DeriveInitialChainKeys (keys hidden for security)
+[DESKTOP] HKDF key derivation completed (keys hidden for security)
+[DESKTOP] Is Initiator: True
+[DESKTOP] As initiator - Chain keys established (hidden for security)
+[DESKTOP] Updating sender chain keys after DH ratchet
+[DESKTOP] UpdateKeysAfterDhRatchet called for Sender
+[DESKTOP] UpdateKeysAfterDhRatchet completed for Sender
+[DESKTOP] Creating receiver step with new chain key
+[DESKTOP] FinalizeChainAndDhKeys completed
+[DESKTOP] ProduceOutboundMessage - Payload size: 38
+[DESKTOP] ProduceOutboundMessage - Payload content: 0A103EBBAAA6BA6B42ECB462F1AF928684D31210A180728D54824077BEE00B7E620B7DEE1801
+[DESKTOP] Starting key derivation for Sender from index 1 to 1
+[DESKTOP] Derived message key for Sender index 1 (hidden for security)
+[DESKTOP] Using message key index: 1
+[DESKTOP] CreateAssociatedData - First: 8808CF97F9BAD3D4F94BF97DA6536577873B3C4AA033DD6AAF1D768049B0A20D, Second: 87EBCE29231417391D43F27871980013BD755A247B07B39C6DA9F80796606736
+[DESKTOP] CreateAssociatedData - Full AD: 8808CF97F9BAD3D4F94BF97DA6536577873B3C4AA033DD6AAF1D768049B0A20D87EBCE29231417391D43F27871980013BD755A247B07B39C6DA9F80796606736
+[DESKTOP] Encrypt - Nonce: B026B96BB186EE9800000000, Size: 38 bytes
+[DESKTOP] Encrypt - Ciphertext: 6E9270E668C05647D5E5A4F8E4EBE1D880827DAB5F1AE3A07F59E950282B3E203D1F8E0C9C29F53B57E14815C07E47A0D1E5388431BF
+[DESKTOP] Encrypted message - Nonce: B026B96BB186EE9800000000, RatchetIndex: 1, CipherSize: 54
+[DESKTOP] ProcessInboundMessage - Nonce: 6F0371F3C3A59A4000000000, RatchetIndex: 1, CipherSize: 71
+[DESKTOP] Starting key derivation for Receiver from index 1 to 1
+[DESKTOP] Derived message key for Receiver index 1 (hidden for security)
+[DESKTOP] CreateAssociatedData - First: 8808CF97F9BAD3D4F94BF97DA6536577873B3C4AA033DD6AAF1D768049B0A20D, Second: 87EBCE29231417391D43F27871980013BD755A247B07B39C6DA9F80796606736
+[DESKTOP] CreateAssociatedData - Full AD: 8808CF97F9BAD3D4F94BF97DA6536577873B3C4AA033DD6AAF1D768049B0A20D87EBCE29231417391D43F27871980013BD755A247B07B39C6DA9F80796606736
+Failed to load icon: Unable to load bitmap from provided data

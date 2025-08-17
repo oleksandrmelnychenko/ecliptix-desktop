@@ -115,15 +115,15 @@ public sealed class SecureMemoryBuffer : IDisposable
         _pool = pool;
         _requestedSize = requestedSize;
         _allocatedSize = allocatedSize;
-        
+
         var result = SodiumSecureMemoryHandle.Allocate(allocatedSize);
         if (result.IsErr)
             throw new InvalidOperationException($"Failed to allocate secure memory: {result.UnwrapErr()}");
-        
+
         _handle = result.Unwrap();
     }
-    
-    internal SecureMemoryBuffer(int size, SecureMemoryPool? pool = null) 
+
+    internal SecureMemoryBuffer(int size, SecureMemoryPool? pool = null)
         : this(size, size, pool)
     {
     }
@@ -231,16 +231,16 @@ public static class SecureMemoryUtils
         where TError : class
     {
         using var buffer = DefaultPool.Rent(size);
-        
+
         // Get the full allocated buffer to ensure we can wipe it all
         byte[] fullBuffer = new byte[buffer.AllocatedSize];
         var readResult = buffer.Read(fullBuffer);
         if (readResult.IsErr)
             throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
-        
+
         // Only use the requested portion for the operation
         var span = fullBuffer.AsSpan(0, size);
-        
+
         try
         {
             return operation(span);

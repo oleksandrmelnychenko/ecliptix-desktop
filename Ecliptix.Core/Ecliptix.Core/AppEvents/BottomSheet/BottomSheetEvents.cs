@@ -29,7 +29,8 @@ public record BottomSheetChangedEvent
     }
 
     public static BottomSheetChangedEvent
-        New(BottomSheetComponentType componentType, bool showScrim = true, UserControl? userControl = null) {
+        New(BottomSheetComponentType componentType, bool showScrim = true, UserControl? userControl = null)
+    {
         return new(componentType, showScrim, userControl);
     }
 }
@@ -43,7 +44,7 @@ public sealed class BottomSheetEvents
     private readonly ISystemEvents _systemEvents;
     private readonly NetworkProvider _networkProvider;
     private readonly Func<UserControl> _languageDetectionModalFactory;
-    
+
     public BottomSheetEvents(
         IEventAggregator aggregator,
         ILocalizationService localizationService,
@@ -73,13 +74,13 @@ public sealed class BottomSheetEvents
 
     public IObservable<BottomSheetChangedEvent> BottomSheetChanged { get; }
     public IObservable<LanguageDetectionDialogEvent> LanguageDetectionRequested { get; }
-    
+
 
     public void Invoke(LanguageDetectionDialogEvent languageDetectionEvent)
     {
         _aggregator.Publish(languageDetectionEvent);
     }
-    
+
     public void BottomSheetChangedState(BottomSheetChangedEvent message)
     {
         Log.Information("BottomSheetChangedState called with ComponentType={ComponentType}, ShowScrim={ShowScrim}, Control={@Control}",
@@ -87,7 +88,7 @@ public sealed class BottomSheetEvents
         UserControl? userControl = message.Control ?? GetBottomSheetControl(message.ComponentType);
         _aggregator.Publish(BottomSheetChangedEvent.New(message.ComponentType, message.ShowScrim, userControl));
     }
-    
+
     private UserControl? GetBottomSheetControl(BottomSheetComponentType componentType)
     {
         return componentType switch

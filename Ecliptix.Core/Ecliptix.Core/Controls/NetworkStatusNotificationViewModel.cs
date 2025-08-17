@@ -100,8 +100,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
             {
-                NetworkStatus.RetriesExhausted or 
-                NetworkStatus.DataCenterDisconnected or 
+                NetworkStatus.RetriesExhausted or
+                NetworkStatus.DataCenterDisconnected or
                 NetworkStatus.DataCenterConnecting or
                 NetworkStatus.ServerShutdown => NetworkConnectionState.ServerNotResponding,
                 _ => NetworkConnectionState.NoInternet
@@ -163,8 +163,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => Observable.Return(true)
                     .Delay(TimeSpan.FromMilliseconds(2000))
                     .Select(_ => false),
-                NetworkStatus.RetriesExhausted or 
-                NetworkStatus.DataCenterDisconnected or 
+                NetworkStatus.RetriesExhausted or
+                NetworkStatus.DataCenterDisconnected or
                 NetworkStatus.ServerShutdown => Observable.Return(true),
                 NetworkStatus.DataCenterConnecting => Observable.Empty<bool>(),
                 _ => Observable.Return(false)
@@ -181,13 +181,14 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler);
 
         RetryCommand = ReactiveCommand.CreateFromTask(
-            async ct => {
+            async ct =>
+            {
                 try
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
-                    
+
                     networkEvents.RequestManualRetry(ManualRetryRequestedEvent.New());
-                    
+
                     int retriedCount = await pendingRequestManager.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
                 }
@@ -201,7 +202,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         networkStatusEvents
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(evt => 
+            .Subscribe(evt =>
             {
                 Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", evt.State);
                 HandleNetworkStatusVisualEffects(evt);
@@ -234,7 +235,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         if (serverIssue) _mainBorder.Classes.Add("CircuitOpen");
         else _mainBorder.Classes.Remove("CircuitOpen");
-        
+
         _mainBorder.Classes.Remove("Retrying");
     }
 

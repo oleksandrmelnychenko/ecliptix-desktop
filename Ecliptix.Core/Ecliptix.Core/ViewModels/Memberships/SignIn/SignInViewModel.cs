@@ -149,7 +149,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
-        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage, 
+        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
@@ -221,7 +221,7 @@ public sealed class SignInViewModel : ViewModelBase, IRoutableViewModel, IDispos
         base.Dispose(disposing);
         _isDisposed = true;
     }
-    
+
     public async void HandleEnterKeyPress()
     {
         if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())

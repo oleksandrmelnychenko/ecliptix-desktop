@@ -24,7 +24,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     public ViewModelActivator Activator { get; } = new();
 
     private static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = LanguageConfiguration.LanguageCodeMap;
-        
+
     public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
         new(LanguageCodeMap.Values);
 
@@ -55,9 +55,9 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
 
     private static LanguageItem? GetLanguageByCode(string cultureCode) =>
         LanguageConfiguration.GetLanguageByCode(cultureCode);
-    
+
     private static readonly FrozenDictionary<string, int> LanguageIndexMap = LanguageConfiguration.LanguageIndexMap;
-        
+
     private static int GetLanguageIndex(string cultureCode) =>
         LanguageConfiguration.GetLanguageIndex(cultureCode);
 

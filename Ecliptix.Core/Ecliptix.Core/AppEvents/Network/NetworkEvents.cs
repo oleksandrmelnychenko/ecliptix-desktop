@@ -26,7 +26,7 @@ public record ManualRetryRequestedEvent
         RequestedAt = requestedAt;
     }
 
-    public static ManualRetryRequestedEvent New(uint? connectId = null) => 
+    public static ManualRetryRequestedEvent New(uint? connectId = null) =>
         new(connectId, DateTime.UtcNow);
 }
 
@@ -39,17 +39,17 @@ public class NetworkEvents(IEventAggregator aggregator) : INetworkEvents
 
     public IObservable<ManualRetryRequestedEvent> ManualRetryRequested =>
         aggregator.GetEvent<ManualRetryRequestedEvent>();
-    
+
     public void InitiateChangeState(NetworkStatusChangedEvent message)
     {
         // Only skip if we have the same state as before
-        if (_currentState.HasValue && _currentState.Value == message.State) 
+        if (_currentState.HasValue && _currentState.Value == message.State)
             return;
-        
+
         _currentState = Option<NetworkStatus>.Some(message.State);
         aggregator.Publish(message);
     }
-    
+
     public void RequestManualRetry(ManualRetryRequestedEvent message)
     {
         aggregator.Publish(message);

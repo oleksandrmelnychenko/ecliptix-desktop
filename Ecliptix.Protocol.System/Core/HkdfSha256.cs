@@ -76,7 +76,7 @@ public sealed class HkdfSha256 : IDisposable
         int hmacInputSize = HashOutputLength + info.Length + 1;
 
         using var hmacInputBuffer = SecureArrayPool.Rent<byte>(hmacInputSize);
-        
+
         try
         {
             while (bytesWritten < output.Length)

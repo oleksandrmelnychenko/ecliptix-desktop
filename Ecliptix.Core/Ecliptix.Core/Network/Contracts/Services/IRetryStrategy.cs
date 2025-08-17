@@ -29,7 +29,7 @@ public interface IRetryStrategy : IDisposable
         Func<Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId = null,
-        int? maxRetries = null, 
+        int? maxRetries = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
@@ -47,18 +47,18 @@ public interface IRetryStrategy : IDisposable
         uint? connectId = null,
         int? maxRetries = null,
         CancellationToken cancellationToken = default);
-        
+
     void ResetConnectionState(uint? connectId = null);
-    
+
     RetryMetrics GetRetryMetrics(uint? connectId = null);
-    
+
     ConnectionRetryState? GetConnectionState(uint connectId);
-    
+
     void MarkConnectionHealthy(uint connectId);
-    
+
     bool IsConnectionHealthy(uint connectId);
-    
+
     bool HasExhaustedOperations();
-    
+
     void ClearExhaustedOperations();
 }

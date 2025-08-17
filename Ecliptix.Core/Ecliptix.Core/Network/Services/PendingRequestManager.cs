@@ -161,7 +161,7 @@ public class PendingRequestManager : IPendingRequestManager
 
     [UnconditionalSuppressMessage("Trimming", "IL2075:Unrecognized reflection pattern",
         Justification = "ExecuteAsync method is guaranteed to exist on TypedPendingRequest<T>")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling", 
+    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
         Justification = "ExecuteAsync method is guaranteed to exist on TypedPendingRequest<T>")]
     private async Task RetryTypedRequestAsync(string requestId, object typedRequest,
         CancellationToken cancellationToken)
@@ -192,7 +192,7 @@ public class PendingRequestManager : IPendingRequestManager
 
     [UnconditionalSuppressMessage("Trimming", "IL2075:Unrecognized reflection pattern",
         Justification = "Cancel method is guaranteed to exist on TypedPendingRequest<T>")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling", 
+    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
         Justification = "Cancel method is guaranteed to exist on TypedPendingRequest<T>")]
     public void CancelAllPendingRequests()
     {

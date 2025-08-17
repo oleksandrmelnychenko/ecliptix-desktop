@@ -17,21 +17,21 @@ namespace Ecliptix.Core.Controls.Modals;
 public class DetectLanguageDialogViewModel : ReactiveObject
 {
     private readonly ILanguageDetectionEvents _languageDetectionEvents;
-    
+
     public string Title { get; }
     public string PromptText { get; }
     public string ConfirmButtonText { get; }
     public string DeclineButtonText { get; }
     public string FlagPath { get; }
     private readonly string _targetCulture;
-    
+
     public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
     private static readonly FrozenDictionary<string, string> SupportedCountries = LanguageConfiguration.SupportedCountries;
 
     private static readonly FrozenDictionary<string, string> FlagMap = LanguageConfiguration.FlagMap;
-    
+
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
         ILanguageDetectionEvents languageDetectionEvents,
@@ -42,7 +42,7 @@ public class DetectLanguageDialogViewModel : ReactiveObject
         string country = networkProvider.ApplicationInstanceSettings.Country;
         _targetCulture = SupportedCountries.GetValueOrDefault(country, "en-US");
         CultureInfo targetInfo = CultureInfo.GetCultureInfo(_targetCulture);
-        
+
         Title = localizationService["LanguageDetection.Title"];
         PromptText = localizationService.GetString("LanguageDetection.Prompt", (targetInfo.EnglishName).Split('(')[0].Trim());
         ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];

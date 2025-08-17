@@ -8,14 +8,14 @@ using System;
 public static class IconService
 {
     private static WindowIcon? _cachedIcon;
-    
+
     public static void SetIconForWindow(Window window)
     {
         if (_cachedIcon == null)
         {
             _cachedIcon = LoadPlatformIcon();
         }
-        
+
         if (_cachedIcon != null)
         {
             window.Icon = _cachedIcon;
@@ -40,7 +40,7 @@ public static class IconService
         return null;
     }
 
-    private static Uri GetPlatformIconUri()
+    private static Uri? GetPlatformIconUri()
     {
         if (OperatingSystem.IsWindows())
             return new Uri("avares://Ecliptix.Core/Assets/ecliptix.ico");
@@ -48,7 +48,7 @@ public static class IconService
             return new Uri("avares://Ecliptix.Core/Assets/EcliptixLogo.icns");
         else if (OperatingSystem.IsLinux())
             return new Uri("avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png");
-        
+
         return null;
     }
 }

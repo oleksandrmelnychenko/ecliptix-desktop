@@ -108,13 +108,13 @@ public static class Program
         try
         {
             List<Assembly> assemblies = [];
-            
+
             try
             {
                 assemblies.Add(Assembly.Load("Serilog.Sinks.Console"));
             }
             catch { /* Console sink not available */ }
-            
+
             try
             {
                 assemblies.Add(Assembly.Load("Serilog.Sinks.File"));
@@ -122,7 +122,7 @@ public static class Program
             catch { /* File sink not available */ }
 
             ConfigurationReaderOptions options = new(assemblies.ToArray());
-            
+
             LoggerConfiguration loggerConfig = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration, options);
 
@@ -183,13 +183,13 @@ public static class Program
             InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
             client.Timeout = options.ProbeTimeout;
         });
-        
+
         services.AddHttpClient<IIpGeolocationService, IpGeolocationService>()
             .SetHandlerLifetime(TimeSpan.FromMinutes(5))
             .AddPolicyHandler(HttpPolicyExtensions
                 .HandleTransientHttpError()
                 .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
-                .WaitAndRetryAsync( 
+                .WaitAndRetryAsync(
                     retryCount: 3,
                     sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(5)));
@@ -218,7 +218,7 @@ public static class Program
             sp.GetRequiredService<ILoggerFactory>().CreateLogger<ApplicationSecureStorageProvider>()
         );
         services.AddSingleton<IApplicationSecureStorageProvider, ApplicationSecureStorageProvider>();
-        
+
         services.AddSingleton<IPlatformSecurityProvider>(_ =>
         {
             string appDataPath = Path.Combine(
@@ -230,69 +230,69 @@ public static class Program
         {
             IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
-            
-            string storagePath = config["SecureStorage:StatePath"] 
-                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
+
+            string storagePath = config["SecureStorage:StatePath"]
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                 "Ecliptix", "secure_protocol_state.enc");
-            
+
             byte[] deviceId = Encoding.UTF8.GetBytes(Environment.MachineName + Environment.UserName);
-            
+
             return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
         });
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
-        
+
         services.AddSingleton<ConnectionStateConfiguration>();
-        
+
         services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
-        
+
         services.AddSingleton<NetworkProvider>();
         services.AddSingleton<RequestDeduplicationService>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
             IConfigurationSection section = config.GetSection("ImprovedRetryPolicy");
-            
+
             ImprovedRetryConfiguration retryConfig = new()
             {
-                InitialRetryDelay = TimeSpan.TryParse(section["InitialRetryDelay"], out var initialDelay) 
+                InitialRetryDelay = TimeSpan.TryParse(section["InitialRetryDelay"], out var initialDelay)
                     ? initialDelay : TimeSpan.FromSeconds(5),
-                MaxRetryDelay = TimeSpan.TryParse(section["MaxRetryDelay"], out var maxDelay) 
+                MaxRetryDelay = TimeSpan.TryParse(section["MaxRetryDelay"], out var maxDelay)
                     ? maxDelay : TimeSpan.FromMinutes(2),
-                MaxRetries = int.TryParse(section["MaxRetries"], out var maxRetries) 
+                MaxRetries = int.TryParse(section["MaxRetries"], out var maxRetries)
                     ? maxRetries : 10,
-                CircuitBreakerThreshold = int.TryParse(section["CircuitBreakerThreshold"], out var threshold) 
+                CircuitBreakerThreshold = int.TryParse(section["CircuitBreakerThreshold"], out var threshold)
                     ? threshold : 5,
-                CircuitBreakerDuration = TimeSpan.TryParse(section["CircuitBreakerDuration"], out var duration) 
+                CircuitBreakerDuration = TimeSpan.TryParse(section["CircuitBreakerDuration"], out var duration)
                     ? duration : TimeSpan.FromMinutes(1),
-                RequestDeduplicationWindow = TimeSpan.TryParse(section["RequestDeduplicationWindow"], out var window) 
+                RequestDeduplicationWindow = TimeSpan.TryParse(section["RequestDeduplicationWindow"], out var window)
                     ? window : TimeSpan.FromSeconds(10),
-                UseAdaptiveRetry = bool.TryParse(section["UseAdaptiveRetry"], out var adaptive) 
+                UseAdaptiveRetry = bool.TryParse(section["UseAdaptiveRetry"], out var adaptive)
                     ? adaptive : true,
-                HealthCheckTimeout = TimeSpan.TryParse(section["HealthCheckTimeout"], out var timeout) 
+                HealthCheckTimeout = TimeSpan.TryParse(section["HealthCheckTimeout"], out var timeout)
                     ? timeout : TimeSpan.FromSeconds(5)
             };
-            
+
             return new RequestDeduplicationService(retryConfig.RequestDeduplicationWindow);
         });
-        
+
         // Register UI Dispatcher abstraction
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
-        
+
         services.AddSingleton<IRetryStrategy>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
             INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
             IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
-            
-            ImprovedRetryConfiguration retryConfig = config.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>() 
+
+            ImprovedRetryConfiguration retryConfig = config.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>()
                 ?? ImprovedRetryConfiguration.Production;
-            
+
             SecrecyChannelRetryStrategy retryStrategy = new(retryConfig, networkEvents, uiDispatcher);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;
         });
-        
+
         services.AddSingleton<IUnaryRpcServices, UnaryRpcServices>();
         services.AddSingleton<ISecrecyChannelRpcServices, SecrecyChannelRpcServices>();
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();

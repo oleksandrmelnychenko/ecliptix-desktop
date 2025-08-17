@@ -90,14 +90,14 @@ public record EcliptixProtocolFailure(
             Timestamp
         };
     }
-    
+
     public NetworkFailure ToNetworkFailure()
     {
         NetworkFailureType networkFailureType = FailureType switch
         {
             _ => NetworkFailureType.EcliptixProtocolFailure
         };
-        
+
         return new NetworkFailure(networkFailureType, Message, InnerException);
     }
 }

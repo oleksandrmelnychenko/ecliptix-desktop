@@ -11,9 +11,9 @@ public static class ResultMappingExtensions
     {
         if (!sourceResult.IsErr) return Result<T, NetworkFailure>.Ok(sourceResult.Unwrap());
         EcliptixProtocolFailure protocolFailure = sourceResult.UnwrapErr();
-            
+
         NetworkFailure networkFailure = protocolFailure.ToNetworkFailure();
-            
+
         return Result<T, NetworkFailure>.Err(networkFailure);
     }
 
@@ -22,10 +22,10 @@ public static class ResultMappingExtensions
     {
         if (!sourceResult.IsErr) return Result<T, ValidationFailure>.Ok(sourceResult.Unwrap());
         NetworkFailure networkFailure = sourceResult.UnwrapErr();
-            
+
         ValidationFailure validationFailure = ValidationFailure.SignInFailed(
             networkFailure.Message, networkFailure.InnerException);
-            
+
         return Result<T, ValidationFailure>.Err(validationFailure);
     }
 }

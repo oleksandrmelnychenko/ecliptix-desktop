@@ -17,7 +17,7 @@ public class AvaloniaUiDispatcher : IUiDispatcher
     public void Post(Action action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        
+
         try
         {
             if (!IsAvailable)
@@ -46,7 +46,7 @@ public class AvaloniaUiDispatcher : IUiDispatcher
     public async Task PostAsync(Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        
+
         try
         {
             if (!IsAvailable)

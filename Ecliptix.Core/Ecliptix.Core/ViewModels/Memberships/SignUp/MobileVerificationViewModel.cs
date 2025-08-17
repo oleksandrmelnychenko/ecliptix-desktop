@@ -32,7 +32,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
     private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    
+
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
     public IScreen HostScreen { get; }
@@ -119,7 +119,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
 
         if (result.IsOk)
         {
-            
+
             VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
             ((MembershipHostWindowModel)HostScreen).Router.Navigate.Execute(vm);
         }
