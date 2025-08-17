@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main, develop ]
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 env:
   DOTNET_VERSION: '9.0.x'
   DOTNET_NOLOGO: true
@@ -99,9 +104,15 @@ jobs:
       
     - name: Check for crypto best practices
       run: |
-        # Check for hardcoded secrets
-        if grep -r "password\|secret\|key" --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "Password\|Secret\|Key" | grep -v "//"; then
+        # Check for hardcoded secrets - look for string literals containing sensitive values
+        if grep -r '".*password.*=\|".*secret.*=\|".*key.*=' --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "//"; then
           echo "⚠️ Potential hardcoded secrets found"
+          exit 1
+        fi
+        
+        # Check for hardcoded passwords in connection strings
+        if grep -r 'password.*=.*[^;]' --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "Password\|parameter\|variable\|field\|property" | grep -v "//"; then
+          echo "⚠️ Potential hardcoded passwords in connection strings found"
           exit 1
         fi
         

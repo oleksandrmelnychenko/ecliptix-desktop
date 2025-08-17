@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -52,7 +53,9 @@ public abstract class ViewModelBase
     }
 
     protected byte[] ServerPublicKey() =>
-        NetworkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
+        UnsafeMemoryHelpers.WithByteStringAsSpan(
+            NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
+            span => span.ToArray());
 
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;

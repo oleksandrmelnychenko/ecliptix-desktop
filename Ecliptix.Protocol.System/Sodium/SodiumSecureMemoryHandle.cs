@@ -321,6 +321,54 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
+    /// <summary>
+    /// Executes an operation with thread-safe read access to the secure memory.
+    /// Provides a ReadOnlySpan view without copying the data.
+    /// </summary>
+    /// <typeparam name="TResult">The result type</typeparam>
+    /// <param name="operation">The operation to execute with the span</param>
+    /// <returns>Result containing the operation result or failure</returns>
+    public Result<TResult, SodiumFailure> WithReadAccess<TResult>(
+        Func<ReadOnlySpan<byte>, Result<TResult, SodiumFailure>> operation)
+    {
+        if (IsInvalid || IsClosed)
+            return Result<TResult, SodiumFailure>.Err(
+                SodiumFailure.NullPointer(string.Format(SodiumFailureMessages.ObjectDisposed,
+                    nameof(SodiumSecureMemoryHandle))));
+
+        _lock.EnterReadLock();
+        bool success = false;
+
+        try
+        {
+            DangerousAddRef(ref success);
+            if (!success)
+                return Result<TResult, SodiumFailure>.Err(
+                    SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.ReferenceCountFailed));
+
+            if (IsInvalid || IsClosed)
+                return Result<TResult, SodiumFailure>.Err(
+                    SodiumFailure.ObjectDisposed(string.Format(SodiumFailureMessages.DisposedAfterAddRef,
+                        nameof(SodiumSecureMemoryHandle))));
+
+            unsafe
+            {
+                ReadOnlySpan<byte> span = new ReadOnlySpan<byte>((void*)handle, Length);
+                return operation(span);
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<TResult, SodiumFailure>.Err(
+                SodiumFailure.MemoryProtectionFailed(SodiumFailureMessages.UnexpectedReadError, ex));
+        }
+        finally
+        {
+            if (success) DangerousRelease();
+            _lock.ExitReadLock();
+        }
+    }
+
     // Platform-specific imports for memory locking
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);

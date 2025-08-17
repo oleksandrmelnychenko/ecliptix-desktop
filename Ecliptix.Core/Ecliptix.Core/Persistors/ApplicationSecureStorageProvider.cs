@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.IpGeolocation;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
@@ -45,7 +46,8 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Culture = culture;
 
-        return await StoreAsync(SettingsKey, settings.ToByteArray());
+        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance)
@@ -56,7 +58,8 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.IsNewInstance = isNewInstance;
-        return await StoreAsync(SettingsKey, settings.ToByteArray());
+        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
@@ -69,7 +72,8 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         settings.Country = ipCountry.Country;
         settings.IpAddress = ipCountry.IpAddress;
 
-        return await StoreAsync(SettingsKey, settings.ToByteArray());
+        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership membership)
@@ -81,7 +85,8 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membership;
 
-        return await StoreAsync(SettingsKey, settings.ToByteArray());
+        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync()
@@ -139,7 +144,9 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
             Culture = defaultCulture
         };
 
-        Result<Unit, InternalServiceApiFailure> storeResult = await StoreAsync(SettingsKey, newSettings.ToByteArray());
+        Result<Unit, InternalServiceApiFailure> storeResult = await UnsafeMemoryHelpers.WithByteStringAsSpan(
+            newSettings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
         if (storeResult.IsErr)
             return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(storeResult.UnwrapErr());
 

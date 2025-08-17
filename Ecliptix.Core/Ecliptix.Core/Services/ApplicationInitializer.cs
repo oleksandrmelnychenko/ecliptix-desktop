@@ -1,4 +1,5 @@
 using Ecliptix.Core.Security;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -169,7 +170,8 @@ public class ApplicationInitializer(
         try
         {
             Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
-                secrecyChannelState.ToByteArray(),
+                UnsafeMemoryHelpers.WithByteStringAsSpan(secrecyChannelState.ToByteString(),
+                    span => span.ToArray()),
                 connectId.ToString());
 
             if (saveResult.IsOk)
@@ -203,7 +205,8 @@ public class ApplicationInitializer(
         return await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
-            appDevice.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(appDevice.ToByteString(),
+                span => span.ToArray()),
             decryptedPayload =>
             {
                 AppDeviceRegisteredStateReply reply =
@@ -211,7 +214,8 @@ public class ApplicationInitializer(
                 Guid appServerInstanceId = Helpers.FromByteStringToGuid(reply.UniqueId);
 
                 settings.SystemDeviceIdentifier = appServerInstanceId.ToString();
-                settings.ServerPublicKey = ByteString.CopyFrom(reply.ServerPublicKey.ToByteArray());
+                settings.ServerPublicKey = UnsafeMemoryHelpers.WithByteStringAsSpan(reply.ServerPublicKey,
+                    span => ByteString.CopyFrom(span));
 
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",
                     appServerInstanceId);

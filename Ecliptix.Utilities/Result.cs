@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Utilities;
 
@@ -68,25 +67,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
     }
 
-    public static Result<T, TE> Try(Func<T> func, Func<Exception, bool> exceptionFilter,
-        Func<Exception, TE> errorMapper)
-    {
-        ArgumentNullException.ThrowIfNull(func, nameof(func));
-        ArgumentNullException.ThrowIfNull(exceptionFilter, nameof(exceptionFilter));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
-        try
-        {
-            return Ok(func());
-        }
-        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException && exceptionFilter(ex))
-        {
-            TE error = errorMapper(ex);
-            if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TE : notnull");
-            return Err(error);
-        }
-    }
-
     public static Result<Unit, TE> Try(Action action, Func<Exception, TE> errorMapper, Action? cleanup = null)
     {
         ArgumentNullException.ThrowIfNull(action, nameof(action));
@@ -102,59 +82,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
             if (error == null)
                 throw new InvalidOperationException("Error mapper returned null, violating TE : notnull");
             return Result<Unit, TE>.Err(error);
-        }
-        finally
-        {
-            cleanup?.Invoke();
-        }
-    }
-
-    public static async ValueTask<Result<TValue, TError>> TryAsync<TValue, TError>(
-        Func<ValueTask<TValue>> action,
-        Func<EcliptixProtocolFailure, TError> errorMapper,
-        Action? cleanup = null) where TError : EcliptixProtocolFailure
-    {
-        ArgumentNullException.ThrowIfNull(action, nameof(action));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
-
-        try
-        {
-            TValue result = await action().ConfigureAwait(false);
-            return Result<TValue, TError>.Ok(result);
-        }
-        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
-        {
-            EcliptixProtocolFailure failure = EcliptixProtocolFailure.Generic(ex.Message, ex);
-            TError error = errorMapper(failure);
-            if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TError : notnull");
-            return Result<TValue, TError>.Err(error);
-        }
-        finally
-        {
-            cleanup?.Invoke();
-        }
-    }
-
-    public static async ValueTask<Result<Unit, TError>> TryAsync<TError>(
-        Func<ValueTask> action,
-        Func<Exception, TError> errorMapper,
-        Action? cleanup = null)
-    {
-        ArgumentNullException.ThrowIfNull(action, nameof(action));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
-
-        try
-        {
-            await action().ConfigureAwait(false);
-            return Result<Unit, TError>.Ok(Unit.Value);
-        }
-        catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
-        {
-            TError? error = errorMapper(ex);
-            if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TError : notnull");
-            return Result<Unit, TError>.Err(error);
         }
         finally
         {
@@ -185,11 +112,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         return IsOk ? _value : defaultValue;
     }
 
-    public T UnwrapOrElse(Func<TE, T> fallbackFn)
-    {
-        return IsOk ? _value! : fallbackFn(_error!);
-    }
-
     public Result<TNext, TE> Map<TNext>(Func<T, TNext> mapFn)
     {
         return IsOk ? Result<TNext, TE>.Ok(mapFn(_value!)) : Result<TNext, TE>.Err(_error!);
@@ -208,17 +130,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     public Result<TNext, TE> AndThen<TNext>(Func<T, Result<TNext, TE>> bindFn)
     {
         return Bind(bindFn);
-    }
-
-    public TOut Match<TOut>(Func<T, TOut> ok, Func<TE, TOut> err)
-    {
-        return IsOk ? ok(_value!) : err(_error!);
-    }
-
-    public void Switch(Action<T> onOk, Action<TE> onErr)
-    {
-        if (IsOk) onOk(_value!);
-        else onErr(_error!);
     }
 
     public override string ToString()
@@ -265,7 +176,17 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
 public static class ResultExtensions
 {
-    public static void IgnoreResult<T, TE>(this Result<T, TE> result) where TE : notnull
+    public static void IgnoreResult()
     {
+    }
+
+    public static void IgnoreResult<T>()
+    {
+    }
+
+    public static void IgnoreResult<T, TE>(Result<T, TE> result)
+    {
+        _ = result;
+        // Explicitly ignore the result
     }
 }

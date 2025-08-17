@@ -11,6 +11,7 @@ using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
@@ -113,7 +114,8 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.ValidatePhoneNumber,
-            request.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(request.ToByteString(),
+                span => span.ToArray()),
             HandleValidationResponseAsync
         );
 

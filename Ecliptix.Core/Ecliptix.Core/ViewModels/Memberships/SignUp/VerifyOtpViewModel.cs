@@ -14,6 +14,7 @@ using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
@@ -151,7 +152,8 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         _ = await NetworkProvider.ExecuteReceiveStreamRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
-            membershipVerificationRequest.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(membershipVerificationRequest.ToByteString(),
+                span => span.ToArray()),
             payload =>
             {
                 VerificationCountdownUpdate timerTick =
@@ -207,7 +209,8 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         _ = await NetworkProvider.ExecuteUnaryRequestAsync(
             ComputeConnectId(),
             RpcServiceType.VerifyOtp,
-            verifyCodeRequest.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(verifyCodeRequest.ToByteString(),
+                span => span.ToArray()),
             async payload =>
             {
                 VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);

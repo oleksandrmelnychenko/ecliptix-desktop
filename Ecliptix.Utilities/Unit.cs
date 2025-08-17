@@ -21,11 +21,15 @@ public readonly struct Unit : IEquatable<Unit>
 
     public static bool operator ==(Unit left, Unit right)
     {
+        _ = left;
+        _ = right;
         return true;
     }
 
     public static bool operator !=(Unit left, Unit right)
     {
+        _ = left;
+        _ = right;
         return false;
     }
 

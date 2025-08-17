@@ -68,6 +68,16 @@ public class SodiumFailure
         return new SodiumFailure(SodiumFailureType.BufferTooLarge, details);
     }
 
+    public static SodiumFailure InvalidOperation(string details)
+    {
+        return new SodiumFailure(SodiumFailureType.InvalidBufferSize, details);
+    }
+
+    public static SodiumFailure ObjectDisposed(string details)
+    {
+        return new SodiumFailure(SodiumFailureType.NullPointer, details);
+    }
+
     public override string ToString()
     {
         return

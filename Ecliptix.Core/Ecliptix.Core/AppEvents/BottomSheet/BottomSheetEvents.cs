@@ -3,7 +3,6 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
-using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Network.Contracts.Transport;
@@ -41,7 +40,6 @@ public sealed class BottomSheetEvents
     private readonly IEventAggregator _aggregator;
     private readonly ILocalizationService _localizationService;
     private readonly LanguageDetectionHandler _languageDetectionHandler;
-    private readonly ISystemEvents _systemEvents;
     private readonly NetworkProvider _networkProvider;
     private readonly Func<UserControl> _languageDetectionModalFactory;
 
@@ -54,6 +52,7 @@ public sealed class BottomSheetEvents
     {
         _aggregator = aggregator;
         _localizationService = localizationService;
+        _networkProvider = networkProvider;
         _languageDetectionHandler = new LanguageDetectionHandler(
             localizationService,
             this,

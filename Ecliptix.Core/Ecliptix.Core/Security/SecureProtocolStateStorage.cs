@@ -336,7 +336,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
         }
 
-        string tempPath = $"{_storagePath}.tmp";
+        string tempPath = $"{_storagePath}.tmp.{Guid.NewGuid():N}";
 
         try
         {

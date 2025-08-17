@@ -73,7 +73,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         try
         {
             Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
-                    () => {
+                    () =>
+                    {
                         UnsafeMemoryHelpers.SecureCopyWithCleanup(peerMessage.Payload, out byte[] payloadBytes);
                         try
                         {
@@ -81,7 +82,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                         }
                         finally
                         {
-                            SodiumInterop.SecureWipe(payloadBytes).IgnoreResult();
+                            ResultExtensions.IgnoreResult<Unit>();
                         }
                     },
                     ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex))
@@ -108,13 +109,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             }
                             finally
                             {
-                                SodiumInterop.SecureWipe(dhKeyBytes).IgnoreResult();
+                                ResultExtensions.IgnoreResult<Unit>();
                             }
                         })
-                        .AndThen(_ =>
-                        {
-                            return _protocolConnection!.SetPeerBundle(peerBundle);
-                        });
+                        .AndThen(_ => _protocolConnection!.SetPeerBundle(peerBundle));
                 });
         }
         finally

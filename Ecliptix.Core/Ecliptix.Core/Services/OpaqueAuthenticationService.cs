@@ -5,6 +5,7 @@ using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Opaque.Protocol;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -134,7 +135,9 @@ public class OpaqueAuthenticationService(
     }
 
     private byte[] ServerPublicKey() =>
-        networkProvider.ApplicationInstanceSettings.ServerPublicKey.ToByteArray();
+        UnsafeMemoryHelpers.WithByteStringAsSpan(
+            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+            span => span.ToArray());
 
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
@@ -144,7 +147,7 @@ public class OpaqueAuthenticationService(
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,
-            initRequest.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
             async initResponsePayload =>
             {
                 try
@@ -192,7 +195,7 @@ public class OpaqueAuthenticationService(
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInCompleteRequest,
-            finalizeRequest.ToByteArray(),
+            UnsafeMemoryHelpers.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
             async finalizeResponsePayload =>
             {
                 try

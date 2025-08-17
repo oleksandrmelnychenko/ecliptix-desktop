@@ -49,11 +49,11 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             if (writeResult.IsErr)
             {
                 securePrivateKey.Dispose();
-                SodiumInterop.SecureWipe(tempPrivateKeyBytes).IgnoreResult();
+                ResultExtensions.IgnoreResult<Unit>();
                 return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
             }
 
-            SodiumInterop.SecureWipe(tempPrivateKeyBytes).IgnoreResult();
+            ResultExtensions.IgnoreResult<Unit>();
             tempPrivateKeyBytes = null;
 
             tempPrivKeyCopy = new byte[Constants.X25519PrivateKeySize];
@@ -62,7 +62,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             if (readResult.IsErr)
             {
                 securePrivateKey.Dispose();
-                SodiumInterop.SecureWipe(tempPrivKeyCopy).IgnoreResult();
+                ResultExtensions.IgnoreResult<Unit>();
                 return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
             }
 
@@ -74,7 +74,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
                         ex)
             );
 
-            SodiumInterop.SecureWipe(tempPrivKeyCopy).IgnoreResult();
+            ResultExtensions.IgnoreResult<Unit>();
             tempPrivKeyCopy = null;
 
             if (deriveResult.IsErr)
@@ -88,7 +88,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             if (publicKeyBytes.Length != Constants.X25519PublicKeySize)
             {
                 securePrivateKey.Dispose();
-                SodiumInterop.SecureWipe(publicKeyBytes).IgnoreResult();
+                ResultExtensions.IgnoreResult<Unit>();
                 return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.DeriveKey(
                     $"Derived public key for OPK ID {preKeyId} has incorrect size ({publicKeyBytes.Length})."));
             }
@@ -99,8 +99,8 @@ public readonly struct OneTimePreKeyLocal : IDisposable
         catch (Exception ex)
         {
             securePrivateKey?.Dispose();
-            if (tempPrivateKeyBytes != null) SodiumInterop.SecureWipe(tempPrivateKeyBytes).IgnoreResult();
-            if (tempPrivKeyCopy != null) SodiumInterop.SecureWipe(tempPrivKeyCopy).IgnoreResult();
+            if (tempPrivateKeyBytes != null) ResultExtensions.IgnoreResult<Unit>();
+            if (tempPrivKeyCopy != null) ResultExtensions.IgnoreResult<Unit>();
 
             return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic($"Unexpected failure during OPK Generation for ID {preKeyId}.", ex)

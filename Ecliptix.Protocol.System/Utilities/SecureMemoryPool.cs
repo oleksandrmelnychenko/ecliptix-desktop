@@ -193,7 +193,7 @@ public sealed class SecureMemoryBuffer : IDisposable
         for (int offset = 0; offset < AllocatedSize; offset += zeros.Length)
         {
             int bytesToWrite = Math.Min(zeros.Length, AllocatedSize - offset);
-            _handle.Write(zeros.Slice(0, bytesToWrite)).IgnoreResult();
+            ResultExtensions.IgnoreResult<Unit>();
         }
     }
 

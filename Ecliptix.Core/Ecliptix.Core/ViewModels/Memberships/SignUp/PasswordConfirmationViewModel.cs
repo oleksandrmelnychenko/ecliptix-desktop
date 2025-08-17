@@ -19,6 +19,7 @@ using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Sodium;
@@ -270,7 +271,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 ComputeConnectId(),
                 RpcServiceType.OpaqueRegistrationInit,
-                request.ToByteArray(),
+                UnsafeMemoryHelpers.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 async payload =>
                 {
                     OprfRegistrationInitResponse createMembershipResponse =
@@ -287,7 +288,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     Result<byte[], OpaqueFailure> registrationRecordResult =
                         OpaqueProtocolService.CreateRegistrationRecord(
                             passwordBytes,
-                            createMembershipResponse.PeerOprf.ToByteArray(),
+                            UnsafeMemoryHelpers.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
+                                span => span.ToArray()),
                             opfr.Blind);
 
                     if (registrationRecordResult.IsErr)
@@ -307,7 +309,8 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     await NetworkProvider.ExecuteUnaryRequestAsync(
                         ComputeConnectId(),
                         RpcServiceType.OpaqueRegistrationComplete,
-                        completeRequest.ToByteArray(),
+                        UnsafeMemoryHelpers.WithByteStringAsSpan(completeRequest.ToByteString(),
+                            span => span.ToArray()),
                         async completePayload =>
                         {
                             try
