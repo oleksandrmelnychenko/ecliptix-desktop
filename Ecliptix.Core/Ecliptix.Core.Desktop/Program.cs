@@ -284,8 +284,25 @@ public static class Program
             INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
             IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
 
-            ImprovedRetryConfiguration retryConfig = config.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>()
-                ?? ImprovedRetryConfiguration.Production;
+            IConfigurationSection section = config.GetSection("ImprovedRetryPolicy");
+            ImprovedRetryConfiguration retryConfig = new()
+            {
+                InitialRetryDelay = TimeSpan.TryParse(section["InitialRetryDelay"], out var initialDelay)
+                    ? initialDelay : TimeSpan.FromSeconds(5),
+                MaxRetryDelay = TimeSpan.TryParse(section["MaxRetryDelay"], out var maxDelay)
+                    ? maxDelay : TimeSpan.FromMinutes(2),
+                MaxRetries = int.TryParse(section["MaxRetries"], out var maxRetries)
+                    ? maxRetries : 10,
+                CircuitBreakerThreshold = int.TryParse(section["CircuitBreakerThreshold"], out var threshold)
+                    ? threshold : 5,
+                CircuitBreakerDuration = TimeSpan.TryParse(section["CircuitBreakerDuration"], out var duration)
+                    ? duration : TimeSpan.FromMinutes(1),
+                RequestDeduplicationWindow = TimeSpan.TryParse(section["RequestDeduplicationWindow"], out var window)
+                    ? window : TimeSpan.FromSeconds(10),
+                UseAdaptiveRetry = !bool.TryParse(section["UseAdaptiveRetry"], out var adaptive) || adaptive,
+                HealthCheckTimeout = TimeSpan.TryParse(section["HealthCheckTimeout"], out var timeout)
+                    ? timeout : TimeSpan.FromSeconds(5)
+            };
 
             SecrecyChannelRetryStrategy retryStrategy = new(retryConfig, networkEvents, uiDispatcher);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);

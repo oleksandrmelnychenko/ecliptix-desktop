@@ -135,7 +135,7 @@ public class OpaqueAuthenticationService(
     }
 
     private byte[] ServerPublicKey() =>
-        UnsafeMemoryHelpers.WithByteStringAsSpan(
+        SecureByteStringInterop.WithByteStringAsSpan(
             networkProvider.ApplicationInstanceSettings.ServerPublicKey,
             span => span.ToArray());
 
@@ -147,7 +147,7 @@ public class OpaqueAuthenticationService(
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
+            SecureByteStringInterop.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
             async initResponsePayload =>
             {
                 try
@@ -195,7 +195,7 @@ public class OpaqueAuthenticationService(
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInCompleteRequest,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
+            SecureByteStringInterop.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
             async finalizeResponsePayload =>
             {
                 try

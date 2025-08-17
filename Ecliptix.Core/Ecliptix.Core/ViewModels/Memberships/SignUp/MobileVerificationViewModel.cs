@@ -114,7 +114,7 @@ public class MobileVerificationViewModel : ViewModelBase, IRoutableViewModel, ID
         Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.ValidatePhoneNumber,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(request.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(),
                 span => span.ToArray()),
             HandleValidationResponseAsync
         );

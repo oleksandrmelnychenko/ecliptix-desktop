@@ -611,7 +611,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
 
-        Result<Unit, SecureStorageFailure> saveResult = await UnsafeMemoryHelpers.WithByteStringAsSpan(
+        Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
             secrecyChannelState.ToByteString(),
             span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 
@@ -896,7 +896,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         CipherPayload inboundPayload = callResult.Unwrap();
         Log.Debug("Received CipherPayload - Nonce: {Nonce}, Size: {Size}",
-            UnsafeMemoryHelpers.WithByteStringAsSpan(inboundPayload.Nonce,
+            SecureByteStringInterop.WithByteStringAsSpan(inboundPayload.Nonce,
                 span => Convert.ToHexString(span)), inboundPayload.Cipher.Length);
 
         Result<byte[], EcliptixProtocolFailure> decryptedData =
@@ -1430,7 +1430,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             };
 
                             Result<Unit, SecureStorageFailure> saveResult =
-                                await UnsafeMemoryHelpers.WithByteStringAsSpan(state.ToByteString(),
+                                await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
                                     span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 
                             if (saveResult.IsOk)
@@ -1508,7 +1508,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             };
 
                             Result<Unit, SecureStorageFailure> saveResult =
-                                await UnsafeMemoryHelpers.WithByteStringAsSpan(state.ToByteString(),
+                                await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
                                     span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 
                             if (saveResult.IsOk)
@@ -1722,7 +1722,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             EcliptixSecrecyChannelState newState = establishResult.Unwrap();
-            Result<Unit, SecureStorageFailure> saveResult = await UnsafeMemoryHelpers.WithByteStringAsSpan(
+            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
                 newState.ToByteString(),
                 span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 
@@ -2030,7 +2030,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             EcliptixSecrecyChannelState freshState = establishResult.Unwrap();
-            Result<Unit, SecureStorageFailure> saveResult = await UnsafeMemoryHelpers.WithByteStringAsSpan(
+            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
                 freshState.ToByteString(),
                 span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 

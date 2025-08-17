@@ -364,13 +364,13 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
         try
         {
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.ChainKey, out chainKeyBytes);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.ChainKey, out chainKeyBytes);
 
             if (!proto.DhPrivateKey.IsEmpty)
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.DhPrivateKey, out dhPrivKeyBytes);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.DhPrivateKey, out dhPrivKeyBytes);
 
             if (!proto.DhPublicKey.IsEmpty)
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.DhPublicKey, out dhPubKeyBytes);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.DhPublicKey, out dhPubKeyBytes);
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> createResult =
                 Create(stepType, chainKeyBytes!, dhPrivKeyBytes, dhPubKeyBytes);

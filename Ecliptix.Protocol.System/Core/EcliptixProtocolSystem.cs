@@ -40,80 +40,113 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         uint connectId,
         PubKeyExchangeType exchangeType)
     {
-
         ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
-        return ecliptixSystemIdentityKeys.CreatePublicBundle()
-            .AndThen(bundle =>
-            {
 
-                return EcliptixProtocolConnection.Create(connectId, true)
-                    .AndThen(session =>
-                    {
-                        _protocolConnection = session;
-                        _protocolConnection.SetEventHandler(_eventHandler);
-                        return session.GetCurrentSenderDhPublicKey()
-                            .Map(dhPublicKey =>
-                            {
-                                return new PubKeyExchange
-                                {
-                                    State = PubKeyExchangeState.Init,
-                                    OfType = exchangeType,
-                                    Payload = bundle.ToProtobufExchange().ToByteString(),
-                                    InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
-                                };
-                            });
-                    });
-            });
+        Result<PublicKeyBundle, EcliptixProtocolFailure> bundleResult = ecliptixSystemIdentityKeys.CreatePublicBundle();
+        if (bundleResult.IsErr)
+            return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
+
+        PublicKeyBundle bundle = bundleResult.Unwrap();
+
+        Result<EcliptixProtocolConnection, EcliptixProtocolFailure> sessionResult = EcliptixProtocolConnection.Create(connectId, true);
+        if (sessionResult.IsErr)
+            return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
+
+        EcliptixProtocolConnection session = sessionResult.Unwrap();
+        _protocolConnection = session;
+        _protocolConnection.SetEventHandler(_eventHandler);
+
+        Result<byte[]?, EcliptixProtocolFailure> dhKeyResult = session.GetCurrentSenderDhPublicKey();
+        if (dhKeyResult.IsErr)
+            return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
+
+        byte[]? dhPublicKey = dhKeyResult.Unwrap();
+        if (dhPublicKey == null)
+            return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.PrepareLocal("DH public key is null"));
+
+        PubKeyExchange pubKeyExchange = new()
+        {
+            State = PubKeyExchangeState.Init,
+            OfType = exchangeType,
+            Payload = bundle.ToProtobufExchange().ToByteString(),
+            InitialDhPublicKey = ByteString.CopyFrom(dhPublicKey)
+        };
+
+        return Result<PubKeyExchange, EcliptixProtocolFailure>.Ok(pubKeyExchange);
     }
 
     public void CompleteDataCenterPubKeyExchange(PubKeyExchange peerMessage)
     {
-
         SodiumSecureMemoryHandle? rootKeyHandle = null;
         try
         {
-            Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
-                    () =>
-                    {
-                        UnsafeMemoryHelpers.SecureCopyWithCleanup(peerMessage.Payload, out byte[] payloadBytes);
-                        try
-                        {
-                            return Helpers.ParseFromBytes<Protobuf.PubKeyExchange.PublicKeyBundle>(payloadBytes);
-                        }
-                        finally
-                        {
-                            ResultExtensions.IgnoreResult<Unit>();
-                        }
-                    },
-                    ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex))
-                .AndThen(PublicKeyBundle.FromProtobufExchange)
-                .AndThen(peerBundle =>
+            // Parse peer public key bundle from protobuf
+            Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure> parseResult = Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
+                () =>
                 {
+                    SecureByteStringInterop.SecureCopyWithCleanup(peerMessage.Payload, out byte[] payloadBytes);
+                    try
+                    {
+                        return Helpers.ParseFromBytes<Protobuf.PubKeyExchange.PublicKeyBundle>(payloadBytes);
+                    }
+                    finally
+                    {
+                        ResultExtensions.IgnoreResult<Unit>();
+                    }
+                },
+                ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex));
 
-                    return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
-                            peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
-                        .AndThen(spkValid => Result<Unit, EcliptixProtocolFailure>.Validate(Unit.Value, _ => spkValid,
-                            EcliptixProtocolFailure.Handshake("SPK signature validation failed during completion.")))
-                        .AndThen(_ => ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo))
-                        .AndThen(derivedKeyHandle =>
-                        {
-                            rootKeyHandle = derivedKeyHandle;
-                            return ReadAndWipeSecureHandle(derivedKeyHandle, Constants.X25519KeySize);
-                        })
-                        .AndThen(rootKeyBytes =>
-                        {
-                            UnsafeMemoryHelpers.SecureCopyWithCleanup(peerMessage.InitialDhPublicKey, out byte[] dhKeyBytes);
-                            try
-                            {
-                                return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes, dhKeyBytes);
-                            }
-                            finally
-                            {
-                                ResultExtensions.IgnoreResult<Unit>();
-                            }
-                        })
-                        .AndThen(_ => _protocolConnection!.SetPeerBundle(peerBundle));
-                });
+            if (parseResult.IsErr)
+                return;
+
+            Protobuf.PubKeyExchange.PublicKeyBundle protobufBundle = parseResult.Unwrap();
+
+            Result<PublicKeyBundle, EcliptixProtocolFailure> bundleResult = PublicKeyBundle.FromProtobufExchange(protobufBundle);
+            if (bundleResult.IsErr)
+                return;
+
+            PublicKeyBundle peerBundle = bundleResult.Unwrap();
+
+            // Verify SPK signature
+            Result<bool, EcliptixProtocolFailure> signatureResult = EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(
+                peerBundle.IdentityEd25519, peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature);
+            if (signatureResult.IsErr)
+                return;
+
+            bool spkValid = signatureResult.Unwrap();
+            if (!spkValid)
+                return;
+
+            // Derive shared secret
+            Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult = ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
+            if (secretResult.IsErr)
+                return;
+
+            SodiumSecureMemoryHandle derivedKeyHandle = secretResult.Unwrap();
+            rootKeyHandle = derivedKeyHandle;
+
+            Result<byte[], EcliptixProtocolFailure> rootKeyResult = ReadAndWipeSecureHandle(derivedKeyHandle, Constants.X25519KeySize);
+            if (rootKeyResult.IsErr)
+                return;
+
+            byte[] rootKeyBytes = rootKeyResult.Unwrap();
+
+            // Finalize chain and DH keys
+            SecureByteStringInterop.SecureCopyWithCleanup(peerMessage.InitialDhPublicKey, out byte[] dhKeyBytes);
+            try
+            {
+                Result<Unit, EcliptixProtocolFailure> finalizeResult = _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes, dhKeyBytes);
+                if (finalizeResult.IsErr)
+                    return;
+
+                Result<Unit, EcliptixProtocolFailure> setPeerResult = _protocolConnection!.SetPeerBundle(peerBundle);
+                if (setPeerResult.IsErr)
+                    return;
+            }
+            finally
+            {
+                ResultExtensions.IgnoreResult<Unit>();
+            }
         }
         finally
         {
@@ -123,39 +156,60 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public Result<CipherPayload, EcliptixProtocolFailure> ProduceOutboundMessage(byte[] plainPayload)
     {
-
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
-            return _protocolConnection!.PrepareNextSendMessage()
-                .AndThen(prep => _protocolConnection.GenerateNextNonce()
-                    .AndThen(nonce => GetOptionalSenderDhKey(prep.IncludeDhKey)
-                        .AndThen(newSenderDhPublicKey => CloneMessageKey(prep.MessageKey)
-                            .AndThen(clonedKey =>
-                            {
-                                messageKeyClone = clonedKey;
-                                return _protocolConnection.GetPeerBundle();
-                            })
-                            .AndThen(peerBundle =>
-                            {
-                                byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
-                                return Encrypt(messageKeyClone!, nonce, plainPayload, ad);
-                            })
-                            .Map(encrypted =>
-                            {
-                                CipherPayload payload = new()
-                                {
-                                    RequestId = Helpers.GenerateRandomUInt32(true),
-                                    Nonce = ByteString.CopyFrom(nonce),
-                                    RatchetIndex = messageKeyClone!.Index,
-                                    Cipher = ByteString.CopyFrom(encrypted),
-                                    CreatedAt = GetProtoTimestamp(),
-                                    DhPublicKey = newSenderDhPublicKey is { Length: > 0 }
-                                        ? ByteString.CopyFrom(newSenderDhPublicKey)
-                                        : ByteString.Empty
-                                };
-                                return payload;
-                            }))));
+            Result<(EcliptixMessageKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult = _protocolConnection!.PrepareNextSendMessage();
+            if (prepResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
+
+            (EcliptixMessageKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
+
+            Result<byte[], EcliptixProtocolFailure> nonceResult = _protocolConnection.GenerateNextNonce();
+            if (nonceResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(nonceResult.UnwrapErr());
+
+            byte[] nonce = nonceResult.Unwrap();
+
+            Result<byte[], EcliptixProtocolFailure> dhKeyResult = GetOptionalSenderDhKey(prep.IncludeDhKey);
+            if (dhKeyResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
+
+            byte[] newSenderDhPublicKey = dhKeyResult.Unwrap();
+
+            Result<EcliptixMessageKey, EcliptixProtocolFailure> cloneResult = CloneMessageKey(prep.MessageKey);
+            if (cloneResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(cloneResult.UnwrapErr());
+
+            messageKeyClone = cloneResult.Unwrap();
+
+            Result<PublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = _protocolConnection.GetPeerBundle();
+            if (peerBundleResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+
+            PublicKeyBundle peerBundle = peerBundleResult.Unwrap();
+
+            byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
+
+            Result<byte[], EcliptixProtocolFailure> encryptResult = Encrypt(messageKeyClone!, nonce, plainPayload, ad);
+            if (encryptResult.IsErr)
+                return Result<CipherPayload, EcliptixProtocolFailure>.Err(encryptResult.UnwrapErr());
+
+            byte[] encrypted = encryptResult.Unwrap();
+
+            CipherPayload payload = new()
+            {
+                RequestId = Helpers.GenerateRandomUInt32(true),
+                Nonce = ByteString.CopyFrom(nonce),
+                RatchetIndex = messageKeyClone!.Index,
+                Cipher = ByteString.CopyFrom(encrypted),
+                CreatedAt = GetProtoTimestamp(),
+                DhPublicKey = newSenderDhPublicKey is { Length: > 0 }
+                    ? ByteString.CopyFrom(newSenderDhPublicKey)
+                    : ByteString.Empty
+            };
+
+            return Result<CipherPayload, EcliptixProtocolFailure>.Ok(payload);
         }
         finally
         {
@@ -165,28 +219,35 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public Result<byte[], EcliptixProtocolFailure> ProcessInboundMessage(CipherPayload cipherPayloadProto)
     {
-
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
             byte[]? receivedDhKey = null;
             if (cipherPayloadProto.DhPublicKey.Length > 0)
             {
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(cipherPayloadProto.DhPublicKey, out receivedDhKey);
+                SecureByteStringInterop.SecureCopyWithCleanup(cipherPayloadProto.DhPublicKey, out receivedDhKey);
             }
 
-            return PerformRatchetIfNeeded(receivedDhKey)
-                .AndThen(_ => _protocolConnection!.ProcessReceivedMessage(cipherPayloadProto.RatchetIndex))
-                .AndThen(clonedKey =>
-                {
-                    messageKeyClone = clonedKey;
-                    return _protocolConnection!.GetPeerBundle();
-                })
-                .AndThen(peerBundle =>
-                {
-                    byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
-                    return Decrypt(messageKeyClone!, cipherPayloadProto, ad);
-                });
+            Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(receivedDhKey);
+            if (ratchetResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
+
+            Result<EcliptixMessageKey, EcliptixProtocolFailure> messageResult = _protocolConnection!.ProcessReceivedMessage(cipherPayloadProto.RatchetIndex);
+            if (messageResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(messageResult.UnwrapErr());
+
+            EcliptixMessageKey clonedKey = messageResult.Unwrap();
+            messageKeyClone = clonedKey;
+
+            Result<PublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = _protocolConnection!.GetPeerBundle();
+            if (peerBundleResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+
+            PublicKeyBundle peerBundle = peerBundleResult.Unwrap();
+
+            byte[] ad = CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519);
+
+            return Decrypt(messageKeyClone!, cipherPayloadProto, ad);
         }
         finally
         {
@@ -196,25 +257,34 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     private Result<Unit, EcliptixProtocolFailure> PerformRatchetIfNeeded(byte[]? receivedDhKey)
     {
-        if (receivedDhKey == null) return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        if (receivedDhKey == null)
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
 
-        return _protocolConnection!.GetCurrentPeerDhPublicKey()
-            .AndThen(currentPeerDhKey =>
-            {
-                if (currentPeerDhKey != null && receivedDhKey.AsSpan().SequenceEqual(currentPeerDhKey))
-                {
-                    return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-                }
+        Result<byte[]?, EcliptixProtocolFailure> currentKeyResult = _protocolConnection!.GetCurrentPeerDhPublicKey();
+        if (currentKeyResult.IsErr)
+            return Result<Unit, EcliptixProtocolFailure>.Err(currentKeyResult.UnwrapErr());
 
-                return _protocolConnection.PerformReceivingRatchet(receivedDhKey);
-            });
+        byte[]? currentPeerDhKey = currentKeyResult.Unwrap();
+
+        if (currentPeerDhKey != null && receivedDhKey.AsSpan().SequenceEqual(currentPeerDhKey))
+        {
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
+
+        return _protocolConnection.PerformReceivingRatchet(receivedDhKey);
     }
 
     private Result<byte[], EcliptixProtocolFailure> GetOptionalSenderDhKey(bool include)
     {
-        return include
-            ? _protocolConnection!.GetCurrentSenderDhPublicKey().Map(k => k!)
-            : Result<byte[], EcliptixProtocolFailure>.Ok([]);
+        if (!include)
+            return Result<byte[], EcliptixProtocolFailure>.Ok([]);
+
+        Result<byte[]?, EcliptixProtocolFailure> keyResult = _protocolConnection!.GetCurrentSenderDhPublicKey();
+        if (keyResult.IsErr)
+            return Result<byte[], EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
+
+        byte[]? key = keyResult.Unwrap();
+        return Result<byte[], EcliptixProtocolFailure>.Ok(key ?? []);
     }
 
     private static Result<EcliptixMessageKey, EcliptixProtocolFailure> CloneMessageKey(EcliptixMessageKey key)
@@ -318,13 +388,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         int size)
     {
         byte[] buffer = new byte[size];
-        Result<byte[], EcliptixProtocolFailure> t = handle.Read(buffer).Map(_ =>
-        {
-            byte[] copy = (byte[])buffer.Clone();
-            SodiumInterop.SecureWipe(buffer);
-            return copy;
-        }).MapSodiumFailure();
-        return t;
+        Result<Unit, EcliptixProtocolFailure> readResult = handle.Read(buffer).MapSodiumFailure();
+        if (readResult.IsErr)
+            return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+
+        byte[] copy = (byte[])buffer.Clone();
+        SodiumInterop.SecureWipe(buffer);
+        return Result<byte[], EcliptixProtocolFailure>.Ok(copy);
     }
 
     public EcliptixProtocolConnection GetConnection()

@@ -98,7 +98,7 @@ public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
 
         try
         {
-            oprfKey = UnsafeMemoryHelpers.WithByteStringAsSpan(signInResponse.ServerOprfResponse,
+            oprfKey = SecureByteStringInterop.WithByteStringAsSpan(signInResponse.ServerOprfResponse,
                 span => RecoverOprfKey(span, blind));
             credentialKey = OpaqueCryptoUtilities.DeriveKey(oprfKey, null, CredentialKeyInfo, DefaultKeyLength);
 
@@ -122,7 +122,7 @@ public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
 
             AsymmetricCipherKeyPair clientEphemeralKeys = OpaqueCryptoUtilities.GenerateKeyPair();
             ECPoint? serverStaticPublicKey = ((ECPublicKeyParameters)staticPublicKey).Q;
-            ECPoint? serverEphemeralPublicKey = UnsafeMemoryHelpers.WithByteStringAsSpan(
+            ECPoint? serverEphemeralPublicKey = SecureByteStringInterop.WithByteStringAsSpan(
                 signInResponse.ServerEphemeralPublicKey,
                 span => OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(span.ToArray()));
             akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
@@ -173,7 +173,7 @@ public class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey)
         OpaqueSignInFinalizeResponse response, byte[] sessionKey, byte[] serverMacKey, byte[] transcriptHash)
     {
         byte[] expectedServerMac = CreateMac(serverMacKey, transcriptHash);
-        if (!UnsafeMemoryHelpers.WithByteStringAsSpan(response.ServerMac,
+        if (!SecureByteStringInterop.WithByteStringAsSpan(response.ServerMac,
             span => CryptographicOperations.FixedTimeEquals(expectedServerMac, span)))
             return Result<byte[], OpaqueFailure>.Err(
                 OpaqueFailure.MacVerificationFailed("Server MAC verification failed."));

@@ -72,10 +72,10 @@ public record PublicKeyBundle(
         return Result<PublicKeyBundle, EcliptixProtocolFailure>.Try(
             () =>
             {
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[] identityX25519);
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeyPublicKey, out byte[] signedPreKeyPublic);
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[] signedPreKeySignature);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[] identityX25519);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeyPublicKey, out byte[] signedPreKeyPublic);
+                SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[] signedPreKeySignature);
 
                 if (identityEd25519.Length != Constants.Ed25519KeySize)
                     throw new ArgumentException($"IdentityEd25519 key must be {Constants.Ed25519KeySize} bytes.");
@@ -90,7 +90,7 @@ public record PublicKeyBundle(
                 byte[]? ephemeralX25519 = null;
                 if (!proto.EphemeralX25519PublicKey.IsEmpty)
                 {
-                    UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.EphemeralX25519PublicKey, out ephemeralX25519);
+                    SecureByteStringInterop.SecureCopyWithCleanup(proto.EphemeralX25519PublicKey, out ephemeralX25519);
                 }
                 if (ephemeralX25519 != null && ephemeralX25519.Length != Constants.X25519KeySize)
                     throw new ArgumentException(
@@ -99,7 +99,7 @@ public record PublicKeyBundle(
                 List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
                 foreach (Protobuf.PubKeyExchange.PublicKeyBundle.Types.OneTimePreKey? pOpk in proto.OneTimePreKeys)
                 {
-                    UnsafeMemoryHelpers.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
+                    SecureByteStringInterop.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
                     Result<OneTimePreKeyRecord, EcliptixProtocolFailure> opkResult =
                         OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
                     if (opkResult.IsErr)

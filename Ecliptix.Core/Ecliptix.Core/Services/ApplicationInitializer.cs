@@ -170,7 +170,7 @@ public class ApplicationInitializer(
         try
         {
             Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
-                UnsafeMemoryHelpers.WithByteStringAsSpan(secrecyChannelState.ToByteString(),
+                SecureByteStringInterop.WithByteStringAsSpan(secrecyChannelState.ToByteString(),
                     span => span.ToArray()),
                 connectId.ToString());
 
@@ -205,7 +205,7 @@ public class ApplicationInitializer(
         return await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.RegisterAppDevice,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(appDevice.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(appDevice.ToByteString(),
                 span => span.ToArray()),
             decryptedPayload =>
             {
@@ -214,7 +214,7 @@ public class ApplicationInitializer(
                 Guid appServerInstanceId = Helpers.FromByteStringToGuid(reply.UniqueId);
 
                 settings.SystemDeviceIdentifier = appServerInstanceId.ToString();
-                settings.ServerPublicKey = UnsafeMemoryHelpers.WithByteStringAsSpan(reply.ServerPublicKey,
+                settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     span => ByteString.CopyFrom(span));
 
                 Log.Information("Device successfully registered with server ID: {AppServerInstanceId}",

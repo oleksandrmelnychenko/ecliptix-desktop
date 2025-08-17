@@ -271,7 +271,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteUnaryRequestAsync(
                 ComputeConnectId(),
                 RpcServiceType.OpaqueRegistrationInit,
-                UnsafeMemoryHelpers.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
+                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 async payload =>
                 {
                     OprfRegistrationInitResponse createMembershipResponse =
@@ -288,7 +288,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     Result<byte[], OpaqueFailure> registrationRecordResult =
                         OpaqueProtocolService.CreateRegistrationRecord(
                             passwordBytes,
-                            UnsafeMemoryHelpers.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
+                            SecureByteStringInterop.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
                                 span => span.ToArray()),
                             opfr.Blind);
 
@@ -309,7 +309,7 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                     await NetworkProvider.ExecuteUnaryRequestAsync(
                         ComputeConnectId(),
                         RpcServiceType.OpaqueRegistrationComplete,
-                        UnsafeMemoryHelpers.WithByteStringAsSpan(completeRequest.ToByteString(),
+                        SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(),
                             span => span.ToArray()),
                         async completePayload =>
                         {

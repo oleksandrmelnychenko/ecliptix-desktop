@@ -80,7 +80,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _peerBundle = PublicKeyBundle.FromProtobufExchange(proto.PeerBundle).Unwrap();
         if (!proto.PeerDhPublicKey.IsEmpty)
         {
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.PeerDhPublicKey, out byte[]? peerDhKey);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.PeerDhPublicKey, out byte[]? peerDhKey);
             _peerDhPublicKey = peerDhKey;
         }
         else
@@ -266,7 +266,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
             rootKeyHandle = rootKeyAllocResult.Unwrap();
 
             Result<Unit, SodiumFailure> copyResult =
-                UnsafeMemoryHelpers.CopyFromByteStringToSecureMemory(proto.RootKey, rootKeyHandle);
+                SecureByteStringInterop.CopyFromByteStringToSecureMemory(proto.RootKey, rootKeyHandle);
             if (copyResult.IsErr)
             {
                 rootKeyHandle.Dispose();

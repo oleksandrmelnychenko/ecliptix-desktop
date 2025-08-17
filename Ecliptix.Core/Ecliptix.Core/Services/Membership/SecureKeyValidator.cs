@@ -37,8 +37,6 @@ public static partial class SecureKeyValidator
     public static (string? Error, List<string> Recommendations) Validate(string secureKey,
         ILocalizationService localizationService, bool isSignIn = false)
     {
-        Log.Information("Validating password: Length={SecureKeyLength}, isSignIn={IsSignIn}", secureKey?.Length,
-            isSignIn);
         List<string> recommendations = [];
         string? error = null;
 

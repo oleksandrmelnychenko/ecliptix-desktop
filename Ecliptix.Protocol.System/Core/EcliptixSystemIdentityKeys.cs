@@ -60,7 +60,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             List<OneTimePreKeySecret> opkProtos = [];
             foreach (OneTimePreKeyLocal opk in _oneTimePreKeysInternal)
             {
-                Result<ByteString, SodiumFailure> privateKeyResult = UnsafeMemoryHelpers.CreateByteStringFromSecureMemory(opk.PrivateKeyHandle, Constants.X25519PrivateKeySize);
+                Result<ByteString, SodiumFailure> privateKeyResult = SecureByteStringInterop.CreateByteStringFromSecureMemory(opk.PrivateKeyHandle, Constants.X25519PrivateKeySize);
                 if (privateKeyResult.IsErr)
                     return Result<IdentityKeysState, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic($"Failed to read OPK private key: {privateKeyResult.UnwrapErr().Message}"));
@@ -69,21 +69,21 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 {
                     PreKeyId = opk.PreKeyId,
                     PrivateKey = privateKeyResult.Unwrap(),
-                    PublicKey = UnsafeMemoryHelpers.CreateByteStringFromSpan(opk.PublicKey)
+                    PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(opk.PublicKey)
                 });
             }
 
-            Result<ByteString, SodiumFailure> ed25519SecretResult = UnsafeMemoryHelpers.CreateByteStringFromSecureMemory(_ed25519SecretKeyHandle, Constants.Ed25519SecretKeySize);
+            Result<ByteString, SodiumFailure> ed25519SecretResult = SecureByteStringInterop.CreateByteStringFromSecureMemory(_ed25519SecretKeyHandle, Constants.Ed25519SecretKeySize);
             if (ed25519SecretResult.IsErr)
                 return Result<IdentityKeysState, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic($"Failed to read Ed25519 secret key: {ed25519SecretResult.UnwrapErr().Message}"));
 
-            Result<ByteString, SodiumFailure> identityX25519SecretResult = UnsafeMemoryHelpers.CreateByteStringFromSecureMemory(_identityX25519SecretKeyHandle, Constants.X25519PrivateKeySize);
+            Result<ByteString, SodiumFailure> identityX25519SecretResult = SecureByteStringInterop.CreateByteStringFromSecureMemory(_identityX25519SecretKeyHandle, Constants.X25519PrivateKeySize);
             if (identityX25519SecretResult.IsErr)
                 return Result<IdentityKeysState, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic($"Failed to read Identity X25519 secret key: {identityX25519SecretResult.UnwrapErr().Message}"));
 
-            Result<ByteString, SodiumFailure> signedPreKeySecretResult = UnsafeMemoryHelpers.CreateByteStringFromSecureMemory(_signedPreKeySecretKeyHandle, Constants.X25519PrivateKeySize);
+            Result<ByteString, SodiumFailure> signedPreKeySecretResult = SecureByteStringInterop.CreateByteStringFromSecureMemory(_signedPreKeySecretKeyHandle, Constants.X25519PrivateKeySize);
             if (signedPreKeySecretResult.IsErr)
                 return Result<IdentityKeysState, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic($"Failed to read Signed PreKey secret: {signedPreKeySecretResult.UnwrapErr().Message}"));
@@ -93,11 +93,11 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 Ed25519SecretKey = ed25519SecretResult.Unwrap(),
                 IdentityX25519SecretKey = identityX25519SecretResult.Unwrap(),
                 SignedPreKeySecret = signedPreKeySecretResult.Unwrap(),
-                Ed25519PublicKey = UnsafeMemoryHelpers.CreateByteStringFromSpan(_ed25519PublicKey),
-                IdentityX25519PublicKey = UnsafeMemoryHelpers.CreateByteStringFromSpan(IdentityX25519PublicKey),
+                Ed25519PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(_ed25519PublicKey),
+                IdentityX25519PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(IdentityX25519PublicKey),
                 SignedPreKeyId = _signedPreKeyId,
-                SignedPreKeyPublic = UnsafeMemoryHelpers.CreateByteStringFromSpan(_signedPreKeyPublic),
-                SignedPreKeySignature = UnsafeMemoryHelpers.CreateByteStringFromSpan(_signedPreKeySignature)
+                SignedPreKeyPublic = SecureByteStringInterop.CreateByteStringFromSpan(_signedPreKeyPublic),
+                SignedPreKeySignature = SecureByteStringInterop.CreateByteStringFromSpan(_signedPreKeySignature)
             };
             proto.OneTimePreKeys.AddRange(opkProtos);
 
@@ -123,29 +123,29 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         {
             // Allocate and copy Ed25519 secret key directly
             edSkHandle = SodiumSecureMemoryHandle.Allocate(proto.Ed25519SecretKey.Length).Unwrap();
-            UnsafeMemoryHelpers.CopyFromByteStringToSecureMemory(proto.Ed25519SecretKey, edSkHandle).Unwrap();
+            SecureByteStringInterop.CopyFromByteStringToSecureMemory(proto.Ed25519SecretKey, edSkHandle).Unwrap();
 
             // Allocate and copy Identity X25519 secret key directly
             idXSkHandle = SodiumSecureMemoryHandle.Allocate(proto.IdentityX25519SecretKey.Length).Unwrap();
-            UnsafeMemoryHelpers.CopyFromByteStringToSecureMemory(proto.IdentityX25519SecretKey, idXSkHandle).Unwrap();
+            SecureByteStringInterop.CopyFromByteStringToSecureMemory(proto.IdentityX25519SecretKey, idXSkHandle).Unwrap();
 
             // Allocate and copy signed prekey secret directly
             spkSkHandle = SodiumSecureMemoryHandle.Allocate(proto.SignedPreKeySecret.Length).Unwrap();
-            UnsafeMemoryHelpers.CopyFromByteStringToSecureMemory(proto.SignedPreKeySecret, spkSkHandle).Unwrap();
+            SecureByteStringInterop.CopyFromByteStringToSecureMemory(proto.SignedPreKeySecret, spkSkHandle).Unwrap();
 
             // Copy public keys directly using helper
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.Ed25519PublicKey, out byte[]? edPk);
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[]? idXPk);
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeyPublic, out byte[]? spkPk);
-            UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[]? spkSig);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.Ed25519PublicKey, out byte[]? edPk);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[]? idXPk);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeyPublic, out byte[]? spkPk);
+            SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[]? spkSig);
 
             // Process one-time prekeys
             foreach (OneTimePreKeySecret opkProto in proto.OneTimePreKeys)
             {
                 SodiumSecureMemoryHandle skHandle = SodiumSecureMemoryHandle.Allocate(opkProto.PrivateKey.Length).Unwrap();
-                UnsafeMemoryHelpers.CopyFromByteStringToSecureMemory(opkProto.PrivateKey, skHandle).Unwrap();
+                SecureByteStringInterop.CopyFromByteStringToSecureMemory(opkProto.PrivateKey, skHandle).Unwrap();
 
-                UnsafeMemoryHelpers.SecureCopyWithCleanup(opkProto.PublicKey, out byte[] opkPkBytes);
+                SecureByteStringInterop.SecureCopyWithCleanup(opkProto.PublicKey, out byte[] opkPkBytes);
                 opkPkBytesList.Add(opkPkBytes);
 
                 OneTimePreKeyLocal opk = OneTimePreKeyLocal.CreateFromParts(opkProto.PreKeyId, skHandle, opkPkBytes);

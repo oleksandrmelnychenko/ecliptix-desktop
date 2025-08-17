@@ -46,7 +46,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Culture = culture;
 
-        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
@@ -58,7 +58,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.IsNewInstance = isNewInstance;
-        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
@@ -72,7 +72,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         settings.Country = ipCountry.Country;
         settings.IpAddress = ipCountry.IpAddress;
 
-        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
@@ -85,7 +85,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membership;
 
-        return await UnsafeMemoryHelpers.WithByteStringAsSpan(settings.ToByteString(),
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
@@ -144,7 +144,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
             Culture = defaultCulture
         };
 
-        Result<Unit, InternalServiceApiFailure> storeResult = await UnsafeMemoryHelpers.WithByteStringAsSpan(
+        Result<Unit, InternalServiceApiFailure> storeResult = await SecureByteStringInterop.WithByteStringAsSpan(
             newSettings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
         if (storeResult.IsErr)

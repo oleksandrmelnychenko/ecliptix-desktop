@@ -53,7 +53,7 @@ public abstract class ViewModelBase
     }
 
     protected byte[] ServerPublicKey() =>
-        UnsafeMemoryHelpers.WithByteStringAsSpan(
+        SecureByteStringInterop.WithByteStringAsSpan(
             NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
             span => span.ToArray());
 

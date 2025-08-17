@@ -152,7 +152,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         _ = await NetworkProvider.ExecuteReceiveStreamRequestAsync(
             connectId,
             RpcServiceType.InitiateVerification,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(membershipVerificationRequest.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(membershipVerificationRequest.ToByteString(),
                 span => span.ToArray()),
             payload =>
             {
@@ -209,7 +209,7 @@ public class VerifyOtpViewModel : ViewModelBase, IRoutableViewModel
         _ = await NetworkProvider.ExecuteUnaryRequestAsync(
             ComputeConnectId(),
             RpcServiceType.VerifyOtp,
-            UnsafeMemoryHelpers.WithByteStringAsSpan(verifyCodeRequest.ToByteString(),
+            SecureByteStringInterop.WithByteStringAsSpan(verifyCodeRequest.ToByteString(),
                 span => span.ToArray()),
             async payload =>
             {
