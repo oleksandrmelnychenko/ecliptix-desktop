@@ -40,13 +40,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         uint connectId,
         PubKeyExchangeType exchangeType)
     {
-        Console.WriteLine($"[DESKTOP] BeginDataCenterPubKeyExchange - ConnectId: {connectId}");
 
         ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
         return ecliptixSystemIdentityKeys.CreatePublicBundle()
             .AndThen(bundle =>
             {
-                Console.WriteLine($"[DESKTOP] Client bundle created (keys hidden for security)");
 
                 return EcliptixProtocolConnection.Create(connectId, true)
                     .AndThen(session =>
@@ -56,7 +54,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                         return session.GetCurrentSenderDhPublicKey()
                             .Map(dhPublicKey =>
                             {
-                                Console.WriteLine($"[DESKTOP] Initial DH key exchange prepared");
                                 return new PubKeyExchange
                                 {
                                     State = PubKeyExchangeState.Init,
@@ -71,20 +68,26 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public void CompleteDataCenterPubKeyExchange(PubKeyExchange peerMessage)
     {
-        Console.WriteLine($"[DESKTOP] CompleteDataCenterPubKeyExchange - State: {peerMessage.State}");
 
         SodiumSecureMemoryHandle? rootKeyHandle = null;
         try
         {
             Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
-                    () => Helpers.ParseFromBytes<Protobuf.PubKeyExchange.PublicKeyBundle>(peerMessage.Payload
-                        .ToByteArray()),
+                    () => {
+                        UnsafeMemoryHelpers.SecureCopyWithCleanup(peerMessage.Payload, out byte[] payloadBytes);
+                        try
+                        {
+                            return Helpers.ParseFromBytes<Protobuf.PubKeyExchange.PublicKeyBundle>(payloadBytes);
+                        }
+                        finally
+                        {
+                            SodiumInterop.SecureWipe(payloadBytes).IgnoreResult();
+                        }
+                    },
                     ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex))
                 .AndThen(PublicKeyBundle.FromProtobufExchange)
                 .AndThen(peerBundle =>
                 {
-                    Console.WriteLine($"[DESKTOP] Server bundle received (keys hidden for security)");
-                    Console.WriteLine($"[DESKTOP] Server Initial DH received (hidden for security)");
 
                     return EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(peerBundle.IdentityEd25519,
                             peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature)
@@ -98,14 +101,18 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                         })
                         .AndThen(rootKeyBytes =>
                         {
-                            Console.WriteLine($"[DESKTOP] Root key established (hidden for security)");
-                            Console.WriteLine($"[DESKTOP] Calling FinalizeChainAndDhKeys");
-                            return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes,
-                                peerMessage.InitialDhPublicKey.ToByteArray());
+                            UnsafeMemoryHelpers.SecureCopyWithCleanup(peerMessage.InitialDhPublicKey, out byte[] dhKeyBytes);
+                            try
+                            {
+                                return _protocolConnection!.FinalizeChainAndDhKeys(rootKeyBytes, dhKeyBytes);
+                            }
+                            finally
+                            {
+                                SodiumInterop.SecureWipe(dhKeyBytes).IgnoreResult();
+                            }
                         })
                         .AndThen(_ =>
                         {
-                            Console.WriteLine($"[DESKTOP] FinalizeChainAndDhKeys completed");
                             return _protocolConnection!.SetPeerBundle(peerBundle);
                         });
                 });
@@ -118,8 +125,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public Result<CipherPayload, EcliptixProtocolFailure> ProduceOutboundMessage(byte[] plainPayload)
     {
-        Console.WriteLine($"[DESKTOP] ProduceOutboundMessage - Payload size: {plainPayload.Length}");
-        Console.WriteLine($"[DESKTOP] ProduceOutboundMessage - Payload content: {Convert.ToHexString(plainPayload)}");
 
         EcliptixMessageKey? messageKeyClone = null;
         try
@@ -131,7 +136,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                             .AndThen(clonedKey =>
                             {
                                 messageKeyClone = clonedKey;
-                                Console.WriteLine($"[DESKTOP] Using message key index: {clonedKey.Index}");
                                 return _protocolConnection.GetPeerBundle();
                             })
                             .AndThen(peerBundle =>
@@ -152,7 +156,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                                         ? ByteString.CopyFrom(newSenderDhPublicKey)
                                         : ByteString.Empty
                                 };
-                                Console.WriteLine($"[DESKTOP] Encrypted message - Nonce: {Convert.ToHexString(nonce)}, RatchetIndex: {payload.RatchetIndex}, CipherSize: {encrypted.Length}");
                                 return payload;
                             }))));
         }
@@ -164,14 +167,15 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public Result<byte[], EcliptixProtocolFailure> ProcessInboundMessage(CipherPayload cipherPayloadProto)
     {
-        Console.WriteLine($"[DESKTOP] ProcessInboundMessage - Nonce: {Convert.ToHexString(cipherPayloadProto.Nonce.ToByteArray())}, RatchetIndex: {cipherPayloadProto.RatchetIndex}, CipherSize: {cipherPayloadProto.Cipher.Length}");
 
         EcliptixMessageKey? messageKeyClone = null;
         try
         {
-            byte[]? receivedDhKey = cipherPayloadProto.DhPublicKey.Length > 0
-                ? cipherPayloadProto.DhPublicKey.ToByteArray()
-                : null;
+            byte[]? receivedDhKey = null;
+            if (cipherPayloadProto.DhPublicKey.Length > 0)
+            {
+                UnsafeMemoryHelpers.SecureCopyWithCleanup(cipherPayloadProto.DhPublicKey, out receivedDhKey);
+            }
 
             return PerformRatchetIfNeeded(receivedDhKey)
                 .AndThen(_ => _protocolConnection!.ProcessReceivedMessage(cipherPayloadProto.RatchetIndex))
@@ -228,8 +232,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[] ad = new byte[id1.Length + id2.Length];
         Buffer.BlockCopy(id1, 0, ad, 0, id1.Length);
         Buffer.BlockCopy(id2, 0, ad, id1.Length, id2.Length);
-        Console.WriteLine($"[DESKTOP] CreateAssociatedData - First: {Convert.ToHexString(id1)}, Second: {Convert.ToHexString(id2)}");
-        Console.WriteLine($"[DESKTOP] CreateAssociatedData - Full AD: {Convert.ToHexString(ad)}");
         return ad;
     }
 
@@ -243,7 +245,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
             if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
 
-            Console.WriteLine($"[DESKTOP] Encrypt - Nonce: {Convert.ToHexString(nonce)}, Size: {plaintext.Length} bytes");
 
             byte[] ciphertext = new byte[plaintext.Length];
             byte[] tag = new byte[Constants.AesGcmTagSize];
@@ -256,7 +257,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             byte[] result = new byte[ciphertext.Length + tag.Length];
             Buffer.BlockCopy(ciphertext, 0, result, 0, ciphertext.Length);
             Buffer.BlockCopy(tag, 0, result, ciphertext.Length, tag.Length);
-            Console.WriteLine($"[DESKTOP] Encrypt - Ciphertext: {Convert.ToHexString(result)}");
 
             return Result<byte[], EcliptixProtocolFailure>.Ok(result);
         }

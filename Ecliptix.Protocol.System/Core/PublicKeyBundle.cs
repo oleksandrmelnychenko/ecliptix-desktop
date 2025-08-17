@@ -1,3 +1,4 @@
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf;
@@ -71,10 +72,10 @@ public record PublicKeyBundle(
         return Result<PublicKeyBundle, EcliptixProtocolFailure>.Try(
             () =>
             {
-                byte[] identityEd25519 = proto.IdentityPublicKey.ToByteArray();
-                byte[] identityX25519 = proto.IdentityX25519PublicKey.ToByteArray();
-                byte[] signedPreKeyPublic = proto.SignedPreKeyPublicKey.ToByteArray();
-                byte[] signedPreKeySignature = proto.SignedPreKeySignature.ToByteArray();
+                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
+                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[] identityX25519);
+                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeyPublicKey, out byte[] signedPreKeyPublic);
+                UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[] signedPreKeySignature);
 
                 if (identityEd25519.Length != Constants.Ed25519KeySize)
                     throw new ArgumentException($"IdentityEd25519 key must be {Constants.Ed25519KeySize} bytes.");
@@ -86,9 +87,11 @@ public record PublicKeyBundle(
                     throw new ArgumentException(
                         $"SignedPreKeySignature must be {Constants.Ed25519SignatureSize} bytes.");
 
-                byte[]? ephemeralX25519 = proto.EphemeralX25519PublicKey.IsEmpty
-                    ? null
-                    : proto.EphemeralX25519PublicKey.ToByteArray();
+                byte[]? ephemeralX25519 = null;
+                if (!proto.EphemeralX25519PublicKey.IsEmpty)
+                {
+                    UnsafeMemoryHelpers.SecureCopyWithCleanup(proto.EphemeralX25519PublicKey, out ephemeralX25519);
+                }
                 if (ephemeralX25519 != null && ephemeralX25519.Length != Constants.X25519KeySize)
                     throw new ArgumentException(
                         $"EphemeralX25519 key must be {Constants.X25519KeySize} bytes if present.");
@@ -96,7 +99,7 @@ public record PublicKeyBundle(
                 List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
                 foreach (Protobuf.PubKeyExchange.PublicKeyBundle.Types.OneTimePreKey? pOpk in proto.OneTimePreKeys)
                 {
-                    byte[] opkPublicKey = pOpk.PublicKey.ToByteArray();
+                    UnsafeMemoryHelpers.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
                     Result<OneTimePreKeyRecord, EcliptixProtocolFailure> opkResult =
                         OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
                     if (opkResult.IsErr)

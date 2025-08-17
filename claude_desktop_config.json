@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "ecliptix-dev": {
+      "command": "node",
+      "args": ["/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/.mcp/servers/ecliptix-dev.js"],
+      "env": {
+        "WORKSPACE_ROOT": "/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop"
+      }
+    },
+    "dotnet-project": {
+      "command": "node",
+      "args": ["/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/.mcp/servers/dotnet-project.js"],
+      "env": {
+        "WORKSPACE_ROOT": "/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop"
+      }
+    },
+    "security-protocol": {
+      "command": "node",
+      "args": ["/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/.mcp/servers/security-protocol.js"],
+      "env": {
+        "WORKSPACE_ROOT": "/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop"
+      }
+    }
+  }
+}

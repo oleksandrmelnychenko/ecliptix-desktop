@@ -290,3 +290,75 @@ Automated workflows handle:
 - Pull requests required for all changes
 - CI checks must pass before merging
 - Code review required for all PRs
+
+## MCP Servers Integration
+
+The project includes three specialized MCP (Model Context Protocol) servers that provide AI assistance tailored to the Ecliptix architecture:
+
+### Available MCP Servers
+
+#### 1. ecliptix-dev
+**Purpose:** Ecliptix-specific development assistance
+**Capabilities:**
+- Generate ViewModels following ReactiveUI patterns
+- Create Avalonia views with proper data binding
+- Provide architecture guidance for auth, crypto, network, UI, and storage components
+
+**Example Usage:**
+```
+Generate a new ViewModel for user profile management with reactive properties and validation
+Create an Avalonia view for the settings page with proper bindings
+```
+
+#### 2. dotnet-project
+**Purpose:** .NET project and dependency management
+**Capabilities:**
+- Analyze and update NuGet packages
+- Manage project references and solution structure
+- Check for vulnerable or outdated dependencies
+
+**Example Usage:**
+```
+Check for vulnerable packages and update them
+Add Entity Framework to the Core project
+Analyze project dependencies and suggest optimizations
+```
+
+#### 3. security-protocol
+**Purpose:** Security analysis and cryptographic implementation
+**Capabilities:**
+- Scan code for security vulnerabilities
+- Generate secure cryptographic implementations
+- Implement AES-GCM and OPAQUE protocol patterns
+
+**Example Usage:**
+```
+Analyze the codebase for security issues
+Generate AES-GCM encryption service
+Implement OPAQUE authentication flow
+```
+
+### Setup Instructions
+
+1. **Install Dependencies:**
+   ```bash
+   npm install @modelcontextprotocol/sdk
+   ```
+
+2. **Configure Claude Desktop:**
+   ```bash
+   ./setup-mcp.sh
+   ```
+
+3. **Usage in Claude Desktop:**
+   Once configured, you can use natural language to request MCP server assistance:
+   - "Use the ecliptix-dev MCP to generate a new ViewModel"
+   - "Use the security-protocol MCP to check for security issues"
+   - "Use the dotnet-project MCP to update packages"
+
+### MCP Server Files
+- `.mcp/servers/ecliptix-dev.js` - Ecliptix development server
+- `.mcp/servers/dotnet-project.js` - .NET project management server
+- `.mcp/servers/security-protocol.js` - Security and crypto server
+- `setup-mcp.sh` - Automated setup script
+- `claude_desktop_config.json` - Configuration template

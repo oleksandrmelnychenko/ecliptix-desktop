@@ -124,6 +124,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
         if (Length == 0) return Result<Unit, SodiumFailure>.Ok(Unit.Value);
 
+        _lock.EnterReadLock();
         bool success = false;
 
         try
@@ -157,6 +158,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         finally
         {
             if (success) DangerousRelease();
+            _lock.ExitReadLock();
         }
     }
 
@@ -179,44 +181,51 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
         if (length == 0) return Result<byte[], SodiumFailure>.Ok([]);
 
+        _lock.EnterReadLock();
         byte[] buffer = new byte[length];
         bool success = false;
 
-        Result<byte[], SodiumFailure> copyResult = ExecuteWithErrorHandling(
-            () =>
-            {
-                DangerousAddRef(ref success);
-                if (!success) throw new InvalidOperationException(SodiumFailureMessages.ReferenceCountFailed);
-
-                if (IsInvalid || IsClosed)
-                    throw new ObjectDisposedException(
-                        string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle)));
-
-                unsafe
+        try
+        {
+            Result<byte[], SodiumFailure> copyResult = ExecuteWithErrorHandling(
+                () =>
                 {
-                    Buffer.MemoryCopy(
-                        (void*)handle,
-                        Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer.AsSpan())),
-                        (ulong)length,
-                        (ulong)length);
+                    DangerousAddRef(ref success);
+                    if (!success) throw new InvalidOperationException(SodiumFailureMessages.ReferenceCountFailed);
+
+                    if (IsInvalid || IsClosed)
+                        throw new ObjectDisposedException(
+                            string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle)));
+
+                    unsafe
+                    {
+                        Buffer.MemoryCopy(
+                            (void*)handle,
+                            Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer.AsSpan())),
+                            (ulong)length,
+                            (ulong)length);
+                    }
+
+                    return buffer;
+                },
+                ex => ex switch
+                {
+                    InvalidOperationException { Message: SodiumFailureMessages.ReferenceCountFailed } =>
+                        SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.ReferenceCountFailed),
+                    ObjectDisposedException => SodiumFailure.NullPointer(
+                        string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle))),
+                    _ => SodiumFailure.MemoryProtectionFailed(
+                        string.Format(SodiumFailureMessages.UnexpectedReadBytesError, length), ex)
                 }
+            );
 
-                return buffer;
-            },
-            ex => ex switch
-            {
-                InvalidOperationException { Message: SodiumFailureMessages.ReferenceCountFailed } =>
-                    SodiumFailure.MemoryPinningFailed(SodiumFailureMessages.ReferenceCountFailed),
-                ObjectDisposedException => SodiumFailure.NullPointer(
-                    string.Format(SodiumFailureMessages.DisposedAfterAddRef, nameof(SodiumSecureMemoryHandle))),
-                _ => SodiumFailure.MemoryProtectionFailed(
-                    string.Format(SodiumFailureMessages.UnexpectedReadBytesError, length), ex)
-            }
-        );
-
-        if (success) DangerousRelease();
-
-        return copyResult;
+            return copyResult;
+        }
+        finally
+        {
+            if (success) DangerousRelease();
+            _lock.ExitReadLock();
+        }
     }
 
     protected override bool ReleaseHandle()
