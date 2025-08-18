@@ -1,0 +1,104 @@
+using System;
+using System.IO;
+
+namespace Ecliptix.Core.Desktop.Constants;
+
+public static class ApplicationConstants
+{
+    public static class ApplicationSettings
+    {
+        public const string ApplicationName = "Ecliptix";
+        public const string EnvironmentKey = "AppSettings:Environment";
+        public const string DevelopmentEnvironment = "Development";
+        public const string ProductionEnvironment = "Production";
+        public const string DotNetEnvironmentKey = "DOTNET_ENVIRONMENT";
+    }
+
+    public static class Configuration
+    {
+        public const string AppSettingsFile = "appsettings.json";
+        public const string EnvironmentAppSettingsPattern = "appsettings.{0}.json";
+        public const string DefaultAppSettingsSection = "DefaultAppSettings";
+        public const string SecureStoreOptionsSection = "SecureStoreOptions";
+        public const string SecureStorageSection = "SecureStorage";
+        public const string ImprovedRetryPolicySection = "ImprovedRetryPolicy";
+    }
+
+    public static class Storage
+    {
+        public const string DataProtectionKeysPath = "%APPDATA%/Storage/DataProtection-Keys";
+        public const string DefaultStatePath = "Storage/state";
+        public const string SecureProtocolStateFile = "secure_protocol_state.enc";
+        public const string EcliptixDirectoryName = "Ecliptix";
+        public const string LocalShareDirectory = ".local/share";
+        public const string ApplicationSupportDirectory = "Library/Application Support";
+        public const string LogsDirectory = "logs";
+        public const string LogFilePattern = "ecliptix-.log";
+    }
+
+    public static class Timeouts
+    {
+        public static readonly TimeSpan DefaultKeyLifetime = TimeSpan.FromDays(90);
+        public static readonly TimeSpan HttpClientLifetime = TimeSpan.FromMinutes(5);
+        public static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan DefaultPollingInterval = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan DefaultInitialRetryDelay = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan DefaultMaxRetryDelay = TimeSpan.FromMinutes(2);
+        public static readonly TimeSpan DefaultCircuitBreakerDuration = TimeSpan.FromMinutes(1);
+        public static readonly TimeSpan DefaultRequestDeduplicationWindow = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan DefaultHealthCheckTimeout = TimeSpan.FromSeconds(5);
+    }
+
+    public static class Thresholds
+    {
+        public const int DefaultFailureThreshold = 2;
+        public const int DefaultSuccessThreshold = 1;
+        public const int DefaultMaxRetries = 10;
+        public const int DefaultCircuitBreakerThreshold = 5;
+        public const int RetryAttempts = 3;
+    }
+
+    public static class ConfigurationKeys
+    {
+        public const string DefaultTheme = "DefaultTheme";
+        public const string Environment = "Environment";
+        public const string DataCenterConnectionString = "DataCenterConnectionString";
+        public const string CountryCodeApi = "CountryCodeApi";
+        public const string DomainName = "DomainName";
+        public const string Culture = "Culture";
+        public const string EncryptedStatePath = "EncryptedStatePath";
+        public const string StatePath = "StatePath";
+        public const string InitialRetryDelay = "InitialRetryDelay";
+        public const string MaxRetryDelay = "MaxRetryDelay";
+        public const string MaxRetries = "MaxRetries";
+        public const string CircuitBreakerThreshold = "CircuitBreakerThreshold";
+        public const string CircuitBreakerDuration = "CircuitBreakerDuration";
+        public const string RequestDeduplicationWindow = "RequestDeduplicationWindow";
+        public const string UseAdaptiveRetry = "UseAdaptiveRetry";
+        public const string HealthCheckTimeout = "HealthCheckTimeout";
+    }
+
+    public static class Logging
+    {
+        public const string ConsoleSinkAssembly = "Serilog.Sinks.Console";
+        public const string FileSinkAssembly = "Serilog.Sinks.File";
+        public const string StartupMessage = "Starting Ecliptix application...";
+        public const string ShutdownMessage = "Application shutting down";
+        public const string FatalErrorMessage = "Application terminated unexpectedly during startup or runtime";
+        public const string PermissionsSetMessage = "Set secure permissions (700) on directory {Path}";
+        public const string PermissionsFailMessage = "Failed to set permissions for directory {Path}";
+        public const string GrpcEndpointErrorMessage = "gRPC endpoint URL is not configured in appsettings.json.";
+        public const string PathEmptyErrorMessage = "Path cannot be empty.";
+    }
+
+    public static class FilePermissions
+    {
+        public const UnixFileMode SecureDirectoryMode = 
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+    }
+
+    public static class HttpClient
+    {
+        public const string InternetConnectivityClientName = "InternetConnectivity";
+    }
+}
