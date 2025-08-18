@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Membership;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls;
@@ -88,6 +89,21 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
+    
+    public static readonly StyledProperty<bool> IsPasswordStrengthModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordStrengthMode));
+
+    public static readonly StyledProperty<PasswordStrength> PasswordStrengthProperty =
+        AvaloniaProperty.Register<HintedTextBox, PasswordStrength>(nameof(PasswordStrength), PasswordStrength.Invalid);
+
+    public static readonly StyledProperty<string> PasswordStrengthTextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(PasswordStrengthText), string.Empty);
+
+    public static readonly StyledProperty<IBrush> PasswordStrengthTextBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthTextBrush), new SolidColorBrush(Colors.Gray));
+
+    public static readonly StyledProperty<IBrush> PasswordStrengthIconBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthIconBrush), new SolidColorBrush(Colors.Gray));
 
     public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
@@ -249,6 +265,36 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         get => GetValue(FontWeightProperty);
         set => SetValue(FontWeightProperty, value);
+    }
+    
+    public bool IsPasswordStrengthMode
+    {
+        get => GetValue(IsPasswordStrengthModeProperty);
+        set => SetValue(IsPasswordStrengthModeProperty, value);
+    }
+
+    public PasswordStrength PasswordStrength
+    {
+        get => GetValue(PasswordStrengthProperty);
+        set => SetValue(PasswordStrengthProperty, value);
+    }
+
+    public string PasswordStrengthText
+    {
+        get => GetValue(PasswordStrengthTextProperty);
+        set => SetValue(PasswordStrengthTextProperty, value);
+    }
+
+    public IBrush PasswordStrengthTextBrush
+    {
+        get => GetValue(PasswordStrengthTextBrushProperty);
+        set => SetValue(PasswordStrengthTextBrushProperty, value);
+    }
+
+    public IBrush PasswordStrengthIconBrush
+    {
+        get => GetValue(PasswordStrengthIconBrushProperty);
+        set => SetValue(PasswordStrengthIconBrushProperty, value);
     }
 
     private readonly CompositeDisposable _disposables = new();
@@ -426,11 +472,25 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void UpdateBorderState()
     {
-        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null) return;
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null) return;
 
         bool isFocused = _mainTextBox.IsFocused;
 
-        if (HasError)
+        if (IsPasswordStrengthMode)
+        {
+            // Password strength mode - use strength-based colors
+            (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(PasswordStrength);
+            
+            _focusBorder.BorderBrush = new SolidColorBrush(borderColor);
+            _focusBorder.Opacity = 1;
+            _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource(shadowKey);
+            
+            // Update strength colors
+            PasswordStrengthIconBrush = new SolidColorBrush(iconColor);
+            PasswordStrengthTextBrush = new SolidColorBrush(iconColor);
+        }
+        else if (HasError)
         {
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
             _focusBorder.Opacity = 1;
@@ -452,6 +512,20 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
+    private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(PasswordStrength strength)
+    {
+        return strength switch
+        {
+            PasswordStrength.Invalid => (Color.Parse("#ef3a3a"), "InvalidStrengthShadow", Color.Parse("#ef3a3a")),
+            PasswordStrength.VeryWeak => (Color.Parse("#ff6b35"), "VeryWeakStrengthShadow", Color.Parse("#ff6b35")),
+            PasswordStrength.Weak => (Color.Parse("#ffa500"), "WeakStrengthShadow", Color.Parse("#ffa500")),
+            PasswordStrength.Good => (Color.Parse("#ffdd44"), "GoodStrengthShadow", Color.Parse("#ffdd44")),
+            PasswordStrength.Strong => (Color.Parse("#90ee90"), "StrongStrengthShadow", Color.Parse("#90ee90")),
+            PasswordStrength.VeryStrong => (Color.Parse("#32cd32"), "VeryStrongStrengthShadow", Color.Parse("#32cd32")),
+            _ => (Color.Parse("#ef3a3a"), "InvalidStrengthShadow", Color.Parse("#ef3a3a"))
+        };
+    }
+
     private void FindControls()
     {
         _mainTextBox = this.FindControl<TextBox>("MainTextBox");
@@ -467,6 +541,14 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void SetupReactiveBindings()
     {
         this.WhenAnyValue(x => x.HasError)
+            .Subscribe(_ => UpdateBorderState())
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.PasswordStrength)
+            .Subscribe(_ => UpdateBorderState())
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.IsPasswordStrengthMode)
             .Subscribe(_ => UpdateBorderState())
             .DisposeWith(_disposables);
 

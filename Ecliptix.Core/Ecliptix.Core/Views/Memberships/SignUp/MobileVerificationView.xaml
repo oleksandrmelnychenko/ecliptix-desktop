@@ -113,8 +113,6 @@
             Hint="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Hint]}"
             TextForeground="{DynamicResource TextBoxForegroundColor}"
             HintForeground="{DynamicResource TipsColor}"
-            IconRegularSource="{DynamicResource LampIconDrawingRegular}"
-            IconErrorSource="{DynamicResource LampIconDrawingError}"
             ErrorText="{Binding MobileNumberError, Mode=OneWay}"
             HasError="{Binding HasMobileNumberError, Mode=OneWay}"
             FocusBorderBrush="{DynamicResource TipsColor}"

@@ -53,6 +53,10 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     [ObservableAsProperty] public bool HasPasswordError { get; private set; }
     [ObservableAsProperty] public string? VerifyPasswordError { get; private set; }
     [ObservableAsProperty] public bool HasVerifyPasswordError { get; private set; }
+    
+    [ObservableAsProperty] public PasswordStrength CurrentPasswordStrength { get; private set; }
+    [ObservableAsProperty] public string? PasswordStrengthMessage { get; private set; }
+    [ObservableAsProperty] public bool HasPasswordBeenTouched { get; private set; }
 
     [Reactive] public bool CanSubmit { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -155,14 +159,24 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<(string? Error, string Recommendations)> passwordValidation = this
+        IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> passwordValidation = this
             .WhenAnyValue(x => x.CurrentPasswordLength)
-            .Select(_ => ValidatePassword())
+            .Select(_ => ValidatePasswordWithStrength())
             .Replay(1)
             .RefCount();
 
+        // Set up password strength properties
+        passwordValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentPasswordStrength);
+        passwordValidation.Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
+            .ToPropertyEx(this, x => x.PasswordStrengthMessage);
+
+        // Track touched state
+        this.WhenAnyValue(x => x.CurrentPasswordLength)
+            .Select(_ => _hasPasswordBeenTouched)
+            .ToPropertyEx(this, x => x.HasPasswordBeenTouched);
+
         IObservable<string> passwordErrorStream = passwordValidation
-            .Select(v => _hasPasswordBeenTouched ? FormatError(v.Error, v.Recommendations) : string.Empty)
+            .Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
             .Replay(1)
             .RefCount();
 
@@ -194,20 +208,23 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
             .DistinctUntilChanged();
     }
 
-    private (string? Error, string Recommendations) ValidatePassword()
+    private (string? Error, string Recommendations, PasswordStrength Strength) ValidatePasswordWithStrength()
     {
         string? error = null;
-        var recommendations = string.Empty;
+        string recommendations = string.Empty;
+        PasswordStrength strength = PasswordStrength.Invalid;
+        
         _passwordBuffer.WithSecureBytes(bytes =>
         {
             string password = Encoding.UTF8.GetString(bytes);
             (error, var recs) = SecureKeyValidator.Validate(password, LocalizationService);
+            strength = SecureKeyValidator.EstimatePasswordStrength(password, LocalizationService);
             if (recs.Any())
             {
                 recommendations = recs.First();
             }
         });
-        return (error, recommendations);
+        return (error, recommendations, strength);
     }
 
     private bool DoPasswordsMatch()
@@ -236,6 +253,23 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     {
         if (!string.IsNullOrEmpty(error)) return error;
         return recommendations;
+    }
+
+    private string FormatPasswordStrengthMessage(PasswordStrength strength, string? error, string recommendations)
+    {
+        string strengthText = strength switch
+        {
+            PasswordStrength.Invalid => "Invalid",
+            PasswordStrength.VeryWeak => "Very Weak",
+            PasswordStrength.Weak => "Weak", 
+            PasswordStrength.Good => "Good",
+            PasswordStrength.Strong => "Strong",
+            PasswordStrength.VeryStrong => "Very Strong",
+            _ => "Invalid"
+        };
+
+        string message = !string.IsNullOrEmpty(error) ? error : recommendations;
+        return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
     }
 
 
