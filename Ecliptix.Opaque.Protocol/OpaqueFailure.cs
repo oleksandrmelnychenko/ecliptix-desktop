@@ -47,4 +47,40 @@ public sealed record OpaqueFailure
         return new OpaqueFailure(OpaqueCryptoFailureType.InvalidInput,
             string.IsNullOrEmpty(details) ? OpaqueMessageKeys.InputKeyingMaterialCannotBeNullOrEmpty : details, inner);
     }
+
+    public static OpaqueFailure InvalidPoint(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidKeySignature,
+            string.IsNullOrEmpty(details) ? "Invalid elliptic curve point" : details, inner);
+    }
+
+    public static OpaqueFailure SubgroupCheckFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidKeySignature,
+            string.IsNullOrEmpty(details) ? "Point not in main subgroup" : details, inner);
+    }
+
+    public static OpaqueFailure StretchingFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidInput,
+            string.IsNullOrEmpty(details) ? "PBKDF2 stretching failed" : details, inner);
+    }
+
+    public static OpaqueFailure EnvelopeFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidKeySignature,
+            string.IsNullOrEmpty(details) ? "Envelope operation failed" : details, inner);
+    }
+
+    public static OpaqueFailure MaskingFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidInput,
+            string.IsNullOrEmpty(details) ? "Response masking/unmasking failed" : details, inner);
+    }
+
+    public static OpaqueFailure KeyDerivationFailed(string? details = null, Exception? inner = null)
+    {
+        return new OpaqueFailure(OpaqueCryptoFailureType.InvalidKeySignature,
+            string.IsNullOrEmpty(details) ? "Key derivation failed" : details, inner);
+    }
 }

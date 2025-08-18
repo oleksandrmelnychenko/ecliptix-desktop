@@ -75,7 +75,7 @@ public sealed class HkdfSha256 : IDisposable
 
         int hmacInputSize = HashOutputLength + info.Length + 1;
 
-        using var hmacInputBuffer = SecureArrayPool.Rent<byte>(hmacInputSize);
+        using SecurePooledArray<byte> hmacInputBuffer = SecureArrayPool.Rent<byte>(hmacInputSize);
 
         try
         {
@@ -118,7 +118,6 @@ public sealed class HkdfSha256 : IDisposable
         {
             prk.Clear();
             previousHash.Clear();
-            // SecureArrayPool handles automatic cleanup via using statement
         }
     }
 

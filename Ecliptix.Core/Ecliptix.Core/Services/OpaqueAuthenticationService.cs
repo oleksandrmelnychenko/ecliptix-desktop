@@ -238,7 +238,7 @@ public class OpaqueAuthenticationService(
             return Result<byte[], string>.Err(message);
         }
 
-        Result<byte[], OpaqueFailure> verificationResult = clientOpaqueService.VerifyServerMacAndGetSessionKey(
+        Result<byte[], OpaqueFailure> verificationResult = OpaqueProtocolService.VerifyServerMacAndGetSessionKey(
             capturedResponse, sessionKey, serverMacKey, transcriptHash);
 
         if (!verificationResult.IsErr) return Result<byte[], string>.Ok(verificationResult.Unwrap());

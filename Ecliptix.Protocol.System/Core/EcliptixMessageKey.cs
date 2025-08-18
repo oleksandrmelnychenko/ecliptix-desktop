@@ -56,7 +56,6 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
         }
 
         EcliptixMessageKey messageKey = new(index, keyHandle);
-        // Removed debug logging of sensitive key material for security
 
         return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(messageKey);
     }
@@ -81,7 +80,7 @@ public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessage
         {
             if (disposing)
             {
-                _keyHandle?.Dispose();
+                _keyHandle.Dispose();
                 _keyHandle = null!;
             }
 

@@ -9,9 +9,6 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-/// <summary>
-/// Provides secure handling of sensitive string data like passwords.
-/// </summary>
 public sealed class SecureStringHandler : IDisposable
 {
     private readonly SodiumSecureMemoryHandle _handle;
@@ -24,10 +21,6 @@ public sealed class SecureStringHandler : IDisposable
         _length = length;
     }
 
-    /// <summary>
-    /// Creates a SecureStringHandler from a regular string.
-    /// The input string is securely wiped after copying.
-    /// </summary>
     public static Result<SecureStringHandler, SodiumFailure> FromString(string? input)
     {
         if (string.IsNullOrEmpty(input))
@@ -39,20 +32,18 @@ public sealed class SecureStringHandler : IDisposable
         {
             bytes = Encoding.UTF8.GetBytes(input);
 
-            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
 
-            var handle = allocResult.Unwrap();
-            var writeResult = handle.Write(bytes);
-            if (writeResult.IsErr)
-            {
-                handle.Dispose();
-                return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
-            }
+            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+            Result<Unit, SodiumFailure> writeResult = handle.Write(bytes);
+            if (!writeResult.IsErr)
+                return Result<SecureStringHandler, SodiumFailure>.Ok(
+                    new SecureStringHandler(handle, bytes.Length));
+            handle.Dispose();
+            return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
 
-            return Result<SecureStringHandler, SodiumFailure>.Ok(
-                new SecureStringHandler(handle, bytes.Length));
         }
         finally
         {
@@ -61,9 +52,6 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    /// <summary>
-    /// Creates a SecureStringHandler from a SecureString.
-    /// </summary>
     public static Result<SecureStringHandler, SodiumFailure> FromSecureString(SecureString? secureString)
     {
         if (secureString == null || secureString.Length == 0)
@@ -89,12 +77,12 @@ public sealed class SecureStringHandler : IDisposable
                 }
             }
 
-            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
 
-            var handle = allocResult.Unwrap();
-            var writeResult = handle.Write(bytes);
+            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+            Result<Unit, SodiumFailure> writeResult = handle.Write(bytes);
             if (writeResult.IsErr)
             {
                 handle.Dispose();
@@ -113,10 +101,6 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    /// <summary>
-    /// Creates a SecureStringHandler from a char array.
-    /// The input array is securely wiped after copying.
-    /// </summary>
     public static Result<SecureStringHandler, SodiumFailure> FromChars(char[]? chars)
     {
         if (chars == null || chars.Length == 0)
@@ -128,12 +112,12 @@ public sealed class SecureStringHandler : IDisposable
         {
             bytes = Encoding.UTF8.GetBytes(chars);
 
-            var allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
 
-            var handle = allocResult.Unwrap();
-            var writeResult = handle.Write(bytes);
+            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+            Result<Unit, SodiumFailure> writeResult = handle.Write(bytes);
             if (writeResult.IsErr)
             {
                 handle.Dispose();
@@ -151,10 +135,6 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    /// <summary>
-    /// Executes an operation with the decrypted bytes.
-    /// The bytes are only accessible within the operation scope.
-    /// </summary>
     public Result<T, SodiumFailure> UseBytes<T>(Func<ReadOnlySpan<byte>, T> operation)
     {
         if (_disposed)
@@ -165,7 +145,7 @@ public sealed class SecureStringHandler : IDisposable
         try
         {
             tempBytes = new byte[_length];
-            var readResult = _handle.Read(tempBytes);
+            Result<Unit, SodiumFailure> readResult = _handle.Read(tempBytes);
             if (readResult.IsErr)
                 return Result<T, SodiumFailure>.Err(readResult.UnwrapErr());
 
@@ -179,10 +159,6 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    /// <summary>
-    /// Executes an operation with the decrypted string.
-    /// The string is only accessible within the operation scope.
-    /// </summary>
     public Result<T, SodiumFailure> UseString<T>(Func<string, T> operation)
     {
         return UseBytes(bytes =>
@@ -194,15 +170,10 @@ public sealed class SecureStringHandler : IDisposable
             }
             finally
             {
-                // Note: We can't securely wipe a string in .NET
-                // This is a limitation of the platform
             }
         });
     }
 
-    /// <summary>
-    /// Compares this secure string with another in constant time.
-    /// </summary>
     public Result<bool, SodiumFailure> Equals(SecureStringHandler other)
     {
         if (_disposed || other._disposed)
@@ -214,7 +185,7 @@ public sealed class SecureStringHandler : IDisposable
 
         return UseBytes(thisBytes =>
         {
-            var thisBytesCopy = thisBytes.ToArray();
+            byte[] thisBytesCopy = thisBytes.ToArray();
             try
             {
                 return other.UseBytes(otherBytes =>
@@ -227,9 +198,6 @@ public sealed class SecureStringHandler : IDisposable
         });
     }
 
-    /// <summary>
-    /// Creates a hash of the secure string using a cryptographic hash function.
-    /// </summary>
     public Result<byte[], SodiumFailure> ComputeHash(HashAlgorithmName algorithm)
     {
         return UseBytes(bytes =>
@@ -253,9 +221,6 @@ public sealed class SecureStringHandler : IDisposable
         });
     }
 
-    /// <summary>
-    /// Gets the length of the secure string in bytes.
-    /// </summary>
     public int ByteLength => _length;
 
     public void Dispose()
@@ -266,9 +231,6 @@ public sealed class SecureStringHandler : IDisposable
     }
 }
 
-/// <summary>
-/// Provides a builder pattern for constructing secure strings character by character.
-/// </summary>
 public sealed class SecureStringBuilder : IDisposable
 {
     private readonly List<SodiumSecureMemoryHandle> _chunks;
@@ -289,24 +251,18 @@ public sealed class SecureStringBuilder : IDisposable
         _totalLength = 0;
     }
 
-    /// <summary>
-    /// Appends a character to the secure string.
-    /// </summary>
     public Result<Unit, SodiumFailure> Append(char c)
     {
         if (_disposed)
             return Result<Unit, SodiumFailure>.Err(
                 SodiumFailure.NullPointer("Builder is disposed"));
 
-        Span<byte> bytes = stackalloc byte[4]; // Max UTF-8 bytes per char
+        Span<byte> bytes = stackalloc byte[4];
         int byteCount = Encoding.UTF8.GetBytes(new[] { c }, bytes);
 
         return AppendBytes(bytes.Slice(0, byteCount));
     }
 
-    /// <summary>
-    /// Appends a string to the secure string.
-    /// </summary>
     public Result<Unit, SodiumFailure> Append(string str)
     {
         if (_disposed)
@@ -337,7 +293,7 @@ public sealed class SecureStringBuilder : IDisposable
         {
             if (_currentChunk == null || _currentPosition >= _chunkSize)
             {
-                var allocResult = SodiumSecureMemoryHandle.Allocate(_chunkSize);
+                Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_chunkSize);
                 if (allocResult.IsErr)
                     return Result<Unit, SodiumFailure>.Err(allocResult.UnwrapErr());
 
@@ -347,7 +303,7 @@ public sealed class SecureStringBuilder : IDisposable
             }
 
             singleByteBuffer[0] = b;
-            var writeResult = _currentChunk.Write(singleByteBuffer);
+            Result<Unit, SodiumFailure> writeResult = _currentChunk.Write(singleByteBuffer);
             if (writeResult.IsErr)
                 return Result<Unit, SodiumFailure>.Err(writeResult.UnwrapErr());
 
@@ -358,9 +314,6 @@ public sealed class SecureStringBuilder : IDisposable
         return Result<Unit, SodiumFailure>.Ok(Unit.Value);
     }
 
-    /// <summary>
-    /// Builds the final SecureStringHandler from the accumulated data.
-    /// </summary>
     public Result<SecureStringHandler, SodiumFailure> Build()
     {
         if (_disposed)
@@ -371,12 +324,11 @@ public sealed class SecureStringBuilder : IDisposable
             return Result<SecureStringHandler, SodiumFailure>.Err(
                 SodiumFailure.InvalidBufferSize("No data to build"));
 
-        // Allocate final buffer
-        var allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);
+        Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);
         if (allocResult.IsErr)
             return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
 
-        var finalHandle = allocResult.Unwrap();
+        SodiumSecureMemoryHandle finalHandle = allocResult.Unwrap();
         byte[]? tempBuffer = null;
 
         try
@@ -384,27 +336,26 @@ public sealed class SecureStringBuilder : IDisposable
             tempBuffer = new byte[_totalLength];
             int offset = 0;
 
-            // Copy all chunks to final buffer
             for (int i = 0; i < _chunks.Count; i++)
             {
-                var chunk = _chunks[i];
+                SodiumSecureMemoryHandle chunk = _chunks[i];
                 int bytesToRead = (i == _chunks.Count - 1) ?
                     _currentPosition : _chunkSize;
 
-                var readResult = chunk.ReadBytes(bytesToRead);
+                Result<byte[], SodiumFailure> readResult = chunk.ReadBytes(bytesToRead);
                 if (readResult.IsErr)
                 {
                     finalHandle.Dispose();
                     return Result<SecureStringHandler, SodiumFailure>.Err(readResult.UnwrapErr());
                 }
 
-                var chunkData = readResult.Unwrap();
+                byte[] chunkData = readResult.Unwrap();
                 Array.Copy(chunkData, 0, tempBuffer, offset, bytesToRead);
                 CryptographicOperations.ZeroMemory(chunkData);
                 offset += bytesToRead;
             }
 
-            var writeResult = finalHandle.Write(tempBuffer);
+            Result<Unit, SodiumFailure> writeResult = finalHandle.Write(tempBuffer);
             if (writeResult.IsErr)
             {
                 finalHandle.Dispose();
@@ -421,12 +372,9 @@ public sealed class SecureStringBuilder : IDisposable
         }
     }
 
-    /// <summary>
-    /// Clears all accumulated data.
-    /// </summary>
     public void Clear()
     {
-        foreach (var chunk in _chunks)
+        foreach (SodiumSecureMemoryHandle chunk in _chunks)
             chunk.Dispose();
 
         _chunks.Clear();
@@ -443,9 +391,6 @@ public sealed class SecureStringBuilder : IDisposable
     }
 }
 
-/// <summary>
-/// Represents a cryptographic hash algorithm name.
-/// </summary>
 public readonly struct HashAlgorithmName
 {
     public string Name { get; }
