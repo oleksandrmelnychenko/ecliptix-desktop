@@ -35,6 +35,10 @@ public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowM
 
         SetupLazyLanguageSelector();
         SetupBottomSheetFocusManagement();
+        
+#if DEBUG
+        this.AttachDevTools();
+#endif
     }
 
     private void SetupLazyLanguageSelector()

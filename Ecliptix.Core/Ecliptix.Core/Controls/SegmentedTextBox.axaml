@@ -9,7 +9,6 @@
              >
     
      <UserControl.Styles>
-        <!-- Custom TextBox Template to override all default styling -->
         <Style Selector="TextBox.segment">
             <Setter Property="Width" Value="40"/>
             <Setter Property="MaxLength" Value="1"/>
@@ -46,11 +45,38 @@
                 </ControlTemplate>
             </Setter>
         </Style>
-
-        <!-- Active TextBox Style -->
         <Style Selector="TextBox.segment.active">
-            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=controls:SegmentedTextBox}}"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BoxShadow="0 0 10 4 #406a5acd, 0 0 0 0 #20000000"
+                            ClipToBounds="False">
+                        <TextPresenter x:Name="PART_TextPresenter"
+                                       Text="{TemplateBinding Text}"
+                                       CaretIndex="{TemplateBinding CaretIndex}"
+                                       SelectionStart="{TemplateBinding SelectionStart}"
+                                       SelectionEnd="{TemplateBinding SelectionEnd}"
+                                       TextAlignment="{TemplateBinding TextAlignment}"
+                                       TextWrapping="{TemplateBinding TextWrapping}"
+                                       PasswordChar="{TemplateBinding PasswordChar}"
+                                       RevealPassword="{TemplateBinding RevealPassword}"
+                                       SelectionBrush="{TemplateBinding SelectionBrush}"
+                                       SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                       CaretBrush="{TemplateBinding CaretBrush}"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="StackPanel#SegmentsPanel TextBox">
+            <Setter Property="ClipToBounds" Value="False"/>
         </Style>
     </UserControl.Styles>
     
