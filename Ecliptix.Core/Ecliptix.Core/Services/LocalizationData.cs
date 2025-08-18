@@ -30,8 +30,10 @@ public static class LocalizationData
 
         ["Authentication.SignUp.PasswordConfirmation.Title"] = "Set Password",
         ["Authentication.SignUp.PasswordConfirmation.Description"] = "Use a strong, unique password for security.",
-        ["Authentication.SignUp.PasswordConfirmation.PasswordHint"] = "Password",
-        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint"] = "Confirm Password",
+        ["Authentication.SignUp.PasswordConfirmation.PasswordPlaceholder"] = "Secure Key",
+        ["Authentication.SignUp.PasswordConfirmation.PasswordHint"] = "8 chars, 1 upper and 1 number",
+        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordPlaceholder"] = "Confirm Secure Key",
+        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint"] = "Re-enter the secure key to confirm",
         ["Authentication.SignUp.PasswordConfirmation.Error_PasswordMismatch"] = "Passwords do not match.",
         ["Authentication.SignUp.PasswordConfirmation.Button"] = "Set Password",
 
@@ -140,8 +142,10 @@ public static class LocalizationData
 
         ["Authentication.SignUp.PasswordConfirmation.Title"] = "Встановіть пароль",
         ["Authentication.SignUp.PasswordConfirmation.Description"] = "Для безпеки використовуйте надійний пароль.",
-        ["Authentication.SignUp.PasswordConfirmation.PasswordHint"] = "Пароль",
-        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint"] = "Підтвердьте пароль",
+        ["Authentication.SignUp.PasswordConfirmation.PasswordPlaceholder"] = "Ключ безпеки",
+        ["Authentication.SignUp.PasswordConfirmation.PasswordHint"] = "8 символів, 1 велика літера та 1 цифра",
+        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordPlaceholder"] = "Повторіть ключ",
+        ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint"] = "Введіть ключ ще раз для підтвердження",
         ["Authentication.SignUp.PasswordConfirmation.Error_PasswordMismatch"] = "Паролі не збігаються.",
         ["Authentication.SignUp.PasswordConfirmation.Button"] = "Встановити пароль",
 
