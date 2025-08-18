@@ -44,9 +44,6 @@ public static class ApplicationConstants
         public static readonly TimeSpan DefaultPollingInterval = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultInitialRetryDelay = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan DefaultMaxRetryDelay = TimeSpan.FromMinutes(2);
-        public static readonly TimeSpan DefaultCircuitBreakerDuration = TimeSpan.FromMinutes(1);
-        public static readonly TimeSpan DefaultRequestDeduplicationWindow = TimeSpan.FromSeconds(10);
-        public static readonly TimeSpan DefaultHealthCheckTimeout = TimeSpan.FromSeconds(5);
     }
 
     public static class Thresholds
@@ -54,7 +51,6 @@ public static class ApplicationConstants
         public const int DefaultFailureThreshold = 2;
         public const int DefaultSuccessThreshold = 1;
         public const int DefaultMaxRetries = 10;
-        public const int DefaultCircuitBreakerThreshold = 5;
         public const int RetryAttempts = 3;
     }
 
@@ -71,11 +67,7 @@ public static class ApplicationConstants
         public const string InitialRetryDelay = "InitialRetryDelay";
         public const string MaxRetryDelay = "MaxRetryDelay";
         public const string MaxRetries = "MaxRetries";
-        public const string CircuitBreakerThreshold = "CircuitBreakerThreshold";
-        public const string CircuitBreakerDuration = "CircuitBreakerDuration";
-        public const string RequestDeduplicationWindow = "RequestDeduplicationWindow";
         public const string UseAdaptiveRetry = "UseAdaptiveRetry";
-        public const string HealthCheckTimeout = "HealthCheckTimeout";
     }
 
     public static class Logging
@@ -95,10 +87,5 @@ public static class ApplicationConstants
     {
         public const UnixFileMode SecureDirectoryMode = 
             UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
-    }
-
-    public static class HttpClient
-    {
-        public const string InternetConnectivityClientName = "InternetConnectivity";
     }
 }

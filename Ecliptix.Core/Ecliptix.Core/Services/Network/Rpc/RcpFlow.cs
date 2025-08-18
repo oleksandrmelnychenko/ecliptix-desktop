@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Ecliptix.Core.Network.Contracts.Transport;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Protobuf.CipherPayload;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;

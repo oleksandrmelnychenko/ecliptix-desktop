@@ -8,7 +8,7 @@ using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Wrap;
 using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;

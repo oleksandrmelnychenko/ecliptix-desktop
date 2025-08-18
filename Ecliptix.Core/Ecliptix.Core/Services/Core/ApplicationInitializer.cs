@@ -1,4 +1,3 @@
-using Ecliptix.Core.Security;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.ProtocolState;
@@ -7,8 +6,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Common;

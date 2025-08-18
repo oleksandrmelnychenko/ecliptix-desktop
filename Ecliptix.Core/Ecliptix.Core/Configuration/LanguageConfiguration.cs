@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,46 +7,64 @@ using Ecliptix.Core.Controls.LanguageSelector;
 
 namespace Ecliptix.Core.Configuration;
 
-public static class LanguageConfiguration
+public sealed class LanguageConfiguration
 {
-    public static readonly FrozenDictionary<string, string> SupportedCountries =
-        new Dictionary<string, string>
-        {
-            { "UA", "uk-UA" },
-            { "US", "en-US" },
-        }.ToFrozenDictionary();
+    private static readonly Lazy<LanguageConfiguration> Instance = new(() => new LanguageConfiguration());
+    
+    public static LanguageConfiguration Default => Instance.Value;
 
-    public static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap =
-        new Dictionary<string, LanguageItem>
-        {
-            ["en-US"] = new("en-US", "EN", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
-            ["uk-UA"] = new("uk-UA", "UK", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
-        }.ToFrozenDictionary();
+    private readonly FrozenDictionary<string, LanguageItem> _languagesByCode;
+    private readonly FrozenDictionary<string, string> _countryCultureMap;
+    private readonly FrozenDictionary<string, int> _languageIndexMap;
 
-    public static readonly FrozenDictionary<string, string> FlagMap =
-        LanguageCodeMap.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.FlagImagePath).ToFrozenDictionary();
+    public const string DefaultCultureCode = "en-US";
 
-    public static readonly FrozenDictionary<string, int> LanguageIndexMap =
-        new Dictionary<string, int>
-        {
-            ["en-US"] = 0,
-            ["uk-UA"] = 1
-        }.ToFrozenDictionary();
-
-    public const string DefaultCulture = "en-US";
-
-    public static string GetCultureByCountry(string country) =>
-        SupportedCountries.GetValueOrDefault(country, DefaultCulture);
-
-    public static LanguageItem? GetLanguageByCode(string cultureCode) =>
-        LanguageCodeMap.TryGetValue(cultureCode, out LanguageItem? item) ? item : null;
-
-    public static int GetLanguageIndex(string cultureCode) =>
-        LanguageIndexMap.TryGetValue(cultureCode, out int index) ? index : 0;
-
-    public static string GetDisplayName(string cultureCode)
+    private LanguageConfiguration()
     {
-        var culture = CultureInfo.GetCultureInfo(cultureCode);
-        return culture.EnglishName.Split('(')[0].Trim();
+        List<LanguageItem> supportedLanguages =
+        [
+            new("en-US", "US", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
+            new("uk-UA", "UA", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
+        ];
+
+        Dictionary<string, string> countryCultureMap = new()
+        {
+            { "US", "en-US" },
+            { "UA", "uk-UA" },
+        };
+
+        _languagesByCode = supportedLanguages.ToFrozenDictionary(lang => lang.Code, lang => lang);
+        _countryCultureMap = countryCultureMap.ToFrozenDictionary();
+        _languageIndexMap = supportedLanguages
+            .Select((lang, index) => new { lang.Code, Index = index })
+            .ToFrozenDictionary(x => x.Code, x => x.Index);
+    }
+
+    public IReadOnlyCollection<LanguageItem> SupportedLanguages => _languagesByCode.Values;
+
+    public LanguageItem? GetLanguageByCode(string cultureCode) =>
+        _languagesByCode.GetValueOrDefault(cultureCode);
+
+    public string GetCultureByCountry(string countryCode) =>
+        _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? string.Empty, DefaultCultureCode);
+
+    public int GetLanguageIndex(string cultureCode) =>
+        _languageIndexMap.GetValueOrDefault(cultureCode, 0);
+
+    public string GetDisplayName(string cultureCode)
+    {
+        LanguageItem? languageItem = GetLanguageByCode(cultureCode);
+        if (languageItem != null)
+            return languageItem.DisplayName;
+
+        try
+        {
+            CultureInfo culture = CultureInfo.GetCultureInfo(cultureCode);
+            return culture.EnglishName.Split('(')[0].Trim();
+        }
+        catch (CultureNotFoundException)
+        {
+            return cultureCode;
+        }
     }
 }

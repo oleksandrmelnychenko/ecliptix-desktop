@@ -1,10 +1,9 @@
-using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
 using Ecliptix.Core.Configuration;
-using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
@@ -24,9 +23,7 @@ public class DetectLanguageDialogViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
-    private static readonly FrozenDictionary<string, string> SupportedCountries = LanguageConfiguration.SupportedCountries;
-
-    private static readonly FrozenDictionary<string, string> FlagMap = LanguageConfiguration.FlagMap;
+    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
 
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
@@ -36,14 +33,16 @@ public class DetectLanguageDialogViewModel : ReactiveObject
     {
         _languageDetectionEvents = languageDetectionEvents;
         string country = networkProvider.ApplicationInstanceSettings.Country;
-        _targetCulture = SupportedCountries.GetValueOrDefault(country, "en-US");
+        _targetCulture = LanguageConfig.GetCultureByCountry(country);
         CultureInfo targetInfo = CultureInfo.GetCultureInfo(_targetCulture);
 
         Title = localizationService["LanguageDetection.Title"];
-        PromptText = localizationService.GetString("LanguageDetection.Prompt", (targetInfo.EnglishName).Split('(')[0].Trim());
+        PromptText = localizationService.GetString("LanguageDetection.Prompt", LanguageConfig.GetDisplayName(_targetCulture));
         ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];
         DeclineButtonText = localizationService["LanguageDetection.Button.Decline"];
-        FlagPath = FlagMap.GetValueOrDefault(_targetCulture, "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg");
+        
+        LanguageItem? languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
+        FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg";
 
         ConfirmCommand = ReactiveCommand.Create(OnConfirm);
         DeclineCommand = ReactiveCommand.Create(OnDecline);

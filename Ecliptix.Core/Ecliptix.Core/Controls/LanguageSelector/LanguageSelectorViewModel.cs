@@ -1,15 +1,12 @@
 using System;
-using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Configuration;
-using Ecliptix.Core.Network.Contracts.Transport;
-using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
@@ -24,10 +21,10 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
 
     public ViewModelActivator Activator { get; } = new();
 
-    private static readonly FrozenDictionary<string, LanguageItem> LanguageCodeMap = LanguageConfiguration.LanguageCodeMap;
+    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
 
     public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
-        new(LanguageCodeMap.Values);
+        new(LanguageConfig.SupportedLanguages);
 
     public LanguageItem SelectedLanguage
     {
@@ -45,7 +42,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
 
-        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? LanguageCodeMap.Values.First();
+        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? LanguageConfig.SupportedLanguages.First();
 
         IObservable<string> languageChanges = CreateLanguageObservable();
 
@@ -55,12 +52,10 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     }
 
     private static LanguageItem? GetLanguageByCode(string cultureCode) =>
-        LanguageConfiguration.GetLanguageByCode(cultureCode);
-
-    private static readonly FrozenDictionary<string, int> LanguageIndexMap = LanguageConfiguration.LanguageIndexMap;
+        LanguageConfig.GetLanguageByCode(cultureCode);
 
     private static int GetLanguageIndex(string cultureCode) =>
-        LanguageConfiguration.GetLanguageIndex(cultureCode);
+        LanguageConfig.GetLanguageIndex(cultureCode);
 
     private void ToggleLanguage()
     {

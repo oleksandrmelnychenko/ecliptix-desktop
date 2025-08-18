@@ -7,7 +7,7 @@ using Avalonia.Markup.Xaml;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;

@@ -3,9 +3,9 @@ using Avalonia.Controls;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
-using Ecliptix.Core.Network.Contracts.Transport;
-using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Persistors;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Serilog;
 

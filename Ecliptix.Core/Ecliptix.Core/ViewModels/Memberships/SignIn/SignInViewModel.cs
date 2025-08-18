@@ -5,7 +5,7 @@ using System.Reactive.Subjects;
 using System.Text;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;

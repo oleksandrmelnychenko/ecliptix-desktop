@@ -11,13 +11,10 @@ using Ecliptix.Core.Configuration;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
-using Ecliptix.Core.Network;
-using Ecliptix.Core.Network.Contracts.Transport;
-using Ecliptix.Core.Network.Core.Connectivity;
-using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Services.Network.Resilience;
-using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
@@ -48,8 +45,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
 
-    private static readonly FrozenDictionary<string, string> SupportedCountries = LanguageConfiguration.
-        SupportedCountries;
+    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
 
     private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
@@ -216,8 +212,7 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
             {
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
 
-                string expectedCulture =
-                    SupportedCountries.GetValueOrDefault(applicationInstanceSettings.Country, "en-US");
+                string expectedCulture = LanguageConfig.GetCultureByCountry(applicationInstanceSettings.Country);
 
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {

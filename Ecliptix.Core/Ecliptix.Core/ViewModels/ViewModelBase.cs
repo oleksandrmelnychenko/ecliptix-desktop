@@ -3,7 +3,7 @@ using System.Collections.Frozen;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;

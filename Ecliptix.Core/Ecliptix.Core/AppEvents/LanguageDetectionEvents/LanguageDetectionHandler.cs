@@ -2,9 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
-using Ecliptix.Core.Network.Contracts.Transport;
-using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Serilog;
 
