@@ -149,22 +149,16 @@
         <!-- Status Information -->
         <Grid Grid.Row="2"
               RowDefinitions="Auto,Auto"
-              ColumnDefinitions="*,Auto">
+              ColumnDefinitions="*">
             <TextBlock Text="{Binding RemainingTime}"
                        Grid.Row="0"
                        Grid.Column="0"
                        Classes="status-text"
-                       HorizontalAlignment="Left" />
-            <TextBlock x:Name="ExpirationTextBlock"
-                       Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Expiration]}"
-                       Grid.Row="0"
-                       Grid.Column="1"
-                       Classes="status-text"
-                       HorizontalAlignment="Right" />
+                       HorizontalAlignment="Center" />
+           
             <TextBlock Text="{Binding ErrorMessage}"
                        Grid.Row="1"
                        Grid.Column="0"
-                       Grid.ColumnSpan="2"
                        Classes="error-text" />
         </Grid>
 
