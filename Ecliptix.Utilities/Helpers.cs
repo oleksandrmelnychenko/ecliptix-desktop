@@ -166,13 +166,15 @@ public static class Helpers
         if (!Guid.TryParse(appDeviceIdString, out Guid appDeviceGuid))
             throw new ArgumentException($"Invalid AppDeviceId format: {appDeviceIdString}");
 
-        byte[] appInstanceBytes = appInstanceGuid.ToByteArray();
-        byte[] appDeviceBytes = appDeviceGuid.ToByteArray();
+        Span<byte> appInstanceBytes = stackalloc byte[16];
+        Span<byte> appDeviceBytes = stackalloc byte[16];
+        
+        appInstanceGuid.TryWriteBytes(appInstanceBytes);
+        appDeviceGuid.TryWriteBytes(appDeviceBytes);
 
-        // Use existing method with consistent byte arrays
         return ComputeUniqueConnectId(
-            appInstanceBytes.AsSpan(),
-            appDeviceBytes.AsSpan(),
+            appInstanceBytes,
+            appDeviceBytes,
             contextType,
             operationContextId);
     }

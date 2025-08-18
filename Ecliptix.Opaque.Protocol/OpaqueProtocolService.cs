@@ -61,8 +61,9 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             byte[] envelope = envelopeResult.Unwrap();
             byte[] registrationRecord = new byte[clientStaticPublicKey.Length + envelope.Length];
-            clientStaticPublicKey.CopyTo(registrationRecord, 0);
-            envelope.CopyTo(registrationRecord, clientStaticPublicKey.Length);
+            Span<byte> recordSpan = registrationRecord.AsSpan();
+            clientStaticPublicKey.CopyTo(recordSpan[..clientStaticPublicKey.Length]);
+            envelope.CopyTo(recordSpan[clientStaticPublicKey.Length..]);
 
             CryptographicOperations.ZeroMemory(stretchedOprfKey);
             CryptographicOperations.ZeroMemory(authKey);
@@ -156,7 +157,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             byte[] clientEphemeralPublicKeyBytes = ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(CryptographicFlags.CompressedPointEncoding);
 
-            byte[] serverEphemeralPublicKeyBytes = signInResponse.ServerEphemeralPublicKey.ToByteArray();
+            ReadOnlySpan<byte> serverEphemeralPublicKeyBytes = signInResponse.ServerEphemeralPublicKey.Span;
 
             byte[] transcriptHash = HashTranscript(phoneNumber, unmaskedOprfResponse, clientStaticPublicKeyBytes,
                 clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes, serverEphemeralPublicKeyBytes);
@@ -258,9 +259,9 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
         return result;
     }
 
-    private static byte[] HashTranscript(string phoneNumber, byte[] oprfResponse,
-        byte[] clientStaticPublicKey, byte[] clientEphemeralPublicKey, 
-        byte[] serverStaticPublicKey, byte[] serverEphemeralPublicKey,
+    private static byte[] HashTranscript(string phoneNumber, ReadOnlySpan<byte> oprfResponse,
+        ReadOnlySpan<byte> clientStaticPublicKey, ReadOnlySpan<byte> clientEphemeralPublicKey, 
+        ReadOnlySpan<byte> serverStaticPublicKey, ReadOnlySpan<byte> serverEphemeralPublicKey,
         string serverIdentity = DefaultServerIdentity)
     {
         using ScopedSecureMemoryCollection memoryCollection = new();

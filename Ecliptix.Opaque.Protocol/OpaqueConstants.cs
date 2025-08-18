@@ -17,41 +17,21 @@ public static class OpaqueConstants
     public const int HashLength = 32;
     public const int NonceLength = 32;
 
-    public const int AesGcmNonceLengthBytes = 12;
-    public const int AesGcmTagLengthBits = 128;
-
     public const int Pbkdf2Iterations = 100000;
     public const int Pbkdf2SaltLength = 32;
-    public const int Argon2idMemoryCost = 65536;
-    public const int Argon2idTimeCost = 3;
-    public const int Argon2idParallelism = 1;
 
     public static readonly byte[] MaskingKeyInfo = "MaskingKey"u8.ToArray();
     public static readonly byte[] ExportKeyInfo = "ExportKey"u8.ToArray();
     public static readonly byte[] AuthKeyInfo = "AuthKey"u8.ToArray();
     public static readonly byte[] PrivateKeyInfo = "PrivateKey"u8.ToArray();
-    public static readonly byte[] CredentialResponsePadInfo = "CredentialResponsePad"u8.ToArray();
-    public static readonly byte[] HandshakeSecretInfo = "HandshakeSecret"u8.ToArray();
 
     public const string DefaultServerIdentity = "server.ecliptix.com";
-    public const string OpaqueVersion = "OPAQUE-3DH";
-    public const int ProtocolOverheadBytes = 96;
-    
-    public static class RfcCompliance
-    {
-        public const bool EnableMasking = true;
-        public const bool EnableStretching = true;
-        public const bool EnforcePointValidation = true;
-        public const bool UseMacEnvelopes = true;
-        public const bool IncludeServerIdentityInTranscript = true;
-    }
-    
+
     public static class ErrorMessages
     {
         public const string InvalidRegistrationRecordTooShort = "Invalid registration record: too short.";
         public const string EnvelopeMacVerificationFailed = "Envelope MAC verification failed";
         public const string ServerMacVerificationFailed = "Server MAC verification failed.";
-        public const string InvalidOprfResponsePoint = "Invalid OPRF response point: ";
         public const string InvalidServerStaticPublicKey = "Invalid server static public key: ";
         public const string InvalidServerEphemeralPublicKey = "Invalid server ephemeral public key: ";
         public const string PointAtInfinity = "Point is at infinity";

@@ -43,30 +43,37 @@ public static class OpaqueCryptoUtilities
         }
     }
 
-    public static byte[] HkdfExpand(byte[] prk, ReadOnlySpan<byte> info, int outputLength)
+    public static byte[] HkdfExpand(ReadOnlySpan<byte> prk, ReadOnlySpan<byte> info, int outputLength)
     {
         HkdfBytesGenerator hkdf = new(new Sha256Digest());
-        hkdf.Init(HkdfParameters.SkipExtractParameters(prk, info.ToArray()));
+        hkdf.Init(HkdfParameters.SkipExtractParameters(prk.ToArray(), info.ToArray()));
         byte[] okm = new byte[outputLength];
         hkdf.GenerateBytes(okm, 0, outputLength);
         return okm;
     }
 
-    public static byte[] DeriveKey(byte[] ikm, byte[]? salt, ReadOnlySpan<byte> info, int outputLength)
+    public static byte[] HkdfExpand(byte[] prk, ReadOnlySpan<byte> info, int outputLength) => 
+        HkdfExpand(prk.AsSpan(), info, outputLength);
+
+    public static byte[] DeriveKey(ReadOnlySpan<byte> ikm, ReadOnlySpan<byte> salt, ReadOnlySpan<byte> info, int outputLength)
     {
         HkdfBytesGenerator hkdf = new(new Sha256Digest());
-        hkdf.Init(new HkdfParameters(ikm, salt, info.ToArray()));
+        byte[]? saltArray = salt.IsEmpty ? null : salt.ToArray();
+        hkdf.Init(new HkdfParameters(ikm.ToArray(), saltArray, info.ToArray()));
         byte[] okm = new byte[outputLength];
         hkdf.GenerateBytes(okm, 0, outputLength);
         return okm;
     }
+
+    public static byte[] DeriveKey(byte[] ikm, byte[]? salt, ReadOnlySpan<byte> info, int outputLength) =>
+        DeriveKey(ikm.AsSpan(), salt.AsSpan(), info, outputLength);
 
     private static byte[] DecompressPoint(BigInteger x, byte sign)
     {
         byte[] xBytes = x.ToByteArrayUnsigned();
         byte[] compressed = new byte[xBytes.Length + 1];
         compressed[0] = sign;
-        Buffer.BlockCopy(xBytes, 0, compressed, 1, xBytes.Length);
+        xBytes.AsSpan().CopyTo(compressed.AsSpan(1));
         return compressed;
     }
 
