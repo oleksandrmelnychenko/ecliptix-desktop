@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Security.Cryptography;
 
 namespace Ecliptix.Protocol.System.Utilities;
@@ -44,71 +43,5 @@ public sealed class ScopedSecureMemory : IDisposable
 
         _data = null;
         _disposed = true;
-    }
-}
-
-public sealed class ScopedSecureMemoryCollection : IDisposable
-{
-    private readonly List<IDisposable> _resources = new();
-    private bool _disposed;
-
-    public ScopedSecureMemory Allocate(int size)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        ScopedSecureMemory memory = ScopedSecureMemory.Allocate(size);
-        _resources.Add(memory);
-        return memory;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        for (int i = _resources.Count - 1; i >= 0; i--)
-        {
-            try
-            {
-                _resources[i]?.Dispose();
-            }
-            catch
-            {
-            }
-        }
-
-        _resources.Clear();
-        _disposed = true;
-    }
-}
-
-public static class SecureArrayPool
-{
-    public static SecurePooledArray<T> Rent<T>(int minimumLength) where T : struct
-    {
-        return new SecurePooledArray<T>(minimumLength);
-    }
-}
-
-public readonly struct SecurePooledArray<T> : IDisposable where T : struct
-{
-    private readonly T[] _array;
-    private readonly int _requestedLength;
-    private readonly ArrayPool<T> _pool;
-
-    internal SecurePooledArray(int minimumLength)
-    {
-        _pool = ArrayPool<T>.Shared;
-        _array = _pool.Rent(minimumLength);
-        _requestedLength = minimumLength;
-    }
-
-    public Span<T> AsSpan() => _array.AsSpan(0, _requestedLength);
-
-    public void Dispose()
-    {
-        if (_array != null)
-        {
-            _pool.Return(_array, clearArray: true);
-        }
     }
 }

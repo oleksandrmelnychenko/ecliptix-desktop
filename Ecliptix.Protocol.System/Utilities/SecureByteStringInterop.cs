@@ -7,7 +7,6 @@ namespace Ecliptix.Protocol.System.Utilities;
 
 public static class SecureByteStringInterop
 {
-
     public static Result<ByteString, SodiumFailure> CreateByteStringFromSecureMemory(SodiumSecureMemoryHandle source, int length)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -35,7 +34,6 @@ public static class SecureByteStringInterop
 
         return operation(byteString.IsEmpty ? ReadOnlySpan<byte>.Empty : byteString.Span);
     }
-
 
     public static void SecureCopyWithCleanup(ByteString source, out byte[] destination)
     {

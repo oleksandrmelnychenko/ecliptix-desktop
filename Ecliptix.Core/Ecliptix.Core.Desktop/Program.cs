@@ -250,11 +250,8 @@ public static class Program
         services.AddSingleton<NetworkProvider>();
         services.AddSingleton<RequestDeduplicationService>(sp =>
         {
-            IConfiguration config = sp.GetRequiredService<IConfiguration>();
-            IConfigurationSection section = config.GetSection(ApplicationConstants.Configuration.ImprovedRetryPolicySection);
-
-            ImprovedRetryConfiguration retryConfig = CreateRetryConfiguration(section);
-            return new RequestDeduplicationService(retryConfig.RequestDeduplicationWindow);
+            // Use fixed deduplication window since configuration property was removed
+            return new RequestDeduplicationService(TimeSpan.FromSeconds(10));
         });
 
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
@@ -297,15 +294,7 @@ public static class Program
                 ? maxDelay : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
             MaxRetries = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetries], out int maxRetries)
                 ? maxRetries : ApplicationConstants.Thresholds.DefaultMaxRetries,
-            CircuitBreakerThreshold = int.TryParse(section[ApplicationConstants.ConfigurationKeys.CircuitBreakerThreshold], out int threshold)
-                ? threshold : ApplicationConstants.Thresholds.DefaultCircuitBreakerThreshold,
-            CircuitBreakerDuration = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.CircuitBreakerDuration], out TimeSpan duration)
-                ? duration : ApplicationConstants.Timeouts.DefaultCircuitBreakerDuration,
-            RequestDeduplicationWindow = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.RequestDeduplicationWindow], out TimeSpan window)
-                ? window : ApplicationConstants.Timeouts.DefaultRequestDeduplicationWindow,
-            UseAdaptiveRetry = !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) || adaptive,
-            HealthCheckTimeout = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.HealthCheckTimeout], out TimeSpan timeout)
-                ? timeout : ApplicationConstants.Timeouts.DefaultHealthCheckTimeout
+            UseAdaptiveRetry = !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) || adaptive
         };
     }
 

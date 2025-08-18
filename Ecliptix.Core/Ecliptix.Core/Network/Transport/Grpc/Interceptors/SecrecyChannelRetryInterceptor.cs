@@ -85,11 +85,9 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         uint connectId = ExtractConnectionId(context);
         string operationName = context.Method.FullName;
 
-        // Extract existing request-id from metadata instead of generating new GUID
         string? existingRequestId = context.Options.Headers?.Get("request-id")?.Value;
         string requestId = existingRequestId ?? $"{operationName}_{connectId}_{Guid.NewGuid():N}";
 
-        // Use the consistent request-id for deduplication instead of request content
         byte[] requestIdBytes = System.Text.Encoding.UTF8.GetBytes(requestId);
         if (await _deduplicationService.IsDuplicateRequestAsync(operationName, requestIdBytes, connectId))
         {
@@ -115,10 +113,8 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             TaskCompletionSource<TResponse> taskCompletionSource = new();
 
-            // Create a detached retry action that can be retried independently of the original request
             _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
             {
-                // Wait for connection to be restored before retrying
                 bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
                 if (!connectionRestored)
                 {
@@ -126,22 +122,17 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                     throw new RpcException(new Status(StatusCode.Unavailable, "Failed to restore connection"));
                 }
 
-                // Remove the original request from deduplication cache to allow retry
                 _deduplicationService.RemoveRequest(operationName, requestIdBytes, connectId);
 
-                // Make the call again with original context  
                 AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
                 TResponse result = await retryCall.ResponseAsync;
 
                 Log.Information("🔄 PENDING REQUEST SUCCESS: Request {RequestId} succeeded on retry", requestId);
-                // Don't return the result since this is a detached retry - just complete successfully
             });
 
             _networkEvents.InitiateChangeState(
                 NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown));
 
-            // Complete the original request with server shutdown error, 
-            // but the retry action runs independently and stays in pending queue
             taskCompletionSource.SetException(new RpcException(new Status(StatusCode.Unavailable,
                 $"Server shutdown detected. Request {requestId} has been queued for retry.")));
 
@@ -177,7 +168,6 @@ public class SecrecyChannelRetryInterceptor : Interceptor
             {
                 return true;
             }
-
 
             Utilities.Result<bool, NetworkFailure> restoreResult =
                 await _networkProvider.TryRestoreConnectionAsync(connectId);
@@ -238,21 +228,11 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 retryDelays,
                 onRetry: (_, _, _, _) => { });
 
-        IAsyncPolicy circuitBreakerPolicy = Policy
-            .Handle<RpcException>(IsCircuitBreakerException)
-            .CircuitBreakerAsync(
-                _configuration.CircuitBreakerThreshold,
-                _configuration.CircuitBreakerDuration,
-                onBreak: (_, _) => { },
-                onReset: () => { },
-                onHalfOpen: () => { });
-
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            _configuration.HealthCheckTimeout,
+            TimeSpan.FromSeconds(30), 
             onTimeoutAsync: (_, _, _) => Task.CompletedTask);
 
         return retryPolicy
-            .WrapAsync(circuitBreakerPolicy)
             .WrapAsync(timeoutPolicy);
     }
 

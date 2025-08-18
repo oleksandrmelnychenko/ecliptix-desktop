@@ -14,7 +14,6 @@ namespace Ecliptix.Protocol.System.Core;
 
 public sealed class EcliptixProtocolConnection : IDisposable
 {
-    private const int AesGcmNonceSize = 12;
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromHours(24);
     private static readonly byte[] InitialSenderChainInfo = "ShieldInitSend"u8.ToArray();
     private static readonly byte[] InitialReceiverChainInfo = "ShieldInitRecv"u8.ToArray();
@@ -786,7 +785,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolConnection)));
 
-        using SecurePooledArray<byte> pooledNonce = SecureArrayPool.Rent<byte>(AesGcmNonceSize);
+        using SecurePooledArray<byte> pooledNonce = SecureArrayPool.Rent<byte>(Constants.AesGcmNonceSize);
         Span<byte> nonceBuffer = pooledNonce.AsSpan();
         
         RandomNumberGenerator.Fill(nonceBuffer[..8]);
@@ -797,7 +796,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 EcliptixProtocolFailure.Generic("Nonce counter overflow detected - connection must be rekeyed"));
         }
         uint currentNonce = (uint)nextCounter;
-        BinaryPrimitives.WriteUInt32LittleEndian(nonceBuffer[8..], currentNonce);
+        BinaryPrimitives.WriteUInt32LittleEndian(nonceBuffer[Constants.UInt32LittleEndianOffset..], currentNonce);
 
         return Result<byte[], EcliptixProtocolFailure>.Ok(nonceBuffer.ToArray());
     }

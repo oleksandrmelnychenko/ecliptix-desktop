@@ -27,7 +27,7 @@ public static class GrpcClientServiceExtensions
     {
         DefaultSystemSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultSystemSettings>>().Value;
 
-        string? endpoint = settings.DataCenterConnectionString;
+        string endpoint = settings.DataCenterConnectionString;
 
         if (string.IsNullOrEmpty(endpoint))
         {

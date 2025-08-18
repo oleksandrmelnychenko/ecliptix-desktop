@@ -18,8 +18,7 @@ public static class Helpers
         {
             Rng.GetBytes(buffer);
             value = BitConverter.ToUInt32(buffer, 0);
-            
-            // Validate entropy - ensure we're not getting predictable patterns
+
             if (++attempts > 10 && IsLowEntropy(buffer))
             {
                 throw new InvalidOperationException("Random number generator appears to have insufficient entropy");
@@ -29,20 +28,14 @@ public static class Helpers
         return value;
     }
 
-    /// <summary>
-    /// Simple entropy validation to detect obviously weak random data
-    /// </summary>
     private static bool IsLowEntropy(byte[] data)
     {
-        // Check for all zeros or all ones
         if (data.All(b => b == 0) || data.All(b => b == 255))
             return true;
 
-        // Check for simple patterns (e.g., all same byte)
         if (data.All(b => b == data[0]))
             return true;
 
-        // Check for sequential patterns
         bool isSequential = true;
         for (int i = 1; i < data.Length && isSequential; i++)
         {
@@ -150,16 +143,12 @@ public static class Helpers
         return BinaryPrimitives.ReadUInt32BigEndian(hash[..4]);
     }
 
-    /// <summary>
-    /// Computes ConnectId using Guid strings (consistent with server-side calculation)
-    /// </summary>
     public static uint ComputeUniqueConnectId(
         string appInstanceIdString,
         string appDeviceIdString,
         PubKeyExchangeType contextType,
         Guid? operationContextId = null)
     {
-        // Parse strings to Guid and use ToByteArray() to match server-side calculation
         if (!Guid.TryParse(appInstanceIdString, out Guid appInstanceGuid))
             throw new ArgumentException($"Invalid AppInstanceId format: {appInstanceIdString}");
 
@@ -168,7 +157,7 @@ public static class Helpers
 
         Span<byte> appInstanceBytes = stackalloc byte[16];
         Span<byte> appDeviceBytes = stackalloc byte[16];
-        
+
         appInstanceGuid.TryWriteBytes(appInstanceBytes);
         appDeviceGuid.TryWriteBytes(appDeviceBytes);
 
@@ -178,7 +167,6 @@ public static class Helpers
             contextType,
             operationContextId);
     }
-
 
     public static uint GenerateRandomUInt32()
     {

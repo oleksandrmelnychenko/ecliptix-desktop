@@ -25,7 +25,7 @@ public static class DhValidator
 
     private static bool IsValidCurve25519Point(ReadOnlySpan<byte> publicKey)
     {
-        if (publicKey.Length != 32)
+        if (publicKey.Length != Constants.Curve25519FieldElementSize)
             return false;
 
         return IsValidFieldElement(publicKey) && !HasSmallOrder(publicKey);
@@ -33,21 +33,19 @@ public static class DhValidator
 
     private static bool IsValidFieldElement(ReadOnlySpan<byte> element)
     {
-        Span<byte> reduced = stackalloc byte[32];
+        Span<byte> reduced = stackalloc byte[Constants.Curve25519FieldElementSize];
         element.CopyTo(reduced);
 
-        Span<uint> words = stackalloc uint[8];
-        for (int i = 0; i < 8; i++)
+        Span<uint> words = stackalloc uint[Constants.Field256WordCount];
+        for (int i = 0; i < Constants.Field256WordCount; i++)
         {
-            words[i] = (uint)(reduced[i * 4] |
-                              (reduced[i * 4 + 1] << 8) |
-                              (reduced[i * 4 + 2] << 16) |
-                              (reduced[i * 4 + 3] << 24));
+            words[i] = (uint)(reduced[i * Constants.WordSize] |
+                              (reduced[i * Constants.WordSize + 1] << 8) |
+                              (reduced[i * Constants.WordSize + 2] << 16) |
+                              (reduced[i * Constants.WordSize + 3] << 24));
         }
 
-        const uint mask = 0x7FFFFFFF;
-
-        words[7] &= mask;
+        words[7] &= Constants.FieldElementMask;
 
         return CompareToFieldPrime(words) < 0;
     }

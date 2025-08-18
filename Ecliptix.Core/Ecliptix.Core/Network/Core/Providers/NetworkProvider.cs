@@ -238,7 +238,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             requestKey = $"{connectId}_{serviceType}_{prefix}";
         }
 
-        // Block user-initiated requests during recovery
         SystemState currentState = _currentSystemState;
         if (currentState == SystemState.Recovering)
         {
@@ -457,7 +456,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType("Application instance settings not available"));
         }
 
-        // Check if we should skip due to exhaustion - only for automatic recovery
         if (_retryStrategy.HasExhaustedOperations())
         {
             Log.Information("Restoration failed. Checking retry strategy status before automatic reconnection");
@@ -520,13 +518,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
 
-        // Check if retries are exhausted - if so, don't attempt automatic reconnection
-        // The user should manually trigger reconnection via retry button
         if (_retryStrategy is SecrecyChannelRetryStrategy retryStrategy)
         {
             Log.Information("Restoration failed. Checking retry strategy status before automatic reconnection");
 
-            // If there are exhausted operations, don't auto-reconnect - wait for manual retry
             if (retryStrategy.HasExhaustedOperations())
             {
                 Log.Information("System has exhausted retry operations - skipping automatic reconnection to allow manual retry");

@@ -11,7 +11,6 @@ public static class SodiumInterop
     private const string LibSodium = "libsodium";
 
     private const int MaxBufferSize = 1_000_000_000;
-    private const int SmallBufferThreshold = 64;
 
     private static readonly Result<Unit, SodiumFailure> InitializationResult;
 
@@ -75,7 +74,7 @@ public static class SodiumInterop
                         buf => buf.Length <= MaxBufferSize,
                         SodiumFailure.BufferTooLarge(
                             string.Format(SodiumFailureMessages.BufferTooLarge, nonNullBuffer.Length, MaxBufferSize)))
-                    .Bind(validBuffer => validBuffer.Length <= SmallBufferThreshold
+                    .Bind(validBuffer => validBuffer.Length <= Constants.SmallBufferThreshold
                         ? WipeSmallBuffer(validBuffer)
                         : WipeLargeBuffer(validBuffer))
             });
