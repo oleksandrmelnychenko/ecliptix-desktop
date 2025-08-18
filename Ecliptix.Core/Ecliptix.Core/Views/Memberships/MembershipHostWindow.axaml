@@ -55,7 +55,8 @@
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
         <SolidColorBrush x:Key="WindowBorderBrush">#B084CC</SolidColorBrush>
         <SolidColorBrush x:Key="BlurBackgroundBrush">#AA9966CC</SolidColorBrush>
-        <Color x:Key="ShadowColor">#9966CC</Color>
+        <Color x:Key="ShadowColor">#6a5acd</Color>
+
 
         <!-- Footer Colors -->
         <Color x:Key="FooterTextColor">#808080</Color>
