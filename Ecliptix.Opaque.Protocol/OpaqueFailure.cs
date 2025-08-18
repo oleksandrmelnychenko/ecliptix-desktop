@@ -84,3 +84,13 @@ public sealed record OpaqueFailure
             string.IsNullOrEmpty(details) ? "Key derivation failed" : details, inner);
     }
 }
+
+/// <summary>
+/// Exception thrown when OPAQUE authentication fails due to invalid credentials.
+/// This is thrown when point decoding fails, which typically indicates wrong password.
+/// </summary>
+public class OpaqueAuthenticationException : Exception
+{
+    public OpaqueAuthenticationException(string message) : base(message) { }
+    public OpaqueAuthenticationException(string message, Exception innerException) : base(message, innerException) { }
+}

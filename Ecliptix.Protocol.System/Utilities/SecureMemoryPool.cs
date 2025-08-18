@@ -108,11 +108,6 @@ public sealed class SecureMemoryBuffer : IDisposable
         _handle = result.Unwrap();
     }
 
-    internal SecureMemoryBuffer(int size, SecureMemoryPool? pool = null)
-        : this(size, size, pool)
-    {
-    }
-
     internal void SetRequestedSize(int requestedSize)
     {
         if (requestedSize > _allocatedSize)
@@ -132,15 +127,6 @@ public sealed class SecureMemoryBuffer : IDisposable
         }
 
         throw new ObjectDisposedException(nameof(SecureMemoryBuffer));
-    }
-
-    public Result<Unit, SodiumFailure> Write(ReadOnlySpan<byte> data)
-    {
-        if (_disposed)
-            return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Buffer is disposed"));
-
-        return _handle.Write(data);
     }
 
     public Result<Unit, SodiumFailure> Read(Span<byte> destination)

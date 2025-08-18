@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
@@ -83,7 +84,7 @@ public class OpaqueAuthenticationService(
             }
 
             Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
-                TranscriptHash), OpaqueFailure> finalizationResult =
+                TranscriptHash, byte[] ExportKey), OpaqueFailure> finalizationResult =
                 clientOpaqueService.CreateSignInFinalizationRequest(
                     mobileNumber, passwordBytes, initResponse, blind);
 
@@ -95,10 +96,13 @@ public class OpaqueAuthenticationService(
             }
 
             (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
-                byte[] transcriptHash) = finalizationResult.Unwrap();
+                byte[] transcriptHash, byte[] exportKey) = finalizationResult.Unwrap();
 
             Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
                 clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+
+            // Clean up export key (can be used for future application encryption needs)
+            CryptographicOperations.ZeroMemory(exportKey);
 
             return finalResult;
         }

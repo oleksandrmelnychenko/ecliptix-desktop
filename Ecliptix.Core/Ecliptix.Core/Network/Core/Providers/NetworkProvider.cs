@@ -734,10 +734,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+        Result<Unit, EcliptixProtocolFailure> completeResult = protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+        if (completeResult.IsErr)
+        {
+            return Result<EcliptixSecrecyChannelState, NetworkFailure>.Err(
+                completeResult.UnwrapErr().ToNetworkFailure());
+        }
 
         EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+        if (connection == null)
+            return Result<EcliptixSecrecyChannelState, NetworkFailure>.Err(
+                new NetworkFailure(NetworkFailureType.DataCenterNotResponding, "Connection has not been established yet."));
 
         Result<EcliptixSecrecyChannelState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
             idKeys.ToProtoState()
@@ -768,7 +776,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         system.SetEventHandler(this);
 
-        EcliptixProtocolConnection connection = system.GetConnection();
+        EcliptixProtocolConnection? connection = system.GetConnection();
+        if (connection == null)
+            return Result<Unit, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Connection not established"));
 
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
             peerSecrecyChannelState.SendingChainLength,
@@ -1415,7 +1426,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     try
                     {
                         EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+                        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+                        if (connection == null)
+                            return;
 
                         Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
                         Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
@@ -1493,7 +1506,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     try
                     {
                         EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                        EcliptixProtocolConnection connection = protocolSystem.GetConnection();
+                        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+                        if (connection == null)
+                            return;
 
                         Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
                         Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();

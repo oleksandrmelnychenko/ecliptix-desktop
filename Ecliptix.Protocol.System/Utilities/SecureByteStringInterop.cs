@@ -12,12 +12,14 @@ public static class SecureByteStringInterop
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        if (length < 0)
-            return Result<ByteString, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize($"Negative length requested: {length}"));
-
-        if (length == 0)
-            return Result<ByteString, SodiumFailure>.Ok(ByteString.Empty);
+        switch (length)
+        {
+            case < 0:
+                return Result<ByteString, SodiumFailure>.Err(
+                    SodiumFailure.InvalidBufferSize($"Negative length requested: {length}"));
+            case 0:
+                return Result<ByteString, SodiumFailure>.Ok(ByteString.Empty);
+        }
 
         if (length > source.Length)
             return Result<ByteString, SodiumFailure>.Err(

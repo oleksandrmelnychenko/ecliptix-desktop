@@ -420,10 +420,8 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         try
         {
             List<OneTimePreKeyRecord> opkRecords = [];
-            foreach (OneTimePreKeyLocal opkLocal in _oneTimePreKeysInternal)
-            {
-                opkRecords.Add(new OneTimePreKeyRecord(opkLocal.PreKeyId, opkLocal.PublicKey));
-            }
+            opkRecords.AddRange(_oneTimePreKeysInternal.Select(opkLocal =>
+                new OneTimePreKeyRecord(opkLocal.PreKeyId, opkLocal.PublicKey)));
 
             PublicKeyBundle bundle = new(
                 _ed25519PublicKey,
@@ -587,8 +585,13 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     try
                     {
                         ikmArray = ikmBuildSpan.ToArray();
-                        using HkdfSha256 hkdf = new(ikmArray, salt: null);
-                        hkdf.Expand(infoArray, hkdfOutputSpan);
+                        global::System.Security.Cryptography.HKDF.DeriveKey(
+                            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                            ikm: ikmArray,
+                            output: hkdfOutputSpan,
+                            salt: null,
+                            info: infoArray
+                        );
                     }
                     finally
                     {
@@ -764,8 +767,13 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     try
                     {
                         ikmArray = ikmBuildSpan.ToArray();
-                        using HkdfSha256 hkdf = new(ikmArray, salt: null);
-                        hkdf.Expand(infoArray, hkdfOutputSpan);
+                        global::System.Security.Cryptography.HKDF.DeriveKey(
+                            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                            ikm: ikmArray,
+                            output: hkdfOutputSpan,
+                            salt: null,
+                            info: infoArray
+                        );
                     }
                     finally
                     {

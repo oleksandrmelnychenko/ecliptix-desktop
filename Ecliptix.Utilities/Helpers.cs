@@ -13,13 +13,44 @@ public static class Helpers
     {
         byte[] buffer = new byte[sizeof(uint)];
         uint value;
+        int attempts = 0;
         do
         {
             Rng.GetBytes(buffer);
             value = BitConverter.ToUInt32(buffer, 0);
+            
+            // Validate entropy - ensure we're not getting predictable patterns
+            if (++attempts > 10 && IsLowEntropy(buffer))
+            {
+                throw new InvalidOperationException("Random number generator appears to have insufficient entropy");
+            }
         } while (excludeZero && value == 0);
 
         return value;
+    }
+
+    /// <summary>
+    /// Simple entropy validation to detect obviously weak random data
+    /// </summary>
+    private static bool IsLowEntropy(byte[] data)
+    {
+        // Check for all zeros or all ones
+        if (data.All(b => b == 0) || data.All(b => b == 255))
+            return true;
+
+        // Check for simple patterns (e.g., all same byte)
+        if (data.All(b => b == data[0]))
+            return true;
+
+        // Check for sequential patterns
+        bool isSequential = true;
+        for (int i = 1; i < data.Length && isSequential; i++)
+        {
+            if (data[i] != (byte)(data[i - 1] + 1))
+                isSequential = false;
+        }
+
+        return isSequential;
     }
 
     public static byte[] GenerateSecureRandomTag(int tagLengthBytes)

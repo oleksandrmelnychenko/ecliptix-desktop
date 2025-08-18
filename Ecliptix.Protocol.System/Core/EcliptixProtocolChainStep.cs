@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
@@ -68,6 +69,16 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             ? Result<uint, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)))
             : Result<uint, EcliptixProtocolFailure>.Ok(_currentIndex);
+    }
+
+    internal Result<byte[], EcliptixProtocolFailure> GetCurrentChainKey()
+    {
+        if (_disposed)
+            return Result<byte[], EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+
+        return _chainKeyHandle.ReadBytes(Constants.X25519KeySize)
+            .MapSodiumFailure();
     }
 
     internal Result<Unit, EcliptixProtocolFailure> SetCurrentIndex(uint value)
@@ -239,11 +250,21 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             {
                 try
                 {
-                    using HkdfSha256 hkdfMsg = new(currentChainKey, null);
-                    hkdfMsg.Expand(Constants.MsgInfo, msgKey);
+                    HKDF.DeriveKey(
+                        global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                        ikm: currentChainKey,
+                        output: msgKey,
+                        salt: null,
+                        info: Constants.MsgInfo
+                    );
 
-                    using HkdfSha256 hkdfChain = new(currentChainKey, null);
-                    hkdfChain.Expand(Constants.ChainInfo, nextChainKey);
+                    HKDF.DeriveKey(
+                        global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                        ikm: currentChainKey,
+                        output: nextChainKey,
+                        salt: null,
+                        info: Constants.ChainInfo
+                    );
                 }
                 catch (Exception ex)
                 {

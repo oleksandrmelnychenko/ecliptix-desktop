@@ -80,7 +80,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
         }
     }
 
-    public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[] TranscriptHash),
+    public Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[] TranscriptHash, byte[] ExportKey),
             OpaqueFailure>
         CreateSignInFinalizationRequest(string phoneNumber, byte[] passwordBytes,
             OpaqueSignInInitResponse signInResponse, BigInteger blind)
@@ -98,17 +98,33 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
                 
             Result<byte[], OpaqueFailure> stretchResult = OpaqueCryptoUtilities.StretchOprfOutput(oprfKey);
             if (stretchResult.IsErr)
-                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(stretchResult.UnwrapErr());
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(stretchResult.UnwrapErr());
                 
             byte[] stretchedOprfKey = stretchResult.Unwrap();
             credentialKey = OpaqueCryptoUtilities.DeriveKey(stretchedOprfKey, null, CredentialKeyInfo, DefaultKeyLength);
             byte[] authKey = OpaqueCryptoUtilities.DeriveKey(stretchedOprfKey, null, AuthKeyInfo, DefaultKeyLength);
+            
+            byte[] maskingKey = OpaqueCryptoUtilities.DeriveKey(stretchedOprfKey, null, MaskingKeyInfo, DefaultKeyLength);
 
-            if (signInResponse.RegistrationRecord.Length < CompressedPublicKeyLength)
-                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+            Result<byte[], OpaqueFailure> unmaskOprfResult = OpaqueCryptoUtilities.UnmaskResponse(
+                signInResponse.ServerOprfResponse.Span, maskingKey);
+            if (unmaskOprfResult.IsErr)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    unmaskOprfResult.UnwrapErr());
+            byte[] unmaskedOprfResponse = unmaskOprfResult.Unwrap();
+            
+            Result<byte[], OpaqueFailure> unmaskRecordResult = OpaqueCryptoUtilities.UnmaskResponse(
+                signInResponse.RegistrationRecord.Span, maskingKey);
+            if (unmaskRecordResult.IsErr)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    unmaskRecordResult.UnwrapErr());
+            byte[] unmaskedRegistrationRecord = unmaskRecordResult.Unwrap();
+
+            if (unmaskedRegistrationRecord.Length < CompressedPublicKeyLength)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
                     OpaqueFailure.InvalidInput(ErrorMessages.InvalidRegistrationRecordTooShort));
 
-            ReadOnlySpan<byte> registrationRecordSpan = signInResponse.RegistrationRecord.Span;
+            ReadOnlySpan<byte> registrationRecordSpan = unmaskedRegistrationRecord.AsSpan();
             byte[] clientStaticPublicKeyBytes = registrationRecordSpan[..CompressedPublicKeyLength].ToArray();
             byte[] envelope = registrationRecordSpan[CompressedPublicKeyLength..].ToArray();
             byte[] serverStaticPublicKeyBytes = ((ECPublicKeyParameters)staticPublicKey).Q.GetEncoded(CryptographicFlags.CompressedPointEncoding);
@@ -118,11 +134,11 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
                 Encoding.UTF8.GetBytes(DefaultServerIdentity));
                 
             if (envelopeVerifyResult.IsErr)
-                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
                     envelopeVerifyResult.UnwrapErr());
                     
             if (!envelopeVerifyResult.Unwrap())
-                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
                     OpaqueFailure.MacVerificationFailed(ErrorMessages.EnvelopeMacVerificationFailed));
             
             byte[] privateKeyInfo = OpaqueCryptoUtilities.DeriveKey(stretchedOprfKey, null, PrivateKeyInfo, DefaultKeyLength);
@@ -140,19 +156,25 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             byte[] clientEphemeralPublicKeyBytes = ((ECPublicKeyParameters)clientEphemeralKeys.Public).Q.GetEncoded(CryptographicFlags.CompressedPointEncoding);
 
-            byte[] serverOprfResponseBytes = signInResponse.ServerOprfResponse.ToByteArray();
             byte[] serverEphemeralPublicKeyBytes = signInResponse.ServerEphemeralPublicKey.ToByteArray();
 
-            byte[] transcriptHash = HashTranscript(phoneNumber, serverOprfResponseBytes, clientStaticPublicKeyBytes,
+            byte[] transcriptHash = HashTranscript(phoneNumber, unmaskedOprfResponse, clientStaticPublicKeyBytes,
                 clientEphemeralPublicKeyBytes, serverStaticPublicKeyBytes, serverEphemeralPublicKeyBytes);
 
             Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> keysResult = DeriveFinalKeys(akeResult, transcriptHash);
             if (keysResult.IsErr)
-                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Err(
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
                     keysResult.UnwrapErr());
 
             (byte[] sessionKey, byte[] clientMacKey, byte[] serverMacKey) = keysResult.Unwrap();
             byte[] clientMac = CreateMac(clientMacKey, transcriptHash);
+
+            Result<byte[], OpaqueFailure> exportKeyResult = OpaqueCryptoUtilities.DeriveExportKey(akeResult, transcriptHash);
+            if (exportKeyResult.IsErr)
+                return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
+                    exportKeyResult.UnwrapErr());
+            
+            byte[] exportKey = exportKeyResult.Unwrap();
 
             OpaqueSignInFinalizeRequest request = new()
             {
@@ -162,8 +184,13 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
                 ServerStateToken = signInResponse.ServerStateToken
             };
 
-            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[]), OpaqueFailure>.Ok((request, sessionKey,
-                serverMacKey, transcriptHash));
+            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Ok((request, sessionKey,
+                serverMacKey, transcriptHash, exportKey));
+        }
+        catch (OpaqueAuthenticationException)
+        {
+            return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
+                OpaqueFailure.MacVerificationFailed("Invalid credentials provided."));
         }
         finally
         {
@@ -192,14 +219,21 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
     private static byte[] RecoverOprfKey(ReadOnlySpan<byte> oprfResponse, BigInteger blind)
     {
-        ECPoint oprfResponsePoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(oprfResponse.ToArray());
-        Result<Unit, OpaqueFailure> validationResult = OpaqueCryptoUtilities.ValidatePoint(oprfResponsePoint);
-        if (validationResult.IsErr)
-            throw new InvalidOperationException($"{ErrorMessages.InvalidOprfResponsePoint}{validationResult.UnwrapErr().Message}");
-            
-        BigInteger blindInverse = blind.ModInverse(OpaqueCryptoUtilities.DomainParams.N);
-        ECPoint finalPoint = oprfResponsePoint.Multiply(blindInverse).Normalize();
-        return finalPoint.GetEncoded(CryptographicFlags.CompressedPointEncoding);
+        try
+        {
+            ECPoint oprfResponsePoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(oprfResponse.ToArray());
+            Result<Unit, OpaqueFailure> validationResult = OpaqueCryptoUtilities.ValidatePoint(oprfResponsePoint);
+            if (validationResult.IsErr)
+                throw new OpaqueAuthenticationException("Invalid credentials provided.");
+                
+            BigInteger blindInverse = blind.ModInverse(OpaqueCryptoUtilities.DomainParams.N);
+            ECPoint finalPoint = oprfResponsePoint.Multiply(blindInverse).Normalize();
+            return finalPoint.GetEncoded(CryptographicFlags.CompressedPointEncoding);
+        }
+        catch (Exception ex) when (ex is not OpaqueAuthenticationException)
+        {
+            throw new OpaqueAuthenticationException("Invalid credentials provided.");
+        }
     }
 
     private static byte[] PerformClientAke(AsymmetricCipherKeyPair ephC, ECPrivateKeyParameters statC, ECPoint statSPub,
