@@ -1,18 +1,12 @@
 namespace Ecliptix.Core.Constants;
 
-/// <summary>
-/// Application-level constants to avoid magic strings throughout the codebase.
-/// </summary>
 public static class ApplicationConstants
 {
-    // Application Settings
     public const string ApplicationName = "Ecliptix";
 
-    // Environment Values
     public const string DevelopmentEnvironment = "Development";
     public const string ProductionEnvironment = "Production";
 
-    // File Names and Paths
     public const string BuildInfoFileName = "build-info.json";
     public const string AppSettingsFileName = "appsettings.json";
     public const string LogsDirectory = "logs";
@@ -21,7 +15,6 @@ public static class ApplicationConstants
     public const string SecureProtocolStateFileName = "secure_protocol_state.enc";
     public const string AppDataPlaceholder = "%APPDATA%";
 
-    // Directory Paths
     public static class Directories
     {
         public const string LibraryApplicationSupport = "Library/Application Support";
@@ -30,7 +23,6 @@ public static class ApplicationConstants
         public const string Storage = "Storage";
     }
 
-    // Configuration Section Names
     public static class ConfigurationSections
     {
         public const string DefaultAppSettings = "DefaultAppSettings";
@@ -40,7 +32,6 @@ public static class ApplicationConstants
         public const string SecureStorage = "SecureStorage";
     }
 
-    // Configuration Keys
     public static class ConfigurationKeys
     {
         public const string DefaultTheme = "DefaultTheme";
@@ -52,7 +43,6 @@ public static class ApplicationConstants
         public const string EncryptedStatePath = "EncryptedStatePath";
         public const string StatePath = "StatePath";
 
-        // Retry Policy Keys
         public const string InitialRetryDelay = "InitialRetryDelay";
         public const string MaxRetryDelay = "MaxRetryDelay";
         public const string MaxRetries = "MaxRetries";
@@ -63,17 +53,14 @@ public static class ApplicationConstants
         public const string HealthCheckTimeout = "HealthCheckTimeout";
     }
 
-    // Assembly Names
     public static class AssemblyNames
     {
         public const string SerilogSinksConsole = "Serilog.Sinks.Console";
         public const string SerilogSinksFile = "Serilog.Sinks.File";
     }
 
-    // Version Format
     public const string VersionFormat = "{0}.{1}.{2}";
 
-    // Error Messages
     public static class ErrorMessages
     {
         public const string PathCannotBeEmpty = "Path cannot be empty.";
@@ -81,7 +68,6 @@ public static class ApplicationConstants
         public const string ApplicationTerminatedUnexpectedly = "Application terminated unexpectedly during startup or runtime";
     }
 
-    // Log Messages
     public static class LogMessages
     {
         public const string StartingApplication = "Starting Ecliptix application...";
@@ -90,13 +76,10 @@ public static class ApplicationConstants
         public const string FailedToSetPermissions = "Failed to set permissions for directory {Path}";
     }
 
-    // Unix File Permissions
     public const string UnixFilePermissions = "700";
 
-    // Environment Variables
     public const string DotnetEnvironmentVariable = "DOTNET_ENVIRONMENT";
 
-    // Cryptographic Constants
     public static class Cryptographic
     {
         public const int X25519KeySize = 32;
@@ -110,14 +93,12 @@ public static class ApplicationConstants
         public const int DefaultIterations = 600_000;
         public const char HashSeparator = ':';
 
-        // Hash sizes for different algorithms
         public const int Sha1HashSize = 20;
         public const int Sha256HashSize = 32;
         public const int Sha384HashSize = 48;
         public const int Sha512HashSize = 64;
     }
 
-    // Validation Constants
     public static class Validation
     {
         public const int MinPasswordLength = 6;
@@ -127,12 +108,10 @@ public static class ApplicationConstants
         public const int MinSequenceLength = 4;
         public const int MaxErrorMessageLength = 1000;
 
-        // Password strength score thresholds
         public const int WeakPasswordScore = 2;
         public const int GoodPasswordScore = 4;
         public const int StrongPasswordScore = 6;
 
-        // Character class scoring
         public const int LengthScoreTier1 = 6;
         public const int LengthScoreTier2 = 7;
         public const int LengthScoreTier3 = 9;
@@ -141,7 +120,6 @@ public static class ApplicationConstants
         public const int VarietyBonusThreshold3 = 3;
         public const int VarietyBonusThreshold4 = 4;
 
-        // Validation limits
         public const int MaxValidationMinutes = 5;
         public const int MaxValidationHour = 1;
         public const int MaxRetriesLimit = 100;
@@ -150,7 +128,6 @@ public static class ApplicationConstants
         public const int MaxHealthCheckMinute = 1;
     }
 
-    // Network and Retry Policy Constants
     public static class Network
     {
         public const int DefaultHttpRetryCount = 3;
@@ -159,12 +136,10 @@ public static class ApplicationConstants
         public const int HttpClientHandlerLifetimeMinutes = 5;
         public const int DataProtectionKeyLifetimeDays = 90;
 
-        // Connectivity Observer
         public const int DefaultConnectivityPollingSeconds = 10;
         public const int DefaultFailureThreshold = 2;
         public const int DefaultSuccessThreshold = 1;
 
-        // Default retry configuration values
         public const int DefaultInitialRetryDelaySeconds = 5;
         public const int DefaultMaxRetryDelayMinutes = 2;
         public const int DefaultMaxRetries = 10;
@@ -174,7 +149,6 @@ public static class ApplicationConstants
         public const int DefaultHealthCheckTimeoutSeconds = 5;
     }
 
-    // Protocol Constants
     public static class Protocol
     {
         public const int DefaultCacheWindowSize = 1000;
@@ -183,7 +157,6 @@ public static class ApplicationConstants
         public const int RandomIdSize = 4; // sizeof(uint)
     }
 
-    // Icon Resource URIs
     public static class IconResources
     {
         public const string WindowsIconUri = "avares://Ecliptix.Core/Assets/ecliptix.ico";
@@ -191,13 +164,11 @@ public static class ApplicationConstants
         public const string LinuxIconUri = "avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png";
     }
 
-    // API Constants
     public static class Api
     {
         public const string IpGeolocationBaseUrl = "https://api.country.is/";
         public const string JsonMediaType = "application/json";
 
-        // JSON property names for IP geolocation
         public const string IpPropertyName = "ip";
         public const string IpAddressPropertyName = "ipAddress";
         public const string QueryPropertyName = "query";
@@ -208,7 +179,6 @@ public static class ApplicationConstants
         public const string CountryCodeAltPropertyName = "country_code";
     }
 
-    // External URLs
     public static class ExternalUrls
     {
         public const string PrivacyPolicy = "https://ecliptix.com/privacy";
@@ -216,7 +186,6 @@ public static class ApplicationConstants
         public const string Support = "https://ecliptix.com/support";
     }
 
-    // Password Validation Messages
     public static class PasswordValidationMessages
     {
         public const string CannotBeEmpty = "Password cannot be empty.";
@@ -230,7 +199,6 @@ public static class ApplicationConstants
         public const string ComplexityRequirementsNotMet = "Password does not meet complexity requirements: {0}";
     }
 
-    // Navigation Keys
     public static class NavigationKeys
     {
         public const string CreateAccount = "CreateAccount";

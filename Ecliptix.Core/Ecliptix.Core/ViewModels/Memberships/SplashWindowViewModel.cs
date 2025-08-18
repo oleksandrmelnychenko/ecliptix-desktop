@@ -8,7 +8,7 @@ using Avalonia.Media;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.ViewModels.Memberships;

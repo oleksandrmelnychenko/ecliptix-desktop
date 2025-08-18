@@ -7,6 +7,7 @@ using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.ViewModels.Authentication;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using ReactiveUI;

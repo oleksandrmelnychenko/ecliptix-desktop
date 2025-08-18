@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Ecliptix.Core.Network.Services.Queue;
+using Ecliptix.Core.Services.Network.Infrastructure.Queue;
 
 namespace Ecliptix.Core.Network.Core;
 

@@ -4,25 +4,20 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
+using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
-using ValidationType = Ecliptix.Core.Services.Membership.ValidationType;
 
 namespace Ecliptix.Core.ViewModels.Memberships.SignUp;
 

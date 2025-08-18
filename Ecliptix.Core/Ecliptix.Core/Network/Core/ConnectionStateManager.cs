@@ -5,10 +5,9 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
-using System.Threading.Tasks;
 using Ecliptix.Core.Network.Contracts.Core;
 using Ecliptix.Core.Network.Core.Configuration;
-using Ecliptix.Core.Network.Services.Queue;
+using Ecliptix.Core.Services.Network.Infrastructure.Queue;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
@@ -32,7 +31,7 @@ public class ConnectionStateManager : IConnectionStateManager
         _healthCheckTimer = new Timer(PerformHealthCheck, null,
             _config.HealthCheckInterval, _config.HealthCheckInterval);
 
-        if (_config.AutoRecoveryEnabled)
+        if (ConnectionStateConfiguration.AutoRecoveryEnabled)
         {
             _autoRecoveryTimer = new Timer(PerformAutoRecovery, null,
                 _config.AutoRecoveryInterval, _config.AutoRecoveryInterval);
@@ -96,10 +95,10 @@ public class ConnectionStateManager : IConnectionStateManager
 
     private ConnectionHealthStatus DetermineHealthStatus(ConnectionHealthMetrics metrics)
     {
-        if (metrics.ConsecutiveFailures >= _config.MaxConsecutiveFailures)
+        if (metrics.ConsecutiveFailures >= ConnectionStateConfiguration.MaxConsecutiveFailures)
             return ConnectionHealthStatus.Failed;
 
-        if (metrics.SuccessRate < _config.MinimumSuccessRate)
+        if (metrics.SuccessRate < ConnectionStateConfiguration.MinimumSuccessRate)
             return ConnectionHealthStatus.Unhealthy;
 
         if (metrics.ConsecutiveFailures > 0 || metrics.SuccessRate < 0.95)
@@ -212,7 +211,7 @@ public class ConnectionStateManager : IConnectionStateManager
 
     private void PerformAutoRecovery(object? state)
     {
-        if (!_config.AutoRecoveryEnabled)
+        if (!ConnectionStateConfiguration.AutoRecoveryEnabled)
             return;
 
         try

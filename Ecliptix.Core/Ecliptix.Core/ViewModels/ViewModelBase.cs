@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Network.Core.Providers;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.PubKeyExchange;

@@ -9,8 +9,8 @@ using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services;
-using Ecliptix.Core.Network.Services.Retry;
+using Ecliptix.Core.Services.Network.Infrastructure;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Utilities.Failures.Network;
 using Serilog;
 

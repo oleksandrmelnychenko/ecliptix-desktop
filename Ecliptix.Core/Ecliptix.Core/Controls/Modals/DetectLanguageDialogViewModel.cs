@@ -2,14 +2,10 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reactive;
-using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
-using Ecliptix.Core.AppEvents.System;
 using Ecliptix.Core.Configuration;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Services;
-using Ecliptix.Core.ViewModels;
+using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;

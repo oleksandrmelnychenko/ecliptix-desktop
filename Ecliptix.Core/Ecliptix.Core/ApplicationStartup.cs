@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels.Memberships;
 using Ecliptix.Core.Views.Core;

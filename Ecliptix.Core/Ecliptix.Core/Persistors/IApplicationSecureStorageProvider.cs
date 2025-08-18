@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services;
-using Ecliptix.Core.Services.IpGeolocation;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Core;
+using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;

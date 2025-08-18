@@ -20,21 +20,27 @@ using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Desktop.Constants;
 using Ecliptix.Core.Network.Contracts.Core;
-using Ecliptix.Core.Network.Contracts.Services;
+using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Network.Core;
 using Ecliptix.Core.Network.Core.Configuration;
 using Ecliptix.Core.Network.Core.Connectivity;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services;
-using Ecliptix.Core.Network.Services.Retry;
-using Ecliptix.Core.Network.Services.Rpc;
+using Ecliptix.Core.Services.Network.Infrastructure;
+using Ecliptix.Core.Services.Network.Resilience;
+using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Network.Transport;
 using Ecliptix.Core.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Security;
-using Ecliptix.Core.Services;
-using Ecliptix.Core.Services.IpGeolocation;
+using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Core.Services.Core;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.External.IpGeolocation;
+using Ecliptix.Core.Services.Abstractions.External;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
@@ -248,11 +254,7 @@ public static class Program
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
 
         services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<RequestDeduplicationService>(sp =>
-        {
-            // Use fixed deduplication window since configuration property was removed
-            return new RequestDeduplicationService(TimeSpan.FromSeconds(10));
-        });
+        services.AddSingleton<RequestDeduplicationService>(_ => new RequestDeduplicationService(TimeSpan.FromSeconds(10)));
 
         services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
 

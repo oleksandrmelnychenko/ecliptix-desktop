@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using Avalonia.Controls;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;

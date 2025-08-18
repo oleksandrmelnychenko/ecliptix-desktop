@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Controls;
 

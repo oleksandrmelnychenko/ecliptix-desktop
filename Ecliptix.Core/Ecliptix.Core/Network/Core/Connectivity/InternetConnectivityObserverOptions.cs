@@ -13,7 +13,7 @@ public record InternetConnectivityObserverOptions
     ];
 
     public TimeSpan PollingInterval { get; init; } = TimeSpan.FromSeconds(5);
-    public TimeSpan ProbeTimeout { get; init; } = TimeSpan.FromSeconds(3);
+    public TimeSpan ProbeTimeout { get; } = TimeSpan.FromSeconds(3);
 
     public int FailureThreshold { get; init; } = 3;
 

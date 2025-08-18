@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Core;
 
 namespace Ecliptix.Core.Views.Core;
 

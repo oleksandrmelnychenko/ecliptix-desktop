@@ -15,9 +15,12 @@ using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Network.Core.Connectivity;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services.Retry;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.ViewModels.Authentication.Registration;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Core.ViewModels.Memberships.SignIn;
@@ -43,7 +46,6 @@ public class MembershipHostWindowModel : ViewModelBase, IScreen, IDisposable
     private readonly ISystemEvents _systemEvents;
     private readonly IAuthenticationService _authenticationService;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
-    // Operation queue removed - retry handled by Polly
     private readonly CompositeDisposable _disposables = new();
 
     private static readonly FrozenDictionary<string, string> SupportedCountries = LanguageConfiguration.

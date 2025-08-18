@@ -10,6 +10,7 @@ using Ecliptix.Core.Configuration;
 using Ecliptix.Core.Network.Contracts.Transport;
 using Ecliptix.Core.Persistors;
 using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.LanguageSelector;

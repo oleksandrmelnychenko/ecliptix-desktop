@@ -1,35 +1,26 @@
 using System;
-using System.Buffers;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Network;
 using Ecliptix.Core.Network.Core.Providers;
-using Ecliptix.Core.Network.Services.Rpc;
 using Ecliptix.Core.Persistors;
-using Ecliptix.Core.Services;
+using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.ViewModels.Authentication;
-using Ecliptix.Core.ViewModels.Authentication.Registration;
+using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
-using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Org.BouncyCastle.Crypto.Parameters;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
-using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.Sodium;
-using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
 using Org.BouncyCastle.Math;
 using ReactiveUI;
@@ -44,7 +35,6 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
     private readonly SecureTextBuffer _verifyPasswordBuffer = new();
     private bool _hasPasswordBeenTouched;
     private bool _hasVerifyPasswordBeenTouched;
-
 
     public int CurrentPasswordLength => _passwordBuffer.Length;
     public int CurrentVerifyPasswordLength => _verifyPasswordBuffer.Length;
