@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Org.BouncyCastle.Asn1.X9;
 using Org.BouncyCastle.Crypto;
@@ -8,12 +10,13 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Security;
+using static Ecliptix.Opaque.Protocol.OpaqueConstants;
 
 namespace Ecliptix.Opaque.Protocol;
 
 public static class OpaqueCryptoUtilities
 {
-    private static readonly X9ECParameters CurveParams = ECNamedCurveTable.GetByName("secp256r1");
+    private static readonly X9ECParameters CurveParams = ECNamedCurveTable.GetByName(CryptographicConstants.EllipticCurveName);
     public static readonly ECDomainParameters DomainParams = new(CurveParams.Curve, CurveParams.G, CurveParams.N, CurveParams.H);
 
     private static readonly ThreadLocal<Sha256Digest> DigestPool = new(() => new Sha256Digest());
@@ -58,36 +61,6 @@ public static class OpaqueCryptoUtilities
         return okm;
     }
 
-    public static Result<ECPoint, OpaqueFailure> HashToPoint(byte[] inputBytes)
-    {
-        Sha256Digest digest = DigestPool.Value!;
-        byte counter = 0;
-        const int maxAttempts = 255;
-
-        while (counter < maxAttempts)
-        {
-            digest.Reset();
-            digest.BlockUpdate(inputBytes, 0, inputBytes.Length);
-            digest.Update(counter);
-            byte[] hash = new byte[digest.GetDigestSize()];
-            digest.DoFinal(hash, 0);
-
-            BigInteger x = new(1, hash);
-            if (x.SignValue > 0 && x.CompareTo(DomainParams.Curve.Field.Characteristic) < 0)
-            {
-                try
-                {
-                    ECPoint point = DomainParams.Curve.DecodePoint(DecompressPoint(x, 0x02)).Normalize();
-                    if (point.IsValid()) return Result<ECPoint, OpaqueFailure>.Ok(point);
-                }
-                catch { /* Ignore and try next */ }
-            }
-            counter++;
-        }
-
-        return Result<ECPoint, OpaqueFailure>.Err(OpaqueFailure.HashingValidPointFailed());
-    }
-
     private static byte[] DecompressPoint(BigInteger x, byte sign)
     {
         byte[] xBytes = x.ToByteArrayUnsigned();
@@ -114,53 +87,262 @@ public static class OpaqueCryptoUtilities
         return generator.GenerateKeyPair();
     }
 
-    public static Result<byte[], OpaqueFailure> Encrypt(byte[] plaintext, byte[] key, byte[]? associatedData)
+    public static Result<Unit, OpaqueFailure> ValidatePoint(Org.BouncyCastle.Math.EC.ECPoint point)
+    {
+        if (point.IsInfinity)
+            return Result<Unit, OpaqueFailure>.Err(OpaqueFailure.InvalidPoint(ErrorMessages.PointAtInfinity));
+
+        if (!point.IsValid())
+            return Result<Unit, OpaqueFailure>.Err(OpaqueFailure.InvalidPoint(ErrorMessages.PointNotValid));
+
+        Org.BouncyCastle.Math.EC.ECPoint orderCheck = point.Multiply(DomainParams.N);
+        if (!orderCheck.IsInfinity)
+            return Result<Unit, OpaqueFailure>.Err(OpaqueFailure.SubgroupCheckFailed(ErrorMessages.SubgroupCheckFailed));
+
+        return Result<Unit, OpaqueFailure>.Ok(Unit.Value);
+    }
+
+    public static Result<byte[], OpaqueFailure> StretchOprfOutput(ReadOnlySpan<byte> oprfOutput)
+    {
+        if (oprfOutput.IsEmpty)
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.OprfOutputEmpty));
+
+        try
+        {
+            using ScopedSecureMemoryCollection memoryCollection = new();
+            
+            using ScopedSecureMemory saltBuffer = memoryCollection.Allocate(OpaqueConstants.Pbkdf2SaltLength);
+            Span<byte> salt = saltBuffer.AsSpan();
+            
+            byte[] saltBytes = HkdfExpand(oprfOutput.ToArray(), HkdfInfoStrings.OpaqueSalt.AsSpan(), Pbkdf2SaltLength);
+            saltBytes.AsSpan().CopyTo(salt);
+            
+            byte[] saltArray = salt.ToArray();
+            using Rfc2898DeriveBytes pbkdf2 = new(
+                oprfOutput.ToArray(),
+                saltArray,
+                Pbkdf2Iterations,
+                System.Security.Cryptography.HashAlgorithmName.SHA256
+            );
+            CryptographicOperations.ZeroMemory(saltArray);
+            
+            byte[] stretched = pbkdf2.GetBytes(HashLength);
+            return Result<byte[], OpaqueFailure>.Ok(stretched);
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.StretchingFailed($"{ErrorMessages.Pbkdf2Failed}{ex.Message}", ex));
+        }
+    }
+
+    public static Result<Org.BouncyCastle.Math.EC.ECPoint, OpaqueFailure> HashToPoint(ReadOnlySpan<byte> inputBytes)
+    {
+        Sha256Digest digest = DigestPool.Value!;
+        byte counter = 0;
+        const int maxAttempts = CryptographicConstants.MaxHashToPointAttempts;
+
+        while (counter < maxAttempts)
+        {
+            digest.Reset();
+            digest.BlockUpdate(inputBytes.ToArray(), 0, inputBytes.Length);
+            digest.Update(counter);
+            byte[] hash = new byte[digest.GetDigestSize()];
+            digest.DoFinal(hash, 0);
+
+            BigInteger x = new(CryptographicConstants.BigIntegerPositiveSign, hash);
+            if (x.SignValue > 0 && x.CompareTo(DomainParams.Curve.Field.Characteristic) < 0)
+            {
+                try
+                {
+                    Org.BouncyCastle.Math.EC.ECPoint point = DomainParams.Curve.DecodePoint(DecompressPoint(x, CryptographicConstants.PointCompressionPrefix)).Normalize();
+                    Result<Unit, OpaqueFailure> validationResult = ValidatePoint(point);
+                    if (validationResult.IsOk)
+                        return Result<Org.BouncyCastle.Math.EC.ECPoint, OpaqueFailure>.Ok(point);
+                }
+                catch { }
+            }
+            counter++;
+        }
+
+        return Result<Org.BouncyCastle.Math.EC.ECPoint, OpaqueFailure>.Err(OpaqueFailure.HashingValidPointFailed());
+    }
+
+    private static byte[] CreateMac(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data)
+    {
+        HMac hmac = new(new Sha256Digest());
+        hmac.Init(new KeyParameter(key.ToArray()));
+        hmac.BlockUpdate(data.ToArray(), 0, data.Length);
+        byte[] mac = new byte[hmac.GetMacSize()];
+        hmac.DoFinal(mac, 0);
+        return mac;
+    }
+
+    public static Result<byte[], OpaqueFailure> CreateEnvelopeMac(
+        ReadOnlySpan<byte> authKey,
+        ReadOnlySpan<byte> nonce,
+        ReadOnlySpan<byte> clientPublicKey,
+        ReadOnlySpan<byte> serverPublicKey,
+        ReadOnlySpan<byte> serverIdentity)
     {
         try
         {
-            IBufferedCipher cipher = CipherUtilities.GetCipher("AES/GCM/NoPadding");
-            byte[] nonce = new byte[OpaqueConstants.AesGcmNonceLengthBytes];
-            SecureRandomInstance.NextBytes(nonce);
+            using ScopedSecureMemoryCollection memoryCollection = new();
+            
+            int totalDataLength = nonce.Length + clientPublicKey.Length + serverPublicKey.Length + serverIdentity.Length;
+            using ScopedSecureMemory dataBuffer = memoryCollection.Allocate(totalDataLength);
+            Span<byte> data = dataBuffer.AsSpan();
+            
+            int offset = 0;
+            nonce.CopyTo(data.Slice(offset, nonce.Length));
+            offset += nonce.Length;
+            
+            clientPublicKey.CopyTo(data.Slice(offset, clientPublicKey.Length));
+            offset += clientPublicKey.Length;
+            
+            serverPublicKey.CopyTo(data.Slice(offset, serverPublicKey.Length));
+            offset += serverPublicKey.Length;
+            
+            serverIdentity.CopyTo(data.Slice(offset, serverIdentity.Length));
+            
+            byte[] mac = CreateMac(authKey, data);
+            
+            byte[] envelope = new byte[nonce.Length + mac.Length];
+            nonce.CopyTo(envelope.AsSpan()[..nonce.Length]);
+            mac.CopyTo(envelope.AsSpan()[nonce.Length..]);
+            
+            return Result<byte[], OpaqueFailure>.Ok(envelope);
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.EnvelopeFailed($"{ErrorMessages.MacEnvelopeCreationFailed}{ex.Message}", ex));
+        }
+    }
 
-            AeadParameters cipherParams = new(new KeyParameter(key), OpaqueConstants.AesGcmTagLengthBits, nonce, associatedData);
-            cipher.Init(true, cipherParams);
+    public static Result<bool, OpaqueFailure> VerifyEnvelopeMac(
+        ReadOnlySpan<byte> authKey,
+        ReadOnlySpan<byte> envelope,
+        ReadOnlySpan<byte> clientPublicKey,
+        ReadOnlySpan<byte> serverPublicKey,
+        ReadOnlySpan<byte> serverIdentity)
+    {
+        try
+        {
+            if (envelope.Length < NonceLength + HashLength)
+                return Result<bool, OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.EnvelopeTooShort));
+                
+            ReadOnlySpan<byte> nonce = envelope[..NonceLength];
+            ReadOnlySpan<byte> providedMac = envelope[NonceLength..];
+            
+            Result<byte[], OpaqueFailure> expectedMacResult = CreateEnvelopeMac(
+                authKey, nonce, clientPublicKey, serverPublicKey, serverIdentity);
+                
+            if (expectedMacResult.IsErr)
+                return Result<bool, OpaqueFailure>.Err(expectedMacResult.UnwrapErr());
+                
+            byte[] expectedEnvelope = expectedMacResult.Unwrap();
+            ReadOnlySpan<byte> expectedMac = expectedEnvelope.AsSpan()[NonceLength..];
+            
+            bool isValid = CryptographicOperations.FixedTimeEquals(expectedMac, providedMac);
+            return Result<bool, OpaqueFailure>.Ok(isValid);
+        }
+        catch (Exception ex)
+        {
+            return Result<bool, OpaqueFailure>.Err(OpaqueFailure.EnvelopeFailed($"{ErrorMessages.MacVerificationFailed}{ex.Message}", ex));
+        }
+    }
 
-            int outputSize = cipher.GetOutputSize(plaintext.Length);
-            byte[] result = new byte[OpaqueConstants.AesGcmNonceLengthBytes + outputSize];
-
+    public static Result<byte[], OpaqueFailure> MaskResponse(
+        ReadOnlySpan<byte> response,
+        ReadOnlySpan<byte> maskingKey)
+    {
+        try
+        {
+            using ScopedSecureMemoryCollection memoryCollection = new();
+            
+            byte[] nonce = new byte[NonceLength];
+            RandomNumberGenerator.Fill(nonce);
+            
+            byte[] pad = HkdfExpand(maskingKey.ToArray(), nonce, response.Length);
+            
+            using ScopedSecureMemory maskedBuffer = memoryCollection.Allocate(response.Length);
+            Span<byte> masked = maskedBuffer.AsSpan();
+            
+            for (int i = 0; i < response.Length; i++)
+            {
+                masked[i] = (byte)(response[i] ^ pad[i]);
+            }
+            
+            byte[] result = new byte[NonceLength + response.Length];
             nonce.CopyTo(result, 0);
-
-            int len = cipher.ProcessBytes(plaintext, 0, plaintext.Length, result, OpaqueConstants.AesGcmNonceLengthBytes);
-            cipher.DoFinal(result, OpaqueConstants.AesGcmNonceLengthBytes + len);
-
+            masked.CopyTo(result.AsSpan()[NonceLength..]);
+            
+            CryptographicOperations.ZeroMemory(pad);
+            
             return Result<byte[], OpaqueFailure>.Ok(result);
         }
         catch (Exception ex)
         {
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.EncryptFailed(ex.Message, ex));
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MaskingFailed($"{ErrorMessages.ResponseMaskingFailed}{ex.Message}", ex));
         }
     }
 
-    public static Result<byte[], OpaqueFailure> Decrypt(byte[] ciphertextWithNonce, byte[] key, byte[]? associatedData)
+    public static Result<byte[], OpaqueFailure> UnmaskResponse(
+        ReadOnlySpan<byte> maskedResponse,
+        ReadOnlySpan<byte> maskingKey)
     {
-        if (ciphertextWithNonce.Length < OpaqueConstants.AesGcmNonceLengthBytes)
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.DecryptFailed());
-
-        ReadOnlySpan<byte> fullSpan = ciphertextWithNonce.AsSpan();
-        ReadOnlySpan<byte> nonce = fullSpan[..OpaqueConstants.AesGcmNonceLengthBytes];
-        ReadOnlySpan<byte> ciphertext = fullSpan[OpaqueConstants.AesGcmNonceLengthBytes..];
-
         try
         {
-            IBufferedCipher cipher = CipherUtilities.GetCipher("AES/GCM/NoPadding");
-            AeadParameters cipherParams = new(new KeyParameter(key), OpaqueConstants.AesGcmTagLengthBits, nonce.ToArray(), associatedData);
-            cipher.Init(false, cipherParams);
-
-            return Result<byte[], OpaqueFailure>.Ok(cipher.DoFinal(ciphertext.ToArray()));
+            if (maskedResponse.Length < NonceLength)
+                return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.MaskedResponseTooShort));
+                
+            ReadOnlySpan<byte> nonce = maskedResponse[..NonceLength];
+            ReadOnlySpan<byte> masked = maskedResponse[NonceLength..];
+            
+            byte[] pad = HkdfExpand(maskingKey.ToArray(), nonce, masked.Length);
+            
+            using ScopedSecureMemoryCollection memoryCollection = new();
+            using ScopedSecureMemory unmaskBuffer = memoryCollection.Allocate(masked.Length);
+            Span<byte> unmasked = unmaskBuffer.AsSpan();
+            
+            for (int i = 0; i < masked.Length; i++)
+            {
+                unmasked[i] = (byte)(masked[i] ^ pad[i]);
+            }
+            
+            byte[] result = unmasked.ToArray();
+            
+            CryptographicOperations.ZeroMemory(pad);
+            
+            return Result<byte[], OpaqueFailure>.Ok(result);
         }
-        catch (InvalidCipherTextException ex)
+        catch (Exception ex)
         {
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.DecryptFailed(ex.Message, ex));
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MaskingFailed($"{ErrorMessages.ResponseUnmaskingFailed}{ex.Message}", ex));
+        }
+    }
+
+    public static Result<byte[], OpaqueFailure> DeriveExportKey(
+        ReadOnlySpan<byte> handshakeSecret,
+        ReadOnlySpan<byte> transcriptHash)
+    {
+        try
+        {
+            using ScopedSecureMemoryCollection memoryCollection = new();
+            
+            int infoLength = ExportKeyInfo.Length + transcriptHash.Length;
+            using ScopedSecureMemory infoBuffer = memoryCollection.Allocate(infoLength);
+            Span<byte> info = infoBuffer.AsSpan();
+            
+            ExportKeyInfo.CopyTo(info[..ExportKeyInfo.Length]);
+            transcriptHash.CopyTo(info[ExportKeyInfo.Length..]);
+            
+            byte[] exportKey = HkdfExpand(handshakeSecret.ToArray(), info, DefaultKeyLength);
+            
+            return Result<byte[], OpaqueFailure>.Ok(exportKey);
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.KeyDerivationFailed($"{ErrorMessages.ExportKeyDerivationFailed}{ex.Message}", ex));
         }
     }
 }

@@ -20,6 +20,7 @@ using Ecliptix.Core.ViewModels.Authentication.ViewFactory;
 using Ecliptix.Domain.Memberships;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protocol.System.Utilities;
+using Org.BouncyCastle.Crypto.Parameters;
 using Ecliptix.Protobuf.AppDevice;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Sodium;
@@ -285,8 +286,9 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
                         return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
 
+                    OpaqueProtocolService opaqueService = CreateOpaqueService();
                     Result<byte[], OpaqueFailure> registrationRecordResult =
-                        OpaqueProtocolService.CreateRegistrationRecord(
+                        opaqueService.CreateRegistrationRecord(
                             passwordBytes,
                             SecureByteStringInterop.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
                                 span => span.ToArray()),
@@ -357,6 +359,18 @@ public class PasswordConfirmationViewModel : ViewModelBase, IRoutableViewModel
         }
 
         base.Dispose(disposing);
+    }
+
+    private OpaqueProtocolService CreateOpaqueService()
+    {
+        byte[] serverPublicKeyBytes = SecureByteStringInterop.WithByteStringAsSpan(
+            NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
+            span => span.ToArray());
+        ECPublicKeyParameters serverStaticPublicKeyParam = new(
+            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes),
+            OpaqueCryptoUtilities.DomainParams
+        );
+        return new OpaqueProtocolService(serverStaticPublicKeyParam);
     }
 
     public string? UrlPathSegment { get; } = "/password-confirmation";

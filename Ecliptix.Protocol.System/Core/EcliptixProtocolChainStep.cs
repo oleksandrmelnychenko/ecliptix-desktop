@@ -55,7 +55,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
         _chainKeyHandle.Dispose();
         _dhPrivateKeyHandle?.Dispose();
-        ResultExtensions.IgnoreResult<Unit>();
+        if (_dhPublicKey != null) SodiumInterop.SecureWipe(_dhPublicKey);
 
         _chainKeyHandle = null!;
         _dhPrivateKeyHandle = null;
@@ -106,7 +106,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         if (chainKeyResult.IsErr)
         {
             dhInfo.dhPrivateKeyHandle?.Dispose();
-            ResultExtensions.IgnoreResult<Unit>();
+            if (dhInfo.dhPublicKeyCloned != null) SodiumInterop.SecureWipe(dhInfo.dhPublicKeyCloned);
             return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(chainKeyResult.UnwrapErr());
         }
 
@@ -298,7 +298,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         }
         finally
         {
-            ResultExtensions.IgnoreResult<Unit>();
+            SodiumInterop.SecureWipe(chainKey);
         }
     }
 
@@ -387,9 +387,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         }
         finally
         {
-            if (chainKeyBytes != null) ResultExtensions.IgnoreResult<Unit>();
-            if (dhPrivKeyBytes != null) ResultExtensions.IgnoreResult<Unit>();
-            if (dhPubKeyBytes != null) ResultExtensions.IgnoreResult<Unit>();
+            if (chainKeyBytes != null) SodiumInterop.SecureWipe(chainKeyBytes);
+            if (dhPrivKeyBytes != null) SodiumInterop.SecureWipe(dhPrivKeyBytes);
+            if (dhPubKeyBytes != null) SodiumInterop.SecureWipe(dhPubKeyBytes);
         }
     }
 
@@ -468,7 +468,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         _dhPrivateKeyHandle?.Dispose();
         _dhPrivateKeyHandle = handle;
 
-        ResultExtensions.IgnoreResult<Unit>();
+        if (_dhPublicKey != null) SodiumInterop.SecureWipe(_dhPublicKey);
         _dhPublicKey = (byte[])newDhPublicKey!.Clone();
 
         return OkResult;

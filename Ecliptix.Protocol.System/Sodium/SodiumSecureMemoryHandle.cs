@@ -21,7 +21,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         Length = length;
         _isLocked = false;
 
-        // Attempt to lock the memory to prevent swapping to disk
         if (length > 0 && preexistingHandle != IntPtr.Zero)
         {
             TryLockMemory();
@@ -235,7 +234,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         {
             if (IsInvalid) return true;
 
-            // Unlock memory if it was locked
             if (_isLocked)
             {
                 TryUnlockMemory();
@@ -275,7 +273,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
         catch
         {
-            // Silently fail - memory locking is best-effort
             _isLocked = false;
         }
     }
@@ -298,7 +295,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
         catch
         {
-            // Silently fail - memory unlocking is best-effort
         }
         finally
         {
@@ -321,13 +317,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
-    /// <summary>
-    /// Executes an operation with thread-safe read access to the secure memory.
-    /// Provides a ReadOnlySpan view without copying the data.
-    /// </summary>
-    /// <typeparam name="TResult">The result type</typeparam>
-    /// <param name="operation">The operation to execute with the span</param>
-    /// <returns>Result containing the operation result or failure</returns>
     public Result<TResult, SodiumFailure> WithReadAccess<TResult>(
         Func<ReadOnlySpan<byte>, Result<TResult, SodiumFailure>> operation)
     {
@@ -369,7 +358,6 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
-    // Platform-specific imports for memory locking
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);
 

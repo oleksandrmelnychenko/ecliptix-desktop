@@ -80,7 +80,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         SodiumSecureMemoryHandle? rootKeyHandle = null;
         try
         {
-            // Parse peer public key bundle from protobuf
             Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure> parseResult = Result<Protobuf.PubKeyExchange.PublicKeyBundle, EcliptixProtocolFailure>.Try(
                 () =>
                 {
@@ -91,7 +90,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     }
                     finally
                     {
-                        ResultExtensions.IgnoreResult<Unit>();
+                        SodiumInterop.SecureWipe(payloadBytes);
                     }
                 },
                 ex => EcliptixProtocolFailure.Decode("Failed to parse peer public key bundle from protobuf.", ex));
@@ -107,7 +106,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             PublicKeyBundle peerBundle = bundleResult.Unwrap();
 
-            // Verify SPK signature
             Result<bool, EcliptixProtocolFailure> signatureResult = EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(
                 peerBundle.IdentityEd25519, peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature);
             if (signatureResult.IsErr)
@@ -117,7 +115,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (!spkValid)
                 return;
 
-            // Derive shared secret
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult = ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
             if (secretResult.IsErr)
                 return;
@@ -131,7 +128,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             byte[] rootKeyBytes = rootKeyResult.Unwrap();
 
-            // Finalize chain and DH keys
             SecureByteStringInterop.SecureCopyWithCleanup(peerMessage.InitialDhPublicKey, out byte[] dhKeyBytes);
             try
             {
@@ -145,7 +141,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             }
             finally
             {
-                ResultExtensions.IgnoreResult<Unit>();
+                SodiumInterop.SecureWipe(dhKeyBytes);
             }
         }
         finally
@@ -315,7 +311,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
 
             byte[] ciphertext = new byte[plaintext.Length];
-            byte[] tag = new byte[Constants.AesGcmTagSize];
+            Span<byte> tag = stackalloc byte[Constants.AesGcmTagSize];
 
             using (AesGcm aesGcm = new(keySpan, Constants.AesGcmTagSize))
             {
@@ -324,7 +320,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             byte[] result = new byte[ciphertext.Length + tag.Length];
             Buffer.BlockCopy(ciphertext, 0, result, 0, ciphertext.Length);
-            Buffer.BlockCopy(tag, 0, result, ciphertext.Length, tag.Length);
+            tag.CopyTo(result.AsSpan(ciphertext.Length));
 
             return Result<byte[], EcliptixProtocolFailure>.Ok(result);
         }
