@@ -69,7 +69,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         get => _remainingTime;
         private set
         {
-            Console.WriteLine($"Setting RemainingTime to: '{value}'");
             this.RaiseAndSetIfChanged(ref _remainingTime, value);
         }
     }
@@ -112,7 +111,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
-        canResend.Subscribe(value => Console.WriteLine($"canResend: {value}"));
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
 
         this.WhenActivated(disposables => { OnViewLoaded().Subscribe().DisposeWith(disposables); });
@@ -234,7 +232,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         TimeSpan time = TimeSpan.FromSeconds(seconds);
         string t = time.ToString(@"mm\:ss");
-        Console.WriteLine(t);
         return t;
     }
 

@@ -1,7 +1,7 @@
 using System;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls;
-using Microsoft.Extensions.Logging;
+using Serilog;
 using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Services.Core;
@@ -11,13 +11,11 @@ namespace Ecliptix.Core.Services.Core;
 /// </summary>
 public class WindowActivationService : IWindowActivationService
 {
-    private readonly ILogger<WindowActivationService> _logger;
 
     public event EventHandler? WindowActivationRequested;
 
-    public WindowActivationService(ILogger<WindowActivationService> logger)
+    public WindowActivationService()
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public void ActivateMainWindow()
@@ -29,7 +27,7 @@ public class WindowActivationService : IWindowActivationService
                 Window? mainWindow = desktop.MainWindow;
                 if (mainWindow != null)
                 {
-                    _logger.LogInformation("Attempting to activate main window");
+                    Log.Information("Attempting to activate main window");
 
                     // Restore window if minimized
                     if (mainWindow.WindowState == WindowState.Minimized)
@@ -43,27 +41,27 @@ public class WindowActivationService : IWindowActivationService
                     mainWindow.Topmost = false; // Reset topmost to allow normal z-order behavior
                     mainWindow.Focus();
 
-                    _logger.LogInformation("Main window activation completed");
+                    Log.Information("Main window activation completed");
                 }
                 else
                 {
-                    _logger.LogWarning("Main window is null, cannot activate");
+                    Log.Warning("Main window is null, cannot activate");
                 }
             }
             else
             {
-                _logger.LogWarning("Application lifetime is not desktop style, cannot activate window");
+                Log.Warning("Application lifetime is not desktop style, cannot activate window");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to activate main window");
+            Log.Error(ex, "Failed to activate main window");
         }
     }
 
     public void RequestActivation()
     {
-        _logger.LogDebug("Window activation requested");
+        Log.Debug("Window activation requested");
         WindowActivationRequested?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -1,5 +1,7 @@
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -140,7 +142,8 @@ public sealed class CircuitBreaker : IDisposable
                     _failureCount = 0;
                     _successCount = 0;
                     _requestCount = 0;
-                    Console.WriteLine("[CIRCUIT BREAKER] Service recovered - Circuit CLOSED");
+                    if (Log.IsEnabled(LogEventLevel.Information))
+                        Log.Information("Circuit breaker service recovered - Circuit CLOSED");
                 }
             }
             else if (_state == CircuitBreakerState.Closed)
@@ -163,7 +166,8 @@ public sealed class CircuitBreaker : IDisposable
             {
                 // Trip the circuit breaker
                 _state = CircuitBreakerState.Open;
-                Console.WriteLine($"[CIRCUIT BREAKER] Failure threshold ({_failureThreshold}) reached - Circuit OPEN");
+                if (Log.IsEnabled(LogEventLevel.Warning))
+                    Log.Warning("Circuit breaker failure threshold ({FailureThreshold}) reached - Circuit OPEN", _failureThreshold);
             }
             else if (_state == CircuitBreakerState.HalfOpen)
             {
@@ -171,7 +175,8 @@ public sealed class CircuitBreaker : IDisposable
                 _state = CircuitBreakerState.Open;
                 _successCount = 0;
                 _requestCount = 0;
-                Console.WriteLine("[CIRCUIT BREAKER] Service still failing - Circuit OPEN again");
+                if (Log.IsEnabled(LogEventLevel.Warning))
+                    Log.Warning("Circuit breaker service still failing - Circuit OPEN again");
             }
         }
     }
@@ -193,7 +198,8 @@ public sealed class CircuitBreaker : IDisposable
             _successCount = 0;
             _requestCount = 0;
             _lastFailureTime = DateTime.MinValue;
-            Console.WriteLine("[CIRCUIT BREAKER] Circuit breaker manually reset");
+            if (Log.IsEnabled(LogEventLevel.Information))
+                Log.Information("Circuit breaker manually reset");
         }
     }
 

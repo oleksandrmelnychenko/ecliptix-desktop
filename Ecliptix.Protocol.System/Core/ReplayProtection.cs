@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -176,7 +178,8 @@ public sealed class ReplayProtection : IDisposable
         lock (_lock)
         {
             _messageWindows.Clear();
-            Console.WriteLine("[REPLAY] Cleared message windows due to ratchet rotation");
+            if (Log.IsEnabled(LogEventLevel.Debug))
+                Log.Debug("Replay protection cleared message windows due to ratchet rotation");
         }
     }
 

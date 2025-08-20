@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Reactive;
 using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
-using Ecliptix.Core.Configuration;
+using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;

@@ -32,6 +32,6 @@ public class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel
         IScreen hostScreen, NetworkProvider networkProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        SubmitCommand = ReactiveCommand.Create(() => { Console.WriteLine($"PassPhase submitted: {PassPhase}"); });
+        SubmitCommand = ReactiveCommand.Create(() => { });
     }
 }

@@ -9,16 +9,20 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
 public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys) : IDisposable
 {
     private readonly Lock _lock = new();
+
     private readonly CircuitBreaker _circuitBreaker = new(
         failureThreshold: 10,
         timeout: TimeSpan.FromSeconds(60),
         successThresholdPercentage: 0.7);
+
     private readonly AdaptiveRatchetManager _ratchetManager = new(RatchetConfig.Default);
     private readonly ProtocolMetricsCollector _metricsCollector = new(TimeSpan.FromSeconds(30));
     private EcliptixProtocolConnection? _protocolConnection;
@@ -36,7 +40,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             connectionToUpdate = _protocolConnection;
         }
 
-        // Call external method outside of lock to prevent deadlock
         connectionToUpdate?.SetEventHandler(handler);
     }
 
@@ -50,7 +53,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             _protocolConnection = null;
         }
 
-        // Dispose outside of lock to prevent deadlock
         connectionToDispose?.Dispose();
         _circuitBreaker.Dispose();
         _ratchetManager.Dispose();
@@ -97,7 +99,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             currentHandler = _eventHandler;
         }
 
-        // Set handler outside lock to prevent deadlock
         session.SetEventHandler(currentHandler);
 
         Result<byte[]?, EcliptixProtocolFailure> dhKeyResult = session.GetCurrentSenderDhPublicKey();
@@ -243,11 +244,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             try
             {
-                // Batch process all messages to reduce lock overhead
-                for (int i = 0; i < plainPayloads.Length; i++)
+                foreach (byte[] t in plainPayloads)
                 {
                     Result<CipherPayload, EcliptixProtocolFailure> singleResult =
-                        ProduceSingleMessage(plainPayloads[i], connection);
+                        ProduceSingleMessage(t, connection);
                     if (singleResult.IsErr)
                         return Result<CipherPayload[], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
 
@@ -277,21 +277,16 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         });
     }
 
-    private Result<CipherPayload, EcliptixProtocolFailure> ProduceSingleMessage(byte[] plainPayload, EcliptixProtocolConnection connection)
+    private Result<CipherPayload, EcliptixProtocolFailure> ProduceSingleMessage(byte[] plainPayload,
+        EcliptixProtocolConnection connection)
     {
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        // Record message for adaptive load management
         _ratchetManager.RecordMessage();
 
-        // CRITICAL DEBUG: Check client IsInitiator status
-        bool debugIsInitiator = connection.IsInitiator();
-        Console.WriteLine($"[CLIENT-DEBUG] ProduceSingleMessage - IsInitiator: {debugIsInitiator}");
-
-        // Also write to file so we can definitely find it
-        string debugPath = Path.Combine(Path.GetTempPath(), "ecliptix_client_debug.log");
-        string debugMsg = $"[{DateTime.UtcNow:HH:mm:ss.fff}] CLIENT IsInitiator: {debugIsInitiator}\n";
-        File.AppendAllText(debugPath, debugMsg);
+        bool isInitiator = connection.IsInitiator();
+        Log.Information("Protocol message production started for {ConnectionRole} with payload size {PayloadSize}",
+            isInitiator ? "Initiator" : "Responder", plainPayload.Length);
 
         EcliptixMessageKey? messageKeyClone = null;
         byte[]? nonce = null;
@@ -331,17 +326,17 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             PublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
-            bool isInitiator = connection.IsInitiator();
-            ad = isInitiator
+            bool connectionIsInitiator = connection.IsInitiator();
+            ad = connectionIsInitiator
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
-
-            Console.WriteLine($"[CLIENT-ENCRYPT] IsInitiator: {isInitiator}");
-            Console.WriteLine($"[CLIENT-ENCRYPT] Self Identity: {Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16]}...");
-            Console.WriteLine($"[CLIENT-ENCRYPT] Peer Identity: {Convert.ToHexString(peerBundle.IdentityX25519)[..16]}...");
-            Console.WriteLine($"[CLIENT-ENCRYPT] AD (init?self||peer:peer||self): {Convert.ToHexString(ad)[..32]}...");
-            Console.WriteLine($"[CLIENT-ENCRYPT] Message key index: {messageKeyClone!.Index}");
-            Console.WriteLine($"[CLIENT-ENCRYPT] Nonce: {Convert.ToHexString(nonce)[..24]}...");
+            if (Log.IsEnabled(LogEventLevel.Debug))
+                Log.Debug("Protocol encryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
+                          "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
+                    connectionIsInitiator ? "Initiator" : "Responder",
+                    messageKeyClone!.Index,
+                    Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
+                    Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
 
             Result<byte[], EcliptixProtocolFailure> encryptResult =
                 Encrypt(messageKeyClone!, nonce, plainPayload, ad, connection);
@@ -394,11 +389,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             try
             {
-                // Batch process all messages to reduce lock overhead
-                for (int i = 0; i < cipherPayloads.Length; i++)
+                foreach (CipherPayload t in cipherPayloads)
                 {
                     Result<byte[], EcliptixProtocolFailure> singleResult =
-                        ProcessSingleInboundMessage(cipherPayloads[i], connection);
+                        ProcessSingleInboundMessage(t, connection);
                     if (singleResult.IsErr)
                         return Result<byte[][], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
 
@@ -428,11 +422,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         });
     }
 
-    private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessage(CipherPayload cipherPayloadProto, EcliptixProtocolConnection connection)
+    private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessage(CipherPayload cipherPayloadProto,
+        EcliptixProtocolConnection connection)
     {
-        var stopwatch = Stopwatch.StartNew();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
-        // Record message for adaptive load management
         _ratchetManager.RecordMessage();
 
         EcliptixMessageKey? messageKeyClone = null;
@@ -479,14 +473,16 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
-            Console.WriteLine($"[CLIENT-DECRYPT] IsInitiator: {isInitiator}");
-            Console.WriteLine($"[CLIENT-DECRYPT] Self Identity: {Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16]}...");
-            Console.WriteLine($"[CLIENT-DECRYPT] Peer Identity: {Convert.ToHexString(peerBundle.IdentityX25519)[..16]}...");
-            Console.WriteLine($"[CLIENT-DECRYPT] AD (init?self||peer:peer||self): {Convert.ToHexString(ad)[..32]}...");
-            Console.WriteLine($"[CLIENT-DECRYPT] Message key index: {messageKeyClone!.Index}");
-            Console.WriteLine($"[CLIENT-DECRYPT] Nonce: {Convert.ToHexString(cipherPayloadProto.Nonce.Span)[..24]}...");
+            if (Log.IsEnabled(LogEventLevel.Debug))
+                Log.Debug("Protocol decryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
+                          "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
+                    isInitiator ? "Initiator" : "Responder",
+                    messageKeyClone!.Index,
+                    Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
+                    Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
 
-            Result<byte[], EcliptixProtocolFailure> result = Decrypt(messageKeyClone!, cipherPayloadProto, ad, connection);
+            Result<byte[], EcliptixProtocolFailure> result = Decrypt(messageKeyClone!, cipherPayloadProto, ad,
+                connection);
 
             stopwatch.Stop();
             if (result.IsOk)
@@ -526,11 +522,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
 
-        // Use AdaptiveRatchetManager to make intelligent ratcheting decisions
-        // This integrates load-aware ratcheting decisions into the client
-        Console.WriteLine("[CLIENT] Using adaptive ratchet manager for intelligent ratcheting decisions");
+        Log.Information("Protocol using adaptive ratchet manager for intelligent ratcheting decisions");
 
-        // Atomic ratchet operation to prevent race conditions
         return PerformAtomicRatchet(receivedDhKey);
     }
 
@@ -541,18 +534,15 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
 
-        // Clear replay protection before ratchet to handle any pending messages
         connection.NotifyRatchetRotation();
-        Console.WriteLine("[CLIENT] Cleared replay protection before receiving ratchet rotation");
+        Log.Debug("Cleared replay protection before receiving ratchet rotation");
 
-        // Perform the actual ratchet operation
         Result<Unit, EcliptixProtocolFailure> ratchetResult = connection.PerformReceivingRatchet(receivedDhKey);
         if (ratchetResult.IsErr)
             return ratchetResult;
 
-        // Notify replay protection after successful ratchet
         connection.NotifyRatchetRotation();
-        Console.WriteLine("[CLIENT] Notified replay protection of receiving ratchet rotation");
+        Log.Debug("Notified replay protection of receiving ratchet rotation");
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
@@ -706,7 +696,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public EcliptixProtocolConnection? GetConnection() => GetConnectionSafe();
 
-    public (CircuitBreakerState State, int FailureCount, int SuccessCount, DateTime LastFailure) GetCircuitBreakerStatus()
+    public (CircuitBreakerState State, int FailureCount, int SuccessCount, DateTime LastFailure)
+        GetCircuitBreakerStatus()
     {
         return _circuitBreaker.GetStatus();
     }
@@ -732,8 +723,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
     public ProtocolMetrics GetProtocolMetrics()
     {
-        // Update external state in metrics collector
-        var circuitStatus = _circuitBreaker.GetStatus();
+        (CircuitBreakerState State, int FailureCount, int SuccessCount, DateTime LastFailure) circuitStatus =
+            _circuitBreaker.GetStatus();
         _metricsCollector.UpdateExternalState(_ratchetManager.CurrentLoad, circuitStatus.State);
 
         return _metricsCollector.GetCurrentMetrics();

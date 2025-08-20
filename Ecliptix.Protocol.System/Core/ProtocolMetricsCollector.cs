@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -167,7 +169,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[METRICS] Error updating metrics: {ex.Message}");
+            Log.Error(ex, "Protocol metrics update error");
         }
     }
 
@@ -199,18 +201,26 @@ public sealed class ProtocolMetricsCollector : IDisposable
     {
         ProtocolMetrics metrics = GetCurrentMetrics();
 
-        Console.WriteLine("=== Protocol Performance Metrics ===");
-        Console.WriteLine($"Uptime: {metrics.Uptime:hh\\:mm\\:ss}");
-        Console.WriteLine($"Load Level: {metrics.CurrentLoadLevel}");
-        Console.WriteLine($"Circuit Breaker: {metrics.CircuitBreakerState}");
-        Console.WriteLine($"Throughput: {metrics.ThroughputPerSecond:F1} ops/sec");
-        Console.WriteLine($"Average Latency: {metrics.AverageLatencyMs:F2} ms");
-        Console.WriteLine($"Error Rate: {metrics.ErrorRate:P2}");
-        Console.WriteLine($"Memory Usage: {metrics.MemoryUsageBytes / (1024 * 1024):F1} MB");
-        Console.WriteLine($"Messages: Out={metrics.TotalOutboundMessages}, In={metrics.TotalInboundMessages}, Batch={metrics.TotalBatchedMessages}");
-        Console.WriteLine($"Crypto: Encrypt={metrics.TotalEncryptionOperations}, Decrypt={metrics.TotalDecryptionOperations}");
-        Console.WriteLine($"Ratchets: {metrics.TotalRatchetRotations}, CB Trips: {metrics.TotalCircuitBreakerTrips}");
-        Console.WriteLine("======================================");
+        if (Log.IsEnabled(LogEventLevel.Information))
+        {
+            Log.Information("Protocol Performance Metrics - Uptime: {Uptime}, Load: {LoadLevel}, " +
+                           "CB State: {CircuitBreakerState}, Throughput: {Throughput:F1} ops/sec",
+                metrics.Uptime.ToString(@"hh\:mm\:ss"), metrics.CurrentLoadLevel,
+                metrics.CircuitBreakerState, metrics.ThroughputPerSecond);
+            
+            Log.Information("Protocol Latency & Errors - Avg Latency: {AvgLatency:F2} ms, " +
+                           "Error Rate: {ErrorRate:P2}, Memory: {MemoryMB:F1} MB",
+                metrics.AverageLatencyMs, metrics.ErrorRate,
+                metrics.MemoryUsageBytes / (1024.0 * 1024.0));
+            
+            Log.Information("Protocol Message Stats - Out: {OutMessages}, In: {InMessages}, " +
+                           "Batch: {BatchMessages}, Encrypt: {EncryptOps}, Decrypt: {DecryptOps}, " +
+                           "Ratchets: {RatchetRotations}, CB Trips: {CBTrips}",
+                metrics.TotalOutboundMessages, metrics.TotalInboundMessages,
+                metrics.TotalBatchedMessages, metrics.TotalEncryptionOperations,
+                metrics.TotalDecryptionOperations, metrics.TotalRatchetRotations,
+                metrics.TotalCircuitBreakerTrips);
+        }
     }
 
     public void Reset()
@@ -237,7 +247,8 @@ public sealed class ProtocolMetricsCollector : IDisposable
 
             _uptimeStopwatch.Restart();
 
-            Console.WriteLine("[METRICS] Metrics reset");
+            if (Log.IsEnabled(LogEventLevel.Information))
+                Log.Information("Protocol metrics reset");
         }
     }
 
@@ -249,6 +260,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
         _metricsTimer?.Dispose();
         _uptimeStopwatch?.Stop();
 
-        Console.WriteLine("[METRICS] Collector disposed");
+        if (Log.IsEnabled(LogEventLevel.Debug))
+            Log.Debug("Protocol metrics collector disposed");
     }
 }

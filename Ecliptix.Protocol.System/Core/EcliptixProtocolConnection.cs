@@ -8,6 +8,8 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Serilog;
+using Serilog.Events;
 using Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
@@ -378,14 +380,20 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
                 try
                 {
-                    Console.WriteLine($"[CLIENT] Deriving chain keys from root key: {Convert.ToHexString(initialRootKey[0..8])}... (Role: {(_isInitiator ? "Initiator" : "Responder")})");
-                    Console.WriteLine($"[CLIENT] InitialSenderChainInfo: {Convert.ToHexString(InitialSenderChainInfo)}, InitialReceiverChainInfo: {Convert.ToHexString(InitialReceiverChainInfo)}");
+                    if (Log.IsEnabled(LogEventLevel.Debug))
+                    {
+                        Log.Debug("Deriving chain keys from root key: {RootKeyPrefix} (Role: {Role})",
+                            Convert.ToHexString(initialRootKey[0..8]), _isInitiator ? "Initiator" : "Responder");
+                        Log.Debug("Chain info - Sender: {SenderChain}, Receiver: {ReceiverChain}",
+                            Convert.ToHexString(InitialSenderChainInfo)[..16],
+                            Convert.ToHexString(InitialReceiverChainInfo)[..16]);
+                    }
 
                     Span<byte> sendSpan = stackalloc byte[Constants.X25519KeySize];
                     Span<byte> recvSpan = stackalloc byte[Constants.X25519KeySize];
 
                     HKDF.DeriveKey(
-                        global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                        HashAlgorithmName.SHA256,
                         ikm: initialRootKey,
                         output: sendSpan,
                         salt: null,
@@ -393,28 +401,40 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     );
 
                     HKDF.DeriveKey(
-                        global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                        HashAlgorithmName.SHA256,
                         ikm: initialRootKey,
                         output: recvSpan,
                         salt: null,
                         info: InitialReceiverChainInfo
                     );
 
-                    Console.WriteLine($"[CLIENT] Raw derived chains - Send: {Convert.ToHexString(sendSpan[0..8])}..., Recv: {Convert.ToHexString(recvSpan[0..8])}...");
+                    if (Log.IsEnabled(LogEventLevel.Debug))
+                        Log.Debug("Raw derived chains - Send: {SendChain}, Recv: {RecvChain}",
+                            Convert.ToHexString(sendSpan[0..8]), Convert.ToHexString(recvSpan[0..8]));
 
                     if (_isInitiator)
                     {
                         senderChainKey = sendSpan.ToArray();
                         receiverChainKey = recvSpan.ToArray();
-                        Console.WriteLine($"[CLIENT] Chain Key Assignment (Initiator): Sender=Send({Convert.ToHexString(sendSpan[0..8])}...), Receiver=Recv({Convert.ToHexString(recvSpan[0..8])}...)");
-                        Console.WriteLine($"[CLIENT] Final Assignment: senderChainKey={Convert.ToHexString(senderChainKey[0..8])}..., receiverChainKey={Convert.ToHexString(receiverChainKey[0..8])}...");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                        {
+                            Log.Debug("Chain Key Assignment (Initiator): Sender=Send({SendPrefix}), Receiver=Recv({RecvPrefix})",
+                                Convert.ToHexString(sendSpan[0..8]), Convert.ToHexString(recvSpan[0..8]));
+                            Log.Debug("Final Assignment: senderChainKey={SenderKey}, receiverChainKey={ReceiverKey}",
+                                Convert.ToHexString(senderChainKey[0..8]), Convert.ToHexString(receiverChainKey[0..8]));
+                        }
                     }
                     else
                     {
                         senderChainKey = recvSpan.ToArray();
                         receiverChainKey = sendSpan.ToArray();
-                        Console.WriteLine($"[CLIENT] Chain Key Assignment (Responder): Sender=Recv({Convert.ToHexString(recvSpan[0..8])}...), Receiver=Send({Convert.ToHexString(sendSpan[0..8])}...)");
-                        Console.WriteLine($"[CLIENT] Final Assignment: senderChainKey={Convert.ToHexString(senderChainKey[0..8])}..., receiverChainKey={Convert.ToHexString(receiverChainKey[0..8])}...");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                        {
+                            Log.Debug("Chain Key Assignment (Responder): Sender=Recv({RecvPrefix}), Receiver=Send({SendPrefix})",
+                                Convert.ToHexString(recvSpan[0..8]), Convert.ToHexString(sendSpan[0..8]));
+                            Log.Debug("Final Assignment: senderChainKey={SenderKey}, receiverChainKey={ReceiverKey}",
+                                Convert.ToHexString(senderChainKey[0..8]), Convert.ToHexString(receiverChainKey[0..8]));
+                        }
                     }
                 }
                 catch (Exception ex)
