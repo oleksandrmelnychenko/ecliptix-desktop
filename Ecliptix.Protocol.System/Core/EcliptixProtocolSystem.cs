@@ -289,7 +289,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         Console.WriteLine($"[CLIENT-DEBUG] ProduceSingleMessage - IsInitiator: {debugIsInitiator}");
 
         // Also write to file so we can definitely find it
-        string debugPath = "/tmp/ecliptix_client_debug.log";
+        string debugPath = Path.Combine(Path.GetTempPath(), "ecliptix_client_debug.log");
         string debugMsg = $"[{DateTime.UtcNow:HH:mm:ss.fff}] CLIENT IsInitiator: {debugIsInitiator}\n";
         File.AppendAllText(debugPath, debugMsg);
 
