@@ -36,18 +36,46 @@ public sealed class SecureMemoryBuffer : IDisposable
         _requestedSize = requestedSize;
     }
 
+    /// <summary>
+    /// WARNING: This method creates a temporary array that cannot be securely cleared.
+    /// Use Read(Span<byte> destination) instead for secure operations.
+    /// This method is maintained for compatibility but should be avoided for sensitive data.
+    /// </summary>
     public Span<byte> GetSpan()
     {
         if (!_disposed)
         {
-            byte[] tempBuffer = new byte[AllocatedSize];
-            Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer);
-            return readResult.IsErr
-                ? throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}")
-                : tempBuffer.AsSpan(0, Length);
+            using var tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
+            Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
+            if (readResult.IsErr)
+                throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
+            
+            byte[] result = new byte[Length];
+            tempBuffer.AsSpan()[..Length].CopyTo(result);
+            return result.AsSpan(0, Length);
         }
 
         throw new ObjectDisposedException(nameof(SecureMemoryBuffer));
+    }
+
+    /// <summary>
+    /// Safely read secure memory into a provided span without creating temporary arrays.
+    /// </summary>
+    public Result<int, SodiumFailure> ReadInto(Span<byte> destination)
+    {
+        if (_disposed)
+            return Result<int, SodiumFailure>.Err(
+                SodiumFailure.NullPointer("Buffer is disposed"));
+
+        int bytesToRead = Math.Min(destination.Length, Length);
+        using var tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
+        
+        Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
+        if (readResult.IsErr)
+            return Result<int, SodiumFailure>.Err(readResult.UnwrapErr());
+
+        tempBuffer.AsSpan()[..bytesToRead].CopyTo(destination);
+        return Result<int, SodiumFailure>.Ok(bytesToRead);
     }
 
     public Result<Unit, SodiumFailure> Read(Span<byte> destination)

@@ -102,7 +102,7 @@ public class OpaqueAuthenticationService(
             Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
                 clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
 
-            // Clean up export key (can be used for future application encryption needs)
+            
             CryptographicOperations.ZeroMemory(exportKey);
 
             return finalResult;

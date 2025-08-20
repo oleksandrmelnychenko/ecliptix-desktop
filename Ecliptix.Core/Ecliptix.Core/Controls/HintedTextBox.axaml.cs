@@ -324,6 +324,54 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         UpdateRemainingCharacters();
     }
 
+    /// <summary>
+    /// Securely clears all text data and resets the control state
+    /// </summary>
+    public void ClearSecurely()
+    {
+        if (_isDisposed) return;
+
+        try
+        {
+            // Clear main text
+            Text = string.Empty;
+            
+            // Clear shadow text for secure key mode
+            _shadowText = string.Empty;
+            
+            // Clear main textbox
+            if (_mainTextBox != null)
+            {
+                _mainTextBox.Text = string.Empty;
+                _mainTextBox.CaretIndex = 0;
+            }
+            
+            // Clear secure key mask overlay
+            if (_secureKeyMaskOverlay != null)
+            {
+                _secureKeyMaskOverlay.Text = string.Empty;
+            }
+            
+            // Reset position tracking
+            _nextCaretPosition = 0;
+            
+            // Clear error state
+            ErrorText = string.Empty;
+            HasError = false;
+            
+            // Update remaining characters
+            UpdateRemainingCharacters();
+            
+            // Force garbage collection to clear any string references
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        catch (Exception)
+        {
+            // Ignore errors during cleanup - we want to clear as much as possible
+        }
+    }
+
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (_isControlInitialized || _isDisposed) return;
@@ -478,7 +526,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         if (IsPasswordStrengthMode)
         {
-            // Password strength mode - use strength-based colors
+            
             (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(PasswordStrength);
             
             _focusBorder.BorderBrush = new SolidColorBrush(borderColor);
@@ -486,7 +534,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
             _shadowBorder.BoxShadow = (BoxShadows)this.FindResource(shadowKey);
             
-            // Update strength colors
+            
             PasswordStrengthIconBrush = new SolidColorBrush(iconColor);
             PasswordStrengthTextBrush = new SolidColorBrush(iconColor);
         }

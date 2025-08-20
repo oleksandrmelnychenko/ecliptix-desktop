@@ -71,8 +71,6 @@ public sealed class BottomSheetEvents
 
     public IObservable<BottomSheetChangedEvent> BottomSheetChanged { get; }
     public IObservable<LanguageDetectionDialogEvent> LanguageDetectionRequested { get; }
-
-
     public void Invoke(LanguageDetectionDialogEvent languageDetectionEvent)
     {
         _aggregator.Publish(languageDetectionEvent);

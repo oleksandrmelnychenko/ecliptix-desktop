@@ -1,0 +1,113 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:splash="clr-namespace:Ecliptix.Core.Features.Splash.ViewModels"
+        xmlns:network="clr-namespace:Ecliptix.Core.AppEvents.Network"
+        xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
+        xmlns:converters="clr-namespace:Avalonia.Markup.Xaml.Converters;assembly=Avalonia.Markup.Xaml"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Ecliptix.Core.Features.Splash.Views.SplashWindow"
+        Title="Ecliptix"
+        x:DataType="splash:SplashWindowViewModel"
+        x:CompileBindings="True"
+        Width="300" Height="300"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+
+    <Window.Resources>
+        <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
+        <sharedConverters:EqualityConverter x:Key="EqualityConverter" />
+        <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurDefault" Color="#9966CC" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushContentConnected" Color="#F0FFF4" />
+        <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
+        <SolidColorBrush x:Key="BrushContentDisconnected" Color="#FFF0F0" />
+        <SolidColorBrush x:Key="BrushContentDefault" Color="#FAFAFA" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurDefault}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window.connected Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurConnected}" />
+        </Style>
+        <Style Selector="Window.connecting Border#BackgroundBlurBorder, Window.restore Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurConnecting}" />
+        </Style>
+        <Style Selector="Window.disconnected Border#BackgroundBlurBorder">
+            <Setter Property="Background" Value="{StaticResource BrushBlurDisconnected}" />
+        </Style>
+        <Style Selector="Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentDefault}" />
+            <Setter Property="BorderBrush" Value="#9966CC" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Window.connected Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentConnected}" />
+            <Setter Property="BorderBrush" Value="#28C940" />
+        </Style>
+        <Style Selector="Window.connecting Border#ContentBorder, Window.restore Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentConnecting}" />
+            <Setter Property="BorderBrush" Value="#FFBD2E" />
+        </Style>
+        <Style Selector="Window.disconnected Border#ContentBorder">
+            <Setter Property="Background" Value="{StaticResource BrushContentDisconnected}" />
+            <Setter Property="BorderBrush" Value="#FF5F57" />
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="22">
+            <Border.Effect>
+                <BlurEffect Radius="30" />
+            </Border.Effect>
+        </Border>
+
+        <Border Name="ContentBorder"
+                BorderThickness="1"
+                CornerRadius="22"
+                Padding="4"
+                Background="#3b3c40"
+                Margin="10">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" Opacity="0.8" OffsetX="0" OffsetY="0" Color="{Binding GlowColor}">
+                    <DropShadowEffect.Transitions>
+                        <Transitions>
+                            <ColorTransition Property="Color" Duration="0:0:0.3" />
+                        </Transitions>
+                    </DropShadowEffect.Transitions>
+                </DropShadowEffect>
+            </Border.Effect>
+
+            <Grid RowDefinitions="*, Auto">
+
+                <Svg Grid.Row="0"
+                     Path="../../../../Assets/ecliptix_logo.svg"
+                     VerticalAlignment="Center"
+                     Width="160"
+                     Height="160"
+                     ClipToBounds="True"
+                     HorizontalAlignment="Center"
+                      />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

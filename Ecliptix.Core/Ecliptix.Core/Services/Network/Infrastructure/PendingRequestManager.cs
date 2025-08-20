@@ -151,7 +151,7 @@ public class PendingRequestManager : IPendingRequestManager
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to retry request {RequestId} - keeping it pending for future retry attempts", requestId);
-            // Don't remove the request on failure - keep it pending for manual retry
+            
         }
         finally
         {
@@ -181,11 +181,11 @@ public class PendingRequestManager : IPendingRequestManager
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to retry typed request {RequestId} - keeping it pending for future retry attempts", requestId);
-            // Don't remove the request on failure - keep it pending for manual retry
+            
         }
         finally
         {
-            // Always clear retrying flag regardless of success/failure
+            
             _retryingRequests.TryRemove(requestId, out _);
         }
     }
@@ -209,7 +209,7 @@ public class PendingRequestManager : IPendingRequestManager
 
         _typedPendingRequests.Clear();
 
-        // Also clear retrying requests since all are cancelled
+        
         _retryingRequests.Clear();
 
         Interlocked.Exchange(ref _pendingCount, 0);

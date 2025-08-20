@@ -118,7 +118,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("NetworkProvider initialized");
     }
 
-    //TODO test logic if okay Vitalik 8 15 2025
+    
     private readonly Lock _appInstanceSetterLock = new();
 
     public void SetCountry(string country)
@@ -130,7 +130,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    // TODO test logic if okay Vitalik 8 15 2025
+    
 
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
@@ -1104,7 +1104,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _outageRecoveredTcs = CreateOutageTcs();
         }
 
-        // Update system state to Recovering
+        
         _currentSystemState = SystemState.Recovering;
 
         Log.Warning("Server appears unavailable/shutdown (ConnectId: {ConnectId}). Entering recovery mode: {Reason}",
@@ -1135,7 +1135,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _outageRecoveredTcs.TrySetResult(true);
         }
 
-        // Update system state to Running
+        
         _currentSystemState = SystemState.Running;
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1161,7 +1161,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 attempt++;
 
-                // Stop recovery loop if retry strategy has exhausted operations - manual retry required
+                
                 if (_retryStrategy.HasExhaustedOperations())
                 {
                     Log.Information("🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
@@ -1203,7 +1203,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Log.Error(ex, "Error in server shutdown recovery loop");
 
-            // Ensure we still show the retry button if recovery fails due to exhaustion
+            
             if (_retryStrategy.HasExhaustedOperations())
             {
                 try
@@ -1763,10 +1763,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         Log.Information("Manual retry requested. Forcing immediate fresh protocol establishment");
 
-        // Clear exhausted operations to allow fresh retry
+        
         _retryStrategy.ClearExhaustedOperations();
 
-        // First attempt: Try immediate RestoreSecrecyChannel without retry strategy delays
+        
         Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic();
 
         if (immediateResult.IsOk)
@@ -1777,8 +1777,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Log.Information("🔄 MANUAL RETRY: Immediate attempt failed, falling back to advanced recovery logic");
 
-        // Fallback: Use the full recovery logic with retry strategy
-        // Since we cleared exhausted operations, this should now proceed
+        
+        
         Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync();
 
         return result;
@@ -1807,7 +1807,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 byte[] stateBytes = stateResult.Unwrap();
                 EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
 
-                // Use manual retry method to bypass exhaustion checks  
+                
                 Result<bool, NetworkFailure> restoreResult =
                     await RestoreSecrecyChannelForManualRetryAsync(state, _applicationInstanceSettings.Value!);
                 restorationSucceeded = restoreResult.IsOk && restoreResult.Unwrap();
@@ -1868,7 +1868,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-        // Use manual retry strategy to bypass exhaustion checks
+        
         Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
             await _retryStrategy.ExecuteManualRetryOperationAsync(
                 () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
@@ -1922,7 +1922,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             byte[] stateBytes = stateResult.Unwrap();
             EcliptixSecrecyChannelState state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
 
-            // Call RestoreSecrecyChannelAsync directly without retry strategy
+            
             Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelDirectAsync(state, _applicationInstanceSettings.Value!);
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
@@ -1966,7 +1966,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
-            // Call RPC service directly without retry strategy
+            
             Result<RestoreSecrecyChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
                 await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, serviceRequest);
 

@@ -203,7 +203,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
         catch (Exception)
         {
-            // ignored
+            
         }
     }
 

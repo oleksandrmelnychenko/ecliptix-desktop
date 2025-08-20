@@ -15,9 +15,9 @@ namespace Ecliptix.Protocol.System.Core;
 public sealed class EcliptixProtocolConnection : IDisposable
 {
     private static readonly TimeSpan SessionTimeout = TimeSpan.FromHours(24);
-    private static readonly byte[] InitialSenderChainInfo = "ShieldInitSend"u8.ToArray();
-    private static readonly byte[] InitialReceiverChainInfo = "ShieldInitRecv"u8.ToArray();
-    private static readonly byte[] DhRatchetInfo = "ShieldDhRatchet"u8.ToArray();
+    private static ReadOnlySpan<byte> InitialSenderChainInfo => "ShieldInitSend"u8;
+    private static ReadOnlySpan<byte> InitialReceiverChainInfo => "ShieldInitRecv"u8;
+    private static ReadOnlySpan<byte> DhRatchetInfo => "ShieldDhRatchet"u8;
 
     private readonly Lock _lock = new();
     private readonly ReplayProtection _replayProtection = new();
@@ -28,7 +28,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
     private readonly DateTimeOffset _createdAt;
     private readonly uint _id;
     private DateTime _lastRatchetTime = DateTime.UtcNow;
-    private readonly bool _isFirstReceivingRatchet;
+    private bool _isFirstReceivingRatchet;
     private readonly bool _isInitiator;
     private readonly EcliptixProtocolChainStep _sendingStep;
     private SodiumSecureMemoryHandle? _currentSendingDhPrivateKeyHandle;
@@ -312,6 +312,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 EcliptixProtocolFailure.Generic("Peer bundle has not been set."));
         }
     }
+    
+    public bool IsInitiator()
+    {
+        return _isInitiator;
+    }
 
     internal Result<Unit, EcliptixProtocolFailure> SetPeerBundle(PublicKeyBundle peerBundle)
     {
@@ -373,13 +378,16 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
                 try
                 {
-                    byte[] sendKeyBytes = new byte[Constants.X25519KeySize];
-                    byte[] recvKeyBytes = new byte[Constants.X25519KeySize];
+                    Console.WriteLine($"[CLIENT] Deriving chain keys from root key: {Convert.ToHexString(initialRootKey[0..8])}... (Role: {(_isInitiator ? "Initiator" : "Responder")})");
+                    Console.WriteLine($"[CLIENT] InitialSenderChainInfo: {Convert.ToHexString(InitialSenderChainInfo)}, InitialReceiverChainInfo: {Convert.ToHexString(InitialReceiverChainInfo)}");
+                    
+                    Span<byte> sendSpan = stackalloc byte[Constants.X25519KeySize];
+                    Span<byte> recvSpan = stackalloc byte[Constants.X25519KeySize];
 
                     HKDF.DeriveKey(
                         global::System.Security.Cryptography.HashAlgorithmName.SHA256,
                         ikm: initialRootKey,
-                        output: sendKeyBytes,
+                        output: sendSpan,
                         salt: null,
                         info: InitialSenderChainInfo
                     );
@@ -387,20 +395,26 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     HKDF.DeriveKey(
                         global::System.Security.Cryptography.HashAlgorithmName.SHA256,
                         ikm: initialRootKey,
-                        output: recvKeyBytes,
+                        output: recvSpan,
                         salt: null,
                         info: InitialReceiverChainInfo
                     );
 
+                    Console.WriteLine($"[CLIENT] Raw derived chains - Send: {Convert.ToHexString(sendSpan[0..8])}..., Recv: {Convert.ToHexString(recvSpan[0..8])}...");
+
                     if (_isInitiator)
                     {
-                        senderChainKey = sendKeyBytes;
-                        receiverChainKey = recvKeyBytes;
+                        senderChainKey = sendSpan.ToArray();
+                        receiverChainKey = recvSpan.ToArray();
+                        Console.WriteLine($"[CLIENT] Chain Key Assignment (Initiator): Sender=Send({Convert.ToHexString(sendSpan[0..8])}...), Receiver=Recv({Convert.ToHexString(recvSpan[0..8])}...)");
+                        Console.WriteLine($"[CLIENT] Final Assignment: senderChainKey={Convert.ToHexString(senderChainKey[0..8])}..., receiverChainKey={Convert.ToHexString(receiverChainKey[0..8])}...");
                     }
                     else
                     {
-                        senderChainKey = recvKeyBytes;
-                        receiverChainKey = sendKeyBytes;
+                        senderChainKey = recvSpan.ToArray();
+                        receiverChainKey = sendSpan.ToArray();
+                        Console.WriteLine($"[CLIENT] Chain Key Assignment (Responder): Sender=Recv({Convert.ToHexString(recvSpan[0..8])}...), Receiver=Send({Convert.ToHexString(sendSpan[0..8])}...)");
+                        Console.WriteLine($"[CLIENT] Final Assignment: senderChainKey={Convert.ToHexString(senderChainKey[0..8])}..., receiverChainKey={Convert.ToHexString(receiverChainKey[0..8])}...");
                     }
                 }
                 catch (Exception ex)
@@ -620,7 +634,31 @@ public sealed class EcliptixProtocolConnection : IDisposable
     {
         lock (_lock)
         {
-            return PerformDhRatchet(false, receivedDhKey);
+            Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
+            if (disposedCheck.IsErr)
+                return disposedCheck;
+
+            Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult = EnsureReceivingStepInitialized();
+            if (receivingStepResult.IsErr) 
+                return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
+
+            var receivingStep = receivingStepResult.Unwrap();
+            
+            var currentIndexResult = receivingStep.GetCurrentIndex();
+            if (currentIndexResult.IsErr) 
+                return Result<Unit, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
+
+            uint currentIndex = currentIndexResult.Unwrap();
+            bool shouldRatchetNow = _isFirstReceivingRatchet || 
+                _ratchetConfig.ShouldRatchet(currentIndex + 1, _lastRatchetTime, _receivedNewDhKey);
+            
+            if (shouldRatchetNow)
+            {
+                _isFirstReceivingRatchet = false;
+                return PerformDhRatchet(isSender: false, receivedDhPublicKeyBytes: receivedDhKey);
+            }
+
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
     }
 
@@ -877,6 +915,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
+    }
+
+    public void NotifyRatchetRotation()
+    {
+        _replayProtection.OnRatchetRotation();
     }
 
     ~EcliptixProtocolConnection()

@@ -19,7 +19,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private const int TagSize = 16;
     private const int KeySize = 32;
     private const int Argon2Iterations = 4;
-    private const int Argon2MemorySize = 65536; // 64 MB
+    private const int Argon2MemorySize = 65536; 
     private const int Argon2Parallelism = 2;
     private const string MagicHeader = "ECLIPTIX_SECURE_V1";
     private const int CurrentVersion = 1;
@@ -90,6 +90,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Save failed: {ex.Message}"));
         }
+    }
+
+    public Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(ReadOnlySpan<byte> protocolState, string connectId)
+    {
+        return SaveStateAsync(protocolState.ToArray(), connectId);
     }
 
     public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId)
@@ -202,6 +207,17 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private static (byte[] ciphertext, byte[] tag) EncryptState(
         byte[] plaintext, byte[] key, byte[] nonce, byte[] associatedData)
+    {
+        using AesGcm aesGcm = new(key, TagSize);
+        byte[] ciphertext = new byte[plaintext.Length];
+        byte[] tag = new byte[TagSize];
+
+        aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
+        return (ciphertext, tag);
+    }
+
+    private static (byte[] ciphertext, byte[] tag) EncryptStateFromSpan(
+        ReadOnlySpan<byte> plaintext, byte[] key, byte[] nonce, byte[] associatedData)
     {
         using AesGcm aesGcm = new(key, TagSize);
         byte[] ciphertext = new byte[plaintext.Length];

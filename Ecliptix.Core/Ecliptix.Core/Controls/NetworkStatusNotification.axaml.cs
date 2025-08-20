@@ -23,8 +23,6 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
     public static readonly StyledProperty<TimeSpan> DisappearDurationProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(DisappearDuration),
             TimeSpan.FromMilliseconds(250));
-
-
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
         AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(Background),
             new SolidColorBrush(Color.Parse("#2f2f2f")));
@@ -74,8 +72,6 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         get => GetValue(DisappearDurationProperty);
         set => SetValue(DisappearDurationProperty, value);
     }
-
-
     public NetworkStatusNotification()
     {
         InitializeComponent();

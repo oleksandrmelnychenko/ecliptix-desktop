@@ -3,14 +3,17 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Microsoft.Extensions.DependencyInjection;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.ViewModels.Memberships;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Core.Features.Authentication.Views.Hosts;
+using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Views.Core;
-using Ecliptix.Core.Views.Memberships;
-using Ecliptix.Core.Views.Memberships.Components.Splash;
+using Ecliptix.Core.Features.Splash.Views;
 using Splat;
+using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core;
 
@@ -18,7 +21,8 @@ public class ApplicationStartup
 {
     private readonly IClassicDesktopStyleApplicationLifetime _desktop;
     private readonly IApplicationInitializer _initializer;
-    private readonly SplashWindowViewModel _splashViewModel;
+    private readonly IModuleManager _moduleManager;
+    private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
 
     private const string RootContentName = "MainContentGrid";
@@ -27,12 +31,14 @@ public class ApplicationStartup
     {
         _desktop = desktop;
         _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
-        _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
-        _splashScreen = new SplashWindow { DataContext = _splashViewModel };
+        _moduleManager = Locator.Current.GetService<IModuleManager>()!;
     }
 
     public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
+        _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
+        _splashScreen = new SplashWindow { DataContext = _splashViewModel };
+        
         _desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
@@ -41,6 +47,7 @@ public class ApplicationStartup
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
         {
+            await LoadAuthenticationModuleAsync();
             await TransitionToNextWindowAsync();
         }
         else
@@ -48,6 +55,11 @@ public class ApplicationStartup
             await _splashViewModel.PrepareForShutdownAsync();
             _desktop.Shutdown();
         }
+    }
+
+    private async Task LoadAuthenticationModuleAsync()
+    {
+        await _moduleManager.LoadModuleAsync("Authentication");
     }
 
     private async Task TransitionToNextWindowAsync()

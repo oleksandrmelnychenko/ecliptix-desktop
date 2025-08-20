@@ -47,7 +47,7 @@ public static class IconService
         else if (OperatingSystem.IsMacOS())
             return new Uri("avares://Ecliptix.Core/Assets/EcliptixLogo.icns");
         else if (OperatingSystem.IsLinux())
-            return new Uri("avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png");
+            return new Uri("avares://Ecliptix.Core/Assets/EcliptixLogo.png");
 
         return null;
     }

@@ -1,8 +1,11 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Views;
+using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.MVVM;
 using ReactiveUI;
 using Splat;
 
@@ -17,7 +20,8 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        Locator.CurrentMutable.Register(() => new AppViewLocator(), typeof(IViewLocator));
+        _ = InitializeModulesAsync();
+
         DefaultSystemSettings defaultSystemSettings = Locator.Current.GetService<DefaultSystemSettings>()!;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -26,5 +30,11 @@ public class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task InitializeModulesAsync()
+    {
+        IModuleManager moduleManager = Locator.Current.GetService<IModuleManager>()!;
+        await moduleManager.LoadEagerModulesAsync();
     }
 }

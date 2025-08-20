@@ -9,7 +9,7 @@ public record InternetConnectivityObserverOptions
 
     public IReadOnlyList<string> ProbeUrls { get; init; } = [
         "https://www.google.com/generate_204",
-        "http://www.msftconnecttest.com/connecttest.txt"
+        "http://www.gstatic.com/generate_204"
     ];
 
     public TimeSpan PollingInterval { get; init; } = TimeSpan.FromSeconds(5);

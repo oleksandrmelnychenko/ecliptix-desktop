@@ -1,0 +1,192 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Ecliptix.Core.Core.Abstractions;
+
+namespace Ecliptix.Core.Core.Modularity;
+public class ModuleResourceManager : BackgroundService
+{
+    private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<ModuleResourceManager> _logger;
+    
+    private readonly Timer _resourceMonitorTimer;
+    private const int MonitorIntervalMs = 30000; 
+
+    public ModuleResourceManager(IServiceProvider serviceProvider, ILogger<ModuleResourceManager> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+        
+        _resourceMonitorTimer = new Timer(MonitorResources, null, MonitorIntervalMs, MonitorIntervalMs);
+    }
+
+    
+    
+    
+    public IModuleScope CreateModuleScope(string moduleName, IModuleResourceConstraints constraints, Action<IServiceCollection>? configureServices = null)
+    {
+        if (string.IsNullOrWhiteSpace(moduleName))
+            throw new ArgumentException("Module name cannot be null or empty", nameof(moduleName));
+
+        IServiceScope serviceScope;
+        
+        if (configureServices != null)
+        {
+            // Create a child scope from main provider for fallback
+            IServiceScope parentScope = _serviceProvider.CreateScope();
+            
+            // Create a new service collection for module-specific services only
+            ServiceCollection moduleServices = new();
+            
+            // Add module-specific services
+            configureServices(moduleServices);
+            
+            // Build module service provider
+            ServiceProvider moduleServiceProvider = moduleServices.BuildServiceProvider();
+            
+            // Create a composite service scope that tries module services first, then main services
+            serviceScope = new CompositeServiceScope(moduleServiceProvider.CreateScope(), parentScope);
+        }
+        else
+        {
+            // Fallback to original behavior
+            serviceScope = _serviceProvider.CreateScope();
+        }
+        
+        
+        ILogger moduleLogger = serviceScope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger($"Module.{moduleName}");
+
+        ModuleScope moduleScope = new(moduleName, serviceScope, constraints, moduleLogger);
+        
+        _moduleScopes.TryAdd(moduleName, moduleScope);
+        
+        _logger.LogInformation("Created module scope for {ModuleName} with constraints: MaxMemory={MaxMemoryMB}MB, MaxThreads={MaxThreads}",
+            moduleName, constraints.MaxMemoryMB, constraints.MaxThreads);
+
+        return moduleScope;
+    }
+
+    
+    
+    
+    public bool RemoveModuleScope(string moduleName)
+    {
+        if (_moduleScopes.TryRemove(moduleName, out IModuleScope? scope))
+        {
+            scope.Dispose();
+            _logger.LogInformation("Removed module scope for {ModuleName}", moduleName);
+            return true;
+        }
+
+        return false;
+    }
+
+    
+    
+    
+    public IModuleScope? GetModuleScope(string moduleName)
+    {
+        return _moduleScopes.TryGetValue(moduleName, out IModuleScope? scope) ? scope : null;
+    }
+
+    
+    
+    
+    public void ValidateAllModuleResources()
+    {
+        foreach (IModuleScope scope in _moduleScopes.Values)
+        {
+            try
+            {
+                if (!scope.ValidateResourceUsage())
+                {
+                    _logger.LogWarning("Module {ModuleName} violates resource constraints", scope.ModuleName);
+                    
+                    
+                    
+                    
+                    
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating resources for module {ModuleName}", scope.ModuleName);
+            }
+        }
+    }
+
+    
+    
+    
+    public ModuleResourceSummary GetResourceSummary()
+    {
+        var moduleUsages = _moduleScopes.Values
+            .Select(scope => new { scope.ModuleName, Usage = scope.GetResourceUsage() })
+            .ToList();
+
+        return new ModuleResourceSummary
+        {
+            TotalModules = _moduleScopes.Count,
+            TotalMemoryMB = moduleUsages.Sum(m => m.Usage.MemoryUsageMB),
+            TotalThreads = moduleUsages.Sum(m => m.Usage.ActiveThreads),
+            ModuleUsages = moduleUsages.ToDictionary(m => m.ModuleName, m => m.Usage)
+        };
+    }
+
+    private void MonitorResources(object? state)
+    {
+        try
+        {
+            ValidateAllModuleResources();
+            
+            
+            ModuleResourceSummary summary = GetResourceSummary();
+            _logger.LogDebug("Resource Summary - Modules: {ModuleCount}, Total Memory: {TotalMemoryMB}MB, Total Threads: {TotalThreads}",
+                summary.TotalModules, summary.TotalMemoryMB, summary.TotalThreads);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during resource monitoring");
+        }
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Module Resource Manager started");
+        
+        
+        return Task.CompletedTask;
+    }
+
+    public override void Dispose()
+    {
+        _resourceMonitorTimer?.Dispose();
+        
+        
+        foreach (IModuleScope scope in _moduleScopes.Values)
+        {
+            scope.Dispose();
+        }
+        
+        _moduleScopes.Clear();
+        
+        base.Dispose();
+    }
+}
+public record ModuleResourceSummary
+{
+    public int TotalModules { get; init; }
+    public long TotalMemoryMB { get; init; }
+    public int TotalThreads { get; init; }
+    public Dictionary<string, ModuleResourceUsage> ModuleUsages { get; init; } = new();
+}

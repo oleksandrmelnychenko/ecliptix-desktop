@@ -34,7 +34,6 @@ public class ApplicationInitializer(
     IIpGeolocationService ipGeolocationService)
     : IApplicationInitializer
 {
-
     public bool IsMembershipConfirmed { get; } = false;
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
@@ -72,7 +71,7 @@ public class ApplicationInitializer(
 
                     if (countryResult.IsOk)
                     {
-                        //TODO test logic Vitalik 8 15 2025 
+                        
                         networkProvider.SetCountry(countryResult.Unwrap().Country);
                         await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
                     }
@@ -83,8 +82,6 @@ public class ApplicationInitializer(
                 }
             });
         }
-
-
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
         if (connectIdResult.IsErr)
@@ -107,8 +104,6 @@ public class ApplicationInitializer(
         systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
         return true;
     }
-
-
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
@@ -119,7 +114,7 @@ public class ApplicationInitializer(
         {
             try
             {
-                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+                //await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
 
                 Result<byte[], SecureStorageFailure> loadResult =
                     await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
@@ -173,10 +168,9 @@ public class ApplicationInitializer(
 
         try
         {
-            Result<Unit, SecureStorageFailure> saveResult = await secureProtocolStateStorage.SaveStateAsync(
-                SecureByteStringInterop.WithByteStringAsSpan(secrecyChannelState.ToByteString(),
-                    span => span.ToArray()),
-                connectId.ToString());
+            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
+                secrecyChannelState.ToByteString(),
+                span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
 
             if (saveResult.IsOk)
             {

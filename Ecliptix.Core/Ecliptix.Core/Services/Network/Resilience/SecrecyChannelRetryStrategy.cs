@@ -208,8 +208,6 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 NetworkFailure.DataCenterNotResponding($"Unexpected error: {ex.Message}"));
         }
     }
-
-
     public void ResetConnectionState(uint? connectId = null)
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));

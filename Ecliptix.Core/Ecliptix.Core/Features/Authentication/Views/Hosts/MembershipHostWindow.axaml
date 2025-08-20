@@ -1,0 +1,430 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:signIn="clr-namespace:Ecliptix.Core.Features.Authentication.Views.SignIn"
+        xmlns:welcome="clr-namespace:Ecliptix.Core.Features.Authentication.Views.Welcome"
+        xmlns:reactiveUi="http://reactiveui.net"
+        xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
+        xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
+        xmlns:system="clr-namespace:System;assembly=System.Runtime"
+        xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+        xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
+        xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
+        xmlns:vm11="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.SignIn"
+        xmlns:vmWelcome="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
+        xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
+        mc:Ignorable="d"
+        d:DesignWidth="480"
+        d:DesignHeight="680"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="False"
+        x:DataType="memberships1:MembershipHostWindowModel"
+        Width="480"
+        Height="720"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Background="Transparent"
+        Title=""
+        Icon="avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png"
+        TransparencyLevelHint="Transparent"
+        x:Class="Ecliptix.Core.Features.Authentication.Views.Hosts.MembershipHostWindow">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <sharedConverters:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"
+                                               TrueOpacity="1.0"
+                                               FalseOpacity="0" />
+
+        <!-- Layout Dimensions -->
+        <x:Double x:Key="BackButtonSize">48</x:Double>
+        <x:Double x:Key="LogoSize">100</x:Double>
+        <x:Double x:Key="ContentMaxWidth">320</x:Double>
+        <x:Double x:Key="FooterFontSize">11</x:Double>
+        <x:Double x:Key="FooterSpacing">4</x:Double>
+        <x:Double x:Key="FooterLinkSpacing">16</x:Double>
+        <x:Double x:Key="BackgroundBlurRadius">20</x:Double>
+        <x:Double x:Key="ShadowBlurRadius">12</x:Double>
+        <x:Double x:Key="HeaderSpacing">12</x:Double>
+
+        <!-- Layout Values -->
+        <CornerRadius x:Key="WindowBorderRadius">12</CornerRadius>
+        <Thickness x:Key="ContentPadding">20,0</Thickness>
+        <Thickness x:Key="HeaderPadding">0,12,0,0</Thickness>
+        <Thickness x:Key="FooterMargin">12,0,12,16</Thickness>
+
+        <!-- Window Colors -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
+        <SolidColorBrush x:Key="WindowBorderBrush">#B084CC</SolidColorBrush>
+        <SolidColorBrush x:Key="BlurBackgroundBrush">#AA9966CC</SolidColorBrush>
+        <Color x:Key="ShadowColor">#6a5acd</Color>
+
+
+        <!-- Footer Colors -->
+        <Color x:Key="FooterTextColor">#808080</Color>
+        <Color x:Key="FooterLinkColor">#6a5acd</Color>
+        <Color x:Key="FooterLinkHoverColor">#553c9a</Color>
+        
+        <!-- Version Colors -->
+        <Color x:Key="VersionTextColor">#999999</Color>
+
+        <!-- Animation Durations -->
+        <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Back Button -->
+        <Style Selector="Button.back-button">
+            <Setter Property="Width" Value="{StaticResource BackButtonSize}" />
+            <Setter Property="Height" Value="{StaticResource BackButtonSize}" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.3" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.back-button:pointerover">
+            <Setter Property="Background" Value="#E4E3E3" />
+            <Setter Property="RenderTransform" Value="scale(1.05)" />
+        </Style>
+
+        <Style Selector="Button.back-button:pressed">
+            <Setter Property="Background" Value="#D1D0D0" />
+            <Setter Property="RenderTransform" Value="scale(0.95)" />
+        </Style>
+
+        <!-- Footer Styles -->
+        <Style Selector="TextBlock.footer-text">
+            <Setter Property="FontSize" Value="{StaticResource FooterFontSize}" />
+            <Setter Property="Foreground" Value="{StaticResource FooterTextColor}" />
+            <Setter Property="LineHeight" Value="16"></Setter>
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.footer-link">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="{StaticResource FooterFontSize}" />
+            <Setter Property="Foreground" Value="{StaticResource FooterLinkColor}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Foreground" Duration="{StaticResource LinkTransitionDuration}" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.footer-link:pointerover">
+            <Setter Property="Foreground" Value="{StaticResource FooterLinkHoverColor}" />
+        </Style>
+
+        <Style Selector="StackPanel.footer-section">
+            <Setter Property="Spacing" Value="{StaticResource FooterSpacing}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="{StaticResource FooterMargin}" />
+        </Style>
+
+        <!-- Version Display Styles -->
+        <Style Selector="TextBlock.version-info">
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="Foreground" Value="{StaticResource VersionTextColor}" />
+            <Setter Property="Opacity" Value="0.8" />
+            <Setter Property="FontFamily" Value="Consolas, Monaco, 'Courier New', monospace" />
+        </Style>
+
+        <!-- Window Frame Styles -->
+        <Style Selector="Border.animated-background">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.4" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.main-border">
+            <Setter Property="Background" Value="{StaticResource WindowBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource WindowBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource WindowBorderRadius}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Traffic Light Buttons -->
+        <Style Selector="Button.traffic-light">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="PART_BackgroundBorder"
+                            Background="{TemplateBinding Background}"
+                            Width="{TemplateBinding Width}"
+                            Height="{TemplateBinding Height}"
+                            CornerRadius="{TemplateBinding CornerRadius}" />
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <!-- Close Button -->
+        <Style Selector="Button.traffic-light.close">
+            <Setter Property="Background" Value="#FF5F57" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pointerover">
+            <Setter Property="Background" Value="#E0443E" />
+        </Style>
+        <Style Selector="Button.traffic-light.close:pressed">
+            <Setter Property="Background" Value="#C13934" />
+        </Style>
+
+        <!-- Minimize Button -->
+        <Style Selector="Button.traffic-light.minimize">
+            <Setter Property="Background" Value="#FFBD2E" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pointerover">
+            <Setter Property="Background" Value="#E0A72A" />
+        </Style>
+        <Style Selector="Button.traffic-light.minimize:pressed">
+            <Setter Property="Background" Value="#C19124" />
+        </Style>
+
+        <!-- Maximize Button -->
+        <Style Selector="Button.traffic-light.maximize">
+            <Setter Property="Background" Value="#28C940" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pointerover">
+            <Setter Property="Background" Value="#23AF38" />
+        </Style>
+        <Style Selector="Button.traffic-light.maximize:pressed">
+            <Setter Property="Background" Value="#1E952F" />
+        </Style>
+    </Window.Styles>
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="{x:Type vmWelcome:WelcomeViewModel}">
+            <welcome:WelcomeView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm11:SignInViewModel}">
+            <signIn:SignInView />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <!-- Main Layout -->
+    <Grid x:Name="MainContentGrid" ClipToBounds="True">
+
+        <!-- Background Blur Effect -->
+        <Border Classes="animated-background"
+                Background="{StaticResource BlurBackgroundBrush}"
+                CornerRadius="{StaticResource WindowBorderRadius}"
+                Margin="12">
+            <Border.Effect>
+                <BlurEffect Radius="{StaticResource BackgroundBlurRadius}" />
+            </Border.Effect>
+        </Border>
+        
+        <comp:TitleBar
+            VerticalAlignment="Top"
+            ZIndex="5"
+            DisableMinimizeButton="False"
+            DisableCloseButton="False"
+            Margin="8" />
+        
+        <Grid 
+            x:Name="GeneralConrolsGrid"
+            ZIndex="10">
+            <!-- Title Bar -->
+            
+            <!-- Back Navigation Button -->
+            <Button HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Command="{Binding Router.NavigateBack}"
+                    Margin="24,64,0,0"
+                    ZIndex="2"
+                    Classes="back-button"
+                    Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+
+                <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
+                       Stretch="Uniform"
+                       Width="18"
+                       Height="18" />
+            </Button>
+
+            <!-- Lazy-loaded Language Selector Container -->
+            <Border Name="LanguageSelectorContainer"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="16"
+                    ZIndex="12"
+                    Background="Transparent" />
+
+            <controls:NetworkStatusNotification
+                x:Name="NetworkNotification"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,50,0,0"
+                FontSize="12"
+                Width="320"
+                Height="70"
+                ZIndex="1001"
+                DataContext="{Binding NetworkStatusNotification}" />
+
+        </Grid>
+        
+        <Border
+            Margin="8"
+            CornerRadius="12"
+            ClipToBounds="True"
+            ZIndex="15"
+            x:Name="BottomSheetContainer">
+            <bottomSheetModal:BottomSheetControl
+                x:Name="BottomSheetControl"
+                ZIndex="111"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                MinHeight="200"
+                MaxHeight="600"
+                DismissableScrimColor="DarkGray"
+                UnDismissableScrimColor="Black"
+                IsDismissableOnScrimClick="True"
+            />
+        </Border>
+      
+        
+        <!-- Main Content Border -->
+        <Border Classes="main-border"
+                Margin="8"
+                x:Name="MainBorder">
+
+            <Border.Effect>
+                <DropShadowEffect Color="{StaticResource ShadowColor}"
+                                  BlurRadius="{StaticResource ShadowBlurRadius}"
+                                  Opacity="0.4"
+                                  OffsetX="0"
+                                  OffsetY="2" />
+            </Border.Effect>
+
+            <!-- Main Content Grid -->
+            <Grid RowDefinitions="Auto,*,Auto"
+                  RowSpacing="{StaticResource HeaderSpacing}"
+                  ClipToBounds="True">
+
+                <!-- TODO testing margin because of moved titlebar ?-->
+                <!-- Logo Section -->
+                <Border Grid.Row="0"
+                        HorizontalAlignment="Center"
+                        Padding="{StaticResource HeaderPadding}"
+                        Margin="0 63 0 0">
+                    <Svg Path="../../../Assets/ecliptix_logo.svg"
+                         Width="{StaticResource LogoSize}"
+                         Height="{StaticResource LogoSize}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Top" />
+                </Border>
+
+                <!-- Content Area -->
+                <Border Grid.Row="1"
+                        Padding="{StaticResource ContentPadding}">
+                    <reactiveUi:RoutedViewHost Router="{Binding Router}"
+                                               Background="Transparent"
+                                               Width="{StaticResource ContentMaxWidth}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Stretch"
+                                               ClipToBounds="False">
+                        <reactiveUi:RoutedViewHost.DefaultContent>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8">
+                                <TextBlock Text=""
+                                           HorizontalAlignment="Center"
+                                           FontSize="13"
+                                           Opacity="0.6" />
+                            </StackPanel>
+                        </reactiveUi:RoutedViewHost.DefaultContent>
+                    </reactiveUi:RoutedViewHost>
+                </Border>
+
+                <!-- Footer Section -->
+                <StackPanel Grid.Row="2"
+                            Classes="footer-section">
+
+                    <!-- Legal Links -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="{StaticResource FooterLinkSpacing}">
+
+                        <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                                Command="{Binding OpenPrivacyPolicyCommand}"
+                                Classes="footer-link" />
+
+                        <TextBlock Text="•"
+                                   Classes="footer-text"
+                                   VerticalAlignment="Center" />
+
+                        <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                                Command="{Binding OpenTermsOfServiceCommand}"
+                                Classes="footer-link" />
+
+                        <TextBlock Text="•"
+                                   Classes="footer-text"
+                                   VerticalAlignment="Center" />
+
+                        <Button Content="{Binding LocalizationService[Footer.Support]}"
+                                Command="{Binding OpenSupportCommand}"
+                                Classes="footer-link" />
+                    </StackPanel>
+
+                    <!-- Copyright Text -->
+                    <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
+                               Classes="footer-text"
+                               TextWrapping="Wrap"
+                               MaxWidth="280" />
+
+                    <Grid ColumnDefinitions="*">
+                        <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
+                                   Classes="version-info"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Bottom"
+                                   Grid.Column="0"
+                                   ZIndex="5"
+                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                        <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                                   Classes="footer-text"
+                                   Opacity="0.7" 
+                                   Grid.Column="0"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
+                                   Classes="version-info"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Bottom"
+                                   Grid.Column="0"
+                                   ZIndex="5"
+                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

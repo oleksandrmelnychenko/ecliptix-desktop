@@ -7,6 +7,7 @@ using System.Reactive.Concurrency;
 using System.Reflection;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
@@ -47,11 +48,20 @@ using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.ViewModels;
-using Ecliptix.Core.ViewModels.Authentication.Registration;
-using Ecliptix.Core.ViewModels.Memberships;
-using Ecliptix.Core.ViewModels.Memberships.SignIn;
-using Ecliptix.Core.ViewModels.Memberships.SignUp;
+using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Features.Splash.ViewModels;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Modularity;
+using Ecliptix.Core.Core.MVVM;
+using Ecliptix.Core.Core.Communication;
+using Ecliptix.Core.Features.Authentication;
+using Ecliptix.Core.Features.Main;
+// TODO: ViewModels moved to feature modules
+// using Ecliptix.Core.ViewModels.Authentication.Registration;
+// using Ecliptix.Core.ViewModels.Memberships;
+// using Ecliptix.Core.ViewModels.Memberships.SignIn;
+// using Ecliptix.Core.ViewModels.Memberships.SignUp;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -72,6 +82,16 @@ public static class Program
     [STAThread]
     public static async Task Main(string[] args)
     {
+        // Single instance check using Mutex - must be done first
+        string mutexName = $"EcliptixDesktop_{Environment.UserName}";
+        using Mutex mutex = new(true, mutexName, out bool createdNew);
+        
+        if (!createdNew)
+        {
+            Console.WriteLine("Another instance is already running.");
+            return;
+        }
+
         IConfiguration configuration = BuildConfiguration();
         Env.Load();
         Log.Logger = ConfigureSerilog(configuration);
@@ -80,6 +100,7 @@ public static class Program
         {
             Log.Information(ApplicationConstants.Logging.StartupMessage);
             IServiceCollection services = ConfigureServices(configuration);
+            
             services.UseMicrosoftDependencyResolver();
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
@@ -223,6 +244,9 @@ public static class Program
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
+        
+        services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
+        services.AddSingleton<IWindowActivationService, WindowActivationService>();
 
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
 
@@ -286,7 +310,7 @@ public static class Program
         services.AddSingleton<SecrecyChannelRetryInterceptor>();
 
         ConfigureGrpc(services);
-        ConfigureViewModels(services);
+        ConfigureModules(services);
 
         return services;
     }
@@ -326,20 +350,33 @@ public static class Program
         }
     }
 
-    private static void ConfigureViewModels(IServiceCollection services)
+    private static void ConfigureModules(IServiceCollection services)
     {
-        services.AddTransient<MembershipHostWindowModel>();
-        services.AddTransient<SignInViewModel>();
-        services.AddTransient<MobileVerificationViewModel>();
-        services.AddTransient<VerifyOtpViewModel>();
-        services.AddTransient<MainViewModel>();
-        services.AddTransient<PasswordConfirmationViewModel>();
-        services.AddTransient<PassPhaseViewModel>();
-        services.AddTransient<SplashWindowViewModel>();
-        services.AddTransient<WelcomeViewModel>();
+        services.AddSingleton<ModuleDependencyResolver>();
+        services.AddSingleton<ModuleResourceManager>();
+        services.AddHostedService<ModuleResourceManager>(provider => provider.GetRequiredService<ModuleResourceManager>());
+        services.AddSingleton<IViewLocator, ViewLocator>();
+        
+        services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
+        services.AddSingleton<IModuleSharedState, ModuleSharedState>();
+
+        ModuleCatalog catalog = new();
+        catalog.AddModule<AuthenticationModule>();
+        catalog.AddModule<MainModule>();
+        
+        services.AddSingleton<IModuleCatalog>(catalog);
+        services.AddSingleton(catalog);
+        
+        services.AddSingleton<IModuleManager, ModuleManager>();
+
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<NetworkStatusNotificationViewModel>();
+        
+        // Register module ViewModels in main container for dependency resolution
+        services.AddTransient<SplashWindowViewModel>();
+        services.AddTransient<MembershipHostWindowModel>();
+        services.AddTransient<MainViewModel>();
     }
 
     private static string ResolvePath(string path)

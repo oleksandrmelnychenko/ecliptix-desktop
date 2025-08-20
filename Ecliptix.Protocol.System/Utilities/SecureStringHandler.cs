@@ -159,6 +159,10 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
+    /// <summary>
+    /// WARNING: This method creates a regular string in memory which cannot be securely cleared.
+    /// Use UseBytes instead for secure operations. This method should be avoided for sensitive data.
+    /// </summary>
     public Result<T, SodiumFailure> UseString<T>(Func<string, T> operation)
     {
         return UseBytes(bytes =>
@@ -170,8 +174,18 @@ public sealed class SecureStringHandler : IDisposable
             }
             finally
             {
+                // Note: Cannot clear the string from memory - this is why this method is discouraged
             }
         });
+    }
+
+    /// <summary>
+    /// Validates data using secure bytes without creating strings in memory.
+    /// Use this for password validation and other security-critical operations.
+    /// </summary>
+    public Result<T, SodiumFailure> ValidateBytes<T>(Func<ReadOnlySpan<byte>, T> validationOperation)
+    {
+        return UseBytes(validationOperation);
     }
 
     public Result<bool, SodiumFailure> Equals(SecureStringHandler other)

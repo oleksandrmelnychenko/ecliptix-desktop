@@ -7,7 +7,7 @@ public static class LocalizationData
 {
     public static readonly FrozenDictionary<string, string> EnglishStrings = new Dictionary<string, string>
     {
-        // Authentication - SignUp
+        
         ["Authentication.SignUp.PhoneVerification.Title"] = "Create Account",
         ["Authentication.SignUp.PhoneVerification.Description"] = "Confirm your number. We'll text you a verification code.",
         ["Authentication.SignUp.PhoneVerification.Hint"] = "Include country code",
@@ -42,7 +42,7 @@ public static class LocalizationData
         ["Authentication.SignUp.PassPhase.Watermark"] = "••••",
         ["Authentication.SignUp.PassPhase.Button"] = "Confirm PIN",
 
-        // Authentication - SignIn
+        
         ["Authentication.SignIn.Title"] = "Sign In",
         ["Authentication.SignIn.Welcome"] = "Welcome back!",
         ["Authentication.SignIn.MobilePlaceholder"] = "Mobile Number",
@@ -52,7 +52,7 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Forgot key?",
         ["Authentication.SignIn.Continue"] = "Continue",
 
-        // Validation Errors
+        
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Digits only after code",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "{0}-{1} digits required",
@@ -76,24 +76,24 @@ public static class LocalizationData
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Passwords do not match",
 
-        // Welcome
+        
         ["Welcome.SignInButton"] = "Sign In",
         ["Welcome.CreateAccountButton"] = "Create Account",
 
-        // Footer
+        
         ["Footer.PrivacyPolicy"] = "Privacy Policy",
         ["Footer.TermsOfService"] = "Terms of Service",
         ["Footer.Support"] = "Support",
         ["Footer.AgreementText"] = "By continuing, you agree to our Terms and Privacy Policy.",
         ["Footer.Copyright"] = "© 2025 Horizon Dynamics. All rights reserved.",
 
-        // Navigation
+        
         ["Navigation.Back"] = "Back",
         ["Navigation.Close"] = "Close",
         ["Navigation.Minimize"] = "Minimize",
         ["Navigation.Maximize"] = "Maximize",
 
-        // Common
+        
         ["Common.Loading"] = "Loading...",
         ["Common.Error"] = "Error",
         ["Common.Success"] = "Success",
@@ -103,13 +103,13 @@ public static class LocalizationData
         ["Common.NoInternetConnection"] = "No internet connection",
         ["Common.CheckConnection"] = "Check your internet connection",
 
-        // Network Notifications
+        
         ["NetworkNotification.NoInternet.Title"] = "No Internet Connection",
         ["NetworkNotification.NoInternet.Description"] = "Check your connection and try again",
         ["NetworkNotification.ServerNotResponding.Title"] = "Server Unavailable",
         ["NetworkNotification.ServerNotResponding.Description"] = "Our servers are not responding",
 
-        // Language Detection
+        
         ["LanguageDetection.Title"] = "Language Suggestion",
         ["LanguageDetection.Prompt"] = "Switch to {0}?",
         ["LanguageDetection.Button.Confirm"] = "Switch Language",
@@ -118,7 +118,7 @@ public static class LocalizationData
 
     public static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
     {
-        // Authentication - SignUp
+        
         ["Authentication.SignUp.PhoneVerification.Title"] = "Створити акаунт",
         ["Authentication.SignUp.PhoneVerification.Description"] = "Підтвердьте номер. Ми надішлемо код в SMS.",
         ["Authentication.SignUp.PhoneVerification.Hint"] = "Включно з кодом країни",
@@ -153,7 +153,7 @@ public static class LocalizationData
         ["Authentication.SignUp.PassPhase.Watermark"] = "••••",
         ["Authentication.SignUp.PassPhase.Button"] = "Підтвердити PIN",
 
-        // Authentication - SignIn
+        
         ["Authentication.SignIn.Title"] = "Вхід",
         ["Authentication.SignIn.Welcome"] = "З поверненням!",
         ["Authentication.SignIn.MobilePlaceholder"] = "Номер телефону",
@@ -163,7 +163,7 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Забули ключ?",
         ["Authentication.SignIn.Continue"] = "Продовжити",
 
-        // Validation Errors
+        
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Лише цифри після коду",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "Потрібно {0}-{1} цифр",
@@ -187,24 +187,24 @@ public static class LocalizationData
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Паролі не збігаються",
 
-        // Welcome
+        
         ["Welcome.SignInButton"] = "Увійти",
         ["Welcome.CreateAccountButton"] = "Створити акаунт",
 
-        // Footer
+        
         ["Footer.PrivacyPolicy"] = "Політика конфіденційності",
         ["Footer.TermsOfService"] = "Умови надання послуг",
         ["Footer.Support"] = "Підтримка",
         ["Footer.AgreementText"] = "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденціальності.",
         ["Footer.Copyright"] = "© 2025 Horizon Dynamics. Усі права захищено.",
 
-        // Navigation
+        
         ["Navigation.Back"] = "Назад",
         ["Navigation.Close"] = "Закрити",
         ["Navigation.Minimize"] = "Згорнути",
         ["Navigation.Maximize"] = "Розгорнути",
 
-        // Common
+        
         ["Common.Loading"] = "Завантаження...",
         ["Common.Error"] = "Помилка",
         ["Common.Success"] = "Успішно",
@@ -214,13 +214,13 @@ public static class LocalizationData
         ["Common.NoInternetConnection"] = "Немає підключення до інтернету",
         ["Common.CheckConnection"] = "Перевірте ваше інтернет-з'єднання",
 
-        // Network Notifications
+        
         ["NetworkNotification.NoInternet.Title"] = "Немає підключення до інтернету",
         ["NetworkNotification.NoInternet.Description"] = "Перевірте з'єднання та спробуйте знову",
         ["NetworkNotification.ServerNotResponding.Title"] = "Сервер недоступний",
         ["NetworkNotification.ServerNotResponding.Description"] = "Наші сервери не відповідають",
 
-        // Language Detection
+        
         ["LanguageDetection.Title"] = "Пропозиція мови",
         ["LanguageDetection.Prompt"] = "Перемкнутись на {0}?",
         ["LanguageDetection.Button.Confirm"] = "Змінити мову",

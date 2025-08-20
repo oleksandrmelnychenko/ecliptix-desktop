@@ -14,7 +14,7 @@ namespace Ecliptix.Core.Services.External.IpGeolocation;
 
 public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
 {
-    private const string BaseUrl = "https://api.country.is/";
+    private const string BaseUrl = "https://api.country.is";
 
     public async Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
         CancellationToken ct = default)

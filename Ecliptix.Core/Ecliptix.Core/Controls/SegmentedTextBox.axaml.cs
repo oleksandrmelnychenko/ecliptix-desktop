@@ -84,8 +84,6 @@ namespace Ecliptix.Core.Controls
             set => SetValue(ValueProperty, value);
         }
 
-
-
         public IBrush SegmentBackground
         {
             get => GetValue(SegmentBackgroundProperty);
