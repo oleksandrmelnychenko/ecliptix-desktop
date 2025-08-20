@@ -27,7 +27,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     private readonly ConcurrentQueue<double> _latencySamples = new();
     private readonly Timer _metricsTimer;
     private readonly Stopwatch _uptimeStopwatch = Stopwatch.StartNew();
-    
+
     private long _outboundMessages;
     private long _inboundMessages;
     private long _batchedMessages;
@@ -37,20 +37,20 @@ public sealed class ProtocolMetricsCollector : IDisposable
     private long _circuitBreakerTrips;
     private long _totalErrors;
     private long _totalOperations;
-    
+
     private double _averageLatencyMs;
     private double _currentThroughput;
     private double _currentErrorRate;
-    
+
     private LoadLevel _currentLoadLevel = LoadLevel.Light;
     private CircuitBreakerState _circuitBreakerState = CircuitBreakerState.Closed;
-    
+
     private bool _disposed;
 
     public ProtocolMetricsCollector(TimeSpan metricsUpdateInterval = default)
     {
         TimeSpan interval = metricsUpdateInterval == TimeSpan.Zero ? TimeSpan.FromSeconds(30) : metricsUpdateInterval;
-        
+
         _metricsTimer = new Timer(
             callback: _ => UpdateMetrics(),
             state: null,
@@ -63,7 +63,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     {
         Interlocked.Increment(ref _outboundMessages);
         Interlocked.Increment(ref _totalOperations);
-        
+
         if (latencyMs > 0)
         {
             RecordLatency(latencyMs);
@@ -74,7 +74,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     {
         Interlocked.Increment(ref _inboundMessages);
         Interlocked.Increment(ref _totalOperations);
-        
+
         if (latencyMs > 0)
         {
             RecordLatency(latencyMs);
@@ -85,7 +85,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     {
         Interlocked.Add(ref _batchedMessages, messageCount);
         Interlocked.Increment(ref _totalOperations);
-        
+
         if (totalLatencyMs > 0)
         {
             RecordLatency(totalLatencyMs);
@@ -130,7 +130,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     private void RecordLatency(double latencyMs)
     {
         _latencySamples.Enqueue(latencyMs);
-        
+
         if (_latencySamples.Count > 10000)
         {
             while (_latencySamples.Count > 5000)
@@ -143,25 +143,25 @@ public sealed class ProtocolMetricsCollector : IDisposable
     private void UpdateMetrics()
     {
         if (_disposed) return;
-        
+
         try
         {
             lock (_lock)
             {
                 double totalLatency = 0;
                 int sampleCount = 0;
-                
+
                 foreach (double latency in _latencySamples)
                 {
                     totalLatency += latency;
                     sampleCount++;
                 }
-                
+
                 _averageLatencyMs = sampleCount > 0 ? totalLatency / sampleCount : 0;
-                
+
                 TimeSpan uptime = _uptimeStopwatch.Elapsed;
                 _currentThroughput = uptime.TotalSeconds > 0 ? _totalOperations / uptime.TotalSeconds : 0;
-                
+
                 _currentErrorRate = _totalOperations > 0 ? (double)_totalErrors / _totalOperations : 0;
             }
         }
@@ -198,7 +198,7 @@ public sealed class ProtocolMetricsCollector : IDisposable
     public void LogMetricsSummary()
     {
         ProtocolMetrics metrics = GetCurrentMetrics();
-        
+
         Console.WriteLine("=== Protocol Performance Metrics ===");
         Console.WriteLine($"Uptime: {metrics.Uptime:hh\\:mm\\:ss}");
         Console.WriteLine($"Load Level: {metrics.CurrentLoadLevel}");
@@ -226,17 +226,17 @@ public sealed class ProtocolMetricsCollector : IDisposable
             Interlocked.Exchange(ref _circuitBreakerTrips, 0);
             Interlocked.Exchange(ref _totalErrors, 0);
             Interlocked.Exchange(ref _totalOperations, 0);
-            
+
             _averageLatencyMs = 0;
             _currentThroughput = 0;
             _currentErrorRate = 0;
-            
+
             while (_latencySamples.TryDequeue(out _))
             {
             }
-            
+
             _uptimeStopwatch.Restart();
-            
+
             Console.WriteLine("[METRICS] Metrics reset");
         }
     }
@@ -244,11 +244,11 @@ public sealed class ProtocolMetricsCollector : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         _disposed = true;
         _metricsTimer?.Dispose();
         _uptimeStopwatch?.Stop();
-        
+
         Console.WriteLine("[METRICS] Collector disposed");
     }
 }

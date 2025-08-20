@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -8,20 +7,17 @@ using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public abstract class ModuleBase : IModule
+public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TManifest : IModuleManifest
 {
     private bool _isLoaded;
     private IServiceProvider? _serviceProvider;
     protected ILogger? Logger;
 
-    public abstract string Name { get; }
-    public virtual int Priority => 0;
-    public virtual ModuleLoadingStrategy LoadingStrategy => ModuleLoadingStrategy.Lazy;
+    public abstract ModuleIdentifier Id { get; }
+    public abstract TManifest Manifest { get; }
     public bool IsLoaded => _isLoaded;
 
-    public virtual IReadOnlyList<string> DependsOn => Array.Empty<string>();
-    
-    public virtual IModuleResourceConstraints ResourceConstraints => ModuleResourceConstraints.Default;
+    IModuleManifest IModule.Manifest => Manifest;
     public IModuleScope? ServiceScope { get; private set; }
 
     public virtual async Task<bool> CanLoadAsync()
@@ -38,27 +34,27 @@ public abstract class ModuleBase : IModule
         try
         {
             _serviceProvider = serviceProvider;
-            Logger = serviceProvider.GetService<ILogger<ModuleBase>>();
-            Logger?.LogInformation("Loading module: {ModuleName}", Name);
-            
+            Logger = serviceProvider.GetService<ILogger<ModuleBase<TManifest>>>();
+            Logger?.LogInformation("Loading module: {ModuleName}", Id.ToName());
+
             ModuleResourceManager? resourceManager = serviceProvider.GetService<ModuleResourceManager>();
             if (resourceManager != null)
             {
-                ServiceScope = resourceManager.CreateModuleScope(Name, ResourceConstraints, RegisterServices);
+                ServiceScope = resourceManager.CreateModuleScope(Id.ToName(), Manifest.ResourceConstraints, RegisterServices);
                 _serviceProvider = ServiceScope.ServiceProvider;
             }
-            
+
             await OnLoadAsync();
-            
+
             _isLoaded = true;
-            
-            Logger?.LogInformation("Module loaded successfully: {ModuleName}", Name);
+
+            Logger?.LogInformation("Module loaded successfully: {ModuleName}", Id.ToName());
         }
         catch (Exception ex)
         {
             ServiceScope?.Dispose();
             ServiceScope = null;
-            Logger?.LogError(ex, "Failed to load module: {ModuleName}", Name);
+            Logger?.LogError(ex, "Failed to load module: {ModuleName}", Id.ToName());
             throw;
         }
     }
@@ -70,39 +66,44 @@ public abstract class ModuleBase : IModule
 
         try
         {
-            Logger?.LogInformation("Unloading module: {ModuleName}", Name);
-            
+            Logger?.LogInformation("Unloading module: {ModuleName}", Id.ToName());
+
             await OnUnloadAsync();
-            
+
             ServiceScope?.Dispose();
             ServiceScope = null;
-            
+
             _isLoaded = false;
             _serviceProvider = null;
-            
-            Logger?.LogInformation("Module unloaded successfully: {ModuleName}", Name);
+
+            Logger?.LogInformation("Module unloaded successfully: {ModuleName}", Id.ToName());
         }
         catch (Exception ex)
         {
-            Logger?.LogError(ex, "Failed to unload module: {ModuleName}", Name);
+            Logger?.LogError(ex, "Failed to unload module: {ModuleName}", Id.ToName());
             throw;
         }
     }
 
     public abstract void RegisterServices(IServiceCollection services);
-    
+
     public virtual void RegisterViews(IViewLocator viewLocator)
     {
     }
-    
+
+    public virtual void RegisterViewFactories(IModuleViewFactory viewFactory)
+    {
+        Logger?.LogDebug("RegisterViewFactories called for module: {ModuleName} - override to implement", Id.ToName());
+    }
+
     public virtual IReadOnlyList<Type> GetViewTypes()
     {
-        return Array.Empty<Type>();
+        return [];
     }
-    
+
     public virtual IReadOnlyList<Type> GetViewModelTypes()
     {
-        return Array.Empty<Type>();
+        return [];
     }
 
     public virtual Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
@@ -110,12 +111,12 @@ public abstract class ModuleBase : IModule
         return Task.CompletedTask;
     }
 
-    protected virtual async Task OnLoadAsync()
+    protected async Task OnLoadAsync()
     {
         await Task.CompletedTask;
     }
 
-    protected virtual async Task OnUnloadAsync()
+    protected async Task OnUnloadAsync()
     {
         await Task.CompletedTask;
     }
@@ -123,9 +124,8 @@ public abstract class ModuleBase : IModule
     protected T GetService<T>() where T : notnull
     {
         if (_serviceProvider == null)
-            throw new InvalidOperationException($"Module {Name} is not loaded");
-            
+            throw new InvalidOperationException($"Module {Id.ToName()} is not loaded");
+
         return _serviceProvider.GetRequiredService<T>();
     }
-
 }

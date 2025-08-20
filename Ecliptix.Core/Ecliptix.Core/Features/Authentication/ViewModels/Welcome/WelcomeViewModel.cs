@@ -22,24 +22,26 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
     public string UrlPathSegment => "/welcome";
     public IScreen HostScreen { get; }
 
-    public ReactiveCommand<Unit, Unit> NavToCreateAccountCommand { get; }
-    public ReactiveCommand<Unit, Unit> NavToSignInCommand { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToCreateAccountCommand { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToSignInCommand { get; }
 
     public WelcomeViewModel(IScreen hostScreen, ISystemEvents systemEvents, ILocalizationService localizationService,
         NetworkProvider networkProvider) : base(systemEvents, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 
-        NavToCreateAccountCommand = ReactiveCommand.Create(() =>
+        NavToCreateAccountCommand = ReactiveCommand.CreateFromObservable(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(
-                NavigationCache["CreateAccount"]
-            );
+            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            MembershipViewType viewType = NavigationCache["CreateAccount"];
+            return hostWindow.Navigate.Execute(viewType);
         });
 
-        NavToSignInCommand = ReactiveCommand.Create(() =>
+        NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(NavigationCache["SignIn"]);
+            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            MembershipViewType viewType = NavigationCache["SignIn"];
+            return hostWindow.Navigate.Execute(viewType);
         });
     }
 }

@@ -12,27 +12,27 @@ public class ModuleDependencyResolver
     public async Task<IEnumerable<IModule>> ResolveLoadOrderAsync(IEnumerable<IModule> modules)
     {
         await Task.CompletedTask;
-        
+
         List<IModule> moduleList = modules.ToList();
-        Dictionary<string, IModule> moduleMap = moduleList.ToDictionary(m => m.Name, m => m);
-        
+        Dictionary<string, IModule> moduleMap = moduleList.ToDictionary(m => m.Id.ToName(), m => m);
+
         ValidateDependencies(moduleList, moduleMap);
-        
+
         return TopologicalSort(moduleList, moduleMap);
     }
 
     public async Task<IEnumerable<IModule>> GetRequiredModulesAsync(string moduleName, IEnumerable<IModule> availableModules)
     {
         await Task.CompletedTask;
-        
-        Dictionary<string, IModule> moduleMap = availableModules.ToDictionary(m => m.Name, m => m);
-        
+
+        Dictionary<string, IModule> moduleMap = availableModules.ToDictionary(m => m.Id.ToName(), m => m);
+
         if (!moduleMap.TryGetValue(moduleName, out IModule? targetModule))
             throw new InvalidOperationException($"Module {moduleName} not found");
-        
+
         HashSet<string> required = new();
         GetDependenciesRecursive(targetModule, moduleMap, required);
-        
+
         return required.Select(name => moduleMap[name]);
     }
 
@@ -40,16 +40,16 @@ public class ModuleDependencyResolver
     {
         foreach (IModule module in modules)
         {
-            foreach (string dependency in module.DependsOn)
+            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (!moduleMap.ContainsKey(dependency))
+                if (!moduleMap.ContainsKey(dependency.ToName()))
                 {
                     throw new InvalidOperationException(
-                        $"Module '{module.Name}' depends on '{dependency}', but '{dependency}' is not registered");
+                        $"Module '{module.Id.ToName()}' depends on '{dependency.ToName()}', but '{dependency.ToName()}' is not registered");
                 }
             }
         }
-        
+
         DetectCircularDependencies(modules, moduleMap);
     }
 
@@ -60,17 +60,17 @@ public class ModuleDependencyResolver
 
         foreach (IModule module in modules)
         {
-            if (!visited.Contains(module.Name))
+            if (!visited.Contains(module.Id.ToName()))
             {
-                if (HasCircularDependency(module.Name, moduleMap, visited, recursionStack))
+                if (HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack))
                 {
-                    throw new InvalidOperationException($"Circular dependency detected starting from module '{module.Name}'");
+                    throw new InvalidOperationException($"Circular dependency detected starting from module '{module.Id.ToName()}'");
                 }
             }
         }
     }
 
-    private bool HasCircularDependency(string moduleName, Dictionary<string, IModule> moduleMap, 
+    private bool HasCircularDependency(string moduleName, Dictionary<string, IModule> moduleMap,
         HashSet<string> visited, HashSet<string> recursionStack)
     {
         visited.Add(moduleName);
@@ -78,14 +78,14 @@ public class ModuleDependencyResolver
 
         if (moduleMap.TryGetValue(moduleName, out IModule? module))
         {
-            foreach (string dependency in module.DependsOn)
+            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (!visited.Contains(dependency))
+                if (!visited.Contains(dependency.ToName()))
                 {
-                    if (HasCircularDependency(dependency, moduleMap, visited, recursionStack))
+                    if (HasCircularDependency(dependency.ToName(), moduleMap, visited, recursionStack))
                         return true;
                 }
-                else if (recursionStack.Contains(dependency))
+                else if (recursionStack.Contains(dependency.ToName()))
                 {
                     return true;
                 }
@@ -98,57 +98,57 @@ public class ModuleDependencyResolver
 
     private IEnumerable<IModule> TopologicalSort(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
-        Dictionary<string, int> inDegree = modules.ToDictionary(m => m.Name, _ => 0);
-        
+        Dictionary<string, int> inDegree = modules.ToDictionary(m => m.Id.ToName(), _ => 0);
+
         foreach (IModule module in modules)
         {
-            foreach (string dependency in module.DependsOn)
+            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (inDegree.ContainsKey(dependency))
+                if (inDegree.ContainsKey(dependency.ToName()))
                 {
-                    inDegree[module.Name]++;
+                    inDegree[module.Id.ToName()]++;
                 }
             }
         }
-        
+
         Queue<string> queue = new(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
         List<IModule> result = new();
-        
+
         while (queue.Count > 0)
         {
             string current = queue.Dequeue();
             result.Add(moduleMap[current]);
-            
+
             IModule currentModule = moduleMap[current];
-            
+
             foreach (IModule module in modules)
             {
-                if (module.DependsOn.Contains(current))
+                if (module.Manifest.Dependencies.Select(d => d.ToName()).Contains(current))
                 {
-                    inDegree[module.Name]--;
-                    if (inDegree[module.Name] == 0)
+                    inDegree[module.Id.ToName()]--;
+                    if (inDegree[module.Id.ToName()] == 0)
                     {
-                        queue.Enqueue(module.Name);
+                        queue.Enqueue(module.Id.ToName());
                     }
                 }
             }
         }
-        
+
         if (result.Count != modules.Count)
         {
             throw new InvalidOperationException("Unable to resolve module dependencies - circular dependency detected");
         }
-        
-        return result.OrderBy(m => m.Priority).ThenBy(m => m.Name);
+
+        return result.OrderBy(m => m.Manifest.Priority).ThenBy(m => m.Id.ToName());
     }
 
     private void GetDependenciesRecursive(IModule module, Dictionary<string, IModule> moduleMap, HashSet<string> required)
     {
-        foreach (string dependency in module.DependsOn)
+        foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
         {
-            if (!required.Contains(dependency) && moduleMap.TryGetValue(dependency, out IModule? depModule))
+            if (!required.Contains(dependency.ToName()) && moduleMap.TryGetValue(dependency.ToName(), out IModule? depModule))
             {
-                required.Add(dependency);
+                required.Add(dependency.ToName());
                 GetDependenciesRecursive(depModule, moduleMap, required);
             }
         }

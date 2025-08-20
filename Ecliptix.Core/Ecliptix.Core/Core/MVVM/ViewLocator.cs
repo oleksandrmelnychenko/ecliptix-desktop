@@ -10,13 +10,13 @@ namespace Ecliptix.Core.Core.MVVM;
 
 public class ViewLocator : IViewLocator
 {
-    private readonly ConcurrentDictionary<Type, Type> _registrations = new();
+    private readonly ConcurrentDictionary<Type, Func<object>> _viewFactories = new();
 
-    public void Register<TViewModel, TView>() 
+    public void Register<TViewModel, TView>()
         where TViewModel : class, IRoutableViewModel
-        where TView : class
+        where TView : class, new()
     {
-        Register(typeof(TViewModel), typeof(TView));
+        RegisterFactory<TViewModel>(() => new TView());
     }
 
     public void Register(Type viewModelType, Type viewType)
@@ -24,8 +24,15 @@ public class ViewLocator : IViewLocator
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");
 
-        _registrations[viewModelType] = viewType;
+        _viewFactories[viewModelType] = () => Activator.CreateInstance(viewType) ?? throw new InvalidOperationException($"Failed to create instance of {viewType.Name}");
         Log.Debug("Registered view mapping: {ViewModel} -> {View}", viewModelType.Name, viewType.Name);
+    }
+
+    public void RegisterFactory<TViewModel>(Func<object> factory)
+        where TViewModel : class, IRoutableViewModel
+    {
+        _viewFactories[typeof(TViewModel)] = factory;
+        Log.Debug("Registered view factory for ViewModel: {ViewModel}", typeof(TViewModel).Name);
     }
 
     public object? ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel
@@ -35,28 +42,42 @@ public class ViewLocator : IViewLocator
 
     public object? ResolveView(object? viewModel)
     {
+        Log.Information("🔍 ViewLocator.ResolveView called with ViewModel: {ViewModelType}",
+            viewModel?.GetType().Name ?? "null");
+
         if (viewModel == null)
+        {
+            Log.Warning("❌ ViewLocator: ViewModel is null");
             return null;
+        }
 
         Type viewModelType = viewModel.GetType();
+        Log.Information("🔍 ViewLocator: Looking for factory for {ViewModelType}", viewModelType.Name);
+        Log.Information("🔍 ViewLocator: Registered factories count: {Count}", _viewFactories.Count);
 
-        if (_registrations.TryGetValue(viewModelType, out Type? viewType))
+        foreach (Type registeredType in _viewFactories.Keys)
+        {
+            Log.Information("🔍 ViewLocator: Registered type: {TypeName}", registeredType.Name);
+        }
+
+        if (_viewFactories.TryGetValue(viewModelType, out Func<object>? factory))
         {
             try
             {
-                object? view = Activator.CreateInstance(viewType);
-                Log.Debug("Resolved view {ViewType} for ViewModel {ViewModelType}", viewType.Name, viewModelType.Name);
+                object view = factory();
+                Log.Information("✅ ViewLocator: Successfully created view {ViewType} for ViewModel {ViewModelType}",
+                    view.GetType().Name, viewModelType.Name);
                 return view;
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to create view instance for {ViewType}", viewType.Name);
+                Log.Error(ex, "❌ ViewLocator: Failed to create view instance using factory for ViewModel {ViewModelType}", viewModelType.Name);
                 return null;
             }
         }
 
-        
-        return TryConventionBasedResolution(viewModelType);
+        Log.Warning("⚠️ ViewLocator: No view factory registered for ViewModel {ViewModelType}", viewModelType.Name);
+        return null;
     }
 
 
@@ -67,42 +88,12 @@ public class ViewLocator : IViewLocator
 
     public bool IsRegistered(Type viewModelType)
     {
-        return _registrations.ContainsKey(viewModelType);
+        return _viewFactories.ContainsKey(viewModelType);
     }
 
-    public IReadOnlyDictionary<Type, Type> GetRegistrations()
+    public IReadOnlyDictionary<Type, Func<object>> GetRegistrations()
     {
-        return new Dictionary<Type, Type>(_registrations);
-    }
-
-    private object? TryConventionBasedResolution(Type viewModelType)
-    {
-        
-        string viewModelName = viewModelType.Name;
-        if (viewModelName.EndsWith("ViewModel"))
-        {
-            string viewName = viewModelName.Substring(0, viewModelName.Length - "ViewModel".Length) + "View";
-            string? viewTypeNamespace = viewModelType.Namespace?.Replace(".ViewModels", ".Views");
-            string viewTypeName = $"{viewTypeNamespace}.{viewName}";
-
-            Type? viewType = Type.GetType(viewTypeName, false);
-            if (viewType != null)
-            {
-                try
-                {
-                    object? view = Activator.CreateInstance(viewType);
-                    Log.Debug("Convention-based view resolution: {ViewModel} -> {View}", viewModelType.Name, viewType.Name);
-                    return view;
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Failed to create view instance via convention for {ViewType}", viewType.Name);
-                }
-            }
-        }
-
-        Log.Warning("No view found for ViewModel {ViewModelType}", viewModelType.Name);
-        return null;
+        return new Dictionary<Type, Func<object>>(_viewFactories);
     }
 }
 

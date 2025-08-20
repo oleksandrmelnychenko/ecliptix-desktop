@@ -43,11 +43,11 @@ public static class IconService
     private static Uri? GetPlatformIconUri()
     {
         if (OperatingSystem.IsWindows())
-            return new Uri("avares://Ecliptix.Core/Assets/ecliptix.ico");
+            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico");
         else if (OperatingSystem.IsMacOS())
-            return new Uri("avares://Ecliptix.Core/Assets/EcliptixLogo.icns");
+            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns");
         else if (OperatingSystem.IsLinux())
-            return new Uri("avares://Ecliptix.Core/Assets/EcliptixLogo.png");
+            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png");
 
         return null;
     }

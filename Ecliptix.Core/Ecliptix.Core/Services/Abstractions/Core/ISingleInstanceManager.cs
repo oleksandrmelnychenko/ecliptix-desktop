@@ -12,13 +12,13 @@ public interface ISingleInstanceManager : IDisposable
     /// </summary>
     /// <returns>True if this is the first instance, false if another instance is already running</returns>
     bool TryAcquireInstance();
-    
+
     /// <summary>
     /// Signals an existing instance to bring itself to foreground
     /// </summary>
     /// <returns>True if signal was sent successfully</returns>
     bool NotifyExistingInstance();
-    
+
     /// <summary>
     /// Event triggered when another instance tries to start and signals this instance
     /// </summary>

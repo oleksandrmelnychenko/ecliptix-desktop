@@ -8,20 +8,20 @@ namespace Ecliptix.Core.Core.Abstractions;
 public interface IModuleManager
 {
     Task<IEnumerable<IModuleMetadata>> DiscoverModulesAsync();
-    
+
     Task<IModule> LoadModuleAsync(string moduleName);
     Task LoadModulesAsync(ModuleLoadingStrategy strategy);
     Task LoadEagerModulesAsync();
     Task<IReadOnlyList<IModule>> LoadAllModulesAsync();
     void StartBackgroundPreloading();
     ModuleLoadingStats GetLoadingStats();
-    
+
     Task UnloadModuleAsync(string moduleName);
     Task UnloadInactiveModulesAsync(TimeSpan inactiveThreshold);
-    
+
     bool IsModuleLoaded(string moduleName);
     IReadOnlyDictionary<string, ModuleState> GetModuleStates();
-    
+
     event EventHandler<ModuleLoadedEventArgs> ModuleLoaded;
     event EventHandler<ModuleUnloadedEventArgs> ModuleUnloaded;
     event EventHandler<ModuleLoadingEventArgs> ModuleLoading;

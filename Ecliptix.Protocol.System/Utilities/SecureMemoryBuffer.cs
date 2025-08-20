@@ -49,7 +49,7 @@ public sealed class SecureMemoryBuffer : IDisposable
             Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
             if (readResult.IsErr)
                 throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
-            
+
             byte[] result = new byte[Length];
             tempBuffer.AsSpan()[..Length].CopyTo(result);
             return result.AsSpan(0, Length);
@@ -69,7 +69,7 @@ public sealed class SecureMemoryBuffer : IDisposable
 
         int bytesToRead = Math.Min(destination.Length, Length);
         using var tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
-        
+
         Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
         if (readResult.IsErr)
             return Result<int, SodiumFailure>.Err(readResult.UnwrapErr());

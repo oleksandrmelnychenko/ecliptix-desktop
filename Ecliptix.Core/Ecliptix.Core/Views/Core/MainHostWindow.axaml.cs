@@ -18,15 +18,15 @@ public partial class MainHostWindow : Window
 
     private void TitleBarArea_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        
+
         if (e.Source is Border && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             BeginMoveDrag(e);
-        
+
         else if (e.Source is DockPanel && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             BeginMoveDrag(e);
     }
 
-    
+
     private void MinimizeButton_Click(object? sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
@@ -43,14 +43,14 @@ public partial class MainHostWindow : Window
         Close();
     }
 
-    
+
     private void Resize_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (
             sender is Border border
             && border.Tag is WindowEdge edge
             && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-        ) 
+        )
             BeginResizeDrag(edge, e);
     }
 }

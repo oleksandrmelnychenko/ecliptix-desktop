@@ -1,0 +1,139 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.0.1)'
+        required: true
+        type: string
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-arm64]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Build AOT Windows
+      shell: pwsh
+      run: |
+        .\Scripts\build-aot-windows.ps1 -Runtime ${{ matrix.runtime }} -Optimization aggressive
+        
+    - name: Upload Windows Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ecliptix-${{ matrix.runtime }}-aot
+        path: publish/${{ matrix.runtime }}/Ecliptix-*-${{ matrix.runtime }}-AOT.zip
+        retention-days: 90
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runtime: osx-x64
+            arch: intel
+          - runtime: osx-arm64
+            arch: arm64
+          - runtime: universal
+            arch: universal
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Build AOT macOS
+      run: |
+        chmod +x Scripts/build-aot-macos.sh
+        if [ "${{ matrix.runtime }}" = "universal" ]; then
+          ./Scripts/build-aot-macos.sh --universal --optimization aggressive
+        else
+          ./Scripts/build-aot-macos.sh -r ${{ matrix.runtime }} --optimization aggressive
+        fi
+        
+    - name: Upload macOS Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ecliptix-macos-${{ matrix.arch }}-aot
+        path: publish/${{ matrix.runtime }}/Ecliptix-*-${{ matrix.runtime }}-AOT.tar.gz
+        retention-days: 90
+
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: [linux-x64, linux-arm64]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Install AppImage Tools
+      run: |
+        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+        sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+        
+    - name: Build AOT Linux
+      run: |
+        chmod +x Scripts/build-aot-linux.sh
+        ./Scripts/build-aot-linux.sh -r ${{ matrix.runtime }} --optimization aggressive
+        
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ecliptix-${{ matrix.runtime }}-aot
+        path: |
+          publish/${{ matrix.runtime }}/Ecliptix-*-${{ matrix.runtime }}-AOT.tar.gz
+          publish/${{ matrix.runtime }}/Ecliptix-*-${{ matrix.runtime }}-AOT.AppImage
+        retention-days: 90
+
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+        
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/**/*.zip
+          artifacts/**/*.tar.gz
+          artifacts/**/*.AppImage
+        tag_name: ${{ github.ref_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

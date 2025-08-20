@@ -4,15 +4,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:signIn="clr-namespace:Ecliptix.Core.Features.Authentication.Views.SignIn"
         xmlns:welcome="clr-namespace:Ecliptix.Core.Features.Authentication.Views.Welcome"
+        xmlns:registration="clr-namespace:Ecliptix.Core.Features.Authentication.Views.Registration"
         xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+        xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm11="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.SignIn"
         xmlns:vmWelcome="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
+        xmlns:vmRegistration="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
         xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
         mc:Ignorable="d"
         d:DesignWidth="480"
@@ -26,7 +29,7 @@
         ShowInTaskbar="True"
         Background="Transparent"
         Title=""
-        Icon="avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png"
+        Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png"
         TransparencyLevelHint="Transparent"
         x:Class="Ecliptix.Core.Features.Authentication.Views.Hosts.MembershipHostWindow">
 
@@ -70,6 +73,7 @@
 
         <!-- Animation Durations -->
         <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
+        
     </Window.Resources>
 
     <Window.Styles>
@@ -223,14 +227,7 @@
         </Style>
     </Window.Styles>
 
-    <Window.DataTemplates>
-        <DataTemplate DataType="{x:Type vmWelcome:WelcomeViewModel}">
-            <welcome:WelcomeView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vm11:SignInViewModel}">
-            <signIn:SignInView />
-        </DataTemplate>
-    </Window.DataTemplates>
+    <!-- DataTemplates moved to RoutedViewHost for proper ReactiveUI view resolution -->
 
     <!-- Main Layout -->
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
@@ -260,13 +257,13 @@
             <!-- Back Navigation Button -->
             <Button HorizontalAlignment="Left"
                     VerticalAlignment="Top"
-                    Command="{Binding Router.NavigateBack}"
+                    Command="{Binding NavigateBack}"
                     Margin="24,64,0,0"
                     ZIndex="2"
                     Classes="back-button"
                     Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
 
-                <Image Source="avares://Ecliptix.Core/Assets/back-icon.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Icons/UI/back-icon.png"
                        Stretch="Uniform"
                        Width="18"
                        Height="18" />
@@ -337,7 +334,7 @@
                         HorizontalAlignment="Center"
                         Padding="{StaticResource HeaderPadding}"
                         Margin="0 63 0 0">
-                    <Svg Path="../../../Assets/ecliptix_logo.svg"
+                    <Svg Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
                          Width="{StaticResource LogoSize}"
                          Height="{StaticResource LogoSize}"
                          HorizontalAlignment="Center"
@@ -347,23 +344,12 @@
                 <!-- Content Area -->
                 <Border Grid.Row="1"
                         Padding="{StaticResource ContentPadding}">
-                    <reactiveUi:RoutedViewHost Router="{Binding Router}"
+                    <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
                                                Background="Transparent"
                                                Width="{StaticResource ContentMaxWidth}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Stretch"
-                                               ClipToBounds="False">
-                        <reactiveUi:RoutedViewHost.DefaultContent>
-                            <StackPanel HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Spacing="8">
-                                <TextBlock Text=""
-                                           HorizontalAlignment="Center"
-                                           FontSize="13"
-                                           Opacity="0.6" />
-                            </StackPanel>
-                        </reactiveUi:RoutedViewHost.DefaultContent>
-                    </reactiveUi:RoutedViewHost>
+                                               ClipToBounds="False" />
                 </Border>
 
                 <!-- Footer Section -->

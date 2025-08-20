@@ -43,7 +43,7 @@ public static class OpaqueCryptoUtilities
         }
     }
 
-    public static byte[] HkdfExpand(ReadOnlySpan<byte> prk, ReadOnlySpan<byte> info, int outputLength)
+    private static byte[] HkdfExpand(ReadOnlySpan<byte> prk, ReadOnlySpan<byte> info, int outputLength)
     {
         HkdfBytesGenerator hkdf = new(new Sha256Digest());
         hkdf.Init(HkdfParameters.SkipExtractParameters(prk.ToArray(), info.ToArray()));
@@ -52,10 +52,12 @@ public static class OpaqueCryptoUtilities
         return okm;
     }
 
-    public static byte[] HkdfExpand(byte[] prk, ReadOnlySpan<byte> info, int outputLength) => 
-        HkdfExpand(prk.AsSpan(), info, outputLength);
+    public static byte[] HkdfExpand(byte[] prk, ReadOnlySpan<byte> info, int outputLength)
+    {
+        return HkdfExpand(prk.AsSpan(), info, outputLength);
+    }
 
-    public static byte[] DeriveKey(ReadOnlySpan<byte> ikm, ReadOnlySpan<byte> salt, ReadOnlySpan<byte> info, int outputLength)
+    private static byte[] DeriveKey(ReadOnlySpan<byte> ikm, ReadOnlySpan<byte> salt, ReadOnlySpan<byte> info, int outputLength)
     {
         HkdfBytesGenerator hkdf = new(new Sha256Digest());
         byte[]? saltArray = salt.IsEmpty ? null : salt.ToArray();
@@ -117,13 +119,13 @@ public static class OpaqueCryptoUtilities
         try
         {
             using ScopedSecureMemoryCollection memoryCollection = new();
-            
+
             using ScopedSecureMemory saltBuffer = memoryCollection.Allocate(OpaqueConstants.Pbkdf2SaltLength);
             Span<byte> salt = saltBuffer.AsSpan();
-            
+
             byte[] saltBytes = HkdfExpand(oprfOutput.ToArray(), HkdfInfoStrings.OpaqueSalt.AsSpan(), Pbkdf2SaltLength);
             saltBytes.AsSpan().CopyTo(salt);
-            
+
             byte[] saltArray = salt.ToArray();
             using Rfc2898DeriveBytes pbkdf2 = new(
                 oprfOutput.ToArray(),
@@ -132,7 +134,7 @@ public static class OpaqueCryptoUtilities
                 System.Security.Cryptography.HashAlgorithmName.SHA256
             );
             CryptographicOperations.ZeroMemory(saltArray);
-            
+
             byte[] stretched = pbkdf2.GetBytes(HashLength);
             return Result<byte[], OpaqueFailure>.Ok(stretched);
         }
@@ -194,29 +196,29 @@ public static class OpaqueCryptoUtilities
         try
         {
             using ScopedSecureMemoryCollection memoryCollection = new();
-            
+
             int totalDataLength = nonce.Length + clientPublicKey.Length + serverPublicKey.Length + serverIdentity.Length;
             using ScopedSecureMemory dataBuffer = memoryCollection.Allocate(totalDataLength);
             Span<byte> data = dataBuffer.AsSpan();
-            
+
             int offset = 0;
             nonce.CopyTo(data.Slice(offset, nonce.Length));
             offset += nonce.Length;
-            
+
             clientPublicKey.CopyTo(data.Slice(offset, clientPublicKey.Length));
             offset += clientPublicKey.Length;
-            
+
             serverPublicKey.CopyTo(data.Slice(offset, serverPublicKey.Length));
             offset += serverPublicKey.Length;
-            
+
             serverIdentity.CopyTo(data.Slice(offset, serverIdentity.Length));
-            
+
             byte[] mac = CreateMac(authKey, data);
-            
+
             byte[] envelope = new byte[nonce.Length + mac.Length];
             nonce.CopyTo(envelope.AsSpan()[..nonce.Length]);
             mac.CopyTo(envelope.AsSpan()[nonce.Length..]);
-            
+
             return Result<byte[], OpaqueFailure>.Ok(envelope);
         }
         catch (Exception ex)
@@ -236,60 +238,25 @@ public static class OpaqueCryptoUtilities
         {
             if (envelope.Length < NonceLength + HashLength)
                 return Result<bool, OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.EnvelopeTooShort));
-                
+
             ReadOnlySpan<byte> nonce = envelope[..NonceLength];
             ReadOnlySpan<byte> providedMac = envelope[NonceLength..];
-            
+
             Result<byte[], OpaqueFailure> expectedMacResult = CreateEnvelopeMac(
                 authKey, nonce, clientPublicKey, serverPublicKey, serverIdentity);
-                
+
             if (expectedMacResult.IsErr)
                 return Result<bool, OpaqueFailure>.Err(expectedMacResult.UnwrapErr());
-                
+
             byte[] expectedEnvelope = expectedMacResult.Unwrap();
             ReadOnlySpan<byte> expectedMac = expectedEnvelope.AsSpan()[NonceLength..];
-            
+
             bool isValid = CryptographicOperations.FixedTimeEquals(expectedMac, providedMac);
             return Result<bool, OpaqueFailure>.Ok(isValid);
         }
         catch (Exception ex)
         {
             return Result<bool, OpaqueFailure>.Err(OpaqueFailure.EnvelopeFailed($"{ErrorMessages.MacVerificationFailed}{ex.Message}", ex));
-        }
-    }
-
-    public static Result<byte[], OpaqueFailure> MaskResponse(
-        ReadOnlySpan<byte> response,
-        ReadOnlySpan<byte> maskingKey)
-    {
-        try
-        {
-            using ScopedSecureMemoryCollection memoryCollection = new();
-            
-            byte[] nonce = new byte[NonceLength];
-            RandomNumberGenerator.Fill(nonce);
-            
-            byte[] pad = HkdfExpand(maskingKey.ToArray(), nonce, response.Length);
-            
-            using ScopedSecureMemory maskedBuffer = memoryCollection.Allocate(response.Length);
-            Span<byte> masked = maskedBuffer.AsSpan();
-            
-            for (int i = 0; i < response.Length; i++)
-            {
-                masked[i] = (byte)(response[i] ^ pad[i]);
-            }
-            
-            byte[] result = new byte[NonceLength + response.Length];
-            nonce.CopyTo(result, 0);
-            masked.CopyTo(result.AsSpan()[NonceLength..]);
-            
-            CryptographicOperations.ZeroMemory(pad);
-            
-            return Result<byte[], OpaqueFailure>.Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MaskingFailed($"{ErrorMessages.ResponseMaskingFailed}{ex.Message}", ex));
         }
     }
 
@@ -301,25 +268,25 @@ public static class OpaqueCryptoUtilities
         {
             if (maskedResponse.Length < NonceLength)
                 return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.MaskedResponseTooShort));
-                
+
             ReadOnlySpan<byte> nonce = maskedResponse[..NonceLength];
             ReadOnlySpan<byte> masked = maskedResponse[NonceLength..];
-            
+
             byte[] pad = HkdfExpand(maskingKey.ToArray(), nonce, masked.Length);
-            
+
             using ScopedSecureMemoryCollection memoryCollection = new();
             using ScopedSecureMemory unmaskBuffer = memoryCollection.Allocate(masked.Length);
             Span<byte> unmasked = unmaskBuffer.AsSpan();
-            
+
             for (int i = 0; i < masked.Length; i++)
             {
                 unmasked[i] = (byte)(masked[i] ^ pad[i]);
             }
-            
+
             byte[] result = unmasked.ToArray();
-            
+
             CryptographicOperations.ZeroMemory(pad);
-            
+
             return Result<byte[], OpaqueFailure>.Ok(result);
         }
         catch (Exception ex)
@@ -335,16 +302,16 @@ public static class OpaqueCryptoUtilities
         try
         {
             using ScopedSecureMemoryCollection memoryCollection = new();
-            
+
             int infoLength = ExportKeyInfo.Length + transcriptHash.Length;
             using ScopedSecureMemory infoBuffer = memoryCollection.Allocate(infoLength);
             Span<byte> info = infoBuffer.AsSpan();
-            
+
             ExportKeyInfo.CopyTo(info[..ExportKeyInfo.Length]);
             transcriptHash.CopyTo(info[ExportKeyInfo.Length..]);
-            
+
             byte[] exportKey = HkdfExpand(handshakeSecret.ToArray(), info, DefaultKeyLength);
-            
+
             return Result<byte[], OpaqueFailure>.Ok(exportKey);
         }
         catch (Exception ex)

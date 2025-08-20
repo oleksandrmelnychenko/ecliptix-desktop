@@ -291,6 +291,164 @@ Automated workflows handle:
 - CI checks must pass before merging
 - Code review required for all PRs
 
+## AOT Build Scripts
+
+The project includes comprehensive Ahead-of-Time (AOT) compilation scripts for all major platforms, providing maximum performance and self-contained deployment.
+
+### Available AOT Build Scripts
+
+#### `./Scripts/build-aot-windows.ps1` - Windows AOT Build
+PowerShell script for Windows with full AOT optimization:
+```powershell
+# Basic AOT build for x64
+.\Scripts\build-aot-windows.ps1
+
+# ARM64 build with clean
+.\Scripts\build-aot-windows.ps1 -Runtime win-arm64 -Clean
+
+# Size-optimized build with version increment
+.\Scripts\build-aot-windows.ps1 -Optimization size -Increment patch
+```
+
+**Features:**
+- Full native code generation with IL trimming
+- Automatic version increment and build info generation
+- Creates distributable ZIP archives
+- Comprehensive optimization levels (size/speed/aggressive)
+- Support for both x64 and ARM64 architectures
+
+#### `./Scripts/build-aot-linux.sh` - Linux AOT Build
+Bash script for Linux with AppImage support:
+```bash
+# Basic AOT build for x64
+./Scripts/build-aot-linux.sh
+
+# ARM64 build with AppImage
+./Scripts/build-aot-linux.sh --arm64
+
+# Clean build without AppImage
+./Scripts/build-aot-linux.sh --clean --no-appimage
+```
+
+**Features:**
+- Native code compilation with IL trimming
+- AppImage portable package creation (if tools available)
+- Creates .tar.gz archives for distribution
+- Desktop file and icon integration
+- Support for x64 and ARM64 architectures
+
+#### `./Scripts/build-aot-macos.sh` - Enhanced macOS AOT Build
+Enhanced bash script for macOS with Universal Binary support:
+```bash
+# Basic AOT build for Apple Silicon
+./Scripts/build-aot-macos.sh
+
+# Intel Mac build
+./Scripts/build-aot-macos.sh --intel
+
+# Universal Binary (both Intel and Apple Silicon)
+./Scripts/build-aot-macos.sh --universal
+
+# Clean aggressive optimization build
+./Scripts/build-aot-macos.sh --clean --optimization aggressive
+```
+
+**Features:**
+- Native code generation with comprehensive optimizations
+- **Universal Binary support** using `lipo` for dual architecture
+- macOS app bundle creation with proper Info.plist
+- DMG creation (if create-dmg is installed)
+- Support for Intel (x64), Apple Silicon (ARM64), and Universal binaries
+
+### AOT Build Benefits
+- **Faster startup time**: Pre-compiled native code eliminates JIT compilation
+- **Reduced memory footprint**: IL trimming removes unused code
+- **Self-contained deployment**: No .NET runtime installation required  
+- **Better performance**: Native machine code execution
+- **Smaller distribution size**: Dead code elimination and compression
+
+### AOT Optimization Levels
+All scripts support three optimization levels:
+- **size**: Minimize binary size (partial AOT, copyused trimming)
+- **speed**: Optimize for execution speed (full AOT, balanced trimming)
+- **aggressive**: Maximum optimization (full AOT, link-level trimming)
+
+## Auto-Versioning System
+
+The project includes an automated versioning system that increments versions based on git commit messages, integrated with the application's version display.
+
+### Setup Auto-Versioning
+```bash
+# Install auto-versioning git hooks
+./Scripts/auto-version.sh install
+
+# Check auto-versioning status
+./Scripts/auto-version.sh status
+
+# Uninstall auto-versioning
+./Scripts/auto-version.sh uninstall
+```
+
+### Version Increment Rules
+The system automatically increments versions based on commit message patterns:
+
+#### Major Version (x.0.0)
+- `[major]` - Explicit major increment
+- `BREAKING CHANGE:` - Breaking changes
+- `breaking:` - Breaking functionality changes
+
+#### Minor Version (x.y.0)  
+- `[minor]` - Explicit minor increment
+- `feat:` - New features
+- `feature:` - Feature additions
+
+#### Patch Version (x.y.z)
+- `[patch]` - Explicit patch increment  
+- `fix:` - Bug fixes
+- `bugfix:` - Bug corrections
+- `hotfix:` - Critical fixes
+- **Default**: Any commit without explicit pattern
+
+#### Skip Versioning
+- `[skip-version]` or `[no-version]` - No version change
+- `docs:` - Documentation only
+- `chore:` - Maintenance tasks
+- `style:` - Code style changes
+- `refactor:` - Code refactoring
+- `test:` - Test additions/changes
+
+### Version Integration
+The versioning system is fully integrated with:
+- **Directory.Build.props**: Centralized MSBuild version properties
+- **build-info.json**: Runtime build information with git metadata
+- **VersionHelper.cs**: Application version display in UI
+- **MembershipHostWindow**: Shows version in authentication flow
+
+### Example Workflow
+```bash
+# Make changes
+git add .
+
+# Commit with version increment
+git commit -m "feat: add new user authentication flow"
+# → Automatically increments minor version (e.g., 1.2.3 → 1.3.0)
+
+# Commit bug fix
+git commit -m "fix: resolve memory leak in protocol handler" 
+# → Automatically increments patch version (e.g., 1.3.0 → 1.3.1)
+
+# Commit documentation
+git commit -m "docs: update API documentation"
+# → No version increment (skipped)
+```
+
+### Configuration
+Version behavior is configured in `./Scripts/version-config.json`:
+- Commit message patterns
+- Branch inclusion/exclusion rules
+- Build info generation settings
+- Hook behavior customization
+
 ## MCP Servers Integration
 
 The project includes three specialized MCP (Model Context Protocol) servers that provide AI assistance tailored to the Ecliptix architecture:

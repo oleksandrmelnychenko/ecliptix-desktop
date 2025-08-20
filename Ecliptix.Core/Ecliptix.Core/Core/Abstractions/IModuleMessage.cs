@@ -4,34 +4,34 @@ using System.Collections.Generic;
 namespace Ecliptix.Core.Core.Abstractions;
 public interface IModuleMessage
 {
-    
-    
-    
+
+
+
     string MessageId { get; }
-    
-    
-    
-    
+
+
+
+
     string SourceModule { get; }
-    
-    
-    
-    
+
+
+
+
     string? TargetModule { get; }
-    
-    
-    
-    
+
+
+
+
     DateTime Timestamp { get; }
-    
-    
-    
-    
+
+
+
+
     string MessageType { get; }
-    
-    
-    
-    
+
+
+
+
     string? CorrelationId { get; }
 }
 public abstract record ModuleMessage : IModuleMessage
@@ -45,27 +45,27 @@ public abstract record ModuleMessage : IModuleMessage
 }
 public abstract record ModuleRequest : ModuleMessage
 {
-    
-    
-    
+
+
+
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
 }
 public abstract record ModuleResponse : ModuleMessage
 {
-    
-    
-    
+
+
+
     public bool IsSuccess { get; init; }
-    
-    
-    
-    
+
+
+
+
     public string? ErrorMessage { get; init; }
 }
 public abstract record ModuleEvent : ModuleMessage
 {
-    
-    
-    
+
+
+
     public Dictionary<string, object> EventData { get; init; } = new();
 }

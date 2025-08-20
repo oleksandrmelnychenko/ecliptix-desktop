@@ -19,7 +19,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private const int TagSize = 16;
     private const int KeySize = 32;
     private const int Argon2Iterations = 4;
-    private const int Argon2MemorySize = 65536; 
+    private const int Argon2MemorySize = 65536;
     private const int Argon2Parallelism = 2;
     private const string MagicHeader = "ECLIPTIX_SECURE_V1";
     private const int CurrentVersion = 1;

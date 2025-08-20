@@ -232,12 +232,12 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             // Clear all reactive command state
             SignInCommand?.Dispose();
             AccountRecoveryCommand?.Dispose();
-            
+
             // Clear sensitive data
             _secureKeyBuffer?.Dispose();
             _signInErrorSubject?.Dispose();
             _disposables?.Dispose();
-            
+
             // Clear UI state
             MobileNumber = string.Empty;
             _hasMobileNumberBeenTouched = false;
@@ -259,13 +259,13 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     public void ResetState()
     {
         if (_isDisposed) return;
-        
+
         MobileNumber = string.Empty;
         _secureKeyBuffer?.Remove(0, _secureKeyBuffer.Length);
         _hasMobileNumberBeenTouched = false;
         _hasSecureKeyBeenTouched = false;
         _signInErrorSubject?.OnNext(string.Empty);
-        
+
         // Force garbage collection of any remaining string references
         GC.Collect();
         GC.WaitForPendingFinalizers();

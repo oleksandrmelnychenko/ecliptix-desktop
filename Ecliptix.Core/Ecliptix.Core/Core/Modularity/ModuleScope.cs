@@ -27,7 +27,7 @@ public class ModuleScope : IModuleScope
         _serviceScope = serviceScope ?? throw new ArgumentNullException(nameof(serviceScope));
         Constraints = constraints ?? throw new ArgumentNullException(nameof(constraints));
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        
+
         ServiceProvider = serviceScope.ServiceProvider;
         _executionTimer = Stopwatch.StartNew();
 
@@ -38,7 +38,7 @@ public class ModuleScope : IModuleScope
     {
         ModuleResourceUsage usage = GetResourceUsage();
 
-        
+
         if (Constraints.MaxMemoryMB > 0 && usage.MemoryUsageMB > Constraints.MaxMemoryMB)
         {
             Logger.LogWarning("Module {ModuleName} exceeds memory limit: {UsageMB}MB > {LimitMB}MB",
@@ -46,7 +46,7 @@ public class ModuleScope : IModuleScope
             return false;
         }
 
-        
+
         if (Constraints.MaxThreads > 0 && usage.ActiveThreads > Constraints.MaxThreads)
         {
             Logger.LogWarning("Module {ModuleName} exceeds thread limit: {UsageThreads} > {LimitThreads}",
@@ -54,7 +54,7 @@ public class ModuleScope : IModuleScope
             return false;
         }
 
-        
+
         if (Constraints.MaxExecutionTime != TimeSpan.Zero && usage.ExecutionTime > Constraints.MaxExecutionTime)
         {
             Logger.LogWarning("Module {ModuleName} exceeds execution time limit: {UsageTime} > {LimitTime}",
@@ -72,13 +72,13 @@ public class ModuleScope : IModuleScope
 
         try
         {
-            
-            
-            using Process currentProcess = Process.GetCurrentProcess();
-            memoryUsage = currentProcess.WorkingSet64 / 1024 / 1024; 
 
-            
-            
+
+            using Process currentProcess = Process.GetCurrentProcess();
+            memoryUsage = currentProcess.WorkingSet64 / 1024 / 1024;
+
+
+
             activeThreads = currentProcess.Threads.Count;
         }
         catch (Exception ex)
@@ -103,7 +103,7 @@ public class ModuleScope : IModuleScope
         try
         {
             Logger.LogDebug("Disposing module scope for {ModuleName}", ModuleName);
-            
+
             _executionTimer?.Stop();
             _serviceScope?.Dispose();
 

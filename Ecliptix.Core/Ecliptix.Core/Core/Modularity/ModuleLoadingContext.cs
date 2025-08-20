@@ -19,9 +19,9 @@ public class ModuleLoadingContext
         _loadingSemaphore = new SemaphoreSlim(maxConcurrentLoads, maxConcurrentLoads);
     }
 
-    
-    
-    
+
+
+
     public Task<IModule> GetOrCreateLoadingTask(string moduleName, Func<Task<IModule>> loadFactory)
     {
         TaskCompletionSource<IModule> tcs = _loadingTasks.GetOrAdd(moduleName, _ =>
@@ -42,10 +42,10 @@ public class ModuleLoadingContext
 
                         DateTime startTime = DateTime.UtcNow;
                         IModule module = await loadFactory();
-                        
+
                         _loadedModules[moduleName] = module;
                         _loadTimes[moduleName] = DateTime.UtcNow;
-                        
+
                         newTcs.SetResult(module);
                     }
                     finally
@@ -63,24 +63,24 @@ public class ModuleLoadingContext
         return tcs.Task;
     }
 
-    
-    
-    
+
+
+
     public IModule? GetCachedModule(string moduleName)
     {
         return _loadedModules.TryGetValue(moduleName, out IModule? module) ? module : null;
     }
 
-    
-    
-    
+
+
+
     public ModuleLoadingStats GetStats()
     {
         return new ModuleLoadingStats
         {
             LoadedModulesCount = _loadedModules.Count,
             ActiveLoadingTasks = _loadingTasks.Count(kvp => !kvp.Value.Task.IsCompleted),
-            AverageLoadTime = _loadTimes.Count > 0 
+            AverageLoadTime = _loadTimes.Count > 0
                 ? _loadTimes.Values.Select(t => (DateTime.UtcNow - t).TotalMilliseconds).Average()
                 : 0
         };

@@ -119,7 +119,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         if (result.IsOk)
         {
             VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
-            ((MembershipHostWindowModel)HostScreen).Router.Navigate.Execute(vm);
+            ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
         }
         else
         {

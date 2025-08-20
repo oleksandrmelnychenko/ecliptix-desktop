@@ -1,0 +1,98 @@
+{
+  "version": {
+    "auto_increment": {
+      "enabled": true,
+      "default_increment": "patch",
+      "on_commit": true,
+      "on_merge": false
+    },
+    "patterns": {
+      "major": {
+        "commit_messages": ["[major]", "BREAKING CHANGE:", "breaking:"],
+        "description": "Breaking changes, major new features, incompatible API changes"
+      },
+      "minor": {
+        "commit_messages": ["[minor]", "feat:", "feature:"],
+        "description": "New features, non-breaking functionality additions"
+      },
+      "patch": {
+        "commit_messages": ["[patch]", "fix:", "bugfix:", "hotfix:"],
+        "description": "Bug fixes, small improvements, patches"
+      },
+      "skip": {
+        "commit_messages": ["[skip-version]", "[no-version]", "docs:", "chore:", "style:", "refactor:", "test:"],
+        "description": "No version increment (documentation, tests, refactoring)"
+      }
+    }
+  },
+  "build": {
+    "info_file": "build-info.json",
+    "timestamp_format": "iso",
+    "include_git_info": true,
+    "include_build_number": true,
+    "build_number_format": "YYMMDD.HHMM"
+  },
+  "git": {
+    "hooks": {
+      "pre_commit": {
+        "enabled": true,
+        "script": ".githooks/pre-commit",
+        "actions": [
+          "check_version_patterns",
+          "increment_version",
+          "update_build_props"
+        ]
+      },
+      "post_commit": {
+        "enabled": true,
+        "script": ".githooks/post-commit", 
+        "actions": [
+          "generate_build_info",
+          "update_changelog"
+        ]
+      }
+    }
+  },
+  "files": {
+    "version_files": [
+      {
+        "path": "Ecliptix.Core/Directory.Build.props",
+        "type": "msbuild",
+        "properties": ["MajorVersion", "MinorVersion", "PatchVersion"]
+      }
+    ],
+    "build_info_locations": [
+      "build-info.json",
+      "Ecliptix.Core/Ecliptix.Core/build-info.json"
+    ]
+  },
+  "branches": {
+    "versioning_branches": ["main"],
+    "skip_branches": ["develop", "feature/*", "bugfix/*", "docs/*", "chore/*", "release/*", "hotfix/*"]
+  },
+  "changelog": {
+    "enabled": false,
+    "file": "CHANGELOG.md",
+    "format": "conventional",
+    "sections": {
+      "breaking": "💥 Breaking Changes",
+      "feature": "✨ New Features", 
+      "fix": "🐛 Bug Fixes",
+      "docs": "📚 Documentation",
+      "style": "💄 Style Changes",
+      "refactor": "♻️ Code Refactoring",
+      "test": "✅ Tests",
+      "chore": "🔧 Chores"
+    }
+  },
+  "notifications": {
+    "version_increment": {
+      "enabled": true,
+      "message": "Version incremented to {version} ({increment_type})"
+    },
+    "build_info": {
+      "enabled": true,
+      "message": "Build info updated: {full_version}"
+    }
+  }
+}

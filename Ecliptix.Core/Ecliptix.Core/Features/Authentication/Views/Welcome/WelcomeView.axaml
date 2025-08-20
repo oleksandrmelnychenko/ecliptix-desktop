@@ -115,14 +115,14 @@
             <!-- Main Logo -->
             <Border Height="{StaticResource LogoHeight}"
                     HorizontalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/EcliptiX.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/EcliptiX.png"
                        Stretch="Uniform" />
             </Border>
 
             <!-- Tagline -->
             <Border Height="{StaticResource TaglineHeight}"
                     HorizontalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/Master the architecture of your mind.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/Master the architecture of your mind.png"
                        Stretch="Uniform" />
             </Border>
         </StackPanel>
@@ -148,7 +148,7 @@
                     ClipToBounds="True"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
-                <Image Source="avares://Ecliptix.Core/Assets/Welcome-screen/bg.png"
+                <Image Source="avares://Ecliptix.Core/Assets/Screens/Welcome/bg.png"
                        Stretch="UniformToFill"
                        RenderOptions.BitmapInterpolationMode="HighQuality" />
             </Border>

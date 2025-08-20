@@ -203,7 +203,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
         catch (Exception)
         {
-            
+
         }
     }
 
@@ -229,7 +229,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 onRetry: (_, _, _, _) => { });
 
         IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromSeconds(30), 
+            TimeSpan.FromSeconds(30),
             onTimeoutAsync: (_, _, _) => Task.CompletedTask);
 
         return retryPolicy

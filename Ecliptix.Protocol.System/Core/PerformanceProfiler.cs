@@ -60,14 +60,14 @@ public sealed class PerformanceProfiler
     private string ExportToJsonString()
     {
         Dictionary<string, (long Count, double AvgMs, double MaxMs, double MinMs)> metrics = GetMetrics();
-        
+
         StringBuilder json = new();
         json.AppendLine("{");
         json.AppendLine($"  \"Timestamp\": \"{DateTime.UtcNow:O}\",");
         json.AppendLine($"  \"SessionDuration\": \"{DateTime.UtcNow.Subtract(_startTime)}\",");
         json.AppendLine("  \"Operations\": [");
-        
-        List<(string Name, long Count, double AvgMs, double MaxMs, double MinMs, double TotalMs)> operations = 
+
+        List<(string Name, long Count, double AvgMs, double MaxMs, double MinMs, double TotalMs)> operations =
             metrics.Select(kvp => (
                 Name: EscapeJsonString(kvp.Key),
                 Count: kvp.Value.Count,
@@ -76,7 +76,7 @@ public sealed class PerformanceProfiler
                 MinMs: Math.Round(kvp.Value.MinMs, 3),
                 TotalMs: Math.Round(kvp.Value.Count * kvp.Value.AvgMs, 3)
             )).OrderByDescending(x => x.TotalMs).ToList();
-        
+
         for (int i = 0; i < operations.Count; i++)
         {
             (string name, long count, double avgMs, double maxMs, double minMs, double totalMs) = operations[i];
@@ -93,10 +93,10 @@ public sealed class PerformanceProfiler
             else
                 json.AppendLine();
         }
-        
+
         json.AppendLine("  ]");
         json.AppendLine("}");
-        
+
         return json.ToString();
     }
 
@@ -106,7 +106,7 @@ public sealed class PerformanceProfiler
             return string.Empty;
 
         StringBuilder escaped = new(input.Length + 16);
-        
+
         foreach (char c in input)
         {
             switch (c)
@@ -140,7 +140,7 @@ public sealed class PerformanceProfiler
                     break;
             }
         }
-        
+
         return escaped.ToString();
     }
 

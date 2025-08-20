@@ -45,7 +45,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
     [ObservableAsProperty] public bool HasPasswordError { get; private set; }
     [ObservableAsProperty] public string? VerifyPasswordError { get; private set; }
     [ObservableAsProperty] public bool HasVerifyPasswordError { get; private set; }
-    
+
     [ObservableAsProperty] public PasswordStrength CurrentPasswordStrength { get; private set; }
     [ObservableAsProperty] public string? PasswordStrengthMessage { get; private set; }
     [ObservableAsProperty] public bool HasPasswordBeenTouched { get; private set; }
@@ -81,7 +81,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                     if (result.IsErr)
                     {
                         Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
-                        ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+                        ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
                         ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                     }
                 })
@@ -90,7 +90,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
                 {
-                    ((MembershipHostWindowModel)HostScreen).Router.NavigationStack.Clear();
+                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
                     ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
                 })
                 .DisposeWith(disposables);
@@ -203,7 +203,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         string? error = null;
         string recommendations = string.Empty;
         PasswordStrength strength = PasswordStrength.Invalid;
-        
+
         _passwordBuffer.WithSecureBytes(bytes =>
         {
             string password = Encoding.UTF8.GetString(bytes);
@@ -251,7 +251,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         {
             PasswordStrength.Invalid => "Invalid",
             PasswordStrength.VeryWeak => "Very Weak",
-            PasswordStrength.Weak => "Weak", 
+            PasswordStrength.Weak => "Weak",
             PasswordStrength.Good => "Good",
             PasswordStrength.Strong => "Strong",
             PasswordStrength.VeryStrong => "Very Strong",

@@ -66,7 +66,21 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
 
+    private readonly Stack<IRoutableViewModel> _navigationStack = new();
+    
     public RoutingState Router { get; } = new();
+    
+    private IRoutableViewModel? _currentView;
+    public IRoutableViewModel? CurrentView
+    {
+        get => _currentView;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _currentView, value);
+            
+            CanNavigateBack = _navigationStack.Count > 0;
+        }
+    }
 
     public bool CanNavigateBack
     {
@@ -85,6 +99,28 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public string FullVersionInfo { get; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
+    
+    public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
+    
+    public void ClearNavigationStack()
+    {
+        _navigationStack.Clear();
+        CanNavigateBack = false;
+        Log.Information("Navigation stack cleared");
+    }
+    
+    public void NavigateToViewModel(IRoutableViewModel viewModel)
+    {
+        if (_currentView != null)
+        {
+            _navigationStack.Push(_currentView);
+            Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}", 
+                _currentView.GetType().Name, _navigationStack.Count);
+        }
+
+        CurrentView = viewModel;
+        Log.Information("Navigated directly to {ViewModelType}", viewModel.GetType().Name);
+    }
 
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
 
@@ -129,18 +165,48 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             Log.Information("Network status changed to: {Status}", status);
 
-            if (status)
-            {
-                _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
-            }
-            else
-            {
-                _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
-            }
+            _networkEvents.InitiateChangeState(status
+                ? NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting)
+                : NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
         });
 
-        Navigate = ReactiveCommand.CreateFromObservable<MembershipViewType, IRoutableViewModel>(viewType =>
-            Router.Navigate.Execute(GetOrCreateViewModelForView(viewType)));
+        Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
+        {
+            Log.Information("Navigate command executing for ViewType: {ViewType}", viewType);
+            IRoutableViewModel viewModel = GetOrCreateViewModelForView(viewType);
+            Log.Information("Created/Retrieved ViewModel: {ViewModelType} for ViewType: {ViewType}",
+                viewModel.GetType().Name, viewType);
+
+            if (_currentView != null)
+            {
+                _navigationStack.Push(_currentView);
+                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}", 
+                    _currentView.GetType().Name, _navigationStack.Count);
+            }
+
+            CurrentView = viewModel;
+            
+            return viewModel;
+        });
+        
+        NavigateBack = ReactiveCommand.Create(() =>
+        {
+            if (_navigationStack.Count > 0)
+            {
+                IRoutableViewModel previousView = _navigationStack.Pop();
+                Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}", 
+                    previousView.GetType().Name, _navigationStack.Count);
+                
+                _currentView = previousView;
+                this.RaisePropertyChanged(nameof(CurrentView));
+                CanNavigateBack = _navigationStack.Count > 0;
+                
+                return previousView;
+            }
+            
+            Log.Information("Cannot navigate back - navigation stack is empty");
+            return null;
+        });
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -151,9 +217,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/privacy"));
         OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/terms"));
         OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/support"));
-
-        this.WhenAnyObservable(x => x.Router.NavigateBack.CanExecute)
-            .Subscribe(canExecute => { CanNavigateBack = canExecute; });
 
         this.WhenActivated(disposables =>
         {
@@ -186,7 +249,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
             Navigate.Execute(MembershipViewType.Welcome)
-                .Subscribe()
+                .Subscribe(vm =>
+                {
+                    Log.Information("Navigation to Welcome completed. ViewModel: {ViewModelType}, UrlPath: {UrlPath}",
+                        vm.GetType().Name, vm.UrlPathSegment);
+                })
                 .DisposeWith(disposables);
         });
     }

@@ -5,7 +5,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Core.MainHostWindow"
         Title="Ecliptix"
-        Icon="avares://Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png">
+        Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
     <Window.Styles>
         <Style Selector="Button.traffic-light">
             <Setter Property="Width" Value="12" />

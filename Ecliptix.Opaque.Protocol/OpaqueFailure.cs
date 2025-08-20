@@ -30,18 +30,6 @@ public sealed record OpaqueFailure
             string.IsNullOrEmpty(details) ? OpaqueMessageKeys.HashingValidPointFailed : details, inner);
     }
 
-    public static OpaqueFailure DecryptFailed(string? details = null, Exception? inner = null)
-    {
-        return new OpaqueFailure(OpaqueCryptoFailureType.DecryptFailure,
-            string.IsNullOrEmpty(details) ? OpaqueMessageKeys.DecryptFailed : details, inner);
-    }
-
-    public static OpaqueFailure EncryptFailed(string? details = null, Exception? inner = null)
-    {
-        return new OpaqueFailure(OpaqueCryptoFailureType.EncryptFailure,
-            string.IsNullOrEmpty(details) ? OpaqueMessageKeys.EncryptFailed : details, inner);
-    }
-
     public static OpaqueFailure InvalidInput(string? details = null, Exception? inner = null)
     {
         return new OpaqueFailure(OpaqueCryptoFailureType.InvalidInput,
@@ -85,12 +73,4 @@ public sealed record OpaqueFailure
     }
 }
 
-/// <summary>
-/// Exception thrown when OPAQUE authentication fails due to invalid credentials.
-/// This is thrown when point decoding fails, which typically indicates wrong password.
-/// </summary>
-public class OpaqueAuthenticationException : Exception
-{
-    public OpaqueAuthenticationException(string message) : base(message) { }
-    public OpaqueAuthenticationException(string message, Exception innerException) : base(message, innerException) { }
-}
+public class OpaqueAuthenticationException(string message) : Exception(message);

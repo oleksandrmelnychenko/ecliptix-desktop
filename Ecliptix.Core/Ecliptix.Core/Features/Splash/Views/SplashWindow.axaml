@@ -100,7 +100,7 @@
             <Grid RowDefinitions="*, Auto">
 
                 <Svg Grid.Row="0"
-                     Path="../../../../Assets/ecliptix_logo.svg"
+                     Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
                      VerticalAlignment="Center"
                      Width="160"
                      Height="160"

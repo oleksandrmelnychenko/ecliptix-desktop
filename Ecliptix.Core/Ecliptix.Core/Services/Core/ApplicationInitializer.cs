@@ -71,7 +71,7 @@ public class ApplicationInitializer(
 
                     if (countryResult.IsOk)
                     {
-                        
+
                         networkProvider.SetCountry(countryResult.Unwrap().Country);
                         await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
                     }

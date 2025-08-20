@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -72,7 +73,7 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
     {
         if (string.IsNullOrEmpty(key)) return false;
 
-        if (_state.TryRemove(key, out StateEntry? removedEntry))
+        if (_state.TryRemove(key, out StateEntry? _))
         {
             _logger.LogDebug("Removed shared state value for key {Key}", key);
             return true;
@@ -89,22 +90,12 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 
     private void CleanupExpiredEntries(object? state)
     {
-        List<string> expiredKeys = new();
+        List<string> expiredKeys = [];
+        expiredKeys.AddRange(from kvp in _state where kvp.Value.IsExpired select kvp.Key);
 
-        foreach (KeyValuePair<string, StateEntry> kvp in _state)
+        foreach (string key in expiredKeys.Where(key => _state.TryRemove(key, out StateEntry? _)))
         {
-            if (kvp.Value.IsExpired)
-            {
-                expiredKeys.Add(kvp.Key);
-            }
-        }
-
-        foreach (string key in expiredKeys)
-        {
-            if (_state.TryRemove(key, out StateEntry? removedEntry))
-            {
-                _logger.LogDebug("Cleaned up expired shared state entry for key {Key}", key);
-            }
+            _logger.LogDebug("Cleaned up expired shared state entry for key {Key}", key);
         }
 
         if (expiredKeys.Count > 0)
@@ -115,7 +106,7 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
+        _cleanupTimer.Dispose();
         _state.Clear();
     }
 }
@@ -127,6 +118,6 @@ internal class StateEntry
     public DateTime CreatedAt { get; set; }
     public DateTime LastAccessed { get; set; }
     public DateTime? ExpiresAt { get; set; }
-    
+
     public bool IsExpired => ExpiresAt.HasValue && DateTime.UtcNow > ExpiresAt.Value;
 }

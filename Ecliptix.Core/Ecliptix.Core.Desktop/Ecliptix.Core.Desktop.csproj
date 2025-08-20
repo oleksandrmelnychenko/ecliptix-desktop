@@ -9,7 +9,7 @@
         <!-- Recommended Avalonia trimming settings for Native AOT -->
         <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
         <TrimMode>link</TrimMode>
-        <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">../Ecliptix.Core/Assets/ecliptix.ico</ApplicationIcon>
+        <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">../Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico</ApplicationIcon>
         <AssemblyName>Ecliptix</AssemblyName>
         
         <!-- Single-file deployment -->
@@ -107,12 +107,12 @@
     </PropertyGroup>
     
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
-        <Content Include="../Ecliptix.Core/Assets/ecliptix.ico">
+        <Content Include="../Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
-        <Content Include="../Ecliptix.Core/Assets/EcliptixLogo.icns">
+        <Content Include="../Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>EcliptixLogo.icns</Link>
         </Content>
@@ -121,7 +121,7 @@
         </Content>
     </ItemGroup>
     <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-        <Content Include="../Ecliptix.Core/Assets/Ecliptix-logo/logo_256x256.png">
+        <Content Include="../Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

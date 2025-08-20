@@ -115,8 +115,8 @@ public sealed class EcliptixProtocolConnection : IDisposable
     }
 
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(
-        uint connectId, 
-        bool isInitiator, 
+        uint connectId,
+        bool isInitiator,
         RatchetConfig ratchetConfig)
     {
         SodiumSecureMemoryHandle? initialSendingDhPrivateKeyHandle = null;
@@ -312,7 +312,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 EcliptixProtocolFailure.Generic("Peer bundle has not been set."));
         }
     }
-    
+
     public bool IsInitiator()
     {
         return _isInitiator;
@@ -380,7 +380,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 {
                     Console.WriteLine($"[CLIENT] Deriving chain keys from root key: {Convert.ToHexString(initialRootKey[0..8])}... (Role: {(_isInitiator ? "Initiator" : "Responder")})");
                     Console.WriteLine($"[CLIENT] InitialSenderChainInfo: {Convert.ToHexString(InitialSenderChainInfo)}, InitialReceiverChainInfo: {Convert.ToHexString(InitialReceiverChainInfo)}");
-                    
+
                     Span<byte> sendSpan = stackalloc byte[Constants.X25519KeySize];
                     Span<byte> recvSpan = stackalloc byte[Constants.X25519KeySize];
 
@@ -541,7 +541,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
     {
         using IDisposable timer = _profiler.StartOperation("ProcessReceivedMessage");
         bool hasSkippedKeys = false;
-        
+
         lock (_lock)
         {
             Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
@@ -589,12 +589,12 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     try
                     {
                         Result<Unit, EcliptixProtocolFailure> storeResult = _ratchetRecovery.StoreSkippedMessageKeys(
-                            currentChainKey, 
-                            currentIndex + 1, 
+                            currentChainKey,
+                            currentIndex + 1,
                             receivedIndex
                         );
                         hasSkippedKeys = true;
-                        
+
                         if (storeResult.IsErr)
                         {
                             return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(storeResult.UnwrapErr());
@@ -625,7 +625,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
             _receivingStep!.PruneOldKeys();
             _eventHandler?.OnMessageProcessed(_id, receivedIndex, hasSkippedKeys);
-            
+
             return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(derivedKey);
         }
     }
@@ -639,19 +639,19 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 return disposedCheck;
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> receivingStepResult = EnsureReceivingStepInitialized();
-            if (receivingStepResult.IsErr) 
+            if (receivingStepResult.IsErr)
                 return Result<Unit, EcliptixProtocolFailure>.Err(receivingStepResult.UnwrapErr());
 
             var receivingStep = receivingStepResult.Unwrap();
-            
+
             var currentIndexResult = receivingStep.GetCurrentIndex();
-            if (currentIndexResult.IsErr) 
+            if (currentIndexResult.IsErr)
                 return Result<Unit, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
 
             uint currentIndex = currentIndexResult.Unwrap();
-            bool shouldRatchetNow = _isFirstReceivingRatchet || 
+            bool shouldRatchetNow = _isFirstReceivingRatchet ||
                 _ratchetConfig.ShouldRatchet(currentIndex + 1, _lastRatchetTime, _receivedNewDhKey);
-            
+
             if (shouldRatchetNow)
             {
                 _isFirstReceivingRatchet = false;
@@ -825,7 +825,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
         using SecurePooledArray<byte> pooledNonce = SecureArrayPool.Rent<byte>(Constants.AesGcmNonceSize);
         Span<byte> nonceBuffer = pooledNonce.AsSpan();
-        
+
         RandomNumberGenerator.Fill(nonceBuffer[..8]);
         long nextCounter = Interlocked.Increment(ref _nonceCounter);
         if (nextCounter >= uint.MaxValue)

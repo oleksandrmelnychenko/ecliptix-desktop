@@ -21,18 +21,18 @@ public class ParallelModuleLoader : IDisposable
         int maxParallelism = 0)
     {
         _serviceProvider = serviceProvider;
-        _logger = serviceProvider.GetService<ILogger<ParallelModuleLoader>>() ?? 
+        _logger = serviceProvider.GetService<ILogger<ParallelModuleLoader>>() ??
             Microsoft.Extensions.Logging.Abstractions.NullLogger<ParallelModuleLoader>.Instance;
         _maxParallelism = maxParallelism > 0 ? maxParallelism : Environment.ProcessorCount;
         _loadingContext = new ModuleLoadingContext(_maxParallelism);
         _batchSemaphore = new SemaphoreSlim(1, 1);
     }
 
-    
-    
-    
+
+
+
     public async Task<IReadOnlyList<IModule>> LoadModulesAsync(
-        IEnumerable<IModule> modules, 
+        IEnumerable<IModule> modules,
         CancellationToken cancellationToken = default)
     {
         await _batchSemaphore.WaitAsync(cancellationToken);
@@ -47,11 +47,11 @@ public class ParallelModuleLoader : IDisposable
     }
 
     private async Task<IReadOnlyList<IModule>> LoadModulesInternalAsync(
-        IModule[] modules, 
+        IModule[] modules,
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting parallel loading of {Count} modules", modules.Length);
-        
+
         DateTime startTime = DateTime.UtcNow;
         ModulePriorityQueue priorityQueue = new();
         priorityQueue.EnqueueModules(modules);
@@ -63,20 +63,20 @@ public class ParallelModuleLoader : IDisposable
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            
+
             while (currentBatch.Count < _maxParallelism && priorityQueue.Count > 0)
             {
                 IModule? nextModule = priorityQueue.DequeueNext();
                 if (nextModule == null)
                 {
-                    break; 
+                    break;
                 }
 
                 Task loadTask = LoadModuleWithRetryAsync(nextModule, cancellationToken);
                 currentBatch.Add(loadTask);
-                
-                _logger.LogDebug("Queued module {ModuleName} for loading (Priority: {Priority})", 
-                    nextModule.Name, nextModule.Priority);
+
+                _logger.LogDebug("Queued module {ModuleName} for loading (Priority: {Priority})",
+                    nextModule.Id.ToName(), nextModule.Manifest.Priority);
             }
 
             if (currentBatch.Count == 0)
@@ -84,19 +84,19 @@ public class ParallelModuleLoader : IDisposable
                 throw new InvalidOperationException("Deadlock detected - no modules can be loaded due to circular dependencies");
             }
 
-            
+
             Task completedTask = await Task.WhenAny(currentBatch);
             currentBatch.Remove(completedTask);
 
             try
             {
-                await completedTask; 
+                await completedTask;
                 if (completedTask is Task<IModule> moduleTask)
                 {
                     IModule completedModule = await moduleTask;
                     loadedModules.Add(completedModule);
-                    
-                    _logger.LogDebug("Successfully loaded module {ModuleName}", completedModule.Name);
+
+                    _logger.LogDebug("Successfully loaded module {ModuleName}", completedModule.Id.ToName());
                 }
             }
             catch (Exception ex)
@@ -106,7 +106,7 @@ public class ParallelModuleLoader : IDisposable
             }
         }
 
-        
+
         await Task.WhenAll(currentBatch);
         foreach (Task<IModule> task in currentBatch.OfType<Task<IModule>>())
         {
@@ -114,7 +114,7 @@ public class ParallelModuleLoader : IDisposable
         }
 
         TimeSpan loadTime = DateTime.UtcNow - startTime;
-        _logger.LogInformation("Completed loading {Count} modules in {LoadTime:F2}ms", 
+        _logger.LogInformation("Completed loading {Count} modules in {LoadTime:F2}ms",
             loadedModules.Count, loadTime.TotalMilliseconds);
 
         return loadedModules.AsReadOnly();
@@ -122,41 +122,41 @@ public class ParallelModuleLoader : IDisposable
 
     private async Task<IModule> LoadModuleWithRetryAsync(IModule module, CancellationToken cancellationToken)
     {
-        return await _loadingContext.GetOrCreateLoadingTask(module.Name, async () =>
+        return await _loadingContext.GetOrCreateLoadingTask(module.Id.ToName(), async () =>
         {
-            _logger.LogDebug("Loading module {ModuleName} (Strategy: {Strategy})", 
-                module.Name, module.LoadingStrategy);
+            _logger.LogDebug("Loading module {ModuleName} (Strategy: {Strategy})",
+                module.Id.ToName(), module.Manifest.LoadingStrategy);
 
             try
             {
                 await module.LoadAsync(_serviceProvider);
-                
-                _logger.LogInformation("Module {ModuleName} loaded successfully", module.Name);
+
+                _logger.LogInformation("Module {ModuleName} loaded successfully", module.Id.ToName());
                 return module;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load module {ModuleName}", module.Name);
+                _logger.LogError(ex, "Failed to load module {ModuleName}", module.Id.ToName());
                 throw;
             }
         });
     }
 
-    
-    
-    
+
+
+
     public ModuleLoadingStats GetLoadingStats()
     {
         return _loadingContext.GetStats();
     }
 
-    
-    
-    
+
+
+
     public void PreloadModulesAsync(IEnumerable<IModule> modules)
     {
         IModule[] backgroundModules = modules
-            .Where(m => m.LoadingStrategy == ModuleLoadingStrategy.Background)
+            .Where(m => m.Manifest.LoadingStrategy == ModuleLoadingStrategy.Background)
             .ToArray();
 
         if (backgroundModules.Length == 0) return;

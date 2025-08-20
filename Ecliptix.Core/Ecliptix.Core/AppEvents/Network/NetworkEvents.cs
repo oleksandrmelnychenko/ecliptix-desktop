@@ -42,7 +42,7 @@ public class NetworkEvents(IEventAggregator aggregator) : INetworkEvents
 
     public void InitiateChangeState(NetworkStatusChangedEvent message)
     {
-        
+
         if (_currentState.HasValue && _currentState.Value == message.State)
             return;
 

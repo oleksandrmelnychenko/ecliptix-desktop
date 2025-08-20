@@ -12,13 +12,15 @@ public interface IModuleCatalog
     void AddModule<TModule>() where TModule : class, IModule, new();
     void AddModule(IModule module);
     void AddModules(params IModule[] modules);
-    
+
     IReadOnlyList<IModule> GetModules();
+    IModule? GetModule(ModuleIdentifier id);
     IModule? GetModule(string name);
+    bool HasModule(ModuleIdentifier id);
     bool HasModule(string name);
-    
+
     Task<IEnumerable<IModule>> GetLoadOrderAsync();
-    Task<IEnumerable<IModule>> GetRequiredModulesAsync(string moduleName);
+    Task<IEnumerable<IModule>> GetRequiredModulesAsync(ModuleIdentifier moduleId);
 }
 
 public class ModuleCatalog : IModuleCatalog
@@ -34,14 +36,14 @@ public class ModuleCatalog : IModuleCatalog
 
     public void AddModule(IModule module)
     {
-        if (_modules.Any(m => m.Name == module.Name))
+        if (_modules.Any(m => m.Id == module.Id))
         {
-            Log.Warning("Module {ModuleName} is already registered", module.Name);
+            Log.Warning("Module {ModuleName} is already registered", module.Id.ToName());
             return;
         }
 
         _modules.Add(module);
-        Log.Debug("Module {ModuleName} added to catalog", module.Name);
+        Log.Debug("Module {ModuleName} added to catalog", module.Id.ToName());
     }
 
     public void AddModules(params IModule[] modules)
@@ -54,8 +56,13 @@ public class ModuleCatalog : IModuleCatalog
 
     public IReadOnlyList<IModule> GetModules() => _modules.AsReadOnly();
 
-    public IModule? GetModule(string name) => 
-        _modules.FirstOrDefault(m => string.Equals(m.Name, name, StringComparison.OrdinalIgnoreCase));
+    public IModule? GetModule(ModuleIdentifier id) =>
+        _modules.FirstOrDefault(m => m.Id == id);
+
+    public IModule? GetModule(string name) =>
+        _modules.FirstOrDefault(m => string.Equals(m.Id.ToName(), name, StringComparison.OrdinalIgnoreCase));
+
+    public bool HasModule(ModuleIdentifier id) => GetModule(id) != null;
 
     public bool HasModule(string name) => GetModule(name) != null;
 
@@ -64,8 +71,8 @@ public class ModuleCatalog : IModuleCatalog
         return await _dependencyResolver.ResolveLoadOrderAsync(_modules);
     }
 
-    public async Task<IEnumerable<IModule>> GetRequiredModulesAsync(string moduleName)
+    public async Task<IEnumerable<IModule>> GetRequiredModulesAsync(ModuleIdentifier moduleId)
     {
-        return await _dependencyResolver.GetRequiredModulesAsync(moduleName, _modules);
+        return await _dependencyResolver.GetRequiredModulesAsync(moduleId.ToName(), _modules);
     }
 }

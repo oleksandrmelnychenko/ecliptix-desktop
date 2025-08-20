@@ -89,7 +89,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
-    
+
     public static readonly StyledProperty<bool> IsPasswordStrengthModeProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordStrengthMode));
 
@@ -266,7 +266,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         get => GetValue(FontWeightProperty);
         set => SetValue(FontWeightProperty, value);
     }
-    
+
     public bool IsPasswordStrengthMode
     {
         get => GetValue(IsPasswordStrengthModeProperty);
@@ -335,33 +335,33 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             // Clear main text
             Text = string.Empty;
-            
+
             // Clear shadow text for secure key mode
             _shadowText = string.Empty;
-            
+
             // Clear main textbox
             if (_mainTextBox != null)
             {
                 _mainTextBox.Text = string.Empty;
                 _mainTextBox.CaretIndex = 0;
             }
-            
+
             // Clear secure key mask overlay
             if (_secureKeyMaskOverlay != null)
             {
                 _secureKeyMaskOverlay.Text = string.Empty;
             }
-            
+
             // Reset position tracking
             _nextCaretPosition = 0;
-            
+
             // Clear error state
             ErrorText = string.Empty;
             HasError = false;
-            
+
             // Update remaining characters
             UpdateRemainingCharacters();
-            
+
             // Force garbage collection to clear any string references
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -526,15 +526,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         if (IsPasswordStrengthMode)
         {
-            
+
             (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(PasswordStrength);
-            
+
             _focusBorder.BorderBrush = new SolidColorBrush(borderColor);
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
             _shadowBorder.BoxShadow = (BoxShadows)this.FindResource(shadowKey);
-            
-            
+
+
             PasswordStrengthIconBrush = new SolidColorBrush(iconColor);
             PasswordStrengthTextBrush = new SolidColorBrush(iconColor);
         }

@@ -10,7 +10,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
-    <ApplicationIcon>Assets/ecliptix.ico</ApplicationIcon>
+    <ApplicationIcon>Assets/Branding/Platform/Windows/ecliptix.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
@@ -102,20 +102,19 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Fonts\" />
-    <Folder Include="Constants\" />
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
-    <Content Include="Assets/ecliptix.ico">
+    <Content Include="Assets/Branding/Platform/Windows/ecliptix.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'osx-arm64'">
-    <Content Include="Assets/EcliptixLogo.icns">
+    <Content Include="Assets/Branding/Platform/macOS/EcliptixLogo.icns">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <Content Include="Assets/Ecliptix-logo/logo_256x256.png">
+    <Content Include="Assets/Branding/Logos/logo_256x256.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

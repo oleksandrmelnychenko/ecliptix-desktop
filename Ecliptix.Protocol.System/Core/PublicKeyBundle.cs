@@ -68,14 +68,14 @@ public record PublicKeyBundle(
                     throw new ArgumentException($"IdentityEd25519 key must be {Constants.Ed25519KeySize} bytes.");
                 if (identityX25519.Length != Constants.X25519KeySize)
                     throw new ArgumentException($"IdentityX25519 key must be {Constants.X25519KeySize} bytes.");
-                
+
                 Result<Unit, EcliptixProtocolFailure> identityX25519ValidationResult = DhValidator.ValidateX25519PublicKey(identityX25519);
                 if (identityX25519ValidationResult.IsErr)
                     throw new ArgumentException($"Invalid IdentityX25519 key: {identityX25519ValidationResult.UnwrapErr().Message}");
-                
+
                 if (signedPreKeyPublic.Length != Constants.X25519KeySize)
                     throw new ArgumentException($"SignedPreKeyPublic key must be {Constants.X25519KeySize} bytes.");
-                
+
                 Result<Unit, EcliptixProtocolFailure> signedPreKeyValidationResult = DhValidator.ValidateX25519PublicKey(signedPreKeyPublic);
                 if (signedPreKeyValidationResult.IsErr)
                     throw new ArgumentException($"Invalid SignedPreKeyPublic key: {signedPreKeyValidationResult.UnwrapErr().Message}");
@@ -91,7 +91,7 @@ public record PublicKeyBundle(
                 if (ephemeralX25519 != null && ephemeralX25519.Length != Constants.X25519KeySize)
                     throw new ArgumentException(
                         $"EphemeralX25519 key must be {Constants.X25519KeySize} bytes if present.");
-                
+
                 if (ephemeralX25519 != null)
                 {
                     Result<Unit, EcliptixProtocolFailure> ephemeralValidationResult = DhValidator.ValidateX25519PublicKey(ephemeralX25519);

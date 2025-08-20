@@ -40,9 +40,9 @@ public class DetectLanguageDialogViewModel : ReactiveObject
         PromptText = localizationService.GetString("LanguageDetection.Prompt", LanguageConfig.GetDisplayName(_targetCulture));
         ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];
         DeclineButtonText = localizationService["LanguageDetection.Button.Decline"];
-        
+
         LanguageItem? languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
-        FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg";
+        FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg";
 
         ConfirmCommand = ReactiveCommand.Create(OnConfirm);
         DeclineCommand = ReactiveCommand.Create(OnDecline);

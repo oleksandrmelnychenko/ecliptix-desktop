@@ -53,10 +53,11 @@ using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Modularity;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Core.Communication;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Authentication;
 using Ecliptix.Core.Features.Main;
+using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
 // TODO: ViewModels moved to feature modules
 // using Ecliptix.Core.ViewModels.Authentication.Registration;
 // using Ecliptix.Core.ViewModels.Memberships;
@@ -82,10 +83,9 @@ public static class Program
     [STAThread]
     public static async Task Main(string[] args)
     {
-        // Single instance check using Mutex - must be done first
         string mutexName = $"EcliptixDesktop_{Environment.UserName}";
         using Mutex mutex = new(true, mutexName, out bool createdNew);
-        
+
         if (!createdNew)
         {
             Console.WriteLine("Another instance is already running.");
@@ -100,8 +100,13 @@ public static class Program
         {
             Log.Information(ApplicationConstants.Logging.StartupMessage);
             IServiceCollection services = ConfigureServices(configuration);
-            
+
             services.UseMicrosoftDependencyResolver();
+
+            // Configure ReactiveUI's ViewLocator after DI is set up
+            IServiceProvider serviceProvider = services.BuildServiceProvider();
+            ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
+            Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
 
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
@@ -244,7 +249,7 @@ public static class Program
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-        
+
         services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
         services.AddSingleton<IWindowActivationService, WindowActivationService>();
 
@@ -355,25 +360,32 @@ public static class Program
         services.AddSingleton<ModuleDependencyResolver>();
         services.AddSingleton<ModuleResourceManager>();
         services.AddHostedService<ModuleResourceManager>(provider => provider.GetRequiredService<ModuleResourceManager>());
-        services.AddSingleton<IViewLocator, ViewLocator>();
-        
+
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleSharedState, ModuleSharedState>();
+        services.AddSingleton<IModuleViewFactory, ModuleViewFactory>();
+
+        // Register ViewLocator for ReactiveUI navigation
+        services.AddSingleton<IViewLocator, ViewLocator>();
+        services.AddSingleton<ReactiveUiViewLocatorAdapter>();
+
+        // Configure ReactiveUI to use our ViewLocator
+        services.AddSingleton<ReactiveUI.IViewLocator>(provider =>
+            provider.GetRequiredService<ReactiveUiViewLocatorAdapter>());
 
         ModuleCatalog catalog = new();
         catalog.AddModule<AuthenticationModule>();
         catalog.AddModule<MainModule>();
-        
+
         services.AddSingleton<IModuleCatalog>(catalog);
         services.AddSingleton(catalog);
-        
+
         services.AddSingleton<IModuleManager, ModuleManager>();
+
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<NetworkStatusNotificationViewModel>();
-        
-        // Register module ViewModels in main container for dependency resolution
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<MembershipHostWindowModel>();
         services.AddTransient<MainViewModel>();

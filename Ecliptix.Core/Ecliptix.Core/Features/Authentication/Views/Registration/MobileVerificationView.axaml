@@ -8,7 +8,7 @@
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="400"
-             x:Class="Ecliptix.Core.Views.Memberships.SignUp.MobileVerificationView"
+             x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.MobileVerificationView"
              x:DataType="signUp:MobileVerificationViewModel"
              MinWidth="320"
              Width="320">

@@ -16,7 +16,7 @@ public sealed class CircuitBreaker : IDisposable
     private readonly int _failureThreshold;
     private readonly TimeSpan _timeout;
     private readonly double _successThresholdPercentage;
-    
+
     private CircuitBreakerState _state = CircuitBreakerState.Closed;
     private int _failureCount;
     private int _successCount;
@@ -27,7 +27,6 @@ public sealed class CircuitBreaker : IDisposable
     public CircuitBreaker(
         int failureThreshold = 5,
         TimeSpan timeout = default,
-        TimeSpan retryTimeout = default,
         double successThresholdPercentage = 0.5)
     {
         _failureThreshold = failureThreshold;
@@ -61,7 +60,7 @@ public sealed class CircuitBreaker : IDisposable
         try
         {
             Result<T, EcliptixProtocolFailure> result = operation();
-            
+
             if (result.IsOk)
             {
                 OnSuccess();
@@ -70,7 +69,7 @@ public sealed class CircuitBreaker : IDisposable
             {
                 OnFailure();
             }
-            
+
             return result;
         }
         catch (Exception ex)
@@ -86,12 +85,12 @@ public sealed class CircuitBreaker : IDisposable
         lock (_lock)
         {
             DateTime now = DateTime.UtcNow;
-            
+
             switch (_state)
             {
                 case CircuitBreakerState.Closed:
                     return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-                
+
                 case CircuitBreakerState.Open:
                     if (now - _lastFailureTime >= _timeout)
                     {
@@ -101,21 +100,21 @@ public sealed class CircuitBreaker : IDisposable
                         _successCount = 0;
                         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
                     }
-                    
+
                     return Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(
                             $"Circuit breaker is OPEN. Blocking requests until {_lastFailureTime.Add(_timeout):HH:mm:ss}"));
-                
+
                 case CircuitBreakerState.HalfOpen:
                     // Allow limited requests to test service recovery
                     if (_requestCount < _failureThreshold)
                     {
                         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
                     }
-                    
+
                     return Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic("Circuit breaker is HALF-OPEN but testing limit reached"));
-                
+
                 default:
                     return Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic($"Unknown circuit breaker state: {_state}"));
@@ -129,7 +128,7 @@ public sealed class CircuitBreaker : IDisposable
         {
             _successCount++;
             _requestCount++;
-            
+
             if (_state == CircuitBreakerState.HalfOpen)
             {
                 // Check if we have enough successful requests to close the circuit
@@ -159,7 +158,7 @@ public sealed class CircuitBreaker : IDisposable
             _failureCount++;
             _requestCount++;
             _lastFailureTime = DateTime.UtcNow;
-            
+
             if (_state == CircuitBreakerState.Closed && _failureCount >= _failureThreshold)
             {
                 // Trip the circuit breaker

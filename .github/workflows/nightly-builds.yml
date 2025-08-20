@@ -1,0 +1,106 @@
+name: Nightly Builds
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC on main branch only
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      build_all_platforms:
+        description: 'Build all platforms'
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+        
+    - name: Check for changes in last 24 hours
+      id: check
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "should_build=true" >> $GITHUB_OUTPUT
+        else
+          # Check if there are commits in the last 24 hours
+          COMMITS=$(git log --since="24 hours ago" --oneline | wc -l)
+          if [ $COMMITS -gt 0 ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+  build-nightly:
+    needs: check-changes
+    if: needs.check-changes.outputs.should_build == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Build only main platforms for nightly
+          - os: windows-latest
+            runtime: win-x64
+            script: '.\Scripts\build-aot-windows.ps1'
+            shell: pwsh
+          - os: macos-latest
+            runtime: universal
+            script: './Scripts/build-aot-macos.sh --universal'
+            shell: bash
+          - os: ubuntu-latest
+            runtime: linux-x64
+            script: './Scripts/build-aot-linux.sh'
+            shell: bash
+            
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Make scripts executable (Unix)
+      if: matrix.shell == 'bash'
+      run: chmod +x Scripts/*.sh
+      
+    - name: Build Nightly
+      shell: ${{ matrix.shell }}
+      run: ${{ matrix.script }} --optimization speed
+      
+    - name: Upload Nightly Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-${{ matrix.runtime }}-${{ github.sha }}
+        path: |
+          publish/**/*.zip
+          publish/**/*.tar.gz
+          publish/**/*.AppImage
+        retention-days: 7  # Keep nightly builds for 1 week
+
+  notify-nightly:
+    needs: build-nightly
+    runs-on: ubuntu-latest
+    if: always() && needs.check-changes.outputs.should_build == 'true'
+    steps:
+    - name: Notify Build Status
+      run: |
+        echo "Nightly build completed for commit ${{ github.sha }}"
+        echo "Build status: ${{ needs.build-nightly.result }}"

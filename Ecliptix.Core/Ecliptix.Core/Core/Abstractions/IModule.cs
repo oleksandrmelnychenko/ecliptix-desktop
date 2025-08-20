@@ -7,30 +7,32 @@ namespace Ecliptix.Core.Core.Abstractions;
 
 public interface IModule
 {
-    string Name { get; }
-    int Priority { get; }
-    ModuleLoadingStrategy LoadingStrategy { get; }
+    ModuleIdentifier Id { get; }
+    IModuleManifest Manifest { get; }
     bool IsLoaded { get; }
-    
-    IReadOnlyList<string> DependsOn { get; }
-    
-    IModuleResourceConstraints ResourceConstraints { get; }
-    
+
     IModuleScope? ServiceScope { get; }
-    
+
     Task<bool> CanLoadAsync();
     Task LoadAsync(IServiceProvider serviceProvider);
     Task UnloadAsync();
-    
+
     void RegisterServices(IServiceCollection services);
-    
+
     void RegisterViews(IViewLocator viewLocator);
-    
+
+    void RegisterViewFactories(IModuleViewFactory viewFactory);
+
     IReadOnlyList<Type> GetViewTypes();
-    
+
     IReadOnlyList<Type> GetViewModelTypes();
-    
+
     Task SetupMessageHandlersAsync(IModuleMessageBus messageBus);
+}
+
+public interface ITypedModule<TManifest> : IModule where TManifest : IModuleManifest
+{
+    new TManifest Manifest { get; }
 }
 
 public enum ModuleLoadingStrategy

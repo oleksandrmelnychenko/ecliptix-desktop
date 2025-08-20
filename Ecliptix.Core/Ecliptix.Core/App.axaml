@@ -6,7 +6,7 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/#Segoe UI</FontFamily>
+            <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
 
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Light">
@@ -95,7 +95,7 @@
             </ResourceDictionary.ThemeDictionaries>
 
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="Assets/Icons/LampIcon.axaml"></ResourceInclude>
+                <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

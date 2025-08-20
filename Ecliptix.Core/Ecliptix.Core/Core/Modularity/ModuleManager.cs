@@ -31,26 +31,32 @@ public class ModuleManager : IModuleManager
         _serviceProvider = serviceProvider;
         _logger = logger;
         _parallelLoader = new ParallelModuleLoader(serviceProvider);
-        _messageBus = serviceProvider.GetService<IModuleMessageBus>() ?? throw new InvalidOperationException("IModuleMessageBus not registered");
-        
+        _messageBus = serviceProvider.GetService<IModuleMessageBus>() ??
+                      throw new InvalidOperationException("IModuleMessageBus not registered");
+
         foreach (IModule module in _catalog.GetModules())
         {
-            _moduleStates[module.Name] = ModuleState.NotLoaded;
+            _moduleStates[module.Id.ToName()] = ModuleState.NotLoaded;
         }
     }
 
     public async Task<IEnumerable<IModuleMetadata>> DiscoverModulesAsync()
     {
         await Task.CompletedTask;
-        
+
         return _catalog.GetModules().Select(m => new ModuleMetadata
         {
-            Name = m.Name,
+            Name = m.Id.ToName(),
             AssemblyPath = string.Empty,
-            LoadingStrategy = m.LoadingStrategy,
-            Priority = m.Priority,
-            Dependencies = m.DependsOn
+            LoadingStrategy = m.Manifest.LoadingStrategy,
+            Priority = m.Manifest.Priority,
+            Dependencies = m.Manifest.Dependencies.Select(d => d.ToName()).ToArray()
         });
+    }
+
+    public async Task<IModule> LoadModuleAsync(ModuleIdentifier moduleId)
+    {
+        return await LoadModuleAsync(moduleId.ToName());
     }
 
     public async Task<IModule> LoadModuleAsync(string moduleName)
@@ -68,7 +74,7 @@ public class ModuleManager : IModuleManager
         try
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            
+
             if (!await module.CanLoadAsync())
             {
                 _moduleStates[moduleName] = ModuleState.Failed;
@@ -78,19 +84,9 @@ public class ModuleManager : IModuleManager
             await LoadDependenciesAsync(module);
 
             await module.LoadAsync(_serviceProvider);
-            
-            // Register view mappings with the ViewLocator
-            IViewLocator? viewLocator = _serviceProvider.GetService<IViewLocator>();
-            if (viewLocator != null)
-            {
-                module.RegisterViews(viewLocator);
-                _logger.LogDebug("View mappings registered for module: {ModuleName}", moduleName);
-            }
-            else
-            {
-                _logger.LogWarning("IViewLocator not found in service provider - views not registered for module: {ModuleName}", moduleName);
-            }
-            
+
+            // Note: View registration is now handled by StaticViewMapper - zero reflection!
+
             stopwatch.Stop();
             _moduleStates[moduleName] = ModuleState.Loaded;
             _lastAccessTimes[moduleName] = DateTime.UtcNow;
@@ -98,21 +94,22 @@ public class ModuleManager : IModuleManager
             try
             {
                 await module.SetupMessageHandlersAsync(_messageBus);
-                _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", moduleName);
+                _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}", moduleName);
+                _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}", module.Id.ToName());
             }
 
-            ModuleLoaded?.Invoke(this, new ModuleLoadedEventArgs 
-            { 
-                ModuleName = moduleName, 
-                LoadTime = stopwatch.Elapsed 
+            ModuleLoaded?.Invoke(this, new ModuleLoadedEventArgs
+            {
+                ModuleName = moduleName,
+                LoadTime = stopwatch.Elapsed
             });
 
-            _logger.LogInformation("Module '{ModuleName}' loaded in {LoadTime}ms", moduleName, stopwatch.ElapsedMilliseconds);
-            
+            _logger.LogInformation("Module '{ModuleName}' loaded in {LoadTime}ms", module.Id.ToName(),
+                stopwatch.ElapsedMilliseconds);
+
             return module;
         }
         catch (Exception ex)
@@ -126,7 +123,7 @@ public class ModuleManager : IModuleManager
     public async Task LoadModulesAsync(ModuleLoadingStrategy strategy)
     {
         IModule[] modulesToLoad = _catalog.GetModules()
-            .Where(m => m.LoadingStrategy == strategy && !IsModuleLoaded(m.Name))
+            .Where(m => m.Manifest.LoadingStrategy == strategy && !IsModuleLoaded(m.Id.ToName()))
             .ToArray();
 
         if (modulesToLoad.Length == 0)
@@ -140,58 +137,51 @@ public class ModuleManager : IModuleManager
         try
         {
             IReadOnlyList<IModule> loadedModules = await _parallelLoader.LoadModulesAsync(modulesToLoad);
-            
+
             foreach (IModule module in loadedModules)
             {
-                _moduleStates[module.Name] = ModuleState.Loaded;
-                _lastAccessTimes[module.Name] = DateTime.UtcNow;
-                
-                IViewLocator? viewLocator = _serviceProvider.GetService<IViewLocator>();
-                if (viewLocator != null)
-                {
-                    module.RegisterViews(viewLocator);
-                    _logger.LogDebug("View mappings registered for module: {ModuleName}", module.Name);
-                }
-                else
-                {
-                    _logger.LogWarning("IViewLocator not found in service provider - views not registered for module: {ModuleName}", module.Name);
-                }
-                
+                _moduleStates[module.Id.ToName()] = ModuleState.Loaded;
+                _lastAccessTimes[module.Id.ToName()] = DateTime.UtcNow;
+
                 try
                 {
                     await module.SetupMessageHandlersAsync(_messageBus);
-                    _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", module.Name);
+                    _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}", module.Name);
+                    _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}",
+                        module.Id.ToName());
                 }
-                
-                ModuleLoaded?.Invoke(this, new ModuleLoadedEventArgs 
-                { 
-                    ModuleName = module.Name, 
+
+                ModuleLoaded?.Invoke(this, new ModuleLoadedEventArgs
+                {
+                    ModuleName = module.Id.ToName(),
                     LoadTime = TimeSpan.Zero
                 });
             }
 
-            _logger.LogInformation("Successfully loaded {Count} modules with strategy: {Strategy}", loadedModules.Count, strategy);
+            _logger.LogInformation("Successfully loaded {Count} modules with strategy: {Strategy}", loadedModules.Count,
+                strategy);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load modules with strategy: {Strategy}", strategy);
-            
+
             foreach (IModule module in modulesToLoad)
             {
-                if (_moduleStates.TryGetValue(module.Name, out ModuleState state) && state == ModuleState.Loading)
+                if (_moduleStates.TryGetValue(module.Id.ToName(), out ModuleState state) &&
+                    state == ModuleState.Loading)
                 {
-                    _moduleStates[module.Name] = ModuleState.Failed;
-                    ModuleFailed?.Invoke(this, new ModuleFailedEventArgs 
-                    { 
-                        ModuleName = module.Name, 
-                        Exception = ex 
+                    _moduleStates[module.Id.ToName()] = ModuleState.Failed;
+                    ModuleFailed?.Invoke(this, new ModuleFailedEventArgs
+                    {
+                        ModuleName = module.Id.ToName(),
+                        Exception = ex
                     });
                 }
             }
+
             throw;
         }
     }
@@ -206,7 +196,7 @@ public class ModuleManager : IModuleManager
     public async Task<IReadOnlyList<IModule>> LoadAllModulesAsync()
     {
         IModule[] unloadedModules = _catalog.GetModules()
-            .Where(m => !IsModuleLoaded(m.Name))
+            .Where(m => !IsModuleLoaded(m.Id.ToName()))
             .ToArray();
 
         if (unloadedModules.Length == 0)
@@ -216,19 +206,20 @@ public class ModuleManager : IModuleManager
         }
 
         _logger.LogInformation("Loading all {Count} modules in dependency order", unloadedModules.Length);
-        
+
         IEnumerable<IModule> orderedModules = await _catalog.GetLoadOrderAsync();
         IModule[] modulesToLoad = orderedModules
-            .Where(m => !IsModuleLoaded(m.Name))
+            .Where(m => !IsModuleLoaded(m.Id.ToName()))
             .ToArray();
-            
+
         return await _parallelLoader.LoadModulesAsync(modulesToLoad);
     }
 
     public void StartBackgroundPreloading()
     {
         IModule[] backgroundModules = _catalog.GetModules()
-            .Where(m => m.LoadingStrategy == ModuleLoadingStrategy.Background && !IsModuleLoaded(m.Name))
+            .Where(m => m.Manifest.LoadingStrategy == ModuleLoadingStrategy.Background &&
+                        !IsModuleLoaded(m.Id.ToName()))
             .ToArray();
 
         if (backgroundModules.Length > 0)
@@ -258,7 +249,7 @@ public class ModuleManager : IModuleManager
             _lastAccessTimes.TryRemove(moduleName, out _);
 
             ModuleUnloaded?.Invoke(this, new ModuleUnloadedEventArgs { ModuleName = moduleName });
-            
+
             _logger.LogInformation("Module '{ModuleName}' unloaded", moduleName);
         }
         catch (Exception ex)
@@ -272,7 +263,7 @@ public class ModuleManager : IModuleManager
     public async Task UnloadInactiveModulesAsync(TimeSpan inactiveThreshold)
     {
         DateTime cutoffTime = DateTime.UtcNow - inactiveThreshold;
-        
+
         IEnumerable<string> inactiveModules = _lastAccessTimes
             .Where(kvp => kvp.Value < cutoffTime && IsModuleLoaded(kvp.Key))
             .Select(kvp => kvp.Key);
@@ -291,37 +282,38 @@ public class ModuleManager : IModuleManager
         }
     }
 
-    public bool IsModuleLoaded(string moduleName) => 
+    public bool IsModuleLoaded(string moduleName) =>
         _moduleStates.TryGetValue(moduleName, out ModuleState state) && state == ModuleState.Loaded;
 
-    public IReadOnlyDictionary<string, ModuleState> GetModuleStates() => 
+    public IReadOnlyDictionary<string, ModuleState> GetModuleStates() =>
         new Dictionary<string, ModuleState>(_moduleStates);
 
     private async Task LoadDependenciesAsync(IModule module)
     {
-        if (module.DependsOn.Count == 0)
+        if (module.Manifest.Dependencies.Count == 0)
         {
             return;
         }
 
         try
         {
-            IEnumerable<IModule> requiredModules = await _catalog.GetRequiredModulesAsync(module.Name);
-            
+            IEnumerable<IModule> requiredModules = await _catalog.GetRequiredModulesAsync(module.Id);
+
             foreach (IModule dependency in requiredModules)
             {
-                if (!IsModuleLoaded(dependency.Name))
+                if (!IsModuleLoaded(dependency.Id.ToName()))
                 {
-                    await LoadModuleAsync(dependency.Name);
+                    await LoadModuleAsync(dependency.Id.ToName());
                 }
             }
         }
         catch (InvalidOperationException)
         {
-            _logger.LogWarning("Falling back to manual dependency resolution for module: {ModuleName}", module.Name);
-            foreach (string dependency in module.DependsOn)
+            _logger.LogWarning("Falling back to manual dependency resolution for module: {ModuleName}",
+                module.Id.ToName());
+            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (!IsModuleLoaded(dependency))
+                if (!IsModuleLoaded(dependency.ToName()))
                 {
                     await LoadModuleAsync(dependency);
                 }

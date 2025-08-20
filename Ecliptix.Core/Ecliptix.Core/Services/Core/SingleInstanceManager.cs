@@ -17,32 +17,32 @@ public class SingleInstanceManager : ISingleInstanceManager
     private readonly string _instanceId;
     private readonly string _lockFilePath;
     private readonly string _signalFilePath;
-    
+
     private Mutex? _mutex;
     private FileStream? _lockFileStream;
     private Timer? _signalWatcher;
     private bool _disposed;
-    
+
     private const string ApplicationId = "EcliptixDesktop";
     private const int SignalCheckInterval = 1000; // 1 second
-    
+
     public event EventHandler? InstanceActivationRequested;
-    
+
     public SingleInstanceManager(ILogger<SingleInstanceManager> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _instanceId = $"{ApplicationId}_{Environment.UserName}";
-        
+
         string tempPath = Path.GetTempPath();
         _lockFilePath = Path.Combine(tempPath, $"{_instanceId}.lock");
         _signalFilePath = Path.Combine(tempPath, $"{_instanceId}.signal");
     }
-    
+
     public bool TryAcquireInstance()
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(SingleInstanceManager));
-            
+
         try
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -60,12 +60,12 @@ public class SingleInstanceManager : ISingleInstanceManager
             return true; // Fail open - allow the application to start
         }
     }
-    
+
     public bool NotifyExistingInstance()
     {
         if (_disposed)
             throw new ObjectDisposedException(nameof(SingleInstanceManager));
-            
+
         try
         {
             // Create signal file to notify existing instance
@@ -79,13 +79,13 @@ public class SingleInstanceManager : ISingleInstanceManager
             return false;
         }
     }
-    
+
     private bool TryAcquireInstanceWindows()
     {
         try
         {
             _mutex = new Mutex(true, _instanceId, out bool createdNew);
-            
+
             if (!createdNew)
             {
                 _logger.LogInformation("Another instance is already running (Windows mutex)");
@@ -93,7 +93,7 @@ public class SingleInstanceManager : ISingleInstanceManager
                 _mutex = null;
                 return false;
             }
-            
+
             _logger.LogDebug("Acquired single instance lock using Windows mutex");
             StartSignalWatcher();
             return true;
@@ -106,21 +106,21 @@ public class SingleInstanceManager : ISingleInstanceManager
             return true;
         }
     }
-    
+
     private bool TryAcquireInstanceUnix()
     {
         try
         {
             // Try to create and lock the file exclusively
             _lockFileStream = new FileStream(
-                _lockFilePath, 
-                FileMode.Create, 
-                FileAccess.ReadWrite, 
+                _lockFilePath,
+                FileMode.Create,
+                FileAccess.ReadWrite,
                 FileShare.None,
                 bufferSize: 4096,
                 FileOptions.DeleteOnClose
             );
-            
+
             // Write our process ID to the lock file
             using (var writer = new StreamWriter(_lockFileStream, leaveOpen: true))
             {
@@ -128,7 +128,7 @@ public class SingleInstanceManager : ISingleInstanceManager
                 writer.WriteLine(DateTimeOffset.UtcNow.ToString("O"));
                 writer.Flush();
             }
-            
+
             _logger.LogDebug("Acquired single instance lock using Unix file locking");
             StartSignalWatcher();
             return true;
@@ -144,7 +144,7 @@ public class SingleInstanceManager : ISingleInstanceManager
             return false;
         }
     }
-    
+
     private void StartSignalWatcher()
     {
         // Clean up any existing signal file
@@ -157,12 +157,12 @@ public class SingleInstanceManager : ISingleInstanceManager
         {
             _logger.LogWarning(ex, "Failed to clean up existing signal file");
         }
-        
+
         // Start watching for signal file creation
         _signalWatcher = new Timer(CheckForSignal, null, SignalCheckInterval, SignalCheckInterval);
         _logger.LogDebug("Started signal watcher");
     }
-    
+
     private void CheckForSignal(object? state)
     {
         try
@@ -170,7 +170,7 @@ public class SingleInstanceManager : ISingleInstanceManager
             if (File.Exists(_signalFilePath))
             {
                 _logger.LogInformation("Received activation signal from another instance");
-                
+
                 // Clean up the signal file
                 try
                 {
@@ -180,7 +180,7 @@ public class SingleInstanceManager : ISingleInstanceManager
                 {
                     _logger.LogWarning(ex, "Failed to clean up signal file");
                 }
-                
+
                 // Notify that we should bring the window to foreground
                 Task.Run(() => InstanceActivationRequested?.Invoke(this, EventArgs.Empty));
             }
@@ -190,20 +190,20 @@ public class SingleInstanceManager : ISingleInstanceManager
             _logger.LogError(ex, "Error checking for activation signal");
         }
     }
-    
+
     public void Dispose()
     {
         if (_disposed)
             return;
-            
+
         _disposed = true;
-        
+
         try
         {
             _signalWatcher?.Dispose();
             _mutex?.Dispose();
             _lockFileStream?.Dispose();
-            
+
             // Clean up signal file
             if (File.Exists(_signalFilePath))
             {
@@ -216,7 +216,7 @@ public class SingleInstanceManager : ISingleInstanceManager
                     _logger.LogWarning(ex, "Failed to clean up signal file during disposal");
                 }
             }
-            
+
             _logger.LogDebug("Single instance manager disposed");
         }
         catch (Exception ex)

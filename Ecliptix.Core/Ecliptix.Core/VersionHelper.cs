@@ -13,14 +13,11 @@ public partial class VersionJsonContext : JsonSerializerContext;
 public static class VersionHelper
 {
     private static readonly Lazy<string> ApplicationVersion = new(CalculateApplicationVersion);
-    private static readonly Lazy<string> FullVersion = new(CalculateFullVersion);
     private static readonly Lazy<string> InformationalVersion = new(CalculateInformationalVersion);
     private static readonly Lazy<BuildInfo?> BuildInfo = new(LoadBuildInfo);
     private static readonly Lazy<string> DisplayVersion = new(CalculateDisplayVersion);
 
     public static string GetApplicationVersion() => ApplicationVersion.Value;
-
-    public static string GetFullVersion() => FullVersion.Value;
 
     public static string GetInformationalVersion() => InformationalVersion.Value;
 
@@ -36,17 +33,9 @@ public static class VersionHelper
         return $"{version.Major}.{version.Minor}.{version.Build}";
     }
 
-    private static string CalculateFullVersion()
-    {
-        Version version = Assembly.GetExecutingAssembly().GetName().Version
-                          ?? Assembly.GetEntryAssembly()?.GetName().Version
-                          ?? new Version(0, 1, 0, 0);
-        return version.ToString();
-    }
-
     private static string CalculateInformationalVersion()
     {
-        Assembly? assembly = Assembly.GetExecutingAssembly() ?? Assembly.GetEntryAssembly();
+        Assembly? assembly = Assembly.GetExecutingAssembly();
         AssemblyInformationalVersionAttribute? attribute = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
         return attribute?.InformationalVersion ?? GetApplicationVersion();
     }

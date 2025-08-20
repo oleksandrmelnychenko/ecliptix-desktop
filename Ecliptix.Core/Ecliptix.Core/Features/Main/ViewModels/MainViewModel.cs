@@ -7,12 +7,12 @@ namespace Ecliptix.Core.Features.Main.ViewModels;
 
 public class MainViewModel : Core.MVVM.ViewModelBase
 {
-    public MainViewModel(ISystemEvents systemEvents, NetworkProvider networkProvider, 
+    public MainViewModel(ISystemEvents systemEvents, NetworkProvider networkProvider,
         ILocalizationService localizationService)
         : base(systemEvents, networkProvider, localizationService)
     {
-        
+
     }
 
-    
+
 }

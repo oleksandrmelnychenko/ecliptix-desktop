@@ -47,7 +47,7 @@ public static class OpaqueConstants
         public const string ExportKeyDerivationFailed = "Export key derivation failed: ";
         public const string Pbkdf2Failed = "PBKDF2 failed: ";
     }
-    
+
     public static class ProtocolIndices
     {
         public const int DhTripleCount = 3;
@@ -56,13 +56,13 @@ public static class OpaqueConstants
         public const int DhSecondOffset = 1;
         public const int DhThirdOffset = 2;
     }
-    
+
     public static class CryptographicFlags
     {
         public const bool CompressedPointEncoding = true;
         public const bool ClearOnDispose = false;
     }
-    
+
     public static class CryptographicConstants
     {
         public const string EllipticCurveName = "secp256r1";
@@ -70,7 +70,7 @@ public static class OpaqueConstants
         public const int MaxHashToPointAttempts = 255;
         public const int BigIntegerPositiveSign = 1;
     }
-    
+
     public static class HkdfInfoStrings
     {
         public static readonly byte[] OpaqueSalt = "OPAQUE-Salt"u8.ToArray();

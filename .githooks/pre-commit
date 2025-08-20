@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Ecliptix Desktop Pre-Commit Hook
+# Auto-versioning based on commit message patterns
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+VERSION_SCRIPT="$PROJECT_ROOT/Scripts/version.sh"
+CONFIG_FILE="$PROJECT_ROOT/Scripts/version-config.json"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "${BLUE}[PRE-COMMIT]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[PRE-COMMIT]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[PRE-COMMIT]${NC} $1"
+}
+
+# Check if version script exists
+if [ ! -f "$VERSION_SCRIPT" ]; then
+    print_error "Version script not found: $VERSION_SCRIPT"
+    exit 1
+fi
+
+# Get current branch
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD)
+
+# Check if we should process this branch (MAIN ONLY)
+if [ "$CURRENT_BRANCH" != "main" ]; then
+    print_info "Skipping auto-versioning on branch: $CURRENT_BRANCH (only main branch gets versioned)"
+    exit 0
+fi
+
+# In pre-commit, we can't easily get the commit message that will be created
+# So we'll do a basic validation and let post-commit handle the actual versioning
+print_info "Pre-commit validation passed for branch: $CURRENT_BRANCH"
+
+exit 0

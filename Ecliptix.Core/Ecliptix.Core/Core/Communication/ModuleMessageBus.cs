@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Communication;
+
 public class ModuleMessageBus : IModuleMessageBus, IDisposable
 {
     private readonly ILogger<ModuleMessageBus> _logger;
@@ -18,8 +19,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     private readonly ChannelWriter<IModuleMessage> _messageWriter;
     private readonly Task _messageProcessingTask;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    
-    
+
     private long _totalMessagesSent;
     private long _totalEventsPublished;
     private long _totalRequestsProcessed;
@@ -29,19 +29,20 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     public ModuleMessageBus(ILogger<ModuleMessageBus> logger)
     {
         _logger = logger;
-        
+
         Channel<IModuleMessage> options = Channel.CreateUnbounded<IModuleMessage>();
         _messageChannel = options;
         _messageWriter = options.Writer;
-        
+
         _messageProcessingTask = ProcessMessagesAsync(_cancellationTokenSource.Token);
     }
 
-    public async Task PublishAsync<T>(T eventMessage, CancellationToken cancellationToken = default) where T : ModuleEvent
+    public async Task PublishAsync<T>(T eventMessage, CancellationToken cancellationToken = default)
+        where T : ModuleEvent
     {
         if (eventMessage == null) throw new ArgumentNullException(nameof(eventMessage));
 
-        _logger.LogDebug("Publishing event {MessageType} from module {SourceModule}", 
+        _logger.LogDebug("Publishing event {MessageType} from module {SourceModule}",
             eventMessage.MessageType, eventMessage.SourceModule);
 
         await _messageWriter.WriteAsync(eventMessage, cancellationToken);
@@ -49,9 +50,9 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     }
 
     public async Task<TResponse?> RequestAsync<TRequest, TResponse>(
-        TRequest request, 
-        CancellationToken cancellationToken = default) 
-        where TRequest : ModuleRequest 
+        TRequest request,
+        CancellationToken cancellationToken = default)
+        where TRequest : ModuleRequest
         where TResponse : ModuleResponse
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
@@ -61,12 +62,13 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
 
         try
         {
-            _logger.LogDebug("Sending request {MessageType} from {SourceModule} to {TargetModule}", 
+            _logger.LogDebug("Sending request {MessageType} from {SourceModule} to {TargetModule}",
                 request.MessageType, request.SourceModule, request.TargetModule);
 
             await _messageWriter.WriteAsync(request, cancellationToken);
 
-            using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using CancellationTokenSource timeoutCts =
+                CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(request.Timeout);
 
             Task<IModuleMessage> responseTask = tcs.Task;
@@ -76,7 +78,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
 
             if (completedTask == timeoutTask)
             {
-                _logger.LogWarning("Request {MessageId} timed out after {Timeout}", 
+                _logger.LogWarning("Request {MessageId} timed out after {Timeout}",
                     request.MessageId, request.Timeout);
                 return null;
             }
@@ -96,7 +98,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     {
         if (message == null) throw new ArgumentNullException(nameof(message));
 
-        _logger.LogDebug("Sending message {MessageType} from {SourceModule} to {TargetModule}", 
+        _logger.LogDebug("Sending message {MessageType} from {SourceModule} to {TargetModule}",
             message.MessageType, message.SourceModule, message.TargetModule);
 
         await _messageWriter.WriteAsync(message, cancellationToken);
@@ -110,14 +112,11 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     public IDisposable Subscribe<T>(Func<T, bool> filter, Func<T, Task> handler) where T : IModuleMessage
     {
-        if (handler == null) throw new ArgumentNullException(nameof(handler));
-        if (filter == null) throw new ArgumentNullException(nameof(filter));
-
         Type messageType = typeof(T);
         MessageSubscription<T> subscription = new(filter, handler);
 
         _subscriptions.AddOrUpdate(messageType,
-            _ => new ConcurrentBag<IMessageSubscription> { subscription },
+            _ => [subscription],
             (_, existing) =>
             {
                 existing.Add(subscription);
@@ -130,14 +129,15 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
         {
             if (_subscriptions.TryGetValue(messageType, out ConcurrentBag<IMessageSubscription>? subscriptions))
             {
-                
                 ConcurrentBag<IMessageSubscription> newBag = new();
                 foreach (IMessageSubscription sub in subscriptions.Where(s => s != subscription))
                 {
                     newBag.Add(sub);
                 }
+
                 _subscriptions[messageType] = newBag;
             }
+
             _logger.LogDebug("Removed subscription for message type {MessageType}", messageType.Name);
         });
     }
@@ -146,7 +146,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     {
         int activeSubscriptions = _subscriptions.Values.Sum(bag => bag.Count);
         double avgProcessingTime = 0;
-        
+
         if (_processingTimes.Count > 0)
         {
             avgProcessingTime = _processingTimes.ToArray().Average();
@@ -168,14 +168,14 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
         await foreach (IModuleMessage message in _messageChannel.Reader.ReadAllAsync(cancellationToken))
         {
             DateTime startTime = DateTime.UtcNow;
-            
+
             try
             {
                 await ProcessSingleMessageAsync(message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing message {MessageType} from {SourceModule}", 
+                _logger.LogError(ex, "Error processing message {MessageType} from {SourceModule}",
                     message.MessageType, message.SourceModule);
             }
             finally
@@ -189,8 +189,8 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
         Type messageType = message.GetType();
-        
-        
+
+
         if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CorrelationId))
         {
             if (_pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
@@ -200,10 +200,8 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
         }
 
-        
-        HashSet<Type> typesToProcess = new() { messageType };
-        
-        
+        HashSet<Type> typesToProcess = [messageType];
+
         foreach (Type interfaceType in messageType.GetInterfaces())
         {
             if (typeof(IModuleMessage).IsAssignableFrom(interfaceType))
@@ -219,7 +217,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
             currentType = currentType.BaseType;
         }
 
-        List<Task> handlerTasks = new();
+        List<Task> handlerTasks = [];
 
         foreach (Type type in typesToProcess)
         {
@@ -249,8 +247,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     private void RecordProcessingTime(double processingTimeMs)
     {
         _processingTimes.Enqueue(processingTimeMs);
-        
-        
+
         while (_processingTimes.Count > MaxProcessingTimesSamples)
         {
             _processingTimes.TryDequeue(out _);
@@ -261,7 +258,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
     {
         _cancellationTokenSource.Cancel();
         _messageWriter.Complete();
-        
+
         try
         {
             _messageProcessingTask.Wait(TimeSpan.FromSeconds(5));
@@ -280,41 +277,27 @@ internal interface IMessageSubscription
     Task HandleAsync(IModuleMessage message);
 }
 
-internal class MessageSubscription<T> : IMessageSubscription where T : IModuleMessage
+internal class MessageSubscription<T>(Func<T, bool> filter, Func<T, Task> handler) : IMessageSubscription
+    where T : IModuleMessage
 {
-    private readonly Func<T, bool> _filter;
-    private readonly Func<T, Task> _handler;
-
-    public MessageSubscription(Func<T, bool> filter, Func<T, Task> handler)
-    {
-        _filter = filter;
-        _handler = handler;
-    }
-
     public async Task HandleAsync(IModuleMessage message)
     {
-        if (message is T typedMessage && _filter(typedMessage))
+        if (message is T typedMessage && filter(typedMessage))
         {
-            await _handler(typedMessage);
+            await handler(typedMessage);
         }
     }
 }
 
-internal class SubscriptionDisposable : IDisposable
+internal class SubscriptionDisposable(Action disposeAction) : IDisposable
 {
-    private readonly Action _disposeAction;
     private bool _disposed;
-
-    public SubscriptionDisposable(Action disposeAction)
-    {
-        _disposeAction = disposeAction;
-    }
 
     public void Dispose()
     {
         if (!_disposed)
         {
-            _disposeAction();
+            disposeAction();
             _disposed = true;
         }
     }

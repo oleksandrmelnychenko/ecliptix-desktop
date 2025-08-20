@@ -14,6 +14,7 @@ using Ecliptix.Core.Views.Core;
 using Ecliptix.Core.Features.Splash.Views;
 using Splat;
 using Ecliptix.Core.Core.Abstractions;
+using Serilog;
 
 namespace Ecliptix.Core;
 
@@ -38,7 +39,7 @@ public class ApplicationStartup
     {
         _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
         _splashScreen = new SplashWindow { DataContext = _splashViewModel };
-        
+
         _desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
@@ -59,34 +60,51 @@ public class ApplicationStartup
 
     private async Task LoadAuthenticationModuleAsync()
     {
-        await _moduleManager.LoadModuleAsync("Authentication");
+        await _moduleManager.LoadModuleAsync(ModuleIdentifier.Authentication.ToName());
     }
 
     private async Task TransitionToNextWindowAsync()
     {
-        if (_splashScreen is null) return;
+        if (_splashScreen is null)
+        {
+            Log.Warning("TransitionToNextWindow called but _splashScreen is null");
+            return;
+        }
 
+        Log.Information("Starting transition from splash to next window");
         Window nextWindow = CreateNextWindow();
+        Log.Information("Next window created: {WindowType}", nextWindow.GetType().Name);
 
         nextWindow.WindowStartupLocation = WindowStartupLocation.Manual;
         nextWindow.Opacity = 0;
 
         await ShowAndWaitForWindow(nextWindow);
+        Log.Information("Next window shown and opened");
 
         PositionWindow(nextWindow, _splashScreen);
 
         _desktop.MainWindow = nextWindow;
+        Log.Information("Set next window as MainWindow");
 
         await PerformCrossfadeTransition(nextWindow);
+        Log.Information("Crossfade transition completed");
 
         _splashScreen.Close();
         _splashScreen = null;
+        Log.Information("Splash screen closed - transition complete");
     }
 
     private Window CreateNextWindow()
     {
-        if (_initializer.IsMembershipConfirmed) return new MainHostWindow();
+        if (_initializer.IsMembershipConfirmed)
+        {
+            Log.Information("Creating MainHostWindow - membership confirmed");
+            return new MainHostWindow();
+        }
+
+        Log.Information("Creating MembershipHostWindow - membership not confirmed");
         MembershipHostWindowModel viewModel = Locator.Current.GetService<MembershipHostWindowModel>()!;
+        Log.Information("Created MembershipHostWindowModel: {ViewModelType}", viewModel.GetType().Name);
         return new MembershipHostWindow { DataContext = viewModel };
     }
 

@@ -81,7 +81,7 @@
                     Text="{Binding PromptText}" />
             </StackPanel>
             <Grid Grid.Row="2">
-                <Image Source="avares://Ecliptix.Core/Assets/language.gif"
+                <Image Source="avares://Ecliptix.Core/Assets/Animations/language.gif"
                        Width="126" 
                        Height="96"
                        Stretch="Uniform"

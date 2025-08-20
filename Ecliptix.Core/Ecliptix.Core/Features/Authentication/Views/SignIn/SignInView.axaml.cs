@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
+using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.SignIn;
 

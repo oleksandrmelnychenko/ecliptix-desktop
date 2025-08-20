@@ -10,81 +10,81 @@ public class ModulePriorityQueue
     private readonly HashSet<string> _processedModules = new();
     private readonly Dictionary<string, IModule> _moduleMap = new();
 
-    
-    
-    
+
+
+
     public void EnqueueModules(IEnumerable<IModule> modules)
     {
         IModule[] moduleArray = modules.ToArray();
-        
-        
+
+
         foreach (IModule module in moduleArray)
         {
-            _moduleMap[module.Name] = module;
+            _moduleMap[module.Id.ToName()] = module;
         }
 
-        
+
         List<IModule> sortedModules = TopologicalSort(moduleArray);
-        
+
         foreach (IModule module in sortedModules)
         {
-            int priority = module.Priority;
-            
+            int priority = module.Manifest.Priority;
+
             if (!_priorityQueues.ContainsKey(priority))
             {
                 _priorityQueues[priority] = new Queue<IModule>();
             }
-            
+
             _priorityQueues[priority].Enqueue(module);
         }
     }
 
-    
-    
-    
+
+
+
     public IModule? DequeueNext()
     {
-        
+
         foreach (int priority in _priorityQueues.Keys.OrderByDescending(p => p))
         {
             Queue<IModule> queue = _priorityQueues[priority];
-            
+
             while (queue.Count > 0)
             {
                 IModule module = queue.Dequeue();
-                
-                
+
+
                 if (AreDependenciesLoaded(module))
                 {
-                    _processedModules.Add(module.Name);
+                    _processedModules.Add(module.Id.ToName());
                     return module;
                 }
-                
-                
+
+
                 queue.Enqueue(module);
-                break; 
+                break;
             }
         }
 
         return null;
     }
 
-    
-    
-    
+
+
+
     public int Count => _priorityQueues.Values.Sum(q => q.Count);
 
-    
-    
-    
+
+
+
     private bool AreDependenciesLoaded(IModule module)
     {
-        return module.DependsOn.All(dep => _processedModules.Contains(dep));
+        return module.Manifest.Dependencies.All(dep => _processedModules.Contains(dep.ToName()));
     }
 
-    
-    
-    
+
+
+
     private List<IModule> TopologicalSort(IModule[] modules)
     {
         List<IModule> result = new();
@@ -93,29 +93,29 @@ public class ModulePriorityQueue
 
         void Visit(IModule module)
         {
-            if (visiting.Contains(module.Name))
+            if (visiting.Contains(module.Id.ToName()))
             {
-                throw new InvalidOperationException($"Circular dependency detected involving module: {module.Name}");
+                throw new InvalidOperationException($"Circular dependency detected involving module: {module.Id.ToName()}");
             }
 
-            if (visited.Contains(module.Name))
+            if (visited.Contains(module.Id.ToName()))
             {
                 return;
             }
 
-            visiting.Add(module.Name);
+            visiting.Add(module.Id.ToName());
 
-            
-            foreach (string dependency in module.DependsOn)
+
+            foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (_moduleMap.TryGetValue(dependency, out IModule? depModule))
+                if (_moduleMap.TryGetValue(dependency.ToName(), out IModule? depModule))
                 {
                     Visit(depModule);
                 }
             }
 
-            visiting.Remove(module.Name);
-            visited.Add(module.Name);
+            visiting.Remove(module.Id.ToName());
+            visited.Add(module.Id.ToName());
             result.Add(module);
         }
 

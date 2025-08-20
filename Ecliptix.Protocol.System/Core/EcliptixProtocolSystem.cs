@@ -18,7 +18,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private readonly CircuitBreaker _circuitBreaker = new(
         failureThreshold: 10,
         timeout: TimeSpan.FromSeconds(60),
-        retryTimeout: TimeSpan.FromSeconds(10),
         successThresholdPercentage: 0.7);
     private readonly AdaptiveRatchetManager _ratchetManager = new(RatchetConfig.Default);
     private readonly ProtocolMetricsCollector _metricsCollector = new(TimeSpan.FromSeconds(30));
@@ -30,13 +29,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     public void SetEventHandler(IProtocolEventHandler? handler)
     {
         EcliptixProtocolConnection? connectionToUpdate;
-        
+
         lock (_lock)
         {
             _eventHandler = handler;
             connectionToUpdate = _protocolConnection;
         }
-        
+
         // Call external method outside of lock to prevent deadlock
         connectionToUpdate?.SetEventHandler(handler);
     }
@@ -44,13 +43,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     public void Dispose()
     {
         EcliptixProtocolConnection? connectionToDispose;
-        
+
         lock (_lock)
         {
             connectionToDispose = _protocolConnection;
             _protocolConnection = null;
         }
-        
+
         // Dispose outside of lock to prevent deadlock
         connectionToDispose?.Dispose();
         _circuitBreaker.Dispose();
@@ -90,14 +89,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
 
         EcliptixProtocolConnection session = sessionResult.Unwrap();
-        
+
         IProtocolEventHandler? currentHandler;
         lock (_lock)
         {
             _protocolConnection = session;
             currentHandler = _eventHandler;
         }
-        
+
         // Set handler outside lock to prevent deadlock
         session.SetEventHandler(currentHandler);
 
@@ -241,20 +240,20 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
 
             List<CipherPayload> results = new(plainPayloads.Length);
-            
+
             try
             {
                 // Batch process all messages to reduce lock overhead
                 for (int i = 0; i < plainPayloads.Length; i++)
                 {
-                    Result<CipherPayload, EcliptixProtocolFailure> singleResult = 
+                    Result<CipherPayload, EcliptixProtocolFailure> singleResult =
                         ProduceSingleMessage(plainPayloads[i], connection);
                     if (singleResult.IsErr)
                         return Result<CipherPayload[], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
-                    
+
                     results.Add(singleResult.Unwrap());
                 }
-                
+
                 return Result<CipherPayload[], EcliptixProtocolFailure>.Ok([.. results]);
             }
             catch (Exception ex)
@@ -273,7 +272,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (connection == null)
                 return Result<CipherPayload, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
-            
+
             return ProduceSingleMessage(plainPayload, connection);
         });
     }
@@ -281,14 +280,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private Result<CipherPayload, EcliptixProtocolFailure> ProduceSingleMessage(byte[] plainPayload, EcliptixProtocolConnection connection)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         // Record message for adaptive load management
         _ratchetManager.RecordMessage();
-        
+
         // CRITICAL DEBUG: Check client IsInitiator status
         bool debugIsInitiator = connection.IsInitiator();
         Console.WriteLine($"[CLIENT-DEBUG] ProduceSingleMessage - IsInitiator: {debugIsInitiator}");
-        
+
         // Also write to file so we can definitely find it
         string debugPath = "/tmp/ecliptix_client_debug.log";
         string debugMsg = $"[{DateTime.UtcNow:HH:mm:ss.fff}] CLIENT IsInitiator: {debugIsInitiator}\n";
@@ -333,7 +332,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             PublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
             bool isInitiator = connection.IsInitiator();
-            ad = isInitiator 
+            ad = isInitiator
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
@@ -366,7 +365,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             stopwatch.Stop();
             _metricsCollector.RecordOutboundMessage(stopwatch.Elapsed.TotalMilliseconds);
             _metricsCollector.RecordEncryption();
-            
+
             return Result<CipherPayload, EcliptixProtocolFailure>.Ok(payload);
         }
         finally
@@ -392,20 +391,20 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
 
             List<byte[]> results = new(cipherPayloads.Length);
-            
+
             try
             {
                 // Batch process all messages to reduce lock overhead
                 for (int i = 0; i < cipherPayloads.Length; i++)
                 {
-                    Result<byte[], EcliptixProtocolFailure> singleResult = 
+                    Result<byte[], EcliptixProtocolFailure> singleResult =
                         ProcessSingleInboundMessage(cipherPayloads[i], connection);
                     if (singleResult.IsErr)
                         return Result<byte[][], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
-                    
+
                     results.Add(singleResult.Unwrap());
                 }
-                
+
                 return Result<byte[][], EcliptixProtocolFailure>.Ok([.. results]);
             }
             catch (Exception ex)
@@ -424,7 +423,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (connection == null)
                 return Result<byte[], EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
-            
+
             return ProcessSingleInboundMessage(cipherPayloadProto, connection);
         });
     }
@@ -432,7 +431,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessage(CipherPayload cipherPayloadProto, EcliptixProtocolConnection connection)
     {
         var stopwatch = Stopwatch.StartNew();
-        
+
         // Record message for adaptive load management
         _ratchetManager.RecordMessage();
 
@@ -476,7 +475,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             PublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
             bool isInitiator = connection.IsInitiator();
-            ad = isInitiator 
+            ad = isInitiator
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
@@ -488,7 +487,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Console.WriteLine($"[CLIENT-DECRYPT] Nonce: {Convert.ToHexString(cipherPayloadProto.Nonce.Span)[..24]}...");
 
             Result<byte[], EcliptixProtocolFailure> result = Decrypt(messageKeyClone!, cipherPayloadProto, ad, connection);
-            
+
             stopwatch.Stop();
             if (result.IsOk)
             {
@@ -499,7 +498,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             {
                 _metricsCollector.RecordError();
             }
-            
+
             return result;
         }
         finally
@@ -530,7 +529,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         // Use AdaptiveRatchetManager to make intelligent ratcheting decisions
         // This integrates load-aware ratcheting decisions into the client
         Console.WriteLine("[CLIENT] Using adaptive ratchet manager for intelligent ratcheting decisions");
-        
+
         // Atomic ratchet operation to prevent race conditions
         return PerformAtomicRatchet(receivedDhKey);
     }
@@ -548,7 +547,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
         // Perform the actual ratchet operation
         Result<Unit, EcliptixProtocolFailure> ratchetResult = connection.PerformReceivingRatchet(receivedDhKey);
-        if (ratchetResult.IsErr) 
+        if (ratchetResult.IsErr)
             return ratchetResult;
 
         // Notify replay protection after successful ratchet
@@ -706,45 +705,45 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     }
 
     public EcliptixProtocolConnection? GetConnection() => GetConnectionSafe();
-    
+
     public (CircuitBreakerState State, int FailureCount, int SuccessCount, DateTime LastFailure) GetCircuitBreakerStatus()
     {
         return _circuitBreaker.GetStatus();
     }
-    
+
     public void ResetCircuitBreaker()
     {
         _circuitBreaker.Reset();
     }
-    
+
     public (LoadLevel Load, double MessageRate, uint RatchetInterval, TimeSpan MaxAge) GetLoadMetrics()
     {
         return _ratchetManager.GetLoadMetrics();
     }
-    
+
     public LoadLevel CurrentLoadLevel => _ratchetManager.CurrentLoad;
-    
+
     public RatchetConfig CurrentRatchetConfig => _ratchetManager.CurrentConfig;
-    
+
     public void ForceLoadLevel(LoadLevel targetLoad)
     {
         _ratchetManager.ForceConfigUpdate(targetLoad);
     }
-    
+
     public ProtocolMetrics GetProtocolMetrics()
     {
         // Update external state in metrics collector
         var circuitStatus = _circuitBreaker.GetStatus();
         _metricsCollector.UpdateExternalState(_ratchetManager.CurrentLoad, circuitStatus.State);
-        
+
         return _metricsCollector.GetCurrentMetrics();
     }
-    
+
     public void LogPerformanceReport()
     {
         _metricsCollector.LogMetricsSummary();
     }
-    
+
     public void ResetMetrics()
     {
         _metricsCollector.Reset();

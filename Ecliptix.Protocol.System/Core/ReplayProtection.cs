@@ -29,9 +29,10 @@ public sealed class ReplayProtection : IDisposable
         _baseWindow = maxOutOfOrderWindow;
         _maxOutOfOrderWindow = maxOutOfOrderWindow;
         _maxWindow = maxWindow;
-        
+
         _cleanupTimer = new Timer(
-            callback: _ => {
+            callback: _ =>
+            {
                 CleanupExpiredEntries();
                 AdjustWindowSize();
             },
@@ -57,7 +58,7 @@ public sealed class ReplayProtection : IDisposable
         lock (_lock)
         {
             string nonceKey = Convert.ToBase64String(nonce);
-            
+
             if (_processedNonces.ContainsKey(nonceKey))
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
@@ -149,7 +150,7 @@ public sealed class ReplayProtection : IDisposable
         lock (_lock)
         {
             double messageRate = _recentMessageCount / 2.0;
-            
+
             if (messageRate > 50)
             {
                 _maxOutOfOrderWindow = Math.Min(_baseWindow * 3, _maxWindow);
@@ -182,7 +183,7 @@ public sealed class ReplayProtection : IDisposable
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         _disposed = true;
         _cleanupTimer?.Dispose();
         _processedNonces.Clear();
@@ -193,7 +194,7 @@ public sealed class ReplayProtection : IDisposable
     {
         private readonly SortedSet<ulong> _processedIndices = [];
         private readonly DateTime _createdAt = DateTime.UtcNow;
-        
+
         public ulong HighestProcessedIndex { get; private set; }
 
         public MessageWindow(ulong initialIndex)

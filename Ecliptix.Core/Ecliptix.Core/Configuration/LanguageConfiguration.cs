@@ -10,7 +10,7 @@ namespace Ecliptix.Core.Configuration;
 public sealed class LanguageConfiguration
 {
     private static readonly Lazy<LanguageConfiguration> Instance = new(() => new LanguageConfiguration());
-    
+
     public static LanguageConfiguration Default => Instance.Value;
 
     private readonly FrozenDictionary<string, LanguageItem> _languagesByCode;
@@ -23,8 +23,8 @@ public sealed class LanguageConfiguration
     {
         List<LanguageItem> supportedLanguages =
         [
-            new("en-US", "US", "avares://Ecliptix.Core/Assets/Flags/usa_flag.svg"),
-            new("uk-UA", "UA", "avares://Ecliptix.Core/Assets/Flags/ukraine_flag.svg")
+            new("en-US", "US", "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg"),
+            new("uk-UA", "UA", "avares://Ecliptix.Core/Assets/Icons/Flags/ukraine_flag.svg")
         ];
 
         Dictionary<string, string> countryCultureMap = new()

@@ -96,7 +96,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch
         {
-            
+
         }
     }
 
@@ -176,7 +176,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                     if (!File.Exists(keyFile))
                         return;
 
-                    
+
                     byte[] randomData = RandomNumberGenerator.GetBytes(SECURE_OVERWRITE_SIZE);
 
                     using (FileStream fs = File.OpenWrite(keyFile))
@@ -324,7 +324,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             aes.Key = machineKey;
             aes.GenerateIV();
 
-            byte[] buffer = ArrayPool<byte>.Shared.Rent(AES_IV_SIZE + key.Length + 16); 
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(AES_IV_SIZE + key.Length + 16);
             try
             {
                 aes.IV.CopyTo(buffer, 0);

@@ -121,8 +121,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             {
                 var uriString = state switch
                 {
-                    NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/ServerShutdownAmber30x30.png",
-                    _ => "avares://Ecliptix.Core/Assets/wifi.png"
+                    NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/Icons/Network/ServerShutdownAmber30x30.png",
+                    _ => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
                 };
                 try
                 {

@@ -12,8 +12,8 @@ public class CompositeServiceScope : IServiceScope
 
     public CompositeServiceScope(IServiceScope moduleScope, IServiceScope mainScope)
     {
-        _moduleScope = moduleScope ?? throw new ArgumentNullException(nameof(moduleScope));
-        _mainScope = mainScope ?? throw new ArgumentNullException(nameof(mainScope));
+        _moduleScope = moduleScope;
+        _mainScope = mainScope;
         _serviceProvider = new CompositeServiceProvider(_moduleScope.ServiceProvider, _mainScope.ServiceProvider);
     }
 
@@ -30,17 +30,10 @@ public class CompositeServiceScope : IServiceScope
     }
 }
 
-public class CompositeServiceProvider : IServiceProvider, IDisposable
+public class CompositeServiceProvider(IServiceProvider moduleProvider, IServiceProvider mainProvider)
+    : IServiceProvider, IDisposable
 {
-    private readonly IServiceProvider _moduleProvider;
-    private readonly IServiceProvider _mainProvider;
     private bool _disposed;
-
-    public CompositeServiceProvider(IServiceProvider moduleProvider, IServiceProvider mainProvider)
-    {
-        _moduleProvider = moduleProvider ?? throw new ArgumentNullException(nameof(moduleProvider));
-        _mainProvider = mainProvider ?? throw new ArgumentNullException(nameof(mainProvider));
-    }
 
     public object? GetService(Type serviceType)
     {
@@ -49,7 +42,7 @@ public class CompositeServiceProvider : IServiceProvider, IDisposable
 
         try
         {
-            object? service = _moduleProvider.GetService(serviceType);
+            object? service = moduleProvider.GetService(serviceType);
             if (service != null)
                 return service;
         }
@@ -58,7 +51,7 @@ public class CompositeServiceProvider : IServiceProvider, IDisposable
             // Fall through to main provider
         }
 
-        return _mainProvider.GetService(serviceType);
+        return mainProvider.GetService(serviceType);
     }
 
     public void Dispose()
@@ -66,11 +59,11 @@ public class CompositeServiceProvider : IServiceProvider, IDisposable
         if (_disposed) return;
 
         _disposed = true;
-        
-        if (_moduleProvider is IDisposable moduleDisposable)
+
+        if (moduleProvider is IDisposable moduleDisposable)
             moduleDisposable.Dispose();
-            
-        if (_mainProvider is IDisposable mainDisposable)
+
+        if (mainProvider is IDisposable mainDisposable)
             mainDisposable.Dispose();
     }
 }

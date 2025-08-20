@@ -85,7 +85,7 @@ public static class ApplicationConstants
 
     public static class FilePermissions
     {
-        public const UnixFileMode SecureDirectoryMode = 
+        public const UnixFileMode SecureDirectoryMode =
             UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
     }
 }

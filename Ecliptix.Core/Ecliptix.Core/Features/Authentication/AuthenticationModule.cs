@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
@@ -13,18 +14,25 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
-using Ecliptix.Core.Features.Authentication.Views.Hosts;
-using Ecliptix.Core.Features.Authentication.Services;
 
 namespace Ecliptix.Core.Features.Authentication;
 
-public class AuthenticationModule : ModuleBase
-{
-    public override string Name => "Authentication";
-    public override int Priority => 30;
-    public override ModuleLoadingStrategy LoadingStrategy => ModuleLoadingStrategy.Eager;
+public record AuthenticationModuleManifest() : ModuleManifest(
+    Id: ModuleIdentifier.Authentication,
+    DisplayName: "Authentication Module",
+    Version: new Version(1, 0, 0),
+    Priority: 30,
+    LoadingStrategy: ModuleLoadingStrategy.Eager,
+    Dependencies: [],
+    ResourceConstraints: ModuleResourceConstraints.Default,
+    ViewFactories: new Dictionary<Type, Func<Control>>(),
+    ServiceMappings: new Dictionary<Type, Type>()
+);
 
-    public override IReadOnlyList<string> DependsOn => [];
+public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
+{
+    public override ModuleIdentifier Id => ModuleIdentifier.Authentication;
+    public override AuthenticationModuleManifest Manifest { get; } = new();
 
     public override void RegisterServices(IServiceCollection services)
     {
@@ -36,17 +44,6 @@ public class AuthenticationModule : ModuleBase
         services.AddTransient<MembershipHostWindowModel>();
     }
 
-    public override void RegisterViews(IViewLocator viewLocator)
-    {
-        // Only register IRoutableViewModel types (child ViewModels that are navigated to)
-        viewLocator.Register(typeof(SignInViewModel), typeof(SignInView));
-        viewLocator.Register(typeof(MobileVerificationViewModel), typeof(MobileVerificationView));
-        viewLocator.Register(typeof(PasswordConfirmationViewModel), typeof(PasswordConfirmationView));
-        viewLocator.Register(typeof(PassPhaseViewModel), typeof(PassPhaseView));
-        viewLocator.Register(typeof(WelcomeViewModel), typeof(WelcomeView));
-        // Note: MembershipHostWindowModel is IScreen, not IRoutableViewModel, so it's not registered here
-    }
-    
     public override IReadOnlyList<Type> GetViewTypes()
     {
         return
@@ -56,10 +53,9 @@ public class AuthenticationModule : ModuleBase
             typeof(PasswordConfirmationView),
             typeof(PassPhaseView),
             typeof(WelcomeView)
-            // Note: MembershipHostWindow is a Window, not a navigable View within the router
         ];
     }
-    
+
     public override IReadOnlyList<Type> GetViewModelTypes()
     {
         return
@@ -69,7 +65,6 @@ public class AuthenticationModule : ModuleBase
             typeof(PasswordConfirmationViewModel),
             typeof(PassPhaseViewModel),
             typeof(WelcomeViewModel)
-            // Note: MembershipHostWindowModel is IScreen, not IRoutableViewModel
         ];
     }
 
@@ -80,9 +75,9 @@ public class AuthenticationModule : ModuleBase
         messageBus.Subscribe<NavigationRequestedEvent>(OnNavigationRequested);
         await messageBus.PublishAsync(new ModuleInitializedEvent
         {
-            SourceModule = Name,
-            ModuleName = Name,
-            ModuleVersion = "1.0.0"
+            SourceModule = Id.ToName(),
+            ModuleName = Id.ToName(),
+            ModuleVersion = Manifest.Version.ToString()
         });
 
         Logger?.LogInformation("Authentication module message handlers setup completed");
@@ -90,7 +85,7 @@ public class AuthenticationModule : ModuleBase
 
     private async Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
     {
-        Logger?.LogInformation("User authenticated: {UserId} - {Username}", 
+        Logger?.LogInformation("User authenticated: {UserId} - {Username}",
             authEvent.UserId, authEvent.Username);
         await Task.CompletedTask;
     }
@@ -105,7 +100,7 @@ public class AuthenticationModule : ModuleBase
     {
         if (navEvent.TargetView == "Authentication")
         {
-            Logger?.LogDebug("Navigation to authentication view requested from: {SourceModule}", 
+            Logger?.LogDebug("Navigation to authentication view requested from: {SourceModule}",
                 navEvent.SourceModule);
         }
         await Task.CompletedTask;
