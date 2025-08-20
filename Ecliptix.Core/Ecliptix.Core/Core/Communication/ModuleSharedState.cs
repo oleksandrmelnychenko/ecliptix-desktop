@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.Core.Core.Communication;
 
@@ -19,11 +19,9 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 {
     private readonly ConcurrentDictionary<string, StateEntry> _state = new();
     private readonly Timer _cleanupTimer;
-    private readonly ILogger<ModuleSharedState> _logger;
 
-    public ModuleSharedState(ILogger<ModuleSharedState> logger)
+    public ModuleSharedState()
     {
-        _logger = logger;
         _cleanupTimer = new Timer(CleanupExpiredEntries, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
@@ -67,7 +65,7 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 
         _state[key] = newEntry;
 
-        _logger.LogDebug("Set shared state value for key {Key} with type {Type}", key, typeof(T).Name);
+        Log.Debug("Set shared state value for key {Key} with type {Type}", key, typeof(T).Name);
     }
     public bool Remove(string key)
     {
@@ -75,7 +73,7 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 
         if (_state.TryRemove(key, out StateEntry? _))
         {
-            _logger.LogDebug("Removed shared state value for key {Key}", key);
+            Log.Debug("Removed shared state value for key {Key}", key);
             return true;
         }
 
@@ -85,7 +83,7 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
     public void Clear()
     {
         _state.Clear();
-        _logger.LogInformation("Cleared all shared state");
+        Log.Information("Cleared all shared state");
     }
 
     private void CleanupExpiredEntries(object? state)
@@ -95,12 +93,12 @@ public class ModuleSharedState : IModuleSharedState, IDisposable
 
         foreach (string key in expiredKeys.Where(key => _state.TryRemove(key, out StateEntry? _)))
         {
-            _logger.LogDebug("Cleaned up expired shared state entry for key {Key}", key);
+            Log.Debug("Cleaned up expired shared state entry for key {Key}", key);
         }
 
         if (expiredKeys.Count > 0)
         {
-            _logger.LogDebug("Cleaned up {Count} expired shared state entries", expiredKeys.Count);
+            Log.Debug("Cleaned up {Count} expired shared state entries", expiredKeys.Count);
         }
     }
 

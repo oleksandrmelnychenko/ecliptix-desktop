@@ -321,7 +321,8 @@ if [ "$RUNTIME_ID" = "universal" ]; then
     fi
     
     # Create universal binaries for any .dylib files
-    for intel_lib in "$INTEL_DIR"/*.dylib 2>/dev/null; do
+    shopt -s nullglob
+    for intel_lib in "$INTEL_DIR"/*.dylib; do
         if [ -f "$intel_lib" ]; then
             lib_name=$(basename "$intel_lib")
             arm64_lib="$ARM64_DIR/$lib_name"
@@ -331,6 +332,7 @@ if [ "$RUNTIME_ID" = "universal" ]; then
             fi
         fi
     done
+    shopt -u nullglob
     
     RUNTIME_ID="universal"
 else

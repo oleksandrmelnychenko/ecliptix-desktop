@@ -88,7 +88,7 @@ public static class Program
 
         if (!createdNew)
         {
-            Console.WriteLine("Another instance is already running.");
+            Log.Information("Another instance is already running - exiting");
             return;
         }
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.AppEvents.BottomSheet;
 using Ecliptix.Core.AppEvents.Network;
 using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.Configuration;
+using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;

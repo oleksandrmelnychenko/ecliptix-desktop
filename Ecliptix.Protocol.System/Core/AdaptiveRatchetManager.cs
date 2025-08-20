@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -123,13 +125,15 @@ public sealed class AdaptiveRatchetManager : IDisposable
                     _currentConfig = CreateConfigForLoad(newLoad);
                     _lastConfigUpdate = now;
 
-                    Console.WriteLine($"[ADAPTIVE RATCHET] Load: {newLoad}, Rate: {messagesPerSecond:F1} msg/sec, DH Interval: {_currentConfig.DhRatchetEveryNMessages}");
+                    if (Log.IsEnabled(LogEventLevel.Information))
+                        Log.Information("Adaptive ratchet - Load: {LoadLevel}, Rate: {MessageRate:F1} msg/sec, DH Interval: {DHInterval}",
+                            newLoad, messagesPerSecond, _currentConfig.DhRatchetEveryNMessages);
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ADAPTIVE RATCHET] Error in load analysis: {ex.Message}");
+            Log.Error(ex, "Adaptive ratchet error in load analysis");
         }
     }
 
@@ -210,7 +214,8 @@ public sealed class AdaptiveRatchetManager : IDisposable
             _currentConfig = CreateConfigForLoad(targetLoad);
             _lastConfigUpdate = DateTime.UtcNow;
 
-            Console.WriteLine($"[ADAPTIVE RATCHET] Forced config update to {targetLoad}");
+            if (Log.IsEnabled(LogEventLevel.Information))
+                Log.Information("Adaptive ratchet forced config update to {TargetLoad}", targetLoad);
         }
     }
 
@@ -225,6 +230,7 @@ public sealed class AdaptiveRatchetManager : IDisposable
         {
         }
 
-        Console.WriteLine("[ADAPTIVE RATCHET] Manager disposed");
+        if (Log.IsEnabled(LogEventLevel.Debug))
+            Log.Debug("Adaptive ratchet manager disposed");
     }
 }

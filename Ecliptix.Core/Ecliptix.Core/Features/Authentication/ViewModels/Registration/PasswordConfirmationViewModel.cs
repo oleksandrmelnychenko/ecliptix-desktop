@@ -300,7 +300,6 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                     OprfRegistrationInitResponse createMembershipResponse =
                         OprfRegistrationInitResponse.Parser.ParseFrom(payload);
 
-                    Console.WriteLine("Received OPRF response");
 
                     if (createMembershipResponse.Result != OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
@@ -342,7 +341,6 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                                 OprfRegistrationCompleteResponse completeResponse =
                                     OprfRegistrationCompleteResponse.Parser.ParseFrom(completePayload);
 
-                                Console.WriteLine("[SUCCESSFULL RESPONSE FROM REGISTRAION]" + completeResponse.Message);
 
                                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                             }

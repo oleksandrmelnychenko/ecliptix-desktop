@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
@@ -5,6 +6,8 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
+using Serilog;
+using Serilog.Events;
 using Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
@@ -529,7 +532,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     _ephemeralSecretKeyHandle = null;
 
                     bool useOpk = remoteBundle.OneTimePreKeys.FirstOrDefault()?.PublicKey is
-                    { Length: Constants.X25519PublicKeySize };
+                        { Length: Constants.X25519PublicKeySize };
 
                     byte[]? ephemeralSecretArray = null;
                     byte[]? identitySecretArray = null;
@@ -543,18 +546,24 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                         ephemeralSecretArray = ephemeralSecretSpan.ToArray();
                         identitySecretArray = identitySecretSpan.ToArray();
 
-                        byte[] dhTemp1 = ScalarMult.Mult(identitySecretArray, remoteBundle.SignedPreKeyPublic);     // IK_client * SPK_server  
-                        byte[] dhTemp2 = ScalarMult.Mult(ephemeralSecretArray, remoteBundle.IdentityX25519);       // EK_client * IK_server
-                        byte[] dhTemp3 = ScalarMult.Mult(ephemeralSecretArray, remoteBundle.SignedPreKeyPublic);   // EK_client * SPK_server
+                        byte[] dhTemp1 =
+                            ScalarMult.Mult(identitySecretArray,
+                                remoteBundle.SignedPreKeyPublic); // IK_client * SPK_server  
+                        byte[] dhTemp2 =
+                            ScalarMult.Mult(ephemeralSecretArray, remoteBundle.IdentityX25519); // EK_client * IK_server
+                        byte[] dhTemp3 =
+                            ScalarMult.Mult(ephemeralSecretArray,
+                                remoteBundle.SignedPreKeyPublic); // EK_client * SPK_server
 
-                        dh1 = dhTemp1;  // IK_client * SPK_server (matches server's SPK_server * IK_client)
-                        dh2 = dhTemp2;  // EK_client * IK_server (matches server's IK_server * EK_client)  
-                        dh3 = dhTemp3;  // EK_client * SPK_server (matches server's SPK_server * EK_client)
+                        dh1 = dhTemp1; // IK_client * SPK_server (matches server's SPK_server * IK_client)
+                        dh2 = dhTemp2; // EK_client * IK_server (matches server's IK_server * EK_client)  
+                        dh3 = dhTemp3; // EK_client * SPK_server (matches server's SPK_server * EK_client)
 
-                        Console.WriteLine("CLIENT X3DH AS INITIATOR (CORRECTED ORDER):");
-                        Console.WriteLine($"  DH1 (Id * RemoteSpk): {Convert.ToHexString(dh1)}");
-                        Console.WriteLine($"  DH2 (Eph * RemoteId): {Convert.ToHexString(dh2)}");
-                        Console.WriteLine($"  DH3 (Eph * RemoteSpk): {Convert.ToHexString(dh3)}");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                            Log.Debug("X3DH key derivation as initiator - DH1: {DH1}, DH2: {DH2}, DH3: {DH3}",
+                                Convert.ToHexString(dh1)[..16],
+                                Convert.ToHexString(dh2)[..16],
+                                Convert.ToHexString(dh3)[..16]);
 
                         dh1.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                         dhOffset += Constants.X25519KeySize;
@@ -569,7 +578,8 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                             try
                             {
                                 dh4 = ScalarMult.Mult(ephemeralSecretArray, remoteBundle.OneTimePreKeys[0].PublicKey);
-                                Console.WriteLine($"  DH4 (Eph * RemoteOpk): {Convert.ToHexString(dh4)}");
+                                if (Log.IsEnabled(LogEventLevel.Debug))
+                                    Log.Debug("X3DH DH4 (Eph * RemoteOpk): {DH4}", Convert.ToHexString(dh4)[..16]);
                                 dh4.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                                 dhOffset += Constants.X25519KeySize;
                             }
@@ -596,19 +606,21 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     try
                     {
                         ikmArray = ikmBuildSpan.ToArray();
-                        // Debug logging for IKM comparison with server
-                        Console.WriteLine($"[CLIENT] IKM hex: {Convert.ToHexString(ikmArray)}");
-                        Console.WriteLine($"[CLIENT] IKM length: {ikmArray.Length}");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                            Log.Debug("X3DH IKM (Initiator) - Length: {IKMLength}, Prefix: {IKMPrefix}",
+                                ikmArray.Length, Convert.ToHexString(ikmArray)[..32]);
 
-                        global::System.Security.Cryptography.HKDF.DeriveKey(
-                            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+                        HKDF.DeriveKey(
+                            HashAlgorithmName.SHA256,
                             ikm: ikmArray,
                             output: hkdfOutputSpan,
                             salt: null,
                             info: infoArray
                         );
 
-                        Console.WriteLine($"[CLIENT] Shared secret: {Convert.ToHexString(hkdfOutputSpan.ToArray())}");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                            Log.Debug("X3DH shared secret derived: {SharedSecretPrefix}",
+                                Convert.ToHexString(hkdfOutputSpan.ToArray())[..32]);
                     }
                     finally
                     {
@@ -784,10 +796,11 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     try
                     {
                         ikmArray = ikmBuildSpan.ToArray();
-                        Console.WriteLine($"[CLIENT] IKM hex: {Convert.ToHexString(ikmArray)}");
-                        Console.WriteLine($"[CLIENT] IKM length: {ikmArray.Length}");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                            Log.Debug("X3DH IKM (Responder) - Length: {IKMLength}, Prefix: {IKMPrefix}",
+                                ikmArray.Length, Convert.ToHexString(ikmArray)[..32]);
 
-                        global::System.Security.Cryptography.HKDF.DeriveKey(
+                        HKDF.DeriveKey(
                             global::System.Security.Cryptography.HashAlgorithmName.SHA256,
                             ikm: ikmArray,
                             output: hkdfOutputSpan,
@@ -795,7 +808,9 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                             info: infoArray
                         );
 
-                        Console.WriteLine($"[CLIENT] Shared secret: {Convert.ToHexString(hkdfOutputSpan.ToArray())}");
+                        if (Log.IsEnabled(LogEventLevel.Debug))
+                            Log.Debug("X3DH shared secret derived: {SharedSecretPrefix}",
+                                Convert.ToHexString(hkdfOutputSpan.ToArray())[..32]);
                     }
                     finally
                     {

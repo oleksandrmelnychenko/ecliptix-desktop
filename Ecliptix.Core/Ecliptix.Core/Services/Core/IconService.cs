@@ -3,6 +3,7 @@ namespace Ecliptix.Core.Services.Core;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Serilog;
 using System;
 
 public static class IconService
@@ -34,7 +35,7 @@ public static class IconService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to load icon: {ex.Message}");
+                Log.Warning(ex, "Failed to load application icon");
             }
         }
         return null;

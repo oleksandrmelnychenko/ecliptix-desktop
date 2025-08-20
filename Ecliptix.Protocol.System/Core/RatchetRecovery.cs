@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -89,8 +90,8 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
     {
         using SecurePooledArray<byte> nextChainKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
 
-        global::System.Security.Cryptography.HKDF.DeriveKey(
-            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+        HKDF.DeriveKey(
+            HashAlgorithmName.SHA256,
             ikm: chainKey,
             output: nextChainKey.AsSpan(),
             salt: null,

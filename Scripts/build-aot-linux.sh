@@ -293,7 +293,8 @@ APP_DIR="$BUILD_OUTPUT_DIR/$APP_NAME"
 
 print_status "Creating Linux application package..."
 
-# Create app directory
+# Remove existing app directory and create fresh one
+rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
 
 # Move the executable and dependencies
