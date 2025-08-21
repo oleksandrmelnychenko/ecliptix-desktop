@@ -5,7 +5,7 @@
         
         <!-- Centralized Version Management -->
         <MajorVersion>0</MajorVersion>
-        <MinorVersion>740</MinorVersion>
+        <MinorVersion>741</MinorVersion>
         <PatchVersion>0</PatchVersion>
         <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
         
