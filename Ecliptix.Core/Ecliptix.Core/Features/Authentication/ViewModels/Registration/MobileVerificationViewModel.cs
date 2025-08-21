@@ -3,7 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -29,7 +29,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private readonly Subject<string> _mobileErrorSubject = new();
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
-    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
@@ -37,22 +37,22 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
-    private ByteString PhoneNumberIdentifier { get; set; }
+    private ByteString? PhoneNumberIdentifier { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    [ObservableAsProperty] public string MobileNumberError { get; }
+    [ObservableAsProperty] public string? MobileNumberError { get; }
 
     [ObservableAsProperty] public bool HasMobileNumberError { get; }
 
-    public ReactiveCommand<Unit, Unit> VerifyMobileNumberCommand { get; private set; }
+    public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
     public MobileVerificationViewModel(
-        ISystemEvents systemEvents,
+        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEvents, networkProvider, localizationService)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -116,9 +116,9 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             HandleValidationResponseAsync
         );
 
-        if (result.IsOk)
+        if (result.IsOk && PhoneNumberIdentifier != null)
         {
-            VerifyOtpViewModel vm = new(SystemEvents, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
+            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
             ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
         }
         else

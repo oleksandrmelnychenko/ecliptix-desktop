@@ -24,7 +24,7 @@ public partial class TitleBar : UserControl
     public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
     public ReactiveCommand<Unit, Unit> MaximizeCommand { get; }
 
-    private IDisposable _pointerPressedSubscription;
+    private IDisposable? _pointerPressedSubscription;
 
     public TitleBar()
     {
@@ -55,15 +55,18 @@ public partial class TitleBar : UserControl
             this.WhenAnyValue(x => x.DisableMaximizeButton).Select(disable => !disable)
         );
 
-        var rootPanel = this.FindControl<Panel>("PART_Root");
-        _pointerPressedSubscription = Observable.FromEventPattern<PointerPressedEventArgs>(
-            h => rootPanel.PointerPressed += h,
-            h => rootPanel.PointerPressed -= h
-        ).Subscribe(e =>
+        Panel? rootPanel = this.FindControl<Panel>("PART_Root");
+        if (rootPanel != null)
         {
-            if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                Window?.BeginMoveDrag(e.EventArgs);
-        });
+            _pointerPressedSubscription = Observable.FromEventPattern<PointerPressedEventArgs>(
+                h => rootPanel.PointerPressed += h,
+                h => rootPanel.PointerPressed -= h
+            ).Subscribe(e =>
+            {
+                if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                    Window?.BeginMoveDrag(e.EventArgs);
+            });
+        }
 
         this.Unloaded += (s, e) => _pointerPressedSubscription?.Dispose();
     }

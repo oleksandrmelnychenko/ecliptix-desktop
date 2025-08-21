@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -58,18 +58,32 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
     private ByteString? VerificationSessionId { get; set; }
 
-    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
 
     public PasswordConfirmationViewModel(
-        ISystemEvents systemEvents,
+        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider
-    ) : base(systemEvents, networkProvider, localizationService)
+    ) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
+
+        IObservable<bool> isFormLogicallyValid = SetupValidation();
+
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
+        SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+        canExecuteSubmit.BindTo(this, x => x.CanSubmit);
+
+        NavPassConfToPassPhase = ReactiveCommand.Create(() =>
+        {
+            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+        });
 
         this.WhenActivated(disposables =>
         {
@@ -95,15 +109,6 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                 })
                 .DisposeWith(disposables);
         });
-
-        IObservable<bool> isFormLogicallyValid = SetupValidation();
-
-        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
-            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
-
-        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
-        SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
-        canExecuteSubmit.BindTo(this, x => x.CanSubmit);
     }
 
     private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
@@ -273,6 +278,12 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                 passwordBytes = new byte[bytes.Length];
                 bytes.CopyTo(passwordBytes);
             });
+
+            if (passwordBytes == null)
+            {
+                PasswordError = "Failed to process password";
+                return;
+            }
 
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
                 OpaqueProtocolService.CreateOprfRequest(passwordBytes);

@@ -2,11 +2,10 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Text;
-using Ecliptix.Core.AppEvents.System;
-using Ecliptix.Core.AppEvents.Network;
+using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
@@ -24,7 +23,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly IAuthenticationService _authService;
-    private readonly INetworkEvents _networkEvents;
+    private readonly INetworkEventService _networkEventService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
@@ -52,16 +51,16 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
-        ISystemEvents systemEvents,
-        INetworkEvents networkEvents,
+        ISystemEventService systemEventService,
+        INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
-        IScreen hostScreen) : base(systemEvents, networkProvider, localizationService)
+        IScreen hostScreen) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _authService = authService;
-        _networkEvents = networkEvents;
+        _networkEventService = networkEventService;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -141,20 +140,34 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> networkStatusStream = _networkEvents.NetworkStatusChanged
-            .Select(e => e.State switch
+        IObservable<bool> networkStatusStream = Observable.Create<bool>(observer =>
+        {
+            bool isInOutage = _networkEventService.CurrentStatus switch
             {
                 NetworkStatus.DataCenterDisconnected => true,
                 NetworkStatus.ServerShutdown => true,
                 NetworkStatus.ConnectionRecovering => true,
                 _ => false
-            })
-            .StartWith(false)
-            .DistinctUntilChanged();
+            };
+            observer.OnNext(isInOutage);
+
+            return _networkEventService.OnNetworkStatusChanged(evt =>
+            {
+                bool outage = evt.State switch
+                {
+                    NetworkStatus.DataCenterDisconnected => true,
+                    NetworkStatus.ServerShutdown => true,
+                    NetworkStatus.ConnectionRecovering => true,
+                    _ => false
+                };
+                observer.OnNext(outage);
+                return Task.CompletedTask;
+            });
+        }).DistinctUntilChanged();
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
-        IObservable<bool>? canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
+        IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
@@ -172,7 +185,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private void SetupSubscriptions()
     {
-        SignInCommand
+        SignInCommand?
             .Where(result => result.IsErr)
             .Select(result => result.UnwrapErr())
             .Subscribe(error =>
@@ -182,7 +195,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             })
             .DisposeWith(_disposables);
 
-        SignInCommand
+        SignInCommand?
             .Where(result => result.IsOk)
             .Subscribe(result =>
             {
@@ -197,24 +210,17 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private string ValidateSecureKey()
     {
         string? error = null;
-        _secureKeyBuffer.WithSecureBytes(bytes =>
-        {
-            // Validate using secure bytes without creating strings
-            error = ValidateSecureKeyBytes(bytes);
-        });
+        _secureKeyBuffer.WithSecureBytes(bytes => { error = ValidateSecureKeyBytes(bytes); });
         return error ?? string.Empty;
     }
 
     private string ValidateSecureKeyBytes(ReadOnlySpan<byte> passwordBytes)
     {
-        // Basic validation without converting to string
         if (passwordBytes.Length == 0)
         {
             return LocalizationService["ValidationErrors.SecureKey.Required"];
         }
 
-        // For sign-in, we only check if password is provided
-        // Actual validation happens server-side via OPAQUE protocol
         return string.Empty;
     }
 
@@ -229,16 +235,13 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         if (_isDisposed) return;
         if (disposing)
         {
-            // Clear all reactive command state
             SignInCommand?.Dispose();
             AccountRecoveryCommand?.Dispose();
 
-            // Clear sensitive data
-            _secureKeyBuffer?.Dispose();
-            _signInErrorSubject?.Dispose();
-            _disposables?.Dispose();
+            _secureKeyBuffer.Dispose();
+            _signInErrorSubject.Dispose();
+            _disposables.Dispose();
 
-            // Clear UI state
             MobileNumber = string.Empty;
             _hasMobileNumberBeenTouched = false;
             _hasSecureKeyBeenTouched = false;
@@ -261,12 +264,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         if (_isDisposed) return;
 
         MobileNumber = string.Empty;
-        _secureKeyBuffer?.Remove(0, _secureKeyBuffer.Length);
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
         _hasMobileNumberBeenTouched = false;
         _hasSecureKeyBeenTouched = false;
-        _signInErrorSubject?.OnNext(string.Empty);
+        _signInErrorSubject.OnNext(string.Empty);
 
-        // Force garbage collection of any remaining string references
         GC.Collect();
         GC.WaitForPendingFinalizers();
     }

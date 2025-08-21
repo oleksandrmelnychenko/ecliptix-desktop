@@ -2,7 +2,8 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Network.Resilience;
@@ -21,14 +22,14 @@ public class SecrecyChannelRetryInterceptor : Interceptor
     private readonly NetworkProvider _networkProvider;
     private readonly IAsyncPolicy _retryPolicy;
     private readonly ImprovedRetryConfiguration _configuration;
-    private readonly INetworkEvents _networkEvents;
+    private readonly INetworkEventService _networkEvents;
     private readonly RequestDeduplicationService _deduplicationService;
     private readonly IPendingRequestManager _pendingRequestManager;
 
     public SecrecyChannelRetryInterceptor(
         NetworkProvider networkProvider,
         IConfiguration configuration,
-        INetworkEvents networkEvents,
+        INetworkEventService networkEvents,
         RequestDeduplicationService deduplicationService,
         IPendingRequestManager pendingRequestManager)
     {
@@ -130,8 +131,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 Log.Information("🔄 PENDING REQUEST SUCCESS: Request {RequestId} succeeded on retry", requestId);
             });
 
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown));
+            await _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
 
             taskCompletionSource.SetException(new RpcException(new Status(StatusCode.Unavailable,
                 $"Server shutdown detected. Request {requestId} has been queued for retry.")));

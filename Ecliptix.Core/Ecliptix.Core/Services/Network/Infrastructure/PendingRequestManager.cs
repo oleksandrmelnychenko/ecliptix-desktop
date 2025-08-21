@@ -171,8 +171,9 @@ public class PendingRequestManager : IPendingRequestManager
             var method = typedRequest.GetType().GetMethod("ExecuteAsync");
             if (method != null)
             {
-                var task = (Task)method.Invoke(typedRequest, new object[] { cancellationToken });
-                await task;
+                object? result = method.Invoke(typedRequest, new object[] { cancellationToken });
+                if (result is Task task)
+                    await task;
             }
 
             RemovePendingRequest(requestId);

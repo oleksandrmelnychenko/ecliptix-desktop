@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Protobuf.PubKeyExchange;
 using Ecliptix.Utilities;
@@ -24,7 +23,7 @@ public class RpcServiceManager : IRpcServiceManager
         IUnaryRpcServices unaryRpcServices,
         IReceiveStreamRpcServices receiveStreamRpcServices,
         ISecrecyChannelRpcServices secrecyChannelRpcServices,
-        INetworkEvents networkEvents, ISystemEvents systemEvents)
+        INetworkEventService networkEvents, ISystemEventService systemEvents)
     {
         _secrecyChannelRpcServices = secrecyChannelRpcServices;
 
@@ -43,8 +42,8 @@ public class RpcServiceManager : IRpcServiceManager
     }
 
     public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
     {
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
@@ -53,8 +52,8 @@ public class RpcServiceManager : IRpcServiceManager
     }
 
     public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest)
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,

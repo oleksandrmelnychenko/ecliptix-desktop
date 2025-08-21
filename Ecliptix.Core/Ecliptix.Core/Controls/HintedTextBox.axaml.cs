@@ -532,7 +532,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             _focusBorder.BorderBrush = new SolidColorBrush(borderColor);
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource(shadowKey);
+            _shadowBorder.BoxShadow = this.FindResource(shadowKey) is BoxShadows shadow ? shadow : default;
 
 
             PasswordStrengthIconBrush = new SolidColorBrush(iconColor);
@@ -543,20 +543,20 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             _focusBorder.BorderBrush = new SolidColorBrush(Color.Parse("#de1e31"));
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("ErrorShadow");
+            _shadowBorder.BoxShadow = this.FindResource("ErrorShadow") is BoxShadows errorShadow ? errorShadow : default;
         }
         else if (isFocused)
         {
             _focusBorder.BorderBrush = FocusBorderBrush;
             _focusBorder.Opacity = 1;
             _mainBorder.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("FocusShadow");
+            _shadowBorder.BoxShadow = this.FindResource("FocusShadow") is BoxShadows focusShadow ? focusShadow : default;
         }
         else
         {
             _focusBorder.Opacity = 0;
             _mainBorder.BorderBrush = MainBorderBrush;
-            _shadowBorder.BoxShadow = (BoxShadows)this.FindResource("DefaultShadow");
+            _shadowBorder.BoxShadow = this.FindResource("DefaultShadow") is BoxShadows defaultShadow ? defaultShadow : default;
         }
     }
 

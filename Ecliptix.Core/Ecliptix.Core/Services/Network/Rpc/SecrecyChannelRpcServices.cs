@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Protobuf.AppDeviceServices;
 using Ecliptix.Protobuf.PubKeyExchange;
@@ -17,8 +17,8 @@ public sealed class SecrecyChannelRpcServices(
 ) : ISecrecyChannelRpcServices
 {
     public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         PubKeyExchange request
     )
     {
@@ -33,8 +33,8 @@ public sealed class SecrecyChannelRpcServices(
     public async Task<
         Result<RestoreSecrecyChannelResponse, NetworkFailure>
     > RestoreAppDeviceSecrecyChannelAsync(
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         RestoreSecrecyChannelRequest request
     )
     {
@@ -47,8 +47,8 @@ public sealed class SecrecyChannelRpcServices(
     }
 
     private static async Task<Result<TResponse, NetworkFailure>> ExecuteAsync<TResponse>(
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         Func<AsyncUnaryCall<TResponse>> grpcCallFactory
     )
     {
@@ -57,19 +57,14 @@ public sealed class SecrecyChannelRpcServices(
             AsyncUnaryCall<TResponse> call = grpcCallFactory();
             TResponse response = await call.ResponseAsync;
 
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                networkEvents.InitiateChangeState(
-                    NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-                );
-            });
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
 
             return Result<TResponse, NetworkFailure>.Ok(response);
         }
         catch (Exception exc)
         {
             Log.Debug(exc, "Secrecy channel gRPC call failed: {Message}", exc.Message);
-            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.DataCenterShutdown));
+            await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
             return Result<TResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterShutdown(exc.Message)
             );

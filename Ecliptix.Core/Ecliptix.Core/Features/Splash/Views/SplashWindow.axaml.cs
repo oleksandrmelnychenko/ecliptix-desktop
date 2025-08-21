@@ -5,7 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Interactivity;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using ReactiveUI;
 

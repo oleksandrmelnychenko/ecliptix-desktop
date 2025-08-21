@@ -12,10 +12,8 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
-using Ecliptix.Core.AppEvents;
-using Ecliptix.Core.AppEvents.BottomSheet;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
@@ -241,10 +239,15 @@ public static class Program
             SuccessThreshold = ApplicationConstants.Thresholds.DefaultSuccessThreshold
         });
 
-        services.AddSingleton<IEventAggregator, EventAggregator>();
-        services.AddSingleton<INetworkEvents, NetworkEvents>();
-        services.AddSingleton<ISystemEvents, SystemEvents>();
-        services.AddSingleton<IBottomSheetEvents, BottomSheetEvents>();
+        // Unified message bus system
+        services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
+        
+        // Modern event services (replace old adapters)
+        services.AddSingleton<ISystemEventService, SystemEventService>();
+        services.AddSingleton<INetworkEventService, NetworkEventService>();
+        services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
+        
 
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
@@ -295,7 +298,7 @@ public static class Program
         services.AddSingleton<IRetryStrategy>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
-            INetworkEvents networkEvents = sp.GetRequiredService<INetworkEvents>();
+            INetworkEventService networkEvents = sp.GetRequiredService<INetworkEventService>();
             IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
 
             IConfigurationSection section = config.GetSection(ApplicationConstants.Configuration.ImprovedRetryPolicySection);

@@ -1,0 +1,55 @@
+using System;
+
+namespace Ecliptix.Core.Core.Messaging.Events;
+
+/// <summary>
+/// Network connection status states
+/// </summary>
+public enum NetworkStatus
+{
+    DataCenterConnected,
+    DataCenterDisconnected,
+    DataCenterConnecting,
+    RestoreSecrecyChannel,
+    RetriesExhausted,
+    ServerShutdown,
+    ConnectionRecovering,
+    ConnectionRestored
+}
+
+/// <summary>
+/// Event fired when network status changes
+/// Compatible with existing NetworkStatusChangedEvent from AppEvents
+/// </summary>
+public sealed record NetworkStatusChangedEvent
+{
+    public NetworkStatus State { get; }
+    public DateTime Timestamp { get; }
+
+    private NetworkStatusChangedEvent(NetworkStatus state)
+    {
+        State = state;
+        Timestamp = DateTime.UtcNow;
+    }
+
+    public static NetworkStatusChangedEvent New(NetworkStatus state) => new(state);
+}
+
+/// <summary>
+/// Event fired when manual retry is requested by user
+/// Compatible with existing ManualRetryRequestedEvent from AppEvents
+/// </summary>
+public sealed record ManualRetryRequestedEvent
+{
+    public uint? ConnectId { get; }
+    public DateTime RequestedAt { get; }
+
+    private ManualRetryRequestedEvent(uint? connectId, DateTime requestedAt)
+    {
+        ConnectId = connectId;
+        RequestedAt = requestedAt;
+    }
+
+    public static ManualRetryRequestedEvent New(uint? connectId = null) =>
+        new(connectId, DateTime.UtcNow);
+}

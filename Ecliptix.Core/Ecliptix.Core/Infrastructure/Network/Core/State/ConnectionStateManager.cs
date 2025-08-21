@@ -7,7 +7,6 @@ using System.Reactive.Subjects;
 using System.Threading;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Core.State.Configuration;
-using Ecliptix.Core.Services.Network.Infrastructure.Queue;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
@@ -39,59 +38,6 @@ public class ConnectionStateManager : IConnectionStateManager
 
     }
 
-    private ConnectionHealth UpdateHealthMetrics(ConnectionHealth current, OperationType operation,
-        Result<Unit, NetworkFailure> result, TimeSpan latency)
-    {
-        DateTime now = DateTime.UtcNow;
-        ConnectionHealthMetrics metrics = current.Metrics;
-
-        Dictionary<OperationType, DateTime> operationTimes = new(metrics.LastOperationTimes)
-        {
-            [operation] = now
-        };
-
-        ConnectionHealthMetrics updatedMetrics;
-        ConnectionHealthStatus newStatus;
-
-        if (result.IsOk)
-        {
-            updatedMetrics = metrics with
-            {
-                ConsecutiveSuccesses = metrics.ConsecutiveSuccesses + 1,
-                ConsecutiveFailures = 0,
-                AverageLatency = CalculateAverageLatency(metrics.AverageLatency, latency),
-                SuccessRate = CalculateSuccessRate(metrics, true),
-                LastOperationTimes = operationTimes
-            };
-
-            newStatus = DetermineHealthStatus(updatedMetrics);
-        }
-        else
-        {
-            FailureCategory failureCategory = CategorizeFailure(result.UnwrapErr());
-            Dictionary<FailureCategory, int> failureCounts = new(metrics.FailureCounts);
-            failureCounts[failureCategory] = failureCounts.GetValueOrDefault(failureCategory) + 1;
-
-            updatedMetrics = metrics with
-            {
-                ConsecutiveFailures = metrics.ConsecutiveFailures + 1,
-                ConsecutiveSuccesses = 0,
-                SuccessRate = CalculateSuccessRate(metrics, false),
-                LastOperationTimes = operationTimes,
-                FailureCounts = failureCounts
-            };
-
-            newStatus = DetermineHealthStatus(updatedMetrics);
-        }
-
-        return current with
-        {
-            Metrics = updatedMetrics,
-            Status = newStatus,
-            LastHealthCheck = now,
-            LastError = result.IsErr ? result.UnwrapErr().Message : null
-        };
-    }
 
     private ConnectionHealthStatus DetermineHealthStatus(ConnectionHealthMetrics metrics)
     {

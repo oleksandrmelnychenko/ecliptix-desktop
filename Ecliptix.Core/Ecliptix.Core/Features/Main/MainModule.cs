@@ -14,7 +14,7 @@ public record MainModuleManifest() : ModuleManifest(
     Version: new Version(1, 0, 0),
     Priority: 20,
     LoadingStrategy: ModuleLoadingStrategy.Lazy,
-    Dependencies: new[] { ModuleIdentifier.Authentication },
+    Dependencies: [ModuleIdentifier.Authentication],
     ResourceConstraints: ModuleResourceConstraints.Default,
     ViewFactories: new Dictionary<Type, Func<Control>>(),
     ServiceMappings: new Dictionary<Type, Type>()
@@ -33,20 +33,18 @@ public class MainModule : ModuleBase<MainModuleManifest>
 
     public override void RegisterViews(IViewLocator viewLocator)
     {
-        // No views to register yet - MainViewModel doesn't have a corresponding view
     }
 
     public override IReadOnlyList<Type> GetViewTypes()
     {
-        // No views yet
-        return Array.Empty<Type>();
+        return [];
     }
 
     public override IReadOnlyList<Type> GetViewModelTypes()
     {
-        return new[]
-        {
+        return
+        [
             typeof(MainViewModel)
-        };
+        ];
     }
 }

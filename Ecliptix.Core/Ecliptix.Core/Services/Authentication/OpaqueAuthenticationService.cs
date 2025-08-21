@@ -2,7 +2,8 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -23,7 +24,7 @@ namespace Ecliptix.Core.Services.Authentication;
 public class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
-    ISystemEvents systemEvents)
+    ISystemEventService systemEvents)
     : IAuthenticationService
 {
     public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
@@ -55,7 +56,7 @@ public class OpaqueAuthenticationService(
             if (oprfResult.IsErr)
             {
                 OpaqueFailure opaqueError = oprfResult.UnwrapErr();
-                systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError, opaqueError.Message));
+                await systemEvents.NotifySystemStateAsync(SystemState.FatalError, opaqueError.Message);
                 Result<byte[], string> errorResult =
                     Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
                 return errorResult;
@@ -248,8 +249,7 @@ public class OpaqueAuthenticationService(
 
         if (!verificationResult.IsErr) return Result<byte[], string>.Ok(verificationResult.Unwrap());
         string errorMessage = localizationService["ValidationErrors.SecureKey.InvalidCredentials"];
-        systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError,
-            verificationResult.UnwrapErr().Message));
+        await systemEvents.NotifySystemStateAsync(SystemState.FatalError, verificationResult.UnwrapErr().Message);
         return Result<byte[], string>.Err(errorMessage);
     }
 }

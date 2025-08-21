@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Reactive;
-using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
+using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -11,7 +13,7 @@ namespace Ecliptix.Core.Controls.Modals;
 
 public class DetectLanguageDialogViewModel : ReactiveObject
 {
-    private readonly ILanguageDetectionEvents _languageDetectionEvents;
+    private readonly IUnifiedMessageBus _messageBus;
 
     public string Title { get; }
     public string PromptText { get; }
@@ -23,15 +25,15 @@ public class DetectLanguageDialogViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> ConfirmCommand { get; }
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
-    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
+    private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
-        ILanguageDetectionEvents languageDetectionEvents,
+        IUnifiedMessageBus messageBus,
         NetworkProvider networkProvider
         )
     {
-        _languageDetectionEvents = languageDetectionEvents;
+        _messageBus = messageBus;
         string country = networkProvider.ApplicationInstanceSettings.Country;
         _targetCulture = LanguageConfig.GetCultureByCountry(country);
         CultureInfo targetInfo = CultureInfo.GetCultureInfo(_targetCulture);
@@ -48,13 +50,13 @@ public class DetectLanguageDialogViewModel : ReactiveObject
         DeclineCommand = ReactiveCommand.Create(OnDecline);
     }
 
-    private void OnConfirm()
+    private async void OnConfirm()
     {
-        _languageDetectionEvents.Invoke(LanguageDetectionDialogEvent.Confirm(_targetCulture));
+        await _messageBus.PublishAsync(LanguageDetectionDialogEvent.Confirm(_targetCulture));
     }
 
-    private void OnDecline()
+    private async void OnDecline()
     {
-        _languageDetectionEvents.Invoke(LanguageDetectionDialogEvent.Decline());
+        await _messageBus.PublishAsync(LanguageDetectionDialogEvent.Decline());
     }
 }

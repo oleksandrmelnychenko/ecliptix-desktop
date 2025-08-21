@@ -4,9 +4,7 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Ecliptix.Core.AppEvents.BottomSheet;
-using Ecliptix.Core.AppEvents.LanguageDetectionEvents;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -45,12 +43,12 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
 
     public void SetLocalizationService(
         ILocalizationService localizationService,
-        ILanguageDetectionEvents languageDetectionEvents,
+        IUnifiedMessageBus messageBus,
         NetworkProvider networkProvider)
     {
         DataContext = new DetectLanguageDialogViewModel(
             localizationService,
-            languageDetectionEvents,
+            messageBus,
             networkProvider
             ); SetupReactiveBindings();
     }

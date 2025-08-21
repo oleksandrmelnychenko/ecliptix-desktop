@@ -5,8 +5,8 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
@@ -38,8 +38,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly ISecureProtocolStateStorage _secureProtocolStateStorage;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
-    private readonly INetworkEvents _networkEvents;
-    private readonly ISystemEvents _systemEvents;
+    private readonly INetworkEventService _networkEvents;
+    private readonly ISystemEventService _systemEvents;
     private readonly IRetryStrategy _retryStrategy;
     private readonly IConnectionStateManager _connectionStateManager;
     private readonly IPendingRequestManager _pendingRequestManager;
@@ -88,8 +88,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         ISecureProtocolStateStorage secureProtocolStateStorage,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        INetworkEvents networkEvents,
-        ISystemEvents systemEvents,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
         IRetryStrategy retryStrategy,
         IConnectionStateManager connectionStateManager,
         IPendingRequestManager pendingRequestManager)
@@ -306,9 +306,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                             "Connection unavailable - server may be recovering");
 
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown)
-                        );
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
 
                         return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
                     }
@@ -487,9 +485,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Log.Information("Successfully restored existing connection state for {ConnectId}", connectId);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-                        );
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
                     });
                 }
             }
@@ -557,9 +553,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Successfully reconnected and established new session");
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-            );
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
         });
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
@@ -627,9 +621,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("Successfully established new connection");
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-            );
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
         });
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
@@ -687,7 +679,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting));
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
         });
 
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
@@ -1112,11 +1104,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.ServerShutdown)
-            );
-            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Recovering,
-                $"Entering recovery mode: {reason}"));
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
+            _ = _systemEvents.NotifySystemStateAsync(SystemState.Recovering);
         });
 
         CancelActiveRecoveryOperations();
@@ -1140,11 +1129,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _networkEvents.InitiateChangeState(
-                NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRestored)
-            );
-            _systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running,
-                "Recovery completed, resuming normal operations"));
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRestored);
+            _ = _systemEvents.NotifySystemStateAsync(SystemState.Running);
         });
 
         Log.Information("Recovery completed. Secrecy channel is healthy; resuming all requests");
@@ -1168,8 +1154,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
                     });
 
                     return;
@@ -1210,8 +1195,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
                     });
                 }
                 catch (Exception uiEx)
@@ -1333,9 +1317,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _networkEvents.InitiateChangeState(
-                    NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRecovering)
-                );
+                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRecovering);
             });
 
             if (!_applicationInstanceSettings.HasValue)
@@ -1346,9 +1328,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _networkEvents.InitiateChangeState(
-                    NetworkStatusChangedEvent.New(NetworkStatus.RestoreSecrecyChannel)
-                );
+                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RestoreSecrecyChannel);
             });
 
             Result<byte[], SecureStorageFailure> stateResult =
@@ -1816,9 +1796,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Log.Information("Successfully restored existing connection state for {ConnectId}", connectId);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected)
-                        );
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
                     });
                 }
             }

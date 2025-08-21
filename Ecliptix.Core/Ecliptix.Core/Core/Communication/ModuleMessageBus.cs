@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
@@ -188,9 +189,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
-        Type messageType = message.GetType();
-
-
+        // AOT-friendly: Direct type checking without reflection
         if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CorrelationId))
         {
             if (_pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
@@ -200,40 +199,23 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
         }
 
-        HashSet<Type> typesToProcess = [messageType];
-
-        foreach (Type interfaceType in messageType.GetInterfaces())
-        {
-            if (typeof(IModuleMessage).IsAssignableFrom(interfaceType))
-            {
-                typesToProcess.Add(interfaceType);
-            }
-        }
-
-        Type? currentType = messageType.BaseType;
-        while (currentType != null && typeof(IModuleMessage).IsAssignableFrom(currentType))
-        {
-            typesToProcess.Add(currentType);
-            currentType = currentType.BaseType;
-        }
-
+        // Process the message directly without reflection-based type hierarchy traversal
+        // AOT-friendly: Use concrete type directly
+        Type messageType = typeof(IModuleMessage);
         List<Task> handlerTasks = [];
 
-        foreach (Type type in typesToProcess)
+        if (_subscriptions.TryGetValue(messageType, out ConcurrentBag<IMessageSubscription>? subscriptions))
         {
-            if (_subscriptions.TryGetValue(type, out ConcurrentBag<IMessageSubscription>? subscriptions))
+            foreach (IMessageSubscription subscription in subscriptions)
             {
-                foreach (IMessageSubscription subscription in subscriptions)
+                try
                 {
-                    try
-                    {
-                        Task handlerTask = subscription.HandleAsync(message);
-                        handlerTasks.Add(handlerTask);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error invoking message handler for {MessageType}", type.Name);
-                    }
+                    Task handlerTask = subscription.HandleAsync(message);
+                    handlerTasks.Add(handlerTask);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error invoking message handler for {MessageType}", messageType.Name);
                 }
             }
         }

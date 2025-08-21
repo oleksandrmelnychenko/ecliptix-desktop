@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Core.Abstractions;
@@ -10,7 +11,8 @@ public interface IViewLocator
         where TViewModel : class, IRoutableViewModel
         where TView : class, new();
 
-    void Register(Type viewModelType, Type viewType);
+    void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType, 
+                  [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType);
 
     void RegisterFactory<TViewModel>(Func<object> factory)
         where TViewModel : class, IRoutableViewModel;

@@ -5,7 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -31,7 +31,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private bool _isSent;
     private string _remainingTime = "01:00";
     private string _verificationCode;
-    private IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -84,12 +84,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     }
 
     public VerifyOtpViewModel(
-        ISystemEvents systemEvents,
+        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
         ByteString phoneNumberIdentifier,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEvents, networkProvider,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEventService, networkProvider,
         localizationService)
     {
         _phoneNumberIdentifier = phoneNumberIdentifier;

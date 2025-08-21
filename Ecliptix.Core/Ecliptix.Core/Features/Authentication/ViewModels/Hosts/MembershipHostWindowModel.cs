@@ -4,13 +4,11 @@ using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.BottomSheet;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal.Components;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
@@ -35,23 +33,23 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisposable
 {
     private bool _canNavigateBack;
-    private readonly IBottomSheetEvents _bottomSheetEvents;
+    private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
-    private readonly INetworkEvents _networkEvents;
+    private readonly INetworkEventService _networkEventService;
     private readonly NetworkProvider _networkProvider;
 
-    private readonly ISystemEvents _systemEvents;
+    private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
 
-    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
+    private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider,
+    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
         IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<ISystemEvents, INetworkEvents, NetworkProvider, ILocalizationService,
+        new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>>
         {
             [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
@@ -131,9 +129,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
 
     public MembershipHostWindowModel(
-        IBottomSheetEvents bottomSheetEvents,
-        ISystemEvents systemEvents,
-        INetworkEvents networkEvents,
+        IBottomSheetService bottomSheetService,
+        ISystemEventService systemEventService,
+        INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         InternetConnectivityObserver connectivityObserver,
@@ -141,12 +139,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService,
         NetworkStatusNotificationViewModel networkStatusNotification)
-        : base(systemEvents, networkProvider, localizationService)
+        : base(systemEventService, networkProvider, localizationService)
     {
-        _networkEvents = networkEvents;
-        _bottomSheetEvents = bottomSheetEvents;
+        _networkEventService = networkEventService;
+        _bottomSheetService = bottomSheetService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _systemEvents = systemEvents;
+        _systemEventService = systemEventService;
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
 
@@ -165,9 +163,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             Log.Information("Network status changed to: {Status}", status);
 
-            _networkEvents.InitiateChangeState(status
-                ? NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnecting)
-                : NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+            _ = _networkEventService.NotifyNetworkStatusAsync(status
+                ? NetworkStatus.DataCenterConnecting
+                : NetworkStatus.DataCenterDisconnected);
         });
 
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
@@ -220,9 +218,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         this.WhenActivated(disposables =>
         {
-
-            _networkEvents.ManualRetryRequested
-                .SelectMany(async e =>
+            _networkEventService.OnManualRetryRequested(async e =>
                 {
                     Log.Information("🔄 MANUAL RETRY: Starting immediate RestoreSecrecyChannel attempt");
 
@@ -232,17 +228,13 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     if (recoveryResult.IsOk)
                     {
                         Log.Information("🔄 MANUAL RETRY: RestoreSecrecyChannel succeeded - connection restored");
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.DataCenterConnected));
+                        await _networkEventService.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
                     }
                     else
                     {
                         Log.Warning("🔄 MANUAL RETRY: RestoreSecrecyChannel failed: {Error}", recoveryResult.UnwrapErr().Message);
                     }
-
-                    return Unit.Default;
                 })
-                .Subscribe()
                 .DisposeWith(disposables);
             Observable.Timer(TimeSpan.FromSeconds(2), RxApp.MainThreadScheduler)
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
@@ -274,8 +266,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
-                    _bottomSheetEvents.BottomSheetChangedState(
-                        BottomSheetChangedEvent.New(BottomSheetComponentType.DetectedLocalization));
+                    await _bottomSheetService.ShowAsync(BottomSheetComponentType.DetectedLocalization);
                 }
             }
         }
@@ -299,25 +290,67 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
 
         if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<ISystemEvents, INetworkEvents, NetworkProvider, ILocalizationService, IAuthenticationService,
+                out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService, IAuthenticationService,
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>? factory))
         {
             throw new ArgumentOutOfRangeException(nameof(viewType));
         }
 
-        IRoutableViewModel newViewModel = factory(_systemEvents, _networkEvents, _networkProvider, LocalizationService,
+        IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider, LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this);
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;
     }
 
+    public void CleanupAuthenticationFlow()
+    {
+        Log.Information("Starting authentication flow cleanup");
+
+        ClearNavigationStack();
+
+        foreach ((MembershipViewType viewType, WeakReference<IRoutableViewModel> weakRef) in _viewModelCache)
+        {
+            if (weakRef.TryGetTarget(out IRoutableViewModel? viewModel))
+            {
+                Log.Information("Disposing cached ViewModel: {ViewModelType}", viewModel.GetType().Name);
+                
+                if (viewModel is IDisposable disposableViewModel)
+                {
+                    disposableViewModel.Dispose();
+                }
+                
+                if (viewModel is IResettable resettableViewModel)
+                {
+                    resettableViewModel.ResetState();
+                }
+            }
+        }
+
+        _viewModelCache.Clear();
+        
+        CurrentView = null;
+
+        Log.Information("Authentication flow cleanup completed - all ViewModels disposed and cache cleared");
+        
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
+            Log.Information("MembershipHostWindowModel disposing - starting cleanup");
+            
+            CleanupAuthenticationFlow();
+            
             _connectivitySubscription?.Dispose();
             _disposables?.Dispose();
+            LanguageSelector?.Dispose();
+            NetworkStatusNotification?.Dispose();
+            
+            Log.Information("MembershipHostWindowModel disposal complete");
         }
 
         base.Dispose(disposing);

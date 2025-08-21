@@ -1,7 +1,7 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;
@@ -15,17 +15,17 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 {
     public ILocalizationService LocalizationService { get; }
 
-    protected ISystemEvents SystemEvents { get; }
+    protected ISystemEventService SystemEventService { get; }
     protected NetworkProvider NetworkProvider { get; }
 
     private bool _disposedValue;
 
     public ViewModelActivator Activator { get; } = new();
 
-    protected ViewModelBase(ISystemEvents systemEvents, NetworkProvider networkProvider,
+    protected ViewModelBase(ISystemEventService systemEventService, NetworkProvider networkProvider,
         ILocalizationService localizationService)
     {
-        SystemEvents = systemEvents;
+        SystemEventService = systemEventService;
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
 

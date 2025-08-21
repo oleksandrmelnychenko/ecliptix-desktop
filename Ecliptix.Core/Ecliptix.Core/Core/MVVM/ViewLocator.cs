@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Ecliptix.Core.Core.Abstractions;
 using ReactiveUI;
 using Serilog;
@@ -19,7 +20,8 @@ public class ViewLocator : IViewLocator
         RegisterFactory<TViewModel>(() => new TView());
     }
 
-    public void Register(Type viewModelType, Type viewType)
+    public void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType, 
+                        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType)
     {
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");

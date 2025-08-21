@@ -182,11 +182,6 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         }
     }
 
-    public Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, ReadOnlySpan<byte> data)
-    {
-        return StoreAsync(key, data.ToArray());
-    }
-
     public async Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key)
     {
         string filePath = GetHashedFilePath(key);

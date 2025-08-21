@@ -2,11 +2,10 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
-using Ecliptix.Core.AppEvents.Network;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
@@ -29,7 +28,6 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
             [NetworkStatus.DataCenterDisconnected] = DisconnectedColor
         }.ToFrozenDictionary();
 
-    private static readonly Func<NetworkStatusChangedEvent, NetworkStatus> StateSelector = e => e.State;
 
     private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
     private Color _glowColor = DefaultColor;
@@ -49,24 +47,24 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 
     public TaskCompletionSource IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(ISystemEvents systemEvents, INetworkEvents networkEvents,
+    public SplashWindowViewModel(ISystemEventService systemEventService, INetworkEventService networkEventService,
         ILocalizationService localizationService, NetworkProvider networkProvider)
-        : base(systemEvents, networkProvider, localizationService)
+        : base(systemEventService, networkProvider, localizationService)
     {
-        SetupPrecompiledNetworkBinding(networkEvents);
+        SetupPrecompiledNetworkBinding(networkEventService);
     }
 
-    private void SetupPrecompiledNetworkBinding(INetworkEvents networkEvents)
+    private void SetupPrecompiledNetworkBinding(INetworkEventService networkEventService)
     {
         this.WhenActivated(disposables =>
         {
-            networkEvents.NetworkStatusChanged
-                .Select(StateSelector)
-                .DistinctUntilChanged()
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(ProcessNetworkStatusChange)
-                .DisposeWith(disposables);
+            IDisposable subscription = networkEventService.OnNetworkStatusChanged(evt =>
+            {
+                ProcessNetworkStatusChange(evt.State);
+                return Task.CompletedTask;
+            });
 
+            subscription.DisposeWith(disposables);
             IsSubscribed.TrySetResult();
         });
     }

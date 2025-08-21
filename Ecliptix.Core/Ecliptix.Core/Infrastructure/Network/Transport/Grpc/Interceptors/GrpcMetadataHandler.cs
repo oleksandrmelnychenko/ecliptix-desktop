@@ -32,7 +32,7 @@ public static class GrpcMetadataHandler
             { DateTimeKey, DateTimeOffset.UtcNow.ToString("O") },
             { LocalIpAddressKey, GetLocalIpAddress() },
             { PublicIpAddressKey, GetPublicIpAddress() },
-            { LocaleKey, culture },
+            { LocaleKey, culture ?? "en-US" },
             { LinkIdKey, GenerateLinkId() },
             { ApplicationInstanceIdKey, appInstanceId },
             { AppDeviceId, appDeviceId },

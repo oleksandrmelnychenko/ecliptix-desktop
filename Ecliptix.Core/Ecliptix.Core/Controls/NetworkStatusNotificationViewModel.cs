@@ -12,7 +12,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
-using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
@@ -77,18 +78,18 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
-        INetworkEvents networkEvents,
+        IUnifiedMessageBus messageBus,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
 
-        IObservable<NetworkStatusChangedEvent> networkStatusEvents = networkEvents.NetworkStatusChanged
+        IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus.GetEvent<NetworkStatusChangedEvent>()
             .DistinctUntilChanged(e => e.State)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Replay(1)
             .RefCount();
 
-        IObservable<ManualRetryRequestedEvent> manualRetryEvents = networkEvents.ManualRetryRequested
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents = messageBus.GetEvent<ManualRetryRequestedEvent>()
             .ObserveOn(RxApp.MainThreadScheduler);
 
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
@@ -181,7 +182,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
 
-                    networkEvents.RequestManualRetry(ManualRetryRequestedEvent.New());
+                    await messageBus.PublishAsync(ManualRetryRequestedEvent.New());
 
                     int retriedCount = await pendingRequestManager.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);

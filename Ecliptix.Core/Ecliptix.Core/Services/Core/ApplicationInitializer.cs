@@ -5,7 +5,8 @@ using Ecliptix.Protobuf.PubKeyExchange;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.AppEvents.System;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
@@ -30,7 +31,7 @@ public class ApplicationInitializer(
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     ISecureProtocolStateStorage secureProtocolStateStorage,
     ILocalizationService localizationService,
-    ISystemEvents systemEvents,
+    ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService)
     : IApplicationInitializer
 {
@@ -38,7 +39,7 @@ public class ApplicationInitializer(
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
-        systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Initializing));
+        await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
@@ -47,7 +48,7 @@ public class ApplicationInitializer(
         {
             Log.Error("Failed to retrieve or create application instance settings: {@Error}",
                 settingsResult.UnwrapErr());
-            systemEvents.Publish(SystemStateChangedEvent.New(SystemState.FatalError));
+            await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
             return false;
         }
 
@@ -101,7 +102,7 @@ public class ApplicationInitializer(
 
         Log.Information("Application initialized successfully");
 
-        systemEvents.Publish(SystemStateChangedEvent.New(SystemState.Running));
+        await systemEvents.NotifySystemStateAsync(SystemState.Running);
         return true;
     }
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(

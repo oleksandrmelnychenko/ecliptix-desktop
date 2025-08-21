@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Wrap;
-using Ecliptix.Core.AppEvents.Network;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Utilities;
@@ -19,7 +20,7 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 {
     private readonly ImprovedRetryConfiguration _configuration;
-    private readonly INetworkEvents _networkEvents;
+    private readonly INetworkEventService _networkEvents;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
     private readonly SemaphoreSlim _stateLock = new(1, 1);
@@ -58,7 +59,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     public SecrecyChannelRetryStrategy(
         ImprovedRetryConfiguration configuration,
-        INetworkEvents networkEvents,
+        INetworkEventService networkEvents,
         IUiDispatcher uiDispatcher)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -79,8 +80,8 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         try
         {
-            _manualRetrySubscription = _networkEvents.ManualRetryRequested
-                .Subscribe(evt => _ = HandleManualRetryRequestAsync(evt));
+            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(
+                evt => HandleManualRetryRequestAsync(evt));
         }
         catch (Exception ex)
         {
@@ -382,8 +383,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 {
                     try
                     {
-                        _networkEvents.InitiateChangeState(
-                            NetworkStatusChangedEvent.New(NetworkStatus.ConnectionRestored));
+                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRestored);
                     }
                     catch (Exception ex)
                     {
@@ -590,8 +590,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                             {
                                 try
                                 {
-                                    _networkEvents.InitiateChangeState(
-                                        NetworkStatusChangedEvent.New(NetworkStatus.RetriesExhausted));
+                                    _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
                                 }
                                 catch (Exception ex)
                                 {
@@ -611,8 +610,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                                 {
                                     try
                                     {
-                                        _networkEvents.InitiateChangeState(
-                                            NetworkStatusChangedEvent.New(NetworkStatus.DataCenterDisconnected));
+                                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterDisconnected);
                                     }
                                     catch (Exception ex)
                                     {

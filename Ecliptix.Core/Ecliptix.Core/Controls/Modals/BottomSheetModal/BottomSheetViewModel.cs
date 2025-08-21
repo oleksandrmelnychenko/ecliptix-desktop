@@ -3,7 +3,8 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Controls;
-using Ecliptix.Core.AppEvents.BottomSheet;
+using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
@@ -50,7 +51,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public BottomSheetViewModel(IBottomSheetEvents bottomSheetEvents, ILocalizationService localizationService)
+    public BottomSheetViewModel(IUnifiedMessageBus messageBus, ILocalizationService localizationService)
     {
         _content = null;
         _isVisible = false;
@@ -76,7 +77,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
         this.WhenActivated(disposables =>
         {
-            bottomSheetEvents.BottomSheetChanged
+            messageBus.GetEvent<BottomSheetChangedEvent>()
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(eventArgs =>
                 {

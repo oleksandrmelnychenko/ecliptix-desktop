@@ -168,8 +168,9 @@ namespace Ecliptix.Core.Controls
         {
             if (AllowOnlyNumbers)
             {
-                var validText = ValidateNumericInput(textBox.Text);
-                if (textBox.Text != validText)
+                string inputText = textBox.Text ?? string.Empty;
+                string validText = ValidateNumericInput(inputText);
+                if (inputText != validText)
                 {
                     UpdateTextBoxText(textBox, validText);
                 }

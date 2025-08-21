@@ -39,7 +39,7 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
             using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             JsonElement root = doc.RootElement;
 
-            string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query");
+            string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query") ?? "unknown";
             string? country =
                 TryGetAnyCaseInsensitive(root, "country", "country_name", "countryName") ??
                 TryGetAnyCaseInsensitive(root, "countryCode", "country_code");

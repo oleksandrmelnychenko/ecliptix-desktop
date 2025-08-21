@@ -66,6 +66,7 @@ public class RequestDeduplicationService : IDisposable
 
         if (requestInfo.RequestCount > 3)
         {
+            // TODO: Implement rate limiting logic
         }
 
         return Task.FromResult(false);
@@ -104,6 +105,7 @@ public class RequestDeduplicationService : IDisposable
 
                 if (keysToRemove.Count > 0)
                 {
+                    // Log cleanup activity if needed
                 }
             }
             finally
@@ -111,9 +113,10 @@ public class RequestDeduplicationService : IDisposable
                 _cleanupSemaphore.Release();
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
+            // Log exception if logging is available
+            System.Diagnostics.Debug.WriteLine($"RequestDeduplication cleanup error: {ex.Message}");
         }
     }
 

@@ -12,16 +12,18 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.LanguageSelector;
 
-public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableViewModel
+public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
+    private readonly CompositeDisposable _disposables = new();
     private LanguageItem _selectedLanguage;
+    private bool _disposed;
 
     public ViewModelActivator Activator { get; } = new();
 
-    private static readonly LanguageConfiguration LanguageConfig = LanguageConfiguration.Default;
+    private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
     public ObservableCollection<LanguageItem> AvailableLanguages { get; } =
         new(LanguageConfig.SupportedLanguages);
@@ -47,6 +49,8 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         IObservable<string> languageChanges = CreateLanguageObservable();
 
         ToggleLanguageCommand = ReactiveCommand.Create(ToggleLanguage);
+
+        _disposables.Add(ToggleLanguageCommand);
 
         SetupReactiveBindings(languageChanges);
     }
@@ -98,5 +102,15 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                 })
                 .DisposeWith(disposables);
         });
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        
+        ToggleLanguageCommand?.Dispose();
+        _disposables.Dispose();
+        
+        _disposed = true;
     }
 }
