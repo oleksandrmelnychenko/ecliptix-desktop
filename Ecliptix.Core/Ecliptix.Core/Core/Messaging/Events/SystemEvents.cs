@@ -2,9 +2,6 @@ using System;
 
 namespace Ecliptix.Core.Core.Messaging.Events;
 
-/// <summary>
-/// System application states
-/// </summary>
 public enum SystemState
 {
     Initializing,
@@ -15,11 +12,6 @@ public enum SystemState
     FatalError
 }
 
-/// <summary>
-/// Event fired when system state changes
-/// Compatible with existing SystemStateChangedEvent from AppEvents
-/// Converted from class to record for better immutability
-/// </summary>
 public sealed record SystemStateChangedEvent
 {
     public SystemState State { get; }

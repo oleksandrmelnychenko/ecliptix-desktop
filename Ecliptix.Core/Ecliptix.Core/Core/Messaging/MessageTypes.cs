@@ -63,10 +63,6 @@ public sealed class MessageEnvelope<T> : IDisposable where T : class
     }
 }
 
-/// <summary>
-/// Simple object pool for memory efficiency
-/// Thread-safe, allocation-free for common paths
-/// </summary>
 internal sealed class ObjectPool<T> where T : class, new()
 {
     private readonly ConcurrentStack<T> _objects = new();

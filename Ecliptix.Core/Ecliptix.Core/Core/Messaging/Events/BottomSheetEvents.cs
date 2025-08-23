@@ -3,19 +3,12 @@ using Avalonia.Controls;
 
 namespace Ecliptix.Core.Core.Messaging.Events;
 
-/// <summary>
-/// Bottom sheet component types
-/// </summary>
 public enum BottomSheetComponentType
 {
     DetectedLocalization,
     Hidden
 }
 
-/// <summary>
-/// Event fired when bottom sheet state changes
-/// Compatible with existing BottomSheetChangedEvent from AppEvents
-/// </summary>
 public sealed record BottomSheetChangedEvent
 {
     public UserControl? Control { get; }

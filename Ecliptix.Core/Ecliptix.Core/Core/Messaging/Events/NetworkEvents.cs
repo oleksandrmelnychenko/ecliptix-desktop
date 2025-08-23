@@ -2,9 +2,6 @@ using System;
 
 namespace Ecliptix.Core.Core.Messaging.Events;
 
-/// <summary>
-/// Network connection status states
-/// </summary>
 public enum NetworkStatus
 {
     DataCenterConnected,
@@ -17,10 +14,6 @@ public enum NetworkStatus
     ConnectionRestored
 }
 
-/// <summary>
-/// Event fired when network status changes
-/// Compatible with existing NetworkStatusChangedEvent from AppEvents
-/// </summary>
 public sealed record NetworkStatusChangedEvent
 {
     public NetworkStatus State { get; }

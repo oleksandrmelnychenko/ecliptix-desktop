@@ -10,7 +10,6 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
 {
     private readonly ReaderWriterLockSlim _statusLock = new();
     private NetworkStatus _currentStatus = NetworkStatus.DataCenterDisconnected;
-    private DateTime _lastStatusChangeTime = DateTime.UtcNow;
     private int _retryCount;
     private bool _disposed;
 
@@ -44,7 +43,6 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
                 return;
 
             _currentStatus = status;
-            _lastStatusChangeTime = DateTime.UtcNow;
 
             _retryCount = status switch
             {

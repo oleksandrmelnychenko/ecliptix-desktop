@@ -2,8 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
+using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 public class ModuleScope : IModuleScope
@@ -13,25 +13,22 @@ public class ModuleScope : IModuleScope
     private long _disposed;
 
     public IServiceProvider ServiceProvider { get; }
-    public ILogger Logger { get; }
     public IModuleResourceConstraints Constraints { get; }
     public string ModuleName { get; }
 
     public ModuleScope(
         string moduleName,
         IServiceScope serviceScope,
-        IModuleResourceConstraints constraints,
-        ILogger logger)
+        IModuleResourceConstraints constraints)
     {
         ModuleName = moduleName ?? throw new ArgumentNullException(nameof(moduleName));
         _serviceScope = serviceScope ?? throw new ArgumentNullException(nameof(serviceScope));
         Constraints = constraints ?? throw new ArgumentNullException(nameof(constraints));
-        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         ServiceProvider = serviceScope.ServiceProvider;
         _executionTimer = Stopwatch.StartNew();
 
-        Logger.LogDebug("Module scope created for {ModuleName}", ModuleName);
+        Log.Debug("Module scope created for {ModuleName}", ModuleName);
     }
 
     public bool ValidateResourceUsage()
@@ -41,7 +38,7 @@ public class ModuleScope : IModuleScope
 
         if (Constraints.MaxMemoryMB > 0 && usage.MemoryUsageMB > Constraints.MaxMemoryMB)
         {
-            Logger.LogWarning("Module {ModuleName} exceeds memory limit: {UsageMB}MB > {LimitMB}MB",
+            Log.Warning("Module {ModuleName} exceeds memory limit: {UsageMB}MB > {LimitMB}MB",
                 ModuleName, usage.MemoryUsageMB, Constraints.MaxMemoryMB);
             return false;
         }
@@ -49,7 +46,7 @@ public class ModuleScope : IModuleScope
 
         if (Constraints.MaxThreads > 0 && usage.ActiveThreads > Constraints.MaxThreads)
         {
-            Logger.LogWarning("Module {ModuleName} exceeds thread limit: {UsageThreads} > {LimitThreads}",
+            Log.Warning("Module {ModuleName} exceeds thread limit: {UsageThreads} > {LimitThreads}",
                 ModuleName, usage.ActiveThreads, Constraints.MaxThreads);
             return false;
         }
@@ -57,7 +54,7 @@ public class ModuleScope : IModuleScope
 
         if (Constraints.MaxExecutionTime != TimeSpan.Zero && usage.ExecutionTime > Constraints.MaxExecutionTime)
         {
-            Logger.LogWarning("Module {ModuleName} exceeds execution time limit: {UsageTime} > {LimitTime}",
+            Log.Warning("Module {ModuleName} exceeds execution time limit: {UsageTime} > {LimitTime}",
                 ModuleName, usage.ExecutionTime, Constraints.MaxExecutionTime);
             return false;
         }
@@ -83,7 +80,7 @@ public class ModuleScope : IModuleScope
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to get resource usage for module {ModuleName}", ModuleName);
+            Log.Warning(ex, "Failed to get resource usage for module {ModuleName}", ModuleName);
         }
 
         return new ModuleResourceUsage
@@ -102,16 +99,16 @@ public class ModuleScope : IModuleScope
 
         try
         {
-            Logger.LogDebug("Disposing module scope for {ModuleName}", ModuleName);
+            Log.Debug("Disposing module scope for {ModuleName}", ModuleName);
 
             _executionTimer?.Stop();
             _serviceScope?.Dispose();
 
-            Logger.LogDebug("Module scope disposed for {ModuleName}", ModuleName);
+            Log.Debug("Module scope disposed for {ModuleName}", ModuleName);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error disposing module scope for {ModuleName}", ModuleName);
+            Log.Error(ex, "Error disposing module scope for {ModuleName}", ModuleName);
         }
     }
 }

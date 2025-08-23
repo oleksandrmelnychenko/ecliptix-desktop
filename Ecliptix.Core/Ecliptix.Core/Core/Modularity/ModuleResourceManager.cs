@@ -6,29 +6,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
+using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 public class ModuleResourceManager : BackgroundService
 {
     private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<ModuleResourceManager> _logger;
 
     private readonly Timer _resourceMonitorTimer;
     private const int MonitorIntervalMs = 30000;
 
-    public ModuleResourceManager(IServiceProvider serviceProvider, ILogger<ModuleResourceManager> logger)
+    public ModuleResourceManager(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        _logger = logger;
 
         _resourceMonitorTimer = new Timer(MonitorResources, null, MonitorIntervalMs, MonitorIntervalMs);
     }
-
-
-
 
     public IModuleScope CreateModuleScope(string moduleName, IModuleResourceConstraints constraints, Action<IServiceCollection>? configureServices = null)
     {
@@ -61,15 +56,11 @@ public class ModuleResourceManager : BackgroundService
         }
 
 
-        ILogger moduleLogger = serviceScope.ServiceProvider
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger($"Module.{moduleName}");
-
-        ModuleScope moduleScope = new(moduleName, serviceScope, constraints, moduleLogger);
+        ModuleScope moduleScope = new(moduleName, serviceScope, constraints);
 
         _moduleScopes.TryAdd(moduleName, moduleScope);
 
-        _logger.LogInformation("Created module scope for {ModuleName} with constraints: MaxMemory={MaxMemoryMB}MB, MaxThreads={MaxThreads}",
+        Log.Information("Created module scope for {ModuleName} with constraints: MaxMemory={MaxMemoryMB}MB, MaxThreads={MaxThreads}",
             moduleName, constraints.MaxMemoryMB, constraints.MaxThreads);
 
         return moduleScope;
@@ -83,7 +74,7 @@ public class ModuleResourceManager : BackgroundService
         if (_moduleScopes.TryRemove(moduleName, out IModuleScope? scope))
         {
             scope.Dispose();
-            _logger.LogInformation("Removed module scope for {ModuleName}", moduleName);
+            Log.Information("Removed module scope for {ModuleName}", moduleName);
             return true;
         }
 
@@ -109,7 +100,7 @@ public class ModuleResourceManager : BackgroundService
             {
                 if (!scope.ValidateResourceUsage())
                 {
-                    _logger.LogWarning("Module {ModuleName} violates resource constraints", scope.ModuleName);
+                    Log.Warning("Module {ModuleName} violates resource constraints", scope.ModuleName);
 
 
 
@@ -120,7 +111,7 @@ public class ModuleResourceManager : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating resources for module {ModuleName}", scope.ModuleName);
+                Log.Error(ex, "Error validating resources for module {ModuleName}", scope.ModuleName);
             }
         }
     }
@@ -151,18 +142,18 @@ public class ModuleResourceManager : BackgroundService
 
 
             ModuleResourceSummary summary = GetResourceSummary();
-            _logger.LogDebug("Resource Summary - Modules: {ModuleCount}, Total Memory: {TotalMemoryMB}MB, Total Threads: {TotalThreads}",
+            Log.Debug("Resource Summary - Modules: {ModuleCount}, Total Memory: {TotalMemoryMB}MB, Total Threads: {TotalThreads}",
                 summary.TotalModules, summary.TotalMemoryMB, summary.TotalThreads);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during resource monitoring");
+            Log.Error(ex, "Error during resource monitoring");
         }
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Module Resource Manager started");
+        Log.Information("Module Resource Manager started");
 
 
         return Task.CompletedTask;

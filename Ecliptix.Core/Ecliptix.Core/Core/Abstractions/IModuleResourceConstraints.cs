@@ -3,31 +3,17 @@ using System;
 namespace Ecliptix.Core.Core.Abstractions;
 public interface IModuleResourceConstraints
 {
-
-
-
     long MaxMemoryMB { get; }
-
-
-
 
     int MaxThreads { get; }
 
-
-
-
     TimeSpan MaxExecutionTime { get; }
-
-
-
 
     int Priority { get; }
 
-
-
-
     bool CanUnload { get; }
 }
+
 public record ModuleResourceConstraints : IModuleResourceConstraints
 {
     public long MaxMemoryMB { get; init; } = 0;

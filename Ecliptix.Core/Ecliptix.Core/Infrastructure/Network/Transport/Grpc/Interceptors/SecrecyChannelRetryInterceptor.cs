@@ -114,7 +114,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             TaskCompletionSource<TResponse> taskCompletionSource = new();
 
-            _pendingRequestManager.RegisterPendingRequest(requestId, async () =>
+            _pendingRequestManager.RegisterPendingRequest<TResponse>(requestId, async () =>
             {
                 bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
                 if (!connectionRestored)
@@ -129,12 +129,10 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 TResponse result = await retryCall.ResponseAsync;
 
                 Log.Information("🔄 PENDING REQUEST SUCCESS: Request {RequestId} succeeded on retry", requestId);
-            });
+                return result;
+            }, taskCompletionSource);
 
             await _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
-
-            taskCompletionSource.SetException(new RpcException(new Status(StatusCode.Unavailable,
-                $"Server shutdown detected. Request {requestId} has been queued for retry.")));
 
             return await taskCompletionSource.Task;
         }
