@@ -51,7 +51,7 @@ public sealed class LocalizationService : ILocalizationService
         if (string.IsNullOrEmpty(cultureName))
             return null;
 
-        return LocalizationData.AllLanguages.TryGetValue(cultureName, out var strings) ? strings : null;
+        return LocalizationData.AllLanguages.GetValueOrDefault(cultureName);
     }
 
     public string this[string key]
@@ -68,12 +68,7 @@ public sealed class LocalizationService : ILocalizationService
                 return value;
             }
 
-            if (_defaultLanguageStrings.TryGetValue(key, out string? defaultValue))
-            {
-                return defaultValue;
-            }
-
-            return $"!{key}!";
+            return _defaultLanguageStrings.TryGetValue(key, out string? defaultValue) ? defaultValue : $"!{key}!";
         }
     }
 

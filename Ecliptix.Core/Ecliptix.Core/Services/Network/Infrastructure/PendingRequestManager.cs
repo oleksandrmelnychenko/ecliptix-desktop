@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
@@ -168,10 +169,10 @@ public class PendingRequestManager : IPendingRequestManager
     {
         try
         {
-            var method = typedRequest.GetType().GetMethod("ExecuteAsync");
+            MethodInfo? method = typedRequest.GetType().GetMethod("ExecuteAsync");
             if (method != null)
             {
-                object? result = method.Invoke(typedRequest, new object[] { cancellationToken });
+                object? result = method.Invoke(typedRequest, [cancellationToken]);
                 if (result is Task task)
                     await task;
             }
@@ -209,8 +210,6 @@ public class PendingRequestManager : IPendingRequestManager
         }
 
         _typedPendingRequests.Clear();
-
-
         _retryingRequests.Clear();
 
         Interlocked.Exchange(ref _pendingCount, 0);

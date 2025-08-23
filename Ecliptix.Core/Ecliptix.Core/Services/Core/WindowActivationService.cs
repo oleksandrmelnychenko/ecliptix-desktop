@@ -6,17 +6,9 @@ using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Services.Core;
 
-/// <summary>
-/// Cross-platform service for activating and bringing windows to foreground
-/// </summary>
 public class WindowActivationService : IWindowActivationService
 {
-
     public event EventHandler? WindowActivationRequested;
-
-    public WindowActivationService()
-    {
-    }
 
     public void ActivateMainWindow()
     {
@@ -29,16 +21,14 @@ public class WindowActivationService : IWindowActivationService
                 {
                     Log.Information("Attempting to activate main window");
 
-                    // Restore window if minimized
                     if (mainWindow.WindowState == WindowState.Minimized)
                     {
                         mainWindow.WindowState = WindowState.Normal;
                     }
 
-                    // Bring to front and activate
                     mainWindow.Activate();
                     mainWindow.Topmost = true;
-                    mainWindow.Topmost = false; // Reset topmost to allow normal z-order behavior
+                    mainWindow.Topmost = false; 
                     mainWindow.Focus();
 
                     Log.Information("Main window activation completed");

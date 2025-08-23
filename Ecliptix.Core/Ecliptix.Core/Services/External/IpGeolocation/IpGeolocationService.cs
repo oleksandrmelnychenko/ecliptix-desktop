@@ -29,7 +29,7 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
 
             if (!res.IsSuccessStatusCode)
             {
-                var error = await SafeReadAsStringAsync(res.Content, ct);
+                string error = await SafeReadAsStringAsync(res.Content, ct);
                 return Result<IpCountry, InternalServiceApiFailure>.Err(
                     InternalServiceApiFailure.ApiRequestFailed(
                         $"Geo API failed with {(int)res.StatusCode} {res.ReasonPhrase}: {Trim(error, 1000)}"));

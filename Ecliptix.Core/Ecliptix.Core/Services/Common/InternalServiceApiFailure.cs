@@ -21,11 +21,6 @@ public class InternalServiceApiFailure
         return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreAccessDenied, details, inner);
     }
 
-    public static InternalServiceApiFailure SecureStoreNotFound(string details, Exception? inner = null)
-    {
-        return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreNotFound, details, inner);
-    }
-
     public static InternalServiceApiFailure SecureStoreKeyNotFound(string details, Exception? inner = null)
     {
         return new InternalServiceApiFailure(InternalServiceApiFailureType.SecureStoreKeyNotFound, details, inner);

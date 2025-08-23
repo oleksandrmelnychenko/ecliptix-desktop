@@ -25,18 +25,16 @@ public static class IconService
 
     private static WindowIcon? LoadPlatformIcon()
     {
-        var iconUri = GetPlatformIconUri();
-        if (iconUri != null)
+        Uri? iconUri = GetPlatformIconUri();
+        if (iconUri == null) return null;
+        try
         {
-            try
-            {
-                var bitmap = new Bitmap(AssetLoader.Open(iconUri));
-                return new WindowIcon(bitmap);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to load application icon");
-            }
+            Bitmap bitmap = new(AssetLoader.Open(iconUri));
+            return new WindowIcon(bitmap);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Failed to load application icon");
         }
         return null;
     }
@@ -45,11 +43,8 @@ public static class IconService
     {
         if (OperatingSystem.IsWindows())
             return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico");
-        else if (OperatingSystem.IsMacOS())
+        if (OperatingSystem.IsMacOS())
             return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns");
-        else if (OperatingSystem.IsLinux())
-            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png");
-
-        return null;
+        return OperatingSystem.IsLinux() ? new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png") : null;
     }
 }

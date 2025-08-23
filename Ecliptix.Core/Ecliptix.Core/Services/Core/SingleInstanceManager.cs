@@ -8,9 +8,6 @@ using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Services.Core;
 
-/// <summary>
-/// Cross-platform single instance manager using named mutex on Windows and file locking on Unix systems
-/// </summary>
 public class SingleInstanceManager : ISingleInstanceManager
 {
     private readonly ILogger<SingleInstanceManager> _logger;
@@ -24,7 +21,7 @@ public class SingleInstanceManager : ISingleInstanceManager
     private bool _disposed;
 
     private const string ApplicationId = "EcliptixDesktop";
-    private const int SignalCheckInterval = 1000; // 1 second
+    private const int SignalCheckInterval = 1000;
 
     public event EventHandler? InstanceActivationRequested;
 
@@ -40,25 +37,23 @@ public class SingleInstanceManager : ISingleInstanceManager
 
     public bool TryAcquireInstance()
     {
-        if (_disposed)
-            throw new ObjectDisposedException(nameof(SingleInstanceManager));
+        if (!_disposed)
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return TryAcquireInstanceWindows();
+                }
 
-        try
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return TryAcquireInstanceWindows();
-            }
-            else
-            {
                 return TryAcquireInstanceUnix();
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to acquire single instance lock");
-            return true; // Fail open - allow the application to start
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to acquire single instance lock");
+                return true;
+            }
+
+        throw new ObjectDisposedException(nameof(SingleInstanceManager));
     }
 
     public bool NotifyExistingInstance()
@@ -68,7 +63,6 @@ public class SingleInstanceManager : ISingleInstanceManager
 
         try
         {
-            // Create signal file to notify existing instance
             File.WriteAllText(_signalFilePath, DateTimeOffset.UtcNow.ToString("O"));
             _logger.LogDebug("Created signal file to notify existing instance");
             return true;
@@ -100,7 +94,6 @@ public class SingleInstanceManager : ISingleInstanceManager
         }
         catch (AbandonedMutexException)
         {
-            // Previous instance crashed, we can take over
             _logger.LogWarning("Previous instance crashed, taking over mutex");
             StartSignalWatcher();
             return true;
@@ -111,7 +104,6 @@ public class SingleInstanceManager : ISingleInstanceManager
     {
         try
         {
-            // Try to create and lock the file exclusively
             _lockFileStream = new FileStream(
                 _lockFilePath,
                 FileMode.Create,
@@ -121,8 +113,7 @@ public class SingleInstanceManager : ISingleInstanceManager
                 FileOptions.DeleteOnClose
             );
 
-            // Write our process ID to the lock file
-            using (var writer = new StreamWriter(_lockFileStream, leaveOpen: true))
+            using (StreamWriter writer = new(_lockFileStream, leaveOpen: true))
             {
                 writer.WriteLine(Environment.ProcessId);
                 writer.WriteLine(DateTimeOffset.UtcNow.ToString("O"));
@@ -147,7 +138,6 @@ public class SingleInstanceManager : ISingleInstanceManager
 
     private void StartSignalWatcher()
     {
-        // Clean up any existing signal file
         try
         {
             if (File.Exists(_signalFilePath))
@@ -158,7 +148,6 @@ public class SingleInstanceManager : ISingleInstanceManager
             _logger.LogWarning(ex, "Failed to clean up existing signal file");
         }
 
-        // Start watching for signal file creation
         _signalWatcher = new Timer(CheckForSignal, null, SignalCheckInterval, SignalCheckInterval);
         _logger.LogDebug("Started signal watcher");
     }
@@ -171,7 +160,6 @@ public class SingleInstanceManager : ISingleInstanceManager
             {
                 _logger.LogInformation("Received activation signal from another instance");
 
-                // Clean up the signal file
                 try
                 {
                     File.Delete(_signalFilePath);
@@ -181,7 +169,6 @@ public class SingleInstanceManager : ISingleInstanceManager
                     _logger.LogWarning(ex, "Failed to clean up signal file");
                 }
 
-                // Notify that we should bring the window to foreground
                 Task.Run(() => InstanceActivationRequested?.Invoke(this, EventArgs.Empty));
             }
         }
@@ -204,7 +191,6 @@ public class SingleInstanceManager : ISingleInstanceManager
             _mutex?.Dispose();
             _lockFileStream?.Dispose();
 
-            // Clean up signal file
             if (File.Exists(_signalFilePath))
             {
                 try
