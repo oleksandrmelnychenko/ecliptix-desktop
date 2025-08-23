@@ -68,6 +68,17 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         ];
     }
 
+    public override void RegisterViewFactories(IModuleViewFactory viewFactory)
+    {
+        viewFactory.RegisterView<SignInViewModel, SignInView>();
+        viewFactory.RegisterView<MobileVerificationViewModel, MobileVerificationView>();
+        viewFactory.RegisterView<PasswordConfirmationViewModel, PasswordConfirmationView>();
+        viewFactory.RegisterView<PassPhaseViewModel, PassPhaseView>();
+        viewFactory.RegisterView<WelcomeViewModel, WelcomeView>();
+        
+        Serilog.Log.Information("Registered {Count} view factories for Authentication module", 5);
+    }
+
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
     {
         messageBus.Subscribe<UserAuthenticatedEvent>(OnUserAuthenticated);

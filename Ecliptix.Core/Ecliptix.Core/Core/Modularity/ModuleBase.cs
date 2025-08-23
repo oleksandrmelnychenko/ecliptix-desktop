@@ -46,6 +46,13 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
             await OnLoadAsync();
 
+            IModuleViewFactory? viewFactory = _serviceProvider.GetService<IModuleViewFactory>();
+            if (viewFactory != null)
+            {
+                RegisterViewFactories(viewFactory);
+                Logger?.LogInformation("View factories registered for module: {ModuleName}", Id.ToName());
+            }
+
             _isLoaded = true;
 
             Logger?.LogInformation("Module loaded successfully: {ModuleName}", Id.ToName());

@@ -10,10 +10,4 @@ public interface IModuleViewFactory
         where TView : Control, new();
 
     Control? CreateView(Type viewModelType);
-
-    Control? CreateView<TViewModel>(TViewModel viewModel) where TViewModel : class;
-
-    bool HasView(Type viewModelType);
-
-    int RegisteredViewCount { get; }
 }
