@@ -6,7 +6,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Protocol;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Core.MVVM;

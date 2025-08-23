@@ -189,7 +189,6 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
-        // AOT-friendly: Direct type checking without reflection
         if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CorrelationId))
         {
             if (_pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
@@ -199,8 +198,6 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
         }
 
-        // Process the message directly without reflection-based type hierarchy traversal
-        // AOT-friendly: Use concrete type directly
         Type messageType = typeof(IModuleMessage);
         List<Task> handlerTasks = [];
 

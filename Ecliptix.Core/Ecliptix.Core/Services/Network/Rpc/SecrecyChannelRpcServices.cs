@@ -3,8 +3,8 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Protobuf.AppDeviceServices;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
@@ -13,7 +13,7 @@ using Serilog;
 namespace Ecliptix.Core.Services.Network.Rpc;
 
 public sealed class SecrecyChannelRpcServices(
-    AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient
+    DeviceService.DeviceServiceClient deviceServiceClient
 ) : ISecrecyChannelRpcServices
 {
     public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
@@ -23,26 +23,26 @@ public sealed class SecrecyChannelRpcServices(
     )
     {
         ArgumentNullException.ThrowIfNull(request);
-        return await ExecuteAsync(
+        return await ExecuteAsync<PubKeyExchange>(
             networkEvents,
             systemEvents,
-            () => appDeviceServiceActionsClient.EstablishAppDeviceSecrecyChannelAsync(request)
+            () => deviceServiceClient.EstablishSecureChannelAsync(request)
         );
     }
 
     public async Task<
-        Result<RestoreSecrecyChannelResponse, NetworkFailure>
+        Result<RestoreChannelResponse, NetworkFailure>
     > RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        RestoreSecrecyChannelRequest request
+        RestoreChannelRequest request
     )
     {
         ArgumentNullException.ThrowIfNull(request);
-        return await ExecuteAsync(
+        return await ExecuteAsync<RestoreChannelResponse>(
             networkEvents,
             systemEvents,
-            () => appDeviceServiceActionsClient.RestoreAppDeviceSecrecyChannelAsync(request)
+            () => deviceServiceClient.RestoreSecureChannelAsync(request)
         );
     }
 

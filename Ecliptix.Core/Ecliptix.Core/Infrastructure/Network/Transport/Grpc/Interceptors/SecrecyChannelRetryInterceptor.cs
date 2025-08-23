@@ -177,7 +177,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                 return true;
             }
 
-            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> establishResult =
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSessionState, NetworkFailure> establishResult =
                 await _networkProvider.EstablishSecrecyChannelAsync(connectId);
 
             return establishResult.IsOk;
@@ -194,7 +194,7 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         {
             _networkProvider.ClearConnection(connectId);
 
-            Utilities.Result<Protobuf.ProtocolState.EcliptixSecrecyChannelState, NetworkFailure> result =
+            Utilities.Result<Protobuf.ProtocolState.EcliptixSessionState, NetworkFailure> result =
                 await _networkProvider.EstablishSecrecyChannelAsync(connectId);
 
             if (result.IsErr)

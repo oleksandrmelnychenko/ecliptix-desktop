@@ -18,7 +18,7 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Org.BouncyCastle.Crypto.Parameters;
-using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
@@ -296,7 +296,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
             (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
 
-            OprfRegistrationInitRequest request = new()
+            OpaqueRegistrationInitRequest request = new()
             {
                 MembershipIdentifier = VerificationSessionId,
                 PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
@@ -308,11 +308,11 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
                 async payload =>
                 {
-                    OprfRegistrationInitResponse createMembershipResponse =
-                        OprfRegistrationInitResponse.Parser.ParseFrom(payload);
+                    OpaqueRegistrationInitResponse createMembershipResponse =
+                        OpaqueRegistrationInitResponse.Parser.ParseFrom(payload);
 
 
-                    if (createMembershipResponse.Result != OprfRegistrationInitResponse.Types.UpdateResult.Succeeded)
+                    if (createMembershipResponse.Result != OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
                         PasswordError = $"Registration failed: {createMembershipResponse.Message}";
                         return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -334,7 +334,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
                     byte[] registrationRecord = registrationRecordResult.Unwrap();
 
-                    OprfRegistrationCompleteRequest completeRequest = new()
+                    OpaqueRegistrationCompleteRequest completeRequest = new()
                     {
                         MembershipIdentifier = VerificationSessionId,
                         PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord)!
@@ -349,8 +349,8 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                         {
                             try
                             {
-                                OprfRegistrationCompleteResponse completeResponse =
-                                    OprfRegistrationCompleteResponse.Parser.ParseFrom(completePayload);
+                                OpaqueRegistrationCompleteResponse completeResponse =
+                                    OpaqueRegistrationCompleteResponse.Parser.ParseFrom(completePayload);
 
 
                                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));

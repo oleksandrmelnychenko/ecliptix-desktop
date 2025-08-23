@@ -1,7 +1,7 @@
 using Ecliptix.Protocol.System.Utilities;
-using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
-using Ecliptix.Protobuf.PubKeyExchange;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,8 +39,10 @@ public class ApplicationInitializer(
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
+        Log.Information("ApplicationInitializer starting...");
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
 
+        Log.Information("Initializing application instance settings...");
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
 
@@ -53,28 +55,41 @@ public class ApplicationInitializer(
         }
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
+        Log.Information("Application settings unwrapped successfully. IsNewInstance: {IsNewInstance}", isNewInstance);
 
         _ = Task.Run(async () =>
         {
+            Log.Information("Background task: Setting application instance...");
             await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
+            Log.Information("Background task: Application instance set successfully");
         });
 
-        localizationService.SetCulture(settings.Culture);
+        string culture = string.IsNullOrEmpty(settings.Culture) ? "en-US" : settings.Culture;
+        Log.Information("Setting culture to: {Culture} (original: {OriginalCulture})", culture, settings.Culture);
+        localizationService.SetCulture(culture);
+        Log.Information("Culture set successfully");
 
         if (isNewInstance)
         {
+            Log.Information("New instance detected, starting IP geolocation task...");
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    Log.Information("Calling IP geolocation service...");
+                    using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
                     Result<IpCountry, InternalServiceApiFailure> countryResult =
-                        await ipGeolocationService.GetIpCountryAsync(CancellationToken.None);
+                        await ipGeolocationService.GetIpCountryAsync(cts.Token);
 
                     if (countryResult.IsOk)
                     {
-
+                        Log.Information("IP country detected: {Country}", countryResult.Unwrap().Country);
                         networkProvider.SetCountry(countryResult.Unwrap().Country);
                         await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
+                    }
+                    else
+                    {
+                        Log.Warning("IP geolocation failed");
                     }
                 }
                 catch (Exception ex)
@@ -83,6 +98,11 @@ public class ApplicationInitializer(
                 }
             });
         }
+        else
+        {
+            Log.Information("Existing instance, skipping IP geolocation");
+        }
+        Log.Information("Starting secrecy channel initialization...");
         Result<uint, NetworkFailure> connectIdResult =
             await EnsureSecrecyChannelAsync(settings, isNewInstance);
         if (connectIdResult.IsErr)
@@ -123,7 +143,7 @@ public class ApplicationInitializer(
                 if (loadResult.IsOk)
                 {
                     byte[] stateBytes = loadResult.Unwrap();
-                    EcliptixSecrecyChannelState? state = EcliptixSecrecyChannelState.Parser.ParseFrom(stateBytes);
+                    EcliptixSessionState? state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
 
                     Result<bool, NetworkFailure> restoreSecrecyChannelResult =
                         await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
@@ -155,9 +175,11 @@ public class ApplicationInitializer(
             }
         }
 
+        Log.Information("Initiating Ecliptix protocol system for connectId: {ConnectId}", connectId);
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
 
-        Result<EcliptixSecrecyChannelState, NetworkFailure> establishResult =
+        Log.Information("Establishing secrecy channel for connectId: {ConnectId}", connectId);
+        Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId);
 
         if (establishResult.IsErr)
@@ -165,7 +187,7 @@ public class ApplicationInitializer(
             return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
         }
 
-        EcliptixSecrecyChannelState secrecyChannelState = establishResult.Unwrap();
+        EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
         try
         {

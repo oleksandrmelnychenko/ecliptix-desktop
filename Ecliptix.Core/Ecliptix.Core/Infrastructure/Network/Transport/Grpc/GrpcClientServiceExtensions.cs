@@ -1,7 +1,7 @@
 using System;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Settings;
-using Ecliptix.Protobuf.AppDeviceServices;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Grpc.Net.ClientFactory;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +13,7 @@ public static class GrpcClientServiceExtensions
 {
     public static void AddConfiguredGrpcClients(this IServiceCollection services)
     {
-        services.AddGrpcClient<AppDeviceServiceActions.AppDeviceServiceActionsClient>(ConfigureClient)
+        services.AddGrpcClient<DeviceService.DeviceServiceClient>(ConfigureClient)
             .AddInterceptor<RequestMetaDataInterceptor>();
 
         services.AddGrpcClient<MembershipServices.MembershipServicesClient>(ConfigureClient)

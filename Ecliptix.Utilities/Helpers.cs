@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Common;
 using Google.Protobuf;
 
 namespace Ecliptix.Utilities;

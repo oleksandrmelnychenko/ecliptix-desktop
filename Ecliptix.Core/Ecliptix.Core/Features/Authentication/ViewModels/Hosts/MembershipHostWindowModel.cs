@@ -21,7 +21,7 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using ReactiveUI;

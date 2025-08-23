@@ -12,8 +12,10 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
         AsyncServerStreamingCallContinuation<TRequest, TResponse> continuation)
     {
         Metadata headers = context.Options.Headers ?? [];
+        string culture = rpcMetaDataProvider.Culture;
+        Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{Culture}' for gRPC metadata", culture);
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-            rpcMetaDataProvider.DeviceId.ToString(), rpcMetaDataProvider.Culture);
+            rpcMetaDataProvider.DeviceId.ToString(), culture);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
@@ -31,9 +33,11 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
         AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
         Metadata headers = context.Options.Headers ?? [];
+        string culture = rpcMetaDataProvider.Culture;
+        Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{Culture}' for gRPC metadata", culture);
         Metadata newMetadata =
             GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-                rpcMetaDataProvider.DeviceId.ToString(), rpcMetaDataProvider.Culture);
+                rpcMetaDataProvider.DeviceId.ToString(), culture);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);

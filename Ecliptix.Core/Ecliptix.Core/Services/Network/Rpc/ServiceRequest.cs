@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Network.Rpc;

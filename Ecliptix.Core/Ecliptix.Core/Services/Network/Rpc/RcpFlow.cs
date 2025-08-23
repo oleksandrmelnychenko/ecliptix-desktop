@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 

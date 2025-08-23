@@ -414,10 +414,10 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         return BitConverter.ToUInt32(buffer, 0);
     }
 
-    public Result<PublicKeyBundle, EcliptixProtocolFailure> CreatePublicBundle()
+    public Result<LocalPublicKeyBundle, EcliptixProtocolFailure> CreatePublicBundle()
     {
         if (_disposed)
-            return Result<PublicKeyBundle, EcliptixProtocolFailure>.Err(
+            return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixSystemIdentityKeys)));
 
         try
@@ -426,7 +426,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             opkRecords.AddRange(_oneTimePreKeysInternal.Select(opkLocal =>
                 new OneTimePreKeyRecord(opkLocal.PreKeyId, opkLocal.PublicKey)));
 
-            PublicKeyBundle bundle = new(
+            LocalPublicKeyBundle bundle = new(
                 _ed25519PublicKey,
                 IdentityX25519PublicKey,
                 _signedPreKeyId,
@@ -435,11 +435,11 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 opkRecords,
                 _ephemeralX25519PublicKey);
 
-            return Result<PublicKeyBundle, EcliptixProtocolFailure>.Ok(bundle);
+            return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Ok(bundle);
         }
         catch (Exception ex)
         {
-            return Result<PublicKeyBundle, EcliptixProtocolFailure>.Err(
+            return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Failed to create public key bundle.", ex));
         }
     }
@@ -473,7 +473,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
     }
 
     public Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> X3dhDeriveSharedSecret(
-        PublicKeyBundle remoteBundle, ReadOnlySpan<byte> info)
+        LocalPublicKeyBundle remoteBundle, ReadOnlySpan<byte> info)
     {
         SodiumSecureMemoryHandle? ephemeralHandleUsed = null;
         SodiumSecureMemoryHandle? secureOutputHandle = null;
@@ -900,7 +900,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             : Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
-    private static Result<Unit, EcliptixProtocolFailure> ValidateRemoteBundle(PublicKeyBundle? remoteBundle)
+    private static Result<Unit, EcliptixProtocolFailure> ValidateRemoteBundle(LocalPublicKeyBundle? remoteBundle)
     {
         if (remoteBundle == null)
             return Result<Unit, EcliptixProtocolFailure>.Err(

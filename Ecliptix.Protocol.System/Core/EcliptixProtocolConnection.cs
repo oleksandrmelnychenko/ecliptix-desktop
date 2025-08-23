@@ -37,7 +37,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
     private volatile bool _disposed;
     private readonly SodiumSecureMemoryHandle? _initialSendingDhPrivateKeyHandle;
     private long _nonceCounter;
-    private PublicKeyBundle? _peerBundle;
+    private LocalPublicKeyBundle? _peerBundle;
     private byte[]? _peerDhPublicKey;
     private readonly SodiumSecureMemoryHandle? _persistentDhPrivateKeyHandle;
     private readonly byte[]? _persistentDhPublicKey;
@@ -75,7 +75,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _isInitiator = proto.IsInitiator;
         _createdAt = proto.CreatedAt.ToDateTimeOffset();
         _nonceCounter = (long)proto.NonceCounter;
-        _peerBundle = PublicKeyBundle.FromProtobufExchange(proto.PeerBundle).Unwrap();
+        _peerBundle = LocalPublicKeyBundle.FromProtobufExchange(proto.PeerBundle).Unwrap();
         if (!proto.PeerDhPublicKey.IsEmpty)
         {
             SecureByteStringInterop.SecureCopyWithCleanup(proto.PeerDhPublicKey, out byte[]? peerDhKey);
@@ -299,18 +299,18 @@ public sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    public Result<PublicKeyBundle, EcliptixProtocolFailure> GetPeerBundle()
+    public Result<LocalPublicKeyBundle, EcliptixProtocolFailure> GetPeerBundle()
     {
         lock (_lock)
         {
             Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
             if (disposedCheck.IsErr)
-                return Result<PublicKeyBundle, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+                return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
 
             if (_peerBundle != null)
-                return Result<PublicKeyBundle, EcliptixProtocolFailure>.Ok(_peerBundle);
+                return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Ok(_peerBundle);
 
-            return Result<PublicKeyBundle, EcliptixProtocolFailure>.Err(
+            return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Peer bundle has not been set."));
         }
     }
@@ -320,7 +320,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         return _isInitiator;
     }
 
-    internal Result<Unit, EcliptixProtocolFailure> SetPeerBundle(PublicKeyBundle peerBundle)
+    internal Result<Unit, EcliptixProtocolFailure> SetPeerBundle(LocalPublicKeyBundle peerBundle)
     {
         lock (_lock)
         {

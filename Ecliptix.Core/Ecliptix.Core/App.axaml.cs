@@ -19,14 +19,24 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-
-        _ = InitializeModulesAsync();
-
         DefaultSystemSettings defaultSystemSettings = Locator.Current.GetService<DefaultSystemSettings>()!;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            _ = new ApplicationStartup(desktop).RunAsync(defaultSystemSettings);
+            // Initialize modules first, then start the application on UI thread
+            _ = Task.Run(async () =>
+            {
+                await InitializeModulesAsync();
+                
+                Serilog.Log.Information("Modules loaded, starting ApplicationStartup...");
+                
+                // Switch back to UI thread for ApplicationStartup
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    Serilog.Log.Information("On UI thread, creating ApplicationStartup...");
+                    await new ApplicationStartup(desktop).RunAsync(defaultSystemSettings);
+                });
+            });
         }
 
         base.OnFrameworkInitializationCompleted();

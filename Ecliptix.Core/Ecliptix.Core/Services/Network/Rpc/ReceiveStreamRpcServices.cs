@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;

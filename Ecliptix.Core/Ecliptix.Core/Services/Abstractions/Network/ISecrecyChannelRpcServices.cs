@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
@@ -13,8 +14,8 @@ public interface ISecrecyChannelRpcServices
         ISystemEventService systemEvents,
         PubKeyExchange request);
 
-    Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
+    Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        RestoreSecrecyChannelRequest request);
+        RestoreChannelRequest request);
 }

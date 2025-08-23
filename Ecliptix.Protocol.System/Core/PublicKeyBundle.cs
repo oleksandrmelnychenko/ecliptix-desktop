@@ -1,11 +1,12 @@
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public record PublicKeyBundle(
+public record LocalPublicKeyBundle(
     byte[] IdentityEd25519,
     byte[] IdentityX25519,
     uint SignedPreKeyId,
@@ -15,7 +16,7 @@ public record PublicKeyBundle(
     byte[]? EphemeralX25519
 )
 {
-    private PublicKeyBundle(InternalBundleData data) : this(
+    private LocalPublicKeyBundle(InternalBundleData data) : this(
         data.IdentityEd25519,
         data.IdentityX25519,
         data.SignedPreKeyId,
@@ -26,9 +27,9 @@ public record PublicKeyBundle(
     {
     }
 
-    public Protobuf.PubKeyExchange.PublicKeyBundle ToProtobufExchange()
+    public PublicKeyBundle ToProtobufExchange()
     {
-        Protobuf.PubKeyExchange.PublicKeyBundle proto = new()
+        PublicKeyBundle proto = new()
         {
             IdentityPublicKey = ByteString.CopyFrom(IdentityEd25519),
             IdentityX25519PublicKey = ByteString.CopyFrom(IdentityX25519),
@@ -40,7 +41,7 @@ public record PublicKeyBundle(
         if (EphemeralX25519 != null) proto.EphemeralX25519PublicKey = ByteString.CopyFrom(EphemeralX25519);
 
         foreach (OneTimePreKeyRecord opkRecord in OneTimePreKeys)
-            proto.OneTimePreKeys.Add(new Protobuf.PubKeyExchange.PublicKeyBundle.Types.OneTimePreKey
+            proto.OneTimePreKeys.Add(new PublicKeyBundle.Types.OneTimePreKey
             {
                 PreKeyId = opkRecord.PreKeyId,
                 PublicKey = ByteString.CopyFrom(opkRecord.PublicKey)
@@ -49,14 +50,14 @@ public record PublicKeyBundle(
         return proto;
     }
 
-    public static Result<PublicKeyBundle, EcliptixProtocolFailure> FromProtobufExchange(
-        Protobuf.PubKeyExchange.PublicKeyBundle? proto)
+    public static Result<LocalPublicKeyBundle, EcliptixProtocolFailure> FromProtobufExchange(
+        PublicKeyBundle? proto)
     {
         if (proto == null)
-            return Result<PublicKeyBundle, EcliptixProtocolFailure>.Err(
+            return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput("Input Protobuf bundle cannot be null."));
 
-        return Result<PublicKeyBundle, EcliptixProtocolFailure>.Try(
+        return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Try(
             () =>
             {
                 SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
@@ -100,7 +101,7 @@ public record PublicKeyBundle(
                 }
 
                 List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
-                foreach (Protobuf.PubKeyExchange.PublicKeyBundle.Types.OneTimePreKey? pOpk in proto.OneTimePreKeys)
+                foreach (PublicKeyBundle.Types.OneTimePreKey pOpk in proto.OneTimePreKeys)
                 {
                     SecureByteStringInterop.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
                     Result<OneTimePreKeyRecord, EcliptixProtocolFailure> opkResult =
@@ -122,7 +123,7 @@ public record PublicKeyBundle(
                     OneTimePreKeys = opkRecords,
                     EphemeralX25519 = ephemeralX25519
                 };
-                return new PublicKeyBundle(internalData);
+                return new LocalPublicKeyBundle(internalData);
             },
             ex => ex switch
             {

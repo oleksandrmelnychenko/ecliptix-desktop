@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Protocol;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;

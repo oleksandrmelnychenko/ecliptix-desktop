@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 

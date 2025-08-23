@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Protobuf.AppDeviceServices;
-using Ecliptix.Protobuf.CipherPayload;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -28,7 +28,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
 
     public UnaryRpcServices(
         MembershipServices.MembershipServicesClient membershipServicesClient,
-        AppDeviceServiceActions.AppDeviceServiceActionsClient appDeviceServiceActionsClient,
+        DeviceService.DeviceServiceClient deviceServiceClient,
         AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient
     )
     {
@@ -55,7 +55,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 networkEvents,
                 systemEvents,
                 () =>
-                    appDeviceServiceActionsClient.RegisterDeviceAppIfNotExistAsync(
+                    deviceServiceClient.RegisterDeviceAsync(
                         payload,
                         new CallOptions(cancellationToken: token)
                     )

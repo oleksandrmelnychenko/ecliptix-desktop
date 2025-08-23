@@ -10,7 +10,7 @@ using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Protocol.System.Utilities;
-using Ecliptix.Protobuf.AppDevice;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;

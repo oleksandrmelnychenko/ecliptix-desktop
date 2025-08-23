@@ -11,7 +11,7 @@ public class EqualityConverter : IValueConverter
         return value?.Equals(parameter) ?? false;
     }
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
     }

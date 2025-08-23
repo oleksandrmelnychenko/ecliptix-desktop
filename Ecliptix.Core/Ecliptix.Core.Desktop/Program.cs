@@ -101,7 +101,6 @@ public static class Program
 
             services.UseMicrosoftDependencyResolver();
 
-            // Configure ReactiveUI's ViewLocator after DI is set up
             IServiceProvider serviceProvider = services.BuildServiceProvider();
             ReactiveUI.IViewLocator reactiveViewLocator = serviceProvider.GetRequiredService<ReactiveUI.IViewLocator>();
             Splat.Locator.CurrentMutable.Register(() => reactiveViewLocator, typeof(ReactiveUI.IViewLocator));
@@ -239,15 +238,12 @@ public static class Program
             SuccessThreshold = ApplicationConstants.Thresholds.DefaultSuccessThreshold
         });
 
-        // Unified message bus system
         services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
         
-        // Modern event services (replace old adapters)
         services.AddSingleton<ISystemEventService, SystemEventService>();
         services.AddSingleton<INetworkEventService, NetworkEventService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
-        
 
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
@@ -368,11 +364,9 @@ public static class Program
         services.AddSingleton<IModuleSharedState, ModuleSharedState>();
         services.AddSingleton<IModuleViewFactory, ModuleViewFactory>();
 
-        // Register ViewLocator for ReactiveUI navigation
         services.AddSingleton<IViewLocator, ViewLocator>();
         services.AddSingleton<ReactiveUiViewLocatorAdapter>();
 
-        // Configure ReactiveUI to use our ViewLocator
         services.AddSingleton<ReactiveUI.IViewLocator>(provider =>
             provider.GetRequiredService<ReactiveUiViewLocatorAdapter>());
 
@@ -384,7 +378,6 @@ public static class Program
         services.AddSingleton(catalog);
 
         services.AddSingleton<IModuleManager, ModuleManager>();
-
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();

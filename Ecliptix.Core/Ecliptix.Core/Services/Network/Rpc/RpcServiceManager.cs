@@ -4,7 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Protobuf.PubKeyExchange;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Serilog;
@@ -51,10 +52,10 @@ public class RpcServiceManager : IRpcServiceManager
             serviceRequest.PubKeyExchange);
     }
 
-    public async Task<Result<RestoreSecrecyChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
+    public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        SecrecyKeyExchangeServiceRequest<RestoreSecrecyChannelRequest, RestoreSecrecyChannelResponse> serviceRequest)
+        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest)
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,

@@ -7,16 +7,31 @@
     </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Sources\AppDevice.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\AppDeviceServiceActions.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\AuthenticationServices.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\AuthVerification.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\CipherPayload.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\EcliptixProtocolState.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\KeyMaterials.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\MembershipServices.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\PubKeyExchange.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\Membership.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <!-- Authentication proto files -->
+    <Protobuf Include="Sources\authentication\auth_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\authentication\verification_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    
+    <!-- Common proto files -->
+    <Protobuf Include="Sources\common\cipher_payload.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\common\encryption.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\common\health_check.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\common\types.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    
+    <!-- Device proto files -->
+    <Protobuf Include="Sources\device\application_settings.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\device\device_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\device\device_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    
+    <!-- Membership proto files -->
+    <Protobuf Include="Sources\membership\membership_core.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\membership\membership_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\membership\opaque_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\membership\session_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    
+    <!-- Protocol proto files -->
+    <Protobuf Include="Sources\protocol\key_exchange.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\protocol\key_materials.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\protocol\protocol_state.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
   </ItemGroup>
    
     <ItemGroup>

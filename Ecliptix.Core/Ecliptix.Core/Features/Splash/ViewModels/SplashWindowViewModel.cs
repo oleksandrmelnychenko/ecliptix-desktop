@@ -56,17 +56,19 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 
     private void SetupPrecompiledNetworkBinding(INetworkEventService networkEventService)
     {
+        IDisposable subscription = networkEventService.OnNetworkStatusChanged(evt =>
+        {
+            ProcessNetworkStatusChange(evt.State);
+            return Task.CompletedTask;
+        });
+
         this.WhenActivated(disposables =>
         {
-            IDisposable subscription = networkEventService.OnNetworkStatusChanged(evt =>
-            {
-                ProcessNetworkStatusChange(evt.State);
-                return Task.CompletedTask;
-            });
-
             subscription.DisposeWith(disposables);
-            IsSubscribed.TrySetResult();
         });
+        
+        // Set subscription immediately instead of waiting for activation
+        IsSubscribed.TrySetResult();
     }
 
     private void ProcessNetworkStatusChange(NetworkStatus status)
