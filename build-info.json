@@ -1,8 +1,8 @@
 {
-  "version": "0.1068.13",
-  "build_number": "250824.2141",
-  "full_version": "0.1068.13-build.250824.2141",
-  "timestamp": "2025-08-24T21:41:16.797584",
-  "git_commit": "06383f31",
+  "version": "0.1303.0",
+  "build_number": "250824.2144",
+  "full_version": "0.1303.0-build.250824.2144",
+  "timestamp": "2025-08-24T21:44:08.317734",
+  "git_commit": "9d0f6cb3",
   "git_branch": "main"
 }
