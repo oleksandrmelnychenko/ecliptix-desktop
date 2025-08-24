@@ -142,25 +142,31 @@ public static class Program
     {
         try
         {
-            List<Assembly> assemblies = [];
-
-            try
+            // AOT-compatible Serilog configuration - use direct API instead of assembly loading
+            LoggerConfiguration loggerConfig = new LoggerConfiguration();
+            
+            // Configure based on appsettings.json but use direct API calls for AOT compatibility
+            IConfigurationSection serilogSection = configuration.GetSection("Serilog");
+            
+            // Set minimum level
+            string minLevel = serilogSection["MinimumLevel:Default"] ?? "Information";
+            loggerConfig = minLevel switch
             {
-                assemblies.Add(Assembly.Load(ApplicationConstants.Logging.ConsoleSinkAssembly));
-            }
-            catch { }
+                "Debug" => loggerConfig.MinimumLevel.Debug(),
+                "Information" => loggerConfig.MinimumLevel.Information(),
+                "Warning" => loggerConfig.MinimumLevel.Warning(),
+                "Error" => loggerConfig.MinimumLevel.Error(),
+                "Fatal" => loggerConfig.MinimumLevel.Fatal(),
+                _ => loggerConfig.MinimumLevel.Information()
+            };
 
-            try
-            {
-                assemblies.Add(Assembly.Load(ApplicationConstants.Logging.FileSinkAssembly));
-            }
-            catch { }
-
-            ConfigurationReaderOptions options = new(assemblies.ToArray());
-
-            LoggerConfiguration loggerConfig = new LoggerConfiguration()
-                .ReadFrom.Configuration(configuration, options);
-
+            // Add console sink directly (AOT-safe)
+            loggerConfig = loggerConfig.WriteTo.Console();
+            
+            // Add file sink directly (AOT-safe)
+            string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory, ApplicationConstants.Storage.LogFilePattern);
+            loggerConfig = loggerConfig.WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
+            
             return loggerConfig.CreateLogger();
         }
         catch (Exception)

@@ -58,7 +58,7 @@ public class OpaqueAuthenticationService(
                 OpaqueFailure opaqueError = oprfResult.UnwrapErr();
                 await systemEvents.NotifySystemStateAsync(SystemState.FatalError, opaqueError.Message);
                 Result<byte[], string> errorResult =
-                    Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
+                    Result<byte[], string>.Err(localizationService["Common.UnexpectedError"]);
                 return errorResult;
             }
 
@@ -110,7 +110,7 @@ public class OpaqueAuthenticationService(
         }
         catch (Exception)
         {
-            return Result<byte[], string>.Err(localizationService["Common.Unexpected"]);
+            return Result<byte[], string>.Err(localizationService["Common.UnexpectedError"]);
         }
     }
 

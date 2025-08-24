@@ -3,12 +3,18 @@ using System.Diagnostics.CodeAnalysis;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Network.Infrastructure;
+
+// AOT-safe interface for typed pending requests
+internal interface ITypedPendingRequest
+{
+    Task ExecuteAsync(CancellationToken cancellationToken);
+    void Cancel();
+}
 
 public interface IPendingRequestManager
 {
@@ -27,7 +33,7 @@ public interface IPendingRequestManager
 public class PendingRequestManager : IPendingRequestManager
 {
     private readonly ConcurrentDictionary<string, Func<Task>> _pendingRequests = new();
-    private readonly ConcurrentDictionary<string, object> _typedPendingRequests = new();
+    private readonly ConcurrentDictionary<string, ITypedPendingRequest> _typedPendingRequests = new();
     private readonly ConcurrentDictionary<string, bool> _retryingRequests = new();
     private readonly SemaphoreSlim _retryAllSemaphore = new(1, 1);
     private int _pendingCount;
@@ -72,14 +78,14 @@ public class PendingRequestManager : IPendingRequestManager
         try
         {
             KeyValuePair<string, Func<Task>>[] untypedRequests = _pendingRequests.ToArray();
-            KeyValuePair<string, object>[] typedRequests = _typedPendingRequests.ToArray();
+            KeyValuePair<string, ITypedPendingRequest>[] typedRequests = _typedPendingRequests.ToArray();
             int successCount = 0;
 
             Log.Information("Starting retry for {UntypedCount} untyped and {TypedCount} typed pending requests",
                 untypedRequests.Length, typedRequests.Length);
 
             List<KeyValuePair<string, Func<Task>>> filteredUntypedRequests = [];
-            List<KeyValuePair<string, object>> filteredTypedRequests = [];
+            List<KeyValuePair<string, ITypedPendingRequest>> filteredTypedRequests = [];
 
             foreach (KeyValuePair<string, Func<Task>> request in untypedRequests)
             {
@@ -93,7 +99,7 @@ public class PendingRequestManager : IPendingRequestManager
                 }
             }
 
-            foreach (KeyValuePair<string, object> request in typedRequests)
+            foreach (KeyValuePair<string, ITypedPendingRequest> request in typedRequests)
             {
                 if (_retryingRequests.TryAdd(request.Key, true))
                 {
@@ -115,7 +121,7 @@ public class PendingRequestManager : IPendingRequestManager
             Task[] typedTasks = new Task[filteredTypedRequests.Count];
             for (int i = 0; i < filteredTypedRequests.Count; i++)
             {
-                KeyValuePair<string, object> request = filteredTypedRequests[i];
+                KeyValuePair<string, ITypedPendingRequest> request = filteredTypedRequests[i];
                 typedTasks[i] = RetryTypedRequestAsync(request.Key, request.Value, cancellationToken);
             }
 
@@ -160,53 +166,33 @@ public class PendingRequestManager : IPendingRequestManager
         }
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2075:Unrecognized reflection pattern",
-        Justification = "ExecuteAsync method is guaranteed to exist on TypedPendingRequest<T>")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
-        Justification = "ExecuteAsync method is guaranteed to exist on TypedPendingRequest<T>")]
-    private async Task RetryTypedRequestAsync(string requestId, object typedRequest,
+    private async Task RetryTypedRequestAsync(string requestId, ITypedPendingRequest typedRequest,
         CancellationToken cancellationToken)
     {
         try
         {
-            MethodInfo? method = typedRequest.GetType().GetMethod("ExecuteAsync");
-            if (method != null)
-            {
-                object? result = method.Invoke(typedRequest, [cancellationToken]);
-                if (result is Task task)
-                    await task;
-            }
-
+            await typedRequest.ExecuteAsync(cancellationToken);
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried typed request {RequestId}", requestId);
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "Failed to retry typed request {RequestId} - keeping it pending for future retry attempts", requestId);
-
         }
         finally
         {
-
             _retryingRequests.TryRemove(requestId, out _);
         }
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2075:Unrecognized reflection pattern",
-        Justification = "Cancel method is guaranteed to exist on TypedPendingRequest<T>")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
-        Justification = "Cancel method is guaranteed to exist on TypedPendingRequest<T>")]
     public void CancelAllPendingRequests()
     {
         int count = _pendingRequests.Count + _typedPendingRequests.Count;
         _pendingRequests.Clear();
 
-        foreach (var typedRequest in _typedPendingRequests.Values)
+        foreach (ITypedPendingRequest typedRequest in _typedPendingRequests.Values)
         {
-            if (typedRequest.GetType().GetMethod("Cancel") is var cancelMethod && cancelMethod != null)
-            {
-                cancelMethod.Invoke(typedRequest, null);
-            }
+            typedRequest.Cancel();
         }
 
         _typedPendingRequests.Clear();
@@ -217,7 +203,7 @@ public class PendingRequestManager : IPendingRequestManager
     }
 }
 
-internal class TypedPendingRequest<T>
+internal class TypedPendingRequest<T> : ITypedPendingRequest
 {
     private readonly Func<Task<T>> _retryAction;
     private readonly TaskCompletionSource<T> _originalTaskCompletionSource;

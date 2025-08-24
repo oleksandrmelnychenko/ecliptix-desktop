@@ -16,11 +16,38 @@ namespace Ecliptix.Opaque.Protocol;
 
 public static class OpaqueCryptoUtilities
 {
-    private static readonly X9ECParameters CurveParams = ECNamedCurveTable.GetByName(CryptographicConstants.EllipticCurveName);
+    private static readonly X9ECParameters CurveParams = InitializeCurveParams();
     public static readonly ECDomainParameters DomainParams = new(CurveParams.Curve, CurveParams.G, CurveParams.N, CurveParams.H);
 
-    private static readonly ThreadLocal<Sha256Digest> DigestPool = new(() => new Sha256Digest());
-    private static readonly SecureRandom SecureRandomInstance = new();
+    private static X9ECParameters InitializeCurveParams()
+    {
+        try
+        {
+            X9ECParameters? curveParams = ECNamedCurveTable.GetByName(CryptographicConstants.EllipticCurveName);
+            if (curveParams == null)
+                throw new InvalidOperationException($"Elliptic curve '{CryptographicConstants.EllipticCurveName}' not found");
+            return curveParams;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to initialize elliptic curve parameters: {ex.Message}", ex);
+        }
+    }
+
+    private static readonly ThreadLocal<Sha256Digest> DigestPool = new(() => new Sha256Digest(), false);
+    private static readonly SecureRandom SecureRandomInstance = InitializeSecureRandom();
+
+    private static SecureRandom InitializeSecureRandom()
+    {
+        try
+        {
+            return new SecureRandom();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to initialize SecureRandom for cryptographic operations: {ex.Message}", ex);
+        }
+    }
 
     public static Result<byte[], OpaqueFailure> HkdfExtract(ReadOnlySpan<byte> ikm, ReadOnlySpan<byte> salt)
     {

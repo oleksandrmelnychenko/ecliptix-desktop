@@ -23,8 +23,8 @@ public static class StaticViewMapper
         {
             [typeof(SignInViewModel)] = new(() => () => new SignInView()),
             [typeof(MobileVerificationViewModel)] = new(() => () => new MobileVerificationView()),
-            [typeof(PasswordConfirmationViewModel)] =
-                new(() => () => new PasswordConfirmationView()),
+            [typeof(VerifyOtpViewModel)] = new(() => () => new VerificationCodeEntryView()),
+            [typeof(PasswordConfirmationViewModel)] = new(() => () => new PasswordConfirmationView()),
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
             [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView())
         };

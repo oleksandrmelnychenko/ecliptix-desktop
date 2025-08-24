@@ -18,29 +18,21 @@ using Serilog;
 
 namespace Ecliptix.Core;
 
-public class ApplicationStartup
+public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 {
-    private readonly IClassicDesktopStyleApplicationLifetime _desktop;
-    private readonly IApplicationInitializer _initializer;
-    private readonly IModuleManager _moduleManager;
+    private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
+    private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
     private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
 
     private const string RootContentName = "MainContentGrid";
-
-    public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
-    {
-        _desktop = desktop;
-        _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
-        _moduleManager = Locator.Current.GetService<IModuleManager>()!;
-    }
 
     public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
         _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
         _splashScreen = new SplashWindow { DataContext = _splashViewModel };
 
-        _desktop.MainWindow = _splashScreen;
+        desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
         await _splashViewModel.IsSubscribed.Task;
@@ -54,7 +46,7 @@ public class ApplicationStartup
         else
         {
             await _splashViewModel.PrepareForShutdownAsync();
-            _desktop.Shutdown();
+            desktop.Shutdown();
         }
     }
 
@@ -83,7 +75,7 @@ public class ApplicationStartup
 
         PositionWindow(nextWindow, _splashScreen);
 
-        _desktop.MainWindow = nextWindow;
+        desktop.MainWindow = nextWindow;
         Log.Information("Set next window as MainWindow");
 
         await PerformCrossfadeTransition(nextWindow);

@@ -26,8 +26,9 @@ public class ViewLocator : IViewLocator
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");
 
-        _viewFactories[viewModelType] = () => Activator.CreateInstance(viewType) ?? throw new InvalidOperationException($"Failed to create instance of {viewType.Name}");
-        Log.Debug("Registered view mapping: {ViewModel} -> {View}", viewModelType.Name, viewType.Name);
+        // AOT-safe: Don't use Activator.CreateInstance, register only for documentation
+        // All actual view creation should be done through StaticViewMapper
+        Log.Warning("ViewLocator.Register is deprecated for AOT compatibility. Use StaticViewMapper instead. ViewModel: {ViewModel} -> View: {View}", viewModelType.Name, viewType.Name);
     }
 
     public void RegisterFactory<TViewModel>(Func<object> factory)
@@ -62,12 +63,13 @@ public class ViewLocator : IViewLocator
             Log.Information("🔍 ViewLocator: Registered type: {TypeName}", registeredType.Name);
         }
 
+        // First try registered factories (for generic types registered via RegisterFactory)
         if (_viewFactories.TryGetValue(viewModelType, out Func<object>? factory))
         {
             try
             {
                 object view = factory();
-                Log.Information("✅ ViewLocator: Successfully created view {ViewType} for ViewModel {ViewModelType}",
+                Log.Information("✅ ViewLocator: Successfully created view {ViewType} for ViewModel {ViewModelType} using registered factory",
                     view.GetType().Name, viewModelType.Name);
                 return view;
             }
@@ -78,7 +80,17 @@ public class ViewLocator : IViewLocator
             }
         }
 
-        Log.Warning("⚠️ ViewLocator: No view factory registered for ViewModel {ViewModelType}", viewModelType.Name);
+        // Fallback to AOT-safe StaticViewMapper
+        Log.Information("🔄 ViewLocator: No factory registered, trying StaticViewMapper for {ViewModelType}", viewModelType.Name);
+        object? staticView = StaticViewMapper.CreateView(viewModelType);
+        if (staticView != null)
+        {
+            Log.Information("✅ ViewLocator: Successfully created view {ViewType} for ViewModel {ViewModelType} using StaticViewMapper",
+                staticView.GetType().Name, viewModelType.Name);
+            return staticView;
+        }
+
+        Log.Warning("⚠️ ViewLocator: No view factory registered and StaticViewMapper returned null for ViewModel {ViewModelType}", viewModelType.Name);
         return null;
     }
 
