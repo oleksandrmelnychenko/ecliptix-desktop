@@ -65,7 +65,7 @@ public class OpaqueAuthenticationService(
             (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
             OpaqueSignInInitRequest initRequest = new()
             {
-                PhoneNumber = mobileNumber,
+                MobileNumber = mobileNumber,
                 PeerOprf = ByteString.CopyFrom(oprfRequest),
             };
 

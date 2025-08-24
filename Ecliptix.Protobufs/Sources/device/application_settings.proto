@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ecliptix.proto.device;
+option csharp_namespace = "Ecliptix.Protobuf.Device";
+
+import "membership/membership_core.proto";
+
+message ApplicationInstanceSettings {
+  // Application Identity
+  bytes app_instance_id = 1;
+  bytes device_id = 2;
+  
+  // Device Information  
+  string system_device_identifier = 3;
+  bytes server_public_key = 4;
+  
+  // Localization
+  string culture = 5;
+  string country = 6;
+  string ip_address = 7;
+  
+  // State
+  bool is_new_instance = 8;
+  
+  // Membership
+  ecliptix.proto.membership.Membership membership = 9;
+}

@@ -1,5 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core", "Ecliptix.Core\Ecliptix.Core\Ecliptix.Core.csproj", "{F8411210-42D1-4D54-AAA3-8C57F179A5F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Core.Desktop", "Ecliptix.Core\Ecliptix.Core.Desktop\Ecliptix.Core.Desktop.csproj", "{EECCED89-B23E-468B-AE2F-23613DFCE343}"
@@ -11,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Opaque.Protocol", "Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj", "{4CBC7393-99E5-47EA-BA16-EA22D920D627}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Utilities", "Ecliptix.Utilities\Ecliptix.Utilities.csproj", "{05F2DAF4-B21B-4429-966C-029EAA1924BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Security.Pinning", "Ecliptix.Security.Pinning\Ecliptix.Security.Pinning.csproj", "{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,5 +45,9 @@ Global
 		{05F2DAF4-B21B-4429-966C-029EAA1924BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05F2DAF4-B21B-4429-966C-029EAA1924BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{05F2DAF4-B21B-4429-966C-029EAA1924BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

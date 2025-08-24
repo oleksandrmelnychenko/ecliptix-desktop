@@ -26,7 +26,6 @@
     <Protobuf Include="Sources\membership\membership_core.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\membership\membership_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\membership\opaque_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\membership\session_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     
     <!-- Protocol proto files -->
     <Protobuf Include="Sources\protocol\key_exchange.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />

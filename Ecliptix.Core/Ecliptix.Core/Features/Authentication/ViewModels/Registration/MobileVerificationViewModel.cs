@@ -37,7 +37,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
-    private ByteString? PhoneNumberIdentifier { get; set; }
+    private ByteString? MobileNumberIdentifier { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -116,9 +116,9 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             HandleValidationResponseAsync
         );
 
-        if (result.IsOk && PhoneNumberIdentifier != null)
+        if (result.IsOk && MobileNumberIdentifier != null)
         {
-            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, PhoneNumberIdentifier, _applicationSecureStorageProvider);
+            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, MobileNumberIdentifier, _applicationSecureStorageProvider);
             ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
         }
         else
@@ -133,7 +133,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     {
         return new ValidatePhoneNumberRequest
         {
-            PhoneNumber = MobileNumber,
+            MobileNumber = MobileNumber,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
         };
     }
@@ -148,7 +148,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                 NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
         }
 
-        PhoneNumberIdentifier = response.PhoneNumberIdentifier;
+        MobileNumberIdentifier = response.MobileNumberIdentifier;
 
         _mobileErrorSubject.OnNext(string.Empty);
         return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));

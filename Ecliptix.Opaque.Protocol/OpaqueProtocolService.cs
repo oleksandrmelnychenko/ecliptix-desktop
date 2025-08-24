@@ -179,7 +179,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             OpaqueSignInFinalizeRequest request = new()
             {
-                PhoneNumber = phoneNumber,
+                MobileNumber = phoneNumber,
                 ClientEphemeralPublicKey = ByteString.CopyFrom(clientEphemeralPublicKeyBytes),
                 ClientMac = ByteString.CopyFrom(clientMac),
                 ServerStateToken = signInResponse.ServerStateToken

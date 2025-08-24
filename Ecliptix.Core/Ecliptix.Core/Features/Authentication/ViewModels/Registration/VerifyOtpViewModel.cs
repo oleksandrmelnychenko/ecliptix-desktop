@@ -136,7 +136,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         InitiateVerificationRequest membershipVerificationRequest = new()
         {
-            PhoneNumberIdentifier = phoneNumberIdentifier,
+            MobileNumberIdentifier = phoneNumberIdentifier,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier)),
             Purpose = VerificationPurpose.Registration,
             Type = type
