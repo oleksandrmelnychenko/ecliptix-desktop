@@ -142,13 +142,10 @@ public static class Program
     {
         try
         {
-            // AOT-compatible Serilog configuration - use direct API instead of assembly loading
-            LoggerConfiguration loggerConfig = new LoggerConfiguration();
+            LoggerConfiguration loggerConfig = new();
             
-            // Configure based on appsettings.json but use direct API calls for AOT compatibility
             IConfigurationSection serilogSection = configuration.GetSection("Serilog");
             
-            // Set minimum level
             string minLevel = serilogSection["MinimumLevel:Default"] ?? "Information";
             loggerConfig = minLevel switch
             {
@@ -160,10 +157,8 @@ public static class Program
                 _ => loggerConfig.MinimumLevel.Information()
             };
 
-            // Add console sink directly (AOT-safe)
             loggerConfig = loggerConfig.WriteTo.Console();
             
-            // Add file sink directly (AOT-safe)
             string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory, ApplicationConstants.Storage.LogFilePattern);
             loggerConfig = loggerConfig.WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
             

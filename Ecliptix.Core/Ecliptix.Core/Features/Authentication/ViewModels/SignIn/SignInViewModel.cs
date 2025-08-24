@@ -172,7 +172,24 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SignInCommand = ReactiveCommand.CreateFromTask(
-            () => _authService.SignInAsync(MobileNumber, _secureKeyBuffer, ComputeConnectId()),
+            async () => 
+            {
+                Serilog.Log.Information("🔐 SignInCommand: Starting sign-in for mobile: {Mobile}", 
+                    MobileNumber?.Length > 0 ? $"{MobileNumber[..3]}***{MobileNumber[^3..]}" : "empty");
+                try 
+                {
+                    uint connectId = ComputeConnectId();
+                    Serilog.Log.Information("🔐 SignInCommand: Computed connectId: {ConnectId}", connectId);
+                    Result<byte[], string> result = await _authService.SignInAsync(MobileNumber, _secureKeyBuffer, connectId);
+                    Serilog.Log.Information("🔐 SignInCommand: Authentication result - Success: {IsSuccess}", result.IsOk);
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Error(ex, "🔐 SignInCommand: Exception in command execution");
+                    throw;
+                }
+            },
             canSignIn);
 
         SignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
