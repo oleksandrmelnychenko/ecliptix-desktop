@@ -38,7 +38,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
     {
         services.AddTransient<SignInViewModel>();
         services.AddTransient<MobileVerificationViewModel>();
-        services.AddTransient<PasswordConfirmationViewModel>();
+        services.AddTransient<SecureKeyVerifierViewModel>();
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<WelcomeViewModel>();
         services.AddTransient<MembershipHostWindowModel>();
@@ -50,7 +50,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         [
             typeof(SignInView),
             typeof(MobileVerificationView),
-            typeof(PasswordConfirmationView),
+            typeof(SecureKeyConfirmationView),
             typeof(PassPhaseView),
             typeof(WelcomeView)
         ];
@@ -62,7 +62,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         [
             typeof(SignInViewModel),
             typeof(MobileVerificationViewModel),
-            typeof(PasswordConfirmationViewModel),
+            typeof(SecureKeyVerifierViewModel),
             typeof(PassPhaseViewModel),
             typeof(WelcomeViewModel)
         ];
@@ -72,7 +72,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
     {
         viewFactory.RegisterView<SignInViewModel, SignInView>();
         viewFactory.RegisterView<MobileVerificationViewModel, MobileVerificationView>();
-        viewFactory.RegisterView<PasswordConfirmationViewModel, PasswordConfirmationView>();
+        viewFactory.RegisterView<SecureKeyVerifierViewModel, SecureKeyConfirmationView>();
         viewFactory.RegisterView<PassPhaseViewModel, PassPhaseView>();
         viewFactory.RegisterView<WelcomeViewModel, WelcomeView>();
         

@@ -31,24 +31,24 @@ using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
-    private readonly SecureTextBuffer _passwordBuffer = new();
-    private readonly SecureTextBuffer _verifyPasswordBuffer = new();
-    private bool _hasPasswordBeenTouched;
-    private bool _hasVerifyPasswordBeenTouched;
+    private readonly SecureTextBuffer _secureKeyBuffer = new();
+    private readonly SecureTextBuffer _verifySecureKeyBuffer = new();
+    private bool _hasSecureKeyBeenTouched;
+    private bool _hasVerifySecureKeyBeenTouched;
 
-    public int CurrentPasswordLength => _passwordBuffer.Length;
-    public int CurrentVerifyPasswordLength => _verifyPasswordBuffer.Length;
+    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
+    public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
 
-    [ObservableAsProperty] public string? PasswordError { get; private set; }
-    [ObservableAsProperty] public bool HasPasswordError { get; private set; }
-    [ObservableAsProperty] public string? VerifyPasswordError { get; private set; }
-    [ObservableAsProperty] public bool HasVerifyPasswordError { get; private set; }
+    [ObservableAsProperty] public string? SecureKeyError { get; private set; }
+    [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
+    [ObservableAsProperty] public string? VerifySecureKeyError { get; private set; }
+    [ObservableAsProperty] public bool HasVerifySecureKeyError { get; private set; }
 
-    [ObservableAsProperty] public PasswordStrength CurrentPasswordStrength { get; private set; }
-    [ObservableAsProperty] public string? PasswordStrengthMessage { get; private set; }
-    [ObservableAsProperty] public bool HasPasswordBeenTouched { get; private set; }
+    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
+    [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
+    [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
 
     [Reactive] public bool CanSubmit { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -60,7 +60,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
 
-    public PasswordConfirmationViewModel(
+    public SecureKeyVerifierViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -76,7 +76,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
-        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationPasswordAsync);
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
 
@@ -126,32 +126,32 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 
-    public void InsertPasswordChars(int index, string chars)
+    public void InsertSecureKeyChars(int index, string chars)
     {
-        if (!_hasPasswordBeenTouched) _hasPasswordBeenTouched = true;
-        _passwordBuffer.Insert(index, chars);
-        this.RaisePropertyChanged(nameof(CurrentPasswordLength));
+        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        _secureKeyBuffer.Insert(index, chars);
+        this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
-    public void RemovePasswordChars(int index, int count)
+    public void RemoveSecureKeyChars(int index, int count)
     {
-        if (!_hasPasswordBeenTouched) _hasPasswordBeenTouched = true;
-        _passwordBuffer.Remove(index, count);
-        this.RaisePropertyChanged(nameof(CurrentPasswordLength));
+        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        _secureKeyBuffer.Remove(index, count);
+        this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
-    public void InsertVerifyPasswordChars(int index, string chars)
+    public void InsertVerifySecureKeyChars(int index, string chars)
     {
-        if (!_hasVerifyPasswordBeenTouched) _hasVerifyPasswordBeenTouched = true;
-        _verifyPasswordBuffer.Insert(index, chars);
-        this.RaisePropertyChanged(nameof(CurrentVerifyPasswordLength));
+        if (!_hasVerifySecureKeyBeenTouched) _hasVerifySecureKeyBeenTouched = true;
+        _verifySecureKeyBuffer.Insert(index, chars);
+        this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
     }
 
-    public void RemoveVerifyPasswordChars(int index, int count)
+    public void RemoveVerifySecureKeyChars(int index, int count)
     {
-        if (!_hasVerifyPasswordBeenTouched) _hasVerifyPasswordBeenTouched = true;
-        _verifyPasswordBuffer.Remove(index, count);
-        this.RaisePropertyChanged(nameof(CurrentVerifyPasswordLength));
+        if (!_hasVerifySecureKeyBeenTouched) _hasVerifySecureKeyBeenTouched = true;
+        _verifySecureKeyBuffer.Remove(index, count);
+        this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
     }
 
     private IObservable<bool> SetupValidation()
@@ -163,75 +163,75 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                 .Select(_ => System.Reactive.Unit.Default);
 
     IObservable<System.Reactive.Unit> lengthTrigger = this
-        .WhenAnyValue(x => x.CurrentPasswordLength)
+        .WhenAnyValue(x => x.CurrentSecureKeyLength)
         .Select(_ => System.Reactive.Unit.Default);
     
     IObservable<System.Reactive.Unit> validationTrigger = lengthTrigger.Merge(languageTrigger);
     
-    IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> passwordValidation = validationTrigger
-        .Select(_ => ValidatePasswordWithStrength())
+    IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation = validationTrigger
+        .Select(_ => ValidateSecureKeyWithStrength())
         .Replay(1)
         .RefCount();
     
-    passwordValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentPasswordStrength);
-    passwordValidation.Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
-        .ToPropertyEx(this, x => x.PasswordStrengthMessage);
+    secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
+    secureKeyValidation.Select(v => _hasSecureKeyBeenTouched ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
+        .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
     
-    this.WhenAnyValue(x => x.CurrentPasswordLength)
-        .Select(_ => _hasPasswordBeenTouched)
-        .ToPropertyEx(this, x => x.HasPasswordBeenTouched);
+    this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+        .Select(_ => _hasSecureKeyBeenTouched)
+        .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
 
-    IObservable<string> passwordErrorStream = passwordValidation
-        .Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
+    IObservable<string> secureKeyErrorStream = secureKeyValidation
+        .Select(v => _hasSecureKeyBeenTouched ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
         .Replay(1)
         .RefCount();
     
-    passwordErrorStream.ToPropertyEx(this, x => x.PasswordError);
-    this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e))
-        .ToPropertyEx(this, x => x.HasPasswordError);
+    secureKeyErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
+    this.WhenAnyValue(x => x.SecureKeyError).Select(e => !string.IsNullOrEmpty(e))
+        .ToPropertyEx(this, x => x.HasSecureKeyError);
     
-    IObservable<bool> isPasswordLogicallyValid = passwordValidation.Select(v => string.IsNullOrEmpty(v.Error));
+    IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
     
     IObservable<System.Reactive.Unit> verifyLengthTrigger = this
-        .WhenAnyValue(x => x.CurrentVerifyPasswordLength)
+        .WhenAnyValue(x => x.CurrentVerifySecureKeyLength)
         .Select(_ => System.Reactive.Unit.Default);
     
     IObservable<System.Reactive.Unit> verifyValidationTrigger = verifyLengthTrigger
         .Merge(languageTrigger)
         .Merge(lengthTrigger);
     
-    IObservable<bool> passwordsMatch = verifyValidationTrigger
-        .Select(_ => DoPasswordsMatch())
+    IObservable<bool> secureKeysMatch = verifyValidationTrigger
+        .Select(_ => DoSecureKeysMatch())
         .Replay(1)
         .RefCount();
     
-    IObservable<string> verifyPasswordErrorStream = passwordsMatch
-        .Select(match => _hasVerifyPasswordBeenTouched && !match
+    IObservable<string> verifySecureKeyErrorStream = secureKeysMatch
+        .Select(match => _hasVerifySecureKeyBeenTouched && !match
             ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"]
             : string.Empty)
         .Replay(1)
         .RefCount();
 
-    verifyPasswordErrorStream.ToPropertyEx(this, x => x.VerifyPasswordError);
-    this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e))
-        .ToPropertyEx(this, x => x.HasVerifyPasswordError);
+    verifySecureKeyErrorStream.ToPropertyEx(this, x => x.VerifySecureKeyError);
+    this.WhenAnyValue(x => x.VerifySecureKeyError).Select(e => !string.IsNullOrEmpty(e))
+        .ToPropertyEx(this, x => x.HasVerifySecureKeyError);
 
-    return isPasswordLogicallyValid
-        .CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
+    return isSecureKeyLogicallyValid
+        .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
         .DistinctUntilChanged();
 }
 
-    private (string? Error, string Recommendations, PasswordStrength Strength) ValidatePasswordWithStrength()
+    private (string? Error, string Recommendations, PasswordStrength Strength) ValidateSecureKeyWithStrength()
     {
         string? error = null;
         string recommendations = string.Empty;
         PasswordStrength strength = PasswordStrength.Invalid;
 
-        _passwordBuffer.WithSecureBytes(bytes =>
+        _secureKeyBuffer.WithSecureBytes(bytes =>
         {
-            string password = Encoding.UTF8.GetString(bytes);
-            (error, var recs) = SecureKeyValidator.Validate(password, LocalizationService);
-            strength = SecureKeyValidator.EstimatePasswordStrength(password, LocalizationService);
+            string secureKey = Encoding.UTF8.GetString(bytes);
+            (error, var recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
+            strength = SecureKeyValidator.EstimatePasswordStrength(secureKey, LocalizationService);
             if (recs.Any())
             {
                 recommendations = recs.First();
@@ -240,26 +240,26 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         return (error, recommendations, strength);
     }
 
-    private bool DoPasswordsMatch()
+    private bool DoSecureKeysMatch()
     {
-        if (_passwordBuffer.Length != _verifyPasswordBuffer.Length)
+        if (_secureKeyBuffer.Length != _verifySecureKeyBuffer.Length)
         {
             return false;
         }
 
-        if (_passwordBuffer.Length == 0)
+        if (_secureKeyBuffer.Length == 0)
         {
             return true;
         }
 
-        byte[] passwordArray = new byte[_passwordBuffer.Length];
-        byte[] verifyArray = new byte[_verifyPasswordBuffer.Length];
+        byte[] secureKeyArray = new byte[_secureKeyBuffer.Length];
+        byte[] verifyArray = new byte[_verifySecureKeyBuffer.Length];
 
-        _passwordBuffer.WithSecureBytes(passwordBytes => { passwordBytes.CopyTo(passwordArray.AsSpan()); });
+        _secureKeyBuffer.WithSecureBytes(secureKeyBytes => { secureKeyBytes.CopyTo(secureKeyArray.AsSpan()); });
 
-        _verifyPasswordBuffer.WithSecureBytes(verifyBytes => { verifyBytes.CopyTo(verifyArray.AsSpan()); });
+        _verifySecureKeyBuffer.WithSecureBytes(verifyBytes => { verifyBytes.CopyTo(verifyArray.AsSpan()); });
 
-        return passwordArray.AsSpan().SequenceEqual(verifyArray);
+        return secureKeyArray.AsSpan().SequenceEqual(verifyArray);
     }
 
     private static string FormatError(string? error, string recommendations)
@@ -268,7 +268,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         return recommendations;
     }
 
-    private string FormatPasswordStrengthMessage(PasswordStrength strength, string? error, string recommendations)
+    private string FormatSecureKeyStrengthMessage(PasswordStrength strength, string? error, string recommendations)
     {
         string strengthText = strength switch
         {
@@ -284,31 +284,31 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
         return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
     }
-    private async Task SubmitRegistrationPasswordAsync()
+    private async Task SubmitRegistrationSecureKeyAsync()
     {
         if (IsBusy || !CanSubmit) return;
 
-        byte[]? passwordBytes = null;
+        byte[]? secureKeyBytes = null;
         try
         {
-            _passwordBuffer.WithSecureBytes(bytes =>
+            _secureKeyBuffer.WithSecureBytes(bytes =>
             {
-                passwordBytes = new byte[bytes.Length];
-                bytes.CopyTo(passwordBytes);
+                secureKeyBytes = new byte[bytes.Length];
+                bytes.CopyTo(secureKeyBytes);
             });
 
-            if (passwordBytes == null)
+            if (secureKeyBytes == null)
             {
-                PasswordError = "Failed to process password";
+                SecureKeyError = "Failed to process secure key";
                 return;
             }
 
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
-                OpaqueProtocolService.CreateOprfRequest(passwordBytes);
+                OpaqueProtocolService.CreateOprfRequest(secureKeyBytes);
 
             if (opfrResult.IsErr)
             {
-                PasswordError = opfrResult.UnwrapErr().Message;
+                SecureKeyError = opfrResult.UnwrapErr().Message;
                 return;
             }
 
@@ -332,21 +332,21 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
                     if (createMembershipResponse.Result != OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
                     {
-                        PasswordError = $"Registration failed: {createMembershipResponse.Message}";
+                        SecureKeyError = $"Registration failed: {createMembershipResponse.Message}";
                         return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
 
                     OpaqueProtocolService opaqueService = CreateOpaqueService();
                     Result<byte[], OpaqueFailure> registrationRecordResult =
                         opaqueService.CreateRegistrationRecord(
-                            passwordBytes,
+                            secureKeyBytes,
                             SecureByteStringInterop.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
                                 span => span.ToArray()),
                             opfr.Blind);
 
                     if (registrationRecordResult.IsErr)
                     {
-                        PasswordError = registrationRecordResult.UnwrapErr().Message;
+                        SecureKeyError = registrationRecordResult.UnwrapErr().Message;
                         return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
 
@@ -375,7 +375,7 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
                             }
                             catch (Exception ex)
                             {
-                                PasswordError = $"Error processing registration completion: {ex.Message}";
+                                SecureKeyError = $"Error processing registration completion: {ex.Message}";
                                 return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                             }
                         });
@@ -387,13 +387,13 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
         }
         catch (Exception ex)
         {
-            PasswordError = $"Submission failed: {ex.Message}";
+            SecureKeyError = $"Submission failed: {ex.Message}";
         }
         finally
         {
-            if (passwordBytes != null)
+            if (secureKeyBytes != null)
             {
-                Array.Clear(passwordBytes, 0, passwordBytes.Length);
+                Array.Clear(secureKeyBytes, 0, secureKeyBytes.Length);
             }
         }
     }
@@ -401,8 +401,8 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
     {
         if (disposing)
         {
-            _passwordBuffer.Dispose();
-            _verifyPasswordBuffer.Dispose();
+            _secureKeyBuffer.Dispose();
+            _verifySecureKeyBuffer.Dispose();
         }
 
         base.Dispose(disposing);
@@ -422,12 +422,12 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
 
     public void ResetState()
     {
-        _passwordBuffer.Remove(0, _passwordBuffer.Length);
-        _verifyPasswordBuffer.Remove(0, _verifyPasswordBuffer.Length);
-        _hasPasswordBeenTouched = false;
-        _hasVerifyPasswordBeenTouched = false;
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
+        _hasSecureKeyBeenTouched = false;
+        _hasVerifySecureKeyBeenTouched = false;
     }
 
-    public string? UrlPathSegment { get; } = "/password-confirmation";
+    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
     public IScreen HostScreen { get; }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -26,10 +25,11 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
-    private readonly Subject<string> _mobileErrorSubject = new();
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    
+    [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
 
@@ -67,23 +67,32 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             .Replay(1)
             .RefCount();
 
-        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
-            .CombineLatest(mobileValidation, (mobile, error) =>
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber, x => x.NetworkErrorMessage)
+            .CombineLatest(mobileValidation, (inputs, validationError) =>
             {
+                string mobile = inputs.Item1;
+                string? networkError = inputs.Item2;
+                
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
                     _hasMobileNumberBeenTouched = true;
 
-                return !_hasMobileNumberBeenTouched ? string.Empty : error;
+                // Network errors take precedence over validation errors
+                if (!string.IsNullOrEmpty(networkError))
+                    return networkError;
+                    
+                return !_hasMobileNumberBeenTouched ? string.Empty : validationError;
             })
             .Replay(1)
             .RefCount();
 
-        mobileErrorStream.Merge(_mobileErrorSubject)
-            .ToPropertyEx(this, x => x.MobileNumberError);
+        mobileErrorStream
+            .ToPropertyEx(this, x => x.MobileNumberError)
+            .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.MobileNumberError)
             .Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasMobileNumberError);
+            .ToPropertyEx(this, x => x.HasMobileNumberError)
+            .DisposeWith(_disposables);
 
         return mobileValidation
             .Select(string.IsNullOrEmpty)
@@ -96,12 +105,16 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
-        VerifyMobileNumberCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
+        VerifyMobileNumberCommand.IsExecuting
+            .ToPropertyEx(this, x => x.IsBusy)
+            .DisposeWith(_disposables);
+            
+        _disposables.Add(VerifyMobileNumberCommand);
     }
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
-        _mobileErrorSubject.OnNext(string.Empty);
+        NetworkErrorMessage = string.Empty;
 
         string systemDeviceIdentifier = SystemDeviceIdentifier();
 
@@ -123,7 +136,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         }
         else
         {
-            _mobileErrorSubject.OnNext(result.UnwrapErr().Message);
+            NetworkErrorMessage = result.UnwrapErr().Message;
         }
 
         return Unit.Default;
@@ -143,14 +156,14 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
         if (response.Result == VerificationResult.InvalidPhone)
         {
-            _mobileErrorSubject.OnNext(response.Message);
+            NetworkErrorMessage = response.Message;
             return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
         }
 
         MobileNumberIdentifier = response.MobileNumberIdentifier;
 
-        _mobileErrorSubject.OnNext(string.Empty);
+        NetworkErrorMessage = string.Empty;
         return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
     }
 
@@ -158,7 +171,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     {
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
-        _mobileErrorSubject.OnNext(string.Empty);
+        NetworkErrorMessage = string.Empty;
     }
 
     public new void Dispose()
@@ -172,7 +185,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         if (_isDisposed) return;
         if (disposing)
         {
-            _mobileErrorSubject.Dispose();
             _disposables.Dispose();
         }
 

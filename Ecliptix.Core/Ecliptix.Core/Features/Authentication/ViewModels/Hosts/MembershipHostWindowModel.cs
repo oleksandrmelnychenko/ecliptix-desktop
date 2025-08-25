@@ -59,7 +59,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
                 new MobileVerificationViewModel(sys, netProvider, loc, host, storage),
             [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
-                new PasswordConfirmationViewModel(sys, netProvider, loc, host, storage),
+                new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage),
             [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
                 new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();

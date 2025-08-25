@@ -180,7 +180,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 {
                     uint connectId = ComputeConnectId();
                     Serilog.Log.Information("🔐 SignInCommand: Computed connectId: {ConnectId}", connectId);
-                    Result<byte[], string> result = await _authService.SignInAsync(MobileNumber, _secureKeyBuffer, connectId);
+                    Result<byte[], string> result = await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
                     Serilog.Log.Information("🔐 SignInCommand: Authentication result - Success: {IsSuccess}", result.IsOk);
                     return result;
                 }
