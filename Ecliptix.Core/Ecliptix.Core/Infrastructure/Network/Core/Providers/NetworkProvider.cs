@@ -29,6 +29,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Serilog;
+using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
@@ -707,6 +708,244 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
 
+        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
+            SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
+                ServiceFlowType.Single,
+                RpcServiceType.EstablishSecrecyChannel,
+                pubKeyExchangeRequest.Unwrap());
+
+        CancellationToken recoveryToken = GetConnectionRecoveryToken();
+        using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+
+        Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
+            await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
+                "EstablishSecrecyChannel",
+                connectId,
+                maxRetries: 15,
+                cancellationToken: combinedCts.Token);
+
+        if (establishAppDeviceSecrecyChannelResult.IsErr)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(establishAppDeviceSecrecyChannelResult
+                .UnwrapErr());
+        }
+
+        PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
+
+        Result<Unit, EcliptixProtocolFailure> completeResult = protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+        if (completeResult.IsErr)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                completeResult.UnwrapErr().ToNetworkFailure());
+        }
+
+        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+        if (connection == null)
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                new NetworkFailure(NetworkFailureType.DataCenterNotResponding, "Connection has not been established yet."));
+
+        Result<EcliptixSessionState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
+            idKeys.ToProtoState()
+                .AndThen(identityKeysProto => connection.ToProtoState()
+                    .Map(ratchetStateProto => new EcliptixSessionState
+                    {
+                        ConnectId = connectId,
+                        IdentityKeys = identityKeysProto,
+                        PeerHandshakeMessage = peerPubKeyExchange,
+                        RatchetState = ratchetStateProto
+                    })
+                );
+
+        return ecliptixSecrecyChannelStateResult.ToNetworkFailure();
+    }
+
+    public async Task<Result<uint, NetworkFailure>> EnsureProtocolForTypeAsync(
+        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    {
+        if (!_applicationInstanceSettings.HasValue)
+        {
+            return Result<uint, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Application not initialized"));
+        }
+        
+        ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
+        uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
+        
+        if (_connections.TryGetValue(connectId, out _))
+        {
+            Log.Information("[PROTOCOL] Reusing existing protocol for type {Type}, connectId {ConnectId}", 
+                exchangeType, connectId);
+            return Result<uint, NetworkFailure>.Ok(connectId);
+        }
+        
+        Log.Information("[PROTOCOL] Creating new protocol for type {Type}, connectId {ConnectId}", 
+            exchangeType, connectId);
+        
+        InitiateEcliptixProtocolSystemForType(appSettings, connectId, exchangeType);
+        
+        Result<EcliptixSessionState, NetworkFailure> establishResult = 
+            await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType);
+        
+        if (establishResult.IsErr)
+        {
+            _connections.TryRemove(connectId, out _);
+            return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
+        }
+        
+        EcliptixSessionState state = establishResult.Unwrap();
+        Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
+            state.ToByteString(),
+            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
+        
+        if (saveResult.IsErr)
+        {
+            Log.Warning("Failed to save protocol state for type {Type}: {Error}", 
+                exchangeType, saveResult.UnwrapErr());
+        }
+        
+        Log.Information("[PROTOCOL] Successfully established protocol for type {Type}, connectId {ConnectId}",
+            exchangeType, connectId);
+        
+        return Result<uint, NetworkFailure>.Ok(connectId);
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> RemoveProtocolForTypeAsync(
+        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    {
+        if (!_applicationInstanceSettings.HasValue)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Application not initialized"));
+        }
+        
+        ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
+        uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
+        
+        if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            Log.Information("[PROTOCOL-CLEANUP] Disposing protocol for type {Type}, connectId {ConnectId}", 
+                exchangeType, connectId);
+            
+            protocolSystem.Dispose();
+            
+            Result<Unit, SecureStorageFailure> deleteResult = 
+                await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            
+            if (deleteResult.IsErr)
+            {
+                Log.Warning("Failed to delete protocol state for type {Type}: {Error}", 
+                    exchangeType, deleteResult.UnwrapErr());
+            }
+        }
+        else
+        {
+            Log.Information("[PROTOCOL-CLEANUP] No protocol found for type {Type}, connectId {ConnectId}", 
+                exchangeType, connectId);
+        }
+        
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> CleanupStreamProtocolAsync(uint connectId)
+    {
+        if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            Log.Information("[PROTOCOL-CLEANUP] Disposing stream protocol with connectId {ConnectId}", connectId);
+            
+            protocolSystem.Dispose();
+            
+            Result<Unit, SecureStorageFailure> deleteResult = 
+                await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            
+            if (deleteResult.IsErr)
+            {
+                Log.Warning("Failed to delete protocol state for connectId {ConnectId}: {Error}", 
+                    connectId, deleteResult.UnwrapErr());
+            }
+        }
+        else
+        {
+            Log.Information("[PROTOCOL-CLEANUP] No protocol found for connectId {ConnectId}", connectId);
+        }
+        
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private static RatchetConfig GetRatchetConfigForExchangeType(Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    {
+        return exchangeType switch
+        {
+            Protobuf.Protocol.PubKeyExchangeType.VerificationFlowStream => new RatchetConfig
+            {
+                DhRatchetEveryNMessages = 20,  // Every 20 timer ticks
+                MaxChainAge = TimeSpan.FromMinutes(5),
+                MaxMessagesWithoutRatchet = 100
+            },
+            Protobuf.Protocol.PubKeyExchangeType.MessageDeliveryStream => new RatchetConfig
+            {
+                DhRatchetEveryNMessages = 50,  // High security for messages
+                MaxChainAge = TimeSpan.FromMinutes(10),
+                MaxMessagesWithoutRatchet = 200
+            },
+            Protobuf.Protocol.PubKeyExchangeType.PresenceStream => new RatchetConfig
+            {
+                DhRatchetEveryNMessages = 100, // Lower security for presence
+                MaxChainAge = TimeSpan.FromMinutes(15),
+                MaxMessagesWithoutRatchet = 500
+            },
+            _ => RatchetConfig.Default // DataCenterEphemeralConnect and others
+        };
+    }
+
+    private void InitiateEcliptixProtocolSystemForType(
+        ApplicationInstanceSettings settings, 
+        uint connectId,
+        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    {
+        Log.Information("[PROTOCOL] Creating protocol system for type {Type}", exchangeType);
+        
+        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
+        
+        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
+        protocolSystem.SetEventHandler(this);
+        
+        _connections.TryAdd(connectId, protocolSystem);
+        
+        ConnectionHealth initialHealth = new()
+        {
+            ConnectId = connectId,
+            Status = ConnectionHealthStatus.Healthy
+        };
+        _connectionStateManager.RegisterConnection(connectId, initialHealth);
+    }
+
+    private async Task<Result<EcliptixSessionState, NetworkFailure>> EstablishSecrecyChannelForTypeAsync(
+        uint connectId,
+        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    {
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Protocol system not found"));
+        }
+        
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
+        });
+        
+        Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
+            protocolSystem.BeginDataCenterPubKeyExchange(connectId, exchangeType);
+        
+        if (pubKeyExchangeRequest.IsErr)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
+        }
+        
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
             SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
                 ServiceFlowType.Single,
