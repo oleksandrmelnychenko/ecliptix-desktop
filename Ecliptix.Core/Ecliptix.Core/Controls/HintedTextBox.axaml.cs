@@ -568,7 +568,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             PasswordStrength.VeryWeak => (Color.Parse("#ff6b35"), "VeryWeakStrengthShadow", Color.Parse("#ff6b35")),
             PasswordStrength.Weak => (Color.Parse("#ffa500"), "WeakStrengthShadow", Color.Parse("#ffa500")),
             PasswordStrength.Good => (Color.Parse("#f4c20d"), "GoodStrengthShadow", Color.Parse("#f4c20d")),
-            PasswordStrength.Strong => (Color.Parse("#90ee90"), "StrongStrengthShadow", Color.Parse("#90ee90")),
+            PasswordStrength.Strong => (Color.Parse("#00bcd4"), "StrongStrengthShadow", Color.Parse("#00bcd4")),
             PasswordStrength.VeryStrong => (Color.Parse("#32cd32"), "VeryStrongStrengthShadow", Color.Parse("#32cd32")),
             _ => (Color.Parse("#ef3a3a"), "InvalidStrengthShadow", Color.Parse("#ef3a3a"))
         };

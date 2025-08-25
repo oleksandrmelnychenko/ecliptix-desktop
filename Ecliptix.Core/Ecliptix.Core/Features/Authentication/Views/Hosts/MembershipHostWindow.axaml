@@ -59,7 +59,7 @@
         <!-- Window Colors -->
         <SolidColorBrush x:Key="WindowBackgroundBrush">#FFFFFF</SolidColorBrush>
         <SolidColorBrush x:Key="WindowBorderBrush">#B084CC</SolidColorBrush>
-        <SolidColorBrush x:Key="BlurBackgroundBrush">#AA9966CC</SolidColorBrush>
+        <SolidColorBrush x:Key="BlurBackgroundBrush">#FF6a5acd</SolidColorBrush>
         <Color x:Key="ShadowColor">#6a5acd</Color>
 
 

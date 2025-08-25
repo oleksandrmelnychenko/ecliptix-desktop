@@ -134,6 +134,23 @@
             <Setter Property="SelectionForegroundBrush" Value="White" />
         </Style>
         
+        <Style Selector="Button">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="scale(1)" />
+        </Style>
+
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="RenderTransform" Value="scale(0.98)" />
+        </Style>
+
+        
     </Application.Styles>
 
 

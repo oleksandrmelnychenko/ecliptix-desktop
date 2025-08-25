@@ -75,6 +75,13 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.NoSpecialChar"] = "Requires a special character",
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Passwords do not match",
+        
+        ["ValidationErrors.PasswordStrength.Invalid"] = "Invalid",
+        ["ValidationErrors.PasswordStrength.VeryWeak"] = "Very Weak",
+        ["ValidationErrors.PasswordStrength.Weak"] = "Weak",
+        ["ValidationErrors.PasswordStrength.Good"] = "Good",
+        ["ValidationErrors.PasswordStrength.Strong"] = "Strong",
+        ["ValidationErrors.PasswordStrength.VeryStrong"] = "Very Strong",
 
 
         ["Welcome.SignInButton"] = "Sign In",
@@ -187,6 +194,12 @@ public static class LocalizationData
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Паролі не збігаються",
 
+        ["ValidationErrors.PasswordStrength.Invalid"] = "Некоректний",
+        ["ValidationErrors.PasswordStrength.VeryWeak"] = "Дуже слабкий",
+        ["ValidationErrors.PasswordStrength.Weak"] = "Слабкий",
+        ["ValidationErrors.PasswordStrength.Good"] = "Хороший",
+        ["ValidationErrors.PasswordStrength.Strong"] = "Сильний",
+        ["ValidationErrors.PasswordStrength.VeryStrong"] = "Дуже сильний",
 
         ["Welcome.SignInButton"] = "Увійти",
         ["Welcome.CreateAccountButton"] = "Створити акаунт",

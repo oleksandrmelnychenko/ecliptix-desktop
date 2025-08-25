@@ -97,7 +97,7 @@ public static partial class SecureKeyValidator
         if (error != null)
         {
             Log.Information($"Password strength: {PasswordStrength.Invalid} (due to error: {error})");
-            return string.IsNullOrWhiteSpace(secureKey) ? PasswordStrength.Invalid : PasswordStrength.VeryWeak;
+            return PasswordStrength.Invalid;
         }
 
         int score = 0;

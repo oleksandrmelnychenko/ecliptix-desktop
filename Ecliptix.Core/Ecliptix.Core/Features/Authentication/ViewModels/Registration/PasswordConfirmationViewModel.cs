@@ -155,53 +155,71 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
     }
 
     private IObservable<bool> SetupValidation()
-    {
-        IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> passwordValidation = this
-            .WhenAnyValue(x => x.CurrentPasswordLength)
-            .Select(_ => ValidatePasswordWithStrength())
-            .Replay(1)
-            .RefCount();
+{
+    IObservable<System.Reactive.Unit> languageTrigger = 
+        Observable.FromEvent(
+                    handler => LocalizationService.LanguageChanged += handler,
+                    handler => LocalizationService.LanguageChanged -= handler)
+                .Select(_ => System.Reactive.Unit.Default);
 
-        passwordValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentPasswordStrength);
-        passwordValidation.Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
-            .ToPropertyEx(this, x => x.PasswordStrengthMessage);
+    IObservable<System.Reactive.Unit> lengthTrigger = this
+        .WhenAnyValue(x => x.CurrentPasswordLength)
+        .Select(_ => System.Reactive.Unit.Default);
+    
+    IObservable<System.Reactive.Unit> validationTrigger = lengthTrigger.Merge(languageTrigger);
+    
+    IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> passwordValidation = validationTrigger
+        .Select(_ => ValidatePasswordWithStrength())
+        .Replay(1)
+        .RefCount();
+    
+    passwordValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentPasswordStrength);
+    passwordValidation.Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
+        .ToPropertyEx(this, x => x.PasswordStrengthMessage);
+    
+    this.WhenAnyValue(x => x.CurrentPasswordLength)
+        .Select(_ => _hasPasswordBeenTouched)
+        .ToPropertyEx(this, x => x.HasPasswordBeenTouched);
 
-        this.WhenAnyValue(x => x.CurrentPasswordLength)
-            .Select(_ => _hasPasswordBeenTouched)
-            .ToPropertyEx(this, x => x.HasPasswordBeenTouched);
+    IObservable<string> passwordErrorStream = passwordValidation
+        .Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
+        .Replay(1)
+        .RefCount();
+    
+    passwordErrorStream.ToPropertyEx(this, x => x.PasswordError);
+    this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e))
+        .ToPropertyEx(this, x => x.HasPasswordError);
+    
+    IObservable<bool> isPasswordLogicallyValid = passwordValidation.Select(v => string.IsNullOrEmpty(v.Error));
+    
+    IObservable<System.Reactive.Unit> verifyLengthTrigger = this
+        .WhenAnyValue(x => x.CurrentVerifyPasswordLength)
+        .Select(_ => System.Reactive.Unit.Default);
+    
+    IObservable<System.Reactive.Unit> verifyValidationTrigger = verifyLengthTrigger
+        .Merge(languageTrigger)
+        .Merge(lengthTrigger);
+    
+    IObservable<bool> passwordsMatch = verifyValidationTrigger
+        .Select(_ => DoPasswordsMatch())
+        .Replay(1)
+        .RefCount();
+    
+    IObservable<string> verifyPasswordErrorStream = passwordsMatch
+        .Select(match => _hasVerifyPasswordBeenTouched && !match
+            ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"]
+            : string.Empty)
+        .Replay(1)
+        .RefCount();
 
-        IObservable<string> passwordErrorStream = passwordValidation
-            .Select(v => _hasPasswordBeenTouched ? FormatPasswordStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
-            .Replay(1)
-            .RefCount();
+    verifyPasswordErrorStream.ToPropertyEx(this, x => x.VerifyPasswordError);
+    this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e))
+        .ToPropertyEx(this, x => x.HasVerifyPasswordError);
 
-        passwordErrorStream.ToPropertyEx(this, x => x.PasswordError);
-        this.WhenAnyValue(x => x.PasswordError).Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasPasswordError);
-
-        IObservable<bool> isPasswordLogicallyValid = passwordValidation.Select(v => string.IsNullOrEmpty(v.Error));
-
-        IObservable<bool> passwordsMatch = this
-            .WhenAnyValue(x => x.CurrentPasswordLength, x => x.CurrentVerifyPasswordLength)
-            .Select(_ => DoPasswordsMatch())
-            .Replay(1)
-            .RefCount();
-
-        IObservable<string> verifyPasswordErrorStream = passwordsMatch
-            .Select(match => _hasVerifyPasswordBeenTouched && !match
-                ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"]
-                : string.Empty)
-            .Replay(1)
-            .RefCount();
-
-        verifyPasswordErrorStream.ToPropertyEx(this, x => x.VerifyPasswordError);
-        this.WhenAnyValue(x => x.VerifyPasswordError).Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasVerifyPasswordError);
-
-        return isPasswordLogicallyValid
-            .CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
-            .DistinctUntilChanged();
-    }
+    return isPasswordLogicallyValid
+        .CombineLatest(passwordsMatch, (isPassValid, areMatching) => isPassValid && areMatching)
+        .DistinctUntilChanged();
+}
 
     private (string? Error, string Recommendations, PasswordStrength Strength) ValidatePasswordWithStrength()
     {
@@ -254,13 +272,13 @@ public class PasswordConfirmationViewModel : Core.MVVM.ViewModelBase, IRoutableV
     {
         string strengthText = strength switch
         {
-            PasswordStrength.Invalid => "Invalid",
-            PasswordStrength.VeryWeak => "Very Weak",
-            PasswordStrength.Weak => "Weak",
-            PasswordStrength.Good => "Good",
-            PasswordStrength.Strong => "Strong",
-            PasswordStrength.VeryStrong => "Very Strong",
-            _ => "Invalid"
+            PasswordStrength.Invalid     => LocalizationService["ValidationErrors.PasswordStrength.Invalid"],
+            PasswordStrength.VeryWeak    => LocalizationService["ValidationErrors.PasswordStrength.VeryWeak"],
+            PasswordStrength.Weak        => LocalizationService["ValidationErrors.PasswordStrength.Weak"],
+            PasswordStrength.Good        => LocalizationService["ValidationErrors.PasswordStrength.Good"],
+            PasswordStrength.Strong      => LocalizationService["ValidationErrors.PasswordStrength.Strong"],
+            PasswordStrength.VeryStrong  => LocalizationService["ValidationErrors.PasswordStrength.VeryStrong"],
+            _                            => LocalizationService["ValidationErrors.PasswordStrength.Invalid"]
         };
 
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
