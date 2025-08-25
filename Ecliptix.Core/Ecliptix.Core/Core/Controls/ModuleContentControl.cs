@@ -119,6 +119,9 @@ public sealed class ModuleContentControl : ContentControl
                     StaticViewMapper.CreateView(
                         typeof(
                             Features.Authentication.ViewModels.Registration.MobileVerificationViewModel)),
+                Features.Authentication.ViewModels.Registration.VerifyOtpViewModel =>
+                    StaticViewMapper.CreateView(
+                        typeof(Features.Authentication.ViewModels.Registration.VerifyOtpViewModel)),
                 Features.Authentication.ViewModels.Registration.SecureKeyVerifierViewModel =>
                     StaticViewMapper.CreateView(
                         typeof(Features.Authentication.ViewModels.Registration.
