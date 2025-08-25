@@ -1,13 +1,17 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Network;
 using ReactiveUI;
+using Serilog;
 
 namespace Ecliptix.Core.Core.MVVM;
 
@@ -47,6 +51,13 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
         return connectId;
+    }
+
+    protected async Task<Result<uint, NetworkFailure>> EnsureStreamProtocolAsync(
+        PubKeyExchangeType streamType)
+    {
+        Log.Information("[VIEWMODEL] Ensuring protocol for stream type {Type}", streamType);
+        return await NetworkProvider.EnsureProtocolForTypeAsync(streamType);
     }
 
     protected byte[] ServerPublicKey() =>

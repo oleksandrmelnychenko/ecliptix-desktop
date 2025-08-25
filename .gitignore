@@ -28,9 +28,14 @@ riderModule.iml
 *.svd
 *.pdb
 
-# MCP servers
-.mcp/servers/node_modules/
-.mcp/servers/package-lock.json
+# MCP servers and Node.js
+.mcp/
+node_modules/
+package.json
+package-lock.json
+setup-mcp.sh
+test-mcp-security.sh
+claude_desktop_config.json
 
 # Local environment files
 .env

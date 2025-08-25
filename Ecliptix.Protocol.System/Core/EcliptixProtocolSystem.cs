@@ -14,21 +14,36 @@ using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys) : IDisposable
+public class EcliptixProtocolSystem : IDisposable
 {
     private readonly Lock _lock = new();
+    private readonly EcliptixSystemIdentityKeys _ecliptixSystemIdentityKeys;
 
     private readonly CircuitBreaker _circuitBreaker = new(
         failureThreshold: 10,
         timeout: TimeSpan.FromSeconds(60),
         successThresholdPercentage: 0.7);
 
-    private readonly AdaptiveRatchetManager _ratchetManager = new(RatchetConfig.Default);
+    private readonly AdaptiveRatchetManager _ratchetManager;
     private readonly ProtocolMetricsCollector _metricsCollector = new(TimeSpan.FromSeconds(30));
     private EcliptixProtocolConnection? _protocolConnection;
     private IProtocolEventHandler? _eventHandler;
 
-    public EcliptixSystemIdentityKeys GetIdentityKeys() => ecliptixSystemIdentityKeys;
+    public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
+    {
+        _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
+        _ratchetManager = new AdaptiveRatchetManager(RatchetConfig.Default);
+    }
+
+    public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
+    {
+        _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
+        _ratchetManager = new(customConfig);
+        Log.Information("[CLIENT-PROTOCOL] Initialized with custom config - DH interval: {Interval}",
+            customConfig.DhRatchetEveryNMessages);
+    }
+
+    public EcliptixSystemIdentityKeys GetIdentityKeys() => _ecliptixSystemIdentityKeys;
 
     public void SetEventHandler(IProtocolEventHandler? handler)
     {
@@ -77,9 +92,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         uint connectId,
         Protobuf.Protocol.PubKeyExchangeType exchangeType)
     {
-        ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
+        _ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
 
-        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult = ecliptixSystemIdentityKeys.CreatePublicBundle();
+        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult = _ecliptixSystemIdentityKeys.CreatePublicBundle();
         if (bundleResult.IsErr)
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
 
@@ -146,7 +161,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                         SecureByteStringInterop.SecureCopyWithCleanup(peerMessage.Payload, out byte[] payloadBytes);
                         try
                         {
-                            return Helpers.ParseFromBytes<Protobuf.Protocol.PublicKeyBundle>(payloadBytes);
+                            return Helpers.ParseFromBytes<PublicKeyBundle>(payloadBytes);
                         }
                         finally
                         {
@@ -158,7 +173,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (parseResult.IsErr)
                 return Result<Unit, EcliptixProtocolFailure>.Err(parseResult.UnwrapErr());
 
-            Protobuf.Protocol.PublicKeyBundle protobufBundle = parseResult.Unwrap();
+            PublicKeyBundle protobufBundle = parseResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult =
                 LocalPublicKeyBundle.FromProtobufExchange(protobufBundle);
@@ -178,7 +193,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     EcliptixProtocolFailure.Generic("Signed pre-key signature verification failed"));
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult =
-                ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
+                _ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
             if (secretResult.IsErr)
                 return Result<Unit, EcliptixProtocolFailure>.Err(secretResult.UnwrapErr());
 
@@ -328,14 +343,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             bool connectionIsInitiator = connection.IsInitiator();
             ad = connectionIsInitiator
-                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, _ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
             if (Log.IsEnabled(LogEventLevel.Debug))
                 Log.Debug("Protocol encryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
                           "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
                     connectionIsInitiator ? "Initiator" : "Responder",
                     messageKeyClone!.Index,
-                    Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
+                    Convert.ToHexString(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
                     Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
 
             Result<byte[], EcliptixProtocolFailure> encryptResult =
@@ -470,15 +485,15 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             bool isInitiator = connection.IsInitiator();
             ad = isInitiator
-                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, _ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
             if (Log.IsEnabled(LogEventLevel.Debug))
                 Log.Debug("Protocol decryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
                           "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
                     isInitiator ? "Initiator" : "Responder",
                     messageKeyClone!.Index,
-                    Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
+                    Convert.ToHexString(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
                     Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
 
             Result<byte[], EcliptixProtocolFailure> result = Decrypt(messageKeyClone!, cipherPayloadProto, ad,

@@ -19,6 +19,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
+using Serilog;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 
@@ -32,6 +33,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private string _remainingTime = "01:00";
     private string _verificationCode;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    
+    private uint? _streamConnectId;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -113,7 +116,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
 
-        this.WhenActivated(disposables => { OnViewLoaded().Subscribe().DisposeWith(disposables); });
+        this.WhenActivated(disposables => 
+        { 
+            OnViewLoaded().Subscribe().DisposeWith(disposables); 
+        });
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -130,6 +136,22 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private async Task InitiateVerification(ByteString phoneNumberIdentifier,
         InitiateVerificationRequest.Types.Type type)
     {
+        Result<uint, NetworkFailure> protocolResult = 
+            await EnsureStreamProtocolAsync(Protobuf.Protocol.PubKeyExchangeType.VerificationFlowStream);
+        
+        if (protocolResult.IsErr)
+        {
+            Log.Error("[VERIFICATION] Failed to establish stream protocol: {Error}", 
+                protocolResult.UnwrapErr());
+            ErrorMessage = "Failed to initialize verification stream";
+            return;
+        }
+        
+        uint streamConnectId = protocolResult.Unwrap();
+        _streamConnectId = streamConnectId; 
+        Log.Information("[VERIFICATION] Using stream connectId {ConnectId} for verification flow", 
+            streamConnectId);
+
         using CancellationTokenSource cancellationTokenSource = new();
 
         string? systemDeviceIdentifier = SystemDeviceIdentifier();
@@ -141,10 +163,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             Purpose = VerificationPurpose.Registration,
             Type = type
         };
-
-        uint connectId = ComputeConnectId();
         _ = await NetworkProvider.ExecuteReceiveStreamRequestAsync(
-            connectId,
+            streamConnectId,  
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(membershipVerificationRequest.ToByteString(),
                 span => span.ToArray()),
@@ -158,18 +178,22 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed)
                 {
+                    _ = Task.Run(async () => await CleanupStreamProtocolAsync(), cancellationTokenSource.Token);
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
                 {
+                    _ = Task.Run(async () => await CleanupStreamProtocolAsync(), cancellationTokenSource.Token);
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached)
                 {
+                    _ = Task.Run(async () => await CleanupStreamProtocolAsync(), cancellationTokenSource.Token);
                 }
 
                 if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
                 {
+                    _ = Task.Run(async () => await CleanupStreamProtocolAsync(), cancellationTokenSource.Token);
                 }
 
                 VerificationSessionIdentifier ??= Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
@@ -209,6 +233,9 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 {
                     Membership membership = verifyCodeReply.Membership;
                     await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+                    
+                    await CleanupStreamProtocolAsync();
+                    
                     NavToPasswordConfirmation.Execute().Subscribe();
                 }
                 else if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
@@ -228,11 +255,11 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             InitiateVerificationRequest.Types.Type.ResendOtp));
     }
 
-    private string FormatRemainingTime(ulong seconds)
+    private static string FormatRemainingTime(ulong seconds)
     {
         TimeSpan time = TimeSpan.FromSeconds(seconds);
-        string t = time.ToString(@"mm\:ss");
-        return t;
+        string formattedDataTimeString = time.ToString(@"mm\:ss");
+        return formattedDataTimeString;
     }
 
     public void ResetState()
@@ -241,5 +268,33 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         _isSent = false;
         this.RaisePropertyChanged(nameof(ErrorMessage));
         this.RaisePropertyChanged(nameof(IsSent));
+    }
+
+    private async Task CleanupStreamProtocolAsync()
+    {
+        if (_streamConnectId.HasValue)
+        {
+            Log.Information("[VERIFICATION] Cleaning up stream protocol with connectId {ConnectId}", _streamConnectId.Value);
+            
+            Result<ShieldUnit, NetworkFailure> cleanupResult = 
+                await NetworkProvider.CleanupStreamProtocolAsync(_streamConnectId.Value);
+            
+            if (cleanupResult.IsErr)
+            {
+                Log.Warning("[VERIFICATION] Failed to cleanup stream protocol: {Error}", cleanupResult.UnwrapErr());
+            }
+            
+            _streamConnectId = null;
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && _streamConnectId.HasValue)
+        {
+            _ = Task.Run(async () => await CleanupStreamProtocolAsync());
+        }
+        
+        base.Dispose(disposing);
     }
 }
