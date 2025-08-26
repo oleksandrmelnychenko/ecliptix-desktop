@@ -286,6 +286,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         try
         {
+            _view.IsVisible = true;
             _view.RenderTransform = new TranslateTransform();
             if (_appearAnimation == null) CreateAnimations();
             await _appearAnimation!.RunAsync(_view, token);
@@ -305,6 +306,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         {
             if (_disappearAnimation == null) CreateAnimations();
             await _disappearAnimation!.RunAsync(_view, token);
+            _view.IsVisible = false;
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
