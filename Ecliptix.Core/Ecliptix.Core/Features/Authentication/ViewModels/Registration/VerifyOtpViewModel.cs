@@ -43,7 +43,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
 
-    public ReactiveCommand<Unit, Unit> NavToPasswordConfirmation { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
 
     public new ViewModelActivator Activator { get; } = new();
 
@@ -101,9 +101,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         HostScreen = hostScreen;
 
-        NavToPasswordConfirmation = ReactiveCommand.Create(() =>
+        NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.ConfirmSecureKey);
+            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            return hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(
