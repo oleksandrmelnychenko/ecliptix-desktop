@@ -133,9 +133,12 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IObservable<bool> isKeyLogicallyValid = secureKeyValidation
             .Select(string.IsNullOrEmpty);
 
-        return isMobileLogicallyValid.CombineLatest(isKeyLogicallyValid,
-            (isMobileValid, isKeyValid) => isMobileValid && isKeyValid
-        ).DistinctUntilChanged();
+        IObservable<bool> isFormLogicallyValid = isMobileLogicallyValid
+            .CombineLatest(isKeyLogicallyValid, (isMobileValid, isKeyValid) => isMobileValid && isKeyValid)
+            .DistinctUntilChanged()
+            .Do(valid => Serilog.Log.Debug("✅ Form logically valid: {Valid}", valid));
+
+        return isFormLogicallyValid;
     }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
@@ -163,13 +166,16 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 observer.OnNext(outage);
                 return Task.CompletedTask;
             });
-        }).DistinctUntilChanged();
+        }).DistinctUntilChanged()
+        .Do(outage => Serilog.Log.Debug("🌐 Network outage status changed: {Outage}", outage));
+
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
         IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
-            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid)
+            .Do(canExecute => Serilog.Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));;
 
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () => 
