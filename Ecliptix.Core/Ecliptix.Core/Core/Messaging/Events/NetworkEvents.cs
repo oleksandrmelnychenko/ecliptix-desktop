@@ -11,7 +11,8 @@ public enum NetworkStatus
     RetriesExhausted,
     ServerShutdown,
     ConnectionRecovering,
-    ConnectionRestored
+    ConnectionRestored,
+    NoInternet
 }
 
 public sealed record NetworkStatusChangedEvent

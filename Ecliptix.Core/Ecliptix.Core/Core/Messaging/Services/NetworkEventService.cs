@@ -99,6 +99,16 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
 
         if (next is NetworkStatus.ServerShutdown or NetworkStatus.RetriesExhausted)
             return true;
+        
+        if (next == NetworkStatus.NoInternet)
+            return true;
+        
+        if (current == NetworkStatus.NoInternet && next is
+                NetworkStatus.DataCenterConnecting or
+                NetworkStatus.DataCenterConnected or
+                NetworkStatus.ConnectionRestored or
+                NetworkStatus.DataCenterDisconnected)
+            return true;
 
         return (current, next) switch
         {

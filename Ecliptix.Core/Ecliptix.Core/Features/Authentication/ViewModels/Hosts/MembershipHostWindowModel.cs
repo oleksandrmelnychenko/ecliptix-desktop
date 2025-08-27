@@ -164,8 +164,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             Log.Information("Network status changed to: {Status}", status);
 
             _ = _networkEventService.NotifyNetworkStatusAsync(status
-                ? NetworkStatus.DataCenterConnecting
-                : NetworkStatus.DataCenterDisconnected);
+                ? NetworkStatus.DataCenterConnected
+                : NetworkStatus.NoInternet);
         });
 
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
