@@ -42,9 +42,8 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    [ObservableAsProperty] public string? MobileNumberError { get; }
-
-    [ObservableAsProperty] public bool HasMobileNumberError { get; }
+    [Reactive] public string? MobileNumberError { get; set; }
+    [Reactive] public bool HasMobileNumberError { get; set; }
 
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
@@ -87,12 +86,11 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             .RefCount();
 
         mobileErrorStream
-            .ToPropertyEx(this, x => x.MobileNumberError)
-            .DisposeWith(_disposables);
-
-        this.WhenAnyValue(x => x.MobileNumberError)
-            .Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasMobileNumberError)
+            .Subscribe(error =>
+            {
+                MobileNumberError = error;
+                HasMobileNumberError = !string.IsNullOrEmpty(error);
+            })
             .DisposeWith(_disposables);
 
         return mobileValidation
@@ -181,6 +179,8 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
         NetworkErrorMessage = string.Empty;
+        HasMobileNumberError = false;
+        MobileNumberError = string.Empty;
     }
 
     public new void Dispose()

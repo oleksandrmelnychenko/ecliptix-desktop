@@ -191,6 +191,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             if (_navigationStack.Count > 0)
             {
+                if (_currentView is IResettable resettable)
+                {
+                    resettable.ResetState();
+                }
+                
                 IRoutableViewModel previousView = _navigationStack.Pop();
                 Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}", 
                     previousView.GetType().Name, _navigationStack.Count);
