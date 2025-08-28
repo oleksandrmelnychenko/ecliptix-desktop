@@ -86,7 +86,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     
     private IObservable<bool> SetupValidation()
     {
-        // --- Mobile number validation ---
         IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
             .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
             .Replay(1)
@@ -103,7 +102,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Replay(1)
             .RefCount();
 
-        // Instead of ToPropertyEx → assign directly
         mobileErrorStream
             .Subscribe(error => MobileNumberError = error)
             .DisposeWith(_disposables);
@@ -113,7 +111,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(flag => HasMobileNumberError = flag)
             .DisposeWith(_disposables);
 
-        // --- Secure key validation ---
         IObservable<string> secureKeyValidation = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => ValidateSecureKey())
             .Replay(1)
@@ -133,7 +130,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(flag => HasSecureKeyError = flag)
             .DisposeWith(_disposables);
 
-        // --- Server error handling ---
         _signInErrorSubject
             .Subscribe(err => ServerError = err)
             .DisposeWith(_disposables);
@@ -143,7 +139,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(flag => HasServerError = flag)
             .DisposeWith(_disposables);
 
-        // --- Form logical validity ---
         IObservable<bool> isMobileLogicallyValid = mobileValidation
             .Select(string.IsNullOrEmpty);
 
@@ -186,7 +181,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             });
         }).DistinctUntilChanged()
         .Do(outage => Serilog.Log.Debug("🌐 Network outage status changed: {Outage}", outage));
-
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
@@ -268,7 +262,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
@@ -318,8 +311,5 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         HasSecureKeyError = false;
         ServerError = string.Empty;
         HasServerError = false;
-        
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
     }
 }

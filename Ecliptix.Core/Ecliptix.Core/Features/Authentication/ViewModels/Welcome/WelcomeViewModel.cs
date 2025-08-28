@@ -15,14 +15,18 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
 public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IDisposable, IResettable
 {
+    private const string CreateAccountKey = "CreateAccount";
+    private const string SignInKey = "SignIn";
+    
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
-        new Dictionary<string, MembershipViewType>()
+        new Dictionary<string, MembershipViewType>
         {
-            ["CreateAccount"] = MembershipViewType.MobileVerification,
-            ["SignIn"] = MembershipViewType.SignIn
+            [CreateAccountKey] = MembershipViewType.MobileVerification,
+            [SignInKey] = MembershipViewType.SignIn
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
+    
     private bool _isDisposed;
 
     public string UrlPathSegment => "/welcome";
@@ -39,14 +43,14 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         NavToCreateAccountCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
-            MembershipViewType viewType = NavigationCache["CreateAccount"];
+            MembershipViewType viewType = NavigationCache[CreateAccountKey];
             return hostWindow.Navigate.Execute(viewType);
         });
 
         NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
-            MembershipViewType viewType = NavigationCache["SignIn"];
+            MembershipViewType viewType = NavigationCache[SignInKey];
             return hostWindow.Navigate.Execute(viewType);
         });
 
@@ -56,14 +60,12 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
     public void ResetState()
     {
-        if (_isDisposed) return;
-        // Welcome screen has no resettable state
+        
     }
 
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
@@ -71,8 +73,8 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         if (_isDisposed) return;
         if (disposing)
         {
-            NavToCreateAccountCommand?.Dispose();
-            NavToSignInCommand?.Dispose();
+            NavToCreateAccountCommand.Dispose();
+            NavToSignInCommand.Dispose();
             _disposables.Dispose();
         }
 

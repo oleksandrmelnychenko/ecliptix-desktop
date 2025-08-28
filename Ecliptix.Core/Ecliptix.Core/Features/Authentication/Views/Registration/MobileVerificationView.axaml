@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
@@ -106,7 +107,7 @@
         </StackPanel>
 
         <!-- Mobile Number Input -->
-        <controls:HintedTextBox
+        <coreControls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
             Watermark="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Watermark]}"

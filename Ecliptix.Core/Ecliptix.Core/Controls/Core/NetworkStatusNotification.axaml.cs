@@ -1,14 +1,11 @@
 using System;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 
-namespace Ecliptix.Core.Controls;
+namespace Ecliptix.Core.Controls.Core;
 
 public sealed partial class NetworkStatusNotification : ReactiveUserControl<NetworkStatusNotificationViewModel>
 {
@@ -96,7 +93,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         AvaloniaXamlLoader.Load(this);
     }
 
-    protected override void OnDataContextChanged(EventArgs e)
+    protected override void OnDataContextChanged(System.EventArgs e)
     {
         base.OnDataContextChanged(e);
 

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:registration="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
@@ -133,7 +134,7 @@
         </StackPanel>
 
         <!-- Verification Code Input -->
-        <controls:SegmentedTextBox Grid.Row="1"
+        <coreControls:SegmentedTextBox Grid.Row="1"
                                    SegmentCount="6"
                                    Height="60"
                                    FontSize="20"

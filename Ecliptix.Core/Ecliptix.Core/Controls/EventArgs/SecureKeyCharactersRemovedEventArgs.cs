@@ -1,6 +1,6 @@
 using Avalonia.Interactivity;
 
-namespace Ecliptix.Core.Controls;
+namespace Ecliptix.Core.Controls.EventArgs;
 
 public class SecureKeyCharactersRemovedEventArgs(RoutedEvent routedEvent, int index, int count)
     : RoutedEventArgs(routedEvent)

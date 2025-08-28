@@ -131,8 +131,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-
-
     public ApplicationInstanceSettings ApplicationInstanceSettings =>
         _applicationInstanceSettings.Value!;
 

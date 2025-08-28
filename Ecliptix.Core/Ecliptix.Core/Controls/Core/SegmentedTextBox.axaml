@@ -3,23 +3,37 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.SegmentedTextBox"
-             IsPointerInteractionEnabled="False"
-             >
+             x:Class="Ecliptix.Core.Controls.Core.SegmentedTextBox"
+             x:CompileBindings="True"
+             x:DataType="core:SegmentedTextBox"
+             IsPointerInteractionEnabled="False">
+    
+    <UserControl.Resources>
+        <x:Double x:Key="SegmentWidth">40</x:Double>
+        <x:Int32 x:Key="SegmentMaxLength">1</x:Int32>
+        <Thickness x:Key="SegmentMargin">4,0,4,0</Thickness>
+        <Thickness x:Key="SegmentBorderThickness">0</Thickness>
+        <Thickness x:Key="ActiveSegmentBorderThickness">1</Thickness>
+        <CornerRadius x:Key="SegmentCornerRadius">5</CornerRadius>
+        <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
+        <BoxShadows x:Key="ActiveSegmentShadow">0 0 10 4 #406a5acd, 0 0 0 0 #20000000</BoxShadows>
+        <x:Int32 x:Key="OverlayZIndex">1</x:Int32>
+    </UserControl.Resources>
     
      <UserControl.Styles>
         <Style Selector="TextBox.segment">
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="MaxLength" Value="1"/>
+            <Setter Property="Width" Value="{StaticResource SegmentWidth}"/>
+            <Setter Property="MaxLength" Value="{StaticResource SegmentMaxLength}"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="4,0,4,0"/>
-            <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=controls:SegmentedTextBox}}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Margin" Value="{StaticResource SegmentMargin}"/>
+            <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
+            <Setter Property="BorderThickness" Value="{StaticResource SegmentBorderThickness}"/>
+            <Setter Property="CornerRadius" Value="{StaticResource SegmentCornerRadius}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TransparentBrush}"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -46,15 +60,15 @@
             </Setter>
         </Style>
         <Style Selector="TextBox.segment.active">
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=controls:SegmentedTextBox}}"/>
+            <Setter Property="BorderThickness" Value="{StaticResource ActiveSegmentBorderThickness}"/>
+            <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            BoxShadow="0 0 10 4 #406a5acd, 0 0 0 0 #20000000"
+                            BoxShadow="{StaticResource ActiveSegmentShadow}"
                             ClipToBounds="False">
                         <TextPresenter x:Name="PART_TextPresenter"
                                        Text="{TemplateBinding Text}"
@@ -88,12 +102,11 @@
                     
                     />
         <Border x:Name="OverlayRectangle"
-                   Background="Transparent"
+                   Background="{StaticResource TransparentBrush}"
                    IsHitTestVisible="True"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"
-                   ZIndex="1"
-                
+                   ZIndex="{StaticResource OverlayZIndex}"
                    PointerPressed="OverlayRectangle_PointerPressed"
                    Tapped="OverlayRectangle_Tapped"/>
     </Grid>

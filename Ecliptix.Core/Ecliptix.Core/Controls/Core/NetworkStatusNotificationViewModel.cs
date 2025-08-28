@@ -11,15 +11,16 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
+using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
 using Serilog;
 using Unit = System.Reactive.Unit;
 
-namespace Ecliptix.Core.Controls;
+namespace Ecliptix.Core.Controls.Core;
 
 public enum NetworkConnectionState
 {
@@ -33,15 +34,25 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private readonly CompositeDisposable _disposables = new();
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
+    
+    private string? _cachedServerNotRespondingTitle;
+    private string? _cachedNoInternetTitle;
+    private string? _cachedServerNotRespondingDescription;
+    private string? _cachedNoInternetDescription;
 
     private NetworkStatusNotification? _view;
     private Border? _mainBorder;
 
-    private Animation? _appearAnimation;
-    private Animation? _disappearAnimation;
+    private static Animation? _sharedAppearAnimation;
+    private static Animation? _sharedDisappearAnimation;
+    
+    private Bitmap? _cachedNoInternetIcon;
+    private Bitmap? _cachedServerNotRespondingIcon;
+    
+    private TranslateTransform? _sharedTranslateTransform;
 
-    public TimeSpan AppearDuration { get; set; } = TimeSpan.FromMilliseconds(300);
-    public TimeSpan DisappearDuration { get; set; } = TimeSpan.FromMilliseconds(250);
+    public TimeSpan AppearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
+    public TimeSpan DisappearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
 
     private readonly ObservableAsPropertyHelper<bool> _isVisible;
     public bool IsVisible => _isVisible.Value;
@@ -80,13 +91,15 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     {
         LocalizationService = localizationService;
 
-        IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus.GetEvent<NetworkStatusChangedEvent>()
+        IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus
+            .GetEvent<NetworkStatusChangedEvent>()
             .DistinctUntilChanged(e => e.State)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Replay(1)
+            .Publish()
             .RefCount();
 
-        IObservable<ManualRetryRequestedEvent> manualRetryEvents = messageBus.GetEvent<ManualRetryRequestedEvent>()
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents = messageBus
+            .GetEvent<ManualRetryRequestedEvent>()
             .ObserveOn(RxApp.MainThreadScheduler);
 
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
@@ -104,48 +117,31 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<string> statusTextObservable = connectionStateObservable
             .Select(state => state switch
             {
-                NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Title"],
-                _ => LocalizationService["NetworkNotification.NoInternet.Title"],
+                NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingTitle(),
+                _ => GetCachedNoInternetTitle(),
             });
 
         IObservable<string> statusDescriptionObservable = connectionStateObservable
             .Select(state => state switch
             {
-                NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Description"],
-                _ => LocalizationService["NetworkNotification.NoInternet.Description"],
+                NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingDescription(),
+                _ => GetCachedNoInternetDescription(),
             });
 
         IObservable<Bitmap?> statusIconObservable = connectionStateObservable
-            .Select(state =>
-            {
-                var uriString = state switch
-                {
-                    NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/Icons/Network/ServerShutdownAmber30x30.png",
-                    _ => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
-                };
-                try
-                {
-                    var uri = new Uri(uriString, UriKind.Absolute);
-                    return new Bitmap(AssetLoader.Open(uri));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to load image asset from URI: {Uri}", uriString);
-                    return null;
-                }
-            });
+            .Select(LoadCachedBitmap);
 
         IObservable<bool> showRetryButtonObservable = Observable.Merge(
                 networkStatusEvents
                     .Where(evt => evt.State == NetworkStatus.RetriesExhausted)
-                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Showing retry button"))
+                    .Do(_ => LogRetryButtonShow())
                     .Select(_ => true),
                 manualRetryEvents
-                    .Do(_ => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)"))
+                    .Do(_ => LogRetryButtonManualHide())
                     .Select(_ => false),
                 networkStatusEvents
                     .Where(evt => evt.State is NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored)
-                    .Do(evt => Log.Debug("🔘 RETRY BUTTON: Hiding retry button (connection {Status})", evt.State))
+                    .Do(evt => LogRetryButtonConnectionHide(evt.State))
                     .Select(_ => false)
             )
             .StartWith(false);
@@ -154,7 +150,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Select(evt => evt.State switch
             {
                 NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => Observable.Return(true)
-                    .Delay(TimeSpan.FromMilliseconds(2000))
+                    .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AutoHideDelayMs))
                     .Select(_ => false),
                 NetworkStatus.RetriesExhausted or
                 NetworkStatus.DataCenterDisconnected or
@@ -166,13 +162,13 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Switch()
             .StartWith(false);
 
-        _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState, scheduler: RxApp.MainThreadScheduler);
-        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText, scheduler: RxApp.MainThreadScheduler);
-        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription, scheduler: RxApp.MainThreadScheduler);
-        _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource, scheduler: RxApp.MainThreadScheduler);
-        _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton, scheduler: RxApp.MainThreadScheduler);
-        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible, scheduler: RxApp.MainThreadScheduler);
-        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler);
+        _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
 
         RetryCommand = ReactiveCommand.CreateFromTask(
             async ct =>
@@ -192,13 +188,13 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 }
             },
             showRetryButtonObservable
-        );
+        ).DisposeWith(_disposables);
 
         networkStatusEvents
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(evt =>
             {
-                Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", evt.State);
+                LogNetworkEvent(evt.State);
                 HandleNetworkStatusVisualEffects(evt);
             })
             .DisposeWith(_disposables);
@@ -213,19 +209,40 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .DisposeWith(_disposables);
     }
 
+    private CancellationTokenSource? _visibilityOperationTokenSource;
+
     private async Task HandleVisibilityChangeAsync(bool visible)
     {
+        CancellationTokenSource? previousTokenSource = _visibilityOperationTokenSource;
+        CancellationTokenSource newTokenSource = new();
+        _visibilityOperationTokenSource = newTokenSource;
+
         try
         {
-            Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
+            previousTokenSource?.Cancel();
+            LogVisibilityChange(visible);
+            
             if (visible)
-                await ShowAsync(CancellationToken.None);
+                await ShowAsync(newTokenSource.Token);
             else
-                await HideAsync(CancellationToken.None);
+                await HideAsync(newTokenSource.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            LogOperationCancelled();
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error changing notification visibility");
+        }
+        finally
+        {
+            if (_visibilityOperationTokenSource == newTokenSource)
+            {
+                _visibilityOperationTokenSource = null;
+            }
+            newTokenSource.Dispose();
+            previousTokenSource?.Dispose();
         }
     }
 
@@ -249,7 +266,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     {
         if (_view == null) return;
 
-        _appearAnimation = new Animation
+        _sharedAppearAnimation ??= new Animation
         {
             Duration = AppearDuration,
             Easing = new QuadraticEaseOut(),
@@ -269,7 +286,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             }
         };
 
-        _disappearAnimation = new Animation
+        _sharedDisappearAnimation ??= new Animation
         {
             Duration = DisappearDuration,
             Easing = new QuadraticEaseIn(),
@@ -289,6 +306,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             }
         };
 
+        _sharedTranslateTransform ??= new TranslateTransform();
     }
 
     private async Task ShowAsync(CancellationToken token)
@@ -298,9 +316,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         try
         {
             _view.IsVisible = true;
-            _view.RenderTransform = new TranslateTransform();
-            if (_appearAnimation == null) CreateAnimations();
-            await _appearAnimation!.RunAsync(_view, token);
+            _view.RenderTransform = _sharedTranslateTransform;
+            if (_sharedAppearAnimation == null) CreateAnimations();
+            await _sharedAppearAnimation!.RunAsync(_view, token);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
@@ -315,8 +333,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         try
         {
-            if (_disappearAnimation == null) CreateAnimations();
-            await _disappearAnimation!.RunAsync(_view, token);
+            if (_sharedDisappearAnimation == null) CreateAnimations();
+            await _sharedDisappearAnimation!.RunAsync(_view, token);
             _view.IsVisible = false;
         }
         catch (OperationCanceledException) { }
@@ -326,9 +344,84 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         }
     }
 
+    private Bitmap? LoadCachedBitmap(NetworkConnectionState state)
+    {
+        try
+        {
+            return state switch
+            {
+                NetworkConnectionState.ServerNotResponding => _cachedServerNotRespondingIcon ??= LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
+                _ => _cachedNoInternetIcon ??= LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to load cached bitmap for state: {State}", state);
+            return null;
+        }
+    }
+
+    private static Bitmap LoadBitmapFromUri(string uriString)
+    {
+        Uri uri = new(uriString, UriKind.Absolute);
+        return new Bitmap(AssetLoader.Open(uri));
+    }
+
+    private string GetCachedServerNotRespondingTitle() => _cachedServerNotRespondingTitle ??= LocalizationService["NetworkNotification.ServerNotResponding.Title"];
+    
+    private string GetCachedNoInternetTitle() => _cachedNoInternetTitle ??= LocalizationService["NetworkNotification.NoInternet.Title"];
+    
+    private string GetCachedServerNotRespondingDescription() => _cachedServerNotRespondingDescription ??= LocalizationService["NetworkNotification.ServerNotResponding.Description"];
+    
+    private string GetCachedNoInternetDescription() => _cachedNoInternetDescription ??= LocalizationService["NetworkNotification.NoInternet.Description"];
+
+    private static void LogRetryButtonShow()
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🔘 RETRY BUTTON: Showing retry button");
+    }
+
+    private static void LogRetryButtonManualHide()
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)");
+    }
+
+    private static void LogRetryButtonConnectionHide(NetworkStatus status)
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🔘 RETRY BUTTON: Hiding retry button (connection {Status})", status);
+    }
+
+    private static void LogNetworkEvent(NetworkStatus status)
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", status);
+    }
+
+    private static void LogVisibilityChange(bool visible)
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
+    }
+
+    private static void LogOperationCancelled()
+    {
+        if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            Log.Debug("🪟 NOTIFICATION VISIBILITY: Operation was cancelled");
+    }
+
     public void Dispose()
     {
+        _visibilityOperationTokenSource?.Cancel();
+        _visibilityOperationTokenSource?.Dispose();
+        
         _disposables.Dispose();
         _statusUpdateSemaphore.Dispose();
+        
+        _cachedNoInternetIcon?.Dispose();
+        _cachedServerNotRespondingIcon?.Dispose();
+        _cachedNoInternetIcon = null;
+        _cachedServerNotRespondingIcon = null;
     }
 }

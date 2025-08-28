@@ -8,6 +8,7 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
