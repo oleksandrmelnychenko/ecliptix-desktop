@@ -19,6 +19,7 @@ using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -129,10 +130,18 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             HandleValidationResponseAsync
         );
 
-        if (result.IsOk && MobileNumberIdentifier != null)
+        if (result.IsOk)
         {
-            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, MobileNumberIdentifier, _applicationSecureStorageProvider);
-            ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
+            if (MobileNumberIdentifier != null)
+            {
+                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, MobileNumberIdentifier, _applicationSecureStorageProvider);
+                ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
+            }
+            else
+            {
+                Log.Debug("Returned result is ok but mobile number identifier is null");
+                Log.Debug("Result is "+ result.Unwrap());
+            }
         }
         else
         {
