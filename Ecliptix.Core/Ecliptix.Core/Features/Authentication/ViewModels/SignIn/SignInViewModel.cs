@@ -38,12 +38,12 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     [ObservableAsProperty] public bool IsBusy { get; }
     [ObservableAsProperty] public bool IsInNetworkOutage { get; }
 
-    [ObservableAsProperty] public string? MobileNumberError { get; private set; }
-    [ObservableAsProperty] public bool HasMobileNumberError { get; private set; }
-    [ObservableAsProperty] public string? SecureKeyError { get; private set; }
-    [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
-    [ObservableAsProperty] public string? ServerError { get; private set; }
-    [ObservableAsProperty] public bool HasServerError { get; private set; }
+    [Reactive] public string? MobileNumberError { get; set; }
+    [Reactive] public bool HasMobileNumberError { get; set; }
+    [Reactive] public string? SecureKeyError { get; set; }
+    [Reactive] public bool HasSecureKeyError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
@@ -82,9 +82,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _secureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
-
+    
+    
     private IObservable<bool> SetupValidation()
     {
+        // --- Mobile number validation ---
         IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
             .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
             .Replay(1)
@@ -101,11 +103,17 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Replay(1)
             .RefCount();
 
-        mobileErrorStream.ToPropertyEx(this, x => x.MobileNumberError);
+        // Instead of ToPropertyEx → assign directly
+        mobileErrorStream
+            .Subscribe(error => MobileNumberError = error)
+            .DisposeWith(_disposables);
+
         this.WhenAnyValue(x => x.MobileNumberError)
             .Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasMobileNumberError);
+            .Subscribe(flag => HasMobileNumberError = flag)
+            .DisposeWith(_disposables);
 
+        // --- Secure key validation ---
         IObservable<string> secureKeyValidation = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => ValidateSecureKey())
             .Replay(1)
@@ -116,17 +124,26 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Replay(1)
             .RefCount();
 
-        keyDisplayErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
-        _signInErrorSubject
-            .ToPropertyEx(this, x => x.ServerError);
-        this.WhenAnyValue(x => x.ServerError)
-            .Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasServerError);
+        keyDisplayErrorStream
+            .Subscribe(error => SecureKeyError = error)
+            .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.SecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasSecureKeyError);
+            .Subscribe(flag => HasSecureKeyError = flag)
+            .DisposeWith(_disposables);
 
+        // --- Server error handling ---
+        _signInErrorSubject
+            .Subscribe(err => ServerError = err)
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.ServerError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .Subscribe(flag => HasServerError = flag)
+            .DisposeWith(_disposables);
+
+        // --- Form logical validity ---
         IObservable<bool> isMobileLogicallyValid = mobileValidation
             .Select(string.IsNullOrEmpty);
 
@@ -140,6 +157,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         return isFormLogicallyValid;
     }
+
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
@@ -286,12 +304,21 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     {
         if (_isDisposed) return;
 
-        MobileNumber = string.Empty;
-        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
         _hasMobileNumberBeenTouched = false;
         _hasSecureKeyBeenTouched = false;
+        
+        MobileNumber = string.Empty;
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+        
         _signInErrorSubject.OnNext(string.Empty);
 
+        MobileNumberError = string.Empty;
+        HasMobileNumberError = false;
+        SecureKeyError = string.Empty;
+        HasSecureKeyError = false;
+        ServerError = string.Empty;
+        HasServerError = false;
+        
         GC.Collect();
         GC.WaitForPendingFinalizers();
     }

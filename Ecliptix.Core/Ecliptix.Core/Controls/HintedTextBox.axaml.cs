@@ -656,5 +656,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AttachedToVisualTree -= OnAttachedToVisualTree;
         _disposables.Dispose();
         _mainTextBox = null;
+        _originalErrorText = string.Empty;
+        ErrorText = string.Empty;
+        HasError = false;
+        _shadowText = string.Empty;
+        
     }
 }
