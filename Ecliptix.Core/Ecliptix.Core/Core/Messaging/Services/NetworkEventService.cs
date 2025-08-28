@@ -9,7 +9,10 @@ namespace Ecliptix.Core.Core.Messaging.Services;
 public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetworkEventService, IDisposable
 {
     private readonly ReaderWriterLockSlim _statusLock = new();
-    private NetworkStatus _currentStatus = NetworkStatus.DataCenterDisconnected;
+    
+    //TODO Temporal change so sign in can be executed, somewhere network status setter is misesed
+    // vitalik koliesnikov 28 08 2025 11 38
+    private NetworkStatus _currentStatus = NetworkStatus.DataCenterConnected;
     private int _retryCount;
     private bool _disposed;
 
