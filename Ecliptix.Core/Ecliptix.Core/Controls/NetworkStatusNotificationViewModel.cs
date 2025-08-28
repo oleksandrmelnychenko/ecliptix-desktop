@@ -95,6 +95,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
             {
+                NetworkStatus.NoInternet => NetworkConnectionState.NoInternet,
                 NetworkStatus.RetriesExhausted or
                 NetworkStatus.DataCenterDisconnected or
                 NetworkStatus.DataCenterConnecting or
@@ -107,14 +108,14 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Select(state => state switch
             {
                 NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Title"],
-                _ => LocalizationService["NetworkNotification.NoInternet.Title"]
+                NetworkConnectionState.NoInternet => LocalizationService["NetworkNotification.NoInternet.Title"]
             });
 
         IObservable<string> statusDescriptionObservable = connectionStateObservable
             .Select(state => state switch
             {
                 NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Description"],
-                _ => LocalizationService["NetworkNotification.NoInternet.Description"]
+                NetworkConnectionState.NoInternet => LocalizationService["NetworkNotification.NoInternet.Description"]
             });
 
         IObservable<Bitmap?> statusIconObservable = connectionStateObservable
@@ -123,7 +124,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 var uriString = state switch
                 {
                     NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/Icons/Network/ServerShutdownAmber30x30.png",
-                    _ => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
+                    NetworkConnectionState.NoInternet => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
                 };
                 try
                 {
@@ -161,6 +162,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 NetworkStatus.RetriesExhausted or
                 NetworkStatus.DataCenterDisconnected or
                 NetworkStatus.ServerShutdown => Observable.Return(true),
+                NetworkStatus.NoInternet => Observable.Return(true),
                 NetworkStatus.DataCenterConnecting => Observable.Empty<bool>(),
                 _ => Observable.Return(false)
             })
