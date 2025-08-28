@@ -19,6 +19,7 @@ using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using ShieldUnit = Ecliptix.Utilities.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Core.Services.Abstractions.Authentication;
 using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -29,6 +30,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IRegistrationService _registrationService;
     
     [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
@@ -37,9 +39,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     public IScreen HostScreen { get; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
-
-    private ByteString? MobileNumberIdentifier { get; set; }
-
+    
     [ObservableAsProperty] public bool IsBusy { get; }
 
     [Reactive] public string? MobileNumberError { get; set; }
@@ -52,8 +52,10 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEventService, networkProvider, localizationService)
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        IRegistrationService registrationService) : base(systemEventService, networkProvider, localizationService)
     {
+        _registrationService = registrationService;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         IObservable<bool> isFormLogicallyValid = SetupValidation();
@@ -116,23 +118,21 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         NetworkErrorMessage = string.Empty;
 
         string systemDeviceIdentifier = SystemDeviceIdentifier();
-
-        ValidatePhoneNumberRequest request = CreateValidateRequest(systemDeviceIdentifier);
         uint connectId = ComputeConnectId();
-
-        Result<ShieldUnit, NetworkFailure> result = await NetworkProvider.ExecuteUnaryRequestAsync(
-            connectId,
-            RpcServiceType.ValidatePhoneNumber,
-            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(),
-                span => span.ToArray()),
-            HandleValidationResponseAsync
-        );
-
+        
+        Result<ByteString, string> result = 
+            await _registrationService.ValidatePhoneNumberAsync(
+                MobileNumber, 
+                systemDeviceIdentifier,
+                connectId);
+        
         if (result.IsOk)
         {
-            if (MobileNumberIdentifier != null)
+            ByteString? mobileNumberIdentifier = result.Unwrap();
+            
+            if (mobileNumberIdentifier != null)
             {
-                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, MobileNumberIdentifier, _applicationSecureStorageProvider);
+                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, mobileNumberIdentifier, _applicationSecureStorageProvider);
                 ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
             }
             else
@@ -143,7 +143,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         }
         else
         {
-            NetworkErrorMessage = result.UnwrapErr().Message;
+            NetworkErrorMessage = result.UnwrapErr();
         }
 
         return Unit.Default;
@@ -157,23 +157,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
         };
     }
-
-    private Task<Result<ShieldUnit, NetworkFailure>> HandleValidationResponseAsync(byte[] payload)
-    {
-        ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
-        if (response.Result == VerificationResult.InvalidPhone)
-        {
-            NetworkErrorMessage = response.Message;
-            return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType(LocalizationService["ValidationErrors.Mobile.InvalidFormat"])));
-        }
-
-        MobileNumberIdentifier = response.MobileNumberIdentifier;
-
-        NetworkErrorMessage = string.Empty;
-        return Task.FromResult(Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value));
-    }
-
+    
     public void ResetState()
     {
         MobileNumber = string.Empty;

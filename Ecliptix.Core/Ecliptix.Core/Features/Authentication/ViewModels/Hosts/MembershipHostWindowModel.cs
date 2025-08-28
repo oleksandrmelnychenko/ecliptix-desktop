@@ -41,6 +41,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
+    private readonly IRegistrationService _registrationService;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
 
@@ -48,19 +49,19 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
-        IRoutableViewModel>> ViewModelFactories =
+        IRegistrationService, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
-            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>>
+            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IRegistrationService, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
                 new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, netEvents, netProvider, loc, auth, storage, host) => new WelcomeViewModel(host, sys, loc, netProvider),
-            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
-                new MobileVerificationViewModel(sys, netProvider, loc, host, storage),
-            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg) => new WelcomeViewModel(host, sys, loc, netProvider),
+            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
+                new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg),
+            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
                 new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage),
-            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host) =>
+            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
                 new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
 
@@ -138,7 +139,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService,
-        NetworkStatusNotificationViewModel networkStatusNotification)
+        NetworkStatusNotificationViewModel networkStatusNotification,
+        IRegistrationService registrationService)
         : base(systemEventService, networkProvider, localizationService)
     {
         _networkEventService = networkEventService;
@@ -147,6 +149,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _systemEventService = systemEventService;
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
+        _registrationService = registrationService;
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
@@ -296,13 +299,13 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         if (!ViewModelFactories.TryGetValue(viewType,
                 out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService, IAuthenticationService,
-                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IRoutableViewModel>? factory))
+                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IRegistrationService, IRoutableViewModel>? factory))
         {
             throw new ArgumentOutOfRangeException(nameof(viewType));
         }
 
         IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider, LocalizationService,
-            _authenticationService, _applicationSecureStorageProvider, this);
+            _authenticationService, _applicationSecureStorageProvider, this, _registrationService);
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;
