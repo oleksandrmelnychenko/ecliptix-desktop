@@ -7,7 +7,6 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -36,7 +35,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
 
     private NetworkStatusNotification? _view;
-    private Ellipse? _statusEllipse;
     private Border? _mainBorder;
 
     private Animation? _appearAnimation;
@@ -71,7 +69,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     public void SetView(NetworkStatusNotification view)
     {
         _view = view;
-        _statusEllipse = view.FindControl<Ellipse>("StatusDot");
         _mainBorder = view.FindControl<Border>("MainBorder");
         CreateAnimations();
     }
@@ -108,14 +105,14 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Select(state => state switch
             {
                 NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Title"],
-                NetworkConnectionState.NoInternet => LocalizationService["NetworkNotification.NoInternet.Title"]
+                _ => LocalizationService["NetworkNotification.NoInternet.Title"],
             });
 
         IObservable<string> statusDescriptionObservable = connectionStateObservable
             .Select(state => state switch
             {
                 NetworkConnectionState.ServerNotResponding => LocalizationService["NetworkNotification.ServerNotResponding.Description"],
-                NetworkConnectionState.NoInternet => LocalizationService["NetworkNotification.NoInternet.Description"]
+                _ => LocalizationService["NetworkNotification.NoInternet.Description"],
             });
 
         IObservable<Bitmap?> statusIconObservable = connectionStateObservable
@@ -124,7 +121,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 var uriString = state switch
                 {
                     NetworkConnectionState.ServerNotResponding => "avares://Ecliptix.Core/Assets/Icons/Network/ServerShutdownAmber30x30.png",
-                    NetworkConnectionState.NoInternet => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
+                    _ => "avares://Ecliptix.Core/Assets/Icons/Network/wifi.png"
                 };
                 try
                 {
@@ -209,15 +206,27 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         isVisibleObservable
             .DistinctUntilChanged()
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(async visible =>
+            .Subscribe(visible =>
             {
-                Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
-                if (visible)
-                    await ShowAsync(CancellationToken.None);
-                else
-                    await HideAsync(CancellationToken.None);
+                HandleVisibilityChangeAsync(visible).ConfigureAwait(false);
             })
             .DisposeWith(_disposables);
+    }
+
+    private async Task HandleVisibilityChangeAsync(bool visible)
+    {
+        try
+        {
+            Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
+            if (visible)
+                await ShowAsync(CancellationToken.None);
+            else
+                await HideAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error changing notification visibility");
+        }
     }
 
     private void HandleNetworkStatusVisualEffects(NetworkStatusChangedEvent evt)
