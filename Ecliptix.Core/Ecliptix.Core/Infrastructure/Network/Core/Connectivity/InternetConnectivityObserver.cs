@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
@@ -18,18 +19,38 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
     private readonly IObservable<bool> _connectivityObservable;
     private readonly CompositeDisposable _disposables = new();
 
+    private readonly BehaviorSubject<TimeSpan> _pollingIntervalSubject;
+    
     public InternetConnectivityObserver(
         HttpClient httpClient,
         IScheduler uiScheduler,
         InternetConnectivityObserverOptions currentOptions)
     {
         _httpClient = httpClient;
-
-        _connectivityObservable = Observable
-            .Timer(TimeSpan.Zero, currentOptions.PollingInterval, Scheduler.Default)
+        _pollingIntervalSubject = new BehaviorSubject<TimeSpan>(currentOptions.PollingInterval);
+        
+        _connectivityObservable = _pollingIntervalSubject
+            .DistinctUntilChanged()
+            .Select(interval =>
+                    Observable.Timer(TimeSpan.Zero, interval, Scheduler.Default) // fresh timer
+            )
+            .Switch()
             .SelectMany(_ => ProbeConnectivityAsync(currentOptions, CancellationToken.None))
             .Scan((count: 0, state: true),
                 (acc, isSuccess) => acc.state == isSuccess ? (acc.count + 1, acc.state) : (1, isSuccess))
+            .Do(acc =>
+            {
+                if (!acc.state)
+                {
+                    Log.Information("Polling interval changed to 1 second due to connectivity failure");
+                    _pollingIntervalSubject.OnNext(TimeSpan.FromSeconds(1));
+                }
+                else
+                {
+                    Log.Information("Polling interval restored to {Interval} due to connectivity success", currentOptions.PollingInterval);
+                    _pollingIntervalSubject.OnNext(currentOptions.PollingInterval);
+                }
+            })
             .Where(acc =>
             {
                 (int count, bool state) = acc;
@@ -42,6 +63,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
             .ObserveOn(uiScheduler)
             .Replay(1)
             .RefCount();
+
 
         _connectivityObservable.Subscribe().DisposeWith(_disposables);
     }
@@ -60,10 +82,13 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
                 using HttpRequestMessage request = new(HttpMethod.Get, url);
                 HttpResponseMessage response = await _httpClient.SendAsync(request, linkedCts.Token);
 
-                if (!response.IsSuccessStatusCode) continue;
-
-                Log.Debug("Connectivity probe succeeded for URL: {Url}", url);
-                return true;
+                if (response.IsSuccessStatusCode)
+                {
+                    Log.Debug("Connectivity probe succeeded for URL: {Url}", url);
+                    return true;
+                }
+                
+                Log.Warning("Connectivity probe failed (status code) for URL: {Url}", url);
             }
             catch (OperationCanceledException)
             {
