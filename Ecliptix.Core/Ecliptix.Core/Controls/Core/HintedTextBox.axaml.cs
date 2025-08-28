@@ -1,0 +1,901 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using Ecliptix.Core.Controls.Constants;
+using Ecliptix.Core.Controls.EventArgs;
+using Ecliptix.Core.Services.Membership;
+using ReactiveUI;
+
+namespace Ecliptix.Core.Controls.Core;
+
+public sealed partial class HintedTextBox : UserControl, IDisposable
+{
+    public static readonly StyledProperty<bool> IsPasswordModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyMode));
+
+    public static readonly StyledProperty<char> PasswordMaskCharProperty =
+        AvaloniaProperty.Register<HintedTextBox, char>(nameof(SecureKeyMaskChar),
+            HintedTextBoxConstants.DefaultMaskChar);
+
+    public static readonly StyledProperty<string> TextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Text), string.Empty,
+            defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
+
+    public static readonly StyledProperty<string> WatermarkProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Watermark), string.Empty);
+
+    public static readonly StyledProperty<string> HintProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(Hint), string.Empty);
+
+    public static readonly StyledProperty<IBrush> FocusBorderBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(FocusBorderBrush), new SolidColorBrush(Color.Parse(HintedTextBoxConstants.FocusColorHex)));
+
+    public static readonly StyledProperty<IBrush> TextForegroundProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(TextForeground), new SolidColorBrush(Colors.Black));
+
+    public static readonly StyledProperty<IBrush> HintForegroundProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(HintForeground), new SolidColorBrush(Colors.Gray));
+
+    public static readonly StyledProperty<DrawingImage?> IconRegularSourceProperty =
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconRegularSource));
+
+    public static readonly StyledProperty<DrawingImage?> IconErrorSourceProperty =
+        AvaloniaProperty.Register<HintedTextBox, DrawingImage?>(nameof(IconErrorSource));
+
+    public static readonly StyledProperty<string> ErrorTextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(ErrorText), string.Empty);
+
+    public static readonly StyledProperty<double> EllipseOpacityProperty =
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(EllipseOpacity));
+
+    public static readonly StyledProperty<bool> HasErrorProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasError));
+
+    public static readonly StyledProperty<IBrush> MainBorderBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(MainBorderBrush), new SolidColorBrush(Colors.LightGray));
+
+    public static readonly StyledProperty<TextWrapping> TextWrappingProperty =
+        AvaloniaProperty.Register<HintedTextBox, TextWrapping>(nameof(TextWrapping));
+
+    public static readonly StyledProperty<int> MaxLengthProperty =
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
+
+    public static readonly StyledProperty<int> RemainingCharactersProperty =
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(RemainingCharacters), int.MaxValue);
+
+    public static readonly StyledProperty<bool> ShowCharacterCounterProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(ShowCharacterCounter));
+
+    public static readonly StyledProperty<bool> IsNumericOnlyProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsNumericOnly));
+
+    public new static readonly StyledProperty<IBrush> BackgroundProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(
+            nameof(Background), new SolidColorBrush(Colors.White));
+
+    public new static readonly StyledProperty<double> FontSizeProperty =
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(FontSize), HintedTextBoxConstants.DefaultFontSize);
+
+    public static readonly StyledProperty<double> WatermarkFontSizeProperty =
+        AvaloniaProperty.Register<HintedTextBox, double>(nameof(WatermarkFontSize),
+            HintedTextBoxConstants.DefaultWatermarkFontSize);
+
+    public new static readonly StyledProperty<FontWeight> FontWeightProperty =
+        AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
+
+    public static readonly StyledProperty<bool> IsPasswordStrengthModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordStrengthMode));
+
+    public static readonly StyledProperty<PasswordStrength> PasswordStrengthProperty =
+        AvaloniaProperty.Register<HintedTextBox, PasswordStrength>(nameof(PasswordStrength), PasswordStrength.Invalid);
+
+    public static readonly StyledProperty<string> PasswordStrengthTextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(PasswordStrengthText), string.Empty);
+
+    public static readonly StyledProperty<IBrush> PasswordStrengthTextBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthTextBrush),
+            new SolidColorBrush(Colors.Gray));
+
+    public static readonly StyledProperty<IBrush> PasswordStrengthIconBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthIconBrush),
+            new SolidColorBrush(Colors.Gray));
+
+    public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
+        RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
+            RoutingStrategies.Bubble);
+
+    public static readonly RoutedEvent<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemovedEvent =
+        RoutedEvent.Register<HintedTextBox, SecureKeyCharactersRemovedEventArgs>(nameof(SecureKeyCharactersRemoved),
+            RoutingStrategies.Bubble);
+
+    public event EventHandler<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAdded
+    {
+        add => AddHandler(SecureKeyCharactersAddedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersAddedEvent, value);
+    }
+
+    public event EventHandler<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemoved
+    {
+        add => AddHandler(SecureKeyCharactersRemovedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
+    }
+
+    public bool IsSecureKeyMode
+    {
+        get => GetValue(IsPasswordModeProperty);
+        set
+        {
+            bool oldValue = GetValue(IsPasswordModeProperty);
+            SetValue(IsPasswordModeProperty, value);
+            if (oldValue != value)
+            {
+                OnIsSecureKeyModeChanged(value);
+            }
+        }
+    }
+
+    public char SecureKeyMaskChar
+    {
+        get => GetValue(PasswordMaskCharProperty);
+        set => SetValue(PasswordMaskCharProperty, value);
+    }
+
+    public string Text
+    {
+        get => GetValue(TextProperty);
+        set => SetValue(TextProperty, value);
+    }
+
+    public string Watermark
+    {
+        get => GetValue(WatermarkProperty);
+        set => SetValue(WatermarkProperty, value);
+    }
+
+    public string Hint
+    {
+        get => GetValue(HintProperty);
+        set => SetValue(HintProperty, value);
+    }
+
+    public IBrush FocusBorderBrush
+    {
+        get => GetValue(FocusBorderBrushProperty);
+        set => SetValue(FocusBorderBrushProperty, value);
+    }
+
+    public IBrush TextForeground
+    {
+        get => GetValue(TextForegroundProperty);
+        set => SetValue(TextForegroundProperty, value);
+    }
+
+    public IBrush HintForeground
+    {
+        get => GetValue(HintForegroundProperty);
+        set => SetValue(HintForegroundProperty, value);
+    }
+
+    public DrawingImage? IconRegularSource
+    {
+        get => GetValue(IconRegularSourceProperty);
+        set => SetValue(IconRegularSourceProperty, value);
+    }
+
+    public DrawingImage? IconErrorSource
+    {
+        get => GetValue(IconErrorSourceProperty);
+        set => SetValue(IconErrorSourceProperty, value);
+    }
+
+    public string ErrorText
+    {
+        get => GetValue(ErrorTextProperty);
+        private set
+        {
+            _originalErrorText = value;
+            SetValue(ErrorTextProperty, value);
+        }
+    }
+
+    public double EllipseOpacity
+    {
+        get => GetValue(EllipseOpacityProperty);
+        private set => SetValue(EllipseOpacityProperty, value);
+    }
+
+    public bool HasError
+    {
+        get => GetValue(HasErrorProperty);
+        private set => SetValue(HasErrorProperty, value);
+    }
+
+    public IBrush MainBorderBrush
+    {
+        get => GetValue(MainBorderBrushProperty);
+        set => SetValue(MainBorderBrushProperty, value);
+    }
+
+    public TextWrapping TextWrapping
+    {
+        get => GetValue(TextWrappingProperty);
+        set => SetValue(TextWrappingProperty, value);
+    }
+
+    public int MaxLength
+    {
+        get => GetValue(MaxLengthProperty);
+        set => SetValue(MaxLengthProperty, value);
+    }
+
+    public int RemainingCharacters
+    {
+        get => GetValue(RemainingCharactersProperty);
+        private set => SetValue(RemainingCharactersProperty, value);
+    }
+
+    public bool ShowCharacterCounter
+    {
+        get => GetValue(ShowCharacterCounterProperty);
+        set => SetValue(ShowCharacterCounterProperty, value);
+    }
+
+    public bool IsNumericOnly
+    {
+        get => GetValue(IsNumericOnlyProperty);
+        set => SetValue(IsNumericOnlyProperty, value);
+    }
+
+    public new IBrush Background
+    {
+        get => GetValue(BackgroundProperty);
+        set => SetValue(BackgroundProperty, value);
+    }
+
+    public new double FontSize
+    {
+        get => GetValue(FontSizeProperty);
+        set => SetValue(FontSizeProperty, value);
+    }
+
+    public double WatermarkFontSize
+    {
+        get => GetValue(WatermarkFontSizeProperty);
+        set => SetValue(WatermarkFontSizeProperty, value);
+    }
+
+    public new FontWeight FontWeight
+    {
+        get => GetValue(FontWeightProperty);
+        set => SetValue(FontWeightProperty, value);
+    }
+
+    public bool IsPasswordStrengthMode
+    {
+        get => GetValue(IsPasswordStrengthModeProperty);
+        set => SetValue(IsPasswordStrengthModeProperty, value);
+    }
+
+    public PasswordStrength PasswordStrength
+    {
+        get => GetValue(PasswordStrengthProperty);
+        set => SetValue(PasswordStrengthProperty, value);
+    }
+
+    public string PasswordStrengthText
+    {
+        get => GetValue(PasswordStrengthTextProperty);
+        set => SetValue(PasswordStrengthTextProperty, value);
+    }
+
+    public IBrush PasswordStrengthTextBrush
+    {
+        get => GetValue(PasswordStrengthTextBrushProperty);
+        set => SetValue(PasswordStrengthTextBrushProperty, value);
+    }
+
+    public IBrush PasswordStrengthIconBrush
+    {
+        get => GetValue(PasswordStrengthIconBrushProperty);
+        set => SetValue(PasswordStrengthIconBrushProperty, value);
+    }
+
+    private readonly CompositeDisposable _disposables = new();
+    private TextBox? _mainTextBox;
+    private TextBlock? _secureKeyMaskOverlay;
+    private Border? _focusBorder;
+    private Border? _mainBorder;
+    private Border? _shadowBorder;
+    private bool _isUpdatingFromCode;
+    private bool _isDisposed;
+    private bool _isControlInitialized;
+    private string _originalErrorText = string.Empty;
+
+    private static readonly Dictionary<char, string[]> MaskStringCache = new();
+    private const int MaxCachedMaskLength = HintedTextBoxConstants.MaxCachedMaskLength;
+
+    private static readonly Dictionary<string, SolidColorBrush> BrushCache = new();
+    private static readonly Dictionary<string, Color> ColorCache = new();
+    private static readonly Dictionary<string, BoxShadows> ResourceCache = new();
+
+    private DispatcherTimer? _inputDebounceTimer;
+    private const int InputDebounceDelayMs = HintedTextBoxConstants.InputDebounceDelayMs;
+
+    private bool _lastIsFocused;
+    private bool _lastHasError;
+    private PasswordStrength _lastPasswordStrength = PasswordStrength.Invalid;
+    private bool _lastIsPasswordStrengthMode;
+
+    private string _lastProcessedText = string.Empty;
+    private IDisposable? _currentTypingAnimation;
+
+    public HintedTextBox()
+    {
+        InitializeComponent();
+        AttachedToVisualTree += OnAttachedToVisualTree;
+    }
+
+    public void SyncSecureKeyState(int newPasswordLength)
+    {
+        if (_mainTextBox == null) return;
+
+        string maskText = newPasswordLength > 0
+            ? GetCachedMaskString(SecureKeyMaskChar, newPasswordLength)
+            : string.Empty;
+        UpdateTextBox(maskText, _mainTextBox.CaretIndex);
+        UpdateRemainingCharacters();
+    }
+
+    private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (_isControlInitialized || _isDisposed) return;
+        Initialize();
+    }
+
+    private void Initialize()
+    {
+        if (_isControlInitialized) return;
+
+        FindControls();
+        if (_mainTextBox == null) return;
+
+        _mainTextBox.TextChanged += OnTextChanged;
+        _mainTextBox.GotFocus += OnGotFocus;
+        _mainTextBox.LostFocus += OnLostFocus;
+        _disposables.Add(Disposable.Create(UnsubscribeTextBoxEvents));
+
+        SetupReactiveBindings();
+        UpdateBorderState();
+        _isControlInitialized = true;
+    }
+
+    private void OnTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+
+        if (IsSecureKeyMode)
+        {
+            ProcessSecureKeyChange();
+        }
+        else
+        {
+            DebouncedProcessTextChange();
+        }
+    }
+
+    private void DebouncedProcessTextChange()
+    {
+        if (_inputDebounceTimer != null)
+        {
+            _inputDebounceTimer.Stop();
+        }
+        else
+        {
+            _inputDebounceTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(InputDebounceDelayMs)
+            };
+            _inputDebounceTimer.Tick += OnDebounceTimerTick;
+        }
+
+        _inputDebounceTimer.Start();
+    }
+
+    private void OnDebounceTimerTick(object? sender, System.EventArgs e)
+    {
+        try
+        {
+            _inputDebounceTimer?.Stop();
+
+            if (!_isDisposed)
+            {
+                ProcessTextChange();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in OnDebounceTimerTick: {ex.Message}");
+        }
+    }
+
+    private void ProcessSecureKeyChange()
+    {
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+
+        string currentText = _mainTextBox.Text ?? string.Empty;
+
+        if (currentText.Length > _lastProcessedText.Length)
+        {
+            int addedCount = currentText.Length - _lastProcessedText.Length;
+            int insertPos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex - addedCount);
+            string addedChars = currentText.Substring(insertPos, Math.Min(addedCount, currentText.Length - insertPos));
+
+            RaiseEvent(new SecureKeyCharactersAddedEventArgs(SecureKeyCharactersAddedEvent, insertPos, addedChars));
+            TriggerTypingAnimation();
+        }
+        else if (currentText.Length < _lastProcessedText.Length)
+        {
+            int removedCount = _lastProcessedText.Length - currentText.Length;
+            int removePos = _mainTextBox.CaretIndex;
+
+            RaiseEvent(
+                new SecureKeyCharactersRemovedEventArgs(SecureKeyCharactersRemovedEvent, removePos, removedCount));
+        }
+
+        _lastProcessedText = currentText;
+        UpdateRemainingCharacters();
+    }
+
+    private void ProcessTextChange()
+    {
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+        ProcessStandardChange();
+    }
+
+    private void ProcessStandardChange()
+    {
+        string input = _mainTextBox!.Text ?? string.Empty;
+
+        if (IsNumericOnly)
+        {
+            string filtered = string.Concat(input.Where(char.IsDigit));
+            if (input != filtered)
+            {
+                int caret = _mainTextBox.CaretIndex - (input.Length - filtered.Length);
+                UpdateTextBox(filtered, caret);
+                return;
+            }
+        }
+
+        Text = input;
+        UpdateRemainingCharacters();
+
+        if (!IsSecureKeyMode && input.Length > (Text?.Length ?? HintedTextBoxConstants.InitialCaretIndex) -
+            HintedTextBoxConstants.TypingAnimationThreshold)
+        {
+            TriggerTypingAnimation();
+        }
+    }
+
+    private void UpdateTextBox(string text, int caretIndex)
+    {
+        if (_mainTextBox == null) return;
+
+        text ??= string.Empty;
+        _isUpdatingFromCode = true;
+        _mainTextBox.Text = text;
+        _mainTextBox.CaretIndex = Math.Clamp(caretIndex, HintedTextBoxConstants.InitialCaretIndex, text.Length);
+        _isUpdatingFromCode = false;
+    }
+
+    private void UpdateBorderState()
+    {
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null) return;
+
+        bool isFocused = _mainTextBox.IsFocused;
+        bool currentHasError = HasError;
+        PasswordStrength currentPasswordStrength = PasswordStrength;
+        bool currentIsPasswordStrengthMode = IsPasswordStrengthMode;
+
+        if (isFocused == _lastIsFocused &&
+            currentHasError == _lastHasError &&
+            currentPasswordStrength == _lastPasswordStrength &&
+            currentIsPasswordStrengthMode == _lastIsPasswordStrengthMode)
+        {
+            return;
+        }
+
+        _lastIsFocused = isFocused;
+        _lastHasError = currentHasError;
+        _lastPasswordStrength = currentPasswordStrength;
+        _lastIsPasswordStrengthMode = currentIsPasswordStrengthMode;
+
+        if (currentIsPasswordStrengthMode)
+        {
+            (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(currentPasswordStrength);
+
+            _focusBorder.BorderBrush = GetCachedBrush(borderColor);
+            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
+
+            PasswordStrengthIconBrush = GetCachedBrush(iconColor);
+            PasswordStrengthTextBrush = GetCachedBrush(iconColor);
+        }
+        else if (currentHasError)
+        {
+            _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ErrorColorHex));
+            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ErrorShadowKey);
+        }
+        else if (isFocused)
+        {
+            _focusBorder.BorderBrush = FocusBorderBrush;
+            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FocusShadowKey);
+        }
+        else
+        {
+            _focusBorder.Opacity = HintedTextBoxConstants.ZeroOpacity;
+            _mainBorder.BorderBrush = MainBorderBrush;
+            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DefaultShadowKey);
+        }
+    }
+
+    private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(
+        PasswordStrength strength)
+    {
+        return strength switch
+        {
+            PasswordStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
+                HintedTextBoxConstants.InvalidStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex)),
+            PasswordStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
+                HintedTextBoxConstants.VeryWeakStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex)),
+            PasswordStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
+                HintedTextBoxConstants.WeakStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex)),
+            PasswordStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
+                HintedTextBoxConstants.GoodStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex)),
+            PasswordStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
+                HintedTextBoxConstants.StrongStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex)),
+            PasswordStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
+                HintedTextBoxConstants.VeryStrongStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex)),
+            _ => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
+                HintedTextBoxConstants.InvalidStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex))
+        };
+    }
+
+    private void UnsubscribeTextBoxEvents()
+    {
+        if (_mainTextBox == null) return;
+        _mainTextBox.TextChanged -= OnTextChanged;
+        _mainTextBox.GotFocus -= OnGotFocus;
+        _mainTextBox.LostFocus -= OnLostFocus;
+    }
+
+    private void FindControls()
+    {
+        _mainTextBox = this.FindControl<TextBox>(HintedTextBoxConstants.MainTextBoxName);
+        _focusBorder = this.FindControl<Border>(HintedTextBoxConstants.FocusBorderName);
+        _mainBorder = this.FindControl<Border>(HintedTextBoxConstants.MainBorderName);
+        _shadowBorder = this.FindControl<Border>(HintedTextBoxConstants.ShadowBorderName);
+        _secureKeyMaskOverlay = this.FindControl<TextBlock>(HintedTextBoxConstants.PasswordMaskOverlayName);
+    }
+
+    private void OnGotFocus(object? sender, GotFocusEventArgs e)
+    {
+        try
+        {
+            if (!_isDisposed)
+                UpdateBorderState();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in OnGotFocus: {ex.Message}");
+        }
+    }
+
+    private void OnLostFocus(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!_isDisposed)
+                UpdateBorderState();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
+        }
+    }
+
+    private void SetupReactiveBindings()
+    {
+        Observable.Merge(
+                this.WhenAnyValue(x => x.HasError).Select(_ => System.Reactive.Unit.Default),
+                this.WhenAnyValue(x => x.PasswordStrength).Select(_ => System.Reactive.Unit.Default),
+                this.WhenAnyValue(x => x.IsPasswordStrengthMode).Select(_ => System.Reactive.Unit.Default)
+            )
+            .Subscribe(_ =>
+            {
+                try
+                {
+                    if (!_isDisposed)
+                        UpdateBorderState();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in UpdateBorderState subscription: {ex.Message}");
+                }
+            })
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.Text)
+            .Where(text => !IsSecureKeyMode && _mainTextBox != null && _mainTextBox.Text != text)
+            .Subscribe(text =>
+            {
+                try
+                {
+                    if (!_isDisposed)
+                        UpdateTextBox(text, (text ?? string.Empty).Length);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in Text subscription: {ex.Message}");
+                }
+            })
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.ErrorText)
+            .DistinctUntilChanged()
+            .Subscribe(errorText =>
+            {
+                try
+                {
+                    if (!_isDisposed && !string.IsNullOrEmpty(errorText))
+                    {
+                        SetValue(ErrorTextProperty, errorText);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
+                }
+            })
+            .DisposeWith(_disposables);
+
+        this.WhenAnyValue(x => x.HasError)
+            .DistinctUntilChanged()
+            .Subscribe(hasError =>
+            {
+                try
+                {
+                    if (!_isDisposed)
+                        EllipseOpacity = hasError
+                            ? HintedTextBoxConstants.DefaultEllipseOpacityVisible
+                            : HintedTextBoxConstants.DefaultEllipseOpacityHidden;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in HasError subscription: {ex.Message}");
+                }
+            })
+            .DisposeWith(_disposables);
+    }
+
+    private void UpdateRemainingCharacters()
+    {
+        if (IsSecureKeyMode && _mainTextBox != null)
+        {
+            RemainingCharacters = MaxLength - (_mainTextBox.Text?.Length ?? 0);
+        }
+        else
+        {
+            RemainingCharacters = MaxLength - (Text?.Length ?? 0);
+        }
+    }
+
+    private void OnIsSecureKeyModeChanged(bool isSecureKeyMode)
+    {
+        if (_mainTextBox == null) return;
+
+        if (isSecureKeyMode)
+        {
+            _mainTextBox.PasswordChar = SecureKeyMaskChar;
+            _lastProcessedText = _mainTextBox.Text ?? string.Empty;
+        }
+        else
+        {
+            _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
+            _lastProcessedText = string.Empty;
+        }
+
+        UpdateRemainingCharacters();
+    }
+
+    private void TriggerTypingAnimation()
+    {
+        if (_mainTextBox == null || _isDisposed || _focusBorder == null) return;
+
+        try
+        {
+            _currentTypingAnimation?.Dispose();
+
+            if (!(_focusBorder.Opacity > HintedTextBoxConstants.ZeroOpacity)) return;
+            Animation pulseAnimation = new()
+            {
+                Duration = TimeSpan.FromMilliseconds(HintedTextBoxConstants.TypingAnimationDurationMs),
+                FillMode = FillMode.None,
+                Easing = new CubicEaseOut()
+            };
+
+            KeyFrame startFrame = new()
+            {
+                Cue = Cue.Parse(HintedTextBoxConstants.AnimationStartPercent, CultureInfo.InvariantCulture),
+                Setters = { new Setter { Property = OpacityProperty, Value = _focusBorder.Opacity } }
+            };
+
+            KeyFrame brightFrame = new()
+            {
+                Cue = Cue.Parse(HintedTextBoxConstants.AnimationPeakPercent, CultureInfo.InvariantCulture),
+                Setters =
+                {
+                    new Setter
+                    {
+                        Property = OpacityProperty,
+                        Value = Math.Min(HintedTextBoxConstants.FullOpacity,
+                            _focusBorder.Opacity + HintedTextBoxConstants.AnimationOpacityBoost)
+                    }
+                }
+            };
+
+            KeyFrame endFrame = new()
+            {
+                Cue = Cue.Parse(HintedTextBoxConstants.AnimationEndPercent, CultureInfo.InvariantCulture),
+                Setters = { new Setter { Property = OpacityProperty, Value = _focusBorder.Opacity } }
+            };
+
+            pulseAnimation.Children.Add(startFrame);
+            pulseAnimation.Children.Add(brightFrame);
+            pulseAnimation.Children.Add(endFrame);
+
+            _currentTypingAnimation = pulseAnimation.RunAsync(_focusBorder);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in TriggerTypingAnimation: {ex.Message}");
+        }
+    }
+
+    private static string GetCachedMaskString(char maskChar, int length)
+    {
+        switch (length)
+        {
+            case <= 0:
+                return string.Empty;
+            case > MaxCachedMaskLength:
+                return new string(maskChar, length);
+        }
+
+        if (!MaskStringCache.TryGetValue(maskChar, out string[]? cache))
+        {
+            cache = new string[MaxCachedMaskLength + HintedTextBoxConstants.CacheArrayOffsetIncrement];
+            MaskStringCache[maskChar] = cache;
+        }
+
+        return cache[length] ??= new string(maskChar, length);
+    }
+
+    private static Color GetCachedColor(string colorHex)
+    {
+        if (!ColorCache.TryGetValue(colorHex, out Color color))
+        {
+            color = Color.Parse(colorHex);
+            ColorCache[colorHex] = color;
+        }
+
+        return color;
+    }
+
+    private static SolidColorBrush GetCachedBrush(Color color)
+    {
+        string key = color.ToString();
+        if (!BrushCache.TryGetValue(key, out SolidColorBrush? brush))
+        {
+            brush = new SolidColorBrush(color);
+            BrushCache[key] = brush;
+        }
+
+        return brush;
+    }
+
+    private BoxShadows GetCachedResource(string resourceKey)
+    {
+        if (!ResourceCache.TryGetValue(resourceKey, out BoxShadows shadow))
+        {
+            shadow = this.FindResource(resourceKey) is BoxShadows foundShadow ? foundShadow : default;
+            ResourceCache[resourceKey] = shadow;
+        }
+
+        return shadow;
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        Dispose();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+
+        try
+        {
+            _isDisposed = true;
+
+            if (_inputDebounceTimer != null)
+            {
+                _inputDebounceTimer.Stop();
+                _inputDebounceTimer.Tick -= OnDebounceTimerTick;
+                _inputDebounceTimer = null;
+            }
+
+            _currentTypingAnimation?.Dispose();
+
+            AttachedToVisualTree -= OnAttachedToVisualTree;
+
+            try
+            {
+                _disposables.Dispose();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
+            }
+
+            _mainTextBox = null;
+            _focusBorder = null;
+            _mainBorder = null;
+            _shadowBorder = null;
+            _secureKeyMaskOverlay = null;
+
+            _originalErrorText = string.Empty;
+            ErrorText = string.Empty;
+            HasError = false;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
+        }
+    }
+}

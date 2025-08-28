@@ -15,6 +15,7 @@ using DotNetEnv;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Controls;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Desktop.Constants;

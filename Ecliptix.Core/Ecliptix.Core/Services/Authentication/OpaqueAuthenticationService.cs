@@ -138,8 +138,7 @@ public class OpaqueAuthenticationService(
             (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
                 byte[] transcriptHash, byte[] exportKey) = finalizationResult.Unwrap();
 
-            Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(
-                clientOpaqueService, finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+            Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
 
 
             CryptographicOperations.ZeroMemory(exportKey);
@@ -175,7 +174,6 @@ public class OpaqueAuthenticationService(
             byte[] serverPublicKeyBytes = ServerPublicKey();
             Serilog.Log.Information("🔐 OPAQUE: Decoding server public key for AOT compatibility");
             
-            // AOT-safe DecodePoint operation
             Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
             ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 serverPublicKeyPoint,
@@ -241,9 +239,7 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<byte[], string>> SendFinalizeRequestAndVerifyAsync(
-        OpaqueProtocolService clientOpaqueService,
-        OpaqueSignInFinalizeRequest finalizeRequest,
+    private async Task<Result<byte[], string>> SendFinalizeRequestAndVerifyAsync(OpaqueSignInFinalizeRequest finalizeRequest,
         byte[] sessionKey,
         byte[] serverMacKey,
         byte[] transcriptHash, uint connectId)

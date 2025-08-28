@@ -3,6 +3,7 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+                 xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
                  xmlns:system="clr-namespace:System;assembly=System.Runtime"
                  xmlns:global="clr-namespace:"
                  xmlns:signIn="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.SignIn"
@@ -134,7 +135,7 @@
             </StackPanel>
 
             <!-- Mobile Number Input -->
-            <controls:HintedTextBox
+            <coreControls:HintedTextBox
                 Grid.Row="1"
                 x:Name="MobileTextBox"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"
@@ -155,7 +156,7 @@
                 IsEnabled="{Binding !IsBusy}"/>
 
             <!-- SecureKey Input -->
-            <controls:HintedTextBox
+            <coreControls:HintedTextBox
                 Grid.Row="2"
                 x:Name="SecureKeyTextBox"
                 IsSecureKeyMode="True"

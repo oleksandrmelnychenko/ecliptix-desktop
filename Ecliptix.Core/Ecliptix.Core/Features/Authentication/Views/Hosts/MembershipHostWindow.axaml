@@ -10,6 +10,7 @@
         xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+        xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
@@ -277,7 +278,7 @@
                     ZIndex="12"
                     Background="Transparent" />
 
-            <controls:NetworkStatusNotification
+            <coreControls:NetworkStatusNotification
                 x:Name="NetworkNotification"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Top"

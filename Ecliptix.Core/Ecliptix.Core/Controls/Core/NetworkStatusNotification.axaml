@@ -3,10 +3,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.NetworkStatusNotification"
+             x:Class="Ecliptix.Core.Controls.Core.NetworkStatusNotification"
              x:Name="Root"
-             x:DataType="controls:NetworkStatusNotificationViewModel">
+             x:DataType="core:NetworkStatusNotificationViewModel">
     
     <Border x:Name="MainBorder"
             CornerRadius="12"

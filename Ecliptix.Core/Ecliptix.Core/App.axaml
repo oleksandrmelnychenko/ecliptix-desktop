@@ -1,6 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
+             xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              x:Class="Ecliptix.Core.App"
              RequestedThemeVariant="Light">
 
@@ -121,11 +122,11 @@
             <Setter Property="IsTabStop" Value="False" />
         </Style>
         
-        <Style Selector=":is(controls|HintedTextBox)">
+        <Style Selector=":is(coreControls|HintedTextBox)">
             <Setter Property="IsTabStop" Value="True" />
         </Style>
         
-        <Style Selector="controls|HintedTextBox TextBox">
+        <Style Selector="coreControls|HintedTextBox TextBox">
             <Setter Property="IsTabStop" Value="True" />
         </Style>
         
