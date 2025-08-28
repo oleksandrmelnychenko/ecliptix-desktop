@@ -132,7 +132,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             
             if (mobileNumberIdentifier != null)
             {
-                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, mobileNumberIdentifier, _applicationSecureStorageProvider);
+                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
                 ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
             }
             else
