@@ -6,7 +6,7 @@
         <!-- Centralized Version Management -->
         <MajorVersion>0</MajorVersion>
         <MinorVersion>3464</MinorVersion>
-        <PatchVersion>296</PatchVersion>
+        <PatchVersion>808</PatchVersion>
         <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
         
         <!-- Computed Version Properties -->
