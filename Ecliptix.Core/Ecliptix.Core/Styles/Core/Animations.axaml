@@ -1,0 +1,75 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- ===== ANIMATION RESOURCES ===== -->
+            <!-- Standardized timing system eliminating all TimeSpan duplications -->
+
+            <!-- ===== DURATION SCALE ===== -->
+            <!-- Harmonious timing scale for consistent animation feel -->
+            <system:TimeSpan x:Key="Duration.Instant">0:0:0.0</system:TimeSpan>      <!-- No animation -->
+            <system:TimeSpan x:Key="Duration.Flash">0:0:0.1</system:TimeSpan>        <!-- Traffic lights -->
+            <system:TimeSpan x:Key="Duration.Quick">0:0:0.15</system:TimeSpan>       <!-- Button hover -->
+            <system:TimeSpan x:Key="Duration.Fast">0:0:0.2</system:TimeSpan>         <!-- Link transitions -->
+            <system:TimeSpan x:Key="Duration.Normal">0:0:0.25</system:TimeSpan>      <!-- Standard buttons -->
+            <system:TimeSpan x:Key="Duration.Medium">0:0:0.3</system:TimeSpan>       <!-- Gradual changes -->
+            <system:TimeSpan x:Key="Duration.Slow">0:0:0.4</system:TimeSpan>         <!-- Background blur -->
+            <system:TimeSpan x:Key="Duration.Slower">0:0:0.6</system:TimeSpan>       <!-- Modal transitions -->
+            <system:TimeSpan x:Key="Duration.Slowest">0:0:1.0</system:TimeSpan>      <!-- Loading states -->
+
+            <!-- ===== SPECIALIZED DURATIONS ===== -->
+            
+            <!-- Button Animations -->
+            <system:TimeSpan x:Key="Button.TransitionDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="Button.HoverDuration">0:0:0.15</system:TimeSpan>
+            <system:TimeSpan x:Key="Button.PressedDuration">0:0:0.1</system:TimeSpan>
+            
+            <!-- Input Field Animations -->
+            <system:TimeSpan x:Key="Input.FocusDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="Input.ErrorDuration">0:0:0.3</system:TimeSpan>
+            <system:TimeSpan x:Key="Input.OpacityDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="Input.ShadowDuration">0:0:0.3</system:TimeSpan>
+            
+            <!-- Control Animations -->
+            <system:TimeSpan x:Key="Brush.TransitionDuration">0:0:0.25</system:TimeSpan>
+            
+            <!-- Window Animations -->
+            <system:TimeSpan x:Key="Window.BackgroundDuration">0:0:0.4</system:TimeSpan>
+            <system:TimeSpan x:Key="Window.BorderDuration">0:0:0.3</system:TimeSpan>
+            <system:TimeSpan x:Key="Window.ShadowDuration">0:0:0.3</system:TimeSpan>
+            
+            <!-- Traffic Light Animations -->
+            <system:TimeSpan x:Key="TrafficLight.TransitionDuration">0:0:0.1</system:TimeSpan>
+            
+            <!-- Link & Footer Animations -->
+            <system:TimeSpan x:Key="Link.TransitionDuration">0:0:0.2</system:TimeSpan>
+            
+            <!-- Modal & Popup Animations -->
+            <system:TimeSpan x:Key="Popup.AnimationDuration">0:0:0.2</system:TimeSpan>
+            <system:TimeSpan x:Key="Modal.TransitionDuration">0:0:0.25</system:TimeSpan>
+            
+            <!-- Status & Network Animations -->
+            <system:TimeSpan x:Key="Status.PulseDuration">0:0:1.5</system:TimeSpan>
+            <system:TimeSpan x:Key="Status.ColorDuration">0:0:0.3</system:TimeSpan>
+            
+            <!-- Loading & Progress Animations -->
+            <system:TimeSpan x:Key="Loading.SpinDuration">0:0:1.0</system:TimeSpan>
+            <system:TimeSpan x:Key="Progress.UpdateDuration">0:0:0.3</system:TimeSpan>
+
+            <!-- ===== LEGACY COMPATIBILITY ===== -->
+            <!-- These will be removed after migration -->
+            <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
+            <system:TimeSpan x:Key="OpacityTransitionDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="SlowOpacityTransition">0:0:0.3</system:TimeSpan>
+            <system:TimeSpan x:Key="VerySlowOpacityTransition">0:0:0.4</system:TimeSpan>
+            <system:TimeSpan x:Key="BrushTransitionDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="ShadowTransitionDuration">0:0:0.3</system:TimeSpan>
+            <system:TimeSpan x:Key="TransitionDuration">0:0:0.25</system:TimeSpan>
+            <system:TimeSpan x:Key="PopupAnimationDuration">0:0:0.2</system:TimeSpan>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>

@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
@@ -14,7 +13,7 @@
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Title]}"
                        FontSize="14"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        LineHeight="25"
             />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Description]}"
@@ -22,7 +21,7 @@
                        FontSize="20"
                        LineHeight="28"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}" />
+                       Foreground="{DynamicResource OnSurface}" />
         </StackPanel>
        
         <coreControls:HintedTextBox
@@ -41,9 +40,9 @@
             FontSize="18"
             MainBorderBrush="Transparent"
             FontWeight="Light"
-            TextForeground="{DynamicResource TextBoxForegroundColor}"
-            HintForeground="{DynamicResource TipsColor}"
-            Background="{DynamicResource TextBoxBackgroundColor}" 
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
+            Background="{DynamicResource Surface}" 
             MaxLength="28"/>
 
         <coreControls:HintedTextBox
@@ -59,9 +58,9 @@
             FontSize="18"
             MainBorderBrush="Transparent"
             FontWeight="Light"
-            TextForeground="{DynamicResource TextBoxForegroundColor}"
-            HintForeground="{DynamicResource TipsColor}"
-            Background="{DynamicResource TextBoxBackgroundColor}"
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
+            Background="{DynamicResource Surface}"
             MaxLength="28"/>
         
         <Button
@@ -72,8 +71,8 @@
             FontSize="14"
             CornerRadius="15" 
             BorderThickness="0"
-            Background="{DynamicResource DarkButtonColor}"
-            Foreground="{DynamicResource DarkButtonForegroundColor}"
+            Background="{DynamicResource Secondary}"
+            Foreground="{DynamicResource OnSecondary}"
             Command="{Binding SubmitCommand}"
             Content="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Button]}"
             IsEnabled="{Binding CanSubmit}" />

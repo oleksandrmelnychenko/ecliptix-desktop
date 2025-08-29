@@ -8,47 +8,9 @@
              x:DataType="modals:DetectLanguageDialogViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
 
-    <UserControl.Resources>
-        <x:Double x:Key="ButtonHeight">44</x:Double>
-        <x:Double x:Key="TitleFontSize">22</x:Double>
-        <x:Double x:Key="SubtitleFontSize">17</x:Double>
-        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
-        <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
-        <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-    </UserControl.Resources>
+    <!-- All resources moved to shared Core styles -->
 
-    <UserControl.Styles>
-        <Style Selector="Button.modal-button">
-            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                     Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Button.modal-button.secondary">
-            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource LightButtonForegroundColor}" />
-        </Style>
-        <Style Selector="Button.modal-button.secondary:pointerover">
-            <Setter Property="Background" Value="{StaticResource GrayButtonHoverColor}" />
-        </Style>
-        <Style Selector="Button.modal-button.primary">
-            <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-        </Style>
-        <Style Selector="Button.modal-button.primary:pointerover">
-            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
-        </Style>
-    </UserControl.Styles>
+    <!-- All styles moved to shared Components/Buttons.axaml -->
 
     <Border 
         Padding="24"
@@ -60,7 +22,7 @@
             <TextBlock
                 Grid.Row="0"
                 TextWrapping="Wrap"
-                FontSize="{StaticResource TitleFontSize}"
+                FontSize="{StaticResource Font.Title.M}"
                 FontWeight="SemiBold"
                 HorizontalAlignment="Center"
                 Text="{Binding Title}" />
@@ -76,7 +38,7 @@
                     Height="22" />
                 <TextBlock
                     x:Name="PromptText"
-                    FontSize="{StaticResource SubtitleFontSize}"
+                    FontSize="{StaticResource Font.XXL}"
                     VerticalAlignment="Center"
                     Text="{Binding PromptText}" />
             </StackPanel>
@@ -98,13 +60,13 @@
                     x:Name="DeclineButton"
                     Content="{Binding DeclineButtonText}"
                     Command="{Binding DeclineCommand}"
-                    Classes="modal-button secondary" />
+                    Classes="auth-button recovery-button" />
                 <Button
                     Grid.Column="1"
                     x:Name="ConfirmButton"
                     Content="{Binding ConfirmButtonText}"
                     Command="{Binding ConfirmCommand}"
-                    Classes="modal-button primary" />
+                    Classes="auth-button continue-button" />
             </Grid>
         </Grid>
     </Border>

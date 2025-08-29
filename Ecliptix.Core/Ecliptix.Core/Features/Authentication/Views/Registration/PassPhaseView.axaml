@@ -2,104 +2,38 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:registration="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
-             d:DesignWidth="320"
+             d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="200"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.PassPhaseView"
              x:DataType="registration:PassPhaseViewModel"
-             MinWidth="320"
-             Width="320">
-
-    <UserControl.Resources>
-        <!-- Layout Dimensions -->
-        <x:Double x:Key="ButtonHeight">44</x:Double>
-        <x:Double x:Key="ButtonFontSize">14</x:Double>
-        <x:Double x:Key="TitleFontSize">22</x:Double>
-        <x:Double x:Key="SubtitleFontSize">17</x:Double>
-        <x:Double x:Key="HeaderMaxWidth">280</x:Double>
-
-        <!-- Spacing -->
-        <x:Double x:Key="SectionSpacing">21</x:Double>
-        <x:Double x:Key="HeaderSpacing">7</x:Double>
-        <x:Double x:Key="ButtonSpacing">10</x:Double>
-
-        <!-- UI Elements -->
-        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
-
-        <!-- Button Colors -->
-        <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
-        <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
-        <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
-
-        <!-- Animation Durations -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-    </UserControl.Resources>
-
-    <UserControl.Styles>
-        <Style Selector="Button.auth-button">
-            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                     Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
-                                      Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-        </Style>
-
-        <Style Selector="Button.auth-button:pressed">
-            <Setter Property="Opacity" Value="0.9" />
-        </Style>
-        
-        <!-- Continue Button (Dark) -->
-        <Style Selector="Button.continue-button">
-            <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pressed">
-            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
-        </Style>
-    </UserControl.Styles>
+             MinWidth="{StaticResource Content.MaxWidth}"
+             Width="{StaticResource Content.MaxWidth}">
 
     <Grid VerticalAlignment="Top"
-          RowSpacing="{StaticResource SectionSpacing}"
+          RowSpacing="{StaticResource Spacing.XL}"
           RowDefinitions="Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
-          Width="320">
+          Width="{StaticResource Content.MaxWidth}">
 
         <!-- Header Section -->
         <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource HeaderSpacing}"
-                    MaxWidth="{StaticResource HeaderMaxWidth}"
+                    Spacing="{StaticResource Spacing.S}"
+                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PassPhase.Title]}"
-                       FontSize="{StaticResource SubtitleFontSize}"
+                       FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        LineHeight="28" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PassPhase.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource TitleFontSize}"
+                       FontSize="{StaticResource Font.Title.M}"
                        LineHeight="28"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
 
@@ -107,15 +41,15 @@
         <coreControls:SegmentedTextBox Grid.Row="1"
                                    SegmentCount="4"
                                    Height="60"
-                                   FontSize="20"
+                                   FontSize="{StaticResource Input.SegmentFontSize}"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
-                                   SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
+                                   SegmentBackground="{DynamicResource Surface}"
                                    SegmentSpacing="5"
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"
                                    Value="{Binding PassPhase, Mode=TwoWay}"
-                                   ActiveSegmentBorderColor="{DynamicResource TipsColor}"/>
+                                   ActiveSegmentBorderColor="{DynamicResource Primary}"/>
 
         <!-- Submit Button -->
         <Button Grid.Row="2"

@@ -16,13 +16,9 @@
         <x:Double x:Key="FontSize">13</x:Double>
         <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
 
-        <!-- Hover Colors -->
-        <Color x:Key="ComboBoxHoverColor">#F5F5F5</Color>
-        <Color x:Key="ComboBoxPressedColor">#EEEEEE</Color>
+        <!-- Colors moved to shared Core/Colors.axaml - use Button.Secondary.Hover and Button.Secondary.Pressed -->
 
-        <!-- Animation Durations -->
-        <system:TimeSpan x:Key="TransitionDuration">0:0:0.25</system:TimeSpan>
-        <system:TimeSpan x:Key="PopupAnimationDuration">0:0:0.2</system:TimeSpan>
+        <!-- Animation durations moved to shared Core/Animations.axaml -->
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -43,9 +39,9 @@
                             <Border.Transitions>
                                 <Transitions>
                                     <BrushTransition Property="Background"
-                                                     Duration="{StaticResource TransitionDuration}"
+                                                     Duration="{StaticResource Duration.Normal}"
                                                      Easing="CubicEaseOut" />
-                                    <DoubleTransition Property="Opacity" Duration="{StaticResource TransitionDuration}"
+                                    <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Normal}"
                                                       Easing="CubicEaseOut" />
                                 </Transitions>
                             </Border.Transitions>
@@ -75,9 +71,9 @@
                                         <Path.Transitions>
                                             <Transitions>
                                                 <BrushTransition Property="Fill"
-                                                                 Duration="{StaticResource TransitionDuration}" />
+                                                                 Duration="{StaticResource Duration.Normal}" />
                                                 <TransformOperationsTransition Property="RenderTransform"
-                                                                               Duration="{StaticResource TransitionDuration}"
+                                                                               Duration="{StaticResource Duration.Normal}"
                                                                                Easing="CubicEaseOut" />
                                             </Transitions>
                                         </Path.Transitions>
@@ -117,10 +113,10 @@
                                     <Border.Transitions>
                                         <Transitions>
                                             <DoubleTransition Property="Opacity"
-                                                              Duration="{StaticResource PopupAnimationDuration}"
+                                                              Duration="{StaticResource Popup.AnimationDuration}"
                                                               Easing="CubicEaseOut" />
                                             <TransformOperationsTransition Property="RenderTransform"
-                                                                           Duration="{StaticResource PopupAnimationDuration}"
+                                                                           Duration="{StaticResource Popup.AnimationDuration}"
                                                                            Easing="BackEaseOut" />
                                         </Transitions>
                                     </Border.Transitions>
@@ -153,12 +149,12 @@
 
         <!-- Hover state for ComboBox main button -->
         <Style Selector="ComboBox:pointerover /template/ Border#Background">
-            <Setter Property="Background" Value="{StaticResource ComboBoxHoverColor}" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
         <!-- Pressed state for ComboBox main button -->
         <Style Selector="ComboBox:pressed /template/ Border#Background">
-            <Setter Property="Background" Value="{StaticResource ComboBoxPressedColor}" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
 
@@ -230,8 +226,8 @@
               Width="{StaticResource ControlWidth}"
               FontSize="{StaticResource FontSize}"
               CornerRadius="{StaticResource ControlCornerRadius}"
-              Background="{DynamicResource ComboBoxBackground}"
-              BorderBrush="{DynamicResource ComboBoxBorderBrush}">
+              Background="{DynamicResource ComboBox.Background}"
+              BorderBrush="{DynamicResource ComboBox.BorderBrush}">
 
         <ComboBox.ItemTemplate>
             <DataTemplate>

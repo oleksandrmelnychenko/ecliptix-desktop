@@ -65,25 +65,20 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 
         Log.Information("Starting transition from splash to next window");
         Window nextWindow = CreateNextWindow();
-        Log.Information("Next window created: {WindowType}", nextWindow.GetType().Name);
 
         nextWindow.WindowStartupLocation = WindowStartupLocation.Manual;
         nextWindow.Opacity = 0;
 
         await ShowAndWaitForWindow(nextWindow);
-        Log.Information("Next window shown and opened");
 
         PositionWindow(nextWindow, _splashScreen);
 
         desktop.MainWindow = nextWindow;
-        Log.Information("Set next window as MainWindow");
 
         await PerformCrossfadeTransition(nextWindow);
-        Log.Information("Crossfade transition completed");
 
         _splashScreen.Close();
         _splashScreen = null;
-        Log.Information("Splash screen closed - transition complete");
     }
 
     private Window CreateNextWindow()
@@ -96,7 +91,6 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 
         Log.Information("Creating MembershipHostWindow - membership not confirmed");
         MembershipHostWindowModel viewModel = Locator.Current.GetService<MembershipHostWindowModel>()!;
-        Log.Information("Created MembershipHostWindowModel: {ViewModelType}", viewModel.GetType().Name);
         return new MembershipHostWindow { DataContext = viewModel };
     }
 

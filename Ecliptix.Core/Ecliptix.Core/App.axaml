@@ -8,93 +8,6 @@
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
-
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <Color x:Key="DarkButtonColor">#2f2f2f</Color>
-                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
-
-                    <Color x:Key="LightButtonColor">#eaeaea</Color>
-                    <Color x:Key="LightButtonForegroundColor">#262626</Color>
-
-                    <Color x:Key="BackgroundColor">#ffffff</Color>
-
-                    <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="TextBoxForegroundColor">#5E5D5D</Color>
-
-                    <Color x:Key="TipsColor">#6a5acd</Color>
-
-                    <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
-
-                    <Color x:Key="FooterTextColor">#616161</Color>
-
-                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
-
-                    <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
-                    <SolidColorBrush x:Key="DarkButtonForegroundBrush"
-                                     Color="{StaticResource DarkButtonForegroundColor}" />
-
-                    <SolidColorBrush x:Key="LightButtonBrush" Color="{StaticResource LightButtonColor}" />
-                    <SolidColorBrush x:Key="LightButtonForegroundBrush"
-                                     Color="{StaticResource LightButtonForegroundColor}" />
-
-                    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
-
-                    <SolidColorBrush x:Key="TextBoxBackgroundBrush" Color="{StaticResource TextBoxBackgroundColor}" />
-                    <SolidColorBrush x:Key="TextBoxForegroundBrush" Color="{StaticResource TextBoxForegroundColor}" />
-
-                    <SolidColorBrush x:Key="TipsBrush" Color="{StaticResource TipsColor}" />
-
-                    <SolidColorBrush x:Key="BackButtonBackgroundBrush"
-                                     Color="{StaticResource BackButtonBackgroundColor}" />
-                    <SolidColorBrush x:Key="BackButtonForegroundBrush"
-                                     Color="{StaticResource BackButtonForegroundColor}" />
-                </ResourceDictionary>
-
-                <ResourceDictionary x:Key="Dark">
-                    <Color x:Key="DarkButtonColor">#2f2f2f</Color>
-                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
-
-                    <Color x:Key="LightButtonColor">#eaeaea</Color>
-                    <Color x:Key="LightButtonForegroundColor">#262626</Color>
-
-                    <Color x:Key="BackgroundColor">#ffffff</Color>
-
-                    <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="TextBoxForegroundColor">#474747</Color>
-
-                    <Color x:Key="TipsColor">#6a5acd</Color>
-
-                    <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
-
-                    <Color x:Key="FooterTextColor">#616161</Color>
-
-                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
-
-                    <SolidColorBrush x:Key="DarkButtonBrush" Color="{StaticResource DarkButtonColor}" />
-                    <SolidColorBrush x:Key="DarkButtonForegroundBrush"
-                                     Color="{StaticResource DarkButtonForegroundColor}" />
-
-                    <SolidColorBrush x:Key="LightButtonBrush" Color="{StaticResource LightButtonColor}" />
-                    <SolidColorBrush x:Key="LightButtonForegroundBrush"
-                                     Color="{StaticResource LightButtonForegroundColor}" />
-
-                    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}" />
-
-                    <SolidColorBrush x:Key="TextBoxBackgroundBrush" Color="{StaticResource TextBoxBackgroundColor}" />
-                    <SolidColorBrush x:Key="TextBoxForegroundBrush" Color="{StaticResource TextBoxForegroundColor}" />
-
-                    <SolidColorBrush x:Key="TipsBrush" Color="{StaticResource TipsColor}" />
-
-                    <SolidColorBrush x:Key="BackButtonBackgroundBrush"
-                                     Color="{StaticResource BackButtonBackgroundColor}" />
-                    <SolidColorBrush x:Key="BackButtonForegroundBrush"
-                                     Color="{StaticResource BackButtonForegroundColor}" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
             </ResourceDictionary.MergedDictionaries>
@@ -104,7 +17,13 @@
     <Application.Styles>
         <SimpleTheme />
         
-        <StyleInclude Source="/Styles/Buttons.axaml" />
+        <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
+        <StyleInclude Source="/Styles/Core/Colors.axaml" />
+        <StyleInclude Source="/Styles/Core/Typography.axaml" />
+        <StyleInclude Source="/Styles/Core/Animations.axaml" />
+        
+        <StyleInclude Source="/Styles/Components/TrafficLights.axaml" />
+        <StyleInclude Source="/Styles/Components/Buttons.axaml" />
         
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />
@@ -131,15 +50,15 @@
         </Style>
         
         <Style Selector="TextBox">
-            <Setter Property="SelectionBrush" Value="{DynamicResource TipsColor}" />
-            <Setter Property="SelectionForegroundBrush" Value="White" />
+            <Setter Property="SelectionBrush" Value="{DynamicResource Primary}" />
+            <Setter Property="SelectionForegroundBrush" Value="{DynamicResource OnPrimary}" />
         </Style>
         
         <Style Selector="Button">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.3" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" />
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Medium}" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource Duration.Medium}" />
                 </Transitions>
             </Setter>
             <Setter Property="Opacity" Value="1" />
@@ -150,9 +69,5 @@
             <Setter Property="Opacity" Value="0.5" />
             <Setter Property="RenderTransform" Value="scale(0.98)" />
         </Style>
-
-        
     </Application.Styles>
-
-
 </Application>

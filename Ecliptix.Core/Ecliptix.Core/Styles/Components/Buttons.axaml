@@ -1,0 +1,202 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Base Authentication Button -->
+    <Style Selector="Button.auth-button">
+        <Setter Property="Height" Value="{StaticResource Button.Height}" />
+        <Setter Property="MinWidth" Value="{StaticResource Button.MinWidth}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="{StaticResource Button.FontSize}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource Button.CornerRadius}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" 
+                                 Duration="{StaticResource Button.TransitionDuration}" 
+                                 Easing="CubicEaseOut" />
+                <DoubleTransition Property="Opacity" 
+                                  Duration="{StaticResource Button.TransitionDuration}" 
+                                  Easing="CubicEaseOut" />
+                <TransformOperationsTransition Property="RenderTransform" 
+                                               Duration="{StaticResource Button.TransitionDuration}" 
+                                               Easing="CubicEaseOut" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.auth-button:pressed">
+        <Setter Property="Opacity" Value="0.9" />
+        <Setter Property="RenderTransform" Value="scale(0.98)" />
+    </Style>
+
+    <Style Selector="Button.auth-button:disabled">
+        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <Style Selector="Button.auth-button:focus-visible">
+        <Setter Property="RenderTransform" Value="scale(1.02)" />
+    </Style>
+
+    <!-- Primary/Continue/Dark Button -->
+    <Style Selector="Button.continue-button, Button.auth-primary, Button.create-account-button">
+        <Setter Property="Background" Value="{DynamicResource Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
+    </Style>
+
+    <Style Selector="Button.continue-button:pointerover, Button.auth-primary:pointerover, Button.create-account-button:pointerover">
+        <Setter Property="Background" Value="{DynamicResource Button.Primary.Hover}" />
+    </Style>
+
+    <Style Selector="Button.continue-button:pressed, Button.auth-primary:pressed, Button.create-account-button:pressed">
+        <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
+    </Style>
+
+    <!-- Secondary/Recovery/SignIn/Light Button -->
+    <Style Selector="Button.recovery-button, Button.signin-button, Button.auth-secondary">
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
+    </Style>
+
+    <Style Selector="Button.recovery-button:pointerover, Button.signin-button:pointerover, Button.auth-secondary:pointerover">
+        <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
+    </Style>
+
+    <Style Selector="Button.recovery-button:pressed, Button.signin-button:pressed, Button.auth-secondary:pressed">
+        <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
+    </Style>
+
+    <!-- Welcome Screen Sign In Button (specific corner radius) -->
+    <Style Selector="Button.signin-button">
+        <Setter Property="CornerRadius" Value="10" />
+    </Style>
+
+    <!-- Welcome Screen Create Account Button (specific corner radius) -->
+    <Style Selector="Button.create-account-button">
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.L}" />
+    </Style>
+
+    <!-- ===== SUBMIT BUTTON (Legacy from Buttons.axaml) ===== -->
+    <Style Selector="Button.SubmitButton">
+        <Setter Property="Foreground" Value="#e2ddd9" />
+        <Setter Property="Height" Value="45" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.L}" />
+        <Setter Property="FontSize" Value="{StaticResource Font.XL}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="{StaticResource Duration.Medium}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#3B3E99" Offset="0.0" />
+                <GradientStop Color="#5348E2" Offset="1.0" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.SubmitButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="#6a5acd" Offset="0.0" /> 
+                <GradientStop Color="#5348E2" Offset="0.75" />
+                <GradientStop Color="#3B3E99" Offset="1.0" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+
+    <!-- Loading Button State -->
+    <Style Selector="Button.loading">
+        <Setter Property="Opacity" Value="0.8" />
+        <Setter Property="Cursor" Value="Wait" />
+    </Style>
+
+    <!-- Success Button State -->
+    <Style Selector="Button.success">
+        <Setter Property="Background" Value="{DynamicResource Success}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSuccess}" />
+    </Style>
+
+    <!-- Error Button State -->
+    <Style Selector="Button.error">
+        <Setter Property="Background" Value="{DynamicResource Error}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnError}" />
+    </Style>
+
+    <!-- Small Button -->
+    <Style Selector="Button.small">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="FontSize" Value="{StaticResource Button.SmallFontSize}" />
+        <Setter Property="Padding" Value="{StaticResource Padding.S}" />
+    </Style>
+
+    <!-- Large Button -->
+    <Style Selector="Button.large">
+        <Setter Property="Height" Value="52" />
+        <Setter Property="FontSize" Value="{StaticResource Font.XL}" />
+        <Setter Property="Padding" Value="{StaticResource Padding.L}" />
+    </Style>
+
+    <!-- From MembershipHostWindow -->
+    <Style Selector="Button.footer-link">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontSize" Value="{StaticResource Footer.FontSize}" />
+        <Setter Property="Foreground" Value="{DynamicResource Footer.Link}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Foreground" 
+                                 Duration="{StaticResource Duration.Medium}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.footer-link:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource Footer.Link.Hover}" />
+    </Style>
+
+    <!-- From MembershipHostWindow -->
+    <Style Selector="Button.back-button">
+        <Setter Property="Width" Value="{StaticResource Back.ButtonSize}" />
+        <Setter Property="Height" Value="{StaticResource Back.ButtonSize}" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="{StaticResource Duration.Medium}" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="{StaticResource Duration.Fast}" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.back-button:pointerover">
+        <Setter Property="Background" Value="#E4E3E3" />
+        <Setter Property="RenderTransform" Value="scale(1.05)" />
+    </Style>
+
+    <Style Selector="Button.back-button:pressed">
+        <Setter Property="Background" Value="#D1D0D0" />
+        <Setter Property="RenderTransform" Value="scale(0.95)" />
+    </Style>
+
+    <!-- High contrast mode support -->
+    <Style Selector="Button.auth-button:focus">
+        <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+</Styles>
