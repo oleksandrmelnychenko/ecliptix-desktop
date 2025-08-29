@@ -6,6 +6,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;

@@ -32,6 +32,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private readonly IOpaqueRegistrationService _registrationService;
 
 
+
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
     private Guid? VerificationSessionIdentifier { get; set; } = null;
