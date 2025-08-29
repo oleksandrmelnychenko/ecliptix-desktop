@@ -115,6 +115,7 @@ public static class LocalizationData
         ["NetworkNotification.NoInternet.Description"] = "Check your connection and try again",
         ["NetworkNotification.ServerNotResponding.Title"] = "Server Unavailable",
         ["NetworkNotification.ServerNotResponding.Description"] = "Our servers are not responding",
+        ["NetworkNotification.Button.Retry"] = "Retry",
 
 
         ["LanguageDetection.Title"] = "Language Suggestion",
@@ -232,7 +233,8 @@ public static class LocalizationData
         ["NetworkNotification.NoInternet.Description"] = "Перевірте з'єднання та спробуйте знову",
         ["NetworkNotification.ServerNotResponding.Title"] = "Сервер недоступний",
         ["NetworkNotification.ServerNotResponding.Description"] = "Наші сервери не відповідають",
-
+        ["NetworkNotification.Button.Retry"] = "Повторити",
+        
 
         ["LanguageDetection.Title"] = "Пропозиція мови",
         ["LanguageDetection.Prompt"] = "Перемкнутись на {0}?",

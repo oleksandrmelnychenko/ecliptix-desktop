@@ -84,8 +84,9 @@
                     BorderThickness="1"
                     CornerRadius="6"
                     Padding="12,6"
-                    HorizontalAlignment="Center"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
+                    Grid.ColumnSpan="2"
                     Command="{Binding RetryCommand}"
                     IsVisible="{Binding ShowRetryButton}">
                 
@@ -102,7 +103,7 @@
                     </Style>
                 </Button.Styles>
                 
-                <TextBlock Text="Retry" 
+                <TextBlock Text="{Binding RetryButtonText}" 
                            FontSize="11"
                            FontWeight="Medium" />
             </Button>
@@ -113,7 +114,7 @@
                      Width="8"
                      Height="8"
                      VerticalAlignment="Top"
-                     HorizontalAlignment="Center"
+                     HorizontalAlignment="Right"
                      Fill="#d81c1c">
                 <Ellipse.Styles>
                     <Style Selector="Ellipse">

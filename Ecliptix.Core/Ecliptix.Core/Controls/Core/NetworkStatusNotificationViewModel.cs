@@ -39,6 +39,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private string? _cachedNoInternetTitle;
     private string? _cachedServerNotRespondingDescription;
     private string? _cachedNoInternetDescription;
+    private string? _cachedRetryButtonText;
 
     private NetworkStatusNotification? _view;
     private Border? _mainBorder;
@@ -54,6 +55,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     public TimeSpan AppearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
     public TimeSpan DisappearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
 
+    private readonly ObservableAsPropertyHelper<string> _retryButtonText;
+    public string RetryButtonText => _retryButtonText.Value;
+    
     private readonly ObservableAsPropertyHelper<bool> _isVisible;
     public bool IsVisible => _isVisible.Value;
 
@@ -91,6 +95,17 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     {
         LocalizationService = localizationService;
 
+        IObservable<Unit> languageTrigger = Observable.FromEvent(
+                handler => LocalizationService.LanguageChanged += handler,
+                handler => LocalizationService.LanguageChanged -= handler)
+            .Select(_ => Unit.Default)
+            .StartWith(Unit.Default);
+        
+        languageTrigger
+            .Skip(1)
+            .Subscribe(_ => ClearStringCache())
+            .DisposeWith(_disposables);
+        
         IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus
             .GetEvent<NetworkStatusChangedEvent>()
             .DistinctUntilChanged(e => e.State)
@@ -113,16 +128,20 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 _ => NetworkConnectionState.NoInternet
             })
             .StartWith(NetworkConnectionState.NoInternet);
+        
+        IObservable<string> retryButtonTextObservable = languageTrigger
+            .Select(_ => GetCachedRetryButtonText());
 
+        
         IObservable<string> statusTextObservable = connectionStateObservable
-            .Select(state => state switch
+            .CombineLatest(languageTrigger, (state, _) => state switch
             {
                 NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingTitle(),
                 _ => GetCachedNoInternetTitle(),
             });
 
         IObservable<string> statusDescriptionObservable = connectionStateObservable
-            .Select(state => state switch
+            .CombineLatest(languageTrigger, (state, _) => state switch
             {
                 NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingDescription(),
                 _ => GetCachedNoInternetDescription(),
@@ -161,6 +180,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             })
             .Switch()
             .StartWith(false);
+        
+
 
         _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
         _statusText = statusTextObservable.ToProperty(this, x => x.StatusText, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
@@ -169,7 +190,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
         _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
         _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-
+        _retryButtonText = retryButtonTextObservable.ToProperty(this, x => x.RetryButtonText, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        
+        
         RetryCommand = ReactiveCommand.CreateFromTask(
             async ct =>
             {
@@ -211,6 +234,15 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private CancellationTokenSource? _visibilityOperationTokenSource;
 
+    private void ClearStringCache()
+    {
+        _cachedServerNotRespondingTitle = null;
+        _cachedNoInternetTitle = null;
+        _cachedServerNotRespondingDescription = null;
+        _cachedNoInternetDescription = null;
+        _cachedRetryButtonText = null;
+    }
+    
     private async Task HandleVisibilityChangeAsync(bool visible)
     {
         CancellationTokenSource? previousTokenSource = _visibilityOperationTokenSource;
@@ -375,6 +407,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     
     private string GetCachedNoInternetDescription() => _cachedNoInternetDescription ??= LocalizationService["NetworkNotification.NoInternet.Description"];
 
+    private string GetCachedRetryButtonText() => _cachedRetryButtonText ??= LocalizationService["NetworkNotification.Button.Retry"];
+    
     private static void LogRetryButtonShow()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
