@@ -45,7 +45,7 @@ public sealed class SecureMemoryBuffer : IDisposable
     {
         if (!_disposed)
         {
-            using var tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
+            using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
             Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
             if (readResult.IsErr)
                 throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
@@ -68,7 +68,7 @@ public sealed class SecureMemoryBuffer : IDisposable
                 SodiumFailure.NullPointer("Buffer is disposed"));
 
         int bytesToRead = Math.Min(destination.Length, Length);
-        using var tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
+        using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
 
         Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
         if (readResult.IsErr)

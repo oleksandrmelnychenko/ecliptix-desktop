@@ -1892,7 +1892,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     _connectionRecoveryCts = null;
                 }
 
-                foreach (var gate in _channelGates.Values)
+                foreach (SemaphoreSlim gate in _channelGates.Values)
                 {
                     gate.Dispose();
                 }

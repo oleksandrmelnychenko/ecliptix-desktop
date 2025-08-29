@@ -34,27 +34,16 @@ public class ModuleResourceManager : BackgroundService
 
         if (configureServices != null)
         {
-            // Create a child scope from main provider for fallback
             IServiceScope parentScope = _serviceProvider.CreateScope();
-
-            // Create a new service collection for module-specific services only
             ServiceCollection moduleServices = new();
-
-            // Add module-specific services
             configureServices(moduleServices);
-
-            // Build module service provider
             ServiceProvider moduleServiceProvider = moduleServices.BuildServiceProvider();
-
-            // Create a composite service scope that tries module services first, then main services
             serviceScope = new CompositeServiceScope(moduleServiceProvider.CreateScope(), parentScope);
         }
         else
         {
-            // Fallback to original behavior
             serviceScope = _serviceProvider.CreateScope();
         }
-
 
         ModuleScope moduleScope = new(moduleName, serviceScope, constraints);
 
@@ -66,32 +55,6 @@ public class ModuleResourceManager : BackgroundService
         return moduleScope;
     }
 
-
-
-
-    public bool RemoveModuleScope(string moduleName)
-    {
-        if (_moduleScopes.TryRemove(moduleName, out IModuleScope? scope))
-        {
-            scope.Dispose();
-            Log.Information("Removed module scope for {ModuleName}", moduleName);
-            return true;
-        }
-
-        return false;
-    }
-
-
-
-
-    public IModuleScope? GetModuleScope(string moduleName)
-    {
-        return _moduleScopes.TryGetValue(moduleName, out IModuleScope? scope) ? scope : null;
-    }
-
-
-
-
     public void ValidateAllModuleResources()
     {
         foreach (IModuleScope scope in _moduleScopes.Values)
@@ -101,12 +64,6 @@ public class ModuleResourceManager : BackgroundService
                 if (!scope.ValidateResourceUsage())
                 {
                     Log.Warning("Module {ModuleName} violates resource constraints", scope.ModuleName);
-
-
-
-
-
-
                 }
             }
             catch (Exception ex)
@@ -115,9 +72,6 @@ public class ModuleResourceManager : BackgroundService
             }
         }
     }
-
-
-
 
     public ModuleResourceSummary GetResourceSummary()
     {
@@ -161,8 +115,7 @@ public class ModuleResourceManager : BackgroundService
 
     public override void Dispose()
     {
-        _resourceMonitorTimer?.Dispose();
-
+        _resourceMonitorTimer.Dispose();
 
         foreach (IModuleScope scope in _moduleScopes.Values)
         {
