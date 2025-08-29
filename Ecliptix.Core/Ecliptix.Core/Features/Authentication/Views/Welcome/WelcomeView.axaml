@@ -3,7 +3,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="480"
@@ -11,10 +10,6 @@
              x:DataType="vm:WelcomeViewModel"
              MinWidth="320"
              Width="320">
-
-    <!-- All resources moved to shared Core styles -->
-
-    <!-- All styles moved to shared Components/Buttons.axaml -->
 
     <!-- Main Layout -->
     <Grid RowDefinitions="Auto,*,Auto"
