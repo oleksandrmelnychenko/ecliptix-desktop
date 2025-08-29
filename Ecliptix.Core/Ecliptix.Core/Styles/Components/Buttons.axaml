@@ -19,7 +19,19 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Transitions" Value="{StaticResource Transitions.Button}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" 
+                                 Duration="{StaticResource Button.TransitionDuration}" 
+                                 Easing="CubicEaseOut" />
+                <DoubleTransition Property="Opacity" 
+                                  Duration="{StaticResource Button.TransitionDuration}" 
+                                  Easing="CubicEaseOut" />
+                <TransformOperationsTransition Property="RenderTransform" 
+                                               Duration="{StaticResource Button.TransitionDuration}" 
+                                               Easing="CubicEaseOut" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.auth-button:pressed">
