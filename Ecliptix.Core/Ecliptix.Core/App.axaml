@@ -69,9 +69,5 @@
             <Setter Property="Opacity" Value="0.5" />
             <Setter Property="RenderTransform" Value="scale(0.98)" />
         </Style>
-
-        
     </Application.Styles>
-
-
 </Application>
