@@ -67,7 +67,6 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
             subscription.DisposeWith(disposables);
         });
         
-        // Set subscription immediately instead of waiting for activation
         IsSubscribed.TrySetResult();
     }
 
