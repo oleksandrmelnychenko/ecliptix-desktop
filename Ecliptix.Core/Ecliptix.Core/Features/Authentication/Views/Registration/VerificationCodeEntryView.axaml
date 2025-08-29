@@ -8,125 +8,37 @@
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
-             d:DesignWidth="320"
+             d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
              x:DataType="signUp:VerifyOtpViewModel"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.VerificationCodeEntryView"
-             MinWidth="320"
-             Width="320">
+             MinWidth="{StaticResource Content.MaxWidth}"
+             Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Resources>
-        <!-- Layout Dimensions -->
-        <x:Double x:Key="ButtonHeight">44</x:Double>
-        <x:Double x:Key="ButtonFontSize">14</x:Double>
-        <x:Double x:Key="TitleFontSize">22</x:Double>
-        <x:Double x:Key="SubtitleFontSize">17</x:Double>
-        <x:Double x:Key="HeaderMaxWidth">280</x:Double>
+    <!-- All resources moved to shared Core styles -->
 
-        <!-- Spacing -->
-        <x:Double x:Key="SectionSpacing">21</x:Double>
-        <x:Double x:Key="HeaderSpacing">7</x:Double>
-        <x:Double x:Key="ButtonSpacing">10</x:Double>
-
-        <!-- UI Elements -->
-        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
-
-        <!-- Button Colors -->
-        <Color x:Key="GrayButtonHoverColor">#F5F5F5</Color>
-        <Color x:Key="GrayButtonPressedColor">#EEEEEE</Color>
-        <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
-
-        <!-- Animation Durations -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-    </UserControl.Resources>
-
-    <UserControl.Styles>
-        <!-- Base Button Style -->
-        <Style Selector="Button.auth-button">
-            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                     Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
-                                      Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-        </Style>
-
-        <Style Selector="Button.auth-button:pressed">
-            <Setter Property="Opacity" Value="0.9" />
-        </Style>
-
-        <!-- Recovery Button (Light Gray) -->
-        <Style Selector="Button.recovery-button">
-            <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource LightButtonForegroundColor}" />
-        </Style>
-
-        <Style Selector="Button.recovery-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource GrayButtonHoverColor}" />
-        </Style>
-
-        <Style Selector="Button.recovery-button:pressed">
-            <Setter Property="Background" Value="{StaticResource GrayButtonPressedColor}" />
-        </Style>
-
-        <!-- Continue Button (Dark) -->
-        <Style Selector="Button.continue-button">
-            <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pressed">
-            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
-        </Style>
-
-        <!-- Status Text Style -->
-        <Style Selector="TextBlock.status-text">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource TextForegroundColor}" />
-            <Setter Property="Opacity" Value="0.7" />
-        </Style>
-
-        <Style Selector="TextBlock.error-text">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="Red" />
-            <Setter Property="TextAlignment" Value="Center" />
-        </Style>
-    </UserControl.Styles>
+    <!-- All styles moved to shared Components/Buttons.axaml and Core/Typography.axaml -->
 
     <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
-          RowSpacing="{StaticResource SectionSpacing}"
+          RowSpacing="{StaticResource Spacing.XL}"
           RowDefinitions="Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
-          Width="320">
+          Width="{StaticResource Content.MaxWidth}">
 
         <!-- Header Section -->
         <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource HeaderSpacing}"
-                    MaxWidth="{StaticResource HeaderMaxWidth}"
+                    Spacing="{StaticResource Spacing.S}"
+                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
-                       FontSize="{StaticResource SubtitleFontSize}"
+                       FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource TitleFontSize}"
+                       FontSize="{StaticResource Font.Title.M}"
                        LineHeight="28"
                        FontWeight="Normal"
                        Foreground="{DynamicResource TextForegroundColor}"
@@ -137,7 +49,7 @@
         <coreControls:SegmentedTextBox Grid.Row="1"
                                    SegmentCount="6"
                                    Height="60"
-                                   FontSize="20"
+                                   FontSize="{StaticResource Input.SegmentFontSize}"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
@@ -166,7 +78,7 @@
         <!-- Action Buttons -->
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
-              ColumnSpacing="{StaticResource ButtonSpacing}">
+              ColumnSpacing="{StaticResource Spacing.M}">
             <Button Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Resend]}"
                     IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
                     Command="{Binding ResendSendVerificationCodeCommand}"

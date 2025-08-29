@@ -7,99 +7,37 @@
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d"
-             d:DesignWidth="320"
+             d:DesignWidth="{StaticResource Content.MaxWidth}"
              d:DesignHeight="400"
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.MobileVerificationView"
              x:DataType="signUp:MobileVerificationViewModel"
-             MinWidth="320"
-             Width="320">
+             MinWidth="{StaticResource Content.MaxWidth}"
+             Width="{StaticResource Content.MaxWidth}">
 
-    <UserControl.Resources>
-        <!-- Layout Dimensions -->
-        <x:Double x:Key="ButtonHeight">44</x:Double>
-        <x:Double x:Key="InputHeight">78</x:Double>
-        <x:Double x:Key="InputFontSize">16</x:Double>
-        <x:Double x:Key="WatermarkFontSize">14</x:Double>
-        <x:Double x:Key="ButtonFontSize">14</x:Double>
-        <x:Double x:Key="TitleFontSize">22</x:Double>
-        <x:Double x:Key="SubtitleFontSize">17</x:Double>
-        <x:Double x:Key="HeaderMaxWidth">280</x:Double>
+    <!-- All resources moved to shared Core styles -->
 
-        <!-- Spacing -->
-        <x:Double x:Key="SectionSpacing">21</x:Double>
-        <x:Double x:Key="HeaderSpacing">7</x:Double>
-
-        <!-- UI Elements -->
-        <CornerRadius x:Key="InputCornerRadius">12</CornerRadius>
-        <CornerRadius x:Key="ButtonCornerRadius">12</CornerRadius>
-
-        <!-- Button Colors -->
-        <Color x:Key="DarkButtonHoverColor">#262626</Color>
-        <Color x:Key="DarkButtonPressedColor">#1f1f1f</Color>
-
-        <!-- Animation Durations -->
-        <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-    </UserControl.Resources>
-
-    <UserControl.Styles>
-        <!-- Base Button Style -->
-        <Style Selector="Button.auth-button">
-            <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="HorizontalAlignment" Value="Stretch" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                     Easing="CubicEaseOut" />
-                    <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
-                                      Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-        </Style>
-
-        <Style Selector="Button.auth-button:pressed">
-            <Setter Property="Opacity" Value="0.9" />
-        </Style>
-
-        <!-- Continue Button (Dark) -->
-        <Style Selector="Button.continue-button">
-            <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pointerover">
-            <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
-        </Style>
-
-        <Style Selector="Button.continue-button:pressed">
-            <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
-        </Style>
-    </UserControl.Styles>
+    <!-- All styles moved to shared Components/Buttons.axaml -->
 
     <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
-          RowSpacing="{StaticResource SectionSpacing}"
+          RowSpacing="{StaticResource Spacing.XL}"
           RowDefinitions="Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
-          Width="320">
+          Width="{StaticResource Content.MaxWidth}">
 
         <!-- Header Section -->
         <StackPanel Grid.Row="0"
-                    Spacing="{StaticResource HeaderSpacing}"
-                    MaxWidth="{StaticResource HeaderMaxWidth}"
+                    Spacing="{StaticResource Spacing.S}"
+                    MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Title]}"
-                       FontSize="{StaticResource SubtitleFontSize}"
+                       FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
                        Foreground="{DynamicResource TextForegroundColor}"
                        LineHeight="28" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource TitleFontSize}"
+                       FontSize="{StaticResource Font.Title.M}"
                        LineHeight="28"
                        FontWeight="Normal"
                        Foreground="{DynamicResource TextForegroundColor}"
@@ -119,10 +57,10 @@
             FocusBorderBrush="{DynamicResource TipsColor}"
             MainBorderBrush="Transparent"
             Text="{Binding MobileNumber,Mode=TwoWay}"
-            Height="{StaticResource InputHeight}"
-            CornerRadius="{StaticResource InputCornerRadius}"
-            FontSize="{StaticResource InputFontSize}"
-            WatermarkFontSize="{StaticResource WatermarkFontSize}"
+            Height="{StaticResource Input.Height}"
+            CornerRadius="{StaticResource Radius.L}"
+            FontSize="{StaticResource Input.FontSize}"
+            WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
             Background="{DynamicResource TextBoxBackgroundColor}"
             FontWeight="Light"
             HorizontalAlignment="Stretch" />

@@ -5,8 +5,8 @@
         
         <!-- Centralized Version Management -->
         <MajorVersion>0</MajorVersion>
-        <MinorVersion>3464</MinorVersion>
-        <PatchVersion>808</PatchVersion>
+        <MinorVersion>3732</MinorVersion>
+        <PatchVersion>0</PatchVersion>
         <BuildNumber Condition="'$(BuildNumber)' == ''">0</BuildNumber>
         
         <!-- Computed Version Properties -->

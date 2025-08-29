@@ -1,0 +1,118 @@
+1<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== TRAFFIC LIGHT BUTTON STYLES ===== -->
+    <!-- Eliminates 180+ lines of duplication from MainHostWindow, TitleBar, MembershipHostWindow -->
+    <!-- Single source of truth for all window controls -->
+
+    <!-- Base Traffic Light Button -->
+    <Style Selector="Button.traffic-light">
+        <Setter Property="Width" Value="{StaticResource TrafficLight.Size}" />
+        <Setter Property="Height" Value="{StaticResource TrafficLight.Size}" />
+        <Setter Property="CornerRadius" Value="{StaticResource TrafficLight.Radius}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_BackgroundBorder"
+                        Background="{TemplateBinding Background}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="Transitions" Value="{StaticResource Transitions.TrafficLight}" />
+    </Style>
+
+    <!-- ===== CLOSE BUTTON ===== -->
+    <Style Selector="Button.traffic-light.close">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Close}" />
+    </Style>
+    <Style Selector="Button.traffic-light.close:pointerover">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Close.Hover}" />
+    </Style>
+    <Style Selector="Button.traffic-light.close:pressed">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Close.Pressed}" />
+    </Style>
+
+    <!-- ===== MINIMIZE BUTTON ===== -->
+    <Style Selector="Button.traffic-light.minimize">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Minimize}" />
+    </Style>
+    <Style Selector="Button.traffic-light.minimize:pointerover">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Minimize.Hover}" />
+    </Style>
+    <Style Selector="Button.traffic-light.minimize:pressed">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Minimize.Pressed}" />
+    </Style>
+
+    <!-- ===== MAXIMIZE BUTTON ===== -->
+    <Style Selector="Button.traffic-light.maximize">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Maximize}" />
+    </Style>
+    <Style Selector="Button.traffic-light.maximize:pointerover">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Maximize.Hover}" />
+    </Style>
+    <Style Selector="Button.traffic-light.maximize:pressed">
+        <Setter Property="Background" Value="{DynamicResource TrafficLight.Maximize.Pressed}" />
+    </Style>
+
+    <!-- ===== DISABLED STATE ===== -->
+    <Style Selector="Button.traffic-light:disabled">
+        <Setter Property="Background" Value="Gray" />
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
+    <!-- ===== ICON STYLES ===== -->
+    <!-- Path elements inside traffic light buttons -->
+    <Style Selector="Button.traffic-light Path">
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="3" />
+    </Style>
+
+    <!-- Icon hover effects -->
+    <Style Selector="Button.traffic-light.close:pointerover Path">
+        <Setter Property="Fill" Value="#FF6B6B" />
+    </Style>
+    <Style Selector="Button.traffic-light.minimize:pointerover Path">
+        <Setter Property="Fill" Value="#FFD54F" />
+    </Style>
+    <Style Selector="Button.traffic-light.maximize:pointerover Path">
+        <Setter Property="Fill" Value="#66BB6A" />
+    </Style>
+
+    <!-- Default icon colors -->
+    <Style Selector="Button.traffic-light.close Path">
+        <Setter Property="Fill" Value="{DynamicResource TrafficLight.Close.Icon}" />
+    </Style>
+    <Style Selector="Button.traffic-light.minimize Path">
+        <Setter Property="Fill" Value="{DynamicResource TrafficLight.Minimize.Icon}" />
+    </Style>
+    <Style Selector="Button.traffic-light.maximize Path">
+        <Setter Property="Fill" Value="{DynamicResource TrafficLight.Maximize.Icon}" />
+    </Style>
+
+    <!-- ===== ACCESSIBILITY ENHANCEMENTS ===== -->
+    <!-- Focus states for keyboard navigation -->
+    <Style Selector="Button.traffic-light:focus-visible">
+        <Setter Property="RenderTransform" Value="scale(1.1)" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <!-- Active state -->
+    <Style Selector="Button.traffic-light:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.95)" />
+    </Style>
+
+</Styles>

@@ -1,0 +1,93 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- ===== DIMENSION RESOURCES ===== -->
+            <!-- Eliminates duplications from all XAML files -->
+            <!-- Single source of truth for all measurements -->
+
+            <!-- ===== SPACING SYSTEM ===== -->
+            <!-- Consistent spacing scale for the entire application -->
+            <x:Double x:Key="Spacing.XXS">2</x:Double>
+            <x:Double x:Key="Spacing.XS">4</x:Double>
+            <x:Double x:Key="Spacing.S">8</x:Double>
+            <x:Double x:Key="Spacing.M">12</x:Double>
+            <x:Double x:Key="Spacing.L">16</x:Double>
+            <x:Double x:Key="Spacing.XL">24</x:Double>
+            <x:Double x:Key="Spacing.XXL">32</x:Double>
+
+            <!-- ===== COMPONENT DIMENSIONS ===== -->
+            
+            <!-- Button Dimensions -->
+            <x:Double x:Key="Button.Height">44</x:Double>
+            <x:Double x:Key="Button.MinWidth">88</x:Double>
+            
+            <!-- Input Dimensions -->
+            <x:Double x:Key="Input.Height">78</x:Double>
+            <x:Double x:Key="Input.SecureHeight">90</x:Double>
+            <x:Double x:Key="Input.MinWidth">200</x:Double>
+            
+            <!-- Traffic Light Buttons -->
+            <x:Double x:Key="TrafficLight.Size">12</x:Double>
+            <x:Double x:Key="TrafficLight.Radius">6</x:Double>
+            
+            <!-- Layout Widths -->
+            <x:Double x:Key="Content.MaxWidth">320</x:Double>
+            <x:Double x:Key="Header.MaxWidth">280</x:Double>
+            <x:Double x:Key="Back.ButtonSize">48</x:Double>
+            
+            <!-- Logo & Branding -->
+            <x:Double x:Key="Logo.Size">100</x:Double>
+            <x:Double x:Key="Logo.SmallSize">36</x:Double>
+            <x:Double x:Key="Tagline.Height">18</x:Double>
+            
+            <!-- Welcome Screen Specific -->
+            <x:Double x:Key="Circle.Size">180</x:Double>
+            <x:Double x:Key="Circle.InnerSize">170</x:Double>
+            
+            <!-- Effects -->
+            <x:Double x:Key="Blur.Radius">20</x:Double>
+            <x:Double x:Key="Shadow.Radius">12</x:Double>
+
+            <!-- ===== BORDER RADIUS SYSTEM ===== -->
+            <CornerRadius x:Key="Radius.XS">4</CornerRadius>
+            <CornerRadius x:Key="Radius.S">6</CornerRadius>
+            <CornerRadius x:Key="Radius.M">8</CornerRadius>
+            <CornerRadius x:Key="Radius.L">12</CornerRadius>
+            <CornerRadius x:Key="Radius.XL">15</CornerRadius>
+            <CornerRadius x:Key="Radius.Round">22</CornerRadius>
+            <CornerRadius x:Key="Radius.Circle">90</CornerRadius>
+
+            <!-- ===== THICKNESS SYSTEM ===== -->
+            
+            <!-- Padding -->
+            <Thickness x:Key="Padding.XS">4</Thickness>
+            <Thickness x:Key="Padding.S">8</Thickness>
+            <Thickness x:Key="Padding.M">12</Thickness>
+            <Thickness x:Key="Padding.L">16</Thickness>
+            <Thickness x:Key="Padding.XL">24</Thickness>
+            
+            <!-- Margins -->
+            <Thickness x:Key="Margin.XS">4</Thickness>
+            <Thickness x:Key="Margin.S">8</Thickness>
+            <Thickness x:Key="Margin.M">12</Thickness>
+            <Thickness x:Key="Margin.L">16</Thickness>
+            <Thickness x:Key="Margin.XL">24</Thickness>
+            
+            <!-- Special Layout Margins -->
+            <Thickness x:Key="Container.Margin">0,16,0,16</Thickness>
+            <Thickness x:Key="Content.Padding">20,0</Thickness>
+            <Thickness x:Key="Header.Padding">0,12,0,0</Thickness>
+            <Thickness x:Key="Footer.Margin">12,0,12,16</Thickness>
+            <Thickness x:Key="Error.Margin">8</Thickness>
+    
+            <!-- Border Thickness -->
+            <Thickness x:Key="Border.Thin">1</Thickness>
+            <Thickness x:Key="Border.Medium">2</Thickness>
+            <Thickness x:Key="Border.Thick">4</Thickness>
+            <Thickness x:Key="Circle.BorderThickness">4</Thickness>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>

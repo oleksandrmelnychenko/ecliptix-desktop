@@ -1,0 +1,191 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- ===== THEME DICTIONARIES ===== -->
+            <!-- Proper Light/Dark theme implementation -->
+            <ResourceDictionary.ThemeDictionaries>
+                
+                <!-- ===== LIGHT THEME ===== -->
+                <ResourceDictionary x:Key="Light">
+                    
+                    <!-- Primary Brand Colors -->
+                    <Color x:Key="Primary">#6a5acd</Color>
+                    <Color x:Key="PrimaryVariant">#553c9a</Color>
+                    <Color x:Key="OnPrimary">#FFFFFF</Color>
+                    
+                    <!-- Secondary Colors -->
+                    <Color x:Key="Secondary">#2f2f2f</Color>
+                    <Color x:Key="SecondaryVariant">#1f1f1f</Color>
+                    <Color x:Key="OnSecondary">#e3e3e3</Color>
+                    
+                    <!-- Surface Colors -->
+                    <Color x:Key="Surface">#f8f8f8</Color>
+                    <Color x:Key="SurfaceVariant">#eaeaea</Color>
+                    <Color x:Key="OnSurface">#0c0c0c</Color>
+                    <Color x:Key="OnSurfaceVariant">#5E5D5D</Color>
+                    
+                    <!-- Background Colors -->
+                    <Color x:Key="Background">#ffffff</Color>
+                    <Color x:Key="OnBackground">#0c0c0c</Color>
+                    
+                    <!-- State Colors -->
+                    <Color x:Key="Error">#ef3a3a</Color>
+                    <Color x:Key="OnError">#FFFFFF</Color>
+                    <Color x:Key="Success">#28C940</Color>
+                    <Color x:Key="OnSuccess">#FFFFFF</Color>
+                    <Color x:Key="Warning">#FFBD2E</Color>
+                    <Color x:Key="OnWarning">#000000</Color>
+                    
+                    <!-- Button State Colors -->
+                    <Color x:Key="Button.Primary.Hover">#262626</Color>
+                    <Color x:Key="Button.Primary.Pressed">#1f1f1f</Color>
+                    <Color x:Key="Button.Secondary.Hover">#F5F5F5</Color>
+                    <Color x:Key="Button.Secondary.Pressed">#EEEEEE</Color>
+                    
+                    <!-- Traffic Light Colors -->
+                    <Color x:Key="TrafficLight.Close">#FF5F57</Color>
+                    <Color x:Key="TrafficLight.Close.Hover">#E0443E</Color>
+                    <Color x:Key="TrafficLight.Close.Pressed">#C13934</Color>
+                    <Color x:Key="TrafficLight.Close.Icon">#B71C1C</Color>
+                    
+                    <Color x:Key="TrafficLight.Minimize">#FFBD2E</Color>
+                    <Color x:Key="TrafficLight.Minimize.Hover">#E0A72A</Color>
+                    <Color x:Key="TrafficLight.Minimize.Pressed">#C19124</Color>
+                    <Color x:Key="TrafficLight.Minimize.Icon">#E65100</Color>
+                    
+                    <Color x:Key="TrafficLight.Maximize">#28C940</Color>
+                    <Color x:Key="TrafficLight.Maximize.Hover">#23AF38</Color>
+                    <Color x:Key="TrafficLight.Maximize.Pressed">#1E952F</Color>
+                    <Color x:Key="TrafficLight.Maximize.Icon">#1B5E20</Color>
+                    
+                    <!-- Status Indicator Colors -->
+                    <Color x:Key="Status.Connected">#28C940</Color>
+                    <Color x:Key="Status.Connecting">#FFBD2E</Color>
+                    <Color x:Key="Status.Disconnected">#FF5F57</Color>
+                    <Color x:Key="Status.Default">#9966CC</Color>
+                    
+                    <!-- Footer Colors -->
+                    <Color x:Key="Footer.Text">#808080</Color>
+                    <Color x:Key="Footer.Link">#6a5acd</Color>
+                    <Color x:Key="Footer.Link.Hover">#553c9a</Color>
+                    <Color x:Key="Version.Text">#999999</Color>
+                    
+                    <!-- Shadow & Effects -->
+                    <Color x:Key="Shadow">#6a5acd</Color>
+                    <Color x:Key="Blur.Background">#FF6a5acd</Color>
+                    
+                    <!-- Special Colors -->
+                    <Color x:Key="Circle.Border">White</Color>
+                    <Color x:Key="Window.Background">#FFFFFF</Color>
+                    <Color x:Key="Window.Border">#B084CC</Color>
+
+                    <!-- Legacy Compatibility (remove after migration) -->
+                    <Color x:Key="DarkButtonColor">#2f2f2f</Color>
+                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
+                    <Color x:Key="LightButtonColor">#eaeaea</Color>
+                    <Color x:Key="LightButtonForegroundColor">#262626</Color>
+                    <Color x:Key="BackgroundColor">#ffffff</Color>
+                    <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
+                    <Color x:Key="TextBoxForegroundColor">#5E5D5D</Color>
+                    <Color x:Key="TipsColor">#6a5acd</Color>
+                    <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
+                    <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
+                    <Color x:Key="FooterTextColor">#616161</Color>
+                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
+                </ResourceDictionary>
+                
+                <!-- ===== DARK THEME ===== -->
+                <ResourceDictionary x:Key="Dark">
+                    
+                    <!-- Primary Brand Colors -->
+                    <Color x:Key="Primary">#8b7dd8</Color>
+                    <Color x:Key="PrimaryVariant">#7c6cd4</Color>
+                    <Color x:Key="OnPrimary">#000000</Color>
+                    
+                    <!-- Secondary Colors -->
+                    <Color x:Key="Secondary">#3a3a3a</Color>
+                    <Color x:Key="SecondaryVariant">#4a4a4a</Color>
+                    <Color x:Key="OnSecondary">#e3e3e3</Color>
+                    
+                    <!-- Surface Colors -->
+                    <Color x:Key="Surface">#2d2d2d</Color>
+                    <Color x:Key="SurfaceVariant">#3a3a3a</Color>
+                    <Color x:Key="OnSurface">#e3e3e3</Color>
+                    <Color x:Key="OnSurfaceVariant">#b3b3b3</Color>
+                    
+                    <!-- Background Colors -->
+                    <Color x:Key="Background">#1e1e1e</Color>
+                    <Color x:Key="OnBackground">#e3e3e3</Color>
+                    
+                    <!-- State Colors -->
+                    <Color x:Key="Error">#ff6b6b</Color>
+                    <Color x:Key="OnError">#000000</Color>
+                    <Color x:Key="Success">#51d151</Color>
+                    <Color x:Key="OnSuccess">#000000</Color>
+                    <Color x:Key="Warning">#ffd54f</Color>
+                    <Color x:Key="OnWarning">#000000</Color>
+                    
+                    <!-- Button State Colors -->
+                    <Color x:Key="Button.Primary.Hover">#4a4a4a</Color>
+                    <Color x:Key="Button.Primary.Pressed">#363636</Color>
+                    <Color x:Key="Button.Secondary.Hover">#404040</Color>
+                    <Color x:Key="Button.Secondary.Pressed">#2a2a2a</Color>
+                    
+                    <!-- Traffic Light Colors (same as light theme) -->
+                    <Color x:Key="TrafficLight.Close">#FF5F57</Color>
+                    <Color x:Key="TrafficLight.Close.Hover">#E0443E</Color>
+                    <Color x:Key="TrafficLight.Close.Pressed">#C13934</Color>
+                    <Color x:Key="TrafficLight.Close.Icon">#B71C1C</Color>
+                    
+                    <Color x:Key="TrafficLight.Minimize">#FFBD2E</Color>
+                    <Color x:Key="TrafficLight.Minimize.Hover">#E0A72A</Color>
+                    <Color x:Key="TrafficLight.Minimize.Pressed">#C19124</Color>
+                    <Color x:Key="TrafficLight.Minimize.Icon">#E65100</Color>
+                    
+                    <Color x:Key="TrafficLight.Maximize">#28C940</Color>
+                    <Color x:Key="TrafficLight.Maximize.Hover">#23AF38</Color>
+                    <Color x:Key="TrafficLight.Maximize.Pressed">#1E952F</Color>
+                    <Color x:Key="TrafficLight.Maximize.Icon">#1B5E20</Color>
+                    
+                    <!-- Status Indicator Colors (same as light theme) -->
+                    <Color x:Key="Status.Connected">#28C940</Color>
+                    <Color x:Key="Status.Connecting">#FFBD2E</Color>
+                    <Color x:Key="Status.Disconnected">#FF5F57</Color>
+                    <Color x:Key="Status.Default">#9966CC</Color>
+                    
+                    <!-- Footer Colors -->
+                    <Color x:Key="Footer.Text">#b3b3b3</Color>
+                    <Color x:Key="Footer.Link">#8b7dd8</Color>
+                    <Color x:Key="Footer.Link.Hover">#a094e0</Color>
+                    <Color x:Key="Version.Text">#808080</Color>
+                    
+                    <!-- Shadow & Effects -->
+                    <Color x:Key="Shadow">#8b7dd8</Color>
+                    <Color x:Key="Blur.Background">#FF8b7dd8</Color>
+                    
+                    <!-- Special Colors -->
+                    <Color x:Key="Circle.Border">#e3e3e3</Color>
+                    <Color x:Key="Window.Background">#2d2d2d</Color>
+                    <Color x:Key="Window.Border">#8b7dd8</Color>
+
+                    <!-- Legacy Compatibility (remove after migration) -->
+                    <Color x:Key="DarkButtonColor">#3a3a3a</Color>
+                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
+                    <Color x:Key="LightButtonColor">#2d2d2d</Color>
+                    <Color x:Key="LightButtonForegroundColor">#e3e3e3</Color>
+                    <Color x:Key="BackgroundColor">#1e1e1e</Color>
+                    <Color x:Key="TextBoxBackgroundColor">#2d2d2d</Color>
+                    <Color x:Key="TextBoxForegroundColor">#e3e3e3</Color>
+                    <Color x:Key="TipsColor">#8b7dd8</Color>
+                    <Color x:Key="BackButtonBackgroundColor">#2d2d2d</Color>
+                    <Color x:Key="BackButtonForegroundColor">#e3e3e3</Color>
+                    <Color x:Key="FooterTextColor">#b3b3b3</Color>
+                    <Color x:Key="TextForegroundColor">#e3e3e3</Color>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+</Styles>
