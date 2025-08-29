@@ -36,7 +36,7 @@ public sealed class SecureTextBuffer : IDisposable
             return;
         }
 
-        using var rentedBytes = SecureArrayPool.Rent<byte>(_secureHandle.Length);
+        using SecurePooledArray<byte> rentedBytes = SecureArrayPool.Rent<byte>(_secureHandle.Length);
         Span<byte> span = rentedBytes.AsSpan();
 
         _secureHandle.Read(span).Unwrap();

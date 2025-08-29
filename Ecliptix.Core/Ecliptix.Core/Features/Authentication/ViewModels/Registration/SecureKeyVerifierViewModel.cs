@@ -1,30 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Opaque.Protocol;
-using Ecliptix.Protocol.System.Utilities;
-using Org.BouncyCastle.Crypto.Parameters;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Membership;
-using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Utilities;
 using Google.Protobuf;
-using Org.BouncyCastle.Math;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
@@ -59,17 +54,20 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     private ByteString? VerificationSessionId { get; set; }
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IOpaqueRegistrationService _registrationService;
 
     public SecureKeyVerifierViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        IOpaqueRegistrationService registrationService
     ) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _registrationService = registrationService;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
 
@@ -155,71 +153,78 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     }
 
     private IObservable<bool> SetupValidation()
-{
-    IObservable<System.Reactive.Unit> languageTrigger = 
-        Observable.FromEvent(
+    {
+        IObservable<System.Reactive.Unit> languageTrigger =
+            Observable.FromEvent(
                     handler => LocalizationService.LanguageChanged += handler,
                     handler => LocalizationService.LanguageChanged -= handler)
                 .Select(_ => System.Reactive.Unit.Default);
 
-    IObservable<System.Reactive.Unit> lengthTrigger = this
-        .WhenAnyValue(x => x.CurrentSecureKeyLength)
-        .Select(_ => System.Reactive.Unit.Default);
-    
-    IObservable<System.Reactive.Unit> validationTrigger = lengthTrigger.Merge(languageTrigger);
-    
-    IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation = validationTrigger
-        .Select(_ => ValidateSecureKeyWithStrength())
-        .Replay(1)
-        .RefCount();
-    
-    secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
-    secureKeyValidation.Select(v => _hasSecureKeyBeenTouched ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
-        .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
-    
-    this.WhenAnyValue(x => x.CurrentSecureKeyLength)
-        .Select(_ => _hasSecureKeyBeenTouched)
-        .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
+        IObservable<System.Reactive.Unit> lengthTrigger = this
+            .WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => System.Reactive.Unit.Default);
 
-    IObservable<string> secureKeyErrorStream = secureKeyValidation
-        .Select(v => _hasSecureKeyBeenTouched ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations) : string.Empty)
-        .Replay(1)
-        .RefCount();
-    
-    secureKeyErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
-    this.WhenAnyValue(x => x.SecureKeyError).Select(e => !string.IsNullOrEmpty(e))
-        .ToPropertyEx(this, x => x.HasSecureKeyError);
-    
-    IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
-    
-    IObservable<System.Reactive.Unit> verifyLengthTrigger = this
-        .WhenAnyValue(x => x.CurrentVerifySecureKeyLength)
-        .Select(_ => System.Reactive.Unit.Default);
-    
-    IObservable<System.Reactive.Unit> verifyValidationTrigger = verifyLengthTrigger
-        .Merge(languageTrigger)
-        .Merge(lengthTrigger);
-    
-    IObservable<bool> secureKeysMatch = verifyValidationTrigger
-        .Select(_ => DoSecureKeysMatch())
-        .Replay(1)
-        .RefCount();
-    
-    IObservable<string> verifySecureKeyErrorStream = secureKeysMatch
-        .Select(match => _hasVerifySecureKeyBeenTouched && !match
-            ? LocalizationService["ValidationErrors.VerifySecureKey.DoesNotMatch"]
-            : string.Empty)
-        .Replay(1)
-        .RefCount();
+        IObservable<System.Reactive.Unit> validationTrigger = lengthTrigger.Merge(languageTrigger);
 
-    verifySecureKeyErrorStream.ToPropertyEx(this, x => x.VerifySecureKeyError);
-    this.WhenAnyValue(x => x.VerifySecureKeyError).Select(e => !string.IsNullOrEmpty(e))
-        .ToPropertyEx(this, x => x.HasVerifySecureKeyError);
+        IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation =
+            validationTrigger
+                .Select(_ => ValidateSecureKeyWithStrength())
+                .Replay(1)
+                .RefCount();
 
-    return isSecureKeyLogicallyValid
-        .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
-        .DistinctUntilChanged();
-}
+        secureKeyValidation.Select(v => v.Strength).ToPropertyEx(this, x => x.CurrentSecureKeyStrength);
+        secureKeyValidation.Select(v =>
+                _hasSecureKeyBeenTouched
+                    ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations)
+                    : string.Empty)
+            .ToPropertyEx(this, x => x.SecureKeyStrengthMessage);
+
+        this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => _hasSecureKeyBeenTouched)
+            .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
+
+        IObservable<string> secureKeyErrorStream = secureKeyValidation
+            .Select(v =>
+                _hasSecureKeyBeenTouched
+                    ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations)
+                    : string.Empty)
+            .Replay(1)
+            .RefCount();
+
+        secureKeyErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
+        this.WhenAnyValue(x => x.SecureKeyError).Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasSecureKeyError);
+
+        IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
+
+        IObservable<System.Reactive.Unit> verifyLengthTrigger = this
+            .WhenAnyValue(x => x.CurrentVerifySecureKeyLength)
+            .Select(_ => System.Reactive.Unit.Default);
+
+        IObservable<System.Reactive.Unit> verifyValidationTrigger = verifyLengthTrigger
+            .Merge(languageTrigger)
+            .Merge(lengthTrigger);
+
+        IObservable<bool> secureKeysMatch = verifyValidationTrigger
+            .Select(_ => DoSecureKeysMatch())
+            .Replay(1)
+            .RefCount();
+
+        IObservable<string> verifySecureKeyErrorStream = secureKeysMatch
+            .Select(match => _hasVerifySecureKeyBeenTouched && !match
+                ? LocalizationService[AuthenticationConstants.VerifySecureKeyDoesNotMatchKey]
+                : string.Empty)
+            .Replay(1)
+            .RefCount();
+
+        verifySecureKeyErrorStream.ToPropertyEx(this, x => x.VerifySecureKeyError);
+        this.WhenAnyValue(x => x.VerifySecureKeyError).Select(e => !string.IsNullOrEmpty(e))
+            .ToPropertyEx(this, x => x.HasVerifySecureKeyError);
+
+        return isSecureKeyLogicallyValid
+            .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
+            .DistinctUntilChanged();
+    }
 
     private (string? Error, string Recommendations, PasswordStrength Strength) ValidateSecureKeyWithStrength()
     {
@@ -230,7 +235,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         _secureKeyBuffer.WithSecureBytes(bytes =>
         {
             string secureKey = Encoding.UTF8.GetString(bytes);
-            (error, var recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
+            (error, List<string> recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
             strength = SecureKeyValidator.EstimatePasswordStrength(secureKey, LocalizationService);
             if (recs.Any())
             {
@@ -262,141 +267,44 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         return secureKeyArray.AsSpan().SequenceEqual(verifyArray);
     }
 
-    private static string FormatError(string? error, string recommendations)
-    {
-        if (!string.IsNullOrEmpty(error)) return error;
-        return recommendations;
-    }
-
     private string FormatSecureKeyStrengthMessage(PasswordStrength strength, string? error, string recommendations)
     {
         string strengthText = strength switch
         {
-            PasswordStrength.Invalid     => LocalizationService["ValidationErrors.PasswordStrength.Invalid"],
-            PasswordStrength.VeryWeak    => LocalizationService["ValidationErrors.PasswordStrength.VeryWeak"],
-            PasswordStrength.Weak        => LocalizationService["ValidationErrors.PasswordStrength.Weak"],
-            PasswordStrength.Good        => LocalizationService["ValidationErrors.PasswordStrength.Good"],
-            PasswordStrength.Strong      => LocalizationService["ValidationErrors.PasswordStrength.Strong"],
-            PasswordStrength.VeryStrong  => LocalizationService["ValidationErrors.PasswordStrength.VeryStrong"],
-            _                            => LocalizationService["ValidationErrors.PasswordStrength.Invalid"]
+            PasswordStrength.Invalid => LocalizationService[AuthenticationConstants.PasswordStrengthInvalidKey],
+            PasswordStrength.VeryWeak => LocalizationService[AuthenticationConstants.PasswordStrengthVeryWeakKey],
+            PasswordStrength.Weak => LocalizationService[AuthenticationConstants.PasswordStrengthWeakKey],
+            PasswordStrength.Good => LocalizationService[AuthenticationConstants.PasswordStrengthGoodKey],
+            PasswordStrength.Strong => LocalizationService[AuthenticationConstants.PasswordStrengthStrongKey],
+            PasswordStrength.VeryStrong => LocalizationService[AuthenticationConstants.PasswordStrengthVeryStrongKey],
+            _ => LocalizationService[AuthenticationConstants.PasswordStrengthInvalidKey]
         };
 
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
         return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
     }
+
     private async Task SubmitRegistrationSecureKeyAsync()
     {
         if (IsBusy || !CanSubmit) return;
 
-        byte[]? secureKeyBytes = null;
-        try
+        if (VerificationSessionId == null)
         {
-            _secureKeyBuffer.WithSecureBytes(bytes =>
-            {
-                secureKeyBytes = new byte[bytes.Length];
-                bytes.CopyTo(secureKeyBytes);
-            });
-
-            if (secureKeyBytes == null)
-            {
-                SecureKeyError = "Failed to process secure key";
-                return;
-            }
-
-            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> opfrResult =
-                OpaqueProtocolService.CreateOprfRequest(secureKeyBytes);
-
-            if (opfrResult.IsErr)
-            {
-                SecureKeyError = opfrResult.UnwrapErr().Message;
-                return;
-            }
-
-            (byte[] OprfRequest, BigInteger Blind) opfr = opfrResult.Unwrap();
-
-            OpaqueRegistrationInitRequest request = new()
-            {
-                MembershipIdentifier = VerificationSessionId,
-                PeerOprf = ByteString.CopyFrom(opfr.OprfRequest)
-            };
-
-            Result<Unit, NetworkFailure> createMembershipResult = await NetworkProvider.ExecuteUnaryRequestAsync(
-                ComputeConnectId(),
-                RpcServiceType.OpaqueRegistrationInit,
-                SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-                async payload =>
-                {
-                    OpaqueRegistrationInitResponse createMembershipResponse =
-                        OpaqueRegistrationInitResponse.Parser.ParseFrom(payload);
-
-
-                    if (createMembershipResponse.Result != OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
-                    {
-                        SecureKeyError = $"Registration failed: {createMembershipResponse.Message}";
-                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                    }
-
-                    OpaqueProtocolService opaqueService = CreateOpaqueService();
-                    Result<byte[], OpaqueFailure> registrationRecordResult =
-                        opaqueService.CreateRegistrationRecord(
-                            secureKeyBytes,
-                            SecureByteStringInterop.WithByteStringAsSpan(createMembershipResponse.PeerOprf,
-                                span => span.ToArray()),
-                            opfr.Blind);
-
-                    if (registrationRecordResult.IsErr)
-                    {
-                        SecureKeyError = registrationRecordResult.UnwrapErr().Message;
-                        return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                    }
-
-                    byte[] registrationRecord = registrationRecordResult.Unwrap();
-
-                    OpaqueRegistrationCompleteRequest completeRequest = new()
-                    {
-                        MembershipIdentifier = VerificationSessionId,
-                        PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord)!
-                    };
-
-                    await NetworkProvider.ExecuteUnaryRequestAsync(
-                        ComputeConnectId(),
-                        RpcServiceType.OpaqueRegistrationComplete,
-                        SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(),
-                            span => span.ToArray()),
-                        async completePayload =>
-                        {
-                            try
-                            {
-                                OpaqueRegistrationCompleteResponse completeResponse =
-                                    OpaqueRegistrationCompleteResponse.Parser.ParseFrom(completePayload);
-
-
-                                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                            }
-                            catch (Exception ex)
-                            {
-                                SecureKeyError = $"Error processing registration completion: {ex.Message}";
-                                return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                            }
-                        });
-
-                    return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true,
-                CancellationToken.None
-            );
+            SecureKeyError = LocalizationService[AuthenticationConstants.NoVerificationSessionKey];
+            return;
         }
-        catch (Exception ex)
+
+        Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
+            VerificationSessionId,
+            _secureKeyBuffer,
+            ComputeConnectId());
+
+        if (registrationResult.IsErr)
         {
-            SecureKeyError = $"Submission failed: {ex.Message}";
-        }
-        finally
-        {
-            if (secureKeyBytes != null)
-            {
-                Array.Clear(secureKeyBytes, 0, secureKeyBytes.Length);
-            }
+            SecureKeyError = registrationResult.UnwrapErr();
         }
     }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -408,17 +316,6 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         base.Dispose(disposing);
     }
 
-    private OpaqueProtocolService CreateOpaqueService()
-    {
-        byte[] serverPublicKeyBytes = SecureByteStringInterop.WithByteStringAsSpan(
-            NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
-            span => span.ToArray());
-        ECPublicKeyParameters serverStaticPublicKeyParam = new(
-            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes),
-            OpaqueCryptoUtilities.DomainParams
-        );
-        return new OpaqueProtocolService(serverStaticPublicKeyParam);
-    }
 
     public void ResetState()
     {

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Settings.Constants;
 
 namespace Ecliptix.Core.Settings;
 
@@ -17,27 +17,37 @@ public sealed class AppCultureSettings
     private readonly FrozenDictionary<string, string> _countryCultureMap;
     private readonly FrozenDictionary<string, int> _languageIndexMap;
 
-    public const string DefaultCultureCode = "en-US";
-
     private AppCultureSettings()
     {
-        List<LanguageItem> supportedLanguages =
-        [
-            new("en-US", "US", "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg"),
-            new("uk-UA", "UA", "avares://Ecliptix.Core/Assets/Icons/Flags/ukraine_flag.svg")
-        ];
-
-        Dictionary<string, string> countryCultureMap = new()
+        List<LanguageItem> supportedLanguages = new(AppCultureSettingsConstants.InitialCapacity)
         {
-            { "US", "en-US" },
-            { "UA", "uk-UA" },
+            new LanguageItem(AppCultureSettingsConstants.DefaultCultureCode, 
+                AppCultureSettingsConstants.UnitedStatesCountryCode, 
+                AppCultureSettingsConstants.UnitedStatesFlagPath),
+            new LanguageItem(AppCultureSettingsConstants.UkrainianCultureCode, 
+                AppCultureSettingsConstants.UkraineCountryCode, 
+                AppCultureSettingsConstants.UkraineFlagPath)
+        };
+
+        Dictionary<string, string> countryCultureMap = new(AppCultureSettingsConstants.InitialCapacity)
+        {
+            { AppCultureSettingsConstants.UnitedStatesCountryCode, AppCultureSettingsConstants.DefaultCultureCode },
+            { AppCultureSettingsConstants.UkraineCountryCode, AppCultureSettingsConstants.UkrainianCultureCode },
         };
 
         _languagesByCode = supportedLanguages.ToFrozenDictionary(lang => lang.Code, lang => lang);
         _countryCultureMap = countryCultureMap.ToFrozenDictionary();
-        _languageIndexMap = supportedLanguages
-            .Select((lang, index) => new { lang.Code, Index = index })
-            .ToFrozenDictionary(x => x.Code, x => x.Index);
+        _languageIndexMap = CreateLanguageIndexMap(supportedLanguages);
+    }
+
+    private static FrozenDictionary<string, int> CreateLanguageIndexMap(List<LanguageItem> supportedLanguages)
+    {
+        Dictionary<string, int> indexMap = new Dictionary<string, int>(supportedLanguages.Count);
+        for (int i = 0; i < supportedLanguages.Count; i++)
+        {
+            indexMap[supportedLanguages[i].Code] = i;
+        }
+        return indexMap.ToFrozenDictionary();
     }
 
     public IReadOnlyCollection<LanguageItem> SupportedLanguages => _languagesByCode.Values;
@@ -46,10 +56,10 @@ public sealed class AppCultureSettings
         _languagesByCode.GetValueOrDefault(cultureCode);
 
     public string GetCultureByCountry(string countryCode) =>
-        _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? string.Empty, DefaultCultureCode);
+        _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? AppCultureSettingsConstants.EmptyString, AppCultureSettingsConstants.DefaultCultureCode);
 
     public int GetLanguageIndex(string cultureCode) =>
-        _languageIndexMap.GetValueOrDefault(cultureCode, 0);
+        _languageIndexMap.GetValueOrDefault(cultureCode, AppCultureSettingsConstants.DefaultLanguageIndex);
 
     public string GetDisplayName(string cultureCode)
     {
@@ -60,7 +70,9 @@ public sealed class AppCultureSettings
         try
         {
             CultureInfo culture = CultureInfo.GetCultureInfo(cultureCode);
-            return culture.EnglishName.Split('(')[0].Trim();
+            string englishName = culture.EnglishName;
+            int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CultureDisplayNameSeparator);
+            return separatorIndex > 0 ? englishName[..separatorIndex].Trim() : englishName.Trim();
         }
         catch (CultureNotFoundException)
         {

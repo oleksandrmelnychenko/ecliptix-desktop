@@ -7,17 +7,12 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.Services.Network.Rpc;
-using Ecliptix.Protocol.System.Utilities;
-using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
-using ShieldUnit = Ecliptix.Utilities.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Serilog;
@@ -30,7 +25,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly IRegistrationService _registrationService;
+    private readonly IOpaqueRegistrationService _registrationService;
     
     [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
@@ -53,7 +48,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IRegistrationService registrationService) : base(systemEventService, networkProvider, localizationService)
+        IOpaqueRegistrationService registrationService) : base(systemEventService, networkProvider, localizationService)
     {
         _registrationService = registrationService;
         HostScreen = hostScreen;
@@ -78,7 +73,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
                     _hasMobileNumberBeenTouched = true;
 
-                // Network errors take precedence over validation errors
                 if (!string.IsNullOrEmpty(networkError))
                     return networkError;
                     
@@ -149,15 +143,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         return Unit.Default;
     }
 
-    private ValidatePhoneNumberRequest CreateValidateRequest(string systemDeviceIdentifier)
-    {
-        return new ValidatePhoneNumberRequest
-        {
-            MobileNumber = MobileNumber,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
-        };
-    }
-    
     public void ResetState()
     {
         MobileNumber = string.Empty;
@@ -170,7 +155,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)

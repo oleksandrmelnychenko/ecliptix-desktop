@@ -249,7 +249,7 @@ public static class Program
 
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
-        services.AddSingleton<IRegistrationService, OpaqueRegistrationService>();
+        services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
 
         services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
