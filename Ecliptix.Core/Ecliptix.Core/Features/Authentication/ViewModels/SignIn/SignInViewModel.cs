@@ -86,8 +86,28 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     
     private IObservable<bool> SetupValidation()
     {
-        IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
+        IObservable<SystemU> languageTrigger =
+            Observable.FromEvent(
+                    handler => LocalizationService.LanguageChanged += handler,
+                    handler => LocalizationService.LanguageChanged -= handler)
+                .Select(_ => SystemU.Default);
+        
+        IObservable<SystemU> mobileTrigger = this
+            .WhenAnyValue(x => x.MobileNumber)
+            .Select(_ => SystemU.Default);
+
+        IObservable<SystemU> secureKeyTrigger = this
+            .WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .Select(_ => SystemU.Default);
+        
+        IObservable<SystemU> validationTrigger = 
+            mobileTrigger
+            .Merge(secureKeyTrigger)
+            .Merge(languageTrigger);
+        
+        
+        IObservable<string> mobileValidation = validationTrigger
+            .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
             .Replay(1)
             .RefCount();
 
@@ -111,7 +131,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(flag => HasMobileNumberError = flag)
             .DisposeWith(_disposables);
 
-        IObservable<string> secureKeyValidation = this.WhenAnyValue(x => x.CurrentSecureKeyLength)
+        IObservable<string> secureKeyValidation = validationTrigger
             .Select(_ => ValidateSecureKey())
             .Replay(1)
             .RefCount();

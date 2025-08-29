@@ -59,8 +59,22 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<string> mobileValidation = this.WhenAnyValue(x => x.MobileNumber)
-            .Select(mobile => MobileNumberValidator.Validate(mobile, LocalizationService))
+        IObservable<System.Reactive.Unit> languageTrigger =
+            Observable.FromEvent(
+                    handler => LocalizationService.LanguageChanged += handler,
+                    handler => LocalizationService.LanguageChanged -= handler)
+                .Select(_ => System.Reactive.Unit.Default);
+        
+        IObservable<System.Reactive.Unit> mobileTrigger = this
+            .WhenAnyValue(x => x.MobileNumber)
+            .Select(_ => System.Reactive.Unit.Default);
+        
+        IObservable<System.Reactive.Unit> validationTrigger = 
+            mobileTrigger
+            .Merge(languageTrigger);
+        
+        IObservable<string> mobileValidation = validationTrigger
+            .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
             .Replay(1)
             .RefCount();
 

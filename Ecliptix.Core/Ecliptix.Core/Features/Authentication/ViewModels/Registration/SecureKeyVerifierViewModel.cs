@@ -36,10 +36,10 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
     public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
 
-    [ObservableAsProperty] public string? SecureKeyError { get; private set; }
-    [ObservableAsProperty] public bool HasSecureKeyError { get; private set; }
-    [ObservableAsProperty] public string? VerifySecureKeyError { get; private set; }
-    [ObservableAsProperty] public bool HasVerifySecureKeyError { get; private set; }
+    [Reactive] public string? SecureKeyError { get; set; }
+    [Reactive] public bool HasSecureKeyError { get; set; }
+    [Reactive] public string? VerifySecureKeyError { get; set; }
+    [Reactive] public bool HasVerifySecureKeyError { get; set; }
 
     [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -191,9 +191,11 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .Replay(1)
             .RefCount();
 
-        secureKeyErrorStream.ToPropertyEx(this, x => x.SecureKeyError);
-        this.WhenAnyValue(x => x.SecureKeyError).Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasSecureKeyError);
+        secureKeyErrorStream
+            .Subscribe(error => SecureKeyError = error);
+        this.WhenAnyValue(x => x.SecureKeyError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .Subscribe(flag => HasSecureKeyError = flag);
 
         IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
 
@@ -217,10 +219,14 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .Replay(1)
             .RefCount();
 
-        verifySecureKeyErrorStream.ToPropertyEx(this, x => x.VerifySecureKeyError);
-        this.WhenAnyValue(x => x.VerifySecureKeyError).Select(e => !string.IsNullOrEmpty(e))
-            .ToPropertyEx(this, x => x.HasVerifySecureKeyError);
-
+        verifySecureKeyErrorStream
+            .Subscribe(error => VerifySecureKeyError = error);
+        
+        
+        this.WhenAnyValue(x => x.VerifySecureKeyError)
+            .Select(e => !string.IsNullOrEmpty(e))
+            .Subscribe(flag => HasVerifySecureKeyError = flag);
+            
         return isSecureKeyLogicallyValid
             .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
             .DistinctUntilChanged();
@@ -323,6 +329,11 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
         _hasSecureKeyBeenTouched = false;
         _hasVerifySecureKeyBeenTouched = false;
+        
+        SecureKeyError = string.Empty;
+        HasSecureKeyError = false;
+        VerifySecureKeyError = string.Empty;
+        HasVerifySecureKeyError = false;
     }
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
