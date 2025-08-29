@@ -201,10 +201,11 @@ public partial class SegmentedTextBox : UserControl
 
     private void BuildSegments()
     {
-        if (SegmentsPanel == null) return;
+        StackPanel? segmentsPanel = this.FindControl<StackPanel>("SegmentsPanel");
+        if (segmentsPanel == null) return;
         _segments.Clear();
-        SegmentsPanel.Children.Clear();
-        SegmentsPanel.Spacing = SegmentSpacing;
+        segmentsPanel.Children.Clear();
+        segmentsPanel.Spacing = SegmentSpacing;
         _currentActiveIndex = 0;
 
         for (int i = 0; i < SegmentCount; i++)
@@ -221,7 +222,7 @@ public partial class SegmentedTextBox : UserControl
             tb.LostFocus += Segment_LostFocus;
             tb.GotFocus += Segment_GotFocus;
             _segments.Add(tb);
-            SegmentsPanel.Children.Add(tb);
+            segmentsPanel.Children.Add(tb);
         }
 
         UpdateTabIndexes();

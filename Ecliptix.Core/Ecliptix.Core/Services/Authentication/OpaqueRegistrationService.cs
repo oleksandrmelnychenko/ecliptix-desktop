@@ -17,21 +17,49 @@ using System.Reactive.Concurrency;
 using Serilog;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
 
 namespace Ecliptix.Core.Services.Authentication;
 
 public class OpaqueRegistrationService(
     NetworkProvider networkProvider,
-    ILocalizationService localizationService,
-    OpaqueProtocolService opaqueProtocolService)
+    ILocalizationService localizationService)
     : IOpaqueRegistrationService
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
 
     private readonly ConcurrentDictionary<ByteString, (BigInteger Blind, byte[] OprfResponse)>
         _opaqueRegistrationState = new();
-
+    
+    private OpaqueProtocolService CreateOpaqueService()
+    {
+        try
+        {
+            byte[] serverPublicKeyBytes = ServerPublicKey();
+            Log.Information("🔐 OPAQUE: Decoding server public key for AOT compatibility");
+        
+            Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
+            ECPublicKeyParameters serverStaticPublicKeyParam = new(
+                serverPublicKeyPoint,
+                OpaqueCryptoUtilities.DomainParams
+            );
+        
+            Log.Information("🔐 OPAQUE: Successfully created OPAQUE service");
+            return new OpaqueProtocolService(serverStaticPublicKeyParam);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "🔐 OPAQUE: Failed to create OPAQUE service - DecodePoint failed in AOT mode");
+            throw new InvalidOperationException("Failed to initialize OPAQUE protocol service", ex);
+        }
+    }
+    
+    private byte[] ServerPublicKey() =>
+        SecureByteStringInterop.WithByteStringAsSpan(
+            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+            span => span.ToArray());
+    
     public async Task<Result<ByteString, string>> ValidatePhoneNumberAsync(
         string mobileNumber,
         string deviceIdentifier,
@@ -361,8 +389,9 @@ public class OpaqueRegistrationService(
             Result<byte[], OpaqueFailure> recordResult = default;
             secureKey.WithSecureBytes(passwordBytes =>
             {
+                OpaqueProtocolService opaqueService = CreateOpaqueService();
                 recordResult =
-                    opaqueProtocolService.CreateRegistrationRecord(passwordBytes.ToArray(), serverOprfResponse,
+                    opaqueService.CreateRegistrationRecord(passwordBytes.ToArray(), serverOprfResponse,
                         blind);
             });
 
