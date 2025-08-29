@@ -1,9 +1,6 @@
-1<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ===== TRAFFIC LIGHT BUTTON STYLES ===== -->
-    <!-- Eliminates 180+ lines of duplication from MainHostWindow, TitleBar, MembershipHostWindow -->
-    <!-- Single source of truth for all window controls -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Base Traffic Light Button -->
     <Style Selector="Button.traffic-light">
