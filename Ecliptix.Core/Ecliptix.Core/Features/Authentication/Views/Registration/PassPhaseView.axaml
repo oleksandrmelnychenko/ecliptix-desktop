@@ -32,14 +32,14 @@
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PassPhase.Title]}"
                        FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        LineHeight="28" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PassPhase.Description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource Font.Title.M}"
                        LineHeight="28"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
 
@@ -50,12 +50,12 @@
                                    FontSize="{StaticResource Input.SegmentFontSize}"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
-                                   SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
+                                   SegmentBackground="{DynamicResource Surface}"
                                    SegmentSpacing="5"
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"
                                    Value="{Binding PassPhase, Mode=TwoWay}"
-                                   ActiveSegmentBorderColor="{DynamicResource TipsColor}"/>
+                                   ActiveSegmentBorderColor="{DynamicResource Primary}"/>
 
         <!-- Submit Button -->
         <Button Grid.Row="2"

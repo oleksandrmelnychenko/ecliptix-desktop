@@ -14,7 +14,7 @@
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="FontSize" Value="{StaticResource Button.FontSize}" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="{StaticResource Radius.L}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Button.CornerRadius}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -52,8 +52,8 @@
     
     <!-- Primary/Continue/Dark Button -->
     <Style Selector="Button.continue-button, Button.auth-primary, Button.create-account-button">
-        <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-        <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
+        <Setter Property="Background" Value="{DynamicResource Secondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSecondary}" />
     </Style>
 
     <Style Selector="Button.continue-button:pointerover, Button.auth-primary:pointerover, Button.create-account-button:pointerover">
@@ -68,8 +68,8 @@
     
     <!-- Secondary/Recovery/SignIn/Light Button -->
     <Style Selector="Button.recovery-button, Button.signin-button, Button.auth-secondary">
-        <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
-        <Setter Property="Foreground" Value="{DynamicResource LightButtonForegroundColor}" />
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource OnSurface}" />
     </Style>
 
     <Style Selector="Button.recovery-button:pointerover, Button.signin-button:pointerover, Button.auth-secondary:pointerover">
@@ -172,7 +172,12 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Transitions" Value="{StaticResource Transitions.Link}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Foreground" 
+                                 Duration="{StaticResource Duration.Medium}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <Style Selector="Button.footer-link:pointerover">
@@ -185,7 +190,7 @@
         <Setter Property="Width" Value="{StaticResource Back.ButtonSize}" />
         <Setter Property="Height" Value="{StaticResource Back.ButtonSize}" />
         <Setter Property="CornerRadius" Value="24" />
-        <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />

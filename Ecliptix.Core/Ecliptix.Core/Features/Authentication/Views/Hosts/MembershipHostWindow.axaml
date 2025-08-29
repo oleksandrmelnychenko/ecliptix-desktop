@@ -32,11 +32,11 @@
 
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
         <Border Classes="animated-background"
-                Background="{StaticResource BlurBackgroundBrush}"
+                Background="{DynamicResource BlurBackgroundBrush}"
                 CornerRadius="{StaticResource WindowBorderRadius}"
                 Margin="12">
             <Border.Effect>
-                <BlurEffect Radius="{StaticResource BackgroundBlurRadius}" />
+                <BlurEffect Radius="{StaticResource Blur.Radius}" />
             </Border.Effect>
         </Border>
         
@@ -106,13 +106,16 @@
       
         
         <!-- Main Content Border -->
-        <Border Classes="main-border"
+        <Border Background="{DynamicResource Window.Background}"
+                BorderBrush="{DynamicResource Window.Border}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource WindowBorderRadius}"
                 Margin="8"
                 x:Name="MainBorder">
 
             <Border.Effect>
-                <DropShadowEffect Color="{StaticResource ShadowColor}"
-                                  BlurRadius="{StaticResource ShadowBlurRadius}"
+                <DropShadowEffect Color="{DynamicResource Shadow.Color}"
+                                  BlurRadius="{StaticResource Shadow.Radius}"
                                   Opacity="0.4"
                                   OffsetX="0"
                                   OffsetY="2" />

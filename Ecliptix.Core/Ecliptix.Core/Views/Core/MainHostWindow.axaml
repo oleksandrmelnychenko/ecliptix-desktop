@@ -9,7 +9,7 @@
     <!-- Styles moved to shared Components/TrafficLights.axaml -->
 
     <Border Name="RootWindowBorder"
-            Background="#fff8f5"
+            Background="{DynamicResource Window.Background}"
             CornerRadius="8"
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
@@ -23,7 +23,7 @@
                         <Button Name="MaximizeButton" Classes="traffic-light maximize" Click="MaximizeButton_Click" />
                     </StackPanel>
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-                               Foreground="#FF212121"
+                               Foreground="{DynamicResource OnSurface}"
                                FontWeight="Medium" 
                            FontSize="{StaticResource Title.FontSize}"
                                VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0" />
@@ -32,7 +32,7 @@
                 </DockPanel>
 
                 <Border Grid.Row="1"
-                        Background="#FFFAFAFA"
+                        Background="{DynamicResource Surface}"
                         Margin="5,0,5,5"
                         CornerRadius="0,0,4,4">
 

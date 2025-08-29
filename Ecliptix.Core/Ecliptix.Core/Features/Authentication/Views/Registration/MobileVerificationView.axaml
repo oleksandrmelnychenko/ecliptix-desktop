@@ -33,14 +33,14 @@
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Title]}"
                        FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        LineHeight="28" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Description]}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource Font.Title.M}"
                        LineHeight="28"
                        FontWeight="Normal"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
 
@@ -50,18 +50,18 @@
             x:Name="MobileTextBox"
             Watermark="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Watermark]}"
             Hint="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Hint]}"
-            TextForeground="{DynamicResource TextBoxForegroundColor}"
-            HintForeground="{DynamicResource TipsColor}"
+            TextForeground="{DynamicResource OnSurface}"
+            HintForeground="{DynamicResource Primary}"
             ErrorText="{Binding MobileNumberError, Mode=OneWay}"
             HasError="{Binding HasMobileNumberError, Mode=OneWay}"
-            FocusBorderBrush="{DynamicResource TipsColor}"
+            FocusBorderBrush="{DynamicResource Primary}"
             MainBorderBrush="Transparent"
             Text="{Binding MobileNumber,Mode=TwoWay}"
             Height="{StaticResource Input.Height}"
             CornerRadius="{StaticResource Radius.L}"
             FontSize="{StaticResource Input.FontSize}"
             WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
-            Background="{DynamicResource TextBoxBackgroundColor}"
+            Background="{DynamicResource Surface}"
             FontWeight="Light"
             HorizontalAlignment="Stretch" />
 

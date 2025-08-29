@@ -39,9 +39,9 @@
                             <Border.Transitions>
                                 <Transitions>
                                     <BrushTransition Property="Background"
-                                                     Duration="{StaticResource TransitionDuration}"
+                                                     Duration="{StaticResource Duration.Normal}"
                                                      Easing="CubicEaseOut" />
-                                    <DoubleTransition Property="Opacity" Duration="{StaticResource TransitionDuration}"
+                                    <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Normal}"
                                                       Easing="CubicEaseOut" />
                                 </Transitions>
                             </Border.Transitions>
@@ -71,9 +71,9 @@
                                         <Path.Transitions>
                                             <Transitions>
                                                 <BrushTransition Property="Fill"
-                                                                 Duration="{StaticResource TransitionDuration}" />
+                                                                 Duration="{StaticResource Duration.Normal}" />
                                                 <TransformOperationsTransition Property="RenderTransform"
-                                                                               Duration="{StaticResource TransitionDuration}"
+                                                                               Duration="{StaticResource Duration.Normal}"
                                                                                Easing="CubicEaseOut" />
                                             </Transitions>
                                         </Path.Transitions>
@@ -113,10 +113,10 @@
                                     <Border.Transitions>
                                         <Transitions>
                                             <DoubleTransition Property="Opacity"
-                                                              Duration="{StaticResource PopupAnimationDuration}"
+                                                              Duration="{StaticResource Popup.AnimationDuration}"
                                                               Easing="CubicEaseOut" />
                                             <TransformOperationsTransition Property="RenderTransform"
-                                                                           Duration="{StaticResource PopupAnimationDuration}"
+                                                                           Duration="{StaticResource Popup.AnimationDuration}"
                                                                            Easing="BackEaseOut" />
                                         </Transitions>
                                     </Border.Transitions>
@@ -149,12 +149,12 @@
 
         <!-- Hover state for ComboBox main button -->
         <Style Selector="ComboBox:pointerover /template/ Border#Background">
-            <Setter Property="Background" Value="{StaticResource Button.Secondary.Hover}" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
         <!-- Pressed state for ComboBox main button -->
         <Style Selector="ComboBox:pressed /template/ Border#Background">
-            <Setter Property="Background" Value="{StaticResource Button.Secondary.Pressed}" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
             <Setter Property="Opacity" Value="0.9" />
         </Style>
 
@@ -226,8 +226,8 @@
               Width="{StaticResource ControlWidth}"
               FontSize="{StaticResource FontSize}"
               CornerRadius="{StaticResource ControlCornerRadius}"
-              Background="{DynamicResource ComboBoxBackground}"
-              BorderBrush="{DynamicResource ComboBoxBorderBrush}">
+              Background="{DynamicResource ComboBox.Background}"
+              BorderBrush="{DynamicResource ComboBox.BorderBrush}">
 
         <ComboBox.ItemTemplate>
             <DataTemplate>

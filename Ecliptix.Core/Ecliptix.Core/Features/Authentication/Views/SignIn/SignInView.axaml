@@ -15,67 +15,7 @@
                  MinWidth="320"
                  Width="320">
 
-        <!-- All resources moved to shared Core styles -->
-
-        <UserControl.Styles>
-            <!-- Base Button Style -->
-            <Style Selector="Button.auth-button">
-                <Setter Property="Height" Value="{StaticResource ButtonHeight}" />
-                <Setter Property="FontWeight" Value="Medium" />
-                <Setter Property="FontSize" Value="{StaticResource ButtonFontSize}" />
-                <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="CornerRadius" Value="{StaticResource ButtonCornerRadius}" />
-                <Setter Property="Cursor" Value="Hand" />
-                <Setter Property="HorizontalAlignment" Value="Stretch" />
-                <Setter Property="Transitions">
-                    <Transitions>
-                        <BrushTransition Property="Background" Duration="{StaticResource ButtonTransitionDuration}"
-                                         Easing="CubicEaseOut" />
-                        <DoubleTransition Property="Opacity" Duration="{StaticResource ButtonTransitionDuration}"
-                                          Easing="CubicEaseOut" />
-                    </Transitions>
-                </Setter>
-            </Style>
-
-            <Style Selector="Button.auth-button:pressed">
-                <Setter Property="Opacity" Value="0.9" />
-            </Style>
-
-            <!-- Recovery Button (Light Gray) -->
-            <Style Selector="Button.recovery-button">
-                <Setter Property="Background" Value="{DynamicResource BackButtonBackgroundColor}" />
-                <Setter Property="Foreground" Value="{DynamicResource LightButtonForegroundColor}" />
-            </Style>
-
-            <Style Selector="Button.recovery-button:pointerover">
-                <Setter Property="Background" Value="{StaticResource GrayButtonHoverColor}" />
-            </Style>
-
-            <Style Selector="Button.recovery-button:pressed">
-                <Setter Property="Background" Value="{StaticResource GrayButtonPressedColor}" />
-            </Style>
-
-            <!-- Continue Button (Dark) -->
-            <Style Selector="Button.continue-button">
-                <Setter Property="Background" Value="{DynamicResource DarkButtonColor}" />
-                <Setter Property="Foreground" Value="{DynamicResource DarkButtonForegroundColor}" />
-            </Style>
-
-            <Style Selector="Button.continue-button:pointerover">
-                <Setter Property="Background" Value="{StaticResource DarkButtonHoverColor}" />
-            </Style>
-
-            <Style Selector="Button.continue-button:pressed">
-                <Setter Property="Background" Value="{StaticResource DarkButtonPressedColor}" />
-            </Style>
-            
-            <Style Selector="TextBlock.server-error">
-                <Setter Property="FontSize" Value="{StaticResource ErrorFontSize}" />
-                <Setter Property="Foreground" Value="{DynamicResource ErrorTextColor}" />
-                <Setter Property="TextWrapping" Value="Wrap" />
-                <Setter Property="HorizontalAlignment" Value="Stretch" />
-            </Style>
-        </UserControl.Styles>
+        <!-- All styles moved to centralized Components/Buttons.axaml -->
 
         <!-- Main Layout -->
         <Grid VerticalAlignment="Top"
@@ -87,19 +27,19 @@
             <!-- Header Section -->
             <StackPanel Grid.Row="0"
                         Spacing="{StaticResource HeaderSpacing}"
-                        MaxWidth="{StaticResource HeaderMaxWidth}"
+                        MaxWidth="{StaticResource Header.MaxWidth}"
                         HorizontalAlignment="Left">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
-                           FontSize="{StaticResource SubtitleFontSize}"
+                           FontSize="{StaticResource Font.XXL}"
                            FontWeight="Light"
-                           Foreground="{DynamicResource TextForegroundColor}"
+                           Foreground="{DynamicResource OnSurface}"
                            LineHeight="28" />
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
-                           FontSize="{StaticResource TitleFontSize}"
+                           FontSize="{StaticResource Title.FontSize}"
                            LineHeight="28"
                            FontWeight="Normal"
-                           Foreground="{DynamicResource TextForegroundColor}"
+                           Foreground="{DynamicResource OnSurface}"
                            Opacity="0.8" />
             </StackPanel>
 
@@ -109,17 +49,17 @@
                 x:Name="MobileTextBox"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.MobilePlaceholder]}"
                 Hint="{Binding LocalizationService[Authentication.SignIn.MobileHint]}"
-                TextForeground="{DynamicResource TextBoxForegroundColor}"
-                HintForeground="{DynamicResource TipsColor}"
+                TextForeground="{DynamicResource OnSurface}"
+                HintForeground="{DynamicResource Primary}"
                 MainBorderBrush="Transparent"
                 ErrorText="{Binding MobileNumberError, Mode=OneWay}"
                 HasError="{Binding HasMobileNumberError, Mode=OneWay}"
                 Text="{Binding MobileNumber, Mode=TwoWay}"
-                Height="{StaticResource InputHeight}"
-                CornerRadius="{StaticResource InputCornerRadius}"
-                FontSize="{StaticResource InputFontSize}"
-                WatermarkFontSize="{StaticResource WatermarkFontSize}"
-                Background="{DynamicResource TextBoxBackgroundColor}"
+                Height="{StaticResource Input.Height}"
+                CornerRadius="{StaticResource Input.CornerRadius}"
+                FontSize="{StaticResource Input.FontSize}"
+                WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
+                Background="{DynamicResource Surface}"
                 FontWeight="Light"
                 HorizontalAlignment="Stretch"
                 IsEnabled="{Binding !IsBusy}"/>
@@ -129,18 +69,18 @@
                 Grid.Row="2"
                 x:Name="SecureKeyTextBox"
                 IsSecureKeyMode="True"
-                Background="{DynamicResource TextBoxBackgroundColor}"
+                Background="{DynamicResource Surface}"
                 Watermark="{Binding LocalizationService[Authentication.SignIn.PasswordPlaceholder]}"
                 Hint="{Binding LocalizationService[Authentication.SignIn.PasswordHint]}"
-                CornerRadius="{StaticResource InputCornerRadius}"
-                TextForeground="{DynamicResource TextBoxForegroundColor}"
-                HintForeground="{DynamicResource TipsColor}"
+                CornerRadius="{StaticResource Input.CornerRadius}"
+                TextForeground="{DynamicResource OnSurface}"
+                HintForeground="{DynamicResource Primary}"
                 MainBorderBrush="Transparent"
-                FontSize="{StaticResource InputFontSize}"
-                WatermarkFontSize="{StaticResource WatermarkFontSize}"
+                FontSize="{StaticResource Input.FontSize}"
+                WatermarkFontSize="{StaticResource Input.WatermarkFontSize}"
                 ErrorText="{Binding SecureKeyError, Mode=OneWay}"
                 HasError="{Binding HasSecureKeyError, Mode=OneWay}"
-                Height="{StaticResource InputHeight}"
+                Height="{StaticResource Input.Height}"
                 FontWeight="Light"
                 HorizontalAlignment="Stretch"
                 MaxLength="28"
@@ -150,7 +90,7 @@
             <Grid Grid.Row="3"
                   HorizontalAlignment="Stretch"
                   ColumnDefinitions="*,*"
-                  ColumnSpacing="{StaticResource ButtonSpacing}">
+                  ColumnSpacing="{StaticResource Button.Spacing}">
                 <Button Grid.Column="0"
                         Content="{Binding LocalizationService[Authentication.SignIn.AccountRecovery]}"
                         Command="{Binding AccountRecoveryCommand}"
@@ -177,7 +117,7 @@
                                TextAlignment="Center"
                                VerticalAlignment="Center"
                                TextWrapping="WrapWithOverflow"
-                               Foreground="{StaticResource ErrorForegroundColor}"/>
+                               Foreground="{DynamicResource Error}"/>
             </Border>
         </Grid>
     </UserControl>

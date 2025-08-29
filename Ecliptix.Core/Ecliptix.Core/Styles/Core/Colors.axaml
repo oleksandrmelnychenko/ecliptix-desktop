@@ -73,13 +73,32 @@
                     <Color x:Key="Version.Text">#999999</Color>
                     
                     <!-- Shadow & Effects -->
-                    <Color x:Key="Shadow">#6a5acd</Color>
+                    <Color x:Key="Shadow.Color">#000000</Color>
+                    <SolidColorBrush x:Key="Shadow" Color="{DynamicResource Shadow.Color}" />
                     <Color x:Key="Blur.Background">#FF6a5acd</Color>
+                    <SolidColorBrush x:Key="BlurBackgroundBrush" Color="{DynamicResource Blur.Background}" />
                     
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">White</Color>
                     <Color x:Key="Window.Background">#FFFFFF</Color>
                     <Color x:Key="Window.Border">#B084CC</Color>
+                    
+                    <!-- Control-specific Colors -->
+                    <Color x:Key="ScrollBar.ThumbColor">#E0E0E0</Color>
+                    <Color x:Key="ScrollBar.ThumbHoverColor">#BDBDBD</Color>
+                    <Color x:Key="Gray.ButtonHoverColor">#F0F0F0</Color>
+                    <Color x:Key="Gray.ButtonPressedColor">#E8E8E8</Color>
+                    <Color x:Key="Dark.ButtonHoverColor">#404040</Color>
+                    <Color x:Key="Dark.ButtonPressedColor">#2E2E2E</Color>
+                    
+                    <!-- ComboBox Colors -->
+                    <Color x:Key="ComboBox.Background">#FFFFFF</Color>
+                    <Color x:Key="ComboBox.BorderBrush">#E0E0E0</Color>
+                    
+                    <!-- Common Brushes -->
+                    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />
+                    <SolidColorBrush x:Key="CounterForegroundBrush" Color="#999999" />
 
                     <!-- Legacy Compatibility (remove after migration) -->
                     <Color x:Key="DarkButtonColor">#2f2f2f</Color>
@@ -162,13 +181,32 @@
                     <Color x:Key="Version.Text">#808080</Color>
                     
                     <!-- Shadow & Effects -->
-                    <Color x:Key="Shadow">#8b7dd8</Color>
+                    <Color x:Key="Shadow.Color">#000000</Color>
+                    <SolidColorBrush x:Key="Shadow" Color="{DynamicResource Shadow.Color}" />
                     <Color x:Key="Blur.Background">#FF8b7dd8</Color>
+                    <SolidColorBrush x:Key="BlurBackgroundBrush" Color="{DynamicResource Blur.Background}" />
                     
                     <!-- Special Colors -->
                     <Color x:Key="Circle.Border">#e3e3e3</Color>
                     <Color x:Key="Window.Background">#2d2d2d</Color>
                     <Color x:Key="Window.Border">#8b7dd8</Color>
+                    
+                    <!-- Control-specific Colors -->
+                    <Color x:Key="ScrollBar.ThumbColor">#4A4A4A</Color>
+                    <Color x:Key="ScrollBar.ThumbHoverColor">#606060</Color>
+                    <Color x:Key="Gray.ButtonHoverColor">#404040</Color>
+                    <Color x:Key="Gray.ButtonPressedColor">#363636</Color>
+                    <Color x:Key="Dark.ButtonHoverColor">#505050</Color>
+                    <Color x:Key="Dark.ButtonPressedColor">#404040</Color>
+                    
+                    <!-- ComboBox Colors -->
+                    <Color x:Key="ComboBox.Background">#2d2d2d</Color>
+                    <Color x:Key="ComboBox.BorderBrush">#4A4A4A</Color>
+                    
+                    <!-- Common Brushes -->
+                    <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />
+                    <SolidColorBrush x:Key="CounterForegroundBrush" Color="#B0B0B0" />
 
                     <!-- Legacy Compatibility (remove after migration) -->
                     <Color x:Key="DarkButtonColor">#3a3a3a</Color>

@@ -32,6 +32,9 @@
             <system:TimeSpan x:Key="Input.OpacityDuration">0:0:0.25</system:TimeSpan>
             <system:TimeSpan x:Key="Input.ShadowDuration">0:0:0.3</system:TimeSpan>
             
+            <!-- Control Animations -->
+            <system:TimeSpan x:Key="Brush.TransitionDuration">0:0:0.25</system:TimeSpan>
+            
             <!-- Window Animations -->
             <system:TimeSpan x:Key="Window.BackgroundDuration">0:0:0.4</system:TimeSpan>
             <system:TimeSpan x:Key="Window.BorderDuration">0:0:0.3</system:TimeSpan>

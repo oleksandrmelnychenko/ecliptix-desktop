@@ -10,30 +10,20 @@
              x:DataType="core:SegmentedTextBox"
              IsPointerInteractionEnabled="False">
     
-    <UserControl.Resources>
-        <x:Double x:Key="SegmentWidth">40</x:Double>
-        <x:Int32 x:Key="SegmentMaxLength">1</x:Int32>
-        <Thickness x:Key="SegmentMargin">4,0,4,0</Thickness>
-        <Thickness x:Key="SegmentBorderThickness">0</Thickness>
-        <Thickness x:Key="ActiveSegmentBorderThickness">1</Thickness>
-        <CornerRadius x:Key="SegmentCornerRadius">5</CornerRadius>
-        <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
-        <BoxShadows x:Key="ActiveSegmentShadow">0 0 10 4 #406a5acd, 0 0 0 0 #20000000</BoxShadows>
-        <x:Int32 x:Key="OverlayZIndex">1</x:Int32>
-    </UserControl.Resources>
+    <!-- All resources moved to centralized Core style files -->
     
      <UserControl.Styles>
         <Style Selector="TextBox.segment">
-            <Setter Property="Width" Value="{StaticResource SegmentWidth}"/>
-            <Setter Property="MaxLength" Value="{StaticResource SegmentMaxLength}"/>
+            <Setter Property="Width" Value="{StaticResource Segment.Width}"/>
+            <Setter Property="MaxLength" Value="{StaticResource Segment.MaxLength}"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="{StaticResource SegmentMargin}"/>
+            <Setter Property="Margin" Value="{StaticResource Segment.Margin}"/>
             <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
-            <Setter Property="BorderThickness" Value="{StaticResource SegmentBorderThickness}"/>
-            <Setter Property="CornerRadius" Value="{StaticResource SegmentCornerRadius}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource TransparentBrush}"/>
+            <Setter Property="BorderThickness" Value="{StaticResource Segment.BorderThickness}"/>
+            <Setter Property="CornerRadius" Value="{StaticResource Segment.CornerRadius}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TransparentBrush}"/>
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -60,7 +50,7 @@
             </Setter>
         </Style>
         <Style Selector="TextBox.segment.active">
-            <Setter Property="BorderThickness" Value="{StaticResource ActiveSegmentBorderThickness}"/>
+            <Setter Property="BorderThickness" Value="{StaticResource ActiveSegment.BorderThickness}"/>
             <Setter Property="BorderBrush" Value="{Binding ActiveSegmentBorderColor, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="Template">
                 <ControlTemplate>
@@ -68,7 +58,7 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}"
-                            BoxShadow="{StaticResource ActiveSegmentShadow}"
+                            BoxShadow="{StaticResource ActiveSegment.Shadow}"
                             ClipToBounds="False">
                         <TextPresenter x:Name="PART_TextPresenter"
                                        Text="{TemplateBinding Text}"
@@ -102,11 +92,11 @@
                     
                     />
         <Border x:Name="OverlayRectangle"
-                   Background="{StaticResource TransparentBrush}"
+                   Background="{DynamicResource TransparentBrush}"
                    IsHitTestVisible="True"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"
-                   ZIndex="{StaticResource OverlayZIndex}"
+                   ZIndex="{StaticResource Overlay.ZIndex}"
                    PointerPressed="OverlayRectangle_PointerPressed"
                    Tapped="OverlayRectangle_Tapped"/>
     </Grid>

@@ -37,6 +37,8 @@
             <x:Double x:Key="Status.FontSize">12</x:Double>
             <x:Double x:Key="Error.FontSize">12</x:Double>
             <x:Double x:Key="Title.FontSize">13</x:Double>     <!-- Window title -->
+            <x:Double x:Key="Hint.FontSize">12</x:Double>      <!-- HintedTextBox hints -->
+            <x:Double x:Key="Counter.FontSize">11</x:Double>   <!-- HintedTextBox counter -->
 
             <!-- ===== LINE HEIGHT SYSTEM ===== -->
             <x:Double x:Key="LineHeight.Tight">16</x:Double>   <!-- Captions -->

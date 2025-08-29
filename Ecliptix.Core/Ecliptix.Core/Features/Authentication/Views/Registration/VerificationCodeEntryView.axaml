@@ -53,7 +53,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
-                                   ActiveSegmentBorderColor="{DynamicResource TipsColor}"
+                                   ActiveSegmentBorderColor="{DynamicResource Primary}"
                                    SegmentSpacing="5"
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"

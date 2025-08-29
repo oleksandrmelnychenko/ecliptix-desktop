@@ -83,7 +83,7 @@
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
                     Classes="auth-button signin-button"
-                    Foreground="{DynamicResource LightButtonForegroundColor}"
+                    Foreground="{DynamicResource OnSurface}"
                     HorizontalAlignment="Stretch" />
 
             <!-- Create Account Button -->
