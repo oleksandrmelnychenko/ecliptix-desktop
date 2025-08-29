@@ -8,9 +8,6 @@
     <Application.Resources>
         <ResourceDictionary>
             <FontFamily x:Key="Segoe">avares://Ecliptix.Core/Assets/Fonts/SegoeUI/#Segoe UI</FontFamily>
-
-            <!-- Theme dictionaries moved to Core/Colors.axaml -->
-
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="Assets/Icons/UI/LampIcon.axaml"></ResourceInclude>
             </ResourceDictionary.MergedDictionaries>
@@ -20,13 +17,11 @@
     <Application.Styles>
         <SimpleTheme />
         
-        <!-- Core Styles - Load globally for performance -->
         <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
         <StyleInclude Source="/Styles/Core/Colors.axaml" />
         <StyleInclude Source="/Styles/Core/Typography.axaml" />
         <StyleInclude Source="/Styles/Core/Animations.axaml" />
         
-        <!-- Component Styles - Load globally for reuse -->
         <StyleInclude Source="/Styles/Components/TrafficLights.axaml" />
         <StyleInclude Source="/Styles/Components/Buttons.axaml" />
         
@@ -54,13 +49,11 @@
             <Setter Property="IsTabStop" Value="True" />
         </Style>
         
-        <!-- Global TextBox Styles (using shared resources) -->
         <Style Selector="TextBox">
             <Setter Property="SelectionBrush" Value="{DynamicResource Primary}" />
             <Setter Property="SelectionForegroundBrush" Value="{DynamicResource OnPrimary}" />
         </Style>
         
-        <!-- Global Button Styles (using shared resources) -->
         <Style Selector="Button">
             <Setter Property="Transitions">
                 <Transitions>

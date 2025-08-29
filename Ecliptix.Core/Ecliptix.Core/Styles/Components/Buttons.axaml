@@ -1,12 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ===== BUTTON COMPONENT STYLES ===== -->
-    <!-- Eliminates 200+ lines of duplication from all authentication views -->
-    <!-- Single source of truth for all button variants -->
-
-    <!-- ===== BASE BUTTON STYLES ===== -->
-    
     <!-- Base Authentication Button -->
     <Style Selector="Button.auth-button">
         <Setter Property="Height" Value="{StaticResource Button.Height}" />
@@ -48,8 +42,6 @@
         <Setter Property="RenderTransform" Value="scale(1.02)" />
     </Style>
 
-    <!-- ===== PRIMARY BUTTON VARIANTS ===== -->
-    
     <!-- Primary/Continue/Dark Button -->
     <Style Selector="Button.continue-button, Button.auth-primary, Button.create-account-button">
         <Setter Property="Background" Value="{DynamicResource Secondary}" />
@@ -64,8 +56,6 @@
         <Setter Property="Background" Value="{DynamicResource Button.Primary.Pressed}" />
     </Style>
 
-    <!-- ===== SECONDARY BUTTON VARIANTS ===== -->
-    
     <!-- Secondary/Recovery/SignIn/Light Button -->
     <Style Selector="Button.recovery-button, Button.signin-button, Button.auth-secondary">
         <Setter Property="Background" Value="{DynamicResource Surface}" />
@@ -79,8 +69,6 @@
     <Style Selector="Button.recovery-button:pressed, Button.signin-button:pressed, Button.auth-secondary:pressed">
         <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
     </Style>
-
-    <!-- ===== SPECIALIZED BUTTON VARIANTS ===== -->
 
     <!-- Welcome Screen Sign In Button (specific corner radius) -->
     <Style Selector="Button.signin-button">
@@ -124,8 +112,6 @@
         </Setter>
     </Style>
 
-    <!-- ===== BUTTON STATE INDICATORS ===== -->
-    
     <!-- Loading Button State -->
     <Style Selector="Button.loading">
         <Setter Property="Opacity" Value="0.8" />
@@ -144,8 +130,6 @@
         <Setter Property="Foreground" Value="{DynamicResource OnError}" />
     </Style>
 
-    <!-- ===== BUTTON SIZES ===== -->
-    
     <!-- Small Button -->
     <Style Selector="Button.small">
         <Setter Property="Height" Value="36" />
@@ -160,7 +144,6 @@
         <Setter Property="Padding" Value="{StaticResource Padding.L}" />
     </Style>
 
-    <!-- ===== FOOTER LINK BUTTONS ===== -->
     <!-- From MembershipHostWindow -->
     <Style Selector="Button.footer-link">
         <Setter Property="Background" Value="Transparent" />
@@ -184,7 +167,6 @@
         <Setter Property="Foreground" Value="{DynamicResource Footer.Link.Hover}" />
     </Style>
 
-    <!-- ===== BACK BUTTON ===== -->
     <!-- From MembershipHostWindow -->
     <Style Selector="Button.back-button">
         <Setter Property="Width" Value="{StaticResource Back.ButtonSize}" />
@@ -212,14 +194,9 @@
         <Setter Property="RenderTransform" Value="scale(0.95)" />
     </Style>
 
-    <!-- ===== ACCESSIBILITY ENHANCEMENTS ===== -->
-    
     <!-- High contrast mode support -->
     <Style Selector="Button.auth-button:focus">
         <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
         <Setter Property="BorderThickness" Value="2" />
     </Style>
-
-    <!-- Reduced motion support would be handled here when Avalonia supports it -->
-
 </Styles>
