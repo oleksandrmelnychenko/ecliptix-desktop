@@ -16,8 +16,6 @@ using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Services.Abstractions.Authentication;
-using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
@@ -35,7 +33,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private string _remainingTime = "01:00";
     private string _verificationCode;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly IRegistrationService _registrationService;
     
     private uint? _streamConnectId;
 
@@ -95,15 +92,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         ILocalizationService localizationService,
         IScreen hostScreen,
         ByteString phoneNumberIdentifier,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IRegistrationService registrationService) : base(systemEventService, networkProvider,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider) : base(systemEventService, networkProvider,
         localizationService)
     {
         _phoneNumberIdentifier = phoneNumberIdentifier;
         _verificationCode = string.Empty;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _registrationService = registrationService;
-        
+
         HostScreen = hostScreen;
 
         NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
@@ -219,27 +214,39 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         IsSent = true;
         ErrorMessage = string.Empty;
-        
-        uint connectId = ComputeConnectId();
 
-        Result<Membership, string> result = 
-            await _registrationService.VerifyOtpAsync(
-                VerificationCode,
-                systemDeviceIdentifier,
-                connectId);
+        VerifyCodeRequest verifyCodeRequest = new()
+        {
+            Code = VerificationCode,
+            Purpose = VerificationPurpose.Registration,
+            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(systemDeviceIdentifier))
+        };
 
-        if (result.IsOk)
-        {
-            Membership membership = result.Unwrap();
-            await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-            await CleanupStreamProtocolAsync();
-            NavToPasswordConfirmation.Execute().Subscribe();
-        }
-        else
-        {
-            ErrorMessage = result.UnwrapErr();
-            IsSent = false;
-        }
+        _ = await NetworkProvider.ExecuteUnaryRequestAsync(
+            ComputeConnectId(),
+            RpcServiceType.VerifyOtp,
+            SecureByteStringInterop.WithByteStringAsSpan(verifyCodeRequest.ToByteString(),
+                span => span.ToArray()),
+            async payload =>
+            {
+                VerifyCodeResponse verifyCodeReply = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
+                if (verifyCodeReply.Result == VerificationResult.Succeeded)
+                {
+                    Membership membership = verifyCodeReply.Membership;
+                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+                    
+                    await CleanupStreamProtocolAsync();
+                    
+                    NavToPasswordConfirmation.Execute().Subscribe();
+                }
+                else if (verifyCodeReply.Result == VerificationResult.InvalidOtp)
+                {
+                }
+
+                return Result<ShieldUnit, NetworkFailure>.Ok(ShieldUnit.Value);
+            }, true,
+            CancellationToken.None
+        );
     }
 
     private void ReSendVerificationCode()

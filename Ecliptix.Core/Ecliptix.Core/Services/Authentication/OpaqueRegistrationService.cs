@@ -7,6 +7,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -95,68 +96,9 @@ public class OpaqueRegistrationService(
         throw new NotImplementedException();
     }
 
-    public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
-        string otpCode,
-        string deviceIdentifier,
-        uint connectId)
+    public Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(string otpCode, Guid sessionIdentifier, string deviceIdentifier)
     {
-        if (string.IsNullOrEmpty(otpCode) || otpCode.Length != 6)
-        {
-            return Result<Protobuf.Membership.Membership, string>.Err("Invalid OTP code");
-        }
-
-        VerifyCodeRequest request = new()
-        {
-            Code = otpCode,
-            Purpose = VerificationPurpose.Registration,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
-        };
-
-        TaskCompletionSource<Protobuf.Membership.Membership> responseSource = new();
-
-        Result<Unit, NetworkFailure> networkResult = await _networkProvider.ExecuteUnaryRequestAsync(
-            connectId,
-            RpcServiceType.VerifyOtp,
-            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            async payload =>
-            {
-                try
-                {
-                    VerifyCodeResponse response = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
-                    
-                    if (response.Result == VerificationResult.Succeeded)
-                    {
-                        responseSource.TrySetResult(response.Membership);
-                    }
-                    else
-                    {
-                        responseSource.TrySetException(new InvalidOperationException("Invalid OTP"));
-                    }
-                    
-                    return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-                }
-                catch (Exception ex)
-                {
-                    responseSource.TrySetException(ex);
-                    return Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding($"Failed to parse response: {ex.Message}"));
-                }
-            }, true, CancellationToken.None);
-
-        if (networkResult.IsErr)
-        {
-            return Result<Protobuf.Membership.Membership, string>.Err(networkResult.UnwrapErr().Message);
-        }
-
-        try
-        {
-            Protobuf.Membership.Membership membership = await responseSource.Task;
-            return Result<Protobuf.Membership.Membership, string>.Ok(membership);
-        }
-        catch (Exception ex)
-        {
-            return Result<Protobuf.Membership.Membership, string>.Err(ex.Message);
-        }
+        throw new NotImplementedException();
     }
 
     public Task<Result<Unit, string>> CompleteRegistrationAsync(ByteString membershipIdentifier, SecureTextBuffer secureKey)
