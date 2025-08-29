@@ -27,7 +27,12 @@
                 </Border>
             </ControlTemplate>
         </Setter>
-        <Setter Property="Transitions" Value="{StaticResource Transitions.TrafficLight}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" 
+                                 Duration="{StaticResource TrafficLight.TransitionDuration}" />
+            </Transitions>
+        </Setter>
     </Style>
 
     <!-- ===== CLOSE BUTTON ===== -->

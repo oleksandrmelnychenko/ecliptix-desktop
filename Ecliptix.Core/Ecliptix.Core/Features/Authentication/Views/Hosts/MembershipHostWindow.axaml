@@ -2,22 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:signIn="clr-namespace:Ecliptix.Core.Features.Authentication.Views.SignIn"
-        xmlns:welcome="clr-namespace:Ecliptix.Core.Features.Authentication.Views.Welcome"
-        xmlns:registration="clr-namespace:Ecliptix.Core.Features.Authentication.Views.Registration"
-        xmlns:reactiveUi="http://reactiveui.net"
         xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
-        xmlns:system="clr-namespace:System;assembly=System.Runtime"
-        xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
         xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
         xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
-        xmlns:vm11="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.SignIn"
-        xmlns:vmWelcome="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Welcome"
-        xmlns:vmRegistration="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
-        xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -35,39 +25,12 @@
         x:Class="Ecliptix.Core.Features.Authentication.Views.Hosts.MembershipHostWindow">
 
     <Window.Resources>
-        <!-- Converters -->
         <sharedConverters:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"
                                                TrueOpacity="1.0"
                                                FalseOpacity="0" />
-
-        <!-- Layout dimensions moved to shared Core/Dimensions.axaml -->
-
-        <!-- Layout values moved to shared Core/Dimensions.axaml -->
-
-        <!-- All colors moved to shared Core/Colors.axaml -->
-
-        <!-- Animation durations moved to shared Core/Animations.axaml -->
-        
     </Window.Resources>
 
-    <Window.Styles>
-        <!-- Back button styles moved to shared Components/Buttons.axaml -->
-
-        <!-- Footer styles moved to shared Components/Buttons.axaml and Core/Typography.axaml -->
-
-        <!-- Version styles moved to shared Core/Typography.axaml -->
-
-        <!-- Window frame styles moved to shared Core/Animations.axaml -->
-
-        <!-- Traffic light styles moved to shared Components/TrafficLights.axaml -->
-    </Window.Styles>
-
-    <!-- DataTemplates moved to RoutedViewHost for proper ReactiveUI view resolution -->
-
-    <!-- Main Layout -->
     <Grid x:Name="MainContentGrid" ClipToBounds="True">
-
-        <!-- Background Blur Effect -->
         <Border Classes="animated-background"
                 Background="{StaticResource BlurBackgroundBrush}"
                 CornerRadius="{StaticResource WindowBorderRadius}"
@@ -87,9 +50,7 @@
         <Grid 
             x:Name="GeneralConrolsGrid"
             ZIndex="10">
-            <!-- Title Bar -->
             
-            <!-- Back Navigation Button -->
             <Button HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Command="{Binding NavigateBack}"
@@ -104,7 +65,6 @@
                        Height="18" />
             </Button>
 
-            <!-- Lazy-loaded Language Selector Container -->
             <Border Name="LanguageSelectorContainer"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
