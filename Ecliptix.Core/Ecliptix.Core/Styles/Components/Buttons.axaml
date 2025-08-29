@@ -199,4 +199,32 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
         <Setter Property="BorderThickness" Value="2" />
     </Style>
+    
+    <!-- ===== FOOTER SECTION STYLES ===== -->
+    <Style Selector="StackPanel.footer-section">
+        <Setter Property="Spacing" Value="8" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,8,0,8" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+    
+    <!-- Footer links container -->
+    <Style Selector="StackPanel.footer-section > StackPanel">
+        <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+    
+    <!-- Footer agreement text -->
+    <Style Selector="StackPanel.footer-section > TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="LineHeight" Value="16" />
+        <Setter Property="Margin" Value="0,1,0,4" />
+    </Style>
+    
+    <!-- Version info grid -->
+    <Style Selector="StackPanel.footer-section > Grid">
+        <Setter Property="Margin" Value="0,2,0,0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
 </Styles>

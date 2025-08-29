@@ -11,9 +11,9 @@
              x:DataType="languageSelector:LanguageSelectorViewModel">
 
     <UserControl.Resources>
-        <x:Double x:Key="ControlHeight">36</x:Double>
-        <x:Double x:Key="ControlWidth">75</x:Double>
-        <x:Double x:Key="FontSize">13</x:Double>
+        <x:Double x:Key="ControlHeight">38</x:Double>
+        <x:Double x:Key="ControlWidth">85</x:Double>
+        <x:Double x:Key="FontSize">12</x:Double>
         <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
 
         <!-- Colors moved to shared Core/Colors.axaml - use Button.Secondary.Hover and Button.Secondary.Pressed -->
@@ -35,7 +35,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
+                                CornerRadius="8">
                             <Border.Transitions>
                                 <Transitions>
                                     <BrushTransition Property="Background"
@@ -58,10 +58,10 @@
                                 <!-- Customized dropdown button -->
                                 <Border Grid.Column="1"
                                         Name="DropDownGlyph"
-                                        Width="30"
-                                        Margin="0,1,1,1"
+                                        Width="24"
+                                        Margin="0,0,2,0"
                                         Background="Transparent">
-                                    <Path Fill="DimGray"
+                                    <Path Fill="{DynamicResource OnSurface}"
                                           Width="9"
                                           Height="5"
                                           Stretch="Uniform"
@@ -95,10 +95,10 @@
                                     RenderTransformOrigin="0.5,0">
                                 <!-- Animated Content Wrapper -->
                                 <Border Name="PopupContent"
-                                        Background="White"
-                                        BorderBrush="Transparent"
-                                        BorderThickness="0"
-                                        CornerRadius="4"
+                                        Background="{DynamicResource Surface}"
+                                        BorderBrush="{DynamicResource Surface.Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
                                         Padding="4"
                                         RenderTransformOrigin="0.5,0"
                                         Opacity="0"
@@ -198,13 +198,13 @@
 
         <!-- Hover state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:pointerover /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#F3F0FF" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Hover}" />
         </Style>
 
         <!-- Selected state for ComboBoxItem -->
         <Style Selector="ComboBoxItem:selected /template/ Border#ItemBorder">
-            <Setter Property="Background" Value="#E8E0FF" />
-            <Setter Property="TextBlock.Foreground" Value="#6B46C1" />
+            <Setter Property="Background" Value="{DynamicResource Button.Secondary.Pressed}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource Primary}" />
         </Style>
 
         <!-- Pressed state for dropdown glyph -->

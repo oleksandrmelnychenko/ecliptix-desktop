@@ -68,9 +68,11 @@
             <Border Name="LanguageSelectorContainer"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Margin="16"
-                    ZIndex="12"
-                    Background="Transparent" />
+                    Margin="0,16,16,0"
+                    ZIndex="2"
+                    Background="Transparent"
+                    Padding="0">
+            </Border>
 
             <coreControls:NetworkStatusNotification
                 x:Name="NetworkNotification"
@@ -123,14 +125,14 @@
 
             <!-- Main Content Grid -->
             <Grid RowDefinitions="Auto,*,Auto"
-                  RowSpacing="{StaticResource HeaderSpacing}"
+                  RowSpacing="2"
                   ClipToBounds="True">
 
                 <!-- TODO testing margin because of moved titlebar ?-->
                 <!-- Logo Section -->
                 <Border Grid.Row="0"
                         HorizontalAlignment="Center"
-                        Padding="{StaticResource HeaderPadding}"
+                        Padding="20,10"
                         Margin="0 63 0 0">
                     <Svg Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
                          Width="{StaticResource Logo.Size}"
@@ -140,14 +142,15 @@
                 </Border>
 
                 <!-- Content Area -->
-                <Border Grid.Row="1"
-                        Padding="{StaticResource ContentPadding}">
-                    <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
-                                               Background="Transparent"
-                                               Width="{StaticResource Content.MaxWidth}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Stretch"
-                                               ClipToBounds="False" />
+                <Border Grid.Row="1">
+                    <Border Padding="{StaticResource ContentPadding}">
+                        <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
+                                                   Background="Transparent"
+                                                   Width="{StaticResource Content.MaxWidth}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Stretch"
+                                                   ClipToBounds="False" />
+                    </Border>
                 </Border>
 
                 <!-- Footer Section -->
@@ -157,55 +160,68 @@
                     <!-- Legal Links -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
-                                Spacing="{StaticResource Spacing.L}">
+                                Spacing="8"
+                                Margin="0,0,0,2">
 
                         <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
                                 Command="{Binding OpenPrivacyPolicyCommand}"
-                                Classes="footer-link" />
+                                Classes="footer-link"
+                                Margin="1,0" />
 
                         <TextBlock Text="•"
                                    Classes="footer"
-                                   VerticalAlignment="Center" />
+                                   VerticalAlignment="Center"
+                                   Opacity="0.5"
+                                   FontSize="10" />
 
                         <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
                                 Command="{Binding OpenTermsOfServiceCommand}"
-                                Classes="footer-link" />
+                                Classes="footer-link"
+                                Margin="1,0" />
 
                         <TextBlock Text="•"
                                    Classes="footer"
-                                   VerticalAlignment="Center" />
+                                   VerticalAlignment="Center"
+                                   Opacity="0.5"
+                                   FontSize="10" />
 
                         <Button Content="{Binding LocalizationService[Footer.Support]}"
                                 Command="{Binding OpenSupportCommand}"
-                                Classes="footer-link" />
+                                Classes="footer-link"
+                                Margin="1,0" />
                     </StackPanel>
 
                     <!-- Copyright Text -->
                     <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
                                Classes="footer"
                                TextWrapping="Wrap"
-                               MaxWidth="280" />
+                               MaxWidth="300"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               LineHeight="15"
+                               Margin="1,1,1,4" />
 
-                    <Grid ColumnDefinitions="*">
+                    <!-- Version and Copyright Layout -->
+                    <Grid HorizontalAlignment="Stretch"
+                          Margin="0,2,0,0">
+                        
+                        <!-- App Version - Aligned with Header Buttons -->
                         <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
                                    Classes="version"
                                    HorizontalAlignment="Left"
-                                   VerticalAlignment="Bottom"
-                                   Grid.Column="0"
-                                   ZIndex="5"
-                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                                   VerticalAlignment="Center"
+                                   ToolTip.Tip="{Binding FullVersionInfo}"
+                                   Margin="10,0,0,0"
+                                   Opacity="1.0"
+                                   FontWeight="Medium" />
+                        
+                        <!-- Copyright Text - Window Center -->
                         <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
                                    Classes="footer"
-                                   Opacity="0.7" 
-                                   Grid.Column="0"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="{Binding BuildInfo, StringFormat='Build {0}'}"
-                                   Classes="version"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Bottom"
-                                   Grid.Column="0"
-                                   ZIndex="5"
-                                   ToolTip.Tip="{Binding FullVersionInfo}" />
+                                   Opacity="0.6"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Center" />
                     </Grid>
                 </StackPanel>
             </Grid>

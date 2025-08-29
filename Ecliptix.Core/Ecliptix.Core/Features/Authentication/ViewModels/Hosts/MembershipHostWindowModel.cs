@@ -160,8 +160,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
-        BuildInfo = buildInfo?.BuildNumber ?? "dev";
-        FullVersionInfo = VersionHelper.GetDisplayVersion();
+        BuildInfo = buildInfo?.BuildNumber ?? "development";
+        FullVersionInfo = $"{VersionHelper.GetDisplayVersion()}" +
+                         (buildInfo != null ? $"\nBuild: {buildInfo.BuildNumber}\nCommit: {buildInfo.GitCommit[..8]}\nBranch: {buildInfo.GitBranch}" : "");
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
@@ -283,7 +284,31 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     private static void OpenUrl(string url)
     {
-        Log.Information("Opening URL: {Url}", url);
+        try
+        {
+            Log.Information("Opening URL: {Url}", url);
+            
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            {
+                System.Diagnostics.Process.Start("open", url);
+            }
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                System.Diagnostics.Process.Start("xdg-open", url);
+            }
+            else
+            {
+                Log.Warning("Unsupported platform for opening URL: {Url}", url);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to open URL: {Url}", url);
+        }
     }
 
     private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType, bool resetState = true)
