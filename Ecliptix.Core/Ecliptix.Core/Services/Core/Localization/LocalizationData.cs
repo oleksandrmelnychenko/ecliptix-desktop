@@ -44,7 +44,7 @@ public static class LocalizationData
 
 
         ["Authentication.SignIn.Title"] = "Sign In",
-        ["Authentication.SignIn.Welcome"] = "Welcome back!",
+        ["Authentication.SignIn.Welcome"] = "Welcome back! Let's get you back to your secure, personalized workspace.",
         ["Authentication.SignIn.MobilePlaceholder"] = "Mobile Number",
         ["Authentication.SignIn.MobileHint"] = "Include country code (e.g., +1)",
         ["Authentication.SignIn.PasswordPlaceholder"] = "Secure Key",
@@ -163,7 +163,7 @@ public static class LocalizationData
 
 
         ["Authentication.SignIn.Title"] = "Вхід",
-        ["Authentication.SignIn.Welcome"] = "З поверненням!",
+        ["Authentication.SignIn.Welcome"] = "З поверненням! Увійдіть у свій захищений простір.",
         ["Authentication.SignIn.MobilePlaceholder"] = "Номер телефону",
         ["Authentication.SignIn.MobileHint"] = "Почніть з коду країни (напр., +380)",
         ["Authentication.SignIn.PasswordPlaceholder"] = "Ключ безпеки",
