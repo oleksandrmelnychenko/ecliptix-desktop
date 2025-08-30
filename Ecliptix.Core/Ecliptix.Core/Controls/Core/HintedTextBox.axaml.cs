@@ -382,6 +382,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
+        _mainTextBox.KeyDown += OnKeyDown;
         _disposables.Add(Disposable.Create(UnsubscribeTextBoxEvents));
 
         SetupReactiveBindings();
@@ -696,6 +697,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.TextChanged -= OnTextChanged;
         _mainTextBox.GotFocus -= OnGotFocus;
         _mainTextBox.LostFocus -= OnLostFocus;
+        _mainTextBox.KeyDown -= OnKeyDown;
     }
 
     private void FindControls()
@@ -729,6 +731,56 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
+        }
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+
+        try
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                switch (e.Key)
+                {
+                    case Key.V:
+                    case Key.C:
+                    case Key.X:
+                    case Key.A:
+                    case Key.Z:
+                    case Key.Y:
+                        e.Handled = true;
+                        return;
+                }
+            }
+
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+            {
+                switch (e.Key)
+                {
+                    case Key.V:
+                    case Key.C:
+                    case Key.X:
+                    case Key.A:
+                    case Key.Z:
+                    case Key.Y:
+                        e.Handled = true;
+                        return;
+                }
+            }
+
+            switch (e.Key)
+            {
+                case Key.Insert when e.KeyModifiers.HasFlag(KeyModifiers.Shift):
+                case Key.Insert when e.KeyModifiers.HasFlag(KeyModifiers.Control):
+                    e.Handled = true;
+                    return;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in OnKeyDown: {ex.Message}");
         }
     }
 

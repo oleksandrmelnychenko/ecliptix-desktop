@@ -79,6 +79,8 @@
                 FontWeight="Light"
                 HorizontalAlignment="Stretch"
                 MaxLength="28"
+                IconRegularSource="{StaticResource LampIconDrawingRegular}"
+                IconErrorSource="{StaticResource LampIconDrawingError}"
                 IsEnabled="{Binding !IsBusy}"/>
 
             <!-- Action Buttons -->

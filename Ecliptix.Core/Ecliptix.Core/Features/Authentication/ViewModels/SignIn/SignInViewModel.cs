@@ -83,8 +83,8 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _secureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
-    
-    
+
+
     private IObservable<bool> SetupValidation()
     {
         IObservable<SystemU> languageTrigger =
@@ -92,7 +92,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                     handler => LocalizationService.LanguageChanged += handler,
                     handler => LocalizationService.LanguageChanged -= handler)
                 .Select(_ => SystemU.Default);
-        
+
         IObservable<SystemU> mobileTrigger = this
             .WhenAnyValue(x => x.MobileNumber)
             .Select(_ => SystemU.Default);
@@ -100,13 +100,13 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IObservable<SystemU> secureKeyTrigger = this
             .WhenAnyValue(x => x.CurrentSecureKeyLength)
             .Select(_ => SystemU.Default);
-        
-        IObservable<SystemU> validationTrigger = 
+
+        IObservable<SystemU> validationTrigger =
             mobileTrigger
-            .Merge(secureKeyTrigger)
-            .Merge(languageTrigger);
-        
-        
+                .Merge(secureKeyTrigger)
+                .Merge(languageTrigger);
+
+
         IObservable<string> mobileValidation = validationTrigger
             .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
             .Replay(1)
@@ -178,49 +178,52 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> networkStatusStream = Observable.Create<bool>(observer =>
-        {
-            bool isInOutage = _networkEventService.CurrentStatus switch
             {
-                NetworkStatus.DataCenterDisconnected => true,
-                NetworkStatus.ServerShutdown => true,
-                NetworkStatus.ConnectionRecovering => true,
-                _ => false
-            };
-            observer.OnNext(isInOutage);
-
-            return _networkEventService.OnNetworkStatusChanged(evt =>
-            {
-                bool outage = evt.State switch
+                bool isInOutage = _networkEventService.CurrentStatus switch
                 {
                     NetworkStatus.DataCenterDisconnected => true,
                     NetworkStatus.ServerShutdown => true,
                     NetworkStatus.ConnectionRecovering => true,
                     _ => false
                 };
-                observer.OnNext(outage);
-                return Task.CompletedTask;
-            });
-        }).DistinctUntilChanged()
-        .Do(outage => Serilog.Log.Debug("🌐 Network outage status changed: {Outage}", outage));
+                observer.OnNext(isInOutage);
+
+                return _networkEventService.OnNetworkStatusChanged(evt =>
+                {
+                    bool outage = evt.State switch
+                    {
+                        NetworkStatus.DataCenterDisconnected => true,
+                        NetworkStatus.ServerShutdown => true,
+                        NetworkStatus.ConnectionRecovering => true,
+                        _ => false
+                    };
+                    observer.OnNext(outage);
+                    return Task.CompletedTask;
+                });
+            }).DistinctUntilChanged()
+            .Do(outage => Serilog.Log.Debug("🌐 Network outage status changed: {Outage}", outage));
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
         IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid)
-            .Do(canExecute => Serilog.Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));;
+            .Do(canExecute => Serilog.Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));
+        ;
 
         SignInCommand = ReactiveCommand.CreateFromTask(
-            async () => 
+            async () =>
             {
-                Serilog.Log.Information("🔐 SignInCommand: Starting sign-in for mobile: {Mobile}", 
+                Serilog.Log.Information("🔐 SignInCommand: Starting sign-in for mobile: {Mobile}",
                     MobileNumber?.Length > 0 ? $"{MobileNumber[..3]}***{MobileNumber[^3..]}" : "empty");
-                try 
+                try
                 {
                     uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
                     Serilog.Log.Information("🔐 SignInCommand: Computed connectId: {ConnectId}", connectId);
-                    Result<byte[], string> result = await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
-                    Serilog.Log.Information("🔐 SignInCommand: Authentication result - Success: {IsSuccess}", result.IsOk);
+                    Result<byte[], string> result =
+                        await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
+                    Serilog.Log.Information("🔐 SignInCommand: Authentication result - Success: {IsSuccess}",
+                        result.IsOk);
                     return result;
                 }
                 catch (Exception ex)
@@ -270,20 +273,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         return error ?? string.Empty;
     }
 
-    private string ValidateSecureKeyBytes(ReadOnlySpan<byte> passwordBytes)
-    {
-        if (passwordBytes.Length == 0)
-        {
-            return LocalizationService["ValidationErrors.SecureKey.Required"];
-        }
+    private string ValidateSecureKeyBytes(ReadOnlySpan<byte> passwordBytes) =>
+        passwordBytes.Length == 0 ? LocalizationService["ValidationErrors.SecureKey.Required"] : string.Empty;
 
-        return string.Empty;
-    }
-
-    public new void Dispose()
-    {
+    public new void Dispose() =>
         Dispose(true);
-    }
 
     protected override void Dispose(bool disposing)
     {
@@ -320,10 +314,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         _hasMobileNumberBeenTouched = false;
         _hasSecureKeyBeenTouched = false;
-        
+
         MobileNumber = string.Empty;
         _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
-        
+
         _signInErrorSubject.OnNext(string.Empty);
 
         MobileNumberError = string.Empty;
