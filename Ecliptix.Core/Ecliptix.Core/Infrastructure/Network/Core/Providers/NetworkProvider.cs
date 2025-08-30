@@ -135,7 +135,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _applicationInstanceSettings.Value!;
 
     public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
-        Ecliptix.Protobuf.Protocol.PubKeyExchangeType pubKeyExchangeType)
+        PubKeyExchangeType pubKeyExchangeType)
     {
         Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
@@ -145,8 +145,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         uint connectId = Helpers.ComputeUniqueConnectId(
             appInstanceIdString,
-            deviceIdString,
-            Protobuf.Common.PubKeyExchangeType.DataCenterEphemeralConnect);
+            deviceIdString, pubKeyExchangeType);
 
         Log.Debug(
             "[CLIENT] ConnectId Calculation: AppInstanceId={AppInstanceId}, DeviceId={DeviceId}, ContextType={ContextType}, ConnectId={ConnectId}",
@@ -163,7 +162,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("NetworkProvider: Creating Ecliptix system identity keys...");
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         Log.Information("NetworkProvider: Identity keys created successfully");
-        
+
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
         Log.Information("NetworkProvider: Protocol system created successfully");
 
@@ -183,8 +182,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
-        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture) ? "en-US" : applicationInstanceSettings.Culture;
-        Log.Information("NetworkProvider: Setting RpcMetaDataProvider culture to '{Culture}' (original: '{OriginalCulture}')", culture, applicationInstanceSettings.Culture);
+        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
+            ? "en-US"
+            : applicationInstanceSettings.Culture;
+        Log.Information(
+            "NetworkProvider: Setting RpcMetaDataProvider culture to '{Culture}' (original: '{OriginalCulture}')",
+            culture, applicationInstanceSettings.Culture);
 
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
@@ -251,17 +254,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             if (IsUserInitiatedRequest(serviceType))
             {
-                Log.Information("🚫 REQUEST BLOCKED: User request '{ServiceType}' blocked during recovery state", serviceType);
+                Log.Information("🚫 REQUEST BLOCKED: User request '{ServiceType}' blocked during recovery state",
+                    serviceType);
                 return Result<Unit, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding("System is recovering, please wait"));
             }
-            else if (IsRecoveryRequest(serviceType))
+
+            if (IsRecoveryRequest(serviceType))
             {
-                Log.Information("✅ RECOVERY REQUEST: Allowing recovery request '{ServiceType}' during recovery state", serviceType);
+                Log.Information("✅ RECOVERY REQUEST: Allowing recovery request '{ServiceType}' during recovery state",
+                    serviceType);
             }
             else
             {
-                Log.Debug("🔍 UNKNOWN REQUEST: Request '{ServiceType}' during recovery - allowing by default", serviceType);
+                Log.Debug("🔍 UNKNOWN REQUEST: Request '{ServiceType}' during recovery - allowing by default",
+                    serviceType);
             }
         }
 
@@ -465,13 +472,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (_retryStrategy.HasExhaustedOperations())
         {
             Log.Information("Restoration failed. Checking retry strategy status before automatic reconnection");
-            Log.Information("System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
+            Log.Information(
+                "System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
         }
 
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-            Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
         _connections.TryRemove(connectId, out _);
 
         Result<byte[], SecureStorageFailure> stateResult =
@@ -506,7 +515,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (!restorationSucceeded)
         {
-            Log.Warning("Restoration failed for {ConnectId} during advanced recovery - will continue retrying restoration only", connectId);
+            Log.Warning(
+                "Restoration failed for {ConnectId} during advanced recovery - will continue retrying restoration only",
+                connectId);
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Restoration failed during advanced recovery"));
         }
@@ -528,7 +539,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (retryStrategy.HasExhaustedOperations())
             {
-                Log.Information("System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
+                Log.Information(
+                    "System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
                 return Result<Unit, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
             }
@@ -548,7 +560,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-            Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
+            PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Result<Unit, NetworkFailure> establishResult = await EstablishConnectionOnly(connectId);
 
@@ -642,8 +654,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
         }
 
-        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture) ? "en-US" : applicationInstanceSettings.Culture;
-        Log.Information("NetworkProvider: RestoreSecrecyChannel - Setting RpcMetaDataProvider culture to '{Culture}' (original: '{OriginalCulture}')", culture, applicationInstanceSettings.Culture);
+        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
+            ? "en-US"
+            : applicationInstanceSettings.Culture;
+        Log.Information(
+            "NetworkProvider: RestoreSecrecyChannel - Setting RpcMetaDataProvider culture to '{Culture}' (original: '{OriginalCulture}')",
+            culture, applicationInstanceSettings.Culture);
         _rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), culture);
 
@@ -698,7 +714,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
-            protocolSystem.BeginDataCenterPubKeyExchange(connectId, Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
+            protocolSystem.BeginDataCenterPubKeyExchange(connectId,
+                Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (pubKeyExchangeRequest.IsErr)
         {
@@ -731,7 +748,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        Result<Unit, EcliptixProtocolFailure> completeResult = protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+        Result<Unit, EcliptixProtocolFailure> completeResult =
+            protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
         if (completeResult.IsErr)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
@@ -742,7 +760,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
         if (connection == null)
             return Result<EcliptixSessionState, NetworkFailure>.Err(
-                new NetworkFailure(NetworkFailureType.DataCenterNotResponding, "Connection has not been established yet."));
+                new NetworkFailure(NetworkFailureType.DataCenterNotResponding,
+                    "Connection has not been established yet."));
 
         Result<EcliptixSessionState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
             idKeys.ToProtoState()
@@ -760,90 +779,90 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     public async Task<Result<uint, NetworkFailure>> EnsureProtocolForTypeAsync(
-        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+        PubKeyExchangeType exchangeType)
     {
         if (!_applicationInstanceSettings.HasValue)
         {
             return Result<uint, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Application not initialized"));
         }
-        
+
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
-        
+
         if (_connections.TryGetValue(connectId, out _))
         {
-            Log.Information("[PROTOCOL] Reusing existing protocol for type {Type}, connectId {ConnectId}", 
+            Log.Information("[PROTOCOL] Reusing existing protocol for type {Type}, connectId {ConnectId}",
                 exchangeType, connectId);
             return Result<uint, NetworkFailure>.Ok(connectId);
         }
-        
-        Log.Information("[PROTOCOL] Creating new protocol for type {Type}, connectId {ConnectId}", 
+
+        Log.Information("[PROTOCOL] Creating new protocol for type {Type}, connectId {ConnectId}",
             exchangeType, connectId);
-        
-        InitiateEcliptixProtocolSystemForType(appSettings, connectId, exchangeType);
-        
-        Result<EcliptixSessionState, NetworkFailure> establishResult = 
+
+        InitiateEcliptixProtocolSystemForType(connectId, exchangeType);
+
+        Result<EcliptixSessionState, NetworkFailure> establishResult =
             await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType);
-        
+
         if (establishResult.IsErr)
         {
             _connections.TryRemove(connectId, out _);
             return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
         }
-        
+
         EcliptixSessionState state = establishResult.Unwrap();
         Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
             state.ToByteString(),
             span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
-        
+
         if (saveResult.IsErr)
         {
-            Log.Warning("Failed to save protocol state for type {Type}: {Error}", 
+            Log.Warning("Failed to save protocol state for type {Type}: {Error}",
                 exchangeType, saveResult.UnwrapErr());
         }
-        
+
         Log.Information("[PROTOCOL] Successfully established protocol for type {Type}, connectId {ConnectId}",
             exchangeType, connectId);
-        
+
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 
-    public async Task<Result<Unit, NetworkFailure>> RemoveProtocolForTypeAsync(
-        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    public async Task RemoveProtocolForTypeAsync(PubKeyExchangeType exchangeType)
     {
         if (!_applicationInstanceSettings.HasValue)
         {
-            return Result<Unit, NetworkFailure>.Err(
+            Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Application not initialized"));
+            return;
         }
-        
+
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
-        
+
         if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
-            Log.Information("[PROTOCOL-CLEANUP] Disposing protocol for type {Type}, connectId {ConnectId}", 
+            Log.Information("[PROTOCOL-CLEANUP] Disposing protocol for type {Type}, connectId {ConnectId}",
                 exchangeType, connectId);
-            
+
             protocolSystem.Dispose();
-            
-            Result<Unit, SecureStorageFailure> deleteResult = 
+
+            Result<Unit, SecureStorageFailure> deleteResult =
                 await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            
+
             if (deleteResult.IsErr)
             {
-                Log.Warning("Failed to delete protocol state for type {Type}: {Error}", 
+                Log.Warning("Failed to delete protocol state for type {Type}: {Error}",
                     exchangeType, deleteResult.UnwrapErr());
             }
         }
         else
         {
-            Log.Information("[PROTOCOL-CLEANUP] No protocol found for type {Type}, connectId {ConnectId}", 
+            Log.Information("[PROTOCOL-CLEANUP] No protocol found for type {Type}, connectId {ConnectId}",
                 exchangeType, connectId);
         }
-        
-        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+
+        Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
     public async Task<Result<Unit, NetworkFailure>> CleanupStreamProtocolAsync(uint connectId)
@@ -851,15 +870,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
             Log.Information("[PROTOCOL-CLEANUP] Disposing stream protocol with connectId {ConnectId}", connectId);
-            
+
             protocolSystem.Dispose();
-            
-            Result<Unit, SecureStorageFailure> deleteResult = 
+
+            Result<Unit, SecureStorageFailure> deleteResult =
                 await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            
+
             if (deleteResult.IsErr)
             {
-                Log.Warning("Failed to delete protocol state for connectId {ConnectId}: {Error}", 
+                Log.Warning("Failed to delete protocol state for connectId {ConnectId}: {Error}",
                     connectId, deleteResult.UnwrapErr());
             }
         }
@@ -867,21 +886,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Log.Information("[PROTOCOL-CLEANUP] No protocol found for connectId {ConnectId}", connectId);
         }
-        
+
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private static RatchetConfig GetRatchetConfigForExchangeType(Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    private static RatchetConfig GetRatchetConfigForExchangeType(PubKeyExchangeType exchangeType)
     {
         return exchangeType switch
         {
-            Protobuf.Protocol.PubKeyExchangeType.VerificationFlowStream => new RatchetConfig
+            PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
-                DhRatchetEveryNMessages = 20,  // Every 20 timer ticks
+                DhRatchetEveryNMessages = 20,
                 MaxChainAge = TimeSpan.FromMinutes(5),
                 MaxMessagesWithoutRatchet = 100
             },
-            Protobuf.Protocol.PubKeyExchangeType.MessageDeliveryStream => new RatchetConfig
+            /*Protobuf.Protocol.PubKeyExchangeType.MessageDeliveryStream => new RatchetConfig
             {
                 DhRatchetEveryNMessages = 50,  // High security for messages
                 MaxChainAge = TimeSpan.FromMinutes(10),
@@ -892,26 +911,24 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 DhRatchetEveryNMessages = 100, // Lower security for presence
                 MaxChainAge = TimeSpan.FromMinutes(15),
                 MaxMessagesWithoutRatchet = 500
-            },
-            _ => RatchetConfig.Default // DataCenterEphemeralConnect and others
+            },*/
+            _ => RatchetConfig.Default
         };
     }
 
-    private void InitiateEcliptixProtocolSystemForType(
-        ApplicationInstanceSettings settings, 
-        uint connectId,
-        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+    private void InitiateEcliptixProtocolSystemForType(uint connectId,
+        PubKeyExchangeType exchangeType)
     {
         Log.Information("[PROTOCOL] Creating protocol system for type {Type}", exchangeType);
-        
+
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
-        
+
         RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
         EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
         protocolSystem.SetEventHandler(this);
-        
+
         _connections.TryAdd(connectId, protocolSystem);
-        
+
         ConnectionHealth initialHealth = new()
         {
             ConnectId = connectId,
@@ -922,28 +939,28 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task<Result<EcliptixSessionState, NetworkFailure>> EstablishSecrecyChannelForTypeAsync(
         uint connectId,
-        Ecliptix.Protobuf.Protocol.PubKeyExchangeType exchangeType)
+        PubKeyExchangeType exchangeType)
     {
         if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Protocol system not found"));
         }
-        
+
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
         });
-        
+
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId, exchangeType);
-        
+
         if (pubKeyExchangeRequest.IsErr)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
-        
+
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
             SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
                 ServiceFlowType.Single,
@@ -969,7 +986,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        Result<Unit, EcliptixProtocolFailure> completeResult = protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
+        Result<Unit, EcliptixProtocolFailure> completeResult =
+            protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
         if (completeResult.IsErr)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
@@ -980,7 +998,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
         if (connection == null)
             return Result<EcliptixSessionState, NetworkFailure>.Err(
-                new NetworkFailure(NetworkFailureType.DataCenterNotResponding, "Connection has not been established yet."));
+                new NetworkFailure(NetworkFailureType.DataCenterNotResponding,
+                    "Connection has not been established yet."));
 
         Result<EcliptixSessionState, EcliptixProtocolFailure> ecliptixSecrecyChannelStateResult =
             idKeys.ToProtoState()
@@ -1397,7 +1416,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (_retryStrategy.HasExhaustedOperations())
                 {
-                    Log.Information("🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
+                    Log.Information(
+                        "🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
 
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
@@ -1667,7 +1687,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                             Result<Unit, SecureStorageFailure> saveResult =
                                 await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
-                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
+                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
+                                        connectId.ToString()));
 
                             if (saveResult.IsOk)
                             {
@@ -1747,7 +1768,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                             Result<Unit, SecureStorageFailure> saveResult =
                                 await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
-                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
+                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
+                                        connectId.ToString()));
 
                             if (saveResult.IsOk)
                             {
@@ -2005,7 +2027,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Log.Information("🔄 MANUAL RETRY: Immediate attempt failed, falling back to advanced recovery logic");
 
 
-
         Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync();
 
         return result;
@@ -2057,7 +2078,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (!restorationSucceeded)
         {
-            Log.Warning("Manual retry restoration failed for {ConnectId} - will continue retrying restoration only", connectId);
+            Log.Warning("Manual retry restoration failed for {ConnectId} - will continue retrying restoration only",
+                connectId);
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Manual retry restoration failed"));
         }
@@ -2148,11 +2170,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
 
 
-            Result<bool, NetworkFailure> restoreResult = await RestoreSecrecyChannelDirectAsync(state, _applicationInstanceSettings.Value!);
+            Result<bool, NetworkFailure> restoreResult =
+                await RestoreSecrecyChannelDirectAsync(state, _applicationInstanceSettings.Value!);
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
-                Log.Information("🔄 IMMEDIATE RECOVERY: Successfully restored connection state for {ConnectId}", connectId);
+                Log.Information("🔄 IMMEDIATE RECOVERY: Successfully restored connection state for {ConnectId}",
+                    connectId);
 
                 ExitOutage();
                 ResetRetryStrategyAfterOutage();
@@ -2169,7 +2193,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "🔄 IMMEDIATE RECOVERY: Failed to parse stored state for connection {ConnectId}", connectId);
+            Log.Warning(ex, "🔄 IMMEDIATE RECOVERY: Failed to parse stored state for connection {ConnectId}",
+                connectId);
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding($"Failed to parse stored state: {ex.Message}"));
         }
@@ -2191,13 +2216,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
-
             Result<RestoreChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
-                await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, serviceRequest);
+                await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                    serviceRequest);
 
             if (restoreAppDeviceSecrecyChannelResponse.IsErr)
             {
-                Log.Information("🔄 DIRECT RESTORE: RestoreSecrecyChannel RPC failed: {Error}", restoreAppDeviceSecrecyChannelResponse.UnwrapErr().Message);
+                Log.Information("🔄 DIRECT RESTORE: RestoreSecrecyChannel RPC failed: {Error}",
+                    restoreAppDeviceSecrecyChannelResponse.UnwrapErr().Message);
                 return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
             }
 
@@ -2205,7 +2231,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (response.Status == RestoreChannelResponse.Types.Status.SessionRestored)
             {
-                Result<Unit, EcliptixProtocolFailure> syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+                Result<Unit, EcliptixProtocolFailure> syncResult =
+                    SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
                 if (syncResult.IsErr)
                 {
                     Log.Information("🔄 DIRECT RESTORE: Protocol sync failed: {Error}", syncResult.UnwrapErr().Message);

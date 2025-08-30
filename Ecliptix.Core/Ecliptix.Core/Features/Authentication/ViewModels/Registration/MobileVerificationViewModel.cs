@@ -15,6 +15,7 @@ using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Protobuf.Protocol;
 using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -26,7 +27,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
-    
+
     [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
     public string? UrlPathSegment { get; } = "/mobile-verification";
@@ -34,7 +35,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     public IScreen HostScreen { get; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
-    
+
     [ObservableAsProperty] public bool IsBusy { get; }
 
     [Reactive] public string? MobileNumberError { get; set; }
@@ -59,20 +60,20 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<System.Reactive.Unit> languageTrigger =
+        IObservable<Unit> languageTrigger =
             Observable.FromEvent(
                     handler => LocalizationService.LanguageChanged += handler,
                     handler => LocalizationService.LanguageChanged -= handler)
-                .Select(_ => System.Reactive.Unit.Default);
-        
-        IObservable<System.Reactive.Unit> mobileTrigger = this
+                .Select(_ => Unit.Default);
+
+        IObservable<Unit> mobileTrigger = this
             .WhenAnyValue(x => x.MobileNumber)
-            .Select(_ => System.Reactive.Unit.Default);
-        
-        IObservable<System.Reactive.Unit> validationTrigger = 
+            .Select(_ => Unit.Default);
+
+        IObservable<Unit> validationTrigger =
             mobileTrigger
-            .Merge(languageTrigger);
-        
+                .Merge(languageTrigger);
+
         IObservable<string> mobileValidation = validationTrigger
             .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
             .Replay(1)
@@ -83,13 +84,13 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             {
                 string mobile = inputs.Item1;
                 string? networkError = inputs.Item2;
-                
+
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
                     _hasMobileNumberBeenTouched = true;
 
                 if (!string.IsNullOrEmpty(networkError))
                     return networkError;
-                    
+
                 return !_hasMobileNumberBeenTouched ? string.Empty : validationError;
             })
             .Replay(1)
@@ -117,7 +118,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         VerifyMobileNumberCommand.IsExecuting
             .ToPropertyEx(this, x => x.IsBusy)
             .DisposeWith(_disposables);
-            
+
         _disposables.Add(VerifyMobileNumberCommand);
     }
 
@@ -126,28 +127,21 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         NetworkErrorMessage = string.Empty;
 
         string systemDeviceIdentifier = SystemDeviceIdentifier();
-        uint connectId = ComputeConnectId();
-        
-        Result<ByteString, string> result = 
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        Result<ByteString, string> result =
             await _registrationService.ValidatePhoneNumberAsync(
-                MobileNumber, 
+                MobileNumber,
                 systemDeviceIdentifier,
                 connectId);
-        
+
         if (result.IsOk)
         {
-            ByteString? mobileNumberIdentifier = result.Unwrap();
-            
-            if (mobileNumberIdentifier != null)
-            {
-                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen, mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
-                ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
-            }
-            else
-            {
-                Log.Debug("Returned result is ok but mobile number identifier is null");
-                Log.Debug("Result is "+ result.Unwrap());
-            }
+            ByteString mobileNumberIdentifier = result.Unwrap();
+
+            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+            ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
         }
         else
         {

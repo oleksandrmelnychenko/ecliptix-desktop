@@ -44,11 +44,11 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
-    protected uint ComputeConnectId()
+    protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
         uint connectId =
             NetworkProvider.ComputeUniqueConnectId(NetworkProvider.ApplicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
+                pubKeyExchangeType);
 
         return connectId;
     }

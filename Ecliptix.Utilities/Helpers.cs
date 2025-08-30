@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.Common;
+using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 
 namespace Ecliptix.Utilities;
@@ -76,9 +77,6 @@ public static class Helpers
 
     public static Guid FromByteStringToGuid(ByteString byteString)
     {
-        if (byteString.Length != 16)
-            throw new ArgumentException("ByteString must be 16 bytes long.", nameof(byteString));
-
         Span<byte> bytes = stackalloc byte[16];
 
         byte[] tempArray = new byte[16];

@@ -17,6 +17,7 @@ using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Protobuf.Protocol;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
@@ -216,7 +217,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                     MobileNumber?.Length > 0 ? $"{MobileNumber[..3]}***{MobileNumber[^3..]}" : "empty");
                 try 
                 {
-                    uint connectId = ComputeConnectId();
+                    uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
                     Serilog.Log.Information("🔐 SignInCommand: Computed connectId: {ConnectId}", connectId);
                     Result<byte[], string> result = await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
                     Serilog.Log.Information("🔐 SignInCommand: Authentication result - Success: {IsSuccess}", result.IsOk);

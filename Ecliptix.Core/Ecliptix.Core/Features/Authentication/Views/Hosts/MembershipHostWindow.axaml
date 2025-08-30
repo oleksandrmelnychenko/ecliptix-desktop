@@ -128,7 +128,6 @@
                   RowSpacing="2"
                   ClipToBounds="True">
 
-                <!-- TODO testing margin because of moved titlebar ?-->
                 <!-- Logo Section -->
                 <Border Grid.Row="0"
                         HorizontalAlignment="Center"

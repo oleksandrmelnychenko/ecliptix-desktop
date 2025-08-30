@@ -31,20 +31,21 @@ public class OpaqueRegistrationService(
 
     private readonly ConcurrentDictionary<ByteString, (BigInteger Blind, byte[] OprfResponse)>
         _opaqueRegistrationState = new();
-    
+
     private OpaqueProtocolService CreateOpaqueService()
     {
         try
         {
             byte[] serverPublicKeyBytes = ServerPublicKey();
             Log.Information("🔐 OPAQUE: Decoding server public key for AOT compatibility");
-        
-            Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
+
+            Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint =
+                OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
             ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 serverPublicKeyPoint,
                 OpaqueCryptoUtilities.DomainParams
             );
-        
+
             Log.Information("🔐 OPAQUE: Successfully created OPAQUE service");
             return new OpaqueProtocolService(serverStaticPublicKeyParam);
         }
@@ -54,12 +55,12 @@ public class OpaqueRegistrationService(
             throw new InvalidOperationException("Failed to initialize OPAQUE protocol service", ex);
         }
     }
-    
+
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
             networkProvider.ApplicationInstanceSettings.ServerPublicKey,
             span => span.ToArray());
-    
+
     public async Task<Result<ByteString, string>> ValidatePhoneNumberAsync(
         string mobileNumber,
         string deviceIdentifier,
@@ -140,7 +141,7 @@ public class OpaqueRegistrationService(
 
         Result<uint, NetworkFailure> protocolResult =
             await networkProvider.EnsureProtocolForTypeAsync(
-                Protobuf.Protocol.PubKeyExchangeType.VerificationFlowStream);
+                PubKeyExchangeType.ServerStreaming);
 
         if (protocolResult.IsErr)
         {
@@ -177,11 +178,10 @@ public class OpaqueRegistrationService(
                     VerificationCountdownUpdate
                         timerTick = Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
 
-                    if (timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed ||
-                        timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired ||
-                        timerTick.Status ==
-                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached ||
-                        timerTick.Status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+                    if (timerTick.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
+                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
+                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
                     {
                         _ = Task.Run(async () => await CleanupStreamAsync(sessionIdentifier),
                             cancellationTokenSource.Token);

@@ -90,7 +90,7 @@ public class EcliptixProtocolSystem : IDisposable
 
     public Result<PubKeyExchange, EcliptixProtocolFailure> BeginDataCenterPubKeyExchange(
         uint connectId,
-        Protobuf.Protocol.PubKeyExchangeType exchangeType)
+        PubKeyExchangeType exchangeType)
     {
         _ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
 

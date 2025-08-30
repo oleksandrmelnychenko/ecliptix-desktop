@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Ecliptix.Protocol.System.Sodium;
@@ -93,16 +94,17 @@ public sealed class SecureTextBuffer : IDisposable
 
             int oldByteLength = _secureHandle.Length;
 
-            int currentCharCount = 0;
+            int currentTextElementCount = 0;
             if (oldByteLength > 0)
             {
                 using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
                 _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
-                currentCharCount = Encoding.UTF8.GetCharCount(oldBytes.AsSpan());
+                string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
+                currentTextElementCount = GetTextElementCount(currentText);
             }
 
-            charIndex = Math.Clamp(charIndex, 0, currentCharCount);
-            removeCharCount = Math.Clamp(removeCharCount, 0, currentCharCount - charIndex);
+            charIndex = Math.Clamp(charIndex, 0, currentTextElementCount);
+            removeCharCount = Math.Clamp(removeCharCount, 0, currentTextElementCount - charIndex);
 
             int startByteIndex = 0;
             int endByteIndex = oldByteLength;
@@ -111,9 +113,10 @@ public sealed class SecureTextBuffer : IDisposable
             {
                 using SecurePooledArray<byte> oldBytes = SecureArrayPool.Rent<byte>(oldByteLength);
                 _secureHandle.Read(oldBytes.AsSpan()).Unwrap();
+                string currentText = Encoding.UTF8.GetString(oldBytes.AsSpan());
 
-                startByteIndex = GetByteIndexFromCharIndex(oldBytes.AsSpan(), charIndex);
-                endByteIndex = GetByteIndexFromCharIndex(oldBytes.AsSpan(), charIndex + removeCharCount);
+                startByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex);
+                endByteIndex = GetByteIndexFromTextElementIndex(currentText, charIndex + removeCharCount);
             }
 
             int removedByteCount = endByteIndex - startByteIndex;
@@ -151,7 +154,8 @@ public sealed class SecureTextBuffer : IDisposable
 
             _secureHandle.Dispose();
             _secureHandle = newHandle;
-            Length = currentCharCount - removeCharCount + Encoding.UTF8.GetCharCount(insertBytes);
+            string insertText = insertBytes.Length > 0 ? Encoding.UTF8.GetString(insertBytes) : string.Empty;
+            Length = currentTextElementCount - removeCharCount + GetTextElementCount(insertText);
             success = true;
         }
         finally
@@ -167,23 +171,41 @@ public sealed class SecureTextBuffer : IDisposable
         }
     }
 
-    private static int GetByteIndexFromCharIndex(ReadOnlySpan<byte> bytes, int charIndex)
+    private static int GetByteIndexFromTextElementIndex(string text, int textElementIndex)
     {
-        if (charIndex == 0) return 0;
+        if (textElementIndex == 0 || string.IsNullOrEmpty(text)) return 0;
 
-        int currentCharIndex = 0;
-        int byteIndex = 0;
-
-        while (byteIndex < bytes.Length && currentCharIndex < charIndex)
+        try
         {
-            if ((bytes[byteIndex] & 0xC0) != 0x80)
+            StringInfo stringInfo = new(text);
+            int textElementCount = stringInfo.LengthInTextElements;
+            
+            if (textElementIndex >= textElementCount)
             {
-                currentCharIndex++;
+                return Encoding.UTF8.GetByteCount(text);
             }
-            byteIndex++;
-        }
 
-        return byteIndex;
+            string substring = stringInfo.SubstringByTextElements(0, textElementIndex);
+            return Encoding.UTF8.GetByteCount(substring);
+        }
+        catch (Exception)
+        {
+            return Math.Min(textElementIndex, Encoding.UTF8.GetByteCount(text));
+        }
+    }
+
+    private static int GetTextElementCount(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        try
+        {
+            StringInfo stringInfo = new(text);
+            return stringInfo.LengthInTextElements;
+        }
+        catch (Exception)
+        {
+            return text.Length;
+        }
     }
 
     public void Dispose()

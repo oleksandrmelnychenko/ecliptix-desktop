@@ -15,6 +15,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 using ReactiveUI;
 using Unit = System.Reactive.Unit;
@@ -30,8 +31,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private string _verificationCode;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
-
-
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -106,7 +105,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IObservable<bool> canVerify = this.WhenAnyValue(
             x => x.VerificationCode,
             x => x.RemainingTime,
-            (code, time) => code?.Length == 6 && code.All(char.IsDigit) &&
+            (code, time) => code.Length == 6 && code.All(char.IsDigit) &&
                             time != AuthenticationConstants.ExpiredRemainingTime
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
@@ -139,15 +138,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         });
     }
 
-
     private async Task SendVerificationCode()
     {
-        string? systemDeviceIdentifier = SystemDeviceIdentifier();
+        string systemDeviceIdentifier = SystemDeviceIdentifier();
 
         IsSent = true;
         ErrorMessage = string.Empty;
 
-        uint connectId = ComputeConnectId();
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Result<Membership, string> result =
             await _registrationService.VerifyOtpAsync(
@@ -200,7 +198,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         if (disposing && VerificationSessionIdentifier.HasValue)
         {
             _ = Task.Run(async () =>
-                await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier.Value));
+            {
+                await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier.Value);
+                await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+            });
         }
 
         base.Dispose(disposing);

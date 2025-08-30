@@ -18,6 +18,7 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
@@ -303,7 +304,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
             VerificationSessionId,
             _secureKeyBuffer,
-            ComputeConnectId());
+            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect));
 
         if (registrationResult.IsErr)
         {
