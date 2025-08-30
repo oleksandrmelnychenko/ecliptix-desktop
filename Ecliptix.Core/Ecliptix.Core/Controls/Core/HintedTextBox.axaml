@@ -29,7 +29,9 @@
         <Thickness x:Key="HintSectionMargin">0,6,0,0</Thickness>
 
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
-        <BoxShadows x:Key="DefaultShadow">0 0 0 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="DefaultShadow">0 0 0 0 #00000000</BoxShadows>
+        <BoxShadows x:Key="FocusShadow">0 0 10 4 #406a5acd, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="ErrorShadow">0 0 10 4 #40de1e31, 0 2 4 0 #20000000</BoxShadows>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -281,31 +283,43 @@
                     <StackPanel x:Name="HintStackPanel"
                                 Grid.Row="1"
                                 Classes="hint-section"
+                                Orientation="Horizontal"
                                 IsVisible="{Binding !IsPasswordStrengthMode, ElementName=control}">
-                        <Path Classes="hint-icon" />
+                        <Path Classes="hint-icon"
+                              VerticalAlignment="Center"
+                              Margin="0,0,8,0" />
                         <TextBlock x:Name="HintTextBlock"
                                    Text="{Binding Hint, ElementName=control}"
                                    Foreground="{Binding HintForeground, ElementName=control}"
+                                   VerticalAlignment="Center"
                                    Classes="hint-text" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="1"
                                 x:Name="ErrorStackPanel"
                                 Classes="error-section"
+                                Orientation="Horizontal"
                                 Opacity="{Binding EllipseOpacity, ElementName=control}">
-                        <Path Classes="error-icon" />
+                        <Path Classes="error-icon"
+                              VerticalAlignment="Center"
+                              Margin="0,0,8,0" />
                         <TextBlock Text="{Binding ErrorText, ElementName=control}"
+                                   VerticalAlignment="Center"
                                    Classes="error-text" />
                     </StackPanel>
                     
                     <StackPanel Grid.Row="1"
                                 x:Name="PasswordStrengthStackPanel"
                                 Classes="hint-section"
+                                Orientation="Horizontal"
                                 IsVisible="{Binding IsPasswordStrengthMode, ElementName=control}">
-                        <Path Classes="strength-icon" />
+                        <Path Classes="strength-icon"
+                              VerticalAlignment="Center"
+                              Margin="0,0,8,0" />
                         <TextBlock x:Name="PasswordStrengthTextBlock"
                                    Text="{Binding PasswordStrengthText, ElementName=control}"
                                    Foreground="{Binding PasswordStrengthTextBrush, ElementName=control}"
+                                   VerticalAlignment="Center"
                                    Classes="hint-text" />
                     </StackPanel>
                 </Grid>
