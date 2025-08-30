@@ -14,14 +14,14 @@
 
         <!-- Main Layout -->
         <Grid VerticalAlignment="Top"
-              RowSpacing="{StaticResource Spacing.XL}"
+              RowSpacing="18"
               RowDefinitions="Auto,Auto,Auto,Auto,Auto"
               HorizontalAlignment="Stretch"
               Width="{StaticResource Content.MaxWidth}">
 
             <!-- Header Section -->
             <StackPanel Grid.Row="0"
-                        Spacing="{StaticResource HeaderSpacing}"
+                        Spacing="8"
                         MaxWidth="{StaticResource Header.MaxWidth}"
                         HorizontalAlignment="Left">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
@@ -107,13 +107,13 @@
                     CornerRadius="8"
                     IsVisible="{Binding HasServerError, Mode=OneWay}"
                     ClipToBounds="True"
-                    Margin="8">
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding ServerError, Mode=OneWay}"
+                    Margin="0">
+                    <TextBlock Text="{Binding ServerError, Mode=OneWay}"
                                Classes="server-error"
                                TextAlignment="Center"
                                VerticalAlignment="Center"
-                               TextWrapping="WrapWithOverflow"
+                               TextWrapping="Wrap"
+                               MaxWidth="{StaticResource Content.MaxWidth}"
                                Foreground="{DynamicResource Error}"/>
             </Border>
         </Grid>
