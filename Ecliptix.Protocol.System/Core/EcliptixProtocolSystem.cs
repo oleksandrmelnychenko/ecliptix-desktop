@@ -95,8 +95,11 @@ public class EcliptixProtocolSystem : IDisposable
 
         LocalPublicKeyBundle bundle = bundleResult.Unwrap();
 
+        Log.Information("🔧 KEY-EXCHANGE: Creating protocol connection for connectId {ConnectId} with config DH every {Messages} messages", 
+            connectId, _ratchetManager.CurrentConfig.DhRatchetEveryNMessages);
+        
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> sessionResult =
-            EcliptixProtocolConnection.Create(connectId, true, RatchetConfig.Default);
+            EcliptixProtocolConnection.Create(connectId, true, _ratchetManager.CurrentConfig);
         if (sessionResult.IsErr)
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
 
