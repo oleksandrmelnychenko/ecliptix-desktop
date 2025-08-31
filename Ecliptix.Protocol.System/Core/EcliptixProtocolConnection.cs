@@ -69,7 +69,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
     }
 
     private EcliptixProtocolConnection(uint id, RatchetState proto, EcliptixProtocolChainStep sendingStep,
-        EcliptixProtocolChainStep? receivingStep, SodiumSecureMemoryHandle rootKeyHandle)
+        EcliptixProtocolChainStep? receivingStep, SodiumSecureMemoryHandle rootKeyHandle, RatchetConfig ratchetConfig)
     {
         _id = id;
         _isInitiator = proto.IsInitiator;
@@ -94,7 +94,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _initialSendingDhPrivateKeyHandle = null;
         _persistentDhPrivateKeyHandle = null;
         _persistentDhPublicKey = null;
-        _ratchetConfig = RatchetConfig.Default;
+        _ratchetConfig = ratchetConfig;
         _receivedNewDhKey = false;
         _disposed = false;
         _lock = new Lock();
@@ -247,6 +247,12 @@ public sealed class EcliptixProtocolConnection : IDisposable
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> FromProtoState(uint connectId,
         RatchetState proto)
     {
+        return FromProtoState(connectId, proto, RatchetConfig.Default);
+    }
+
+    public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> FromProtoState(uint connectId,
+        RatchetState proto, RatchetConfig ratchetConfig)
+    {
         EcliptixProtocolChainStep? sendingStep = null;
         EcliptixProtocolChainStep? receivingStep = null;
         SodiumSecureMemoryHandle? rootKeyHandle = null;
@@ -281,7 +287,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     copyResult.UnwrapErr().ToEcliptixProtocolFailure());
             }
 
-            EcliptixProtocolConnection connection = new(connectId, proto, sendingStep, receivingStep, rootKeyHandle);
+            EcliptixProtocolConnection connection = new(connectId, proto, sendingStep, receivingStep, rootKeyHandle, ratchetConfig);
 
             sendingStep = null;
             receivingStep = null;

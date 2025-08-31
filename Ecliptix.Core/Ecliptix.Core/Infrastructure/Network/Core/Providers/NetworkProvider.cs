@@ -1110,8 +1110,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (idKeysResult.IsErr)
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(idKeysResult.UnwrapErr());
 
+        // Determine the correct exchange type and ratchet config for this connectId
+        PubKeyExchangeType exchangeType = _applicationInstanceSettings.HasValue 
+            ? DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId)
+            : PubKeyExchangeType.DataCenterEphemeralConnect;
+        
+        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> connResult =
-            EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState);
+            EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState, config);
 
         if (connResult.IsErr)
         {
@@ -1119,21 +1126,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
         }
 
-        // Determine the correct exchange type and ratchet config for this connectId
-        if (_applicationInstanceSettings.HasValue)
-        {
-            PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId);
-            RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        Log.Information("[RESTORE] Recreated protocol connection for connectId {ConnectId} with exchange type {ExchangeType} - DH every {Messages} messages", 
+            state.ConnectId, exchangeType, config.DhRatchetEveryNMessages);
             
-            Log.Information("[RESTORE] Recreating protocol system for connectId {ConnectId} with exchange type {ExchangeType} - DH every {Messages} messages", 
-                state.ConnectId, exchangeType, config.DhRatchetEveryNMessages);
-                
-            return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap(), config);
-        }
-
-        // Fallback to old method if app settings not available
-        Log.Warning("[RESTORE] Application settings not available, using default ratchet config for connectId {ConnectId}", state.ConnectId);
-        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap());
+        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap(), config);
     }
 
     private uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
