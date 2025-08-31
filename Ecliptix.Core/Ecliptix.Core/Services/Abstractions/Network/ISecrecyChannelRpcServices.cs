@@ -12,7 +12,8 @@ public interface ISecrecyChannelRpcServices
     Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        PubKeyExchange request);
+        PubKeyExchange request,
+        PubKeyExchangeType? exchangeType = null);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,

@@ -19,14 +19,26 @@ public sealed class SecrecyChannelRpcServices(
     public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        PubKeyExchange request
+        PubKeyExchange request,
+        PubKeyExchangeType? exchangeType = null
     )
     {
         ArgumentNullException.ThrowIfNull(request);
+        
+        CallOptions callOptions = new();
+        if (exchangeType.HasValue)
+        {
+            Metadata headers = new()
+            {
+                { "exchange-type", exchangeType.Value.ToString() }
+            };
+            callOptions = callOptions.WithHeaders(headers);
+        }
+        
         return await ExecuteAsync<PubKeyExchange>(
             networkEvents,
             systemEvents,
-            () => deviceServiceClient.EstablishSecureChannelAsync(request)
+            () => deviceServiceClient.EstablishSecureChannelAsync(request, callOptions)
         );
     }
 

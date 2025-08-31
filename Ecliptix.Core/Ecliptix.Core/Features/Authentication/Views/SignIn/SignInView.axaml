@@ -9,31 +9,31 @@
                  d:DesignHeight="400"
                  x:DataType="signIn:SignInViewModel"
                  x:Class="Ecliptix.Core.Features.Authentication.Views.SignIn.SignInView"
-                 MinWidth="320"
-                 Width="320">
+                 MinWidth="{StaticResource Content.MaxWidth}"
+                 Width="{StaticResource Content.MaxWidth}">
 
         <!-- Main Layout -->
         <Grid VerticalAlignment="Top"
-              RowSpacing="18"
+              RowSpacing="{StaticResource Spacing.Authentication}"
               RowDefinitions="Auto,Auto,Auto,Auto,Auto"
               HorizontalAlignment="Stretch"
               Width="{StaticResource Content.MaxWidth}">
 
             <!-- Header Section -->
             <StackPanel Grid.Row="0"
-                        Spacing="8"
+                        Spacing="{StaticResource Spacing.S}"
                         MaxWidth="{StaticResource Header.MaxWidth}"
                         HorizontalAlignment="Left">
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Title]}"
                            FontSize="{StaticResource Font.XXL}"
                            FontWeight="Light"
                            Foreground="{DynamicResource OnSurface}"
-                           LineHeight="28" />
+                           LineHeight="{StaticResource LineHeight.Loose}" />
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
-                           FontSize="{StaticResource Title.FontSize}"
-                           LineHeight="28"
-                           FontWeight="Normal"
+                           FontSize="{StaticResource Font.XXXL}"
+                           LineHeight="{StaticResource LineHeight.Subtitle}"
+                           FontWeight="Light"
                            Foreground="{DynamicResource OnSurface}"
                            Opacity="0.8" />
             </StackPanel>
@@ -104,7 +104,7 @@
             <Border Grid.Row="4"
                     Background="Transparent"
                     HorizontalAlignment="Stretch"
-                    CornerRadius="8"
+                    CornerRadius="{StaticResource Radius.M}"
                     IsVisible="{Binding HasServerError, Mode=OneWay}"
                     ClipToBounds="True"
                     Margin="0">

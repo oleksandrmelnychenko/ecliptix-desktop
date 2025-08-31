@@ -100,19 +100,6 @@
                     <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />
                     <SolidColorBrush x:Key="CounterForegroundBrush" Color="#999999" />
 
-                    <!-- Legacy Compatibility (remove after migration) -->
-                    <Color x:Key="DarkButtonColor">#2f2f2f</Color>
-                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
-                    <Color x:Key="LightButtonColor">#eaeaea</Color>
-                    <Color x:Key="LightButtonForegroundColor">#262626</Color>
-                    <Color x:Key="BackgroundColor">#ffffff</Color>
-                    <Color x:Key="TextBoxBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="TextBoxForegroundColor">#5E5D5D</Color>
-                    <Color x:Key="TipsColor">#6a5acd</Color>
-                    <Color x:Key="BackButtonBackgroundColor">#f8f8f8</Color>
-                    <Color x:Key="BackButtonForegroundColor">#0c0c0c</Color>
-                    <Color x:Key="FooterTextColor">#616161</Color>
-                    <Color x:Key="TextForegroundColor">#0c0c0c</Color>
                 </ResourceDictionary>
 
                 <!-- ===== DARK THEME ===== -->
@@ -208,19 +195,6 @@
                     <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />
                     <SolidColorBrush x:Key="CounterForegroundBrush" Color="#B0B0B0" />
 
-                    <!-- Legacy Compatibility (remove after migration) -->
-                    <Color x:Key="DarkButtonColor">#3a3a3a</Color>
-                    <Color x:Key="DarkButtonForegroundColor">#e3e3e3</Color>
-                    <Color x:Key="LightButtonColor">#2d2d2d</Color>
-                    <Color x:Key="LightButtonForegroundColor">#e3e3e3</Color>
-                    <Color x:Key="BackgroundColor">#1e1e1e</Color>
-                    <Color x:Key="TextBoxBackgroundColor">#2d2d2d</Color>
-                    <Color x:Key="TextBoxForegroundColor">#e3e3e3</Color>
-                    <Color x:Key="TipsColor">#8b7dd8</Color>
-                    <Color x:Key="BackButtonBackgroundColor">#2d2d2d</Color>
-                    <Color x:Key="BackButtonForegroundColor">#e3e3e3</Color>
-                    <Color x:Key="FooterTextColor">#b3b3b3</Color>
-                    <Color x:Key="TextForegroundColor">#e3e3e3</Color>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>

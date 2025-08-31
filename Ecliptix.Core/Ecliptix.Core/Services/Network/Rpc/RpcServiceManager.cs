@@ -49,7 +49,8 @@ public class RpcServiceManager : IRpcServiceManager
     {
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
-            serviceRequest.PubKeyExchange);
+            serviceRequest.PubKeyExchange,
+            serviceRequest.ExchangeType);
     }
 
     public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(

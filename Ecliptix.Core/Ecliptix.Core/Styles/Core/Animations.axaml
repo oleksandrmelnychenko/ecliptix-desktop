@@ -58,17 +58,6 @@
             <system:TimeSpan x:Key="Loading.SpinDuration">0:0:1.0</system:TimeSpan>
             <system:TimeSpan x:Key="Progress.UpdateDuration">0:0:0.3</system:TimeSpan>
 
-            <!-- ===== LEGACY COMPATIBILITY ===== -->
-            <!-- These will be removed after migration -->
-            <system:TimeSpan x:Key="ButtonTransitionDuration">0:0:0.25</system:TimeSpan>
-            <system:TimeSpan x:Key="LinkTransitionDuration">0:0:0.2</system:TimeSpan>
-            <system:TimeSpan x:Key="OpacityTransitionDuration">0:0:0.25</system:TimeSpan>
-            <system:TimeSpan x:Key="SlowOpacityTransition">0:0:0.3</system:TimeSpan>
-            <system:TimeSpan x:Key="VerySlowOpacityTransition">0:0:0.4</system:TimeSpan>
-            <system:TimeSpan x:Key="BrushTransitionDuration">0:0:0.25</system:TimeSpan>
-            <system:TimeSpan x:Key="ShadowTransitionDuration">0:0:0.3</system:TimeSpan>
-            <system:TimeSpan x:Key="TransitionDuration">0:0:0.25</system:TimeSpan>
-            <system:TimeSpan x:Key="PopupAnimationDuration">0:0:0.2</system:TimeSpan>
         </ResourceDictionary>
     </Styles.Resources>
 

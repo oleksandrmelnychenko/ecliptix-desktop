@@ -163,7 +163,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
         Log.Information("NetworkProvider: Identity keys created successfully");
 
-        EcliptixProtocolSystem protocolSystem = new(identityKeys);
+        // Determine the exchange type for this connectId to use the correct ratchet config
+        PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
+        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        
+        Log.Information("NetworkProvider: Creating protocol with config for exchange type {ExchangeType} - DH every {Messages} messages", 
+            exchangeType, config.DhRatchetEveryNMessages);
+        
+        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
         Log.Information("NetworkProvider: Protocol system created successfully");
 
         protocolSystem.SetEventHandler(this);
@@ -324,6 +331,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                         return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
                     }
+                    
+                    // Log protocol retrieval for debugging
+                    Log.Debug("[PROTOCOL-USAGE] Retrieved protocol for operation - ConnectId: {ConnectId}, ServiceType: {ServiceType}", 
+                        connectId, serviceType);
 
                     uint secondLogicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
 
@@ -790,11 +801,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
 
-        if (_connections.TryGetValue(connectId, out _))
+        if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? existingConnection))
         {
-            Log.Information("[PROTOCOL] Reusing existing protocol for type {Type}, connectId {ConnectId}",
-                exchangeType, connectId);
-            return Result<uint, NetworkFailure>.Ok(connectId);
+            Log.Information("[PROTOCOL] Found existing protocol for connectId {ConnectId}, checking config compatibility...", connectId);
+            
+            // Check if the existing protocol has the correct ratchet config for this exchange type
+            RatchetConfig expectedConfig = GetRatchetConfigForExchangeType(exchangeType);
+            
+            // For now, always recreate to ensure correct config - in production we could optimize this
+            Log.Information("[PROTOCOL] Recreating protocol for type {Type} to ensure correct configuration", exchangeType);
+            _connections.TryRemove(connectId, out _);
+            existingConnection?.Dispose();
         }
 
         Log.Information("[PROTOCOL] Creating new protocol for type {Type}, connectId {ConnectId}",
@@ -892,7 +909,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private static RatchetConfig GetRatchetConfigForExchangeType(PubKeyExchangeType exchangeType)
     {
-        return exchangeType switch
+        RatchetConfig config = exchangeType switch
         {
             PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
@@ -914,6 +931,38 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             },*/
             _ => RatchetConfig.Default
         };
+        
+        Log.Information("[RATCHET-CONFIG] Created config for {ExchangeType}: DH every {Messages} messages", 
+            exchangeType, config.DhRatchetEveryNMessages);
+        return config;
+    }
+
+    private static PubKeyExchangeType DetermineExchangeTypeFromConnectId(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
+    {
+        // Try all known exchange types to see which one produces the given connectId
+        PubKeyExchangeType[] knownTypes = 
+        {
+            PubKeyExchangeType.DataCenterEphemeralConnect,
+            PubKeyExchangeType.ServerStreaming,
+            // Add other types here as needed
+            // PubKeyExchangeType.MessageDeliveryStream,
+            // PubKeyExchangeType.PresenceStream,
+        };
+        
+        foreach (PubKeyExchangeType exchangeType in knownTypes)
+        {
+            uint testConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
+            if (testConnectId == connectId)
+            {
+                Log.Information("NetworkProvider: Determined exchange type {ExchangeType} for connectId {ConnectId}", 
+                    exchangeType, connectId);
+                return exchangeType;
+            }
+        }
+        
+        // Default fallback
+        Log.Warning("NetworkProvider: Could not determine exchange type for connectId {ConnectId}, using default", connectId);
+        return PubKeyExchangeType.DataCenterEphemeralConnect;
     }
 
     private void InitiateEcliptixProtocolSystemForType(uint connectId,
@@ -927,7 +976,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
         protocolSystem.SetEventHandler(this);
 
-        _connections.TryAdd(connectId, protocolSystem);
+        bool addSuccess = _connections.TryAdd(connectId, protocolSystem);
+        Log.Information("[PROTOCOL-TRACKING] Added protocol to connections - ConnectId: {ConnectId}, Success: {Success}, Config.DhEvery: {DhEvery}", 
+            connectId, addSuccess, config.DhRatchetEveryNMessages);
 
         ConnectionHealth initialHealth = new()
         {
@@ -965,7 +1016,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
                 ServiceFlowType.Single,
                 RpcServiceType.EstablishSecrecyChannel,
-                pubKeyExchangeRequest.Unwrap());
+                pubKeyExchangeRequest.Unwrap(),
+                exchangeType);
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);

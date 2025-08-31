@@ -1071,6 +1071,9 @@ public sealed class EcliptixProtocolConnection : IDisposable
         uint currentIndex = currentIndexResult.Unwrap();
         bool shouldRatchet = _ratchetConfig.ShouldRatchet(currentIndex + 1, _lastRatchetTime, _receivedNewDhKey);
 
+        Log.Debug("[RATCHET-DECISION] Index: {Index}, ShouldRatchet: {ShouldRatchet}, Config.DhEvery: {DhEvery}, ReceivedNewDhKey: {ReceivedNewDhKey}",
+            currentIndex + 1, shouldRatchet, _ratchetConfig.DhRatchetEveryNMessages, _receivedNewDhKey);
+
         if (!shouldRatchet) return Result<bool, EcliptixProtocolFailure>.Ok(false);
         Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformDhRatchet(true);
         if (ratchetResult.IsErr)

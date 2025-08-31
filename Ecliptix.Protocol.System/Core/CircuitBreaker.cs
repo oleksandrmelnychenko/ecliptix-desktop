@@ -54,7 +54,6 @@ public sealed class CircuitBreaker : IDisposable
             return Result<T, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Circuit breaker has been disposed"));
 
-        // Check if we should allow the request
         Result<Unit, EcliptixProtocolFailure> canExecuteResult = CanExecute();
         if (canExecuteResult.IsErr)
             return Result<T, EcliptixProtocolFailure>.Err(canExecuteResult.UnwrapErr());
@@ -94,21 +93,16 @@ public sealed class CircuitBreaker : IDisposable
                     return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
 
                 case CircuitBreakerState.Open:
-                    if (now - _lastFailureTime >= _timeout)
-                    {
-                        // Move to half-open to test the service
-                        _state = CircuitBreakerState.HalfOpen;
-                        _requestCount = 0;
-                        _successCount = 0;
-                        return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-                    }
-
-                    return Result<Unit, EcliptixProtocolFailure>.Err(
-                        EcliptixProtocolFailure.Generic(
-                            $"Circuit breaker is OPEN. Blocking requests until {_lastFailureTime.Add(_timeout):HH:mm:ss}"));
+                    if (now - _lastFailureTime < _timeout)
+                        return Result<Unit, EcliptixProtocolFailure>.Err(
+                            EcliptixProtocolFailure.Generic(
+                                $"Circuit breaker is OPEN. Blocking requests until {_lastFailureTime.Add(_timeout):HH:mm:ss}"));
+                    _state = CircuitBreakerState.HalfOpen;
+                    _requestCount = 0;
+                    _successCount = 0;
+                    return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
 
                 case CircuitBreakerState.HalfOpen:
-                    // Allow limited requests to test service recovery
                     if (_requestCount < _failureThreshold)
                     {
                         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);

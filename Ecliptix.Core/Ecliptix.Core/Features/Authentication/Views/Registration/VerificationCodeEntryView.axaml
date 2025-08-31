@@ -14,7 +14,7 @@
 
     <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
-          RowSpacing="{StaticResource Spacing.XL}"
+          RowSpacing="{StaticResource Spacing.Authentication}"
           RowDefinitions="Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
@@ -27,14 +27,14 @@
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Title]}"
                        FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource TextForegroundColor}"
-                       LineHeight="28" />
+                       Foreground="{DynamicResource OnSurface}"
+                       LineHeight="{StaticResource LineHeight.Loose}" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="{StaticResource Font.Title.M}"
-                       LineHeight="28"
-                       FontWeight="Normal"
-                       Foreground="{DynamicResource TextForegroundColor}"
+                       FontSize="{StaticResource Font.XXXL}"
+                       LineHeight="{StaticResource LineHeight.Subtitle}"
+                       FontWeight="Light"
+                       Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
 

@@ -6,22 +6,24 @@
              xmlns:signUp="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Registration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:DataType="signUp:SecureKeyVerifierViewModel"
-             x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.SecureKeyConfirmationView">
+             x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.SecureKeyConfirmationView"
+             MinWidth="{StaticResource Content.MaxWidth}"
+             Width="{StaticResource Content.MaxWidth}">
    
-    <Grid RowDefinitions="Auto,Auto, Auto, Auto" RowSpacing="15">
-        <StackPanel Grid.Row="0" Spacing="8" MaxWidth="280" HorizontalAlignment="Left">
+    <Grid RowDefinitions="Auto,Auto, Auto, Auto" RowSpacing="{StaticResource Spacing.Authentication}">
+        <StackPanel Grid.Row="0" Spacing="{StaticResource Spacing.S}" MaxWidth="{StaticResource Header.MaxWidth}" HorizontalAlignment="Left">
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Title]}"
-                       FontSize="14"
+                       FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
                        Foreground="{DynamicResource OnSurface}"
-                       LineHeight="25"
-            />
+                       LineHeight="{StaticResource LineHeight.Loose}" />
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Description]}"
                        TextWrapping="Wrap"
-                       FontSize="20"
-                       LineHeight="28"
+                       FontSize="{StaticResource Font.XXXL}"
+                       LineHeight="{StaticResource LineHeight.Subtitle}"
                        FontWeight="Light"
-                       Foreground="{DynamicResource OnSurface}" />
+                       Foreground="{DynamicResource OnSurface}"
+                       Opacity="0.8" />
         </StackPanel>
        
         <coreControls:HintedTextBox
@@ -35,9 +37,9 @@
             Hint="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.PasswordHint]}"
             ErrorText="{Binding SecureKeyError, Mode=OneWay}"
             HasError="{Binding HasSecureKeyError, Mode=OneWay}"
-            Height="90"
-            CornerRadius="5"
-            FontSize="18"
+            Height="{StaticResource Input.SecureHeight}"
+            CornerRadius="{StaticResource Input.CornerRadius}"
+            FontSize="{StaticResource Input.SecureFontSize}"
             MainBorderBrush="Transparent"
             FontWeight="Light"
             TextForeground="{DynamicResource OnSurface}"
@@ -53,9 +55,9 @@
             Hint="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint]}"
             ErrorText="{Binding VerifySecureKeyError, Mode=OneWay}"
             HasError="{Binding HasVerifySecureKeyError, Mode=OneWay}"
-            Height="90"
-            CornerRadius="5"
-            FontSize="18"
+            Height="{StaticResource Input.SecureHeight}"
+            CornerRadius="{StaticResource Input.CornerRadius}"
+            FontSize="{StaticResource Input.SecureFontSize}"
             MainBorderBrush="Transparent"
             FontWeight="Light"
             TextForeground="{DynamicResource OnSurface}"
@@ -66,15 +68,16 @@
         <Button
             Grid.Row="3"
             HorizontalAlignment="Stretch"
-            Height="45"
-            FontWeight="Regular"
-            FontSize="14"
-            CornerRadius="15" 
+            Height="{StaticResource Button.Height}"
+            FontWeight="Medium"
+            FontSize="{StaticResource Button.FontSize}"
+            CornerRadius="{StaticResource Button.CornerRadius}" 
             BorderThickness="0"
             Background="{DynamicResource Secondary}"
             Foreground="{DynamicResource OnSecondary}"
             Command="{Binding SubmitCommand}"
             Content="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Button]}"
+            Classes="auth-button continue-button"
             IsEnabled="{Binding CanSubmit}" />
         
     </Grid>

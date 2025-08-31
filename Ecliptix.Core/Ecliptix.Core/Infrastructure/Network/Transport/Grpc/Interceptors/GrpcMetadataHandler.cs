@@ -24,6 +24,7 @@ public static class GrpcMetadataHandler
     private const string OperationContextId = "o-context-id";
 
     public static Metadata GenerateMetadata(string appInstanceId, string appDeviceId, string? culture,
+        PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect, 
         Guid operationId = default)
     {
         Metadata metadata = new()
@@ -37,7 +38,7 @@ public static class GrpcMetadataHandler
             { ApplicationInstanceIdKey, appInstanceId },
             { AppDeviceId, appDeviceId },
             { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
-            { ConnectionContextId, nameof(PubKeyExchangeType.DataCenterEphemeralConnect) },
+            { ConnectionContextId, exchangeType.ToString() },
             { OperationContextId, string.Empty }
         };
 
