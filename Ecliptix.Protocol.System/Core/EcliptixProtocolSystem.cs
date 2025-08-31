@@ -688,6 +688,13 @@ public class EcliptixProtocolSystem : IDisposable
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
 
+    public static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> CreateFrom(EcliptixSystemIdentityKeys keys,
+        EcliptixProtocolConnection connection, RatchetConfig ratchetConfig)
+    {
+        EcliptixProtocolSystem system = new(keys, ratchetConfig) { _protocolConnection = connection };
+        return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
+    }
+
     private static Result<byte[], EcliptixProtocolFailure> ReadAndWipeSecureHandle(SodiumSecureMemoryHandle handle,
         int size)
     {
