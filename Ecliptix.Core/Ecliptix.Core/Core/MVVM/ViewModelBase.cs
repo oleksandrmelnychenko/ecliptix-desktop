@@ -12,6 +12,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using ReactiveUI;
 using Serilog;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
 
@@ -25,6 +26,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     private bool _disposedValue;
 
     public ViewModelActivator Activator { get; } = new();
+    
+    protected IObservable<SystemU> LanguageChanged { get; }
 
     protected ViewModelBase(ISystemEventService systemEventService, NetworkProvider networkProvider,
         ILocalizationService localizationService)
@@ -33,6 +36,18 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
 
+        LanguageChanged = Observable.Create<SystemU>(observer =>
+            {
+                observer.OnNext(SystemU.Default);
+
+                void Handler() => observer.OnNext(SystemU.Default);
+
+                localizationService.LanguageChanged += Handler;
+                return Disposable.Create(() => localizationService.LanguageChanged -= Handler);
+            })
+            .Publish()
+            .RefCount();
+        
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(

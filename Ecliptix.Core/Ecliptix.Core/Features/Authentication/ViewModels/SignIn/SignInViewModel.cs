@@ -87,11 +87,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<SystemU> languageTrigger =
-            Observable.FromEvent(
-                    handler => LocalizationService.LanguageChanged += handler,
-                    handler => LocalizationService.LanguageChanged -= handler)
-                .Select(_ => SystemU.Default);
+        IObservable<SystemU> languageTrigger = LanguageChanged;
 
         IObservable<SystemU> mobileTrigger = this
             .WhenAnyValue(x => x.MobileNumber)
