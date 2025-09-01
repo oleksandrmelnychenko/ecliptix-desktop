@@ -12,9 +12,9 @@ public interface IOpaqueRegistrationService
         uint connectId);
 
     Task<Result<Guid, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier, string deviceIdentifier,
-        Action<ulong>? onCountdownUpdate = null);
+        Action<uint, Guid>? onCountdownUpdate = null);
 
-    Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString phoneNumberIdentifier, 
+    Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString phoneNumberIdentifier,
         string deviceIdentifier);
 
     Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(string otpCode, string deviceIdentifier,

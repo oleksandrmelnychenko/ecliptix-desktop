@@ -125,9 +125,8 @@ public class OpaqueRegistrationService(
         }
     }
 
-
     public async Task<Result<Guid, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
-        string deviceIdentifier, Action<ulong>? onCountdownUpdate = null)
+        string deviceIdentifier, Action<uint, Guid>? onCountdownUpdate = null)
     {
         if (phoneNumberIdentifier.IsEmpty)
         {
@@ -187,7 +186,10 @@ public class OpaqueRegistrationService(
                             cancellationTokenSource.Token);
                     }
 
-                    RxApp.MainThreadScheduler.Schedule(() => onCountdownUpdate?.Invoke(timerTick.SecondsRemaining));
+                    Guid verificationIdentifier = Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
+
+                    RxApp.MainThreadScheduler.Schedule(() =>
+                        onCountdownUpdate?.Invoke(timerTick.SecondsRemaining, verificationIdentifier));
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
@@ -207,7 +209,7 @@ public class OpaqueRegistrationService(
 
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
-        ByteString phoneNumberIdentifier, 
+        ByteString phoneNumberIdentifier,
         string deviceIdentifier)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
@@ -240,10 +242,10 @@ public class OpaqueRegistrationService(
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
 
-        Log.Information("[OPAQUE-REG] Resending OTP for session {SessionId} on connectId {ConnectId}", 
+        Log.Information("[OPAQUE-REG] Resending OTP for session {SessionId} on connectId {ConnectId}",
             sessionIdentifier, streamConnectId);
 
-        Result<Unit, NetworkFailure> result = await networkProvider.ExecuteUnaryRequestAsync(
+        Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),

@@ -39,14 +39,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
 
     public new ViewModelActivator Activator { get; } = new();
-    
+
     [Reactive] public string VerificationCode { get; set; } = string.Empty;
     [Reactive] public bool IsSent { get; private set; }
     [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
     [Reactive] public ulong SecondsRemaining { get; private set; }
     [Reactive] public bool HasError { get; private set; }
-    
+
     public VerifyOtpViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
@@ -83,13 +83,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         this.WhenActivated(disposables =>
         {
             OnViewLoaded().Subscribe().DisposeWith(disposables);
-            
+
             this.WhenAnyValue(x => x.ErrorMessage)
                 .Select(e => !string.IsNullOrEmpty(e))
                 .DistinctUntilChanged()
                 .Subscribe(flag => HasError = flag)
                 .DisposeWith(disposables);
-            
+
             this.WhenAnyValue(x => x.SecondsRemaining)
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
@@ -105,7 +105,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             Result<Guid, string> result = await _registrationService.InitiateOtpVerificationAsync(
                 _phoneNumberIdentifier,
                 deviceIdentifier,
-                onCountdownUpdate: seconds => RxApp.MainThreadScheduler.Schedule(() => SecondsRemaining = seconds)
+                onCountdownUpdate: (seconds, identifier) =>
+                    RxApp.MainThreadScheduler.Schedule(() =>
+                    {
+                        SecondsRemaining = seconds;
+                        VerificationSessionIdentifier ??= identifier;
+                    })
             );
 
             if (result.IsErr)
@@ -159,7 +164,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         {
             ErrorMessage = string.Empty;
             HasError = false;
-            
+
             string deviceIdentifier = SystemDeviceIdentifier();
             Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
                 VerificationSessionIdentifier.Value,
@@ -188,7 +193,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public void ResetState()
     {
-        //VerificationCode = string.Empty; TODO make proper setting from outside for a segmented text box
         IsSent = false;
         ErrorMessage = string.Empty;
         HasError = false;

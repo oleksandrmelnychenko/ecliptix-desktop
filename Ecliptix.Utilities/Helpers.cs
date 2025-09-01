@@ -111,14 +111,6 @@ public static class Helpers
         return parser.ParseFrom(data);
     }
 
-    // AOT-safe specific parsing methods for commonly used protobuf types
-    // These avoid generic constraints and use direct parser instances
-    public static Google.Protobuf.WellKnownTypes.Any ParseAnyFromBytes(byte[] data) =>
-        Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
-
-    public static Google.Protobuf.WellKnownTypes.Empty ParseEmptyFromBytes(byte[] data) =>
-        Google.Protobuf.WellKnownTypes.Empty.Parser.ParseFrom(data);
-
     public static uint ComputeUniqueConnectId(
         ReadOnlySpan<byte> appInstanceId,
         ReadOnlySpan<byte> appDeviceId,
