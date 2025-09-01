@@ -29,7 +29,7 @@
         <Thickness x:Key="HintSectionMargin">0,6,0,0</Thickness>
 
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
-        <BoxShadows x:Key="DefaultShadow">0 0 0 0 #00000000</BoxShadows>
+        <BoxShadows x:Key="DefaultShadow">0 0 10 4 #00000000, 0 2 4 0 #00000000</BoxShadows>
         <BoxShadows x:Key="FocusShadow">0 0 10 4 #406a5acd, 0 2 4 0 #20000000</BoxShadows>
         <BoxShadows x:Key="ErrorShadow">0 0 10 4 #40de1e31, 0 2 4 0 #20000000</BoxShadows>
     </UserControl.Resources>
