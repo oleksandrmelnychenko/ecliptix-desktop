@@ -60,11 +60,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<Unit> languageTrigger =
-            Observable.FromEvent(
-                    handler => LocalizationService.LanguageChanged += handler,
-                    handler => LocalizationService.LanguageChanged -= handler)
-                .Select(_ => Unit.Default);
+        IObservable<Unit> languageTrigger = LanguageChanged;
 
         IObservable<Unit> mobileTrigger = this
             .WhenAnyValue(x => x.MobileNumber)

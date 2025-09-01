@@ -164,11 +164,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         try
         {
-            if (File.Exists(_storagePath))
-            {
-                File.Delete(_storagePath);
-            }
-
+            await DeleteFileWithRetryAsync(_storagePath);
             await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}");
 
             Log.Information("Protocol state deleted securely for user {Key}", key);
@@ -180,6 +176,39 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Delete failed: {ex.Message}"));
         }
+    }
+    
+    private static async Task DeleteFileWithRetryAsync(string filePath, int maxRetries = 3)
+    {
+        if (!File.Exists(filePath))
+            return;
+
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                if (File.GetAttributes(filePath).HasFlag(FileAttributes.ReadOnly))
+                {
+                    File.SetAttributes(filePath, File.GetAttributes(filePath) & ~FileAttributes.ReadOnly);
+                }
+
+                File.Delete(filePath);
+                return;
+            }
+            catch (UnauthorizedAccessException) when (attempt < maxRetries)
+            {
+                await Task.Delay(100 * (attempt + 1)); 
+            }
+            catch (IOException) when (attempt < maxRetries)
+            {
+                await Task.Delay(100 * (attempt + 1));
+            }
+            catch (FileNotFoundException)
+            {
+                return;
+            }
+        }
+        File.Delete(filePath);
     }
 
     private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string connectId)
@@ -364,10 +393,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
-            if (File.Exists(_storagePath))
-            {
-                File.Delete(_storagePath);
-            }
+            await DeleteFileWithRetryAsync(_storagePath);
 
             File.Move(tempPath, _storagePath);
         }

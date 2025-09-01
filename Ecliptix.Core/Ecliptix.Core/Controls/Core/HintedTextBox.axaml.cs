@@ -208,7 +208,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public string ErrorText
     {
         get => GetValue(ErrorTextProperty);
-        private set => SetValue(ErrorTextProperty, value);
+        private set
+        {
+            _originalErrorText = value; 
+            SetValue(ErrorTextProperty, value);
+        }
     }
 
     public double EllipseOpacity
@@ -344,7 +348,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private int _lastProcessedTextElementCount;
     private volatile bool _isProcessingSecureKeyChange;
     private int _intendedCaretPosition;
-
+    private string _originalErrorText = string.Empty;
+    
     public HintedTextBox()
     {
         InitializeComponent();
@@ -805,6 +810,27 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             })
             .DisposeWith(_disposables);
 
+        
+        this.WhenAnyValue(x => x.ErrorText) 
+            .DistinctUntilChanged()
+            .Scan(string.Empty, (previous, current) =>
+                string.IsNullOrEmpty(current) && !string.IsNullOrEmpty(previous) ? previous : current)
+            .Subscribe(accumulatedError =>
+            {
+                try
+                {
+                    if (!_isDisposed && !string.IsNullOrEmpty(accumulatedError))
+                    {
+                        SetValue(ErrorTextProperty, accumulatedError);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
+                }
+            }) 
+            .DisposeWith(_disposables);
+        
         this.WhenAnyValue(x => x.Text)
             .Where(text => !IsSecureKeyMode && _mainTextBox != null && _mainTextBox.Text != text)
             .Subscribe(text =>
@@ -817,24 +843,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error in Text subscription: {ex.Message}");
-                }
-            })
-            .DisposeWith(_disposables);
-
-        this.WhenAnyValue(x => x.ErrorText)
-            .DistinctUntilChanged()
-            .Subscribe(errorText =>
-            {
-                try
-                {
-                    if (!_isDisposed && !string.IsNullOrEmpty(errorText))
-                    {
-                        SetValue(ErrorTextProperty, errorText);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
                 }
             })
             .DisposeWith(_disposables);

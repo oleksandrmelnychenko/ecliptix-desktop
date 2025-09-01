@@ -24,6 +24,7 @@ using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -41,6 +42,8 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     [Reactive] public bool HasSecureKeyError { get; set; }
     [Reactive] public string? VerifySecureKeyError { get; set; }
     [Reactive] public bool HasVerifySecureKeyError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
 
     [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -49,8 +52,8 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     [Reactive] public bool CanSubmit { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> SubmitCommand { get; }
-    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> NavPassConfToPassPhase { get; }
+    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
+    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; }
 
     private ByteString? VerificationSessionId { get; set; }
 
@@ -99,6 +102,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
                     }
                 })
                 .DisposeWith(disposables);
+            
+            this.WhenAnyValue(x => x.ServerError)
+                .Select(e => !string.IsNullOrEmpty(e))
+                .DistinctUntilChanged()
+                .Subscribe(flag => HasServerError = flag)
+                .DisposeWith(disposables);
+            
             SubmitCommand
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
@@ -155,17 +165,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
     private IObservable<bool> SetupValidation()
     {
-        IObservable<System.Reactive.Unit> languageTrigger =
-            Observable.FromEvent(
-                    handler => LocalizationService.LanguageChanged += handler,
-                    handler => LocalizationService.LanguageChanged -= handler)
-                .Select(_ => System.Reactive.Unit.Default);
+        IObservable<SystemU> languageTrigger = LanguageChanged;
 
-        IObservable<System.Reactive.Unit> lengthTrigger = this
+        IObservable<SystemU> lengthTrigger = this
             .WhenAnyValue(x => x.CurrentSecureKeyLength)
-            .Select(_ => System.Reactive.Unit.Default);
+            .Select(_ => SystemU.Default);
 
-        IObservable<System.Reactive.Unit> validationTrigger = lengthTrigger.Merge(languageTrigger);
+        IObservable<SystemU> validationTrigger = lengthTrigger.Merge(languageTrigger);
 
         IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation =
             validationTrigger
@@ -200,11 +206,11 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
         IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
 
-        IObservable<System.Reactive.Unit> verifyLengthTrigger = this
+        IObservable<SystemU> verifyLengthTrigger = this
             .WhenAnyValue(x => x.CurrentVerifySecureKeyLength)
-            .Select(_ => System.Reactive.Unit.Default);
+            .Select(_ => SystemU.Default);
 
-        IObservable<System.Reactive.Unit> verifyValidationTrigger = verifyLengthTrigger
+        IObservable<SystemU> verifyValidationTrigger = verifyLengthTrigger
             .Merge(languageTrigger)
             .Merge(lengthTrigger);
 
@@ -308,7 +314,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
         if (registrationResult.IsErr)
         {
-            SecureKeyError = registrationResult.UnwrapErr();
+            ServerError = registrationResult.UnwrapErr();
         }
     }
 
@@ -335,6 +341,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         HasSecureKeyError = false;
         VerifySecureKeyError = string.Empty;
         HasVerifySecureKeyError = false;
+        
+        ServerError = string.Empty;
+        HasServerError = false;
     }
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";

@@ -18,6 +18,7 @@ using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -25,10 +26,6 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly ByteString _phoneNumberIdentifier;
-    private string _errorMessage = string.Empty;
-    private bool _isSent;
-    private string _remainingTime = AuthenticationConstants.InitialRemainingTime;
-    private string _verificationCode;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
 
@@ -42,43 +39,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
 
     public new ViewModelActivator Activator { get; } = new();
-
-    private ulong _secondsRemaining;
-
-    public string VerificationCode
-    {
-        get => _verificationCode;
-        set => this.RaiseAndSetIfChanged(ref _verificationCode, value);
-    }
-
-    public bool IsSent
-    {
-        get => _isSent;
-        private set => this.RaiseAndSetIfChanged(ref _isSent, value);
-    }
-
-    public string ErrorMessage
-    {
-        get => _errorMessage;
-        private set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
-    }
-
-    public string RemainingTime
-    {
-        get => _remainingTime;
-        private set => this.RaiseAndSetIfChanged(ref _remainingTime, value);
-    }
-
-    public ulong SecondsRemaining
-    {
-        get => _secondsRemaining;
-        private set
-        {
-            this.RaiseAndSetIfChanged(ref _secondsRemaining, value);
-            RemainingTime = FormatRemainingTime(value);
-        }
-    }
-
+    
+    [Reactive] public string VerificationCode { get; set; } = string.Empty;
+    [Reactive] public bool IsSent { get; private set; }
+    [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
+    [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
+    [Reactive] public ulong SecondsRemaining { get; private set; }
+    [Reactive] public bool HasError { get; private set; }
+    
     public VerifyOtpViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
@@ -90,7 +58,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         localizationService)
     {
         _phoneNumberIdentifier = phoneNumberIdentifier;
-        _verificationCode = string.Empty;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
 
@@ -113,7 +80,21 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
 
-        this.WhenActivated(disposables => { OnViewLoaded().Subscribe().DisposeWith(disposables); });
+        this.WhenActivated(disposables =>
+        {
+            OnViewLoaded().Subscribe().DisposeWith(disposables);
+            
+            this.WhenAnyValue(x => x.ErrorMessage)
+                .Select(e => !string.IsNullOrEmpty(e))
+                .DistinctUntilChanged()
+                .Subscribe(flag => HasError = flag)
+                .DisposeWith(disposables);
+            
+            this.WhenAnyValue(x => x.SecondsRemaining)
+                .Select(FormatRemainingTime)
+                .Subscribe(rt => RemainingTime = rt)
+                .DisposeWith(disposables);
+        });
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -187,10 +168,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public void ResetState()
     {
-        _errorMessage = string.Empty;
-        _isSent = false;
-        this.RaisePropertyChanged(nameof(ErrorMessage));
-        this.RaisePropertyChanged(nameof(IsSent));
+        //VerificationCode = string.Empty; TODO make proper setting from outside for a segmented text box
+        IsSent = false;
+        ErrorMessage = string.Empty;
+        HasError = false;
+        SecondsRemaining = 0;
+        RemainingTime = AuthenticationConstants.InitialRemainingTime;
     }
 
     protected override void Dispose(bool disposing)
