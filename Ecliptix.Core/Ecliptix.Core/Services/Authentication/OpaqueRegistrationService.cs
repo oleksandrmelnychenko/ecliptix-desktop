@@ -19,6 +19,7 @@ using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Math;
+using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
@@ -179,7 +180,6 @@ public class OpaqueRegistrationService(
                         timerTick = Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
 
                     if (timerTick.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
                         or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
                         or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
                     {
@@ -203,6 +203,58 @@ public class OpaqueRegistrationService(
         if (!streamResult.IsErr) return Result<Guid, string>.Ok(sessionIdentifier);
         _activeStreams.TryRemove(sessionIdentifier, out _);
         return Result<Guid, string>.Err(streamResult.UnwrapErr().Message);
+    }
+
+    public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
+        Guid sessionIdentifier,
+        ByteString phoneNumberIdentifier, 
+        string deviceIdentifier)
+    {
+        if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
+        {
+            return Result<Unit, string>.Err(
+                localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
+        }
+
+        if (phoneNumberIdentifier.IsEmpty)
+        {
+            return Result<Unit, string>.Err(
+                localizationService[AuthenticationConstants.PhoneNumberIdentifierRequiredKey]);
+        }
+
+        if (string.IsNullOrEmpty(deviceIdentifier))
+        {
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
+        }
+
+        if (!_activeStreams.TryGetValue(sessionIdentifier, out uint streamConnectId))
+        {
+            return Result<Unit, string>.Err("Verification session not found or has expired");
+        }
+
+        InitiateVerificationRequest request = new()
+        {
+            MobileNumberIdentifier = phoneNumberIdentifier,
+            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
+            Purpose = VerificationPurpose.Registration,
+            Type = InitiateVerificationRequest.Types.Type.ResendOtp
+        };
+
+        Log.Information("[OPAQUE-REG] Resending OTP for session {SessionId} on connectId {ConnectId}", 
+            sessionIdentifier, streamConnectId);
+
+        Result<Unit, NetworkFailure> result = await networkProvider.ExecuteUnaryRequestAsync(
+            streamConnectId,
+            RpcServiceType.InitiateVerification,
+            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
+            _ => Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value)));
+
+        if (result.IsErr)
+        {
+            return Result<Unit, string>.Err(result.UnwrapErr().Message);
+        }
+
+        return Result<Unit, string>.Ok(Unit.Value);
     }
 
     public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(

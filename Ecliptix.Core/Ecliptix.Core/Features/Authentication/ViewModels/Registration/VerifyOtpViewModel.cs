@@ -153,10 +153,30 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
-    private void ReSendVerificationCode()
+    private async void ReSendVerificationCode()
     {
-        SecondsRemaining = 60;
-        OnViewLoaded().Subscribe();
+        if (VerificationSessionIdentifier.HasValue)
+        {
+            ErrorMessage = string.Empty;
+            HasError = false;
+            
+            string deviceIdentifier = SystemDeviceIdentifier();
+            Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
+                VerificationSessionIdentifier.Value,
+                _phoneNumberIdentifier,
+                deviceIdentifier);
+
+            if (result.IsErr)
+            {
+                ErrorMessage = result.UnwrapErr();
+                HasError = true;
+            }
+        }
+        else
+        {
+            ErrorMessage = "No active verification session found";
+            HasError = true;
+        }
     }
 
     private static string FormatRemainingTime(ulong seconds)

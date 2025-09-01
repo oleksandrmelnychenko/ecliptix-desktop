@@ -1,4 +1,8 @@
 using System.Collections.Concurrent;
+using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Google.Protobuf.WellKnownTypes;
 using Serilog;
 using Serilog.Events;
 
@@ -217,6 +221,112 @@ public sealed class AdaptiveRatchetManager : IDisposable
             if (Log.IsEnabled(LogEventLevel.Information))
                 Log.Information("Adaptive ratchet forced config update to {TargetLoad}", targetLoad);
         }
+    }
+
+    public Result<AdaptiveRatchetState, EcliptixProtocolFailure> ToProtoState()
+    {
+        lock (_lock)
+        {
+            try
+            {
+                List<Timestamp> messageTimestamps = new();
+                DateTime cutoff = DateTime.UtcNow - _messageWindowSize;
+                
+                foreach (DateTime timestamp in _messageTimestamps)
+                {
+                    if (timestamp >= cutoff)
+                    {
+                        messageTimestamps.Add(Timestamp.FromDateTime(timestamp.ToUniversalTime()));
+                    }
+                }
+
+                AdaptiveRatchetState state = new()
+                {
+                    CurrentLoad = ConvertToProtoLoadLevel(_currentLoad),
+                    CurrentConfig = new RatchetConfigState
+                    {
+                        DhRatchetEveryNMessages = _currentConfig.DhRatchetEveryNMessages,
+                        EnablePerMessageRatchet = _currentConfig.EnablePerMessageRatchet,
+                        RatchetOnNewDhKey = _currentConfig.RatchetOnNewDhKey,
+                        MaxChainAge = Duration.FromTimeSpan(_currentConfig.MaxChainAge),
+                        MaxMessagesWithoutRatchet = _currentConfig.MaxMessagesWithoutRatchet
+                    },
+                    AverageMessageRate = _averageMessageRate,
+                    LastConfigUpdate = Timestamp.FromDateTime(_lastConfigUpdate.ToUniversalTime())
+                };
+
+                state.RecentMessageTimestamps.AddRange(messageTimestamps);
+
+                return Result<AdaptiveRatchetState, EcliptixProtocolFailure>.Ok(state);
+            }
+            catch (Exception ex)
+            {
+                return Result<AdaptiveRatchetState, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.Generic("Failed to serialize AdaptiveRatchetManager state", ex));
+            }
+        }
+    }
+
+    public static Result<AdaptiveRatchetManager, EcliptixProtocolFailure> FromProtoState(
+        AdaptiveRatchetState protoState)
+    {
+        try
+        {
+            RatchetConfig baseConfig = new()
+            {
+                DhRatchetEveryNMessages = protoState.CurrentConfig.DhRatchetEveryNMessages,
+                EnablePerMessageRatchet = protoState.CurrentConfig.EnablePerMessageRatchet,
+                RatchetOnNewDhKey = protoState.CurrentConfig.RatchetOnNewDhKey,
+                MaxChainAge = protoState.CurrentConfig.MaxChainAge.ToTimeSpan(),
+                MaxMessagesWithoutRatchet = protoState.CurrentConfig.MaxMessagesWithoutRatchet
+            };
+
+            AdaptiveRatchetManager manager = new(baseConfig);
+
+            lock (manager._lock)
+            {
+                manager._currentLoad = ConvertFromProtoLoadLevel(protoState.CurrentLoad);
+                manager._currentConfig = baseConfig;
+                manager._averageMessageRate = protoState.AverageMessageRate;
+                manager._lastConfigUpdate = protoState.LastConfigUpdate.ToDateTime().ToUniversalTime();
+
+                foreach (Timestamp timestamp in protoState.RecentMessageTimestamps)
+                {
+                    manager._messageTimestamps.Enqueue(timestamp.ToDateTime().ToUniversalTime());
+                }
+            }
+
+            return Result<AdaptiveRatchetManager, EcliptixProtocolFailure>.Ok(manager);
+        }
+        catch (Exception ex)
+        {
+            return Result<AdaptiveRatchetManager, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("Failed to deserialize AdaptiveRatchetManager state", ex));
+        }
+    }
+
+    private static Ecliptix.Protobuf.ProtocolState.LoadLevel ConvertToProtoLoadLevel(LoadLevel loadLevel)
+    {
+        return loadLevel switch
+        {
+            LoadLevel.Light => Ecliptix.Protobuf.ProtocolState.LoadLevel.Light,
+            LoadLevel.Moderate => Ecliptix.Protobuf.ProtocolState.LoadLevel.Moderate,
+            LoadLevel.Heavy => Ecliptix.Protobuf.ProtocolState.LoadLevel.Heavy,
+            LoadLevel.Extreme => Ecliptix.Protobuf.ProtocolState.LoadLevel.Extreme,
+            _ => Ecliptix.Protobuf.ProtocolState.LoadLevel.Light
+        };
+    }
+
+    private static LoadLevel ConvertFromProtoLoadLevel(Ecliptix.Protobuf.ProtocolState.LoadLevel protoLoadLevel)
+    {
+        return protoLoadLevel switch
+        {
+            Ecliptix.Protobuf.ProtocolState.LoadLevel.Light => LoadLevel.Light,
+            Ecliptix.Protobuf.ProtocolState.LoadLevel.Moderate => LoadLevel.Moderate,
+            Ecliptix.Protobuf.ProtocolState.LoadLevel.Heavy => LoadLevel.Heavy,
+            Ecliptix.Protobuf.ProtocolState.LoadLevel.Extreme => LoadLevel.Extreme,
+            _ => LoadLevel.Light
+        };
     }
 
     public void Dispose()

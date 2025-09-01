@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -18,25 +19,16 @@ public class EcliptixProtocolSystem : IDisposable
 {
     private readonly Lock _lock = new();
     private readonly EcliptixSystemIdentityKeys _ecliptixSystemIdentityKeys;
-
-
+    
     private readonly AdaptiveRatchetManager _ratchetManager;
     private readonly ProtocolMetricsCollector _metricsCollector = new(TimeSpan.FromSeconds(30));
     private EcliptixProtocolConnection? _protocolConnection;
     private IProtocolEventHandler? _eventHandler;
 
-    public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
-    {
-        _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
-        _ratchetManager = new AdaptiveRatchetManager(RatchetConfig.Default);
-        Log.Warning("🔧 PROTOCOL-SYSTEM-CONSTRUCTOR: Created protocol system with default config - DH every {Messages} messages (should use explicit config)", 
-            RatchetConfig.Default.DhRatchetEveryNMessages);
-    }
-
     public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
     {
         _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
-        _ratchetManager = new(customConfig);
+        _ratchetManager = new AdaptiveRatchetManager(customConfig);
         Log.Information("[CLIENT-PROTOCOL] Initialized with custom config - DH interval: {Interval}",
             customConfig.DhRatchetEveryNMessages);
     }
@@ -97,11 +89,13 @@ public class EcliptixProtocolSystem : IDisposable
 
         LocalPublicKeyBundle bundle = bundleResult.Unwrap();
 
-        Log.Information("🔧 KEY-EXCHANGE: Creating protocol connection for connectId {ConnectId} with config DH every {Messages} messages", 
-            connectId, _ratchetManager.CurrentConfig.DhRatchetEveryNMessages);
+        RatchetConfig configToUse = GetConfigForExchangeType(exchangeType);
+
+        Log.Information("🔧 KEY-EXCHANGE: Creating protocol connection for {ExchangeType} connectId {ConnectId} with config DH every {Messages} messages", 
+            exchangeType, connectId, configToUse.DhRatchetEveryNMessages);
         
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> sessionResult =
-            EcliptixProtocolConnection.Create(connectId, true, _ratchetManager.CurrentConfig);
+            EcliptixProtocolConnection.Create(connectId, true, configToUse);
         if (sessionResult.IsErr)
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
 
@@ -291,7 +285,7 @@ public class EcliptixProtocolSystem : IDisposable
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        _ratchetManager.RecordMessage();
+        _ratchetManager?.RecordMessage();
 
         bool isInitiator = connection.IsInitiator();
         Log.Information("Protocol message production started for {ConnectionRole} with payload size {PayloadSize}",
@@ -441,19 +435,13 @@ public class EcliptixProtocolSystem : IDisposable
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        _ratchetManager.RecordMessage();
+        _ratchetManager?.RecordMessage();
 
         EcliptixMessageKey? messageKeyClone = null;
         byte[]? receivedDhKey = null;
         byte[]? ad = null;
         try
         {
-            Result<Unit, EcliptixProtocolFailure> replayCheck = connection.CheckReplayProtection(
-                [.. cipherPayloadProto.Nonce],
-                cipherPayloadProto.RatchetIndex);
-            if (replayCheck.IsErr)
-                return Result<byte[], EcliptixProtocolFailure>.Err(replayCheck.UnwrapErr());
-
             if (cipherPayloadProto.DhPublicKey.Length > 0)
             {
                 SecureByteStringInterop.SecureCopyWithCleanup(cipherPayloadProto.DhPublicKey, out receivedDhKey);
@@ -470,6 +458,12 @@ public class EcliptixProtocolSystem : IDisposable
             Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(receivedDhKey);
             if (ratchetResult.IsErr)
                 return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
+
+            Result<Unit, EcliptixProtocolFailure> replayCheck = connection.CheckReplayProtection(
+                [.. cipherPayloadProto.Nonce],
+                cipherPayloadProto.RatchetIndex);
+            if (replayCheck.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(replayCheck.UnwrapErr());
 
             Result<EcliptixMessageKey, EcliptixProtocolFailure> messageResult =
                 connection.ProcessReceivedMessage(cipherPayloadProto.RatchetIndex);
@@ -766,5 +760,26 @@ public class EcliptixProtocolSystem : IDisposable
     public void ResetMetrics()
     {
         _metricsCollector.Reset();
+    }
+
+    public Result<AdaptiveRatchetState, EcliptixProtocolFailure> GetAdaptiveRatchetState()
+    {
+        if (_ratchetManager == null)
+        {
+            return Result<AdaptiveRatchetState, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic("AdaptiveRatchetManager not initialized"));
+        }
+
+        return _ratchetManager.ToProtoState();
+    }
+
+    private RatchetConfig GetConfigForExchangeType(PubKeyExchangeType exchangeType)
+    {
+        return exchangeType switch
+        {
+            PubKeyExchangeType.ServerStreaming => _ratchetManager.CurrentConfig,
+            PubKeyExchangeType.DeviceToDevice => _ratchetManager.CurrentConfig,
+            _ => RatchetConfig.Default
+        };
     }
 }
