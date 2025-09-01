@@ -15,11 +15,10 @@
     <!-- Main Layout -->
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.XL}"
-          RowDefinitions="Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
-
-        <!-- Header Section -->
+        
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
@@ -38,37 +37,30 @@
                        Opacity="0.8" />
         </StackPanel>
 
-        <!-- Verification Code Input -->
-        <coreControls:SegmentedTextBox Grid.Row="1"
-                                   SegmentCount="6"
-                                   Height="60"
-                                   FontSize="{StaticResource Input.SegmentFontSize}"
-                                   FontWeight="Bold"
-                                   HorizontalAlignment="Center"
-                                   SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
-                                   ActiveSegmentBorderColor="{DynamicResource Primary}"
-                                   SegmentSpacing="5"
-                                   SegmentWidth="40"
-                                   AllowOnlyNumbers="True"
-                                   Value="{Binding VerificationCode, Mode=TwoWay}" />
-
-        <!-- Status Information -->
+        <coreControls:SegmentedTextBox
+            Grid.Row="1"
+           SegmentCount="6"
+           Height="60"
+           FontSize="{StaticResource Input.SegmentFontSize}"
+           FontWeight="Bold"
+           HorizontalAlignment="Center"
+           SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
+           ActiveSegmentBorderColor="{DynamicResource Primary}"
+           SegmentSpacing="5"
+           SegmentWidth="40"
+           AllowOnlyNumbers="True"
+           Value="{Binding VerificationCode, Mode=TwoWay}" />
+        
         <Grid Grid.Row="2"
-              RowDefinitions="Auto,Auto"
+              RowDefinitions="Auto"
               ColumnDefinitions="*">
             <TextBlock Text="{Binding RemainingTime}"
                        Grid.Row="0"
                        Grid.Column="0"
                        Classes="status-text"
                        HorizontalAlignment="Center" />
-           
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Grid.Row="1"
-                       Grid.Column="0"
-                       Classes="error-text" />
         </Grid>
-
-        <!-- Action Buttons -->
+        
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource Spacing.M}">
@@ -83,5 +75,21 @@
                     IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
                     Classes="auth-button continue-button" />
         </Grid>
+        
+        <Border Grid.Row="4"
+                Background="Transparent"
+                HorizontalAlignment="Stretch"
+                CornerRadius="8"
+                IsVisible="{Binding HasError, Mode=OneWay}"
+                ClipToBounds="True"
+                Margin="0">
+            <TextBlock Text="{Binding ErrorMessage, Mode=OneWay}"
+                       Classes="server-error"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="{StaticResource Content.MaxWidth}"
+                       Foreground="{DynamicResource Error}" />
+        </Border>
     </Grid>
 </UserControl>

@@ -26,6 +26,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 {
     private readonly ByteString _phoneNumberIdentifier;
     private string _errorMessage = string.Empty;
+    private bool _hasError;
     private bool _isSent;
     private string _remainingTime = AuthenticationConstants.InitialRemainingTime;
     private string _verificationCode;
@@ -79,6 +80,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
+    public bool HasError
+    {
+        get => _hasError;
+        private set => this.RaiseAndSetIfChanged(ref _hasError, value);
+    }
+    
     public VerifyOtpViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
@@ -113,7 +120,16 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
         ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
 
-        this.WhenActivated(disposables => { OnViewLoaded().Subscribe().DisposeWith(disposables); });
+        this.WhenActivated(disposables =>
+        {
+            OnViewLoaded().Subscribe().DisposeWith(disposables);
+            
+            this.WhenAnyValue(x => x.ErrorMessage)
+                .Select(e => !string.IsNullOrEmpty(e))
+                .DistinctUntilChanged()
+                .Subscribe(flag => HasError = flag)
+                .DisposeWith(disposables);
+        });
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -189,8 +205,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         _errorMessage = string.Empty;
         _isSent = false;
+        _hasError = false;
         this.RaisePropertyChanged(nameof(ErrorMessage));
         this.RaisePropertyChanged(nameof(IsSent));
+        this.RaisePropertyChanged(nameof(HasError));
     }
 
     protected override void Dispose(bool disposing)

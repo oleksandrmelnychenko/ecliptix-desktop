@@ -31,7 +31,7 @@
                            LineHeight="28" />
                 <TextBlock Text="{Binding LocalizationService[Authentication.SignIn.Welcome]}"
                            TextWrapping="Wrap"
-                           FontSize="{StaticResource Title.FontSize}"
+                           FontSize="{StaticResource Font.Title.M}"
                            LineHeight="28"
                            FontWeight="Normal"
                            Foreground="{DynamicResource OnSurface}"
