@@ -42,6 +42,8 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
     [Reactive] public bool HasSecureKeyError { get; set; }
     [Reactive] public string? VerifySecureKeyError { get; set; }
     [Reactive] public bool HasVerifySecureKeyError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
 
     [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -100,6 +102,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
                     }
                 })
                 .DisposeWith(disposables);
+            
+            this.WhenAnyValue(x => x.ServerError)
+                .Select(e => !string.IsNullOrEmpty(e))
+                .DistinctUntilChanged()
+                .Subscribe(flag => HasServerError = flag)
+                .DisposeWith(disposables);
+            
             SubmitCommand
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
@@ -305,7 +314,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
         if (registrationResult.IsErr)
         {
-            SecureKeyError = registrationResult.UnwrapErr();
+            ServerError = registrationResult.UnwrapErr();
         }
     }
 
@@ -332,6 +341,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         HasSecureKeyError = false;
         VerifySecureKeyError = string.Empty;
         HasVerifySecureKeyError = false;
+        
+        ServerError = string.Empty;
+        HasServerError = false;
     }
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
