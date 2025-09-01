@@ -29,6 +29,8 @@ public class EcliptixProtocolSystem : IDisposable
     {
         _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
         _ratchetManager = new AdaptiveRatchetManager(RatchetConfig.Default);
+        Log.Warning("🔧 PROTOCOL-SYSTEM-CONSTRUCTOR: Created protocol system with default config - DH every {Messages} messages (should use explicit config)", 
+            RatchetConfig.Default.DhRatchetEveryNMessages);
     }
 
     public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
@@ -294,6 +296,8 @@ public class EcliptixProtocolSystem : IDisposable
         bool isInitiator = connection.IsInitiator();
         Log.Information("Protocol message production started for {ConnectionRole} with payload size {PayloadSize}",
             isInitiator ? "Initiator" : "Responder", plainPayload.Length);
+            
+        Log.Debug("🔧 PRODUCE-MESSAGE: About to prepare next send message");
 
         EcliptixMessageKey? messageKeyClone = null;
         byte[]? nonce = null;
@@ -308,6 +312,9 @@ public class EcliptixProtocolSystem : IDisposable
                 return Result<CipherPayload, EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
 
             (EcliptixMessageKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
+            
+            Log.Debug("🔧 PRODUCE-MESSAGE: PrepareNextSendMessage returned - Index={Index}, IncludeDhKey={IncludeDhKey}", 
+                prep.MessageKey.Index, prep.IncludeDhKey);
 
             Result<byte[], EcliptixProtocolFailure> nonceResult = connection.GenerateNextNonce();
             if (nonceResult.IsErr)
@@ -560,6 +567,10 @@ public class EcliptixProtocolSystem : IDisposable
     private Result<byte[], EcliptixProtocolFailure> GetOptionalSenderDhKey(bool include)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
+        
+        Log.Debug("🔧 GET-OPTIONAL-DH-KEY: Include={Include}, Connection={HasConnection}", 
+            include, connection != null);
+        
         if (!include || connection == null)
             return Result<byte[], EcliptixProtocolFailure>.Ok([]);
 
@@ -568,6 +579,9 @@ public class EcliptixProtocolSystem : IDisposable
             return Result<byte[], EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
 
         byte[]? key = keyResult.Unwrap();
+        
+        Log.Debug("🔧 GET-OPTIONAL-DH-KEY: Retrieved key length={Length}", key?.Length ?? 0);
+        
         return Result<byte[], EcliptixProtocolFailure>.Ok(key ?? []);
     }
 
@@ -687,7 +701,10 @@ public class EcliptixProtocolSystem : IDisposable
     public static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> CreateFrom(EcliptixSystemIdentityKeys keys,
         EcliptixProtocolConnection connection)
     {
-        EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
+        Log.Information("🔧 PROTOCOL-SYSTEM-CREATE-DEFAULT: Creating protocol system with default config - DH every {Messages} messages", 
+            RatchetConfig.Default.DhRatchetEveryNMessages);
+            
+        EcliptixProtocolSystem system = new(keys, RatchetConfig.Default) { _protocolConnection = connection };
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
 

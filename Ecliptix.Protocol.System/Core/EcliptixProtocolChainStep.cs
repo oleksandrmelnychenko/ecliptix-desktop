@@ -6,6 +6,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
+using Serilog;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -418,6 +419,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         byte[]? newDhPrivateKey = null,
         byte[]? newDhPublicKey = null)
     {
+        Log.Information("🔧 CHAIN-STEP-UPDATE: Updating keys after DH ratchet - NewDhPrivateKey={HasPrivKey}, NewDhPublicKey={HasPubKey}(len={PubKeyLen})", 
+            newDhPrivateKey != null, newDhPublicKey != null, newDhPublicKey?.Length ?? 0);
+            
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
         if (disposedCheck.IsErr)
             return disposedCheck;

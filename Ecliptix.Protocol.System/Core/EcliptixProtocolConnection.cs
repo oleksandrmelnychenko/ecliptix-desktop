@@ -121,6 +121,8 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(uint connectId, bool isInitiator)
     {
+        Log.Warning("🔧 PROTOCOL-CONN-DEFAULT: Creating connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)", 
+            connectId, RatchetConfig.Default.DhRatchetEveryNMessages);
         return Create(connectId, isInitiator, RatchetConfig.Default);
     }
 
@@ -255,6 +257,8 @@ public sealed class EcliptixProtocolConnection : IDisposable
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> FromProtoState(uint connectId,
         RatchetState proto)
     {
+        Log.Warning("🔧 PROTOCOL-FROM-STATE-DEFAULT: Restoring connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)", 
+            connectId, RatchetConfig.Default.DhRatchetEveryNMessages);
         return FromProtoState(connectId, proto, RatchetConfig.Default);
     }
 
@@ -895,9 +899,18 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult = EnsureSendingStepInitialized();
-            return stepResult.IsErr
-                ? Result<byte[]?, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr())
-                : stepResult.Unwrap().ReadDhPublicKey();
+            if (stepResult.IsErr)
+                return Result<byte[]?, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr());
+
+            Result<byte[]?, EcliptixProtocolFailure> keyResult = stepResult.Unwrap().ReadDhPublicKey();
+            if (keyResult.IsOk)
+            {
+                byte[]? key = keyResult.Unwrap();
+                Log.Debug("🔧 GET-SENDER-DH-KEY: Connection {ConnectId} returning DH key length: {Length}", 
+                    _id, key?.Length ?? 0);
+            }
+            
+            return keyResult;
         }
     }
 
@@ -1089,10 +1102,16 @@ public sealed class EcliptixProtocolConnection : IDisposable
             currentIndex + 1, shouldRatchet, _ratchetConfig.DhRatchetEveryNMessages, _receivedNewDhKey);
 
         if (!shouldRatchet) return Result<bool, EcliptixProtocolFailure>.Ok(false);
+        
+        Log.Information("🔧 SENDER-RATCHET: Performing DH ratchet for connection {ConnectId} at index {Index}", 
+            _id, currentIndex + 1);
+        
         Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformDhRatchet(true);
         if (ratchetResult.IsErr)
             return Result<bool, EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
 
+        Log.Information("🔧 SENDER-RATCHET: DH ratchet completed successfully for connection {ConnectId}, will include DH key", _id);
+        
         _receivedNewDhKey = false;
         return Result<bool, EcliptixProtocolFailure>.Ok(true);
     }
