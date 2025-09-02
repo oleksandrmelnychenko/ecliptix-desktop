@@ -125,18 +125,19 @@ public class OpaqueRegistrationService(
         }
     }
 
-    public async Task<Result<Guid, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
-        string deviceIdentifier, Action<uint, Guid>? onCountdownUpdate = null)
+    public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
+        string deviceIdentifier,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null)
     {
         if (phoneNumberIdentifier.IsEmpty)
         {
-            return Result<Guid, string>.Err(
+            return Result<Unit, string>.Err(
                 localizationService[AuthenticationConstants.PhoneNumberIdentifierRequiredKey]);
         }
 
         if (string.IsNullOrEmpty(deviceIdentifier))
         {
-            return Result<Guid, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
         }
 
         Result<uint, NetworkFailure> protocolResult =
@@ -146,16 +147,11 @@ public class OpaqueRegistrationService(
         if (protocolResult.IsErr)
         {
             Log.Error("[OPAQUE-REG] Failed to establish stream protocol: {Error}", protocolResult.UnwrapErr());
-            return Result<Guid, string>.Err(
+            return Result<Unit, string>.Err(
                 $"{AuthenticationConstants.VerificationFailurePrefix}{protocolResult.UnwrapErr().Message}");
         }
 
         uint streamConnectId = protocolResult.Unwrap();
-        Guid sessionIdentifier = Guid.NewGuid();
-        _activeStreams.TryAdd(sessionIdentifier, streamConnectId);
-
-        Log.Information("[OPAQUE-REG] Using stream connectId {ConnectId} for verification session {SessionId}",
-            streamConnectId, sessionIdentifier);
 
         using CancellationTokenSource cancellationTokenSource = new();
 
@@ -171,46 +167,20 @@ public class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload =>
-            {
-                try
-                {
-                    VerificationCountdownUpdate
-                        timerTick = Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
+                cancellationTokenSource.Token),
+            true, cancellationTokenSource.Token);
 
-                    if (timerTick.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
-                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
-                    {
-                        _ = Task.Run(async () => await CleanupStreamAsync(sessionIdentifier),
-                            cancellationTokenSource.Token);
-                    }
-
-                    Guid verificationIdentifier = Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
-
-                    RxApp.MainThreadScheduler.Schedule(() =>
-                        onCountdownUpdate?.Invoke(timerTick.SecondsRemaining, verificationIdentifier));
-
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error("[OPAQUE-REG] Failed to parse countdown update: {Error}", ex.Message);
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding(
-                            $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
-                }
-            }, true, cancellationTokenSource.Token);
-
-        if (!streamResult.IsErr) return Result<Guid, string>.Ok(sessionIdentifier);
-        _activeStreams.TryRemove(sessionIdentifier, out _);
-        return Result<Guid, string>.Err(streamResult.UnwrapErr().Message);
+        return !streamResult.IsErr
+            ? Result<Unit, string>.Ok(Unit.Value)
+            : Result<Unit, string>.Err(streamResult.UnwrapErr().Message);
     }
 
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
         ByteString phoneNumberIdentifier,
-        string deviceIdentifier)
+        string deviceIdentifier,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
@@ -249,7 +219,8 @@ public class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            _ => Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value)));
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
+            allowDuplicates: true);
 
         if (result.IsErr)
         {
@@ -524,6 +495,41 @@ public class OpaqueRegistrationService(
         }
 
         return await CleanupStreamAsync(sessionIdentifier);
+    }
+
+    private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
+        byte[] payload,
+        uint streamConnectId,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            VerificationCountdownUpdate timerTick = Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
+
+            Guid verificationIdentifier = Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
+
+            if (timerTick.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
+                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+            {
+                _ = Task.Run(async () => await CleanupStreamAsync(verificationIdentifier), cancellationToken);
+            }
+
+            _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+
+            RxApp.MainThreadScheduler.Schedule(() =>
+                onCountdownUpdate?.Invoke(timerTick.SecondsRemaining, verificationIdentifier, timerTick.Status));
+
+            return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+        }
+        catch (Exception ex)
+        {
+            Log.Error("[OPAQUE-REG] Failed to parse countdown update: {Error}", ex.Message);
+            return Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(
+                    $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
+        }
     }
 
     private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier)

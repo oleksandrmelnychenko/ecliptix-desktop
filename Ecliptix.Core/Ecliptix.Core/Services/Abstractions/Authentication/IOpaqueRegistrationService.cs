@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 
@@ -11,11 +12,12 @@ public interface IOpaqueRegistrationService
     Task<Result<ByteString, string>> ValidatePhoneNumberAsync(string mobileNumber, string deviceIdentifier,
         uint connectId);
 
-    Task<Result<Guid, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier, string deviceIdentifier,
-        Action<uint, Guid>? onCountdownUpdate = null);
+    Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier, string deviceIdentifier,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null);
 
     Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString phoneNumberIdentifier,
-        string deviceIdentifier);
+        string deviceIdentifier,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null);
 
     Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(string otpCode, string deviceIdentifier,
         uint connectId);

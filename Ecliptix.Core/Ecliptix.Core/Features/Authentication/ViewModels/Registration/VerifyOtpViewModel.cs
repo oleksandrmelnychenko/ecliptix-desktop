@@ -19,6 +19,7 @@ using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -44,7 +45,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public bool IsSent { get; private set; }
     [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
-    [Reactive] public ulong SecondsRemaining { get; private set; }
+    [Reactive] public uint SecondsRemaining { get; private set; }
     [Reactive] public bool HasError { get; private set; }
 
     public VerifyOtpViewModel(
@@ -77,8 +78,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
-        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, seconds => seconds == 0);
-        ResendSendVerificationCodeCommand = ReactiveCommand.Create(ReSendVerificationCode, canResend);
+        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining)
+            .Select(seconds => seconds == 0)
+            .Catch<bool, Exception>(ex =>
+            {
+                Log.Error(ex, "Error in canResend observable");
+                return Observable.Return(true);
+            });
+        ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         this.WhenActivated(disposables =>
         {
@@ -102,24 +109,29 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         return Observable.FromAsync(async () =>
         {
             string deviceIdentifier = SystemDeviceIdentifier();
-            Result<Guid, string> result = await _registrationService.InitiateOtpVerificationAsync(
+            Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.InitiateOtpVerificationAsync(
                 _phoneNumberIdentifier,
                 deviceIdentifier,
-                onCountdownUpdate: (seconds, identifier) =>
+                onCountdownUpdate: (seconds, identifier, status) =>
                     RxApp.MainThreadScheduler.Schedule(() =>
                     {
-                        SecondsRemaining = seconds;
                         VerificationSessionIdentifier ??= identifier;
+
+                        SecondsRemaining = status switch
+                        {
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                            _ => Math.Min(seconds, SecondsRemaining)
+                        };
                     })
             );
 
             if (result.IsErr)
             {
                 ErrorMessage = result.UnwrapErr();
-            }
-            else
-            {
-                VerificationSessionIdentifier = result.Unwrap();
             }
         });
     }
@@ -158,7 +170,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
-    private async void ReSendVerificationCode()
+    private async Task ReSendVerificationCode()
     {
         if (VerificationSessionIdentifier.HasValue)
         {
@@ -169,22 +181,40 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
                 VerificationSessionIdentifier.Value,
                 _phoneNumberIdentifier,
-                deviceIdentifier);
+                deviceIdentifier,
+                onCountdownUpdate: (seconds, identifier, status) =>
+                    RxApp.MainThreadScheduler.Schedule(() =>
+                    {
+                        VerificationSessionIdentifier ??= identifier;
+
+                        SecondsRemaining = status switch
+                        {
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
+                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                            _ => Math.Min(seconds, SecondsRemaining)
+                        };
+                    }));
 
             if (result.IsErr)
             {
+                SecondsRemaining = 0;
                 ErrorMessage = result.UnwrapErr();
                 HasError = true;
             }
         }
         else
         {
+            SecondsRemaining = 0;
             ErrorMessage = "No active verification session found";
             HasError = true;
         }
     }
 
-    private static string FormatRemainingTime(ulong seconds)
+
+    private static string FormatRemainingTime(uint seconds)
     {
         TimeSpan time = TimeSpan.FromSeconds(seconds);
         string formattedDataTimeString = time.ToString(@"mm\:ss");

@@ -332,7 +332,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
                     }
                     
-                    // Log protocol retrieval for debugging
                     Log.Debug("[PROTOCOL-USAGE] Retrieved protocol for operation - ConnectId: {ConnectId}, ServiceType: {ServiceType}", 
                         connectId, serviceType);
 
@@ -1608,21 +1607,37 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task<T> WithRequestExecutionGate<T>(string operationKey, Func<Task<T>> action)
     {
         SemaphoreSlim gate = _logicalOperationGates.GetOrAdd(operationKey, _ => new SemaphoreSlim(1, 1));
-        await gate.WaitAsync().ConfigureAwait(false);
+        
+        Log.Debug("Acquiring execution gate for operation: {OperationKey}", operationKey);
+        
+        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
+        
         try
         {
-            return await action().ConfigureAwait(false);
+            await gate.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+            Log.Debug("Execution gate acquired for operation: {OperationKey}", operationKey);
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Warning("Timeout waiting for execution gate: {OperationKey}", operationKey);
+            throw new TimeoutException($"Timeout waiting for execution gate: {operationKey}");
+        }
+        
+        try
+        {
+            T result = await action().ConfigureAwait(false);
+            Log.Debug("Operation completed successfully: {OperationKey}", operationKey);
+            return result;
         }
         finally
         {
             gate.Release();
-            if (gate.CurrentCount == 1 && _logicalOperationGates.TryRemove(operationKey, out var removedGate) &&
-                ReferenceEquals(gate, removedGate))
+            Log.Debug("Execution gate released for operation: {OperationKey}", operationKey);
+            
+            if (_logicalOperationGates.TryRemove(operationKey, out SemaphoreSlim? removedGate))
             {
-            }
-            else
-            {
-                _logicalOperationGates.TryAdd(operationKey, gate);
+                Log.Debug("Cleaned up execution gate for operation: {OperationKey}", operationKey);
+                removedGate?.Dispose();
             }
         }
     }
