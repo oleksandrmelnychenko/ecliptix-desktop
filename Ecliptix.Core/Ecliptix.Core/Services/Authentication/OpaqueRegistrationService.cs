@@ -212,6 +212,8 @@ public class OpaqueRegistrationService(
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
 
+        using CancellationTokenSource cancellationTokenSource = new();
+
         Log.Information("[OPAQUE-REG] Resending OTP for session {SessionId} on connectId {ConnectId}",
             sessionIdentifier, streamConnectId);
 
@@ -219,8 +221,9 @@ public class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
-            allowDuplicates: true);
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
+                cancellationTokenSource.Token),
+            true, cancellationTokenSource.Token);
 
         if (result.IsErr)
         {

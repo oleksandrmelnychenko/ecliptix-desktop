@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -178,31 +179,59 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             HasError = false;
 
             string deviceIdentifier = SystemDeviceIdentifier();
-            Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
-                VerificationSessionIdentifier.Value,
-                _phoneNumberIdentifier,
-                deviceIdentifier,
-                onCountdownUpdate: (seconds, identifier, status) =>
-                    RxApp.MainThreadScheduler.Schedule(() =>
+            
+            try
+            {
+                Log.Information("[VERIFY-OTP] Starting resend OTP verification");
+                
+                using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(70));
+                
+                try
+                {
+                    Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
+                        VerificationSessionIdentifier.Value,
+                        _phoneNumberIdentifier,
+                        deviceIdentifier,
+                        onCountdownUpdate: (seconds, identifier, status) =>
+                            RxApp.MainThreadScheduler.Schedule(() =>
+                            {
+                                VerificationSessionIdentifier ??= identifier;
+                                
+                                Log.Information("[VERIFY-OTP] Countdown update: {Seconds}s, Status: {Status}", seconds, status);
+
+                                SecondsRemaining = status switch
+                                {
+                                    VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
+                                    VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
+                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
+                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                                    _ => Math.Min(seconds, SecondsRemaining)
+                                };
+                            })).WaitAsync(timeoutCts.Token);
+
+                    Log.Information("[VERIFY-OTP] Resend OTP completed normally");
+                    
+                    if (result.IsErr)
                     {
-                        VerificationSessionIdentifier ??= identifier;
-
-                        SecondsRemaining = status switch
-                        {
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
-                            _ => Math.Min(seconds, SecondsRemaining)
-                        };
-                    }));
-
-            if (result.IsErr)
+                        ErrorMessage = result.UnwrapErr();
+                        HasError = true;
+                    }
+                }
+                catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
+                {
+                    Log.Information("[VERIFY-OTP] Resend OTP timed out after 70 seconds - this is expected");
+                }
+                
+                Log.Information("[VERIFY-OTP] Ensuring SecondsRemaining = 0 and button re-enabled");
+                SecondsRemaining = 0;
+            }
+            catch (Exception ex)
             {
                 SecondsRemaining = 0;
-                ErrorMessage = result.UnwrapErr();
+                ErrorMessage = ex.Message;
                 HasError = true;
+                Log.Error(ex, "Error during OTP resend");
             }
         }
         else
