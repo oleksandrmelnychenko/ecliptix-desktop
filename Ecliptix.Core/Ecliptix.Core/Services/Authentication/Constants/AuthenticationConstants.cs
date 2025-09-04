@@ -27,6 +27,8 @@ public static class AuthenticationConstants
     public const string InvalidOtpCodeKey = "Verification.Error.InvalidOtpCode";
     public const string RegistrationFailedKey = "Registration.Error.Failed";
     public const string NoVerificationSessionKey = "Verification.Error.NoSession";
+    public const string VerificationSessionExpiredKey = "Verification.Error.SessionExpired";
+    public const string NoActiveVerificationSessionKey = "Verification.Error.NoActiveSession";
     
     public const string InitialRemainingTime = "01:00";
     public const string ExpiredRemainingTime = "00:00";

@@ -53,11 +53,26 @@ public static class LocalizationData
         ["Authentication.SignIn.Continue"] = "Continue",
 
 
+        ["Verification.Error.InvalidOtpCode"] = "Invalid verification code",
+        ["Registration.Error.Failed"] = "Registration failed",
+        ["Verification.Error.NoSession"] = "Verification session not found",
+        ["Verification.Error.SessionExpired"] = "Verification session has expired",
+        ["Verification.Error.NoActiveSession"] = "No active verification session",
+        
+        
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Digits only after code",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "{0}-{1} digits required",
         ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Required",
-
+        
+        
+        ["ValidationErrors.MobileNumber.Required"] = "Mobile number is required",
+        ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Phone number identifier is required",
+        ["ValidationErrors.DeviceIdentifier.Required"] = "Device identifier is required",
+        ["ValidationErrors.SessionIdentifier.Required"] = "Session identifier is required",
+        ["ValidationErrors.MembershipIdentifier.Required"] = "Membership identifier is required",
+        
+        
         ["ValidationErrors.SecureKey.Required"] = "Required",
         ["ValidationErrors.SecureKey.MinLength"] = "Min {0} characters",
         ["ValidationErrors.SecureKey.MaxLength"] = "Max {0} characters",
@@ -171,12 +186,27 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Забули ключ?",
         ["Authentication.SignIn.Continue"] = "Продовжити",
 
+        
+        ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",
+        ["Registration.Error.Failed"] = "Не вдалося зареєструватися",
+        ["Verification.Error.NoSession"] = "Сесія підтвердження не знайдена",
+        ["Verification.Error.SessionExpired"] = "Термін дії сесії підтвердження минув",
+        ["Verification.Error.NoActiveSession"] = "Немає активної сесії підтвердження",
+        
 
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Лише цифри після коду",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "Потрібно {0}-{1} цифр",
         ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Обов'язкове поле",
 
+        
+        ["ValidationErrors.MobileNumber.Required"] = "Номер мобільного телефону є обов'язковим",
+        ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Ідентифікатор номера телефону є обов'язковим",
+        ["ValidationErrors.DeviceIdentifier.Required"] = "Ідентифікатор пристрою є обов'язковим",
+        ["ValidationErrors.SessionIdentifier.Required"] = "Ідентифікатор сесії є обов'язковим",
+        ["ValidationErrors.MembershipIdentifier.Required"] = "Ідентифікатор учасника є обов'язковим",
+        
+        
         ["ValidationErrors.SecureKey.Required"] = "Обов'язкове поле",
         ["ValidationErrors.SecureKey.MinLength"] = "Мін. {0} символів",
         ["ValidationErrors.SecureKey.MaxLength"] = "Макс. {0} символів",

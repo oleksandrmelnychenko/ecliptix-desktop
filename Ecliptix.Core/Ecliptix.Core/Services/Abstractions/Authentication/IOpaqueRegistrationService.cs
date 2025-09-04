@@ -20,7 +20,7 @@ public interface IOpaqueRegistrationService
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null);
 
-    Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(string otpCode, string deviceIdentifier,
+    Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(Guid sessionIdentifier, string otpCode, string deviceIdentifier,
         uint connectId);
 
     Task<Result<Unit, string>> CompleteRegistrationAsync(ByteString membershipIdentifier, SecureTextBuffer secureKey,

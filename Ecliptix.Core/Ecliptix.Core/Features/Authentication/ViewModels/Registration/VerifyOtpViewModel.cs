@@ -30,6 +30,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private readonly ByteString _phoneNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly ILocalizationService _localizationService;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -62,6 +63,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         _phoneNumberIdentifier = phoneNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
+        _localizationService = localizationService;
 
         HostScreen = hostScreen;
 
@@ -144,10 +146,20 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IsSent = true;
         ErrorMessage = string.Empty;
 
+        if (!VerificationSessionIdentifier.HasValue)
+        {
+            IsSent = false;
+            HasError = true;
+            ErrorMessage = _localizationService[AuthenticationConstants.NoVerificationSessionKey];
+            Log.Warning("[VERIFY-OTP] Attempted to send verification code with no active session");
+            return;
+        }
+        
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Result<Membership, string> result =
             await _registrationService.VerifyOtpAsync(
+                VerificationSessionIdentifier.Value,
                 VerificationCode,
                 systemDeviceIdentifier,
                 connectId);

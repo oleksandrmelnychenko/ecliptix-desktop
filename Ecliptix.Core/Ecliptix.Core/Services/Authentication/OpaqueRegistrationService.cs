@@ -201,7 +201,7 @@ public class OpaqueRegistrationService(
 
         if (!_activeStreams.TryGetValue(sessionIdentifier, out uint streamConnectId))
         {
-            return Result<Unit, string>.Err("Verification session not found or has expired");
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
         }
 
         InitiateVerificationRequest request = new()
@@ -234,6 +234,7 @@ public class OpaqueRegistrationService(
     }
 
     public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
+        Guid sessionIdentifier,
         string otpCode,
         string deviceIdentifier,
         uint connectId)
@@ -244,11 +245,18 @@ public class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.InvalidOtpCodeKey]);
         }
 
+        if (!_activeStreams.TryGetValue(sessionIdentifier, out uint activeStreamId))
+        {
+            return Result<Protobuf.Membership.Membership, string>.Err(
+                localizationService[AuthenticationConstants.NoActiveVerificationSessionKey]);
+        }
+        
         VerifyCodeRequest request = new()
         {
             Code = otpCode,
             Purpose = VerificationPurpose.Registration,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
+            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
+            StreamConnectId = activeStreamId,
         };
 
         TaskCompletionSource<Protobuf.Membership.Membership> responseSource = new();
