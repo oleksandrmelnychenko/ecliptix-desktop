@@ -32,6 +32,13 @@
         <BoxShadows x:Key="DefaultShadow">0 0 10 4 #00000000, 0 2 4 0 #00000000</BoxShadows>
         <BoxShadows x:Key="FocusShadow">0 0 10 4 #406a5acd, 0 2 4 0 #20000000</BoxShadows>
         <BoxShadows x:Key="ErrorShadow">0 0 10 4 #40de1e31, 0 2 4 0 #20000000</BoxShadows>
+        
+        <BoxShadows x:Key="InvalidStrengthShadow">0 0 10 4 #40ef3a3a, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="VeryWeakStrengthShadow">0 0 10 4 #40ff6b35, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="WeakStrengthShadow">0 0 10 4 #40ffa500, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="GoodStrengthShadow">0 0 10 4 #40f4c20d, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="StrongStrengthShadow">0 0 10 4 #4000bcd4, 0 2 4 0 #20000000</BoxShadows>
+        <BoxShadows x:Key="VeryStrongStrengthShadow">0 0 10 4 #4032cd32, 0 2 4 0 #20000000</BoxShadows>
     </UserControl.Resources>
 
     <UserControl.Styles>
