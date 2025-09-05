@@ -10,7 +10,7 @@
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
    
-    <Grid RowDefinitions="Auto,Auto, Auto, Auto" RowSpacing="{StaticResource Spacing.Authentication}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="{StaticResource Spacing.Authentication}">
         <StackPanel Grid.Row="0" Spacing="{StaticResource Spacing.S}" MaxWidth="{StaticResource Header.MaxWidth}" HorizontalAlignment="Left">
             <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Title]}"
                        FontSize="{StaticResource Font.XXL}"
@@ -79,6 +79,22 @@
             Content="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Button]}"
             Classes="auth-button continue-button"
             IsEnabled="{Binding CanSubmit}" />
+        
+        <Border Grid.Row="4"
+                Background="Transparent"
+                HorizontalAlignment="Stretch"
+                CornerRadius="8"
+                IsVisible="{Binding HasServerError, Mode=OneWay}"
+                ClipToBounds="True"
+                Margin="0">
+            <TextBlock Text="{Binding ServerError, Mode=OneWay}"
+                       Classes="server-error"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="{StaticResource Content.MaxWidth}"
+                       Foreground="{DynamicResource Error}" />
+        </Border>
         
     </Grid>
 </UserControl>

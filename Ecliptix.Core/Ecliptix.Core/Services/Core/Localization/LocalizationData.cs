@@ -213,7 +213,7 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.NoSpaces"] = "Без пробілів",
         ["ValidationErrors.SecureKey.NoUppercase"] = "Потрібна велика літера",
         ["ValidationErrors.SecureKey.NoDigit"] = "Потрібна цифра",
-        ["ValidationErrors.SecureKey.TooSimple"] = "Спробуйте додати більше різноманітності",
+        ["ValidationErrors.SecureKey.TooSimple"] = "Додайте більше різноманітності",
         ["ValidationErrors.SecureKey.TooCommon"] = "Занадто поширений",
         ["ValidationErrors.SecureKey.SequentialPattern"] = "Без послідовностей (abc, 123)",
         ["ValidationErrors.SecureKey.RepeatedChars"] = "Без повторів (aaa, 111)",

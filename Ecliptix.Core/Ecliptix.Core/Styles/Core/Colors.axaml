@@ -94,6 +94,9 @@
                     <!-- ComboBox Colors -->
                     <Color x:Key="ComboBox.Background">#FFFFFF</Color>
                     <Color x:Key="ComboBox.BorderBrush">#E0E0E0</Color>
+                    
+                    <!-- Segmented TextBox Colors -->
+                    <SolidColorBrush x:Key="SegmentedTextBoxBackgroundColor" Color="#f2f2f2" />
 
                     <!-- Common Brushes -->
                     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
@@ -190,6 +193,9 @@
                     <Color x:Key="ComboBox.Background">#2d2d2d</Color>
                     <Color x:Key="ComboBox.BorderBrush">#4A4A4A</Color>
 
+                    <!-- Segmented TextBox Colors -->
+                    <SolidColorBrush x:Key="SegmentedTextBoxBackgroundColor" Color="#f2f2f2" />
+                    
                     <!-- Common Brushes -->
                     <SolidColorBrush x:Key="TransparentBrush" Color="Transparent" />
                     <SolidColorBrush x:Key="ErrorForegroundBrush" Color="{DynamicResource Error}" />

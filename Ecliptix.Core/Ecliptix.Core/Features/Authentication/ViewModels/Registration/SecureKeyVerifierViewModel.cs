@@ -220,9 +220,15 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .RefCount();
 
         IObservable<string> verifySecureKeyErrorStream = secureKeysMatch
-            .Select(match => _hasVerifySecureKeyBeenTouched && !match
-                ? LocalizationService[AuthenticationConstants.VerifySecureKeyDoesNotMatchKey]
-                : string.Empty)
+            .Select(match =>
+            {
+                bool shouldShowError = _hasVerifySecureKeyBeenTouched && !match;
+                
+                return shouldShowError
+                    ? LocalizationService[AuthenticationConstants.VerifySecureKeyDoesNotMatchKey]
+                    : string.Empty;
+            })
+            .DistinctUntilChanged()
             .Replay(1)
             .RefCount();
 

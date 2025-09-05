@@ -11,15 +11,13 @@
              x:Class="Ecliptix.Core.Features.Authentication.Views.Registration.VerificationCodeEntryView"
              MinWidth="{StaticResource Content.MaxWidth}"
              Width="{StaticResource Content.MaxWidth}">
-
-    <!-- Main Layout -->
+    
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
-
-        <!-- Header Section -->
+        
         <StackPanel Grid.Row="0"
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
@@ -37,38 +35,33 @@
                        Foreground="{DynamicResource OnSurface}"
                        Opacity="0.8" />
         </StackPanel>
-
-        <!-- Verification Code Input -->
+        
         <coreControls:SegmentedTextBox Grid.Row="1"
                                    SegmentCount="6"
                                    Height="60"
                                    FontSize="{StaticResource Input.SegmentFontSize}"
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
-                                   SegmentBackground="{DynamicResource TextBoxBackgroundColor}"
+                                   SegmentBackground="{DynamicResource SegmentedTextBoxBackgroundColor}"
                                    ActiveSegmentBorderColor="{DynamicResource Primary}"
                                    SegmentSpacing="5"
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"
                                    Value="{Binding VerificationCode, Mode=TwoWay}" />
-
-        <!-- Status Information -->
-        <Grid Grid.Row="2"
-              RowDefinitions="Auto,Auto"
-              ColumnDefinitions="*">
+        
+        <Border Grid.Row="2"
+                Background="Transparent"
+                HorizontalAlignment="Stretch"
+                CornerRadius="8"
+                ClipToBounds="True"
+                Margin="0">
             <TextBlock Text="{Binding RemainingTime}"
-                       Grid.Row="0"
-                       Grid.Column="0"
                        Classes="status-text"
-                       HorizontalAlignment="Center" />
-           
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Grid.Row="1"
-                       Grid.Column="0"
-                       Classes="error-text" />
-        </Grid>
-
-        <!-- Action Buttons -->
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       MaxWidth="{StaticResource Content.MaxWidth}"/>
+        </Border>
+        
         <Grid Grid.Row="3"
               ColumnDefinitions="*,*"
               ColumnSpacing="{StaticResource Spacing.M}">
@@ -76,12 +69,28 @@
                     IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
                     Command="{Binding ResendSendVerificationCodeCommand}"
                     Classes="auth-button recovery-button" />
-
             <Button Grid.Column="1"
                     Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
                     Command="{Binding SendVerificationCodeCommand}"
                     IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
                     Classes="auth-button continue-button" />
         </Grid>
-    </Grid>
+        
+        <Border Grid.Row="4"
+                Background="Transparent"
+                HorizontalAlignment="Stretch"
+                CornerRadius="8"
+                IsVisible ="{Binding HasError}"
+                ClipToBounds="True"
+                Margin="0">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Classes="server-error" 
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="{StaticResource Content.MaxWidth}"
+                       Foreground="{DynamicResource Error}" />
+        </Border>
+        
+        </Grid>
 </UserControl>
