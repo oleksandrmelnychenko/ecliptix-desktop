@@ -264,6 +264,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public void ResetState()
     {
+        VerificationCode = "";
         IsSent = false;
         ErrorMessage = string.Empty;
         HasError = false;

@@ -19,7 +19,7 @@ public partial class SegmentedTextBox : UserControl
     private bool _lastIsComplete;
     private int _currentActiveIndex;
     private static readonly string[] DigitStrings = new string[10];
-
+    private bool _isInternalUpdate = false;
     static SegmentedTextBox()
     {
         for (int i = 0; i < 10; i++)
@@ -150,6 +150,35 @@ public partial class SegmentedTextBox : UserControl
         {
             BuildSegments();
         }
+
+        if (change.Property == ValueProperty && !_isInternalUpdate)
+        {
+            string newValue = change.NewValue as string ?? string.Empty;
+            
+            if(string.IsNullOrEmpty(newValue)) ClearAllSegments();
+            else UpdateSegmentsFromValue(newValue);
+        }
+    }
+    
+    private void UpdateSegmentsFromValue(string newValue)
+    {
+        _isInternalUpdate = true;
+        try
+        {
+            for (int i = 0; i < _segments.Count; i++)
+            {
+                _segments[i].Text = i < newValue.Length
+                    ? newValue[i].ToString()
+                    : string.Empty;
+            }
+
+            int nextIndex = Math.Min(newValue.Length, _segments.Count - 1);
+            SetActiveSegment(nextIndex);
+        }
+        finally
+        {
+            _isInternalUpdate = false;
+        }
     }
 
     private string GetConcatenatedValue()
@@ -168,11 +197,6 @@ public partial class SegmentedTextBox : UserControl
         return digitValue is >= 0 and <= 9 ? DigitStrings[digitValue] : firstDigit.ToString();
     }
 
-    private bool ShouldProcessInput(int segmentIndex)
-    {
-        return IsPointerInteractionEnabled || segmentIndex == _currentActiveIndex;
-    }
-
     private void ProcessTextInput(TextBox textBox, int index)
     {
         if (AllowOnlyNumbers)
@@ -185,7 +209,7 @@ public partial class SegmentedTextBox : UserControl
             }
         }
 
-        if (textBox.Text?.Length == 1 && ShouldProcessInput(index))
+        if (textBox.Text?.Length == 1 && !_isInternalUpdate)
         {
             MoveToNextSegment();
         }
@@ -309,12 +333,6 @@ public partial class SegmentedTextBox : UserControl
 
         int index = _segments.IndexOf(tb);
 
-        if (!ShouldProcessInput(index))
-        {
-            tb.Text = "";
-            return;
-        }
-
         ProcessTextInput(tb, index);
         OnSegmentChanged();
     }
@@ -401,15 +419,6 @@ public partial class SegmentedTextBox : UserControl
         OnSegmentChanged();
     }
 
-    public void ClearSegmentsAndSetActive(int activeIndex = 0)
-    {
-        ClearAllSegments();
-        if (activeIndex >= 0 && activeIndex < _segments.Count)
-        {
-            SetActiveSegment(activeIndex);
-        }
-    }
-
     private void FocusCurrentSegment()
     {
         if (_currentActiveIndex >= 0 && _currentActiveIndex < _segments.Count)
@@ -438,14 +447,23 @@ public partial class SegmentedTextBox : UserControl
         string newValue = GetConcatenatedValue();
         bool newIsComplete = _segments.All(tb => !string.IsNullOrEmpty(tb.Text));
 
-        SetValue(ValueProperty, newValue);
-        SetValue(IsCompleteProperty, newIsComplete);
-
-        bool wasComplete = _lastIsComplete;
-        if (wasComplete != newIsComplete)
+        if (!_isInternalUpdate && Value != newValue)
         {
-            _lastIsComplete = newIsComplete;
+            _isInternalUpdate = true;
+            try
+            {
+                SetValue(ValueProperty, newValue);
+            }
+            finally
+            {
+                _isInternalUpdate = false;
+            }
         }
+        
+        if (IsComplete != newIsComplete)
+            SetValue(IsCompleteProperty, newIsComplete);
+        
+        _lastIsComplete = newIsComplete;
     }
 
     private void UpdateTabIndexes()
@@ -455,31 +473,6 @@ public partial class SegmentedTextBox : UserControl
             _segments[i].TabIndex = i == _currentActiveIndex ? BaseTabIndex : -1;
             _segments[i].IsTabStop = i == _currentActiveIndex;
         }
-    }
-
-    public void SetValue(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            ClearAllSegments();
-            return;
-        }
-
-        for (int i = 0; i < Math.Min(value.Length, _segments.Count); i++)
-        {
-            char c = value[i];
-            int digitValue = c - '0';
-            _segments[i].Text = (digitValue >= 0 && digitValue <= 9) ? DigitStrings[digitValue] : c.ToString();
-        }
-
-        for (int i = value.Length; i < _segments.Count; i++)
-        {
-            _segments[i].Text = string.Empty;
-        }
-
-        int nextActiveIndex = Math.Min(value.Length, _segments.Count - 1);
-        SetActiveSegment(nextActiveIndex);
-        OnSegmentChanged();
     }
 
     private void InitializeComponent()
