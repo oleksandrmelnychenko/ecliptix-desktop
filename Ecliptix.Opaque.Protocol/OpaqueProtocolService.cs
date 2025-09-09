@@ -112,12 +112,11 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             byte[] maskingKey = OpaqueCryptoUtilities.DeriveKey(stretchedOprfKey, null, MaskingKeyInfo, DefaultKeyLength);
 
-            Result<byte[], OpaqueFailure> unmaskOprfResult = OpaqueCryptoUtilities.UnmaskResponse(
-                signInResponse.ServerOprfResponse.Span, maskingKey);
-            if (unmaskOprfResult.IsErr)
+            byte[] unmaskedOprfResponse = signInResponse.ServerOprfResponse.ToByteArray();
+            
+            if (unmaskedOprfResponse.Length != CompressedPublicKeyLength)
                 return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
-                    unmaskOprfResult.UnwrapErr());
-            byte[] unmaskedOprfResponse = unmaskOprfResult.Unwrap();
+                    OpaqueFailure.InvalidInput($"Invalid OPRF response size: expected {CompressedPublicKeyLength} bytes, got {unmaskedOprfResponse.Length}"));
 
             Result<byte[], OpaqueFailure> unmaskRecordResult = OpaqueCryptoUtilities.UnmaskResponse(
                 signInResponse.RegistrationRecord.Span, maskingKey);
