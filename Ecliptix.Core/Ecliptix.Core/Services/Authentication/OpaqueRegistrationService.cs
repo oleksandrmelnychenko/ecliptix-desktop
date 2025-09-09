@@ -167,9 +167,22 @@ public class OpaqueRegistrationService(
                 cancellationTokenSource.Token),
             true, cancellationTokenSource.Token);
 
-        return !streamResult.IsErr
-            ? Result<Unit, string>.Ok(Unit.Value)
-            : Result<Unit, string>.Err(streamResult.UnwrapErr().Message);
+        if (streamResult.IsErr)
+        {
+            string errorMessage = streamResult.UnwrapErr().Message;
+            
+            if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
+            {
+                RxApp.MainThreadScheduler.Schedule(() =>
+                    onCountdownUpdate?.Invoke(0, Guid.Empty, 
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound, 
+                        "Session expired. Please start over."));
+            }
+            
+            return Result<Unit, string>.Err(errorMessage);
+        }
+
+        return Result<Unit, string>.Ok(Unit.Value);
     }
 
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
@@ -221,7 +234,17 @@ public class OpaqueRegistrationService(
 
         if (result.IsErr)
         {
-            return Result<Unit, string>.Err(result.UnwrapErr().Message);
+            string errorMessage = result.UnwrapErr().Message;
+            
+            if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
+            {
+                RxApp.MainThreadScheduler.Schedule(() =>
+                    onCountdownUpdate?.Invoke(0, Guid.Empty, 
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound, 
+                        "Session expired. Please start over."));
+            }
+            
+            return Result<Unit, string>.Err(errorMessage);
         }
 
         return Result<Unit, string>.Ok(Unit.Value);
