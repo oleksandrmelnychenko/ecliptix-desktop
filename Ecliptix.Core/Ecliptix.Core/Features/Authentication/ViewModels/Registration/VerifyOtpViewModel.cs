@@ -49,6 +49,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
     [Reactive] public uint SecondsRemaining { get; private set; }
     [Reactive] public bool HasError { get; private set; }
+    [Reactive] public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+    [Reactive] public bool IsMaxAttemptsReached { get; private set; }
+    [Reactive] public int AutoRedirectCountdown { get; private set; }
+    [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
+    
+    private IDisposable? _autoRedirectTimer;
 
     public VerifyOtpViewModel(
         ISystemEventService systemEventService,
@@ -123,12 +129,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                         SecondsRemaining = status switch
                         {
                             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
-                                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(),
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
+                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
                             _ => Math.Min(seconds, SecondsRemaining)
                         };
+                        CurrentStatus = status;
                     })
             );
 
@@ -211,12 +218,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                             SecondsRemaining = status switch
                             {
                                 VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
-                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
-                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(),
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleNotFoundStatus(),
                                 _ => Math.Min(seconds, SecondsRemaining)
                             };
+                            CurrentStatus = status;
                         }));
 
                 Log.Information("[VERIFY-OTP] Resend OTP stream completed");
@@ -242,6 +251,62 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         return Task.CompletedTask;
     }
 
+    private uint HandleMaxAttemptsStatus()
+    {
+        IsMaxAttemptsReached = true;
+        ErrorMessage = _localizationService[AuthenticationConstants.MaxAttemptsReachedKey];
+        StartAutoRedirect(5, MembershipViewType.Welcome);
+        return 0;
+    }
+
+    private uint HandleNotFoundStatus()
+    {
+        ErrorMessage = _localizationService[AuthenticationConstants.SessionNotFoundKey];
+        StartAutoRedirect(2, MembershipViewType.Welcome);
+        return 0;
+    }
+
+    private uint HandleFailedStatus()
+    {
+        ErrorMessage = _localizationService[AuthenticationConstants.VerificationFailedKey];
+        StartAutoRedirect(3, MembershipViewType.MobileVerification);
+        return 0;
+    }
+
+    private void StartAutoRedirect(int seconds, MembershipViewType targetView)
+    {
+        _autoRedirectTimer?.Dispose();
+        AutoRedirectCountdown = seconds;
+        
+        _autoRedirectTimer = Observable.Interval(TimeSpan.FromSeconds(1))
+            .Take(seconds)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(
+                x =>
+                {
+                    AutoRedirectCountdown = seconds - (int)x - 1;
+                    AutoRedirectMessage = $"Redirecting in {AutoRedirectCountdown} seconds...";
+                },
+                () =>
+                {
+                    CleanupAndNavigate(targetView);
+                });
+    }
+
+    private async void CleanupAndNavigate(MembershipViewType targetView)
+    {
+        await CleanupVerificationSession();
+        ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
+    }
+
+    private async Task CleanupVerificationSession()
+    {
+        if (VerificationSessionIdentifier.HasValue)
+        {
+            await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier.Value);
+            VerificationSessionIdentifier = null;
+        }
+    }
 
     private static string FormatRemainingTime(uint seconds)
     {
@@ -252,23 +317,43 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public void ResetState()
     {
+        _autoRedirectTimer?.Dispose();
+        _autoRedirectTimer = null;
+        
+        if (VerificationSessionIdentifier.HasValue)
+        {
+            _ = Task.Run(async () => 
+            {
+                await CleanupVerificationSession();
+            });
+        }
+        
         VerificationCode = "";
         IsSent = false;
         ErrorMessage = string.Empty;
         HasError = false;
         SecondsRemaining = 0;
         RemainingTime = AuthenticationConstants.InitialRemainingTime;
+        IsMaxAttemptsReached = false;
+        AutoRedirectMessage = string.Empty;
+        AutoRedirectCountdown = 0;
+        CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+        VerificationSessionIdentifier = null;
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && VerificationSessionIdentifier.HasValue)
+        if (disposing)
         {
-            _ = Task.Run(async () =>
+            _autoRedirectTimer?.Dispose();
+            if (VerificationSessionIdentifier.HasValue)
             {
-                await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier.Value);
-                await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
-            });
+                _ = Task.Run(async () =>
+                {
+                    await CleanupVerificationSession();
+                    await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+                });
+            }
         }
 
         base.Dispose(disposing);

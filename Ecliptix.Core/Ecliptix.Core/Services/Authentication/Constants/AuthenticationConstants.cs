@@ -29,6 +29,10 @@ public static class AuthenticationConstants
     public const string NoVerificationSessionKey = "Verification.Error.NoSession";
     public const string VerificationSessionExpiredKey = "Verification.Error.SessionExpired";
     public const string NoActiveVerificationSessionKey = "Verification.Error.NoActiveSession";
+    public const string MaxAttemptsReachedKey = "Verification.Error.MaxAttemptsReached";
+    public const string VerificationFailedKey = "Verification.Error.VerificationFailed";
+    public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
+    public const string RedirectingMessageKey = "Verification.Info.Redirecting";
     
     public const string InitialRemainingTime = "01:00";
     public const string ExpiredRemainingTime = "00:00";
