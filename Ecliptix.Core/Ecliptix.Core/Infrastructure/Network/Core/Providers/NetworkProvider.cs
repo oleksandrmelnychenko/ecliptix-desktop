@@ -234,6 +234,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             onStreamItem, allowDuplicates, token);
     }
 
+
     private async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestInternalAsync(
         uint connectId,
         RpcServiceType serviceType,
@@ -1139,6 +1140,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 $"auth:signin:{connectId}",
             "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest" =>
                 $"auth:signup:{connectId}",
+            
+            // For streaming verification operations, add timestamp to ensure unique IDs
+            "InitiateVerification" =>
+                $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(plainBuffer))}",
 
             _ =>
                 $"data:{serviceType}:{connectId}:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(plainBuffer))}"
@@ -1148,7 +1153,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] hashBytes = System.Security.Cryptography.SHA256.HashData(semanticBytes);
 
         uint rawId = BitConverter.ToUInt32(hashBytes, 0);
-        return Math.Max(rawId % (uint.MaxValue - 10), 10);
+        uint finalId = Math.Max(rawId % (uint.MaxValue - 10), 10);
+        
+        // Log operation ID generation for streaming verification operations
+        if (serviceType == RpcServiceType.InitiateVerification)
+        {
+            Log.Information("[OPERATION-ID] Generated unique ID for InitiateVerification: {OperationId} (semantic: {LogicalSemantic})", 
+                finalId, logicalSemantic);
+        }
+        
+        return finalId;
     }
 
     private static Result<ServiceRequest, NetworkFailure> BuildRequestWithId(
@@ -1338,6 +1352,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
+
 
     private async Task<Result<Unit, NetworkFailure>> SendSendStreamRequestAsync(
         EcliptixProtocolSystem protocolSystem,
@@ -1629,15 +1644,28 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Log.Debug("Operation completed successfully: {OperationKey}", operationKey);
             return result;
         }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Exception in gate-protected operation: {OperationKey}", operationKey);
+            throw;
+        }
         finally
         {
-            gate.Release();
-            Log.Debug("Execution gate released for operation: {OperationKey}", operationKey);
-            
-            if (_logicalOperationGates.TryRemove(operationKey, out SemaphoreSlim? removedGate))
+            try
             {
-                Log.Debug("Cleaned up execution gate for operation: {OperationKey}", operationKey);
-                removedGate?.Dispose();
+                gate.Release();
+                Log.Debug("Execution gate released for operation: {OperationKey}", operationKey);
+                
+                if (_logicalOperationGates.TryRemove(operationKey, out SemaphoreSlim? removedGate))
+                {
+                    Log.Debug("Cleaned up execution gate for operation: {OperationKey}", operationKey);
+                    removedGate?.Dispose();
+                }
+            }
+            catch (Exception cleanupEx)
+            {
+                Log.Warning(cleanupEx, "Failed to cleanup gate for operation: {OperationKey}", operationKey);
+                _logicalOperationGates.TryRemove(operationKey, out _);
             }
         }
     }

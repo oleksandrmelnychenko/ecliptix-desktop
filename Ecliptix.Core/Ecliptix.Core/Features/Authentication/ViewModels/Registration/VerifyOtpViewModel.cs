@@ -154,7 +154,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             Log.Warning("[VERIFY-OTP] Attempted to send verification code with no active session");
             return;
         }
-        
+
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Result<Membership, string> result =
@@ -183,7 +183,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
-    private async Task ReSendVerificationCode()
+    private Task ReSendVerificationCode()
     {
         if (VerificationSessionIdentifier.HasValue)
         {
@@ -191,60 +191,46 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             HasError = false;
 
             string deviceIdentifier = SystemDeviceIdentifier();
-            
-            try
+
+            Log.Information("[VERIFY-OTP] Starting resend OTP verification");
+
+            _ = Task.Run(async () =>
             {
-                Log.Information("[VERIFY-OTP] Starting resend OTP verification");
-                
-                using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(70));
-                
-                try
-                {
-                    Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
-                        VerificationSessionIdentifier.Value,
-                        _phoneNumberIdentifier,
-                        deviceIdentifier,
-                        onCountdownUpdate: (seconds, identifier, status) =>
-                            RxApp.MainThreadScheduler.Schedule(() =>
+                Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
+                    VerificationSessionIdentifier.Value,
+                    _phoneNumberIdentifier,
+                    deviceIdentifier,
+                    onCountdownUpdate: (seconds, identifier, status) =>
+                        RxApp.MainThreadScheduler.Schedule(() =>
+                        {
+                            VerificationSessionIdentifier ??= identifier;
+
+                            Log.Information("[VERIFY-OTP] Countdown update: {Seconds}s, Status: {Status}", seconds,
+                                status);
+                            
+                            SecondsRemaining = status switch
                             {
-                                VerificationSessionIdentifier ??= identifier;
-                                
-                                Log.Information("[VERIFY-OTP] Countdown update: {Seconds}s, Status: {Status}", seconds, status);
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
+                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
+                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
+                                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
+                                _ => Math.Min(seconds, SecondsRemaining)
+                            };
+                        }));
 
-                                SecondsRemaining = status switch
-                                {
-                                    VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                                    VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired
-                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound
-                                        or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => 0,
-                                    _ => Math.Min(seconds, SecondsRemaining)
-                                };
-                            })).WaitAsync(timeoutCts.Token);
+                Log.Information("[VERIFY-OTP] Resend OTP stream completed");
 
-                    Log.Information("[VERIFY-OTP] Resend OTP completed normally");
-                    
-                    if (result.IsErr)
+                if (result.IsErr)
+                {
+                    RxApp.MainThreadScheduler.Schedule(() =>
                     {
                         ErrorMessage = result.UnwrapErr();
                         HasError = true;
-                    }
+                        SecondsRemaining = 0; 
+                    });
                 }
-                catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
-                {
-                    Log.Information("[VERIFY-OTP] Resend OTP timed out after 70 seconds - this is expected");
-                }
-                
-                Log.Information("[VERIFY-OTP] Ensuring SecondsRemaining = 0 and button re-enabled");
-                SecondsRemaining = 0;
-            }
-            catch (Exception ex)
-            {
-                SecondsRemaining = 0;
-                ErrorMessage = ex.Message;
-                HasError = true;
-                Log.Error(ex, "Error during OTP resend");
-            }
+            });
         }
         else
         {
@@ -252,6 +238,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             ErrorMessage = "No active verification session found";
             HasError = true;
         }
+
+        return Task.CompletedTask;
     }
 
 
