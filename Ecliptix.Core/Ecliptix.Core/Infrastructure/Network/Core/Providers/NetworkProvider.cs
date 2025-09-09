@@ -221,7 +221,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             onStreamItem, allowDuplicates, token);
     }
 
-
     private async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestInternalAsync(
         uint connectId,
         RpcServiceType serviceType,
@@ -259,9 +258,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 Log.Information("✅ RECOVERY REQUEST: Allowing recovery request '{ServiceType}' during recovery state",
                     serviceType);
-            }
-            else
-            {
             }
         }
 
@@ -315,10 +311,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
                     }
 
-                    Log.Debug(
-                        "[PROTOCOL-USAGE] Retrieved protocol for operation - ConnectId: {ConnectId}, ServiceType: {ServiceType}",
-                        connectId, serviceType);
-
                     uint secondLogicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
 
                     Result<ServiceRequest, NetworkFailure> requestResult =
@@ -343,10 +335,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         Result<Unit, NetworkFailure> result = await WithRequestExecutionGate(logicalOperationKey,
                             async () =>
                             {
-                                Log.Debug(
-                                    "Executing logical operation under gate - Key: {OperationKey}, ReqId: {ReqId}",
-                                    logicalOperationKey, originalReqId);
-
                                 return flowType switch
                                 {
                                     ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request,
@@ -1311,12 +1299,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
         CancellationToken token)
     {
-
         uint connectId = _connections.FirstOrDefault(kvp => kvp.Value == protocolSystem).Key;
         if (connectId == 0)
         {
-            Log.Warning(
-                "[STREAM-TRACK] Unable to find connectId for stream tracking, proceeding without cancellation tracking");
             return await ProcessStreamDirectly(protocolSystem, request, onStreamItem, token);
         }
 
@@ -1328,7 +1313,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (invokeResult.IsErr)
         {
-            Log.Warning("InvokeServiceRequestAsync failed: {Error}", invokeResult.UnwrapErr().Message);
             return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
         }
 

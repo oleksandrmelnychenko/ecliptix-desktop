@@ -304,25 +304,59 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 () => { CleanupAndNavigate(targetView); });
     }
 
-    private async void CleanupAndNavigate(MembershipViewType targetView)
+    private void CleanupAndNavigate(MembershipViewType targetView)
     {
-        await CleanupVerificationSession();
+        FireAndForgetCleanup();
         ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
+    }
+
+    private void FireAndForgetCleanup()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
+                await CleanupVerificationSession().WaitAsync(cts.Token);
+            }
+            catch (TimeoutException)
+            {
+                Log.Warning("Background cleanup timed out during auto-redirect");
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Background cleanup failed during auto-redirect: {Error}", ex.Message);
+            }
+        });
     }
 
     private async Task CleanupVerificationSession()
     {
         if (HasValidSession)
         {
-
             _streamCancellationSource?.Cancel();
             
             await Task.Delay(100);
-            await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value);
-            await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+            
+            try
+            {
+                await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Failed to cleanup verification session: {Error}", ex.Message);
+            }
+            
+            try
+            {
+                await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Failed to remove stream protocol: {Error}", ex.Message);
+            }
 
             VerificationSessionIdentifier = null;
-
         }
 
         _streamCancellationSource?.Dispose();
@@ -363,7 +397,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         _ = Task.Run(async () =>
         {
-            await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+            try
+            {
+                await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Failed to remove stream protocol in ResetState: {Error}", ex.Message);
+            }
         });
 
         VerificationCode = "";
@@ -388,8 +429,23 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             {
                 _ = Task.Run(async () =>
                 {
-                    await CleanupVerificationSession();
-                    await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+                    try
+                    {
+                        await CleanupVerificationSession();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Failed to cleanup verification session in Dispose: {Error}", ex.Message);
+                    }
+                    
+                    try
+                    {
+                        await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Failed to remove stream protocol in Dispose: {Error}", ex.Message);
+                    }
                 });
             }
             else
