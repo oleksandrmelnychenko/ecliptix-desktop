@@ -59,6 +59,11 @@ public static class LocalizationData
         ["Verification.Error.SessionExpired"] = "Verification session has expired",
         ["Verification.Error.NoActiveSession"] = "No active verification session",
         
+        ["Verification.Error.MaxAttemptsReached"] = "Maximum verification attempts reached",
+        ["Verification.Error.VerificationFailed"] = "Verification failed",
+        ["Verification.Error.SessionNotFound"] = "Verification session not found",
+        ["Verification.Info.Redirecting"] = "Redirecting...",
+        
         
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Digits only after code",
@@ -192,6 +197,11 @@ public static class LocalizationData
         ["Verification.Error.NoSession"] = "Сесія підтвердження не знайдена",
         ["Verification.Error.SessionExpired"] = "Термін дії сесії підтвердження минув",
         ["Verification.Error.NoActiveSession"] = "Немає активної сесії підтвердження",
+        
+        ["Verification.Error.MaxAttemptsReached"] = "Досягнуто максимальну кількість спроб підтвердження",
+        ["Verification.Error.VerificationFailed"] = "Підтвердження не вдалося",
+        ["Verification.Error.SessionNotFound"] = "Сесія підтвердження не знайдена",
+        ["Verification.Info.Redirecting"] = "Перенаправлення...",
         
 
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",
