@@ -26,8 +26,6 @@ public class ViewLocator : IViewLocator
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");
 
-        // AOT-safe: Don't use Activator.CreateInstance, register only for documentation
-        // All actual view creation should be done through StaticViewMapper
         Log.Warning("ViewLocator.Register is deprecated for AOT compatibility. Use StaticViewMapper instead. ViewModel: {ViewModel} -> View: {View}", viewModelType.Name, viewType.Name);
     }
 
@@ -63,7 +61,6 @@ public class ViewLocator : IViewLocator
             Log.Information("🔍 ViewLocator: Registered type: {TypeName}", registeredType.Name);
         }
 
-        // First try registered factories (for generic types registered via RegisterFactory)
         if (_viewFactories.TryGetValue(viewModelType, out Func<object>? factory))
         {
             try
@@ -80,7 +77,6 @@ public class ViewLocator : IViewLocator
             }
         }
 
-        // Fallback to AOT-safe StaticViewMapper
         Log.Information("🔄 ViewLocator: No factory registered, trying StaticViewMapper for {ViewModelType}", viewModelType.Name);
         object? staticView = StaticViewMapper.CreateView(viewModelType);
         if (staticView != null)

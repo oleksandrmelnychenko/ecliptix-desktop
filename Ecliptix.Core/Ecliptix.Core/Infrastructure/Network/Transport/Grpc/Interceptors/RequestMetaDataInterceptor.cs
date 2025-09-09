@@ -63,7 +63,6 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
     
     private static PubKeyExchangeType GetExchangeTypeForMethod<TRequest, TResponse>(Method<TRequest, TResponse> method, Metadata? headers = null)
     {
-        // First, check if exchange type is explicitly provided in headers (for EstablishSecureChannel)
         if (headers != null)
         {
             string? exchangeTypeHeader = headers.GetValue("exchange-type");
@@ -75,7 +74,6 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
             }
         }
         
-        // Streaming methods that should use SERVER_STREAMING exchange type
         return method.Name switch
         {
             "InitiateVerification" => PubKeyExchangeType.ServerStreaming,

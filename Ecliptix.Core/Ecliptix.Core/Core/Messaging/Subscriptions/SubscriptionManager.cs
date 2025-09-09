@@ -88,7 +88,6 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
-                // Handler creation failed - continue with other handlers
             }
         }
 
@@ -100,7 +99,6 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
-                // Individual handler failures don't stop other handlers
             }
         }
     }

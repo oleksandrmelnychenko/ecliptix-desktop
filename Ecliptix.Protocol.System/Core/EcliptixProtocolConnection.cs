@@ -67,7 +67,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _receivedNewDhKey = false;
         _disposed = false;
         
-        // CRITICAL DIAGNOSTIC: Log ratchet config in primary constructor
         Log.Information("🔧 PROTOCOL-CONN-NEW: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages", 
             id, ratchetConfig.DhRatchetEveryNMessages);
     }
@@ -103,7 +102,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _disposed = false;
         _lock = new Lock();
         
-        // CRITICAL DIAGNOSTIC: Log ratchet config in constructor
         Log.Information("🔧 PROTOCOL-CONN-RESTORED: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages", 
             id, ratchetConfig.DhRatchetEveryNMessages);
     }

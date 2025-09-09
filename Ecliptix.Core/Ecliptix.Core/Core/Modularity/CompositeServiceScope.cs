@@ -48,7 +48,6 @@ public class CompositeServiceProvider(IServiceProvider moduleProvider, IServiceP
         }
         catch
         {
-            // Fall through to main provider
         }
 
         return mainProvider.GetService(serviceType);
