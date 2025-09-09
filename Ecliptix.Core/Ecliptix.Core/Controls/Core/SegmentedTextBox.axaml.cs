@@ -10,6 +10,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Constants;
+using Serilog;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -165,11 +166,16 @@ public partial class SegmentedTextBox : UserControl
         _isInternalUpdate = true;
         try
         {
+            foreach (TextBox segment in _segments)
+            {
+                segment.Text = string.Empty;
+            }
+            
             for (int i = 0; i < _segments.Count; i++)
             {
-                _segments[i].Text = i < newValue.Length
-                    ? newValue[i].ToString()
-                    : string.Empty;
+                if (i >= newValue.Length)
+                    break;
+                _segments[i].Text = newValue[i].ToString();
             }
 
             int nextIndex = Math.Min(newValue.Length, _segments.Count - 1);
@@ -342,6 +348,13 @@ public partial class SegmentedTextBox : UserControl
         if (sender is not TextBox tb) return;
 
         int index = _segments.IndexOf(tb);
+        
+        if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control)
+        {
+            HandlePasteAsync();
+            e.Handled = true;
+            return;
+        }
 
         if (e.Key == Key.Back)
         {
@@ -369,6 +382,47 @@ public partial class SegmentedTextBox : UserControl
         }
 
         OnSegmentChanged();
+    }
+    
+    private async void HandlePasteAsync()
+    {
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard == null) return;
+
+            string? clipboardText = await clipboard.GetTextAsync();
+            if (string.IsNullOrEmpty(clipboardText)) return;
+
+            ProcessPastedText(clipboardText);
+        }
+        catch
+        {
+            Log.Warning("Failed to access clipboard for pasting.");
+        }
+    }
+    
+    private void ProcessPastedText(string pastedText)
+    {
+        string validText = AllowOnlyNumbers
+            ? new string(pastedText.Where(char.IsDigit).ToArray())
+            : pastedText;
+
+        if (string.IsNullOrEmpty(validText)) return;
+        
+        if (AllowOnlyNumbers && !validText.All(char.IsDigit))
+        {
+            Log.Warning("Pasted text contains non-numeric characters when only numbers are allowed.");
+            return;
+        }
+        
+        if (validText.Length != _segments.Count)
+        {
+            Log.Warning($"Pasted text length ({validText.Length}) does not match segment count ({_segments.Count}).");
+            return;
+        }
+        
+        UpdateSegmentsFromValue(validText);
     }
 
     private void HandleBackspaceKey(int currentIndex)
