@@ -38,7 +38,6 @@ public class OpaqueRegistrationService(
         try
         {
             byte[] serverPublicKeyBytes = ServerPublicKey();
-            Log.Information("🔐 OPAQUE: Decoding server public key for AOT compatibility");
 
             Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint =
                 OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
@@ -47,12 +46,10 @@ public class OpaqueRegistrationService(
                 OpaqueCryptoUtilities.DomainParams
             );
 
-            Log.Information("🔐 OPAQUE: Successfully created OPAQUE service");
             return new OpaqueProtocolService(serverStaticPublicKeyParam);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "🔐 OPAQUE: Failed to create OPAQUE service - DecodePoint failed in AOT mode");
             throw new InvalidOperationException("Failed to initialize OPAQUE protocol service", ex);
         }
     }
@@ -127,7 +124,7 @@ public class OpaqueRegistrationService(
 
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
         string deviceIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null)
     {
         if (phoneNumberIdentifier.IsEmpty)
         {
@@ -146,7 +143,6 @@ public class OpaqueRegistrationService(
 
         if (protocolResult.IsErr)
         {
-            Log.Error("[OPAQUE-REG] Failed to establish stream protocol: {Error}", protocolResult.UnwrapErr());
             return Result<Unit, string>.Err(
                 $"{AuthenticationConstants.VerificationFailurePrefix}{protocolResult.UnwrapErr().Message}");
         }
@@ -180,7 +176,7 @@ public class OpaqueRegistrationService(
         Guid sessionIdentifier,
         ByteString phoneNumberIdentifier,
         string deviceIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate = null)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
@@ -214,8 +210,6 @@ public class OpaqueRegistrationService(
 
         using CancellationTokenSource cancellationTokenSource = new();
 
-        Log.Information("[OPAQUE-REG] Resending OTP for session {SessionId} on connectId {ConnectId}",
-            sessionIdentifier, streamConnectId);
 
         Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
             streamConnectId,
@@ -250,7 +244,7 @@ public class OpaqueRegistrationService(
             return Result<Protobuf.Membership.Membership, string>.Err(
                 localizationService[AuthenticationConstants.NoActiveVerificationSessionKey]);
         }
-        
+
         VerifyCodeRequest request = new()
         {
             Code = otpCode,
@@ -360,7 +354,6 @@ public class OpaqueRegistrationService(
         }
         catch (Exception ex)
         {
-            Log.Error("[OPAQUE-REG] Failed to initiate OPAQUE registration: {Error}", ex.Message);
             return Result<OpaqueRegistrationInitResponse, string>.Err(
                 $"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}");
         }
@@ -390,7 +383,6 @@ public class OpaqueRegistrationService(
 
             if (oprfResult.IsErr)
             {
-                Log.Error("[OPAQUE-REG] Failed to create OPRF request: {Error}", oprfResult.UnwrapErr());
                 return Result<Unit, string>.Err(
                     $"{AuthenticationConstants.RegistrationFailurePrefix}{oprfResult.UnwrapErr().Message}");
             }
@@ -434,7 +426,6 @@ public class OpaqueRegistrationService(
             if (recordResult.IsErr)
             {
                 _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
-                Log.Error("[OPAQUE-REG] Failed to create registration record: {Error}", recordResult.UnwrapErr());
                 return Result<Unit, string>.Err(
                     $"{AuthenticationConstants.RegistrationFailurePrefix}{recordResult.UnwrapErr().Message}");
             }
@@ -487,13 +478,11 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
             }
 
-            Log.Information("[OPAQUE-REG] OPAQUE registration completed successfully");
             return Result<Unit, string>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
             _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
-            Log.Error("[OPAQUE-REG] Failed to complete OPAQUE registration: {Error}", ex.Message);
             return Result<Unit, string>.Err($"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}");
         }
     }
@@ -511,32 +500,43 @@ public class OpaqueRegistrationService(
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
         byte[] payload,
         uint streamConnectId,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus>? onCountdownUpdate,
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            VerificationCountdownUpdate timerTick = Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
+            VerificationCountdownUpdate verificationCountdownUpdate =
+                Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
 
-            Guid verificationIdentifier = Helpers.FromByteStringToGuid(timerTick.SessionIdentifier);
+            string message = verificationCountdownUpdate.Message;
 
-            if (timerTick.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+            Guid verificationIdentifier = Helpers.FromByteStringToGuid(verificationCountdownUpdate.SessionIdentifier);
+
+            if (verificationCountdownUpdate.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
                 or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
                 or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
             {
-                _ = Task.Run(async () => await CleanupStreamAsync(verificationIdentifier), cancellationToken);
+                if (verificationIdentifier != Guid.Empty)
+                {
+                    _ = Task.Run(async () => await CleanupStreamAsync(verificationIdentifier), cancellationToken);
+                }
             }
 
-            _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+            if (verificationIdentifier != Guid.Empty)
+            {
+                _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+            }
 
             RxApp.MainThreadScheduler.Schedule(() =>
-                onCountdownUpdate?.Invoke(timerTick.SecondsRemaining, verificationIdentifier, timerTick.Status));
+                onCountdownUpdate?.Invoke(
+                    verificationCountdownUpdate.SecondsRemaining,
+                    verificationIdentifier,
+                    verificationCountdownUpdate.Status, message));
 
             return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
         }
         catch (Exception ex)
         {
-            Log.Error("[OPAQUE-REG] Failed to parse countdown update: {Error}", ex.Message);
             return Task.FromResult(Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(
                     $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
@@ -547,19 +547,14 @@ public class OpaqueRegistrationService(
     {
         if (_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
         {
-            Log.Information(
-                "[OPAQUE-REG] Cleaning up stream protocol with connectId {ConnectId} for session {SessionId}",
-                streamConnectId, sessionIdentifier);
 
             Result<Unit, NetworkFailure> cleanupResult =
                 await networkProvider.CleanupStreamProtocolAsync(streamConnectId);
 
             if (!cleanupResult.IsErr) return Result<Unit, string>.Ok(Unit.Value);
-            Log.Warning("[OPAQUE-REG] Failed to cleanup stream protocol: {Error}", cleanupResult.UnwrapErr());
             return Result<Unit, string>.Err(cleanupResult.UnwrapErr().Message);
         }
 
-        Log.Debug("[OPAQUE-REG] Session {SessionId} not found in active streams", sessionIdentifier);
         return Result<Unit, string>.Ok(Unit.Value);
     }
 }

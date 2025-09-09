@@ -85,7 +85,6 @@ public class ModuleManager : IModuleManager
 
             await module.LoadAsync(_serviceProvider);
 
-            // Note: View registration is now handled by StaticViewMapper - zero reflection!
 
             stopwatch.Stop();
             _moduleStates[moduleName] = ModuleState.Loaded;

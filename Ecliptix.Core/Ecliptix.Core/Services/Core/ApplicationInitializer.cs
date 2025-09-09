@@ -135,7 +135,6 @@ public class ApplicationInitializer(
         {
             try
             {
-                //await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
 
                 Result<byte[], SecureStorageFailure> loadResult =
                     await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());

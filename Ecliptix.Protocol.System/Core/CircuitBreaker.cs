@@ -127,11 +127,9 @@ public sealed class CircuitBreaker : IDisposable
 
             if (_state == CircuitBreakerState.HalfOpen)
             {
-                // Check if we have enough successful requests to close the circuit
                 double successRate = (double)_successCount / _requestCount;
                 if (successRate >= _successThresholdPercentage && _requestCount >= _failureThreshold)
                 {
-                    // Service seems recovered, close the circuit
                     _state = CircuitBreakerState.Closed;
                     _failureCount = 0;
                     _successCount = 0;
@@ -142,7 +140,6 @@ public sealed class CircuitBreaker : IDisposable
             }
             else if (_state == CircuitBreakerState.Closed)
             {
-                // Reset failure count on successful operation
                 _failureCount = Math.Max(0, _failureCount - 1);
             }
         }
@@ -158,14 +155,12 @@ public sealed class CircuitBreaker : IDisposable
 
             if (_state == CircuitBreakerState.Closed && _failureCount >= _failureThreshold)
             {
-                // Trip the circuit breaker
                 _state = CircuitBreakerState.Open;
                 if (Log.IsEnabled(LogEventLevel.Warning))
                     Log.Warning("Circuit breaker failure threshold ({FailureThreshold}) reached - Circuit OPEN", _failureThreshold);
             }
             else if (_state == CircuitBreakerState.HalfOpen)
             {
-                // Service still failing, go back to open
                 _state = CircuitBreakerState.Open;
                 _successCount = 0;
                 _requestCount = 0;

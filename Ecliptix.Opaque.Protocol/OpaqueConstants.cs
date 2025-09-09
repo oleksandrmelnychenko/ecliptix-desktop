@@ -27,6 +27,17 @@ public static class OpaqueConstants
 
     public const string DefaultServerIdentity = "server.ecliptix.com";
 
+    public static class RfcCompliance
+    {
+        public const bool EnableMasking = true;
+        public const bool EnableOprfMasking = false;
+        public const bool EnableRegistrationRecordMasking = true;
+        public const bool EnableStretching = true;
+        public const bool EnforcePointValidation = true;
+        public const bool UseMacEnvelopes = true;
+        public const bool IncludeServerIdentityInTranscript = true;
+    }
+
     public static class ErrorMessages
     {
         public const string InvalidRegistrationRecordTooShort = "Invalid registration record: too short.";

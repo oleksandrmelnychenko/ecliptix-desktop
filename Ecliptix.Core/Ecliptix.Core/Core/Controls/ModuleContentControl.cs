@@ -22,15 +22,12 @@ public sealed class ModuleContentControl : ContentControl
     
     public ModuleContentControl()
     {
-        // Try to get IModuleViewFactory from the service locator pattern
-        // This is optional - the control will work without it
         try
         {
             _moduleViewFactory = Locator.Current?.GetService<IModuleViewFactory>();
         }
         catch
         {
-            // Ignore - we'll fall back to StaticViewMapper
             _moduleViewFactory = null;
         }
     }

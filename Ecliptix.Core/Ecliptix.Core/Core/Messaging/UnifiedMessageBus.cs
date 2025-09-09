@@ -65,7 +65,6 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
             }
             catch (Exception)
             {
-                // Individual observer failures don't stop publication
             }
         }
 
@@ -77,7 +76,6 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
             }
             catch (Exception)
             {
-                // Individual handler failures don't stop other handlers
             }
         });
 
@@ -97,7 +95,6 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
             }
             catch (Exception)
             {
-                // Individual observer failures don't stop publication
             }
         }
 
