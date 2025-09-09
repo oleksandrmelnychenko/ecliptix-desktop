@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls;
@@ -45,11 +46,13 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
+            secureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
         }
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
+            verifySecureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
         }
         _handlersAttached = true;
     }
@@ -63,11 +66,13 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
+            secureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
         }
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved -= OnVerifySecureKeyCharactersRemoved;
+            verifySecureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
         }
         _handlersAttached = false;
     }
@@ -98,5 +103,15 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb) return;
         vm.RemoveVerifySecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentVerifySecureKeyLength);
+    }
+    
+    private void OnSecureKeyTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+
+        if (DataContext is not SecureKeyVerifierViewModel vm) return;
+
+        vm.HandleEnterKeyPress();
+        e.Handled = true;
     }
 }

@@ -37,6 +37,7 @@
         </StackPanel>
         
         <coreControls:SegmentedTextBox Grid.Row="1"
+                                   x:Name="SegmentedTextBox"
                                    SegmentCount="6"
                                    Height="60"
                                    FontSize="{StaticResource Input.SegmentFontSize}"

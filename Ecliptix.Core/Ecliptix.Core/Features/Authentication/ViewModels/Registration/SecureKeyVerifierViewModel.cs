@@ -324,6 +324,14 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         }
     }
 
+    public async void HandleEnterKeyPress()
+    {
+        if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+        {
+            SubmitCommand.Execute().Subscribe();
+        }
+    }
+    
     protected override void Dispose(bool disposing)
     {
         if (disposing)

@@ -147,6 +147,14 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         return Unit.Default;
     }
 
+    public async void HandleEnterKeyPress()
+    {
+        if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+        {
+            VerifyMobileNumberCommand.Execute().Subscribe();
+        }
+    }
+    
     public void ResetState()
     {
         MobileNumber = string.Empty;

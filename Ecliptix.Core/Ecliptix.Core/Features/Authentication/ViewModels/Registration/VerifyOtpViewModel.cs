@@ -314,6 +314,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         string formattedDataTimeString = time.ToString(@"mm\:ss");
         return formattedDataTimeString;
     }
+    
+    public async void HandleEnterKeyPress()
+    {
+        if (SendVerificationCodeCommand != null && await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
+        {
+            SendVerificationCodeCommand.Execute().Subscribe();
+        }
+    }
 
     public void ResetState()
     {
