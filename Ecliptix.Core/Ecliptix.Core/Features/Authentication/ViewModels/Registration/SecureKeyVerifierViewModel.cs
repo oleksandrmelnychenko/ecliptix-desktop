@@ -168,7 +168,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         IObservable<SystemU> languageTrigger = LanguageChanged;
 
         IObservable<SystemU> lengthTrigger = this
-            .WhenAnyValue(x => x.CurrentSecureKeyLength)
+            .WhenAnyValue(x => x.CurrentSecureKeyLength,x => x.CurrentVerifySecureKeyLength)
             .Select(_ => SystemU.Default);
 
         IObservable<SystemU> validationTrigger = lengthTrigger.Merge(languageTrigger);
@@ -205,15 +205,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .Subscribe(flag => HasSecureKeyError = flag);
 
         IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
-
-        IObservable<SystemU> verifyLengthTrigger = this
-            .WhenAnyValue(x => x.CurrentVerifySecureKeyLength)
-            .Select(_ => SystemU.Default);
-
-        IObservable<SystemU> verifyValidationTrigger = verifyLengthTrigger
-            .Merge(languageTrigger)
-            .Merge(lengthTrigger);
-
+        
+        IObservable<SystemU> verifyValidationTrigger = lengthTrigger.Merge(languageTrigger);
+        
         IObservable<bool> secureKeysMatch = verifyValidationTrigger
             .Select(_ => DoSecureKeysMatch())
             .Replay(1)

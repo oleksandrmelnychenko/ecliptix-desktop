@@ -291,7 +291,8 @@
                                 Grid.Row="1"
                                 Classes="hint-section"
                                 Orientation="Horizontal"
-                                IsVisible="{Binding !IsPasswordStrengthMode, ElementName=control}">
+                                IsVisible="{Binding !IsPasswordStrengthMode, ElementName=control}"
+                                Background="{DynamicResource Surface}">
                         <Path Classes="hint-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
@@ -306,7 +307,8 @@
                                 x:Name="ErrorStackPanel"
                                 Classes="error-section"
                                 Orientation="Horizontal"
-                                Opacity="{Binding EllipseOpacity, ElementName=control}">
+                                Opacity="{Binding EllipseOpacity, ElementName=control}"
+                                Background="{DynamicResource Surface}">
                         <Path Classes="error-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
@@ -319,7 +321,8 @@
                                 x:Name="PasswordStrengthStackPanel"
                                 Classes="hint-section"
                                 Orientation="Horizontal"
-                                IsVisible="{Binding IsPasswordStrengthMode, ElementName=control}">
+                                IsVisible="{Binding IsPasswordStrengthMode, ElementName=control}"
+                                Background="{DynamicResource Surface}">
                         <Path Classes="strength-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
