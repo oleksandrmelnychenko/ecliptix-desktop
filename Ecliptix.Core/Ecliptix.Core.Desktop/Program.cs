@@ -311,6 +311,8 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<SecrecyChannelRetryInterceptor>();
 
+        services.AddSingleton<IWindowService, WindowService>();
+
         ConfigureGrpc(services);
         ConfigureModules(services);
 
