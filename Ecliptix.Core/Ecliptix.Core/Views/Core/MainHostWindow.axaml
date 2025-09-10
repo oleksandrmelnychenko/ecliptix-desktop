@@ -14,58 +14,15 @@
             Padding="0"
             BoxShadow="0 0 10 2 #11000000">
         <Grid>
-            <Grid Name="MainContentGrid" RowDefinitions="Auto, *" Margin="1">
-                <DockPanel Grid.Row="0" MinHeight="35" Name="TitleBarArea">
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0"
-                                VerticalAlignment="Center">
-                        <Button Name="CloseButton" Classes="traffic-light close" Click="CloseButton_Click" />
-                        <Button Name="MinimizeButton" Classes="traffic-light minimize" Click="MinimizeButton_Click" />
-                        <Button Name="MaximizeButton" Classes="traffic-light maximize" Click="MaximizeButton_Click" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
-                               Foreground="{DynamicResource OnSurface}"
-                               FontWeight="Medium" 
-                           FontSize="{StaticResource Title.FontSize}"
-                               VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,10,0" />
-                    <Border Background="Transparent" IsHitTestVisible="True"
-                            PointerPressed="TitleBarArea_PointerPressed" />
-                </DockPanel>
-
-                <Border Grid.Row="1"
-                        Background="{DynamicResource Surface}"
-                        Margin="5,0,5,5"
-                        CornerRadius="0,0,4,4">
-
-                </Border>
+            <Grid>
+                <Button Name="LogoutButton"
+                        Content="Logout"
+                        Width="120"
+                        Height="36"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Classes="auth-button continue-button"/>
             </Grid>
-
-            <!-- Resize Grips (unchanged) -->
-            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeWestEast"
-                    HorizontalAlignment="Left" VerticalAlignment="Stretch"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.West}" />
-            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeWestEast"
-                    HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.East}" />
-            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeNorthSouth"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Top"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.North}" />
-            <Border BorderThickness="4" BorderBrush="Transparent" Cursor="SizeNorthSouth"
-                    HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.South}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopLeftCorner"
-                    HorizontalAlignment="Left" VerticalAlignment="Top"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthWest}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="TopRightCorner"
-                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.NorthEast}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomLeftCorner"
-                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthWest}" />
-            <Border Width="8" Height="8" BorderBrush="Transparent" Cursor="BottomRightCorner"
-                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                    PointerPressed="Resize_PointerPressed" Tag="{x:Static WindowEdge.SouthEast}" />
         </Grid>
     </Border>
-
-    <!-- Duplicate styles removed - using shared Components/TrafficLights.axaml -->
 </Window>
