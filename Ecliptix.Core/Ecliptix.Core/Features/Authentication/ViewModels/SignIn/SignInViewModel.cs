@@ -28,6 +28,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
+    private readonly MembershipHostWindowModel _hostWindowModel;
     private bool _hasMobileNumberBeenTouched;
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
@@ -62,6 +63,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         HostScreen = hostScreen;
         _authService = authService;
         _networkEventService = networkEventService;
+        _hostWindowModel = (MembershipHostWindowModel)hostScreen;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -258,6 +260,12 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 byte[] sessionKey = result.Unwrap();
 
                 Array.Clear(sessionKey, 0, sessionKey.Length);
+                
+                _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
+                    _ => { }, 
+                    ex => Serilog.Log.Error(ex, "Failed to transition to main window"),
+                    () => Serilog.Log.Information("Main window transition completed")
+                );
             })
             .DisposeWith(_disposables);
     }

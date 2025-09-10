@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
@@ -22,11 +25,15 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Views.Core;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using Serilog;
+using Splat;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
@@ -101,6 +108,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
     
     public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
+    
+    public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
     
     public void ClearNavigationStack()
     {
@@ -220,6 +229,72 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             await CheckCountryCultureMismatchAsync();
             return Unit.Default;
+        });
+        
+        SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            try
+            {
+                Log.Information("Starting transition to main window after successful authentication");
+                
+                var moduleManager = Locator.Current.GetService<IModuleManager>();
+                var windowService = Locator.Current.GetService<IWindowService>();
+                
+                if (moduleManager == null || windowService == null)
+                {
+                    Log.Error("Required services not available for main window transition");
+                    return;
+                }
+
+                var currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
+                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this) 
+                    : null;
+
+                if (currentWindow == null)
+                {
+                    Log.Error("Could not find current authentication window");
+                    return;
+                }
+                
+                Log.Information("Loading Main module...");
+                var mainModule = await moduleManager.LoadModuleAsync("Main");
+                Log.Information("Main module loaded successfully");
+                
+                Log.Information("Cleaning up authentication flow...");
+                CleanupAuthenticationFlow();
+                
+                var mainWindow = new MainHostWindow();
+                
+                if (mainModule.ServiceScope?.ServiceProvider != null)
+                {
+                    try
+                    {
+                        var mainViewModel = mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+                        if (mainViewModel != null)
+                        {
+                            mainWindow.DataContext = mainViewModel;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Could not resolve MainViewModel from module scope, using default");
+                    }
+                }
+                
+                await windowService.ShowAndWaitForWindowAsync(mainWindow);
+                windowService.PositionWindowRelativeTo(mainWindow, currentWindow);
+                
+                await windowService.PerformCrossfadeTransitionAsync(currentWindow, mainWindow);
+                
+                currentWindow.Close();
+
+                Log.Information("Successfully transitioned to main window");
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to transition to main window");
+                throw;
+            }
         });
 
         OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/privacy"));
