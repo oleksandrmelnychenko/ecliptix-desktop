@@ -21,80 +21,62 @@
     <Window.Resources>
         <converters:ColorToBrushConverter x:Key="ColorToBrushConverter" />
         <sharedConverters:EqualityConverter x:Key="EqualityConverter" />
-        <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="0.67" />
-        <SolidColorBrush x:Key="BrushBlurDefault" Color="#9966CC" Opacity="0.67" />
+        <SolidColorBrush x:Key="BrushBlurConnected" Color="#28C940" Opacity="1" />
+        <SolidColorBrush x:Key="BrushBlurConnecting" Color="#FFBD2E" Opacity="1" />
+        <SolidColorBrush x:Key="BrushBlurDisconnected" Color="#FF5F57" Opacity="1" />
+        <SolidColorBrush x:Key="BrushBlurDefault" Color="#9966CC" Opacity="1" />
         <SolidColorBrush x:Key="BrushContentConnected" Color="#F0FFF4" />
         <SolidColorBrush x:Key="BrushContentConnecting" Color="#FFF8F0" />
         <SolidColorBrush x:Key="BrushContentDisconnected" Color="#FFF0F0" />
         <SolidColorBrush x:Key="BrushContentDefault" Color="#FAFAFA" />
+        
+        <BoxShadows x:Key="BoxShadowDefault">0 0 10 8 #409966CC</BoxShadows>
+        <BoxShadows x:Key="BoxShadowConnected">0 0 10 8 #4028C940</BoxShadows>
+        <BoxShadows x:Key="BoxShadowConnecting">0 0 10 8 #40FFBD2E</BoxShadows>
+        <BoxShadows x:Key="BoxShadowDisconnected">0 0 10 8 #40FF5F57</BoxShadows>
+
     </Window.Resources>
 
     <Window.Styles>
-        <Style Selector="Border#BackgroundBlurBorder">
-            <Setter Property="Background" Value="{StaticResource BrushBlurDefault}" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <BrushTransition Property="Background" Duration="0:0:0.3" />
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Window.connected Border#BackgroundBlurBorder">
-            <Setter Property="Background" Value="{StaticResource BrushBlurConnected}" />
-        </Style>
-        <Style Selector="Window.connecting Border#BackgroundBlurBorder, Window.restore Border#BackgroundBlurBorder">
-            <Setter Property="Background" Value="{StaticResource BrushBlurConnecting}" />
-        </Style>
-        <Style Selector="Window.disconnected Border#BackgroundBlurBorder">
-            <Setter Property="Background" Value="{StaticResource BrushBlurDisconnected}" />
-        </Style>
         <Style Selector="Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDefault}" />
-            <Setter Property="BorderBrush" Value="#9966CC" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBlurDefault}" />
+            <Setter Property="BoxShadow" Value="{StaticResource BoxShadowDefault}" />
             <Setter Property="Transitions">
                 <Transitions>
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
                     <BrushTransition Property="Background" Duration="0:0:0.3" />
                     <BrushTransition Property="BorderBrush" Duration="0:0:0.3" />
                 </Transitions>
             </Setter>
         </Style>
+
         <Style Selector="Window.connected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnected}" />
-            <Setter Property="BorderBrush" Value="#28C940" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBlurConnected}" />
+            <Setter Property="BoxShadow" Value="{StaticResource BoxShadowConnected}" />
         </Style>
+
         <Style Selector="Window.connecting Border#ContentBorder, Window.restore Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentConnecting}" />
-            <Setter Property="BorderBrush" Value="#FFBD2E" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBlurConnecting}" />
+            <Setter Property="BoxShadow" Value="{StaticResource BoxShadowConnecting}" />
         </Style>
+
         <Style Selector="Window.disconnected Border#ContentBorder">
             <Setter Property="Background" Value="{StaticResource BrushContentDisconnected}" />
-            <Setter Property="BorderBrush" Value="#FF5F57" />
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBlurDisconnected}" />
+            <Setter Property="BoxShadow" Value="{StaticResource BoxShadowDisconnected}" />
         </Style>
     </Window.Styles>
 
     <Grid>
-        <Border Name="BackgroundBlurBorder" Margin="18" CornerRadius="22">
-            <Border.Effect>
-                <BlurEffect Radius="30" />
-            </Border.Effect>
-        </Border>
-
         <Border Name="ContentBorder"
                 BorderThickness="1"
                 CornerRadius="22"
                 Padding="4"
                 Background="#3b3c40"
                 Margin="10">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="15" Opacity="0.8" OffsetX="0" OffsetY="0" Color="{Binding GlowColor}">
-                    <DropShadowEffect.Transitions>
-                        <Transitions>
-                            <ColorTransition Property="Color" Duration="0:0:0.3" />
-                        </Transitions>
-                    </DropShadowEffect.Transitions>
-                </DropShadowEffect>
-            </Border.Effect>
 
             <Grid RowDefinitions="*, Auto">
 
