@@ -387,14 +387,63 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
-        _mainTextBox.KeyDown += OnKeyDown;
+        
+        if (IsSecureKeyMode)
+        {
+            DisableClipboardOperations();
+        }
+        
         _disposables.Add(Disposable.Create(UnsubscribeTextBoxEvents));
 
         SetupReactiveBindings();
         UpdateBorderState();
         _isControlInitialized = true;
     }
+    
+    private void DisableClipboardOperations()
+    {
+        if (_mainTextBox == null) return;
+        
+        _mainTextBox.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+    }
 
+    private void OnTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        
+        if (string.IsNullOrEmpty(e.Text)) return;
+        
+        if (e.Text.Length > 1)
+        {
+            e.Handled = true;
+        }
+    }
+    
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
+        {
+            switch (e.Key)
+            {
+                case Key.V: 
+                case Key.C: 
+                case Key.X: 
+                // case Key.A:
+                case Key.Z: 
+                case Key.Y: 
+                    e.Handled = true;
+                    return;
+            }
+        }
+        if (e.Key == Key.Insert && (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+        {
+            e.Handled = true;
+        }
+    }
+    
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
         if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
@@ -702,7 +751,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.TextChanged -= OnTextChanged;
         _mainTextBox.GotFocus -= OnGotFocus;
         _mainTextBox.LostFocus -= OnLostFocus;
-        _mainTextBox.KeyDown -= OnKeyDown;
+        _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
+        _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
     }
 
     private void FindControls()
@@ -738,57 +788,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
         }
     }
-
-    private void OnKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-
-        try
-        {
-            if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
-            {
-                switch (e.Key)
-                {
-                    case Key.V:
-                    case Key.C:
-                    case Key.X:
-                    case Key.A:
-                    case Key.Z:
-                    case Key.Y:
-                        e.Handled = true;
-                        return;
-                }
-            }
-
-            if (e.KeyModifiers.HasFlag(KeyModifiers.Meta))
-            {
-                switch (e.Key)
-                {
-                    case Key.V:
-                    case Key.C:
-                    case Key.X:
-                    case Key.A:
-                    case Key.Z:
-                    case Key.Y:
-                        e.Handled = true;
-                        return;
-                }
-            }
-
-            switch (e.Key)
-            {
-                case Key.Insert when e.KeyModifiers.HasFlag(KeyModifiers.Shift):
-                case Key.Insert when e.KeyModifiers.HasFlag(KeyModifiers.Control):
-                    e.Handled = true;
-                    return;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in OnKeyDown: {ex.Message}");
-        }
-    }
-
+    
     private void SetupReactiveBindings()
     {
         Observable.Merge(
@@ -883,15 +883,25 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (isSecureKeyMode)
         {
             _lastProcessedText = _mainTextBox.Text ?? string.Empty;
+            DisableClipboardOperations();
         }
         else
         {
             _lastProcessedText = string.Empty;
+            EnableClipboardOperations();
         }
 
         UpdateRemainingCharacters();
     }
 
+    private void EnableClipboardOperations()
+    {
+        if (_mainTextBox == null) return;
+    
+        _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
+        _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
+    }
+    
     private void TriggerTypingAnimation()
     {
         if (_mainTextBox == null || _isDisposed || _focusBorder == null) return;
