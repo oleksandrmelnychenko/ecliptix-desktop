@@ -29,6 +29,7 @@ public class OpaqueRegistrationService(
     : IOpaqueRegistrationService
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _streamCancellations = new();
 
     private readonly ConcurrentDictionary<ByteString, (BigInteger Blind, byte[] OprfResponse)>
         _opaqueRegistrationState = new();
@@ -124,7 +125,8 @@ public class OpaqueRegistrationService(
 
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
         string deviceIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        CancellationToken cancellationToken = default)
     {
         if (phoneNumberIdentifier.IsEmpty)
         {
@@ -149,7 +151,15 @@ public class OpaqueRegistrationService(
 
         uint streamConnectId = protocolResult.Unwrap();
 
-        using CancellationTokenSource cancellationTokenSource = new();
+        CancellationTokenSource cancellationTokenSource;
+        if (cancellationToken == default)
+        {
+            cancellationTokenSource = new CancellationTokenSource();
+        }
+        else
+        {
+            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        }
 
         InitiateVerificationRequest request = new()
         {
@@ -164,12 +174,14 @@ public class OpaqueRegistrationService(
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
             payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
-                cancellationTokenSource.Token),
+                cancellationTokenSource.Token, cancellationTokenSource),
             true, cancellationTokenSource.Token);
 
         if (streamResult.IsErr)
         {
             string errorMessage = streamResult.UnwrapErr().Message;
+            
+            cancellationTokenSource.Dispose();
             
             if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
             {
@@ -221,14 +233,17 @@ public class OpaqueRegistrationService(
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
 
-        using CancellationTokenSource cancellationTokenSource = new();
+        if (!_streamCancellations.TryGetValue(sessionIdentifier, out CancellationTokenSource? cancellationTokenSource))
+        {
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
+        }
 
         Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
             payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
-                cancellationTokenSource.Token),
+                cancellationTokenSource.Token, cancellationTokenSource),
             true, cancellationTokenSource.Token);
 
         if (result.IsErr)
@@ -523,7 +538,8 @@ public class OpaqueRegistrationService(
         byte[] payload,
         uint streamConnectId,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        CancellationTokenSource? cancellationTokenSource = null)
     {
         try
         {
@@ -547,6 +563,10 @@ public class OpaqueRegistrationService(
             if (verificationIdentifier != Guid.Empty)
             {
                 _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+                if (cancellationTokenSource != null)
+                {
+                    _streamCancellations.TryAdd(verificationIdentifier, cancellationTokenSource);
+                }
             }
 
             RxApp.MainThreadScheduler.Schedule(() =>
@@ -569,6 +589,11 @@ public class OpaqueRegistrationService(
     {
         if (_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
         {
+            if (_streamCancellations.TryRemove(sessionIdentifier, out CancellationTokenSource? cancellationTokenSource))
+            {
+                cancellationTokenSource.Dispose();
+            }
+
             Result<Unit, NetworkFailure> cleanupResult =
                 await networkProvider.CleanupStreamProtocolAsync(streamConnectId);
 

@@ -828,6 +828,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
+        
+        // Early return if protocol doesn't exist - makes method idempotent
+        if (!_connections.ContainsKey(connectId) && !_activeStreams.ContainsKey(connectId))
+        {
+            return;
+        }
+        
         CancelOperationsForConnection(connectId);
 
         if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? streamCts))
