@@ -266,7 +266,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         else
         {
             SecondsRemaining = 0;
-            ErrorMessage = "No active verification session found";
+            ErrorMessage = _localizationService[AuthenticationConstants.NoActiveVerificationSessionKey];
             HasError = true;
         }
 
@@ -307,9 +307,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         ShowDimmer = true;
         ShowSpinner = true;
         
-        string message = IsMaxAttemptsReached 
-            ? _localizationService["Authentication.MaxAttemptsMessage"] ?? "Maximum attempts reached"
-            : _localizationService["Authentication.SessionExpiredMessage"] ?? "Session expired";
+        string key = IsMaxAttemptsReached
+            ? AuthenticationConstants.MaxAttemptsReachedKey
+            : AuthenticationConstants.SessionNotFoundKey;
+        
+        string message = _localizationService.GetString(key)
+                         ?? _localizationService[key]
+                         ?? (IsMaxAttemptsReached ? "Maximum attempts reached" : "Session expired");
         
         ShowRedirectNotification(message, seconds, () => CleanupAndNavigate(targetView));
 
@@ -317,7 +321,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     private void ShowRedirectNotification(string message, int seconds, Action onComplete)
     {
-        var redirectViewModel = new RedirectNotificationViewModel(message, seconds, onComplete);
+        var redirectViewModel = new RedirectNotificationViewModel(message, seconds, onComplete, _localizationService);
         var redirectView = new RedirectNotificationView { DataContext = redirectViewModel };
         
         if (HostScreen is MembershipHostWindowModel hostWindow)
