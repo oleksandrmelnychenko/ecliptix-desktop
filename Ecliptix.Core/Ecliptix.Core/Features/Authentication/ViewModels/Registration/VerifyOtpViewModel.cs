@@ -272,7 +272,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private uint HandleNotFoundStatus()
     {
         ErrorMessage = _localizationService[AuthenticationConstants.SessionNotFoundKey];
-        StartAutoRedirect(2, MembershipViewType.Welcome);
+        StartAutoRedirect(5, MembershipViewType.Welcome);
         return 0;
     }
 
