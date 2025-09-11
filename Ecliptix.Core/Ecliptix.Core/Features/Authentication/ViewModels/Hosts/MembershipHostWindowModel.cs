@@ -6,6 +6,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -237,8 +238,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             {
                 Log.Information("Starting transition to main window after successful authentication");
                 
-                var moduleManager = Locator.Current.GetService<IModuleManager>();
-                var windowService = Locator.Current.GetService<IWindowService>();
+                IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
+                IWindowService? windowService = Locator.Current.GetService<IWindowService>();
                 
                 if (moduleManager == null || windowService == null)
                 {
@@ -246,7 +247,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     return;
                 }
 
-                var currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
+                Window? currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
                     ? desktop.Windows.FirstOrDefault(w => w.DataContext == this) 
                     : null;
 
@@ -257,19 +258,19 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 }
                 
                 Log.Information("Loading Main module...");
-                var mainModule = await moduleManager.LoadModuleAsync("Main");
+                IModule mainModule = await moduleManager.LoadModuleAsync("Main");
                 Log.Information("Main module loaded successfully");
                 
                 Log.Information("Cleaning up authentication flow...");
                 CleanupAuthenticationFlow();
                 
-                var mainWindow = new MainHostWindow();
+                MainHostWindow mainWindow = new MainHostWindow();
                 
                 if (mainModule.ServiceScope?.ServiceProvider != null)
                 {
                     try
                     {
-                        var mainViewModel = mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+                        MainViewModel? mainViewModel = mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
                         if (mainViewModel != null)
                         {
                             mainWindow.DataContext = mainViewModel;

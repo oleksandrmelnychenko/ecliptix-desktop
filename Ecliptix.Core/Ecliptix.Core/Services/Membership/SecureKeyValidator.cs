@@ -118,7 +118,7 @@ public static partial class SecureKeyValidator
 
         score -= recommendations.Count;
 
-        var strength = score switch
+        PasswordStrength strength = score switch
         {
             <= 2 => PasswordStrength.Weak,
             <= 4 => PasswordStrength.Good,
