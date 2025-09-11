@@ -304,17 +304,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         base.Dispose(disposing);
         _isDisposed = true;
     }
-
-    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null, string? multiChars = null)
-    {
-        return warningType switch
-        {
-            CharacterWarningType.NonLatinLetter => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
-            CharacterWarningType.InvalidCharacter => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"],
-            CharacterWarningType.MultipleCharacters => LocalizationService["ValidationWarnings.SecureKey.MultipleCharacters"],
-            _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
-        };
-    }
     
     public async void HandleEnterKeyPress()
     {

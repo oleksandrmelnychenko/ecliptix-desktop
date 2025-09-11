@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -92,6 +93,17 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     protected string Country() =>
         NetworkProvider.ApplicationInstanceSettings.Country;
 
+    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null, string? multiChars = null)
+    {
+        return warningType switch
+        {
+            CharacterWarningType.NonLatinLetter => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
+            CharacterWarningType.InvalidCharacter => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"],
+            CharacterWarningType.MultipleCharacters => LocalizationService["ValidationWarnings.SecureKey.MultipleCharacters"],
+            _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
+        };
+    }
+    
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposedValue)

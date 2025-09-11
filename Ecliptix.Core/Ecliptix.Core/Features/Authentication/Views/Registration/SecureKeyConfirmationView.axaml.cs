@@ -47,12 +47,14 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
+            secureKeyBox.CharacterRejected += OnCharacterRejected;
         }
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
             verifySecureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
+            verifySecureKeyBox.CharacterRejected += OnCharacterRejected;
         }
         _handlersAttached = true;
     }
@@ -67,12 +69,14 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
+            secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved -= OnVerifySecureKeyCharactersRemoved;
             verifySecureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
+            verifySecureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
         _handlersAttached = false;
     }
@@ -113,5 +117,14 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
         vm.HandleEnterKeyPress();
         e.Handled = true;
+    }
+    
+    private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
+    {
+        if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb) return;
+
+        string localizedMessage = vm.GetLocalizedWarningMessage(e.WarningType);
+        tb.WarningText = localizedMessage;
+        tb.HasWarning = true;
     }
 }
