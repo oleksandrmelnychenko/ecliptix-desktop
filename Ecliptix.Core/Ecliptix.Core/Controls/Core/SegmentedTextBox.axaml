@@ -19,7 +19,6 @@
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="TextAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="{StaticResource Segment.Margin}"/>
             <Setter Property="Background" Value="{Binding SegmentBackground, RelativeSource={RelativeSource AncestorType=core:SegmentedTextBox}}"/>
             <Setter Property="BorderThickness" Value="{StaticResource Segment.BorderThickness}"/>
             <Setter Property="CornerRadius" Value="{StaticResource Segment.CornerRadius}"/>

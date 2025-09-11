@@ -45,7 +45,7 @@
                                    HorizontalAlignment="Center"
                                    SegmentBackground="{DynamicResource SegmentedTextBoxBackgroundColor}"
                                    ActiveSegmentBorderColor="{DynamicResource Primary}"
-                                   SegmentSpacing="5"
+                                   SegmentSpacing="{StaticResource SegmentedTextBox.Spacing}"
                                    SegmentWidth="40"
                                    AllowOnlyNumbers="True"
                                    Value="{Binding VerificationCode, Mode=TwoWay}" />
