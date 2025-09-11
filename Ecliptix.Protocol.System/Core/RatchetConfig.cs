@@ -22,7 +22,7 @@ public sealed class RatchetConfig
         EnablePerMessageRatchet = true
     };
 
-    public uint DhRatchetEveryNMessages { get; init; } = 10;  // Default for DataCenterEphemeralConnect (ServerStreaming uses explicit config)
+    public uint DhRatchetEveryNMessages { get; init; } = 10;
 
     public bool EnablePerMessageRatchet { get; init; } = false;
 

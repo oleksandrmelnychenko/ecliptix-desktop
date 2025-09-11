@@ -7,9 +7,9 @@ namespace Ecliptix.Protocol.System.Core;
 
 public enum CircuitBreakerState
 {
-    Closed,    // Normal operation
-    Open,      // Failures detected, blocking requests
-    HalfOpen   // Testing if service has recovered
+    Closed,
+    Open,
+    HalfOpen
 }
 
 public sealed class CircuitBreaker : IDisposable

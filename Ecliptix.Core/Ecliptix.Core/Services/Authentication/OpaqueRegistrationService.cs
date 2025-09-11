@@ -223,7 +223,6 @@ public class OpaqueRegistrationService(
 
         using CancellationTokenSource cancellationTokenSource = new();
 
-
         Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
             streamConnectId,
             RpcServiceType.InitiateVerification,
@@ -570,7 +569,6 @@ public class OpaqueRegistrationService(
     {
         if (_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
         {
-
             Result<Unit, NetworkFailure> cleanupResult =
                 await networkProvider.CleanupStreamProtocolAsync(streamConnectId);
 

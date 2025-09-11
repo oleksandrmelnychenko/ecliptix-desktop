@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class EcliptixProtocolChainStep : IDisposable
+public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 {
     private const uint DefaultCacheWindowSize = 1000;
 
@@ -23,7 +23,7 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
     private SodiumSecureMemoryHandle _chainKeyHandle;
 
-    private readonly SortedDictionary<uint, EcliptixMessageKey> _messageKeys;
+    private readonly SortedDictionary<uint, SodiumSecureMemoryHandle> _messageKeys;
 
     private uint _currentIndex;
 
@@ -47,13 +47,42 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         _cacheWindow = cacheWindowSize;
         _currentIndex = 0;
         _disposed = false;
-        _messageKeys = new SortedDictionary<uint, EcliptixMessageKey>();
+        _messageKeys = new SortedDictionary<uint, SodiumSecureMemoryHandle>();
+    }
+
+    public Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
+    {
+        if (_disposed)
+            return Result<T, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+
+        if (!_messageKeys.TryGetValue(keyIndex, out SodiumSecureMemoryHandle? keyHandle))
+            return Result<T, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.InvalidInput($"Key with index {keyIndex} not found."));
+
+        Result<T, SodiumFailure> sodiumResult = keyHandle.WithReadAccess(keyMaterial =>
+        {
+            Result<T, EcliptixProtocolFailure> opResult = operation(keyMaterial);
+            return opResult.IsOk 
+                ? Result<T, SodiumFailure>.Ok(opResult.Unwrap())
+                : Result<T, SodiumFailure>.Err(SodiumFailure.InvalidOperation(opResult.UnwrapErr().Message));
+        });
+
+        return sodiumResult.IsOk 
+            ? Result<T, EcliptixProtocolFailure>.Ok(sodiumResult.Unwrap())
+            : Result<T, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic(sodiumResult.UnwrapErr().Message));
     }
 
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+
+        foreach (SodiumSecureMemoryHandle handle in _messageKeys.Values)
+        {
+            handle.Dispose();
+        }
+        _messageKeys.Clear();
 
         _chainKeyHandle.Dispose();
         _dhPrivateKeyHandle?.Dispose();
@@ -216,9 +245,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
             return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
 
-        if (_messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? cachedKey))
+        if (_messageKeys.TryGetValue(targetIndex, out SodiumSecureMemoryHandle? cachedKeyHandle))
         {
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(cachedKey);
+            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(new EcliptixMessageKey(targetIndex, this));
         }
 
         Result<uint, EcliptixProtocolFailure> currentIndexResult = GetCurrentIndex();
@@ -273,29 +302,37 @@ public sealed class EcliptixProtocolChainStep : IDisposable
                         EcliptixProtocolFailure.DeriveKey($"HKDF failed during derivation at index {idx}.", ex));
                 }
 
-                Result<EcliptixMessageKey, EcliptixProtocolFailure>
-                    keyResult = EcliptixMessageKey.New(idx, msgKey);
+                Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult = 
+                    SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
 
-                if (keyResult.IsErr)
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
+                if (secureHandleResult.IsErr)
+                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                        EcliptixProtocolFailure.Generic($"Failed to allocate secure memory for key {idx}."));
 
-                EcliptixMessageKey messageKey = keyResult.Unwrap();
-
-                if (!_messageKeys.TryAdd(idx, messageKey))
+                SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
+                Result<Unit, SodiumFailure> writeResult = secureHandle.Write(msgKey);
+                if (writeResult.IsErr)
                 {
-                    messageKey.Dispose();
+                    secureHandle.Dispose();
+                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                        writeResult.UnwrapErr().ToEcliptixProtocolFailure());
+                }
+
+                if (!_messageKeys.TryAdd(idx, secureHandle))
+                {
+                    secureHandle.Dispose();
                     return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(
                             $"Key for index {idx} unexpectedly appeared during derivation."));
                 }
 
-                Result<Unit, EcliptixProtocolFailure> writeResult =
+                Result<Unit, EcliptixProtocolFailure> chainWriteResult =
                     _chainKeyHandle.Write(nextChainKey).MapSodiumFailure();
-                if (writeResult.IsErr)
+                if (chainWriteResult.IsErr)
                 {
-                    _messageKeys.Remove(idx, out EcliptixMessageKey? removedKey);
-                    removedKey?.Dispose();
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
+                    _messageKeys.Remove(idx, out SodiumSecureMemoryHandle? removedHandle);
+                    removedHandle?.Dispose();
+                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(chainWriteResult.UnwrapErr());
                 }
 
                 nextChainKey.CopyTo(currentChainKey);
@@ -307,9 +344,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
 
             PruneOldKeys();
 
-            if (_messageKeys.TryGetValue(targetIndex, out EcliptixMessageKey? finalKey))
+            if (_messageKeys.ContainsKey(targetIndex))
             {
-                return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(finalKey);
+                return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(new EcliptixMessageKey(targetIndex, this));
             }
             else
             {
@@ -570,9 +607,9 @@ public sealed class EcliptixProtocolChainStep : IDisposable
         if (keysToRemove.Count == 0) return;
         foreach (uint keyIndex in keysToRemove)
         {
-            if (_messageKeys.Remove(keyIndex, out EcliptixMessageKey? messageKeyToDispose))
+            if (_messageKeys.Remove(keyIndex, out SodiumSecureMemoryHandle? removedHandle))
             {
-                messageKeyToDispose.Dispose();
+                removedHandle.Dispose();
             }
         }
     }

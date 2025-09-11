@@ -61,8 +61,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private IDisposable? _autoRedirectTimer;
     private CancellationTokenSource? _streamCancellationSource;
 
-    private bool HasValidSession => 
-        VerificationSessionIdentifier.HasValue && 
+    private bool HasValidSession =>
+        VerificationSessionIdentifier.HasValue &&
         VerificationSessionIdentifier.Value != Guid.Empty;
 
     public VerifyOtpViewModel(
@@ -208,7 +208,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-
             _ = Task.Run(async () =>
             {
                 Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
@@ -314,19 +313,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         _ = Task.Run(async () =>
         {
-            try
-            {
-                using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
-                await CleanupVerificationSession().WaitAsync(cts.Token);
-            }
-            catch (TimeoutException)
-            {
-                Log.Warning("Background cleanup timed out during auto-redirect");
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("Background cleanup failed during auto-redirect: {Error}", ex.Message);
-            }
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
+            await CleanupVerificationSession().WaitAsync(cts.Token);
         });
     }
 
@@ -334,10 +322,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         if (HasValidSession)
         {
-            _streamCancellationSource?.Cancel();
-            
-            await Task.Delay(100);
-            
+            await _streamCancellationSource?.CancelAsync()!;
+
             try
             {
                 await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value);
@@ -346,7 +332,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             {
                 Log.Warning("Failed to cleanup verification session: {Error}", ex.Message);
             }
-            
+
             try
             {
                 await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
@@ -369,7 +355,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         string formattedDataTimeString = time.ToString(@"mm\:ss");
         return formattedDataTimeString;
     }
-    
+
     public async void HandleEnterKeyPress()
     {
         if (SendVerificationCodeCommand != null && await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
@@ -380,7 +366,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public void ResetState()
     {
-
         _autoRedirectTimer?.Dispose();
         _autoRedirectTimer = null;
 
@@ -437,7 +422,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                     {
                         Log.Warning("Failed to cleanup verification session in Dispose: {Error}", ex.Message);
                     }
-                    
+
                     try
                     {
                         await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);

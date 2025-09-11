@@ -49,7 +49,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     public Result<IdentityKeysState, EcliptixProtocolFailure> ToProtoState()
@@ -548,16 +547,16 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
                         byte[] dhTemp1 =
                             ScalarMult.Mult(identitySecretArray,
-                                remoteBundle.SignedPreKeyPublic); // IK_client * SPK_server  
+                                remoteBundle.SignedPreKeyPublic);  
                         byte[] dhTemp2 =
-                            ScalarMult.Mult(ephemeralSecretArray, remoteBundle.IdentityX25519); // EK_client * IK_server
+                            ScalarMult.Mult(ephemeralSecretArray, remoteBundle.IdentityX25519);
                         byte[] dhTemp3 =
                             ScalarMult.Mult(ephemeralSecretArray,
-                                remoteBundle.SignedPreKeyPublic); // EK_client * SPK_server
+                                remoteBundle.SignedPreKeyPublic);
 
-                        dh1 = dhTemp1; // IK_client * SPK_server (matches server's SPK_server * IK_client)
-                        dh2 = dhTemp2; // EK_client * IK_server (matches server's IK_server * EK_client)  
-                        dh3 = dhTemp3; // EK_client * SPK_server (matches server's SPK_server * EK_client)
+                        dh1 = dhTemp1;
+                        dh2 = dhTemp2;  
+                        dh3 = dhTemp3;
 
                         if (Log.IsEnabled(LogEventLevel.Debug))
                             Log.Debug("X3DH key derivation as initiator - DH1: {DH1}, DH2: {DH2}, DH3: {DH3}",

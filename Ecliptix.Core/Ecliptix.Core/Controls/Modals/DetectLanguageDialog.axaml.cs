@@ -77,6 +77,5 @@ public partial class DetectLanguageDialog : UserControl, IActivatableView, IDisp
     public void Dispose()
     {
         _activationDisposables?.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

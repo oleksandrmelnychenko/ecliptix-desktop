@@ -1,15 +1,43 @@
 using System.Security.Cryptography;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
+using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposable
+public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvider, IDisposable
 {
-    private readonly Dictionary<uint, EcliptixMessageKey> _skippedMessageKeys = new();
+    private readonly Dictionary<uint, SodiumSecureMemoryHandle> _skippedMessageKeys = new();
     private readonly Lock _lock = new();
     private bool _disposed;
+
+    public Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
+    {
+        if (_disposed)
+            return Result<T, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.ObjectDisposed(nameof(RatchetRecovery)));
+
+        lock (_lock)
+        {
+            if (!_skippedMessageKeys.TryGetValue(keyIndex, out SodiumSecureMemoryHandle? keyHandle))
+                return Result<T, EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.InvalidInput($"Skipped key with index {keyIndex} not found."));
+
+            Result<T, SodiumFailure> sodiumResult = keyHandle.WithReadAccess(keyMaterial =>
+            {
+                Result<T, EcliptixProtocolFailure> opResult = operation(keyMaterial);
+                return opResult.IsOk 
+                    ? Result<T, SodiumFailure>.Ok(opResult.Unwrap())
+                    : Result<T, SodiumFailure>.Err(SodiumFailure.InvalidOperation(opResult.UnwrapErr().Message));
+            });
+
+            return sodiumResult.IsOk 
+                ? Result<T, EcliptixProtocolFailure>.Ok(sodiumResult.Unwrap())
+                : Result<T, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic(sodiumResult.UnwrapErr().Message));
+        }
+    }
 
     public Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure> TryRecoverMessageKey(uint messageIndex)
     {
@@ -19,10 +47,17 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
 
         lock (_lock)
         {
-            return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Ok(
-                _skippedMessageKeys.Remove(messageIndex, out EcliptixMessageKey? key)
-                    ? Option<EcliptixMessageKey>.Some(key)
-                    : Option<EcliptixMessageKey>.None);
+            if (_skippedMessageKeys.ContainsKey(messageIndex))
+            {
+                EcliptixMessageKey messageKey = new(messageIndex, this);
+                return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Ok(
+                    Option<EcliptixMessageKey>.Some(messageKey));
+            }
+            else
+            {
+                return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Ok(
+                    Option<EcliptixMessageKey>.None);
+            }
         }
     }
 
@@ -54,8 +89,8 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
 
             for (uint i = fromIndex; i < toIndex; i++)
             {
-                Result<EcliptixMessageKey, EcliptixProtocolFailure> msgKeyResult =
-                    DeriveMessageKey(chainKeyMemory.AsSpan(), i);
+                Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> msgKeyResult =
+                    DeriveSecureMessageKey(chainKeyMemory.AsSpan(), i);
                 if (msgKeyResult.IsErr)
                     return Result<Unit, EcliptixProtocolFailure>.Err(msgKeyResult.UnwrapErr());
 
@@ -70,10 +105,19 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
         }
     }
 
-    private static Result<EcliptixMessageKey, EcliptixProtocolFailure> DeriveMessageKey(ReadOnlySpan<byte> chainKey,
+    private static Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> DeriveSecureMessageKey(ReadOnlySpan<byte> chainKey,
         uint messageIndex)
     {
-        using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
+        Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult = 
+            SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
+        
+        if (secureHandleResult.IsErr)
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                EcliptixProtocolFailure.Generic($"Failed to allocate secure memory for key {messageIndex}."));
+
+        SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
+        
+        using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
 
         global::System.Security.Cryptography.HKDF.DeriveKey(
             global::System.Security.Cryptography.HashAlgorithmName.SHA256,
@@ -83,7 +127,15 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
             info: Constants.MsgInfo
         );
 
-        return EcliptixMessageKey.New(messageIndex, msgKey.AsSpan());
+        Result<Unit, SodiumFailure> writeResult = secureHandle.Write(msgKey.AsSpan());
+        if (writeResult.IsErr)
+        {
+            secureHandle.Dispose();
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
+                writeResult.UnwrapErr().ToEcliptixProtocolFailure());
+        }
+
+        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(secureHandle);
     }
 
     private static Result<Unit, EcliptixProtocolFailure> AdvanceChainKey(Span<byte> chainKey)
@@ -111,10 +163,9 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
             List<uint> keysToRemove = _skippedMessageKeys.Keys.Where(index => index < beforeIndex).ToList();
             foreach (uint key in keysToRemove)
             {
-                if (_skippedMessageKeys.TryGetValue(key, out EcliptixMessageKey? msgKey))
+                if (_skippedMessageKeys.Remove(key, out SodiumSecureMemoryHandle? removedHandle))
                 {
-                    msgKey.Dispose();
-                    _skippedMessageKeys.Remove(key);
+                    removedHandle.Dispose();
                 }
             }
         }
@@ -126,11 +177,10 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IDisposabl
 
         lock (_lock)
         {
-            foreach (EcliptixMessageKey key in _skippedMessageKeys.Values)
+            foreach (SodiumSecureMemoryHandle handle in _skippedMessageKeys.Values)
             {
-                key.Dispose();
+                handle.Dispose();
             }
-
             _skippedMessageKeys.Clear();
         }
 

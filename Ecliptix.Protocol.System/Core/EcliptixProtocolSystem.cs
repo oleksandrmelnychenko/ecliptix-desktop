@@ -15,25 +15,17 @@ using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public class EcliptixProtocolSystem : IDisposable
+public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
+    : IDisposable
 {
     private readonly Lock _lock = new();
-    private readonly EcliptixSystemIdentityKeys _ecliptixSystemIdentityKeys;
-    
-    private readonly AdaptiveRatchetManager _ratchetManager;
+
+    private readonly AdaptiveRatchetManager _ratchetManager = new(customConfig);
     private readonly ProtocolMetricsCollector _metricsCollector = new(TimeSpan.FromSeconds(30));
     private EcliptixProtocolConnection? _protocolConnection;
     private IProtocolEventHandler? _eventHandler;
 
-    public EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
-    {
-        _ecliptixSystemIdentityKeys = ecliptixSystemIdentityKeys;
-        _ratchetManager = new AdaptiveRatchetManager(customConfig);
-        Log.Information("[CLIENT-PROTOCOL] Initialized with custom config - DH interval: {Interval}",
-            customConfig.DhRatchetEveryNMessages);
-    }
-
-    public EcliptixSystemIdentityKeys GetIdentityKeys() => _ecliptixSystemIdentityKeys;
+    public EcliptixSystemIdentityKeys GetIdentityKeys() => ecliptixSystemIdentityKeys;
 
     public void SetEventHandler(IProtocolEventHandler? handler)
     {
@@ -61,7 +53,6 @@ public class EcliptixProtocolSystem : IDisposable
         connectionToDispose?.Dispose();
         _ratchetManager.Dispose();
         _metricsCollector.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     private EcliptixProtocolConnection? GetConnectionSafe()
@@ -81,9 +72,9 @@ public class EcliptixProtocolSystem : IDisposable
         uint connectId,
         PubKeyExchangeType exchangeType)
     {
-        _ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
+        ecliptixSystemIdentityKeys.GenerateEphemeralKeyPair();
 
-        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult = _ecliptixSystemIdentityKeys.CreatePublicBundle();
+        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult = ecliptixSystemIdentityKeys.CreatePublicBundle();
         if (bundleResult.IsErr)
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
 
@@ -91,11 +82,8 @@ public class EcliptixProtocolSystem : IDisposable
 
         RatchetConfig configToUse = GetConfigForExchangeType(exchangeType);
 
-        Log.Information("🔧 KEY-EXCHANGE: Creating protocol connection for {ExchangeType} connectId {ConnectId} with config DH every {Messages} messages", 
-            exchangeType, connectId, configToUse.DhRatchetEveryNMessages);
-        
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> sessionResult =
-            EcliptixProtocolConnection.Create(connectId, true, configToUse);
+            EcliptixProtocolConnection.Create(connectId, true, configToUse, exchangeType);
         if (sessionResult.IsErr)
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
 
@@ -187,7 +175,7 @@ public class EcliptixProtocolSystem : IDisposable
                     EcliptixProtocolFailure.Generic("Signed pre-key signature verification failed"));
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult =
-                _ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
+                ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
             if (secretResult.IsErr)
                 return Result<Unit, EcliptixProtocolFailure>.Err(secretResult.UnwrapErr());
 
@@ -237,39 +225,6 @@ public class EcliptixProtocolSystem : IDisposable
         }
     }
 
-    public Result<CipherPayload[], EcliptixProtocolFailure> ProduceOutboundMessageBatch(byte[][] plainPayloads)
-    {
-        if (plainPayloads.Length == 0)
-            return Result<CipherPayload[], EcliptixProtocolFailure>.Ok([]);
-
-        EcliptixProtocolConnection? connection = GetConnectionSafe();
-        if (connection == null)
-            return Result<CipherPayload[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
-
-        List<CipherPayload> results = new(plainPayloads.Length);
-
-        try
-        {
-            foreach (byte[] t in plainPayloads)
-            {
-                Result<CipherPayload, EcliptixProtocolFailure> singleResult =
-                    ProduceSingleMessage(t, connection);
-                if (singleResult.IsErr)
-                    return Result<CipherPayload[], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
-
-                results.Add(singleResult.Unwrap());
-            }
-
-            return Result<CipherPayload[], EcliptixProtocolFailure>.Ok([.. results]);
-        }
-        catch (Exception ex)
-        {
-            return Result<CipherPayload[], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Batch message production failed", ex));
-        }
-    }
-
     public Result<CipherPayload, EcliptixProtocolFailure> ProduceOutboundMessage(byte[] plainPayload)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
@@ -285,15 +240,9 @@ public class EcliptixProtocolSystem : IDisposable
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        _ratchetManager?.RecordMessage();
+        _ratchetManager.RecordMessage();
 
-        bool isInitiator = connection.IsInitiator();
-        Log.Information("Protocol message production started for {ConnectionRole} with payload size {PayloadSize}",
-            isInitiator ? "Initiator" : "Responder", plainPayload.Length);
-            
-        Log.Debug("🔧 PRODUCE-MESSAGE: About to prepare next send message");
-
-        EcliptixMessageKey? messageKeyClone = null;
+        EcliptixMessageKey? messageKey = null;
         byte[]? nonce = null;
         byte[]? ad = null;
         byte[]? encrypted = null;
@@ -328,11 +277,7 @@ public class EcliptixProtocolSystem : IDisposable
                     prep.MessageKey.Index, newSenderDhPublicKey.Length);
             }
 
-            Result<EcliptixMessageKey, EcliptixProtocolFailure> cloneResult = CloneMessageKey(prep.MessageKey);
-            if (cloneResult.IsErr)
-                return Result<CipherPayload, EcliptixProtocolFailure>.Err(cloneResult.UnwrapErr());
-
-            messageKeyClone = cloneResult.Unwrap();
+            messageKey = prep.MessageKey;
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
@@ -342,18 +287,18 @@ public class EcliptixProtocolSystem : IDisposable
 
             bool connectionIsInitiator = connection.IsInitiator();
             ad = connectionIsInitiator
-                ? CreateAssociatedData(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, _ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
             if (Log.IsEnabled(LogEventLevel.Debug))
                 Log.Debug("Protocol encryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
                           "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
                     connectionIsInitiator ? "Initiator" : "Responder",
-                    messageKeyClone!.Index,
-                    Convert.ToHexString(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
+                    messageKey!.Index,
+                    Convert.ToHexString(ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
                     Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
 
             Result<byte[], EcliptixProtocolFailure> encryptResult =
-                Encrypt(messageKeyClone!, nonce, plainPayload, ad, connection);
+                Encrypt(messageKey!, nonce, plainPayload, ad, connection);
             if (encryptResult.IsErr)
                 return Result<CipherPayload, EcliptixProtocolFailure>.Err(encryptResult.UnwrapErr());
 
@@ -363,7 +308,7 @@ public class EcliptixProtocolSystem : IDisposable
             {
                 RequestId = Helpers.GenerateRandomUInt32(true),
                 Nonce = ByteString.CopyFrom(nonce),
-                RatchetIndex = messageKeyClone!.Index,
+                RatchetIndex = messageKey!.Index,
                 Cipher = ByteString.CopyFrom(encrypted),
                 CreatedAt = GetProtoTimestamp(),
                 DhPublicKey = newSenderDhPublicKey is { Length: > 0 }
@@ -379,44 +324,10 @@ public class EcliptixProtocolSystem : IDisposable
         }
         finally
         {
-            messageKeyClone?.Dispose();
             if (nonce != null) SodiumInterop.SecureWipe(nonce);
             if (ad != null) SodiumInterop.SecureWipe(ad);
             if (encrypted != null) SodiumInterop.SecureWipe(encrypted);
             if (newSenderDhPublicKey != null) SodiumInterop.SecureWipe(newSenderDhPublicKey);
-        }
-    }
-
-    public Result<byte[][], EcliptixProtocolFailure> ProcessInboundMessageBatch(CipherPayload[] cipherPayloads)
-    {
-        if (cipherPayloads.Length == 0)
-            return Result<byte[][], EcliptixProtocolFailure>.Ok([]);
-
-        EcliptixProtocolConnection? connection = GetConnectionSafe();
-        if (connection == null)
-            return Result<byte[][], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
-
-        List<byte[]> results = new(cipherPayloads.Length);
-
-        try
-        {
-            foreach (CipherPayload t in cipherPayloads)
-            {
-                Result<byte[], EcliptixProtocolFailure> singleResult =
-                    ProcessSingleInboundMessage(t, connection);
-                if (singleResult.IsErr)
-                    return Result<byte[][], EcliptixProtocolFailure>.Err(singleResult.UnwrapErr());
-
-                results.Add(singleResult.Unwrap());
-            }
-
-            return Result<byte[][], EcliptixProtocolFailure>.Ok([.. results]);
-        }
-        catch (Exception ex)
-        {
-            return Result<byte[][], EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Batch message processing failed", ex));
         }
     }
 
@@ -481,16 +392,8 @@ public class EcliptixProtocolSystem : IDisposable
 
             bool isInitiator = connection.IsInitiator();
             ad = isInitiator
-                ? CreateAssociatedData(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, _ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
-
-            if (Log.IsEnabled(LogEventLevel.Debug))
-                Log.Debug("Protocol decryption details - Role: {ConnectionRole}, MessageKeyIndex: {MessageKeyIndex}, " +
-                          "SelfIdentityPrefix: {SelfIdentityPrefix}, PeerIdentityPrefix: {PeerIdentityPrefix}",
-                    isInitiator ? "Initiator" : "Responder",
-                    messageKeyClone!.Index,
-                    Convert.ToHexString(_ecliptixSystemIdentityKeys.IdentityX25519PublicKey)[..16],
-                    Convert.ToHexString(peerBundle.IdentityX25519)[..16]);
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
             Result<byte[], EcliptixProtocolFailure> result = Decrypt(messageKeyClone!, cipherPayloadProto, ad,
                 connection);
@@ -510,7 +413,6 @@ public class EcliptixProtocolSystem : IDisposable
         }
         finally
         {
-            messageKeyClone?.Dispose();
             if (receivedDhKey != null) SodiumInterop.SecureWipe(receivedDhKey);
             if (ad != null) SodiumInterop.SecureWipe(ad);
         }
@@ -533,8 +435,6 @@ public class EcliptixProtocolSystem : IDisposable
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
 
-        Log.Information("Protocol using adaptive ratchet manager for intelligent ratcheting decisions");
-
         return PerformAtomicRatchet(receivedDhKey);
     }
 
@@ -546,24 +446,18 @@ public class EcliptixProtocolSystem : IDisposable
                 EcliptixProtocolFailure.Generic("Protocol connection not initialized"));
 
         connection.NotifyRatchetRotation();
-        Log.Debug("Cleared replay protection before receiving ratchet rotation");
 
         Result<Unit, EcliptixProtocolFailure> ratchetResult = connection.PerformReceivingRatchet(receivedDhKey);
         if (ratchetResult.IsErr)
             return ratchetResult;
 
         connection.NotifyRatchetRotation();
-        Log.Debug("Notified replay protection of receiving ratchet rotation");
-
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
 
     private Result<byte[], EcliptixProtocolFailure> GetOptionalSenderDhKey(bool include)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
-        
-        Log.Debug("🔧 GET-OPTIONAL-DH-KEY: Include={Include}, Connection={HasConnection}", 
-            include, connection != null);
         
         if (!include || connection == null)
             return Result<byte[], EcliptixProtocolFailure>.Ok([]);
@@ -574,17 +468,12 @@ public class EcliptixProtocolSystem : IDisposable
 
         byte[]? key = keyResult.Unwrap();
         
-        Log.Debug("🔧 GET-OPTIONAL-DH-KEY: Retrieved key length={Length}", key?.Length ?? 0);
-        
         return Result<byte[], EcliptixProtocolFailure>.Ok(key ?? []);
     }
 
     private static Result<EcliptixMessageKey, EcliptixProtocolFailure> CloneMessageKey(EcliptixMessageKey key)
     {
-        using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
-        Span<byte> keySpan = keyMaterial.AsSpan();
-        key.ReadKeyMaterial(keySpan);
-        return EcliptixMessageKey.New(key.Index, keySpan);
+        return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(key);
     }
 
     private static byte[] CreateAssociatedData(byte[] id1, byte[] id2)

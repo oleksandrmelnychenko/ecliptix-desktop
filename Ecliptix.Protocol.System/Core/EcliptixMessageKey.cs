@@ -1,96 +1,56 @@
-using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
-using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class EcliptixMessageKey : IDisposable, IEquatable<EcliptixMessageKey>
+internal interface IKeyProvider
 {
-    private bool _disposed;
-    private SodiumSecureMemoryHandle _keyHandle;
+    Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation);
+}
 
-    private EcliptixMessageKey(uint index, SodiumSecureMemoryHandle keyHandle)
+public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
+{
+    private readonly IKeyProvider _keyProvider;
+
+    internal EcliptixMessageKey(uint index, IKeyProvider keyProvider)
     {
         Index = index;
-        _keyHandle = keyHandle;
-        _disposed = false;
+        _keyProvider = keyProvider;
     }
 
     public uint Index { get; }
 
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     public bool Equals(EcliptixMessageKey? other)
     {
         if (other is null) return false;
-        return
-            Index == other.Index &&
-            _disposed ==
-            other._disposed;
+        return Index == other.Index && ReferenceEquals(_keyProvider, other._keyProvider);
     }
 
-    public static Result<EcliptixMessageKey, EcliptixProtocolFailure> New(uint index, ReadOnlySpan<byte> keyMaterial)
+    public Result<T, EcliptixProtocolFailure> WithKeyMaterial<T>(Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
     {
-        if (keyMaterial.Length != Constants.X25519KeySize)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput(
-                    $"Key material must be exactly {Constants.X25519KeySize} bytes long, but was {keyMaterial.Length}."));
-
-        Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocateResult =
-            SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize).MapSodiumFailure();
-        if (allocateResult.IsErr)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(allocateResult.UnwrapErr());
-
-        SodiumSecureMemoryHandle keyHandle = allocateResult.Unwrap();
-
-        Result<Unit, EcliptixProtocolFailure> writeResult = keyHandle.Write(keyMaterial).MapSodiumFailure();
-        if (writeResult.IsErr)
-        {
-            keyHandle.Dispose();
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
-        }
-
-        EcliptixMessageKey messageKey = new(index, keyHandle);
-
-        return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(messageKey);
+        return _keyProvider.ExecuteWithKey(Index, operation);
     }
 
     public Result<Unit, EcliptixProtocolFailure> ReadKeyMaterial(Span<byte> destination)
     {
-        if (_disposed)
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixMessageKey)));
-
         if (destination.Length < Constants.X25519KeySize)
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.BufferTooSmall(
                     $"Destination buffer must be at least {Constants.X25519KeySize} bytes, but was {destination.Length}."));
 
-        return _keyHandle.Read(destination[..Constants.X25519KeySize]).MapSodiumFailure();
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (!_disposed)
+        byte[] buffer = new byte[Constants.X25519KeySize];
+        Result<Unit, EcliptixProtocolFailure> result = WithKeyMaterial<Unit>(keyMaterial =>
         {
-            if (disposing)
-            {
-                _keyHandle.Dispose();
-                _keyHandle = null!;
-            }
+            keyMaterial[..Constants.X25519KeySize].CopyTo(buffer);
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        });
 
-            _disposed = true;
+        if (result.IsOk)
+        {
+            buffer.CopyTo(destination);
         }
-    }
-
-    ~EcliptixMessageKey()
-    {
-        Dispose(false);
+        
+        return result;
     }
 
     public override bool Equals(object? obj)

@@ -305,19 +305,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             _networkEventService.OnManualRetryRequested(async e =>
                 {
-                    Log.Information("🔄 MANUAL RETRY: Starting immediate RestoreSecrecyChannel attempt");
-
                     Result<Utilities.Unit, NetworkFailure> recoveryResult =
                         await _networkProvider.ForceFreshConnectionAsync();
 
                     if (recoveryResult.IsOk)
                     {
-                        Log.Information("🔄 MANUAL RETRY: RestoreSecrecyChannel succeeded - connection restored");
                         await _networkEventService.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
-                    }
-                    else
-                    {
-                        Log.Warning("🔄 MANUAL RETRY: RestoreSecrecyChannel failed: {Error}", recoveryResult.UnwrapErr().Message);
                     }
                 })
                 .DisposeWith(disposables);

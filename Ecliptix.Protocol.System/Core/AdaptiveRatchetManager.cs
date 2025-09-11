@@ -10,10 +10,10 @@ namespace Ecliptix.Protocol.System.Core;
 
 public enum LoadLevel
 {
-    Light,      // < 10 msg/sec
-    Moderate,   // 10-50 msg/sec
-    Heavy,      // 50-200 msg/sec
-    Extreme     // > 200 msg/sec
+    Light,
+    Moderate,
+    Heavy,
+    Extreme
 }
 
 public sealed class AdaptiveRatchetManager : IDisposable

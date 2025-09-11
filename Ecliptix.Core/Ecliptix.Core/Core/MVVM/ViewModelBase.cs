@@ -107,6 +107,5 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     public void Dispose()
     {
         Dispose(disposing: true);
-        GC.SuppressFinalize(this);
     }
 }

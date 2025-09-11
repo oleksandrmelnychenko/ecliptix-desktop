@@ -299,7 +299,6 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         if (!_disposed)
         {
             _disposed = true;
-            GC.SuppressFinalize(this);
         }
         return ValueTask.CompletedTask;
     }

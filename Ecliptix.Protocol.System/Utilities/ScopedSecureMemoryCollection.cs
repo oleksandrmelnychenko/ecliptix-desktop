@@ -26,7 +26,6 @@ public sealed class ScopedSecureMemoryCollection : IDisposable
             }
             catch
             {
-                // ignored
             }
         }
 

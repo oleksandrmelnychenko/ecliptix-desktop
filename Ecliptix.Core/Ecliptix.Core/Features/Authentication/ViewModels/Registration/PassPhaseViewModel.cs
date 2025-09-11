@@ -50,7 +50,6 @@ public class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
