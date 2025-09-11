@@ -94,6 +94,10 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.InvalidCredentials"] = "Invalid credentials",
         ["ValidationErrors.SecureKey.NonEnglishLetters"] = "Latin letters only",
         ["ValidationErrors.SecureKey.NoSpecialChar"] = "Requires a special character",
+        
+        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Latin letters only",
+        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Invalid character used",
+        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Multiple instances of character type",
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Passwords do not match",
         
@@ -234,6 +238,10 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.InvalidCredentials"] = "Неправильні облікові дані",
         ["ValidationErrors.SecureKey.NonEnglishLetters"] = "Лише латинські літери",
         ["ValidationErrors.SecureKey.NoSpecialChar"] = "Потрібен спеціальний символ",
+        
+        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Лише латинські літери",
+        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Використано недопустимий символ",
+        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Кілька символів одного типу",
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Паролі не збігаються",
 

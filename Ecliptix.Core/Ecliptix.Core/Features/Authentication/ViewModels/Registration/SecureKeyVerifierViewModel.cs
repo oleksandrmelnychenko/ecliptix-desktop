@@ -78,7 +78,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
-        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync);
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync, canExecuteSubmit);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
 

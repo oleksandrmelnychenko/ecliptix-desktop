@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
@@ -40,6 +41,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown += OnSecureKeyBoxKeyDown;
+            secureKeyBox.CharacterRejected += OnCharacterRejected;
             _handlersAttached = true;
         }
     }
@@ -52,11 +54,22 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved -= OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown -= OnSecureKeyBoxKeyDown;
+            secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
 
         _handlersAttached = false;
     }
 
+    private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
+    {
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+
+        string localizedMessage = vm.GetLocalizedWarningMessage(e.WarningType);
+        tb.WarningText = localizedMessage;
+        tb.HasWarning = true;
+    }
+
+    
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;

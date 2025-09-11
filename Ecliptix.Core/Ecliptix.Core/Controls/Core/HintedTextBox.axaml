@@ -5,6 +5,7 @@
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d"
              d:DesignWidth="320"
              d:DesignHeight="78"
@@ -39,6 +40,10 @@
         <BoxShadows x:Key="GoodStrengthShadow">0 0 10 4 #40f4c20d, 0 2 4 0 #20000000</BoxShadows>
         <BoxShadows x:Key="StrongStrengthShadow">0 0 10 4 #4000bcd4, 0 2 4 0 #20000000</BoxShadows>
         <BoxShadows x:Key="VeryStrongStrengthShadow">0 0 10 4 #4032cd32, 0 2 4 0 #20000000</BoxShadows>
+        
+        <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"
+                                                    TrueOpacity="1.0"
+                                                    FalseOpacity="0" />
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -180,6 +185,18 @@
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Slow}" />
+                </Transitions>
+            </Setter>
+        </Style>
+        
+        <Style Selector="StackPanel.warning-section">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,-9,-5,0"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="{StaticResource Duration.Fast}" />
                 </Transitions>
             </Setter>
         </Style>
@@ -331,6 +348,29 @@
                                    Foreground="{Binding PasswordStrengthTextBrush, ElementName=control}"
                                    VerticalAlignment="Center"
                                    Classes="hint-text" />
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Row="0"
+                                x:Name="WarningStackPanel"
+                                Classes="warning-section"
+                                Opacity="{Binding HasWarning, ElementName=control, Converter={StaticResource BooleanToOpacityConverter}}">
+                        <TextBlock Text="{Binding WarningText, ElementName=control}"
+                                   Foreground="{DynamicResource Error}"
+                                   VerticalAlignment="Center"
+                                   Classes="hint-text" />
+                        <Border 
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left">
+                            <Ellipse
+                                Fill="{DynamicResource Error}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Width="8"
+                                Height="8"
+                                Margin="6,0,0,0" 
+                                Stretch="UniformToFill"/>
+
+                        </Border>
                     </StackPanel>
                 </Grid>
             </Panel>

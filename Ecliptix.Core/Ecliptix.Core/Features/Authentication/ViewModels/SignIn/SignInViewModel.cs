@@ -3,6 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
+using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -304,11 +305,23 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _isDisposed = true;
     }
 
+    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null, string? multiChars = null)
+    {
+        return warningType switch
+        {
+            CharacterWarningType.NonLatinLetter => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
+            CharacterWarningType.InvalidCharacter => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"],
+            CharacterWarningType.MultipleCharacters => LocalizationService["ValidationWarnings.SecureKey.MultipleCharacters"],
+            _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
+        };
+    }
+    
     public async void HandleEnterKeyPress()
     {
         if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())
         {
-            SignInCommand.Execute().Subscribe();
+            IDisposable disp = SignInCommand.Execute().Subscribe();
+            _disposables.Add(disp);
         }
     }
 

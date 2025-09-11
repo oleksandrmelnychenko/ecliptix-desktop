@@ -25,6 +25,7 @@ public static class HintedTextBoxConstants
     public const int TypingAnimationThreshold = 1;
     public const int TypingAnimationDurationMs = 400;
     public const int CacheArrayOffsetIncrement = 1;
+    public const int DefaultWarningDisplayDurationMs = 1500;
     
     public const double FullOpacity = 1.0;
     public const double ZeroOpacity = 0.0;
