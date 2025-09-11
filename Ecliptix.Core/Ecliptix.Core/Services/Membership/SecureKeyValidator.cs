@@ -47,6 +47,7 @@ public static partial class SecureKeyValidator
             (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
             (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
             (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null),
+            (s => !HasLowercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoLowercase", null),
             (s => !HasSpecialCharRegex.IsMatch(s), "ValidationErrors.SecureKey.NoSpecialChar", null)
         ];
 
