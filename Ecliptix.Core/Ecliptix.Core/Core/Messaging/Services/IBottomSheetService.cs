@@ -8,7 +8,7 @@ namespace Ecliptix.Core.Core.Messaging.Services;
 
 public interface IBottomSheetService
 {
-    Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true);
+    Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true);
 
     Task HideAsync();
 

@@ -107,6 +107,12 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                             .Subscribe(_ => Content = null)
                             .DisposeWith(disposables);
                     }
+
+                    if (_isDismissableOnScrimClick != eventArgs.IsDismissable)
+                    {
+                        IsDismissableOnScrimClick = eventArgs.IsDismissable;
+                    }
+                    
                 })
                 .DisposeWith(disposables);
         });

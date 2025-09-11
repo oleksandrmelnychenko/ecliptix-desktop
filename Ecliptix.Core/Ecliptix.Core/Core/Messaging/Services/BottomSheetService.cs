@@ -10,7 +10,7 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
 {
     private bool _disposed;
 
-    public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true)
+    public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true)
     {
         if (_disposed) return;
         

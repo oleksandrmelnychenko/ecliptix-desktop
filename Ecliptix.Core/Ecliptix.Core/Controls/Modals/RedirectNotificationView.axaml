@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:core="clr-namespace:Ecliptix.Core.Controls.Modals"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Ecliptix.Core.Controls.Modals.RedirectNotificationView"
+             x:DataType="core:RedirectNotificationViewModel">
+   
+    <Border Background="White" 
+            CornerRadius="16" 
+            Padding="32,24"
+            MinWidth="320">
+        <StackPanel Spacing="20">
+            <!-- Spinner -->
+            <Border Background="{DynamicResource Primary}" 
+                    CornerRadius="20" 
+                    Width="40" 
+                    Height="40"
+                    HorizontalAlignment="Center">
+                <Border Classes="spinner-rotate"
+                        Background="Transparent"
+                        BorderBrush="White"
+                        BorderThickness="3"
+                        CornerRadius="16"
+                        Width="24"
+                        Height="24" />
+            </Border>
+            
+            <!-- Message -->
+            <TextBlock Text="{Binding Message}"
+                       FontSize="16"
+                       FontWeight="Medium"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource OnSurface}" />
+            
+            <!-- Progress Bar -->
+            <ProgressBar Value="{Binding Progress}"
+                         Maximum="100"
+                         Height="4"
+                         Background="{DynamicResource Surface}"
+                         Foreground="{DynamicResource Primary}" />
+            
+            <!-- Countdown -->
+            <TextBlock Text="{Binding CountdownText}"
+                       FontSize="14"
+                       TextAlignment="Center"
+                       Opacity="0.7"
+                       Foreground="{DynamicResource OnSurface}" />
+        </StackPanel>
+    </Border>
+</UserControl>

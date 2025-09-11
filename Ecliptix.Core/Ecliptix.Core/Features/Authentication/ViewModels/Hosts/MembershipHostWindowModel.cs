@@ -328,6 +328,32 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .DisposeWith(disposables);
         });
     }
+    
+    public async Task ShowRedirectNotificationAsync(UserControl redirectView, bool isDismissable)
+    {
+        try
+        {
+            await _bottomSheetService.ShowAsync(BottomSheetComponentType.RedirectNotification, redirectView, showScrim: true, isDismissable: false);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to show redirect notification bottom sheet");
+            throw;
+        }
+    }
+    
+    public async Task HideBottomSheetAsync()
+    {
+        try
+        {
+            await _bottomSheetService.HideAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to hide bottom sheet");
+            throw;
+        }
+    }
 
     private async Task CheckCountryCultureMismatchAsync()
     {

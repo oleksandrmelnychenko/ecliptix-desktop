@@ -14,7 +14,7 @@
     
     <Grid VerticalAlignment="Top"
           RowSpacing="{StaticResource Spacing.Authentication}"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
           HorizontalAlignment="Stretch"
           Width="{StaticResource Content.MaxWidth}">
         
@@ -92,6 +92,12 @@
                        MaxWidth="{StaticResource Content.MaxWidth}"
                        Foreground="{DynamicResource Error}" />
         </Border>
+        
+        <Grid Grid.Row="5" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button Content="Trigger Redirect (test)"
+                    Command="{Binding TriggerAutoRedirectCommand}"
+                    Classes="auth-button continue-button" />
+        </Grid>
         
         </Grid>
 </UserControl>

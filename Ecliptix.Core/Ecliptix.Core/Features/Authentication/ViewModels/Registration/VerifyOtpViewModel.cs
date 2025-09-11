@@ -5,6 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -58,6 +59,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public int AutoRedirectCountdown { get; private set; }
     [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
 
+    [Reactive] public bool IsUiLocked { get; private set; } = false;
+    [Reactive] public bool ShowDimmer { get; private set; } = false;
+    [Reactive] public bool ShowSpinner { get; private set; } = false;
+
+    public ReactiveCommand<Unit, Unit> TriggerAutoRedirectCommand { get; }
+    
     private IDisposable? _autoRedirectTimer;
     private CancellationTokenSource? _streamCancellationSource;
 
@@ -115,6 +122,11 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables);
+        });
+        
+        TriggerAutoRedirectCommand = ReactiveCommand.Create(() =>
+        {
+            StartAutoRedirect(5, MembershipViewType.Welcome);
         });
     }
 
@@ -291,20 +303,52 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         _autoRedirectTimer?.Dispose();
         AutoRedirectCountdown = seconds;
 
-        _autoRedirectTimer = Observable.Interval(TimeSpan.FromSeconds(1))
-            .Take(seconds)
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(
-                x =>
-                {
-                    AutoRedirectCountdown = seconds - (int)x - 1;
-                    AutoRedirectMessage = $"Redirecting in {AutoRedirectCountdown} seconds...";
-                },
-                () => { CleanupAndNavigate(targetView); });
+        IsUiLocked = true;
+        ShowDimmer = true;
+        ShowSpinner = true;
+        
+        string message = IsMaxAttemptsReached 
+            ? _localizationService["Authentication.MaxAttemptsMessage"] ?? "Maximum attempts reached"
+            : _localizationService["Authentication.SessionExpiredMessage"] ?? "Session expired";
+        
+        ShowRedirectNotification(message, seconds, () => CleanupAndNavigate(targetView));
+
     }
 
+    private void ShowRedirectNotification(string message, int seconds, Action onComplete)
+    {
+        var redirectViewModel = new RedirectNotificationViewModel(message, seconds, onComplete);
+        var redirectView = new RedirectNotificationView { DataContext = redirectViewModel };
+        
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await hostWindow.ShowRedirectNotificationAsync(redirectView, isDismissable: false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to show redirect notification");
+                    onComplete();
+                }
+            });
+        }
+        else
+        {
+            onComplete();
+        }
+    }
     private void CleanupAndNavigate(MembershipViewType targetView)
     {
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            _ = Task.Run(async () =>
+            {
+                await hostWindow.HideBottomSheetAsync();
+            });
+        }
         FireAndForgetCleanup();
         ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
     }
@@ -368,7 +412,26 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         _autoRedirectTimer?.Dispose();
         _autoRedirectTimer = null;
-
+        
+        IsUiLocked = false;
+        ShowDimmer = false;
+        ShowSpinner = false;
+        
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await hostWindow.HideBottomSheetAsync();
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to hide bottom sheet during reset");
+                }
+            });
+        }
+        
         if (HasValidSession)
         {
             _ = Task.Run(async () => { await CleanupVerificationSession(); });
