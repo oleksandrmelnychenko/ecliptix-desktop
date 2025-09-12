@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:modals="clr-namespace:Ecliptix.Core.Controls.Modals"
+             xmlns:anim="https://github.com/whistyun/AnimatedImage.Avalonia"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:DataType="modals:DetectLanguageDialogViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
@@ -38,7 +39,7 @@
                     Text="{Binding PromptText}" />
             </StackPanel>
             <Grid Grid.Row="2">
-                <Image Source="avares://Ecliptix.Core/Assets/Animations/language.gif"
+                <Image anim:ImageBehavior.AnimatedSource="avares://Ecliptix.Core/Assets/Animations/language.gif"
                        Width="126" 
                        Height="96"
                        Stretch="Uniform"
