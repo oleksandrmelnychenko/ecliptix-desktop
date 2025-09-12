@@ -208,7 +208,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             contentHeight = MinHeight;
         }
 
-        _sheetHeight = Math.Clamp(contentHeight, MinHeight, MaxHeight);
+        Thickness padding = _sheetBorder.Padding;
+        Thickness borderThickness = _sheetBorder.BorderThickness;
+        
+        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
+        double maxContentHeight = Math.Max(MinHeight, MaxHeight - verticalExtras);
+
+        _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
         _sheetBorder.Height = _sheetHeight;
     }
 
