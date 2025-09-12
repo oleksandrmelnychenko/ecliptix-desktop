@@ -47,14 +47,22 @@ public class RedirectNotificationViewModel : ReactiveObject, IDisposable
         Progress = 0.0;
         CountdownText = GetCachedRedirectingText(remainingSeconds);
         
-        IDisposable tickSub = Observable.Interval(updateInterval)
+        Observable.Interval(TimeSpan.FromMilliseconds(5))
             .StartWith(0)
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ =>
             {
                 double elapsed = stopwatch.Elapsed.TotalSeconds;
                 Progress = Math.Min(100.0, (elapsed / totalSeconds) * 100.0);
-
+            })
+            .DisposeWith(_disposables);
+        
+        Observable.Interval(TimeSpan.FromSeconds(1))
+            .StartWith(0)
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_ =>
+            {
+                double elapsed = stopwatch.Elapsed.TotalSeconds;
                 int newRemaining = Math.Max(0, (int)Math.Ceiling(totalSeconds - elapsed));
                 if (newRemaining != remainingSeconds)
                 {
@@ -64,7 +72,8 @@ public class RedirectNotificationViewModel : ReactiveObject, IDisposable
             })
             .DisposeWith(_disposables);
         
-        IDisposable stopSub = Observable.Timer(TimeSpan.FromSeconds(totalSeconds))
+        
+        Observable.Timer(TimeSpan.FromSeconds(totalSeconds))
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ =>
             {
@@ -74,7 +83,7 @@ public class RedirectNotificationViewModel : ReactiveObject, IDisposable
             })
             .DisposeWith(_disposables);
 
-        _timer = new CompositeDisposable(tickSub, stopSub, Disposable.Create(() => stopwatch.Stop()));
+        Disposable.Create(() => stopwatch.Stop()).DisposeWith(_disposables);
         
     }
     

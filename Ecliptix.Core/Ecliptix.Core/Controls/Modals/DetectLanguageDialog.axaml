@@ -7,11 +7,6 @@
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
              x:DataType="modals:DetectLanguageDialogViewModel"
              x:Class="Ecliptix.Core.Controls.Modals.DetectLanguageDialog">
-
-    <!-- All resources moved to shared Core styles -->
-
-    <!-- All styles moved to shared Components/Buttons.axaml -->
-
     <Border 
         Padding="24"
         HorizontalAlignment="Stretch"
