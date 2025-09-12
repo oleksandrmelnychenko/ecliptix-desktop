@@ -352,9 +352,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             {
                 await hostWindow.HideBottomSheetAsync();
             });
+            
+            
         }
         FireAndForgetCleanup();
         ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
+        ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
     }
 
     private void FireAndForgetCleanup()
