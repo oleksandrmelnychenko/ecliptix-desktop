@@ -199,9 +199,9 @@ public static class LocalizationData
         
         ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",
         ["Registration.Error.Failed"] = "Не вдалося зареєструватися",
-        ["Verification.Error.NoSession"] = "Сесія підтвердження не знайдена",
-        ["Verification.Error.SessionExpired"] = "Термін дії сесії підтвердження минув",
-        ["Verification.Error.NoActiveSession"] = "Немає активної сесії підтвердження",
+        ["Verification.Error.NoSession"] = "Сесії не знайдено",
+        ["Verification.Error.SessionExpired"] = "Термін дії сесії закінчився",
+        ["Verification.Error.NoActiveSession"] = "Активної сесії не знайдено",
         
         ["Verification.Error.MaxAttemptsReached"] = "Досягнуто максимальну кількість спроб підтвердження",
         ["Verification.Error.VerificationFailed"] = "Підтвердження не вдалося",

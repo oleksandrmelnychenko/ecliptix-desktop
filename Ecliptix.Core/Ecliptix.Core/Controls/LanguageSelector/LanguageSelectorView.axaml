@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:system="clr-namespace:System;assembly=System.Runtime"
              xmlns:languageSelector="clr-namespace:Ecliptix.Core.Controls.LanguageSelector"
+             xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d"
              d:DesignWidth="120"
              d:DesignHeight="36"
@@ -60,7 +61,8 @@
                                         Name="DropDownGlyph"
                                         Width="24"
                                         Margin="0,0,2,0"
-                                        Background="Transparent">
+                                        Background="Transparent"
+                                        >
                                     <Path Fill="{DynamicResource OnSurface}"
                                           Width="9"
                                           Height="5"
@@ -83,17 +85,18 @@
                         </Border>
                         <Popup Name="PART_Popup"
                                IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
-                               MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                               MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static converters:MathConverters.Add}, ConverterParameter=16}"
                                MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                PlacementTarget="{TemplateBinding}"
                                Placement="Bottom"
                                IsLightDismissEnabled="True"
                                WindowManagerAddShadowHint="False"
-                               Topmost="False">
+                               Topmost="False"
+                               >
                             <Border Name="PopupContainer"
                                     Background="Transparent"
-                                    RenderTransformOrigin="0.5,0">
-                                <!-- Animated Content Wrapper -->
+                                    RenderTransformOrigin="0.5,0"
+                                    Padding="8">
                                 <Border Name="PopupContent"
                                         Background="{DynamicResource Surface}"
                                         BorderBrush="{DynamicResource Surface.Border}"
