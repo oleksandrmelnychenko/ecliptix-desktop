@@ -35,7 +35,7 @@ public static class AuthenticationConstants
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
     public const string RedirectingMessageKey = "Verification.Info.Redirecting";
 
-    public const string InitialRemainingTime = "01:00";
+    public const string InitialRemainingTime = "00:30";
     public const string ExpiredRemainingTime = "00:00";
 
     public static readonly Guid EmptyGuid = Guid.Empty;
