@@ -77,7 +77,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public bool ShowDimmer { get; private set; }
     [Reactive] public bool ShowSpinner { get; private set; }
 
-    public ReactiveCommand<Unit, Unit> TriggerAutoRedirectCommand { get; }
 
     private IDisposable? _autoRedirectTimer;
     private CancellationTokenSource? _streamCancellationSource;
@@ -141,10 +140,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 .DisposeWith(disposables);
         });
 
-        TriggerAutoRedirectCommand = ReactiveCommand.Create(() =>
-        {
-            StartAutoRedirect(5, MembershipViewType.Welcome);
-        });
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -330,9 +325,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             ? AuthenticationConstants.MaxAttemptsReachedKey
             : AuthenticationConstants.SessionNotFoundKey;
 
-        string message = _localizationService.GetString(key)
-                         ?? _localizationService[key]
-                         ?? (IsMaxAttemptsReached ? "Maximum attempts reached" : "Session expired");
+        string message = _localizationService.GetString(key);
 
         ShowRedirectNotification(message, seconds, () => CleanupAndNavigate(targetView));
     }
