@@ -1,12 +1,14 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
 using Google.Protobuf;
@@ -120,28 +122,62 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
+        if (_isDisposed) return Unit.Default;
+
         NetworkErrorMessage = string.Empty;
 
-        string systemDeviceIdentifier = SystemDeviceIdentifier();
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        try
+        {
+            using CancellationTokenSource timeoutCts = new(AuthenticationConstants.Timeouts.PhoneValidationTimeout);
 
-        Result<ByteString, string> result =
-            await _registrationService.ValidatePhoneNumberAsync(
+            string systemDeviceIdentifier = SystemDeviceIdentifier();
+            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+            Task<Result<ByteString, string>> validationTask = _registrationService.ValidatePhoneNumberAsync(
                 MobileNumber,
                 systemDeviceIdentifier,
                 connectId);
 
-        if (result.IsOk)
-        {
-            ByteString mobileNumberIdentifier = result.Unwrap();
+            Result<ByteString, string> result = await validationTask.WaitAsync(timeoutCts.Token);
 
-            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
-                mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
-            ((MembershipHostWindowModel)HostScreen).NavigateToViewModel(vm);
+            if (_isDisposed) return Unit.Default;
+
+            if (result.IsOk)
+            {
+                ByteString mobileNumberIdentifier = result.Unwrap();
+
+                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+
+                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                {
+                    hostWindow.NavigateToViewModel(vm);
+                }
+            }
+            else if (!_isDisposed)
+            {
+                NetworkErrorMessage = result.UnwrapErr();
+            }
         }
-        else
+        catch (OperationCanceledException) when (_isDisposed)
         {
-            NetworkErrorMessage = result.UnwrapErr();
+        }
+        catch (TimeoutException)
+        {
+            if (!_isDisposed)
+            {
+                Log.Warning("Phone validation timed out after {Timeout}ms",
+                    AuthenticationConstants.Timeouts.PhoneValidationTimeout.TotalMilliseconds);
+                NetworkErrorMessage = LocalizationService["Errors.ValidationTimeout"];
+            }
+        }
+        catch (Exception ex)
+        {
+            if (!_isDisposed)
+            {
+                Log.Error(ex, "Mobile verification failed");
+                NetworkErrorMessage = LocalizationService["Errors.NetworkError"];
+            }
         }
 
         return Unit.Default;
@@ -149,14 +185,25 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
     public async void HandleEnterKeyPress()
     {
-        if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+        if (_isDisposed) return;
+
+        try
         {
-            VerifyMobileNumberCommand.Execute().Subscribe();
+            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("HandleEnterKeyPress failed: {Error}", ex.Message);
         }
     }
 
     public void ResetState()
     {
+        if (_isDisposed) return;
+
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
         NetworkErrorMessage = string.Empty;

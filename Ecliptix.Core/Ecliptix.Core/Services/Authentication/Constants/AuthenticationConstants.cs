@@ -39,4 +39,15 @@ public static class AuthenticationConstants
     public const string ExpiredRemainingTime = "00:00";
 
     public static readonly Guid EmptyGuid = Guid.Empty;
+
+    public static class Timeouts
+    {
+        public static readonly TimeSpan DefaultCleanupTimeout = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan VerificationCleanupTimeout = TimeSpan.FromSeconds(2);
+        public static readonly TimeSpan TaskWaitTimeout = TimeSpan.FromSeconds(1);
+        public static readonly TimeSpan StreamInitializationTimeout = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan OtpVerificationTimeout = TimeSpan.FromSeconds(15);
+        public static readonly TimeSpan PhoneValidationTimeout = TimeSpan.FromSeconds(10);
+        public static readonly TimeSpan DisposeTimeout = TimeSpan.FromSeconds(3);
+    }
 }

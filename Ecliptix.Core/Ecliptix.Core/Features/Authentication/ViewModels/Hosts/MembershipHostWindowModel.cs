@@ -121,15 +121,41 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
-        if (_currentView != null)
+        try
         {
-            _navigationStack.Push(_currentView);
-            Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
-                _currentView.GetType().Name, _navigationStack.Count);
-        }
+            if (viewModel == null)
+            {
+                Log.Warning("Attempted to navigate to null ViewModel");
+                return;
+            }
 
-        CurrentView = viewModel;
-        Log.Information("Navigated directly to {ViewModelType}", viewModel.GetType().Name);
+            if (_currentView != null)
+            {
+                if (_currentView is IResettable currentResettable)
+                {
+                    try
+                    {
+                        currentResettable.ResetState();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Failed to reset current ViewModel state: {Error}", ex.Message);
+                    }
+                }
+
+                _navigationStack.Push(_currentView);
+                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
+                    _currentView.GetType().Name, _navigationStack.Count);
+            }
+
+            CurrentView = viewModel;
+            Log.Information("Navigated directly to {ViewModelType}", viewModel.GetType().Name);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to navigate to ViewModel: {ViewModelType}", viewModel?.GetType().Name ?? "null");
+            throw;
+        }
     }
 
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
@@ -204,26 +230,41 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         NavigateBack = ReactiveCommand.Create(() =>
         {
-            if (_navigationStack.Count > 0)
+            try
             {
-                if (_currentView is IResettable resettable)
+                if (_navigationStack.Count > 0)
                 {
-                    resettable.ResetState();
+                    if (_currentView is IResettable resettable)
+                    {
+                        try
+                        {
+                            resettable.ResetState();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Failed to reset current ViewModel during back navigation: {Error}", ex.Message);
+                        }
+                    }
+
+                    IRoutableViewModel previousView = _navigationStack.Pop();
+                    Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}",
+                        previousView.GetType().Name, _navigationStack.Count);
+
+                    _currentView = previousView;
+                    this.RaisePropertyChanged(nameof(CurrentView));
+                    CanNavigateBack = _navigationStack.Count > 0;
+
+                    return previousView;
                 }
 
-                IRoutableViewModel previousView = _navigationStack.Pop();
-                Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}",
-                    previousView.GetType().Name, _navigationStack.Count);
-
-                _currentView = previousView;
-                this.RaisePropertyChanged(nameof(CurrentView));
-                CanNavigateBack = _navigationStack.Count > 0;
-
-                return previousView;
+                Log.Information("Cannot navigate back - navigation stack is empty");
+                return null;
             }
-
-            Log.Information("Cannot navigate back - navigation stack is empty");
-            return null;
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during back navigation");
+                return null;
+            }
         });
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -413,7 +454,14 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             if (resetState && cachedViewModel is IResettable resettable)
             {
-                resettable.ResetState();
+                try
+                {
+                    resettable.ResetState();
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Failed to reset ViewModel state for {ViewType}: {Error}", viewType, ex.Message);
+                }
             }
             return cachedViewModel;
         }
@@ -422,45 +470,76 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService, IAuthenticationService,
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService, IRoutableViewModel>? factory))
         {
-            throw new ArgumentOutOfRangeException(nameof(viewType));
+            throw new ArgumentOutOfRangeException(nameof(viewType), $"No factory found for ViewType: {viewType}");
         }
 
-        IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider, LocalizationService,
-            _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService);
-        _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
+        try
+        {
+            IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider, LocalizationService,
+                _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService);
+            _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
-        return newViewModel;
+            Log.Information("Created new ViewModel: {ViewModelType} for ViewType: {ViewType}",
+                newViewModel.GetType().Name, viewType);
+
+            return newViewModel;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to create ViewModel for ViewType: {ViewType}", viewType);
+            throw;
+        }
     }
 
     public void CleanupAuthenticationFlow()
     {
         Log.Information("Starting authentication flow cleanup");
 
-        ClearNavigationStack();
-
-        foreach ((MembershipViewType viewType, WeakReference<IRoutableViewModel> weakRef) in _viewModelCache)
+        try
         {
-            if (weakRef.TryGetTarget(out IRoutableViewModel? viewModel))
+            ClearNavigationStack();
+
+            List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
+                _viewModelCache.ToList();
+
+            foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
             {
-                Log.Information("Disposing cached ViewModel: {ViewModelType}", viewModel.GetType().Name);
-
-                if (viewModel is IDisposable disposableViewModel)
+                MembershipViewType viewType = item.Key;
+                WeakReference<IRoutableViewModel> weakRef = item.Value;
+                if (weakRef.TryGetTarget(out IRoutableViewModel? viewModel))
                 {
-                    disposableViewModel.Dispose();
-                }
+                    Log.Information("Disposing cached ViewModel: {ViewModelType} for ViewType: {ViewType}",
+                        viewModel.GetType().Name, viewType);
 
-                if (viewModel is IResettable resettableViewModel)
-                {
-                    resettableViewModel.ResetState();
+                    try
+                    {
+                        if (viewModel is IResettable resettableViewModel)
+                        {
+                            resettableViewModel.ResetState();
+                        }
+
+                        if (viewModel is IDisposable disposableViewModel)
+                        {
+                            disposableViewModel.Dispose();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Failed to dispose ViewModel {ViewModelType}: {Error}",
+                            viewModel.GetType().Name, ex.Message);
+                    }
                 }
             }
+
+            _viewModelCache.Clear();
+            CurrentView = null;
+
+            Log.Information("Authentication flow cleanup completed - all ViewModels disposed and cache cleared");
         }
-
-        _viewModelCache.Clear();
-
-        CurrentView = null;
-
-        Log.Information("Authentication flow cleanup completed - all ViewModels disposed and cache cleared");
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error during authentication flow cleanup");
+        }
     }
 
     protected override void Dispose(bool disposing)
