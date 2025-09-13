@@ -177,7 +177,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 new SecureStorageFailure($"Delete failed: {ex.Message}"));
         }
     }
-    
+
     private static async Task DeleteFileWithRetryAsync(string filePath, int maxRetries = 3)
     {
         if (!File.Exists(filePath))
@@ -197,7 +197,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
             catch (UnauthorizedAccessException) when (attempt < maxRetries)
             {
-                await Task.Delay(100 * (attempt + 1)); 
+                await Task.Delay(100 * (attempt + 1));
             }
             catch (IOException) when (attempt < maxRetries)
             {

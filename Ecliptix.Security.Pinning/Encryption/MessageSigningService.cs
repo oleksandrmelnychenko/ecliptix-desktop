@@ -34,10 +34,10 @@ public sealed class MessageSigningService : IMessageSigning
         try
         {
             byte[] publicKeyBytes = Convert.FromHexString(publicKeyHex);
-            
+
             using RSA rsa = RSA.Create();
             rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-            
+
             return Task.FromResult(rsa.VerifyData(data.Span, signature.Span, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
         }
         catch

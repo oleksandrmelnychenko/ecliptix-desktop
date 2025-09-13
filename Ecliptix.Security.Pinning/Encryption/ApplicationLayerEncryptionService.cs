@@ -27,7 +27,7 @@ public sealed class ApplicationLayerEncryptionService : IApplicationLayerEncrypt
             int keySize = GetKeySize(_options.Algorithm);
             aesKey = new byte[keySize];
             iv = new byte[12];
-            
+
             using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
             {
                 rng.GetBytes(aesKey);
@@ -36,7 +36,7 @@ public sealed class ApplicationLayerEncryptionService : IApplicationLayerEncrypt
 
             encryptedPayload = EncryptWithAesGcm(payload.Span, aesKey, iv);
             encryptedAesKey = EncryptAesKeyAsync(aesKey, serverPublicKeyHex).Result;
-            
+
             byte[] signature = _messageSigning.SignAsync(payload, _options.SigningAlgorithm).Result;
 
             return Task.FromResult(new SecuredMessage(
@@ -60,7 +60,7 @@ public sealed class ApplicationLayerEncryptionService : IApplicationLayerEncrypt
         try
         {
             aesKey = privateKey.Decrypt(securedMessage.EncryptedAesKey, RSAEncryptionPadding.OaepSHA256);
-            
+
             return Task.FromResult(DecryptWithAesGcm(securedMessage.EncryptedPayload, aesKey, securedMessage.IV));
         }
         finally
@@ -116,7 +116,7 @@ public sealed class ApplicationLayerEncryptionService : IApplicationLayerEncrypt
         using RSA rsa = RSA.Create();
         byte[] publicKeyBytes = Convert.FromHexString(serverPublicKeyHex);
         rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-        
+
         return Task.FromResult(rsa.Encrypt(aesKey, RSAEncryptionPadding.OaepSHA256));
     }
 

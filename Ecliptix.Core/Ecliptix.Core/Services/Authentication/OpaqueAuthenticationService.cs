@@ -30,28 +30,28 @@ public class OpaqueAuthenticationService(
     public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
         uint connectId)
     {
-        Serilog.Log.Information("🔐 OPAQUE SignInAsync: Starting authentication for mobile: {MobileNumber}, connectId: {ConnectId}", 
+        Serilog.Log.Information("🔐 OPAQUE SignInAsync: Starting authentication for mobile: {MobileNumber}, connectId: {ConnectId}",
             mobileNumber?.Length > 0 ? $"{mobileNumber[..3]}***{mobileNumber[^3..]}" : "empty", connectId);
-        
+
         if (string.IsNullOrEmpty(mobileNumber))
         {
             Serilog.Log.Warning("🔐 OPAQUE: Mobile number validation failed - null or empty");
             string mobileRequiredError = localizationService["ValidationErrors.MobileNumber.Required"];
             return Result<byte[], string>.Err(mobileRequiredError);
         }
-        
+
         byte[]? passwordBytes = null;
         try
         {
             Serilog.Log.Information("🔐 OPAQUE: Extracting secure password bytes");
             securePassword.WithSecureBytes(bytes => passwordBytes = bytes.ToArray());
-            
+
             if (passwordBytes != null && passwordBytes.Length != 0)
             {
                 Serilog.Log.Information("🔐 OPAQUE: Password extracted successfully, length: {Length}", passwordBytes.Length);
                 return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId);
             }
-            
+
             Serilog.Log.Warning("🔐 OPAQUE: Password validation failed - empty or null password");
             string requiredError = localizationService["ValidationErrors.SecureKey.Required"];
             return await Task.FromResult(Result<byte[], string>.Err(requiredError));
@@ -75,15 +75,15 @@ public class OpaqueAuthenticationService(
         {
             Serilog.Log.Information("🔐 OPAQUE: Creating OPAQUE service");
             OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
-            
+
             Serilog.Log.Information("🔐 OPAQUE: Creating OPRF request from password");
             Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult;
-            try 
+            try
             {
                 oprfResult = OpaqueProtocolService.CreateOprfRequest(passwordBytes);
                 Serilog.Log.Information("🔐 OPAQUE: CreateOprfRequest completed - Success: {IsSuccess}", oprfResult.IsOk);
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Serilog.Log.Error(ex, "🔐 OPAQUE: Exception in CreateOprfRequest");
                 throw;
@@ -173,13 +173,13 @@ public class OpaqueAuthenticationService(
         {
             byte[] serverPublicKeyBytes = ServerPublicKey();
             Serilog.Log.Information("🔐 OPAQUE: Decoding server public key for AOT compatibility");
-            
+
             Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
             ECPublicKeyParameters serverStaticPublicKeyParam = new(
                 serverPublicKeyPoint,
                 OpaqueCryptoUtilities.DomainParams
             );
-            
+
             Serilog.Log.Information("🔐 OPAQUE: Successfully created OPAQUE service");
             return new OpaqueProtocolService(serverStaticPublicKeyParam);
         }

@@ -62,7 +62,7 @@ internal sealed class SubscriptionManager : IDisposable
         if (_disposed || message == null) return;
 
         string messageTypeKey = GetMessageTypeKey<T>();
-        
+
         if (!_subscriptions.TryGetValue(messageTypeKey, out SubscriptionList? list))
             return;
 
@@ -107,7 +107,7 @@ internal sealed class SubscriptionManager : IDisposable
     {
         long totalSubscriptions = Interlocked.Read(ref _totalSubscriptions);
         long deadReferencesCleanedUp = Interlocked.Read(ref _deadReferencesCleanedUp);
-        
+
         int weakCount = 0;
         int strongCount = 0;
 

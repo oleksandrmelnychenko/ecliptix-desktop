@@ -14,10 +14,10 @@ public sealed class ApplicationSecurityOptions
     public string? ServerPublicKeyHex { get; set; }
     public string? ClientCertificateThumbprint { get; set; }
     public string[] FirstRequestMethods { get; set; } = ["ExchangeKeys", "InitProtocol"];
-    
+
     public EncryptionOptions ToEncryptionOptions() => new(
         Algorithm,
-        SigningAlgorithm, 
+        SigningAlgorithm,
         SecureFirstMessageOnly,
         SecureAllMessages,
         MessageTimeout);

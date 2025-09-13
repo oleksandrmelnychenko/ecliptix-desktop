@@ -11,7 +11,7 @@ public interface IViewLocator
         where TViewModel : class, IRoutableViewModel
         where TView : class, new();
 
-    void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType, 
+    void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType,
                   [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType);
 
     void RegisterFactory<TViewModel>(Func<object> factory)

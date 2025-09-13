@@ -139,9 +139,9 @@ public static class Program
         try
         {
             LoggerConfiguration loggerConfig = new();
-            
+
             IConfigurationSection serilogSection = configuration.GetSection("Serilog");
-            
+
             string minLevel = serilogSection["MinimumLevel:Default"] ?? "Information";
             loggerConfig = minLevel switch
             {
@@ -154,10 +154,10 @@ public static class Program
             };
 
             loggerConfig = loggerConfig.WriteTo.Console();
-            
+
             string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory, ApplicationConstants.Storage.LogFilePattern);
             loggerConfig = loggerConfig.WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
-            
+
             return loggerConfig.CreateLogger();
         }
         catch (Exception)
@@ -236,7 +236,7 @@ public static class Program
         });
 
         services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
-        
+
         services.AddSingleton<ISystemEventService, SystemEventService>();
         services.AddSingleton<INetworkEventService, NetworkEventService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();

@@ -63,12 +63,12 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         Result<T, SodiumFailure> sodiumResult = keyHandle.WithReadAccess(keyMaterial =>
         {
             Result<T, EcliptixProtocolFailure> opResult = operation(keyMaterial);
-            return opResult.IsOk 
+            return opResult.IsOk
                 ? Result<T, SodiumFailure>.Ok(opResult.Unwrap())
                 : Result<T, SodiumFailure>.Err(SodiumFailure.InvalidOperation(opResult.UnwrapErr().Message));
         });
 
-        return sodiumResult.IsOk 
+        return sodiumResult.IsOk
             ? Result<T, EcliptixProtocolFailure>.Ok(sodiumResult.Unwrap())
             : Result<T, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic(sodiumResult.UnwrapErr().Message));
     }
@@ -302,7 +302,7 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                         EcliptixProtocolFailure.DeriveKey($"HKDF failed during derivation at index {idx}.", ex));
                 }
 
-                Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult = 
+                Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult =
                     SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
 
                 if (secureHandleResult.IsErr)
@@ -456,9 +456,9 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         byte[]? newDhPrivateKey = null,
         byte[]? newDhPublicKey = null)
     {
-        Log.Information("🔧 CHAIN-STEP-UPDATE: Updating keys after DH ratchet - NewDhPrivateKey={HasPrivKey}, NewDhPublicKey={HasPubKey}(len={PubKeyLen})", 
+        Log.Information("🔧 CHAIN-STEP-UPDATE: Updating keys after DH ratchet - NewDhPrivateKey={HasPrivKey}, NewDhPublicKey={HasPubKey}(len={PubKeyLen})",
             newDhPrivateKey != null, newDhPublicKey != null, newDhPublicKey?.Length ?? 0);
-            
+
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
         if (disposedCheck.IsErr)
             return disposedCheck;

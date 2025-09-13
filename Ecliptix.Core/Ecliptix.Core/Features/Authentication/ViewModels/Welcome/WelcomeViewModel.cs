@@ -17,7 +17,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 {
     private const string CreateAccountKey = "CreateAccount";
     private const string SignInKey = "SignIn";
-    
+
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
         {
@@ -26,7 +26,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
-    
+
     private bool _isDisposed;
 
     public string UrlPathSegment => "/welcome";
@@ -60,7 +60,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
     public void ResetState()
     {
-        
+
     }
 
     public new void Dispose()

@@ -90,7 +90,7 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                     .Select(response =>
                     {
                         Log.Debug("Received stream response with size: {ResponseSize}", response?.Cipher?.Length ?? 0);
-                        return response != null 
+                        return response != null
                             ? Result<CipherPayload, NetworkFailure>.Ok(response)
                             : Result<CipherPayload, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding("Received null response from stream"));
                     })

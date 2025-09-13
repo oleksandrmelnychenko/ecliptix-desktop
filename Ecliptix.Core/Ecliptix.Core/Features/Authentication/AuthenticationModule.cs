@@ -75,7 +75,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         viewFactory.RegisterView<SecureKeyVerifierViewModel, SecureKeyConfirmationView>();
         viewFactory.RegisterView<PassPhaseViewModel, PassPhaseView>();
         viewFactory.RegisterView<WelcomeViewModel, WelcomeView>();
-        
+
         Serilog.Log.Information("Registered {Count} view factories for Authentication module", 5);
     }
 

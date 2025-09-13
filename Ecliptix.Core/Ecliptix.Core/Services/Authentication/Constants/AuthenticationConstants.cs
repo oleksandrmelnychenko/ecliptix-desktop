@@ -12,14 +12,14 @@ public static class AuthenticationConstants
     public const string SecureKeyRequiredKey = "ValidationErrors.SecureKey.Required";
     public const string InvalidCredentialsKey = "ValidationErrors.SecureKey.InvalidCredentials";
     public const string VerifySecureKeyDoesNotMatchKey = "ValidationErrors.VerifySecureKey.DoesNotMatch";
-    
+
     public const string PasswordStrengthInvalidKey = "ValidationErrors.PasswordStrength.Invalid";
     public const string PasswordStrengthVeryWeakKey = "ValidationErrors.PasswordStrength.VeryWeak";
     public const string PasswordStrengthWeakKey = "ValidationErrors.PasswordStrength.Weak";
     public const string PasswordStrengthGoodKey = "ValidationErrors.PasswordStrength.Good";
     public const string PasswordStrengthStrongKey = "ValidationErrors.PasswordStrength.Strong";
     public const string PasswordStrengthVeryStrongKey = "ValidationErrors.PasswordStrength.VeryStrong";
-    
+
     public const string NetworkFailurePrefix = "Failed to parse response: ";
     public const string VerificationFailurePrefix = "Verification failed: ";
     public const string RegistrationFailurePrefix = "Registration failed: ";
@@ -33,9 +33,10 @@ public static class AuthenticationConstants
     public const string VerificationFailedKey = "Verification.Error.VerificationFailed";
     public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
-    
+    public const string RedirectingMessageKey = "Verification.Info.Redirecting";
+
     public const string InitialRemainingTime = "01:00";
     public const string ExpiredRemainingTime = "00:00";
-    
+
     public static readonly Guid EmptyGuid = Guid.Empty;
 }

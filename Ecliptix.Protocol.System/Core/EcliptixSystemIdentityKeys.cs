@@ -531,7 +531,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                     _ephemeralSecretKeyHandle = null;
 
                     bool useOpk = remoteBundle.OneTimePreKeys.FirstOrDefault()?.PublicKey is
-                        { Length: Constants.X25519PublicKeySize };
+                    { Length: Constants.X25519PublicKeySize };
 
                     byte[]? ephemeralSecretArray = null;
                     byte[]? identitySecretArray = null;
@@ -547,7 +547,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
                         byte[] dhTemp1 =
                             ScalarMult.Mult(identitySecretArray,
-                                remoteBundle.SignedPreKeyPublic);  
+                                remoteBundle.SignedPreKeyPublic);
                         byte[] dhTemp2 =
                             ScalarMult.Mult(ephemeralSecretArray, remoteBundle.IdentityX25519);
                         byte[] dhTemp3 =
@@ -555,7 +555,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                                 remoteBundle.SignedPreKeyPublic);
 
                         dh1 = dhTemp1;
-                        dh2 = dhTemp2;  
+                        dh2 = dhTemp2;
                         dh3 = dhTemp3;
 
                         if (Log.IsEnabled(LogEventLevel.Debug))

@@ -30,15 +30,15 @@ namespace Ecliptix.Core.Services.Core
             }
 
             _logger.LogInformation("Starting transition from splash to next window");
-            
+
             Window nextWindow = CreateNextWindow(isMembershipConfirmed);
-            
+
             nextWindow.WindowStartupLocation = WindowStartupLocation.Manual;
             nextWindow.Opacity = 0;
 
             await ShowAndWaitForWindowAsync(nextWindow);
             PositionWindowRelativeTo(nextWindow, splashWindow);
-            
+
             return nextWindow;
         }
 
@@ -67,7 +67,7 @@ namespace Ecliptix.Core.Services.Core
             window.Opened += OnOpened;
             window.Show();
             await openedTcs.Task;
-            
+
             void OnOpened(object? sender, EventArgs e)
             {
                 window.Opened -= OnOpened;
@@ -83,7 +83,7 @@ namespace Ecliptix.Core.Services.Core
 
             int centeredX = referencePos.X + (int)((referenceSize.Width - targetSize.Width) / 2);
             int centeredY = referencePos.Y + (int)((referenceSize.Height - targetSize.Height) / 2);
-            
+
             targetWindow.Position = new PixelPoint(centeredX, centeredY);
         }
 

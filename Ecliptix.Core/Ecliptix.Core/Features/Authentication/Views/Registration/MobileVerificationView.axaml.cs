@@ -13,7 +13,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
     IViewFor<MobileVerificationViewModel>
 {
     private const string MobileTextBoxControlName = "MobileTextBox";
-    
+
     private bool _handlersAttached;
     public MobileVerificationView()
     {
@@ -24,7 +24,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
     {
         AvaloniaXamlLoader.Load(this);
     }
-    
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -36,7 +36,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
         base.OnDetachedFromVisualTree(e);
         TeardownEventHandlers();
     }
-    
+
     private void SetupEventHandlers()
     {
         if (_handlersAttached) return;
@@ -46,7 +46,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             _handlersAttached = true;
         }
     }
-    
+
     private void TeardownEventHandlers()
     {
         if (!_handlersAttached) return;
@@ -57,7 +57,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
         _handlersAttached = false;
     }
-    
+
     private void OnMobileTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return) return;

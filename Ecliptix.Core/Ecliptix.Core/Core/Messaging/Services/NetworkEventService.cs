@@ -9,7 +9,7 @@ namespace Ecliptix.Core.Core.Messaging.Services;
 public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetworkEventService, IDisposable
 {
     private readonly ReaderWriterLockSlim _statusLock = new();
-    
+
     private NetworkStatus _currentStatus = NetworkStatus.DataCenterConnected;
     private int _retryCount;
     private bool _disposed;
@@ -56,7 +56,7 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
         {
             _statusLock.ExitWriteLock();
         }
-        
+
         NetworkStatusChangedEvent evt = NetworkStatusChangedEvent.New(status);
         await messageBus.PublishAsync(evt);
     }
@@ -80,14 +80,14 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
     }
 
     public IDisposable OnNetworkStatusChanged(
-        Func<NetworkStatusChangedEvent, Task> handler, 
+        Func<NetworkStatusChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
     {
         return messageBus.Subscribe(handler, lifetime);
     }
 
     public IDisposable OnManualRetryRequested(
-        Func<ManualRetryRequestedEvent, Task> handler, 
+        Func<ManualRetryRequestedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
     {
         return messageBus.Subscribe(handler, lifetime);
@@ -100,10 +100,10 @@ public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetwor
 
         if (next is NetworkStatus.ServerShutdown or NetworkStatus.RetriesExhausted)
             return true;
-        
+
         if (next == NetworkStatus.NoInternet)
             return true;
-        
+
         if (current == NetworkStatus.NoInternet && next is
                 NetworkStatus.DataCenterConnecting or
                 NetworkStatus.DataCenterConnected or

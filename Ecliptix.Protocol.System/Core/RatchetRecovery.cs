@@ -28,12 +28,12 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvid
             Result<T, SodiumFailure> sodiumResult = keyHandle.WithReadAccess(keyMaterial =>
             {
                 Result<T, EcliptixProtocolFailure> opResult = operation(keyMaterial);
-                return opResult.IsOk 
+                return opResult.IsOk
                     ? Result<T, SodiumFailure>.Ok(opResult.Unwrap())
                     : Result<T, SodiumFailure>.Err(SodiumFailure.InvalidOperation(opResult.UnwrapErr().Message));
             });
 
-            return sodiumResult.IsOk 
+            return sodiumResult.IsOk
                 ? Result<T, EcliptixProtocolFailure>.Ok(sodiumResult.Unwrap())
                 : Result<T, EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.Generic(sodiumResult.UnwrapErr().Message));
         }
@@ -108,15 +108,15 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvid
     private static Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> DeriveSecureMessageKey(ReadOnlySpan<byte> chainKey,
         uint messageIndex)
     {
-        Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult = 
+        Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult =
             SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
-        
+
         if (secureHandleResult.IsErr)
             return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic($"Failed to allocate secure memory for key {messageIndex}."));
 
         SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
-        
+
         using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
 
         global::System.Security.Cryptography.HKDF.DeriveKey(

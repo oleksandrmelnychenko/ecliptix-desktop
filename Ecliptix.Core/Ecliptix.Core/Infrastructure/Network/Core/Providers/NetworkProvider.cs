@@ -803,7 +803,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Option<EcliptixSessionState> optionState = establishOptionResult.Unwrap();
 
         if (!optionState.HasValue) return Result<uint, NetworkFailure>.Ok(connectId);
-        
+
         Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
             optionState.Value.ToByteString(),
             span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
@@ -828,13 +828,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
-        
+
         // Early return if protocol doesn't exist - makes method idempotent
         if (!_connections.ContainsKey(connectId) && !_activeStreams.ContainsKey(connectId))
         {
             return;
         }
-        
+
         CancelOperationsForConnection(connectId);
 
         if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? streamCts))

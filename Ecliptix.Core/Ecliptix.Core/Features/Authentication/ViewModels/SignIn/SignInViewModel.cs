@@ -261,9 +261,9 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 byte[] sessionKey = result.Unwrap();
 
                 Array.Clear(sessionKey, 0, sessionKey.Length);
-                
+
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
-                    _ => { }, 
+                    _ => { },
                     ex => Serilog.Log.Error(ex, "Failed to transition to main window"),
                     () => Serilog.Log.Information("Main window transition completed")
                 );

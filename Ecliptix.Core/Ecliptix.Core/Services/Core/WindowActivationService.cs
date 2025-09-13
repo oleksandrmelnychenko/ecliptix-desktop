@@ -28,7 +28,7 @@ public class WindowActivationService : IWindowActivationService
 
                     mainWindow.Activate();
                     mainWindow.Topmost = true;
-                    mainWindow.Topmost = false; 
+                    mainWindow.Topmost = false;
                     mainWindow.Focus();
 
                     Log.Information("Main window activation completed");

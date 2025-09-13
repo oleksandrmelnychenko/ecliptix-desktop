@@ -25,6 +25,6 @@ public sealed record SystemStateChangedEvent
         Timestamp = DateTime.UtcNow;
     }
 
-    public static SystemStateChangedEvent New(SystemState state, string? logMessage = null) => 
+    public static SystemStateChangedEvent New(SystemState state, string? logMessage = null) =>
         new(state, logMessage);
 }

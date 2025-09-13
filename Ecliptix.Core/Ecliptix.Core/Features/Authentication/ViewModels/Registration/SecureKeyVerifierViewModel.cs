@@ -103,13 +103,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
                     }
                 })
                 .DisposeWith(disposables);
-            
+
             this.WhenAnyValue(x => x.ServerError)
                 .Select(e => !string.IsNullOrEmpty(e))
                 .DistinctUntilChanged()
                 .Subscribe(flag => HasServerError = flag)
                 .DisposeWith(disposables);
-            
+
             SubmitCommand
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
@@ -169,7 +169,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         IObservable<SystemU> languageTrigger = LanguageChanged;
 
         IObservable<SystemU> lengthTrigger = this
-            .WhenAnyValue(x => x.CurrentSecureKeyLength,x => x.CurrentVerifySecureKeyLength)
+            .WhenAnyValue(x => x.CurrentSecureKeyLength, x => x.CurrentVerifySecureKeyLength)
             .Select(_ => SystemU.Default);
 
         IObservable<SystemU> validationTrigger = lengthTrigger.Merge(languageTrigger);
@@ -206,9 +206,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .Subscribe(flag => HasSecureKeyError = flag);
 
         IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
-        
+
         IObservable<SystemU> verifyValidationTrigger = lengthTrigger.Merge(languageTrigger);
-        
+
         IObservable<bool> secureKeysMatch = verifyValidationTrigger
             .Select(_ => DoSecureKeysMatch())
             .Replay(1)
@@ -218,7 +218,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             .Select(match =>
             {
                 bool shouldShowError = _hasVerifySecureKeyBeenTouched && !match;
-                
+
                 return shouldShowError
                     ? LocalizationService[AuthenticationConstants.VerifySecureKeyDoesNotMatchKey]
                     : string.Empty;
@@ -229,12 +229,12 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
         verifySecureKeyErrorStream
             .Subscribe(error => VerifySecureKeyError = error);
-        
-        
+
+
         this.WhenAnyValue(x => x.VerifySecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
             .Subscribe(flag => HasVerifySecureKeyError = flag);
-            
+
         return isSecureKeyLogicallyValid
             .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
             .DistinctUntilChanged();
@@ -326,7 +326,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             SubmitCommand.Execute().Subscribe();
         }
     }
-    
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -345,12 +345,12 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
         _hasSecureKeyBeenTouched = false;
         _hasVerifySecureKeyBeenTouched = false;
-        
+
         SecureKeyError = string.Empty;
         HasSecureKeyError = false;
         VerifySecureKeyError = string.Empty;
         HasVerifySecureKeyError = false;
-        
+
         ServerError = string.Empty;
         HasServerError = false;
     }

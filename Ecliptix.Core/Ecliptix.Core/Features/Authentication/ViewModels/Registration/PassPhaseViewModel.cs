@@ -36,14 +36,14 @@ public class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         HostScreen = hostScreen;
         SubmitCommand = ReactiveCommand.Create(() => { });
-        
+
         _disposables.Add(SubmitCommand);
     }
 
     public void ResetState()
     {
         if (_isDisposed) return;
-        
+
         PassPhase = string.Empty;
     }
 

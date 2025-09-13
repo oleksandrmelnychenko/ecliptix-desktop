@@ -20,7 +20,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
     private readonly CompositeDisposable _disposables = new();
 
     private readonly BehaviorSubject<TimeSpan> _pollingIntervalSubject;
-    
+
     public InternetConnectivityObserver(
         HttpClient httpClient,
         IScheduler uiScheduler,
@@ -28,7 +28,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
     {
         _httpClient = httpClient;
         _pollingIntervalSubject = new BehaviorSubject<TimeSpan>(currentOptions.PollingInterval);
-        
+
         _connectivityObservable = _pollingIntervalSubject
             .DistinctUntilChanged()
             .Select(interval =>
@@ -87,7 +87,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
                     Log.Debug("Connectivity probe succeeded for URL: {Url}", url);
                     return true;
                 }
-                
+
                 Log.Warning("Connectivity probe failed (status code) for URL: {Url}", url);
             }
             catch (OperationCanceledException)

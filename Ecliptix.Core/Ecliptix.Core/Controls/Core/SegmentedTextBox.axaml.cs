@@ -155,12 +155,12 @@ public partial class SegmentedTextBox : UserControl
         if (change.Property == ValueProperty && !_isInternalUpdate)
         {
             string newValue = change.NewValue as string ?? string.Empty;
-            
-            if(string.IsNullOrEmpty(newValue)) ClearAllSegments();
+
+            if (string.IsNullOrEmpty(newValue)) ClearAllSegments();
             else UpdateSegmentsFromValue(newValue);
         }
     }
-    
+
     private void UpdateSegmentsFromValue(string newValue)
     {
         _isInternalUpdate = true;
@@ -170,7 +170,7 @@ public partial class SegmentedTextBox : UserControl
             {
                 segment.Text = string.Empty;
             }
-            
+
             for (int i = 0; i < _segments.Count; i++)
             {
                 if (i >= newValue.Length)
@@ -348,7 +348,7 @@ public partial class SegmentedTextBox : UserControl
         if (sender is not TextBox tb) return;
 
         int index = _segments.IndexOf(tb);
-        
+
         if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control)
         {
             HandlePasteAsync();
@@ -383,7 +383,7 @@ public partial class SegmentedTextBox : UserControl
 
         OnSegmentChanged();
     }
-    
+
     private async void HandlePasteAsync()
     {
         try
@@ -401,7 +401,7 @@ public partial class SegmentedTextBox : UserControl
             Log.Warning("Failed to access clipboard for pasting.");
         }
     }
-    
+
     private void ProcessPastedText(string pastedText)
     {
         string validText = AllowOnlyNumbers
@@ -409,19 +409,19 @@ public partial class SegmentedTextBox : UserControl
             : pastedText;
 
         if (string.IsNullOrEmpty(validText)) return;
-        
+
         if (AllowOnlyNumbers && !validText.All(char.IsDigit))
         {
             Log.Warning("Pasted text contains non-numeric characters when only numbers are allowed.");
             return;
         }
-        
+
         if (validText.Length != _segments.Count)
         {
             Log.Warning($"Pasted text length ({validText.Length}) does not match segment count ({_segments.Count}).");
             return;
         }
-        
+
         UpdateSegmentsFromValue(validText);
     }
 
@@ -513,10 +513,10 @@ public partial class SegmentedTextBox : UserControl
                 _isInternalUpdate = false;
             }
         }
-        
+
         if (IsComplete != newIsComplete)
             SetValue(IsCompleteProperty, newIsComplete);
-        
+
         _lastIsComplete = newIsComplete;
     }
 

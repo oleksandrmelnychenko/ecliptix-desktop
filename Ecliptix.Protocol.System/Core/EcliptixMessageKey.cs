@@ -49,7 +49,7 @@ public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
         {
             buffer.CopyTo(destination);
         }
-        
+
         return result;
     }
 

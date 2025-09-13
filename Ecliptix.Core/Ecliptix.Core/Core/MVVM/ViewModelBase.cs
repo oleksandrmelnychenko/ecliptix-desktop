@@ -27,7 +27,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     private bool _disposedValue;
 
     public ViewModelActivator Activator { get; } = new();
-    
+
     protected IObservable<SystemU> LanguageChanged { get; }
 
     protected ViewModelBase(ISystemEventService systemEventService, NetworkProvider networkProvider,
@@ -48,7 +48,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             })
             .Publish()
             .RefCount();
-        
+
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(

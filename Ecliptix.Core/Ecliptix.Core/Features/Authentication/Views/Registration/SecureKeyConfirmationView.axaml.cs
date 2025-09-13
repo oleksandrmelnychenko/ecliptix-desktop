@@ -108,7 +108,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         vm.RemoveVerifySecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentVerifySecureKeyLength);
     }
-    
+
     private void OnSecureKeyTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return) return;

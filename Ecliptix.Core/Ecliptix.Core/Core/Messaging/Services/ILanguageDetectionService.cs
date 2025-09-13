@@ -14,6 +14,6 @@ public interface ILanguageDetectionService
     Task DeclineLanguageChangeAsync();
 
     IDisposable OnLanguageDetectionRequested(
-        Func<LanguageDetectionDialogEvent, Task> handler, 
+        Func<LanguageDetectionDialogEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 }

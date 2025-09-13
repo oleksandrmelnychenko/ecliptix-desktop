@@ -154,7 +154,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             VerifyMobileNumberCommand.Execute().Subscribe();
         }
     }
-    
+
     public void ResetState()
     {
         MobileNumber = string.Empty;

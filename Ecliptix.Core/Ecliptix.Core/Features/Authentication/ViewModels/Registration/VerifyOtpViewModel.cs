@@ -35,7 +35,18 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
-    private Guid? VerificationSessionIdentifier { get; set; } = null;
+    private readonly object _sessionLock = new object();
+    private Guid _verificationSessionIdentifier = Guid.Empty;
+    private Guid? VerificationSessionIdentifier
+    {
+        get
+        {
+            lock (_sessionLock)
+            {
+                return _verificationSessionIdentifier == Guid.Empty ? null : _verificationSessionIdentifier;
+            }
+        }
+    }
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
@@ -67,7 +78,9 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     
     private IDisposable? _autoRedirectTimer;
     private CancellationTokenSource? _streamCancellationSource;
-    private bool _isCleaningUp;
+    private Task? _resendTask;
+    private readonly SemaphoreSlim _cleanupSemaphore = new(1, 1);
+    private CancellationTokenSource? _cleanupCts;
 
     private bool HasValidSession =>
         VerificationSessionIdentifier.HasValue &&
@@ -135,8 +148,9 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         return Observable.FromAsync(async () =>
         {
+            _streamCancellationSource?.Dispose();
             _streamCancellationSource = new CancellationTokenSource();
-        
+
             string deviceIdentifier = SystemDeviceIdentifier();
             Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.InitiateOtpVerificationAsync(
                 _phoneNumberIdentifier,
@@ -144,23 +158,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 onCountdownUpdate: (seconds, identifier, status, message) =>
                     RxApp.MainThreadScheduler.Schedule(() =>
                     {
-                        if (!VerificationSessionIdentifier.HasValue && identifier != Guid.Empty)
+                        try
                         {
-                            VerificationSessionIdentifier = identifier;
+                            HandleCountdownUpdate(seconds, identifier, status, message);
                         }
-
-                        SecondsRemaining = status switch
+                        catch (ObjectDisposedException)
                         {
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(
-                                message),
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
-                            VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached =>
-                                HandleMaxAttemptsStatus(),
-                            _ => Math.Min(seconds, SecondsRemaining)
-                        };
-                        CurrentStatus = status;
+                        }
                     }),
                 cancellationToken: _streamCancellationSource.Token
             );
@@ -224,48 +228,60 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-            _ = Task.Run(async () =>
+            CancellationTokenSource? linkedCts = null;
+            try
             {
-                Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
-                    VerificationSessionIdentifier!.Value,
-                    _phoneNumberIdentifier,
-                    deviceIdentifier,
-                    onCountdownUpdate: (seconds, identifier, status, message) =>
+                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_streamCancellationSource?.Token ?? default);
+            }
+            catch (ObjectDisposedException)
+            {
+                return Task.CompletedTask;
+            }
+
+            _resendTask = Task.Run(async () =>
+            {
+                try
+                {
+                    linkedCts.Token.ThrowIfCancellationRequested();
+
+                    Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.ResendOtpVerificationAsync(
+                        VerificationSessionIdentifier!.Value,
+                        _phoneNumberIdentifier,
+                        deviceIdentifier,
+                        onCountdownUpdate: (seconds, identifier, status, message) =>
+                            RxApp.MainThreadScheduler.Schedule(() =>
+                            {
+                                try
+                                {
+                                    HandleCountdownUpdate(seconds, identifier, status, message);
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                }
+                            }));
+
+                    if (result.IsErr)
+                    {
                         RxApp.MainThreadScheduler.Schedule(() =>
                         {
-                            if (!VerificationSessionIdentifier.HasValue && identifier != Guid.Empty)
-                            {
-                                VerificationSessionIdentifier = identifier;
-                            }
-
-                            SecondsRemaining = status switch
-                            {
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(
-                                    message),
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound =>
-                                    HandleNotFoundStatus(),
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached =>
-                                    HandleMaxAttemptsStatus(),
-                                VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired =>
-                                    HandleNotFoundStatus(),
-                                _ => Math.Min(seconds, SecondsRemaining)
-                            };
-                            CurrentStatus = status;
-                        }));
-
-
-                if (result.IsErr)
-                {
-                    RxApp.MainThreadScheduler.Schedule(() =>
-                    {
-                        ErrorMessage = result.UnwrapErr();
-                        HasError = true;
-                        SecondsRemaining = 0;
-                    });
+                            ErrorMessage = result.UnwrapErr();
+                            HasError = true;
+                            SecondsRemaining = 0;
+                        });
+                    }
                 }
-            });
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Resend verification failed: {Error}", ex.Message);
+                }
+                finally
+                {
+                    linkedCts?.Dispose();
+                }
+            }, linkedCts.Token);
         }
         else
         {
@@ -320,13 +336,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                          ?? (IsMaxAttemptsReached ? "Maximum attempts reached" : "Session expired");
         
         ShowRedirectNotification(message, seconds, () => CleanupAndNavigate(targetView));
-
     }
 
     private void ShowRedirectNotification(string message, int seconds, Action onComplete)
     {
-        var redirectViewModel = new RedirectNotificationViewModel(message, seconds, onComplete, _localizationService);
-        var redirectView = new RedirectNotificationView { DataContext = redirectViewModel };
+        RedirectNotificationViewModel redirectViewModel = new RedirectNotificationViewModel(message, seconds, onComplete, _localizationService);
+        RedirectNotificationView redirectView = new RedirectNotificationView { DataContext = redirectViewModel };
         
         if (HostScreen is MembershipHostWindowModel hostWindow)
         {
@@ -348,6 +363,38 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             onComplete();
         }
     }
+
+    private void HandleCountdownUpdate(uint seconds, Guid identifier,
+        VerificationCountdownUpdate.Types.CountdownUpdateStatus status, string? message)
+    {
+        if (identifier != Guid.Empty)
+        {
+            lock (_sessionLock)
+            {
+                if (_verificationSessionIdentifier == Guid.Empty)
+                {
+                    _verificationSessionIdentifier = identifier;
+                }
+                else if (_verificationSessionIdentifier != identifier)
+                {
+                    Log.Warning("Attempted to overwrite session identifier {Previous} with {New}", _verificationSessionIdentifier, identifier);
+                }
+            }
+        }
+
+        SecondsRemaining = status switch
+        {
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(message),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleNotFoundStatus(),
+            _ => Math.Min(seconds, SecondsRemaining)
+        };
+        CurrentStatus = status;
+    }
+
     private void CleanupAndNavigate(MembershipViewType targetView)
     {
         if (HostScreen is MembershipHostWindowModel hostWindow)
@@ -356,62 +403,21 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             {
                 await hostWindow.HideBottomSheetAsync();
             });
-            
-            
         }
-        FireAndForgetCleanup();
-        ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
-        ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-    }
-
-    private void FireAndForgetCleanup()
-    {
+        
         _ = Task.Run(async () =>
         {
-            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
-            await CleanupVerificationSession().WaitAsync(cts.Token);
-        });
-    }
-
-    private async Task CleanupVerificationSession()
-    {
-        if (_isCleaningUp) return;
-        _isCleaningUp = true;
-
-        try
-        {
-            if (HasValidSession)
+            try
             {
-                await _streamCancellationSource?.CancelAsync()!;
-
-                try
-                {
-                    await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Failed to cleanup verification session: {Error}", ex.Message);
-                }
-
-                try
-                {
-                    await NetworkProvider.RemoveProtocolForTypeAsync(PubKeyExchangeType.ServerStreaming);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Failed to remove stream protocol: {Error}", ex.Message);
-                }
-
-                VerificationSessionIdentifier = null;
+                await PerformCleanupAsync(false);
             }
-
-            _streamCancellationSource?.Dispose();
-            _streamCancellationSource = null;
-        }
-        finally
-        {
-            _isCleaningUp = false;
-        }
+            catch (Exception ex)
+            {
+                Log.Warning("Cleanup during navigation failed: {Error}", ex.Message);
+            }
+        });
+        ((MembershipHostWindowModel)HostScreen).Navigate.Execute(targetView).Subscribe();
+        ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
     }
 
     private static string FormatRemainingTime(uint seconds)
@@ -429,7 +435,71 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
-    public void ResetState()
+    private async Task PerformCleanupAsync(bool isDisposing = false)
+    {
+        if (!await _cleanupSemaphore.WaitAsync(0))
+            return;
+
+        try
+        {
+            _cleanupCts?.Cancel();
+            _cleanupCts?.Dispose();
+            _cleanupCts = new CancellationTokenSource();
+            CancellationToken cleanupToken = _cleanupCts.Token;
+
+            _autoRedirectTimer?.Dispose();
+            _autoRedirectTimer = null;
+
+            _streamCancellationSource?.Cancel();
+            
+            if (_resendTask != null && !_resendTask.IsCompleted)
+            {
+                try
+                {
+                    await _resendTask.WaitAsync(TimeSpan.FromSeconds(1), cleanupToken);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Resend task cancellation failed: {Error}", ex.Message);
+                }
+            }
+
+            if (HasValidSession && !cleanupToken.IsCancellationRequested)
+            {
+                try
+                {
+                    Guid sessionId = VerificationSessionIdentifier!.Value;
+                    await _registrationService.CleanupVerificationSessionAsync(sessionId)
+                        .WaitAsync(TimeSpan.FromSeconds(2), cleanupToken);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Failed to cleanup verification session: {Error}", ex.Message);
+                }
+            }
+
+            _streamCancellationSource?.Dispose();
+            _streamCancellationSource = null;
+            _resendTask = null;
+            
+            if (!isDisposing && !cleanupToken.IsCancellationRequested)
+            {
+                ResetUIState();
+            }
+        }
+        finally
+        {
+            _cleanupSemaphore.Release();
+        }
+    }
+
+    private void ResetUIState()
     {
         _autoRedirectTimer?.Dispose();
         _autoRedirectTimer = null;
@@ -452,17 +522,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 }
             });
         }
-        
-        if (HasValidSession)
-        {
-            _ = Task.Run(async () => { await CleanupVerificationSession().ConfigureAwait(false); });
-        }
-        else
-        {
-            _streamCancellationSource?.Cancel();
-            _streamCancellationSource?.Dispose();
-            _streamCancellationSource = null;
-        }
 
         VerificationCode = "";
         IsSent = false;
@@ -474,32 +533,48 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         AutoRedirectMessage = string.Empty;
         AutoRedirectCountdown = 0;
         CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
-        VerificationSessionIdentifier = null;
+        lock (_sessionLock)
+        {
+            _verificationSessionIdentifier = Guid.Empty;
+        }
+    }
+
+    public void ResetState()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await PerformCleanupAsync(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("ResetState cleanup failed: {Error}", ex.Message);
+            }
+        });
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            _autoRedirectTimer?.Dispose();
-            if (HasValidSession)
+            _ = Task.Run(async () =>
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await CleanupVerificationSession().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning("Failed to cleanup verification session in Dispose: {Error}", ex.Message);
-                    }
-                });
-            }
-            else
-            {
-                _streamCancellationSource?.Dispose();
-            }
+                    await PerformCleanupAsync(true);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Dispose cleanup failed: {Error}", ex.Message);
+                }
+                finally
+                {
+                    _cleanupSemaphore?.Dispose();
+                    _cleanupCts?.Cancel();
+                    _cleanupCts?.Dispose();
+                }
+            });
         }
 
         base.Dispose(disposing);

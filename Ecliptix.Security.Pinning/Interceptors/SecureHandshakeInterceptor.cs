@@ -33,8 +33,8 @@ public sealed class SecureHandshakeInterceptor : Interceptor
         where TRequest : class
         where TResponse : class
     {
-        if (!_options.EnableApplicationLayerSecurity || 
-            _encryption == null || 
+        if (!_options.EnableApplicationLayerSecurity ||
+            _encryption == null ||
             _keyProvider == null ||
             !ShouldSecureMessage(context.Method.Name))
         {
@@ -59,9 +59,9 @@ public sealed class SecureHandshakeInterceptor : Interceptor
                 {
                     byte[] serializedPayload = protoMessage.ToByteArray();
                     string serverPublicKey = await _keyProvider!.GetServerPublicKeyAsync();
-                    
+
                     SecuredMessage securedMessage = await _encryption!.EncryptMessageAsync(
-                        serializedPayload, 
+                        serializedPayload,
                         serverPublicKey);
 
                     Metadata securityHeaders = CreateSecurityHeaders(securedMessage);
@@ -77,12 +77,12 @@ public sealed class SecureHandshakeInterceptor : Interceptor
 
                     return await continuation(request, newContext).ResponseAsync;
                 }
-                
+
                 return await continuation(request, context).ResponseAsync;
             }
             catch (Exception ex)
             {
-                throw new RpcException(new Status(StatusCode.Internal, 
+                throw new RpcException(new Status(StatusCode.Internal,
                     $"Application layer encryption failed: {ex.Message}"));
             }
         }
@@ -99,8 +99,8 @@ public sealed class SecureHandshakeInterceptor : Interceptor
     {
         if (_options.SecureAllMessages) return true;
         if (!_options.SecureFirstMessageOnly) return false;
-        
-        return _options.FirstRequestMethods.Any(method => 
+
+        return _options.FirstRequestMethods.Any(method =>
             methodName.EndsWith(method, StringComparison.OrdinalIgnoreCase));
     }
 

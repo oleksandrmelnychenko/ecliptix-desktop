@@ -49,13 +49,13 @@ public sealed class SystemEventService(IUnifiedMessageBus messageBus) : ISystemE
         {
             _stateLock.ExitWriteLock();
         }
-        
+
         SystemStateChangedEvent evt = SystemStateChangedEvent.New(state, logMessage);
         await messageBus.PublishAsync(evt);
     }
 
     public IDisposable OnSystemStateChanged(
-        Func<SystemStateChangedEvent, Task> handler, 
+        Func<SystemStateChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
     {
         return messageBus.Subscribe(handler, lifetime);

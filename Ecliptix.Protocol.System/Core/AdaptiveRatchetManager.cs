@@ -231,7 +231,7 @@ public sealed class AdaptiveRatchetManager : IDisposable
             {
                 List<Timestamp> messageTimestamps = new();
                 DateTime cutoff = DateTime.UtcNow - _messageWindowSize;
-                
+
                 foreach (DateTime timestamp in _messageTimestamps)
                 {
                     if (timestamp >= cutoff)

@@ -75,9 +75,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }.ToFrozenDictionary();
 
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
-    
+
     public RoutingState Router { get; } = new();
-    
+
     private IRoutableViewModel? _currentView;
     public IRoutableViewModel? CurrentView
     {
@@ -85,7 +85,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         private set
         {
             this.RaiseAndSetIfChanged(ref _currentView, value);
-            
+
             CanNavigateBack = _navigationStack.Count > 0;
         }
     }
@@ -107,24 +107,24 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public string FullVersionInfo { get; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
-    
+
     public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
-    
+
     public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
-    
+
     public void ClearNavigationStack()
     {
         _navigationStack.Clear();
         CanNavigateBack = false;
         Log.Information("Navigation stack cleared");
     }
-    
+
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
         if (_currentView != null)
         {
             _navigationStack.Push(_currentView);
-            Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}", 
+            Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
                 _currentView.GetType().Name, _navigationStack.Count);
         }
 
@@ -193,15 +193,15 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             if (_currentView != null)
             {
                 _navigationStack.Push(_currentView);
-                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}", 
+                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
                     _currentView.GetType().Name, _navigationStack.Count);
             }
 
             CurrentView = viewModel;
-            
+
             return viewModel;
         });
-        
+
         NavigateBack = ReactiveCommand.Create(() =>
         {
             if (_navigationStack.Count > 0)
@@ -210,18 +210,18 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 {
                     resettable.ResetState();
                 }
-                
+
                 IRoutableViewModel previousView = _navigationStack.Pop();
-                Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}", 
+                Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}",
                     previousView.GetType().Name, _navigationStack.Count);
-                
+
                 _currentView = previousView;
                 this.RaisePropertyChanged(nameof(CurrentView));
                 CanNavigateBack = _navigationStack.Count > 0;
-                
+
                 return previousView;
             }
-            
+
             Log.Information("Cannot navigate back - navigation stack is empty");
             return null;
         });
@@ -231,24 +231,24 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             await CheckCountryCultureMismatchAsync();
             return Unit.Default;
         });
-        
+
         SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             try
             {
                 Log.Information("Starting transition to main window after successful authentication");
-                
+
                 IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
                 IWindowService? windowService = Locator.Current.GetService<IWindowService>();
-                
+
                 if (moduleManager == null || windowService == null)
                 {
                     Log.Error("Required services not available for main window transition");
                     return;
                 }
 
-                Window? currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop 
-                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this) 
+                Window? currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
                     : null;
 
                 if (currentWindow == null)
@@ -256,16 +256,16 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     Log.Error("Could not find current authentication window");
                     return;
                 }
-                
+
                 Log.Information("Loading Main module...");
                 IModule mainModule = await moduleManager.LoadModuleAsync("Main");
                 Log.Information("Main module loaded successfully");
-                
+
                 Log.Information("Cleaning up authentication flow...");
                 CleanupAuthenticationFlow();
-                
+
                 MainHostWindow mainWindow = new MainHostWindow();
-                
+
                 if (mainModule.ServiceScope?.ServiceProvider != null)
                 {
                     try
@@ -281,12 +281,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                         Log.Warning(ex, "Could not resolve MainViewModel from module scope, using default");
                     }
                 }
-                
+
                 await windowService.ShowAndWaitForWindowAsync(mainWindow);
                 windowService.PositionWindowRelativeTo(mainWindow, currentWindow);
-                
+
                 await windowService.PerformCrossfadeTransitionAsync(currentWindow, mainWindow);
-                
+
                 currentWindow.Close();
 
                 Log.Information("Successfully transitioned to main window");
@@ -382,7 +382,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         try
         {
             Log.Information("Opening URL: {Url}", url);
-            
+
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
@@ -443,12 +443,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             if (weakRef.TryGetTarget(out IRoutableViewModel? viewModel))
             {
                 Log.Information("Disposing cached ViewModel: {ViewModelType}", viewModel.GetType().Name);
-                
+
                 if (viewModel is IDisposable disposableViewModel)
                 {
                     disposableViewModel.Dispose();
                 }
-                
+
                 if (viewModel is IResettable resettableViewModel)
                 {
                     resettableViewModel.ResetState();
@@ -457,7 +457,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
 
         _viewModelCache.Clear();
-        
+
         CurrentView = null;
 
         Log.Information("Authentication flow cleanup completed - all ViewModels disposed and cache cleared");
@@ -468,14 +468,14 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         if (disposing)
         {
             Log.Information("MembershipHostWindowModel disposing - starting cleanup");
-            
+
             CleanupAuthenticationFlow();
-            
+
             _connectivitySubscription.Dispose();
             _disposables.Dispose();
             LanguageSelector.Dispose();
             NetworkStatusNotification.Dispose();
-            
+
             Log.Information("MembershipHostWindowModel disposal complete");
         }
 

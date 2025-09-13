@@ -24,7 +24,7 @@ public sealed class SecrecyChannelRpcServices(
     )
     {
         ArgumentNullException.ThrowIfNull(request);
-        
+
         CallOptions callOptions = new();
         if (exchangeType.HasValue)
         {
@@ -34,7 +34,7 @@ public sealed class SecrecyChannelRpcServices(
             };
             callOptions = callOptions.WithHeaders(headers);
         }
-        
+
         return await ExecuteAsync<PubKeyExchange>(
             networkEvents,
             systemEvents,

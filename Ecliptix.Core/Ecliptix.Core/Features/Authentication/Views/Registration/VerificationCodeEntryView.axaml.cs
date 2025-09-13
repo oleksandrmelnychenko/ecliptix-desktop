@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpViewModel>
 {
     private bool _handlersAttached;
-    
+
     public VerificationCodeEntryView()
     {
         InitializeComponent();
@@ -21,7 +21,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
     {
         AvaloniaXamlLoader.Load(this);
     }
-    
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -33,7 +33,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
         base.OnDetachedFromVisualTree(e);
         TeardownEventHandlers();
     }
-    
+
     private void SetupEventHandlers()
     {
         if (_handlersAttached) return;
@@ -53,7 +53,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
         }
         _handlersAttached = false;
     }
-    
+
     private void OnSegmentedTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter && e.Key != Key.Return) return;

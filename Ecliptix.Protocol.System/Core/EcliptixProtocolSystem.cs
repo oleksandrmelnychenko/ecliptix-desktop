@@ -255,8 +255,8 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 return Result<CipherPayload, EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
 
             (EcliptixMessageKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
-            
-            Log.Debug("🔧 PRODUCE-MESSAGE: PrepareNextSendMessage returned - Index={Index}, IncludeDhKey={IncludeDhKey}", 
+
+            Log.Debug("🔧 PRODUCE-MESSAGE: PrepareNextSendMessage returned - Index={Index}, IncludeDhKey={IncludeDhKey}",
                 prep.MessageKey.Index, prep.IncludeDhKey);
 
             Result<byte[], EcliptixProtocolFailure> nonceResult = connection.GenerateNextNonce();
@@ -270,10 +270,10 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 return Result<CipherPayload, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
 
             newSenderDhPublicKey = dhKeyResult.Unwrap();
-            
+
             if (prep.IncludeDhKey && newSenderDhPublicKey?.Length > 0)
             {
-                Log.Information("[SERVER-RATCHET] Including new DH key in message at index {Index}, key length: {Length}", 
+                Log.Information("[SERVER-RATCHET] Including new DH key in message at index {Index}, key length: {Length}",
                     prep.MessageKey.Index, newSenderDhPublicKey.Length);
             }
 
@@ -356,7 +356,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (cipherPayloadProto.DhPublicKey.Length > 0)
             {
                 SecureByteStringInterop.SecureCopyWithCleanup(cipherPayloadProto.DhPublicKey, out receivedDhKey);
-                
+
                 Log.Information("[CLIENT-RATCHET] Received new DH key at message index {Index}, key length: {Length}",
                     cipherPayloadProto.RatchetIndex, cipherPayloadProto.DhPublicKey.Length);
 
@@ -458,7 +458,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private Result<byte[], EcliptixProtocolFailure> GetOptionalSenderDhKey(bool include)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
-        
+
         if (!include || connection == null)
             return Result<byte[], EcliptixProtocolFailure>.Ok([]);
 
@@ -467,7 +467,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             return Result<byte[], EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
 
         byte[]? key = keyResult.Unwrap();
-        
+
         return Result<byte[], EcliptixProtocolFailure>.Ok(key ?? []);
     }
 
@@ -584,9 +584,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     public static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> CreateFrom(EcliptixSystemIdentityKeys keys,
         EcliptixProtocolConnection connection)
     {
-        Log.Information("🔧 PROTOCOL-SYSTEM-CREATE-DEFAULT: Creating protocol system with default config - DH every {Messages} messages", 
+        Log.Information("🔧 PROTOCOL-SYSTEM-CREATE-DEFAULT: Creating protocol system with default config - DH every {Messages} messages",
             RatchetConfig.Default.DhRatchetEveryNMessages);
-            
+
         EcliptixProtocolSystem system = new(keys, RatchetConfig.Default) { _protocolConnection = connection };
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }

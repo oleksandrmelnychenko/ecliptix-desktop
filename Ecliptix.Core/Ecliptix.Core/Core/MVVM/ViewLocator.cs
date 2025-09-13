@@ -20,7 +20,7 @@ public class ViewLocator : IViewLocator
         RegisterFactory<TViewModel>(() => new TView());
     }
 
-    public void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType, 
+    public void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType,
                         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType)
     {
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))

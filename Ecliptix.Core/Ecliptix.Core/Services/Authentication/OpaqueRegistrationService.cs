@@ -180,17 +180,17 @@ public class OpaqueRegistrationService(
         if (streamResult.IsErr)
         {
             string errorMessage = streamResult.UnwrapErr().Message;
-            
+
             cancellationTokenSource.Dispose();
-            
+
             if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
             {
                 RxApp.MainThreadScheduler.Schedule(() =>
-                    onCountdownUpdate?.Invoke(0, Guid.Empty, 
-                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound, 
+                    onCountdownUpdate?.Invoke(0, Guid.Empty,
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
                         "Session expired. Please start over."));
             }
-            
+
             return Result<Unit, string>.Err(errorMessage);
         }
 
@@ -249,15 +249,15 @@ public class OpaqueRegistrationService(
         if (result.IsErr)
         {
             string errorMessage = result.UnwrapErr().Message;
-            
+
             if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
             {
                 RxApp.MainThreadScheduler.Schedule(() =>
-                    onCountdownUpdate?.Invoke(0, Guid.Empty, 
-                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound, 
+                    onCountdownUpdate?.Invoke(0, Guid.Empty,
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
                         "Session expired. Please start over."));
             }
-            
+
             return Result<Unit, string>.Err(errorMessage);
         }
 
@@ -556,7 +556,18 @@ public class OpaqueRegistrationService(
             {
                 if (verificationIdentifier != Guid.Empty)
                 {
-                    _ = Task.Run(async () => await CleanupStreamAsync(verificationIdentifier), cancellationToken);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await CleanupStreamAsync(verificationIdentifier);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Background stream cleanup failed for session {SessionId}: {Error}",
+                                verificationIdentifier, ex.Message);
+                        }
+                    }, cancellationToken);
                 }
             }
 

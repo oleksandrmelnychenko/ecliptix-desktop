@@ -107,10 +107,10 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         ToggleLanguageCommand?.Dispose();
         _disposables.Dispose();
-        
+
         _disposed = true;
     }
 }

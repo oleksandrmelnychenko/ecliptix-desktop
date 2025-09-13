@@ -10,7 +10,7 @@ namespace Ecliptix.Core.Core.Controls;
 public sealed class ModuleContentControl : ContentControl
 {
     private readonly IModuleViewFactory? _moduleViewFactory;
-    
+
     public static readonly StyledProperty<object?> ViewModelContentProperty =
         AvaloniaProperty.Register<ModuleContentControl, object?>(nameof(ViewModelContent));
 
@@ -19,7 +19,7 @@ public sealed class ModuleContentControl : ContentControl
         get => GetValue(ViewModelContentProperty);
         set => SetValue(ViewModelContentProperty, value);
     }
-    
+
     public ModuleContentControl()
     {
         try
@@ -71,14 +71,14 @@ public sealed class ModuleContentControl : ContentControl
     private Control? TryCreateViewWithModuleFactory(object viewModel)
     {
         if (_moduleViewFactory == null) return null;
-        
+
         try
         {
             Serilog.Log.Information("🔍 TryCreateViewWithModuleFactory: Attempting to create view for {ViewModelType}",
                 viewModel.GetType().FullName);
-                
+
             Control? result = _moduleViewFactory.CreateView(viewModel.GetType());
-            
+
             if (result != null)
             {
                 Serilog.Log.Information(
@@ -91,7 +91,7 @@ public sealed class ModuleContentControl : ContentControl
                     "🔍 ModuleViewFactory: No factory registered for {ViewModelType}",
                     viewModel.GetType().Name);
             }
-            
+
             return result;
         }
         catch (Exception ex)
@@ -101,7 +101,7 @@ public sealed class ModuleContentControl : ContentControl
             return null;
         }
     }
-    
+
     private static Control? TryCreateViewWithStaticMapper(object viewModel)
     {
         Serilog.Log.Information("🔍 TryCreateViewWithStaticMapper: Attempting to create view for {ViewModelType}",

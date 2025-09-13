@@ -13,6 +13,6 @@ public interface IBottomSheetService
     Task HideAsync();
 
     IDisposable OnBottomSheetChanged(
-        Func<BottomSheetChangedEvent, Task> handler, 
+        Func<BottomSheetChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 }

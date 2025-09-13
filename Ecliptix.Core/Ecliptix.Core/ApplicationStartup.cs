@@ -68,11 +68,11 @@ namespace Ecliptix.Core
             try
             {
                 Window nextWindow = await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
-                
+
                 _desktop.MainWindow = nextWindow;
-                
+
                 await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
-                
+
                 _splashScreen.Close();
                 _splashScreen = null;
             }

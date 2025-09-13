@@ -13,10 +13,10 @@ public interface INetworkEventService
     NetworkStatus CurrentStatus { get; }
 
     IDisposable OnNetworkStatusChanged(
-        Func<NetworkStatusChangedEvent, Task> handler, 
+        Func<NetworkStatusChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 
     IDisposable OnManualRetryRequested(
-        Func<ManualRetryRequestedEvent, Task> handler, 
+        Func<ManualRetryRequestedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 }

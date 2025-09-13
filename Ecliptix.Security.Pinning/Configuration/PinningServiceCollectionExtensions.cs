@@ -14,7 +14,7 @@ public static class PinningServiceCollectionExtensions
     public static IServiceCollection AddSslPinning(this IServiceCollection services)
     {
         services.AddTransient<SecureHandshakeInterceptor>();
-        
+
         return services;
     }
 
@@ -26,7 +26,7 @@ public static class PinningServiceCollectionExtensions
         ApplicationSecurityOptions options = new();
         configuration.GetSection("ApplicationSecurity").Bind(options);
         services.AddSingleton(Options.Create(options));
-        
+
         if (configureOptions != null)
         {
             services.Configure(configureOptions);
@@ -50,19 +50,19 @@ public static class PinningServiceCollectionExtensions
         {
             ApplicationSecurityOptions options = provider.GetRequiredService<IOptions<ApplicationSecurityOptions>>().Value;
             X509Certificate2? clientCert = GetClientCertificate(options.ClientCertificateThumbprint);
-            
+
             if (!string.IsNullOrEmpty(options.ServerPublicKeyHex))
             {
                 return new ConfigurationKeyProvider(options.ServerPublicKeyHex, clientCert);
             }
-            
+
             throw new InvalidOperationException("Server public key must be configured");
         });
 
         services.AddTransient<SecureHandshakeInterceptor>(provider =>
         {
             ApplicationSecurityOptions options = provider.GetRequiredService<IOptions<ApplicationSecurityOptions>>().Value;
-            
+
             if (!options.EnableApplicationLayerSecurity)
             {
                 return new SecureHandshakeInterceptor();
@@ -70,7 +70,7 @@ public static class PinningServiceCollectionExtensions
 
             IApplicationLayerEncryption encryption = provider.GetRequiredService<IApplicationLayerEncryption>();
             IKeyProvider keyProvider = provider.GetRequiredService<IKeyProvider>();
-            
+
             return new SecureHandshakeInterceptor(encryption, keyProvider, options);
         });
 
@@ -84,10 +84,10 @@ public static class PinningServiceCollectionExtensions
 
         using X509Store store = new(StoreName.My, StoreLocation.CurrentUser);
         store.Open(OpenFlags.ReadOnly);
-        
+
         X509Certificate2Collection certificates = store.Certificates.Find(
-            X509FindType.FindByThumbprint, 
-            thumbprint, 
+            X509FindType.FindByThumbprint,
+            thumbprint,
             false);
 
         return certificates.Count > 0 ? certificates[0] : null;

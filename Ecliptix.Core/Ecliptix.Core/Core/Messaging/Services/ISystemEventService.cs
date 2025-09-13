@@ -12,6 +12,6 @@ public interface ISystemEventService
     SystemState CurrentState { get; }
 
     IDisposable OnSystemStateChanged(
-        Func<SystemStateChangedEvent, Task> handler, 
+        Func<SystemStateChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 }

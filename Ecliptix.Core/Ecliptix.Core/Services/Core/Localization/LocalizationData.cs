@@ -58,26 +58,26 @@ public static class LocalizationData
         ["Verification.Error.NoSession"] = "Verification session not found",
         ["Verification.Error.SessionExpired"] = "Verification session has expired",
         ["Verification.Error.NoActiveSession"] = "No active verification session",
-        
+
         ["Verification.Error.MaxAttemptsReached"] = "Maximum verification attempts reached",
         ["Verification.Error.VerificationFailed"] = "Verification failed",
         ["Verification.Error.SessionNotFound"] = "Verification session not found",
-        ["Verification.Info.RedirectingInSeconds"] = "Redirecting in {0} seconds...",
-        
-        
+        ["Verification.Info.Redirecting"] = "Redirecting...",
+
+
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Digits only after code",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "{0}-{1} digits required",
         ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Required",
-        
-        
+
+
         ["ValidationErrors.MobileNumber.Required"] = "Mobile number is required",
         ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Phone number identifier is required",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Device identifier is required",
         ["ValidationErrors.SessionIdentifier.Required"] = "Session identifier is required",
         ["ValidationErrors.MembershipIdentifier.Required"] = "Membership identifier is required",
-        
-        
+
+
         ["ValidationErrors.SecureKey.Required"] = "Required",
         ["ValidationErrors.SecureKey.MinLength"] = "Min {0} characters",
         ["ValidationErrors.SecureKey.MaxLength"] = "Max {0} characters",
@@ -94,13 +94,9 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.InvalidCredentials"] = "Invalid credentials",
         ["ValidationErrors.SecureKey.NonEnglishLetters"] = "Latin letters only",
         ["ValidationErrors.SecureKey.NoSpecialChar"] = "Requires a special character",
-        
-        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Latin letters only",
-        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Invalid character used",
-        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Multiple instances of character type",
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Passwords do not match",
-        
+
         ["ValidationErrors.PasswordStrength.Invalid"] = "Invalid",
         ["ValidationErrors.PasswordStrength.VeryWeak"] = "Very Weak",
         ["ValidationErrors.PasswordStrength.Weak"] = "Weak",
@@ -196,32 +192,32 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Забули ключ?",
         ["Authentication.SignIn.Continue"] = "Продовжити",
 
-        
+
         ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",
         ["Registration.Error.Failed"] = "Не вдалося зареєструватися",
-        ["Verification.Error.NoSession"] = "Сесії не знайдено",
-        ["Verification.Error.SessionExpired"] = "Термін дії сесії закінчився",
-        ["Verification.Error.NoActiveSession"] = "Активної сесії не знайдено",
-        
+        ["Verification.Error.NoSession"] = "Сесія підтвердження не знайдена",
+        ["Verification.Error.SessionExpired"] = "Термін дії сесії підтвердження минув",
+        ["Verification.Error.NoActiveSession"] = "Немає активної сесії підтвердження",
+
         ["Verification.Error.MaxAttemptsReached"] = "Досягнуто максимальну кількість спроб підтвердження",
         ["Verification.Error.VerificationFailed"] = "Підтвердження не вдалося",
         ["Verification.Error.SessionNotFound"] = "Сесія підтвердження не знайдена",
-        ["Verification.Info.RedirectingInSeconds"] = "Перенаправлення через {0} секунд...",
-        
+        ["Verification.Info.Redirecting"] = "Перенаправлення...",
+
 
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",
         ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Лише цифри після коду",
         ["ValidationErrors.PhoneNumber.IncorrectLength"] = "Потрібно {0}-{1} цифр",
         ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Обов'язкове поле",
 
-        
+
         ["ValidationErrors.MobileNumber.Required"] = "Номер мобільного телефону є обов'язковим",
         ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Ідентифікатор номера телефону є обов'язковим",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Ідентифікатор пристрою є обов'язковим",
         ["ValidationErrors.SessionIdentifier.Required"] = "Ідентифікатор сесії є обов'язковим",
         ["ValidationErrors.MembershipIdentifier.Required"] = "Ідентифікатор учасника є обов'язковим",
-        
-        
+
+
         ["ValidationErrors.SecureKey.Required"] = "Обов'язкове поле",
         ["ValidationErrors.SecureKey.MinLength"] = "Мін. {0} символів",
         ["ValidationErrors.SecureKey.MaxLength"] = "Макс. {0} символів",
@@ -238,10 +234,6 @@ public static class LocalizationData
         ["ValidationErrors.SecureKey.InvalidCredentials"] = "Неправильні облікові дані",
         ["ValidationErrors.SecureKey.NonEnglishLetters"] = "Лише латинські літери",
         ["ValidationErrors.SecureKey.NoSpecialChar"] = "Потрібен спеціальний символ",
-        
-        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Лише латинські літери",
-        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Використано недопустимий символ",
-        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Кілька символів одного типу",
 
         ["ValidationErrors.VerifySecureKey.DoesNotMatch"] = "Паролі не збігаються",
 
@@ -284,7 +276,7 @@ public static class LocalizationData
         ["NetworkNotification.ServerNotResponding.Title"] = "Сервер недоступний",
         ["NetworkNotification.ServerNotResponding.Description"] = "Наші сервери не відповідають",
         ["NetworkNotification.Button.Retry"] = "Повторити",
-        
+
 
         ["LanguageDetection.Title"] = "Пропозиція мови",
         ["LanguageDetection.Prompt"] = "Перемкнутись на {0}?",

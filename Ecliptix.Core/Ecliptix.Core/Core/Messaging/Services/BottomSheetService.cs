@@ -13,7 +13,7 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
     public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true)
     {
         if (_disposed) return;
-        
+
         BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(componentType, showScrim, control);
         await messageBus.PublishAsync(evt);
     }
@@ -21,13 +21,13 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
     public async Task HideAsync()
     {
         if (_disposed) return;
-        
+
         BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(BottomSheetComponentType.Hidden, false);
         await messageBus.PublishAsync(evt);
     }
 
     public IDisposable OnBottomSheetChanged(
-        Func<BottomSheetChangedEvent, Task> handler, 
+        Func<BottomSheetChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
     {
         return messageBus.Subscribe(handler, lifetime);

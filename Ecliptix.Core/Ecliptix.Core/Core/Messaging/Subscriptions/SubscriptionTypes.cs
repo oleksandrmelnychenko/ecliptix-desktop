@@ -16,7 +16,7 @@ internal sealed class StrongSubscription<T>(Func<T, bool> filter, Func<T, Task> 
     where T : class
 {
     public int Priority { get; } = priority;
-    public bool IsAlive => true; 
+    public bool IsAlive => true;
     public bool IsWeak => false;
 
     public Task? HandleAsync(object message)
@@ -41,8 +41,8 @@ internal sealed class WeakSubscription<T>(Func<T, bool> filter, Func<T, Task> ha
 
     public Task? HandleAsync(object message)
     {
-        if (message is T typedMessage && 
-            filter(typedMessage) && 
+        if (message is T typedMessage &&
+            filter(typedMessage) &&
             _handlerRef.TryGetTarget(out Func<T, Task>? handler))
         {
             return handler(typedMessage);

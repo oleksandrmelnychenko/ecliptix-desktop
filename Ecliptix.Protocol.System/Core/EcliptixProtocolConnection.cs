@@ -71,8 +71,8 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _peerDhPublicKey = null;
         _receivedNewDhKey = false;
         _disposed = false;
-        
-        Log.Information("🔧 PROTOCOL-CONN-NEW: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages", 
+
+        Log.Information("🔧 PROTOCOL-CONN-NEW: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages",
             id, ratchetConfig.DhRatchetEveryNMessages);
     }
 
@@ -107,8 +107,8 @@ public sealed class EcliptixProtocolConnection : IDisposable
         _receivedNewDhKey = false;
         _disposed = false;
         _lock = new Lock();
-        
-        Log.Information("🔧 PROTOCOL-CONN-RESTORED: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages", 
+
+        Log.Information("🔧 PROTOCOL-CONN-RESTORED: ConnectId {ConnectId} with RatchetConfig DH every {Messages} messages",
             id, ratchetConfig.DhRatchetEveryNMessages);
     }
 
@@ -124,7 +124,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> Create(uint connectId, bool isInitiator)
     {
-        Log.Warning("🔧 PROTOCOL-CONN-DEFAULT: Creating connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)", 
+        Log.Warning("🔧 PROTOCOL-CONN-DEFAULT: Creating connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)",
             connectId, RatchetConfig.Default.DhRatchetEveryNMessages);
         return Create(connectId, isInitiator, RatchetConfig.Default, PubKeyExchangeType.InitialHandshake);
     }
@@ -265,7 +265,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
     public static Result<EcliptixProtocolConnection, EcliptixProtocolFailure> FromProtoState(uint connectId,
         RatchetState proto)
     {
-        Log.Warning("🔧 PROTOCOL-FROM-STATE-DEFAULT: Restoring connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)", 
+        Log.Warning("🔧 PROTOCOL-FROM-STATE-DEFAULT: Restoring connection {ConnectId} with default config - DH every {Messages} messages (this should use explicit config)",
             connectId, RatchetConfig.Default.DhRatchetEveryNMessages);
         return FromProtoState(connectId, proto, RatchetConfig.Default, PubKeyExchangeType.InitialHandshake);
     }
@@ -899,10 +899,10 @@ public sealed class EcliptixProtocolConnection : IDisposable
             if (keyResult.IsOk)
             {
                 byte[]? key = keyResult.Unwrap();
-                Log.Debug("🔧 GET-SENDER-DH-KEY: Connection {ConnectId} returning DH key length: {Length}", 
+                Log.Debug("🔧 GET-SENDER-DH-KEY: Connection {ConnectId} returning DH key length: {Length}",
                     _id, key?.Length ?? 0);
             }
-            
+
             return keyResult;
         }
     }
@@ -1095,16 +1095,16 @@ public sealed class EcliptixProtocolConnection : IDisposable
             currentIndex + 1, shouldRatchet, _ratchetConfig.DhRatchetEveryNMessages, _receivedNewDhKey);
 
         if (!shouldRatchet) return Result<bool, EcliptixProtocolFailure>.Ok(false);
-        
-        Log.Information("🔧 SENDER-RATCHET: Performing DH ratchet for connection {ConnectId} at index {Index}", 
+
+        Log.Information("🔧 SENDER-RATCHET: Performing DH ratchet for connection {ConnectId} at index {Index}",
             _id, currentIndex + 1);
-        
+
         Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformDhRatchet(true);
         if (ratchetResult.IsErr)
             return Result<bool, EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
 
         Log.Information("🔧 SENDER-RATCHET: DH ratchet completed successfully for connection {ConnectId}, will include DH key", _id);
-        
+
         _receivedNewDhKey = false;
         return Result<bool, EcliptixProtocolFailure>.Ok(true);
     }

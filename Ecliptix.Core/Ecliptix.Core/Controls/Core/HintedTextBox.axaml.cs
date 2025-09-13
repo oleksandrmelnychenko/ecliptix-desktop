@@ -14,7 +14,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
-using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Services.Membership;
@@ -126,26 +125,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersRemovedEventArgs>(nameof(SecureKeyCharactersRemoved),
             RoutingStrategies.Bubble);
 
-    public static readonly StyledProperty<string> WarningTextProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(WarningText), string.Empty);
-
-    public static readonly StyledProperty<bool> HasWarningProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasWarning));
-    
-    public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
-        RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected),
-            RoutingStrategies.Bubble);
-    
-    public static readonly StyledProperty<int> WarningDisplayDurationMsProperty =
-        AvaloniaProperty.Register<HintedTextBox, int>(nameof(WarningDisplayDurationMs),
-            HintedTextBoxConstants.DefaultWarningDisplayDurationMs);
-    
-    public event EventHandler<CharacterRejectedEventArgs> CharacterRejected
-    {
-        add => AddHandler(CharacterRejectedEvent, value);
-        remove => RemoveHandler(CharacterRejectedEvent, value);
-    }
-    
     public event EventHandler<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAdded
     {
         add => AddHandler(SecureKeyCharactersAddedEvent, value);
@@ -158,18 +137,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
     }
 
-    public string WarningText
-    {
-        get => GetValue(WarningTextProperty);
-        set => SetValue(WarningTextProperty, value);
-    }
-
-    public bool HasWarning
-    {
-        get => GetValue(HasWarningProperty);
-        set => SetValue(HasWarningProperty, value);
-    }
-    
     public bool IsSecureKeyMode
     {
         get => GetValue(IsPasswordModeProperty);
@@ -243,7 +210,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         get => GetValue(ErrorTextProperty);
         private set
         {
-            _originalErrorText = value; 
+            _originalErrorText = value;
             SetValue(ErrorTextProperty, value);
         }
     }
@@ -349,12 +316,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         get => GetValue(PasswordStrengthIconBrushProperty);
         set => SetValue(PasswordStrengthIconBrushProperty, value);
     }
-    
-    public int WarningDisplayDurationMs
-    {
-        get => GetValue(WarningDisplayDurationMsProperty);
-        set => SetValue(WarningDisplayDurationMsProperty, value);
-    }
 
     private readonly CompositeDisposable _disposables = new();
     private TextBox? _mainTextBox;
@@ -388,8 +349,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private volatile bool _isProcessingSecureKeyChange;
     private int _intendedCaretPosition;
     private string _originalErrorText = string.Empty;
-    private DispatcherTimer? _warningTimer;
-    
+
     public HintedTextBox()
     {
         InitializeComponent();
@@ -400,12 +360,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         if (_mainTextBox == null) return;
 
-        string maskText = newPasswordLength > 0 
+        string maskText = newPasswordLength > 0
             ? new string(SecureKeyMaskChar, newPasswordLength)
             : string.Empty;
-        
+
         _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
-        
+
         int caretPosition = Math.Clamp(_intendedCaretPosition, 0, newPasswordLength);
         UpdateTextBox(maskText, caretPosition);
         UpdateRemainingCharacters();
@@ -427,23 +387,23 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
         _mainTextBox.LostFocus += OnLostFocus;
-        
+
         if (IsSecureKeyMode)
         {
             DisableClipboardOperations();
         }
-        
+
         _disposables.Add(Disposable.Create(UnsubscribeTextBoxEvents));
 
         SetupReactiveBindings();
         UpdateBorderState();
         _isControlInitialized = true;
     }
-    
+
     private void DisableClipboardOperations()
     {
         if (_mainTextBox == null) return;
-        
+
         _mainTextBox.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
     }
@@ -451,97 +411,29 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void OnTextInput(object? sender, TextInputEventArgs e)
     {
         if (!IsSecureKeyMode) return;
-        
+
         if (string.IsNullOrEmpty(e.Text)) return;
-        
+
         if (e.Text.Length > 1)
         {
             e.Handled = true;
-            CharacterRejectedEventArgs multiCharArgs =
-                new CharacterRejectedEventArgs('\0', CharacterWarningType.MultipleCharacters, e.Text)
-                {
-                    RoutedEvent = CharacterRejectedEvent
-                };
-            RaiseEvent(multiCharArgs);
-            StartWarningTimer();
-            return;
-        }
-        
-        char inputChar = e.Text[0];
-        if (!IsAllowedCharacter(inputChar))
-        {
-            e.Handled = true;
-            CharacterWarningType warningType = GetWarningType(inputChar);
-            CharacterRejectedEventArgs args = new CharacterRejectedEventArgs(inputChar, warningType)
-            {
-                RoutedEvent = CharacterRejectedEvent
-            };
-            RaiseEvent(args);
-            StartWarningTimer();
         }
     }
-    
-    private void StartWarningTimer()
-    {
-        if (_warningTimer == null)
-        {
-            _warningTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs)
-            };
-            _warningTimer.Tick += OnWarningTimerTick;
-        }
-        else
-        {
-            _warningTimer.Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs);
-        }
-        
-        _warningTimer.Stop();
-        _warningTimer.Start();
-    }
-    
-    private void OnWarningTimerTick(object? sender, System.EventArgs e)
-    {
-        HasWarning = false;
-        _warningTimer?.Stop();
-    }
-    
-    private static CharacterWarningType GetWarningType(char c)
-    {
-        if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
-            return CharacterWarningType.NonLatinLetter;
 
-        return CharacterWarningType.InvalidCharacter;
-    }
-    
-    private static bool IsAllowedCharacter(char c)
-    {
-        if (char.IsDigit(c))
-            return true;
-        
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-            return true;
-        
-        if (!char.IsLetter(c) && !char.IsDigit(c))
-            return true;
-
-        return false;
-    }
-    
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
         if (!IsSecureKeyMode) return;
-        
+
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
         {
             switch (e.Key)
             {
-                case Key.V: 
-                case Key.C: 
-                case Key.X: 
+                case Key.V:
+                case Key.C:
+                case Key.X:
                 // case Key.A:
-                case Key.Z: 
-                case Key.Y: 
+                case Key.Z:
+                case Key.Y:
                     e.Handled = true;
                     return;
             }
@@ -551,7 +443,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             e.Handled = true;
         }
     }
-    
+
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
         if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
@@ -572,7 +464,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             _inputDebounceTimer.Stop();
         }
-        
+
         if (_inputDebounceTimer == null)
         {
             _inputDebounceTimer = new DispatcherTimer
@@ -581,7 +473,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             };
             _inputDebounceTimer.Tick += OnDebounceTimerTick;
         }
-        
+
         _inputDebounceTimer.Start();
     }
 
@@ -597,7 +489,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             };
             _secureKeyDebounceTimer.Tick += OnSecureKeyDebounceTimerTick;
         }
-        
+
         _secureKeyDebounceTimer.Start();
     }
 
@@ -660,7 +552,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     string addedChars = GetAddedTextElements(currentText, lastText, _mainTextBox.CaretIndex);
 
                     int insertPos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex - addedCount);
-                    
+
                     _intendedCaretPosition = insertPos + addedCount;
 
                     if (!string.IsNullOrEmpty(addedChars))
@@ -674,7 +566,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 {
                     int removedCount = lastElementCount - currentElementCount;
                     int removePos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex);
-                    
+
                     _intendedCaretPosition = removePos;
 
                     RaiseEvent(
@@ -691,7 +583,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     int addedCount = currentText.Length - lastText.Length;
                     int insertPos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex - addedCount);
                     string addedChars = SafeSubstring(currentText, insertPos, addedCount);
-                    
+
                     _intendedCaretPosition = insertPos + addedCount;
 
                     if (!string.IsNullOrEmpty(addedChars))
@@ -705,7 +597,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 {
                     int removedCount = lastText.Length - currentText.Length;
                     int removePos = _mainTextBox.CaretIndex;
-                    
+
                     _intendedCaretPosition = removePos;
 
                     RaiseEvent(
@@ -896,7 +788,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
         }
     }
-    
+
     private void SetupReactiveBindings()
     {
         Observable.Merge(
@@ -918,8 +810,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             })
             .DisposeWith(_disposables);
 
-        
-        this.WhenAnyValue(x => x.ErrorText) 
+
+        this.WhenAnyValue(x => x.ErrorText)
             .DistinctUntilChanged()
             .Scan(string.Empty, (previous, current) =>
                 string.IsNullOrEmpty(current) && !string.IsNullOrEmpty(previous) ? previous : current)
@@ -936,9 +828,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 {
                     System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
                 }
-            }) 
+            })
             .DisposeWith(_disposables);
-        
+
         this.WhenAnyValue(x => x.Text)
             .Where(text => !IsSecureKeyMode && _mainTextBox != null && _mainTextBox.Text != text)
             .Subscribe(text =>
@@ -987,7 +879,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (_mainTextBox == null) return;
 
         _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
-        
+
         if (isSecureKeyMode)
         {
             _lastProcessedText = _mainTextBox.Text ?? string.Empty;
@@ -1005,11 +897,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void EnableClipboardOperations()
     {
         if (_mainTextBox == null) return;
-    
+
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
     }
-    
+
     private void TriggerTypingAnimation()
     {
         if (_mainTextBox == null || _isDisposed || _focusBorder == null) return;
@@ -1225,14 +1117,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 _secureKeyDebounceTimer.Tick -= OnSecureKeyDebounceTimerTick;
                 _secureKeyDebounceTimer = null;
             }
-            
-            if (_warningTimer != null)
-            {
-                _warningTimer.Stop();
-                _warningTimer.Tick -= OnWarningTimerTick;
-                _warningTimer = null;
-            }
-            
+
             _currentTypingAnimation?.Dispose();
 
             AttachedToVisualTree -= OnAttachedToVisualTree;

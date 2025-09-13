@@ -64,7 +64,7 @@ public sealed class SecureTextBuffer : IDisposable
                 Result<SecureStringHandler, SodiumFailure> handlerResult = SecureStringHandler.FromString(insertChars);
                 if (handlerResult.IsErr)
                 {
-                    return; 
+                    return;
                 }
 
                 using SecureStringHandler insertHandler = handlerResult.Unwrap();
@@ -179,7 +179,7 @@ public sealed class SecureTextBuffer : IDisposable
         {
             StringInfo stringInfo = new(text);
             int textElementCount = stringInfo.LengthInTextElements;
-            
+
             if (textElementIndex >= textElementCount)
             {
                 return Encoding.UTF8.GetByteCount(text);

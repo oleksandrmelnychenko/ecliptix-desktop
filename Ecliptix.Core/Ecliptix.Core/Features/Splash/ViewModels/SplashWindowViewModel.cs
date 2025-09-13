@@ -41,7 +41,7 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         {
             subscription.DisposeWith(disposables);
         });
-        
+
         IsSubscribed.TrySetResult();
     }
 

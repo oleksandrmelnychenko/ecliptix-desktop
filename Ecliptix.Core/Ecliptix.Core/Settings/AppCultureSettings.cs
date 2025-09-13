@@ -21,11 +21,11 @@ public sealed class AppCultureSettings
     {
         List<LanguageItem> supportedLanguages = new(AppCultureSettingsConstants.InitialCapacity)
         {
-            new LanguageItem(AppCultureSettingsConstants.DefaultCultureCode, 
-                AppCultureSettingsConstants.UnitedStatesCountryCode, 
+            new LanguageItem(AppCultureSettingsConstants.DefaultCultureCode,
+                AppCultureSettingsConstants.UnitedStatesCountryCode,
                 AppCultureSettingsConstants.UnitedStatesFlagPath),
-            new LanguageItem(AppCultureSettingsConstants.UkrainianCultureCode, 
-                AppCultureSettingsConstants.UkraineCountryCode, 
+            new LanguageItem(AppCultureSettingsConstants.UkrainianCultureCode,
+                AppCultureSettingsConstants.UkraineCountryCode,
                 AppCultureSettingsConstants.UkraineFlagPath)
         };
 
