@@ -117,6 +117,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthIconBrush),
             new SolidColorBrush(Colors.Gray));
 
+    public static readonly StyledProperty<string> WarningTextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(WarningText), string.Empty);
+
+    public static readonly StyledProperty<bool> HasWarningProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasWarning));
+
+    public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
+        RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected), RoutingStrategies.Bubble);
+
     public static readonly RoutedEvent<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAddedEvent =
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersAddedEventArgs>(nameof(SecureKeyCharactersAdded),
             RoutingStrategies.Bubble);
@@ -315,6 +324,24 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         get => GetValue(PasswordStrengthIconBrushProperty);
         set => SetValue(PasswordStrengthIconBrushProperty, value);
+    }
+
+    public string WarningText
+    {
+        get => GetValue(WarningTextProperty);
+        set => SetValue(WarningTextProperty, value);
+    }
+
+    public bool HasWarning
+    {
+        get => GetValue(HasWarningProperty);
+        set => SetValue(HasWarningProperty, value);
+    }
+
+    public event EventHandler<CharacterRejectedEventArgs> CharacterRejected
+    {
+        add => AddHandler(CharacterRejectedEvent, value);
+        remove => RemoveHandler(CharacterRejectedEvent, value);
     }
 
     private readonly CompositeDisposable _disposables = new();
