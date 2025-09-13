@@ -76,6 +76,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public bool IsUiLocked { get; private set; }
     [Reactive] public bool ShowDimmer { get; private set; }
     [Reactive] public bool ShowSpinner { get; private set; }
+    [Reactive] public bool HasValidSession { get; private set; }
 
 
     private IDisposable? _autoRedirectTimer;
@@ -85,10 +86,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private CancellationTokenSource? _cleanupCts;
     private readonly CompositeDisposable _disposables = new();
     private volatile bool _isDisposed;
-
-    private bool HasValidSession =>
-        VerificationSessionIdentifier.HasValue &&
-        VerificationSessionIdentifier.Value != Guid.Empty;
 
     public VerifyOtpViewModel(
         ISystemEventService systemEventService,
@@ -121,9 +118,9 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
-        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining)
-            .Select(seconds => seconds == 0)
-            .Catch<bool, Exception>(ex => Observable.Return(true));
+        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, x => x.HasValidSession)
+            .Select(tuple => tuple is { Item1: 0, Item2: true })
+            .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         this.WhenActivated(disposables =>
@@ -349,6 +346,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             SecondsRemaining = 0;
             ErrorMessage = _localizationService[AuthenticationConstants.NoActiveVerificationSessionKey];
             HasError = true;
+            HasValidSession = false;
         }
 
         return Task.CompletedTask;
@@ -375,7 +373,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         {
             ErrorMessage = _localizationService[error];
         }
-
+        
+        HasValidSession = false;
         return 0;
     }
 
@@ -452,6 +451,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 if (_verificationSessionIdentifier == Guid.Empty)
                 {
                     _verificationSessionIdentifier = identifier;
+                    HasValidSession = true;
                 }
                 else if (_verificationSessionIdentifier != identifier)
                 {
@@ -697,6 +697,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         lock (_sessionLock)
         {
             _verificationSessionIdentifier = Guid.Empty;
+            HasValidSession = false;
         }
     }
 

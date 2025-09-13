@@ -62,7 +62,9 @@ public static class LocalizationData
         ["Verification.Error.MaxAttemptsReached"] = "Maximum verification attempts reached",
         ["Verification.Error.VerificationFailed"] = "Verification failed",
         ["Verification.Error.SessionNotFound"] = "Verification session not found",
+        ["Verification.Error.GlobalRateLimitExceeded"] = "Too many requests. Please try again later",
         ["Verification.Info.Redirecting"] = "Redirecting...",
+        ["Verification.Info.RedirectingInSeconds"] = "Redirecting in {0} seconds...",
 
 
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
@@ -202,7 +204,9 @@ public static class LocalizationData
         ["Verification.Error.MaxAttemptsReached"] = "Досягнуто максимальну кількість спроб підтвердження",
         ["Verification.Error.VerificationFailed"] = "Підтвердження не вдалося",
         ["Verification.Error.SessionNotFound"] = "Сесія підтвердження не знайдена",
+        ["Verification.Error.GlobalRateLimitExceeded"] = "Занадто багато запитів. Спробуйте пізніше",
         ["Verification.Info.Redirecting"] = "Перенаправлення...",
+        ["Verification.Info.RedirectingInSeconds"] = "Перенаправлення через {0} секунд...",
 
 
         ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",

@@ -32,6 +32,7 @@ public static class AuthenticationConstants
     public const string MaxAttemptsReachedKey = "Verification.Error.MaxAttemptsReached";
     public const string VerificationFailedKey = "Verification.Error.VerificationFailed";
     public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
+    public const string GlobalRateLimitExceededKey = "Verification.Error.GlobalRateLimitExceeded";
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
     public const string RedirectingMessageKey = "Verification.Info.Redirecting";
 
