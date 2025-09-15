@@ -13,7 +13,6 @@ namespace Ecliptix.Core.Controls.Modals;
 
 public class RedirectNotificationViewModel : ReactiveObject, IDisposable
 {
-    private readonly IDisposable? _timer;
     private readonly ILocalizationService _localizationService;
     private string? _cachedRedirectingTemplate;
     private readonly CompositeDisposable _disposables = new();

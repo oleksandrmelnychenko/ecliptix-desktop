@@ -15,7 +15,7 @@ public static class MathConverters
 
 public class AddConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue + param;
@@ -26,7 +26,7 @@ public class AddConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
@@ -34,7 +34,7 @@ public class AddConverter : IValueConverter
 
 public class SubtractConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue - param;
@@ -42,7 +42,7 @@ public class SubtractConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
@@ -50,7 +50,7 @@ public class SubtractConverter : IValueConverter
 
 public class MultiplyConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue * param;
@@ -58,7 +58,7 @@ public class MultiplyConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
@@ -66,7 +66,7 @@ public class MultiplyConverter : IValueConverter
 
 public class DivideConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param) && param != 0)
             return doubleValue / param;
@@ -74,7 +74,7 @@ public class DivideConverter : IValueConverter
         return value;
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
