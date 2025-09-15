@@ -121,7 +121,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
 
             if (unmaskedOprfResponse.Length != CompressedPublicKeyLength)
                 return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
-                    OpaqueFailure.InvalidInput($"Invalid OPRF response size: expected {CompressedPublicKeyLength} bytes, got {unmaskedOprfResponse.Length}"));
+                    OpaqueFailure.InvalidInput(string.Format(ErrorMessages.InvalidOprfResponseSize, CompressedPublicKeyLength, unmaskedOprfResponse.Length)));
 
             byte[] unmaskedRegistrationRecord = signInResponse.RegistrationRecord.ToByteArray();
 
@@ -144,7 +144,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
                 else
                 {
                     return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
-                        OpaqueFailure.InvalidInput($"Invalid client public key length: expected {CompressedPublicKeyLength}, got {clientStaticPublicKeyBytes.Length}"));
+                        OpaqueFailure.InvalidInput(string.Format(ErrorMessages.InvalidClientPublicKeyLength, CompressedPublicKeyLength, clientStaticPublicKeyBytes.Length)));
                 }
             }
 
@@ -185,7 +185,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
             catch (Exception)
             {
                 return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
-                    OpaqueFailure.MacVerificationFailed("Invalid credentials provided."));
+                    OpaqueFailure.MacVerificationFailed(ErrorMessages.InvalidCredentialsProvided));
             }
             akeResult = PerformClientAke(clientEphemeralKeys, clientStaticPrivateKey, serverStaticPublicKey,
                 serverEphemeralPublicKey);
@@ -226,7 +226,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
         catch (Exception)
         {
             return Result<(OpaqueSignInFinalizeRequest, byte[], byte[], byte[], byte[]), OpaqueFailure>.Err(
-                OpaqueFailure.MacVerificationFailed("Invalid credentials provided."));
+                OpaqueFailure.MacVerificationFailed(ErrorMessages.InvalidCredentialsProvided));
         }
         finally
         {
@@ -260,7 +260,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
             ECPoint oprfResponsePoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(oprfResponse.ToArray());
             Result<Unit, OpaqueFailure> validationResult = OpaqueCryptoUtilities.ValidatePoint(oprfResponsePoint);
             if (validationResult.IsErr)
-                return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MacVerificationFailed("Invalid credentials provided."));
+                return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MacVerificationFailed(ErrorMessages.InvalidCredentialsProvided));
 
             BigInteger blindInverse = blind.ModInverse(OpaqueCryptoUtilities.DomainParams.N);
             ECPoint finalPoint = oprfResponsePoint.Multiply(blindInverse).Normalize();
@@ -268,7 +268,7 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
         }
         catch (Exception)
         {
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MacVerificationFailed("Invalid credentials provided."));
+            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MacVerificationFailed(ErrorMessages.InvalidCredentialsProvided));
         }
     }
 
@@ -313,13 +313,13 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
         Update(digest, serverEphemeralPublicKey);
 
         byte[] hash = new byte[digest.GetDigestSize()];
-        digest.DoFinal(hash, 0);
+        digest.DoFinal(hash, OperationOffsets.DigestStartOffset);
         return hash;
     }
 
     private static void Update(IDigest digest, ReadOnlySpan<byte> data)
     {
-        digest.BlockUpdate(data.ToArray(), 0, data.Length);
+        digest.BlockUpdate(data.ToArray(), OperationOffsets.BlockUpdateStartOffset, data.Length);
     }
 
     private static Result<(byte[] SessionKey, byte[] ClientMacKey, byte[] ServerMacKey), OpaqueFailure> DeriveFinalKeys(
@@ -351,9 +351,9 @@ public sealed class OpaqueProtocolService(AsymmetricKeyParameter staticPublicKey
     {
         HMac hmac = new(new Sha256Digest());
         hmac.Init(new KeyParameter(key));
-        hmac.BlockUpdate(data, 0, data.Length);
+        hmac.BlockUpdate(data, OperationOffsets.BlockUpdateStartOffset, data.Length);
         byte[] mac = new byte[hmac.GetMacSize()];
-        hmac.DoFinal(mac, 0);
+        hmac.DoFinal(mac, OperationOffsets.MacStartOffset);
         return mac;
     }
 }

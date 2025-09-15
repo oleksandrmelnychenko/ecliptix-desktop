@@ -28,7 +28,7 @@ public sealed class RatchetConfig
 
     public bool RatchetOnNewDhKey { get; init; } = true;
 
-    public TimeSpan MaxChainAge { get; init; } = TimeSpan.FromHours(1);
+    public TimeSpan MaxChainAge { get; init; } = ProtocolSystemConstants.Timeouts.DefaultMaxChainAge;
 
     public uint MaxMessagesWithoutRatchet { get; init; } = 1000;
 

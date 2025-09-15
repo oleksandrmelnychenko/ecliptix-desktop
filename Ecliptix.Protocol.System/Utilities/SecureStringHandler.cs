@@ -159,10 +159,6 @@ public sealed class SecureStringHandler : IDisposable
         }
     }
 
-    /// <summary>
-    /// WARNING: This method creates a regular string in memory which cannot be securely cleared.
-    /// Use UseBytes instead for secure operations. This method should be avoided for sensitive data.
-    /// </summary>
     public Result<T, SodiumFailure> UseString<T>(Func<string, T> operation)
     {
         return UseBytes(bytes =>
@@ -179,10 +175,6 @@ public sealed class SecureStringHandler : IDisposable
         });
     }
 
-    /// <summary>
-    /// Validates data using secure bytes without creating strings in memory.
-    /// Use this for password validation and other security-critical operations.
-    /// </summary>
     public Result<T, SodiumFailure> ValidateBytes<T>(Func<ReadOnlySpan<byte>, T> validationOperation)
     {
         return UseBytes(validationOperation);
@@ -254,10 +246,10 @@ public sealed class SecureStringBuilder : IDisposable
     private int _totalLength;
     private bool _disposed;
 
-    public SecureStringBuilder(int chunkSize = 256)
+    public SecureStringBuilder(int chunkSize = ProtocolSystemConstants.MemoryPool.SecureStringBuilderDefaultChunkSize)
     {
         if (chunkSize <= 0)
-            throw new ArgumentException("Chunk size must be positive", nameof(chunkSize));
+            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.ChunkSizePositive, nameof(chunkSize));
 
         _chunks = new List<SodiumSecureMemoryHandle>();
         _chunkSize = chunkSize;

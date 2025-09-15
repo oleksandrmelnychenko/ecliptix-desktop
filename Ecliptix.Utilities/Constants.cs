@@ -14,14 +14,10 @@ public static class Constants
     public const int AesGcmNonceSize = 12;
     public const int AesGcmTagSize = 16;
 
-    public static readonly byte[] MsgInfo = { 0x01 };
-    public static readonly byte[] ChainInfo = { 0x02 };
+    public static readonly byte[] MsgInfo = { UtilityConstants.ProtocolBytes.MsgInfoValue };
+    public static readonly byte[] ChainInfo = { UtilityConstants.ProtocolBytes.ChainInfoValue };
 
-    public static readonly byte[] DhRatchetInfo = { 0x03 };
-
-    public static readonly byte[] InitialSenderChainInfo = { 0x11 };
-    public static readonly byte[] InitialReceiverChainInfo = { 0x12 };
-    public static ReadOnlySpan<byte> X3dhInfo => "Ecliptix_X3DH"u8;
+    public static ReadOnlySpan<byte> X3dhInfo => System.Text.Encoding.UTF8.GetBytes(UtilityConstants.ProtocolNames.X3dhInfo);
 
     public const int Curve25519FieldElementSize = 32;
     public const int WordSize = 4;

@@ -7,7 +7,7 @@ namespace Ecliptix.Protocol.System.Utilities;
 
 public static class SecureMemoryUtils
 {
-    private static readonly SecureMemoryPool DefaultPool = new(4096, 100);
+    private static readonly SecureMemoryPool DefaultPool = new(ProtocolSystemConstants.MemoryPool.DefaultBufferSize, ProtocolSystemConstants.MemoryPool.MaxPoolSize);
 
     public static Result<TResult, TError> WithSecureBuffer<TResult, TError>(
         int size,
@@ -19,7 +19,7 @@ public static class SecureMemoryUtils
         byte[] fullBuffer = new byte[buffer.AllocatedSize];
         Result<Unit, SodiumFailure> readResult = buffer.Read(fullBuffer);
         if (readResult.IsErr)
-            throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
+            throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToReadSecureMemory + readResult.UnwrapErr());
 
         Span<byte> span = fullBuffer.AsSpan(0, size);
 

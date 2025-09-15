@@ -63,38 +63,38 @@ public sealed class PerformanceProfiler
 
         StringBuilder json = new();
         json.AppendLine("{");
-        json.AppendLine($"  \"Timestamp\": \"{DateTime.UtcNow:O}\",");
-        json.AppendLine($"  \"SessionDuration\": \"{DateTime.UtcNow.Subtract(_startTime)}\",");
-        json.AppendLine("  \"Operations\": [");
+        json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.TimestampField, DateTime.UtcNow));
+        json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.SessionDurationField, DateTime.UtcNow.Subtract(_startTime)));
+        json.AppendLine(ProtocolSystemConstants.JsonFormatting.OperationsArrayStart);
 
         List<(string Name, long Count, double AvgMs, double MaxMs, double MinMs, double TotalMs)> operations =
             metrics.Select(kvp => (
                 Name: EscapeJsonString(kvp.Key),
                 Count: kvp.Value.Count,
-                AvgMs: Math.Round(kvp.Value.AvgMs, 3),
-                MaxMs: Math.Round(kvp.Value.MaxMs, 3),
-                MinMs: Math.Round(kvp.Value.MinMs, 3),
-                TotalMs: Math.Round(kvp.Value.Count * kvp.Value.AvgMs, 3)
+                AvgMs: Math.Round(kvp.Value.AvgMs, ProtocolSystemConstants.Numeric.PerformanceDecimalPlaces),
+                MaxMs: Math.Round(kvp.Value.MaxMs, ProtocolSystemConstants.Numeric.PerformanceDecimalPlaces),
+                MinMs: Math.Round(kvp.Value.MinMs, ProtocolSystemConstants.Numeric.PerformanceDecimalPlaces),
+                TotalMs: Math.Round(kvp.Value.Count * kvp.Value.AvgMs, ProtocolSystemConstants.Numeric.PerformanceDecimalPlaces)
             )).OrderByDescending(x => x.TotalMs).ToList();
 
         for (int i = 0; i < operations.Count; i++)
         {
             (string name, long count, double avgMs, double maxMs, double minMs, double totalMs) = operations[i];
-            json.AppendLine("    {");
-            json.AppendLine($"      \"Name\": \"{name}\",");
-            json.AppendLine($"      \"ExecutionCount\": {count},");
-            json.AppendLine($"      \"AverageMs\": {avgMs},");
-            json.AppendLine($"      \"MaxMs\": {maxMs},");
-            json.AppendLine($"      \"MinMs\": {minMs},");
-            json.AppendLine($"      \"TotalMs\": {totalMs}");
-            json.Append("    }");
+            json.AppendLine(ProtocolSystemConstants.JsonFormatting.OperationObjectStart);
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.NameField, name));
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.ExecutionCountField, count));
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.AverageField, avgMs));
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.MaxField, maxMs));
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.MinField, minMs));
+            json.AppendLine(string.Format(ProtocolSystemConstants.JsonFormatting.TotalField, totalMs));
+            json.Append(ProtocolSystemConstants.JsonFormatting.OperationObjectEnd);
             if (i < operations.Count - 1)
                 json.AppendLine(",");
             else
                 json.AppendLine();
         }
 
-        json.AppendLine("  ]");
+        json.AppendLine(ProtocolSystemConstants.JsonFormatting.ArrayEnd);
         json.AppendLine("}");
 
         return json.ToString();
@@ -105,36 +105,36 @@ public sealed class PerformanceProfiler
         if (string.IsNullOrEmpty(input))
             return string.Empty;
 
-        StringBuilder escaped = new(input.Length + 16);
+        StringBuilder escaped = new(input.Length + ProtocolSystemConstants.Numeric.JsonEscapeBufferExtra);
 
         foreach (char c in input)
         {
             switch (c)
             {
                 case '"':
-                    escaped.Append("\\\"");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeQuote);
                     break;
                 case '\\':
-                    escaped.Append("\\\\");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeBackslash);
                     break;
                 case '\b':
-                    escaped.Append("\\b");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeBackspace);
                     break;
                 case '\f':
-                    escaped.Append("\\f");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeFormFeed);
                     break;
                 case '\n':
-                    escaped.Append("\\n");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeNewLine);
                     break;
                 case '\r':
-                    escaped.Append("\\r");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeCarriageReturn);
                     break;
                 case '\t':
-                    escaped.Append("\\t");
+                    escaped.Append(ProtocolSystemConstants.JsonFormatting.EscapeTab);
                     break;
                 default:
                     if (c < ' ')
-                        escaped.Append($"\\u{(int)c:X4}");
+                        escaped.Append(string.Format(ProtocolSystemConstants.JsonFormatting.UnicodeEscapeFormat, (int)c));
                     else
                         escaped.Append(c);
                     break;

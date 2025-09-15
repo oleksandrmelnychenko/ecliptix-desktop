@@ -1,7 +1,5 @@
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
-using Serilog;
-using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -32,7 +30,7 @@ public sealed class CircuitBreaker : IDisposable
         double successThresholdPercentage = 0.5)
     {
         _failureThreshold = failureThreshold;
-        _timeout = timeout == TimeSpan.Zero ? TimeSpan.FromSeconds(30) : timeout;
+        _timeout = timeout == TimeSpan.Zero ? ProtocolSystemConstants.Timeouts.DefaultCircuitBreakerTimeout : timeout;
         _successThresholdPercentage = successThresholdPercentage;
         _lastFailureTime = DateTime.MinValue;
     }
@@ -52,7 +50,7 @@ public sealed class CircuitBreaker : IDisposable
     {
         if (_disposed)
             return Result<T, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Circuit breaker has been disposed"));
+                EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.CircuitBreaker.CircuitBreakerDisposed));
 
         Result<Unit, EcliptixProtocolFailure> canExecuteResult = CanExecute();
         if (canExecuteResult.IsErr)
@@ -77,7 +75,7 @@ public sealed class CircuitBreaker : IDisposable
         {
             OnFailure();
             return Result<T, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Operation failed in circuit breaker", ex));
+                EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.CircuitBreaker.OperationFailedInCircuitBreaker, ex));
         }
     }
 
@@ -96,7 +94,7 @@ public sealed class CircuitBreaker : IDisposable
                     if (now - _lastFailureTime < _timeout)
                         return Result<Unit, EcliptixProtocolFailure>.Err(
                             EcliptixProtocolFailure.Generic(
-                                $"Circuit breaker is OPEN. Blocking requests until {_lastFailureTime.Add(_timeout):HH:mm:ss}"));
+                                string.Format(EcliptixProtocolFailureMessages.CircuitBreaker.CircuitBreakerIsOpen, _lastFailureTime.Add(_timeout))));
                     _state = CircuitBreakerState.HalfOpen;
                     _requestCount = 0;
                     _successCount = 0;
@@ -109,11 +107,11 @@ public sealed class CircuitBreaker : IDisposable
                     }
 
                     return Result<Unit, EcliptixProtocolFailure>.Err(
-                        EcliptixProtocolFailure.Generic("Circuit breaker is HALF-OPEN but testing limit reached"));
+                        EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.CircuitBreaker.CircuitBreakerHalfOpenTestingLimitReached));
 
                 default:
                     return Result<Unit, EcliptixProtocolFailure>.Err(
-                        EcliptixProtocolFailure.Generic($"Unknown circuit breaker state: {_state}"));
+                        EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.CircuitBreaker.UnknownCircuitBreakerState, _state)));
             }
         }
     }
@@ -134,8 +132,6 @@ public sealed class CircuitBreaker : IDisposable
                     _failureCount = 0;
                     _successCount = 0;
                     _requestCount = 0;
-                    if (Log.IsEnabled(LogEventLevel.Information))
-                        Log.Information("Circuit breaker service recovered - Circuit CLOSED");
                 }
             }
             else if (_state == CircuitBreakerState.Closed)
@@ -156,16 +152,12 @@ public sealed class CircuitBreaker : IDisposable
             if (_state == CircuitBreakerState.Closed && _failureCount >= _failureThreshold)
             {
                 _state = CircuitBreakerState.Open;
-                if (Log.IsEnabled(LogEventLevel.Warning))
-                    Log.Warning("Circuit breaker failure threshold ({FailureThreshold}) reached - Circuit OPEN", _failureThreshold);
             }
             else if (_state == CircuitBreakerState.HalfOpen)
             {
                 _state = CircuitBreakerState.Open;
                 _successCount = 0;
                 _requestCount = 0;
-                if (Log.IsEnabled(LogEventLevel.Warning))
-                    Log.Warning("Circuit breaker service still failing - Circuit OPEN again");
             }
         }
     }
@@ -187,8 +179,6 @@ public sealed class CircuitBreaker : IDisposable
             _successCount = 0;
             _requestCount = 0;
             _lastFailureTime = DateTime.MinValue;
-            if (Log.IsEnabled(LogEventLevel.Information))
-                Log.Information("Circuit breaker manually reset");
         }
     }
 

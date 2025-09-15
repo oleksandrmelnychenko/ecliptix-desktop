@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
-using Serilog;
-using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -27,7 +25,7 @@ public sealed class ReplayProtection : IDisposable
     {
         _processedNonces = new ConcurrentDictionary<string, DateTime>();
         _messageWindows = new ConcurrentDictionary<ulong, MessageWindow>();
-        _nonceLifetime = nonceLifetime == TimeSpan.Zero ? TimeSpan.FromMinutes(5) : nonceLifetime;
+        _nonceLifetime = nonceLifetime == TimeSpan.Zero ? ProtocolSystemConstants.Timeouts.NonceLifetime : nonceLifetime;
         _baseWindow = maxOutOfOrderWindow;
         _maxOutOfOrderWindow = maxOutOfOrderWindow;
         _maxWindow = maxWindow;
@@ -39,8 +37,8 @@ public sealed class ReplayProtection : IDisposable
                 AdjustWindowSize();
             },
             state: null,
-            dueTime: TimeSpan.FromMinutes(1),
-            period: TimeSpan.FromMinutes(1)
+            dueTime: ProtocolSystemConstants.Timeouts.CleanupInterval,
+            period: ProtocolSystemConstants.Timeouts.CleanupInterval
         );
     }
 
@@ -55,7 +53,7 @@ public sealed class ReplayProtection : IDisposable
 
         if (nonce.Length == 0)
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Nonce cannot be null or empty"));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ReplayProtection.NonceCannotBeNullOrEmpty));
 
         lock (_lock)
         {
@@ -64,7 +62,7 @@ public sealed class ReplayProtection : IDisposable
             if (_processedNonces.ContainsKey(nonceKey))
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic($"Replay attack detected: nonce already processed"));
+                    EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.ReplayProtection.ReplayAttackDetectedNonce));
             }
 
             Result<Unit, EcliptixProtocolFailure> windowCheck = CheckMessageWindow(chainIndex, messageIndex);
@@ -92,14 +90,14 @@ public sealed class ReplayProtection : IDisposable
             if (window.IsProcessed(messageIndex))
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic($"Replay attack detected: message index {messageIndex} already processed for chain {chainIndex}"));
+                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.ReplayAttackDetectedMessageIndex, messageIndex, chainIndex)));
             }
 
             ulong gap = window.HighestProcessedIndex - messageIndex;
             if (gap > _maxOutOfOrderWindow)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic($"Message index {messageIndex} is too far behind (gap: {gap}, max: {_maxOutOfOrderWindow})"));
+                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.MessageIndexTooFarBehind, messageIndex, gap, _maxOutOfOrderWindow)));
             }
         }
 
@@ -146,7 +144,7 @@ public sealed class ReplayProtection : IDisposable
         if (_disposed) return;
 
         DateTime now = DateTime.UtcNow;
-        if (now - _lastWindowAdjustment < TimeSpan.FromMinutes(2))
+        if (now - _lastWindowAdjustment < ProtocolSystemConstants.Timeouts.WindowAdjustmentInterval)
             return;
 
         lock (_lock)
@@ -178,8 +176,6 @@ public sealed class ReplayProtection : IDisposable
         lock (_lock)
         {
             _messageWindows.Clear();
-            if (Log.IsEnabled(LogEventLevel.Debug))
-                Log.Debug("Replay protection cleared message windows due to ratchet rotation");
         }
     }
 

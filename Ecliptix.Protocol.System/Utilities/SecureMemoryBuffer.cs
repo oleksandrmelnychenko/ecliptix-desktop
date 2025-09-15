@@ -24,7 +24,7 @@ public sealed class SecureMemoryBuffer : IDisposable
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> result = SodiumSecureMemoryHandle.Allocate(allocatedSize);
         if (result.IsErr)
-            throw new InvalidOperationException($"Failed to allocate secure memory: {result.UnwrapErr()}");
+            throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToAllocateSecureMemory + result.UnwrapErr());
 
         _handle = result.Unwrap();
     }
@@ -32,15 +32,10 @@ public sealed class SecureMemoryBuffer : IDisposable
     internal void SetRequestedSize(int requestedSize)
     {
         if (requestedSize > _allocatedSize)
-            throw new ArgumentException($"Requested size {requestedSize} exceeds allocated size {_allocatedSize}");
+            throw new ArgumentException(string.Format(ProtocolSystemConstants.ErrorMessages.RequestedSizeExceedsAllocated, requestedSize, _allocatedSize));
         _requestedSize = requestedSize;
     }
 
-    /// <summary>
-    /// WARNING: This method creates a temporary array that cannot be securely cleared.
-    /// Use Read(Span<byte> destination) instead for secure operations.
-    /// This method is maintained for compatibility but should be avoided for sensitive data.
-    /// </summary>
     public Span<byte> GetSpan()
     {
         if (!_disposed)
@@ -48,7 +43,7 @@ public sealed class SecureMemoryBuffer : IDisposable
             using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
             Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
             if (readResult.IsErr)
-                throw new InvalidOperationException($"Failed to read secure memory: {readResult.UnwrapErr()}");
+                throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToReadSecureMemory + readResult.UnwrapErr());
 
             byte[] result = new byte[Length];
             tempBuffer.AsSpan()[..Length].CopyTo(result);
@@ -58,14 +53,11 @@ public sealed class SecureMemoryBuffer : IDisposable
         throw new ObjectDisposedException(nameof(SecureMemoryBuffer));
     }
 
-    /// <summary>
-    /// Safely read secure memory into a provided span without creating temporary arrays.
-    /// </summary>
     public Result<int, SodiumFailure> ReadInto(Span<byte> destination)
     {
         if (_disposed)
             return Result<int, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Buffer is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
 
         int bytesToRead = Math.Min(destination.Length, Length);
         using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
@@ -82,7 +74,7 @@ public sealed class SecureMemoryBuffer : IDisposable
     {
         if (_disposed)
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Buffer is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
 
         return _handle.Read(destination);
     }
@@ -91,7 +83,7 @@ public sealed class SecureMemoryBuffer : IDisposable
     {
         if (_disposed) return;
 
-        Span<byte> zeros = stackalloc byte[Math.Min(AllocatedSize, 1024)];
+        Span<byte> zeros = stackalloc byte[Math.Min(AllocatedSize, ProtocolSystemConstants.MemoryPool.SecureWipeChunkSize)];
         zeros.Clear();
 
         for (int offset = 0; offset < AllocatedSize; offset += zeros.Length)

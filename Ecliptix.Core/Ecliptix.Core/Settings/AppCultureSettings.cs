@@ -42,7 +42,7 @@ public sealed class AppCultureSettings
 
     private static FrozenDictionary<string, int> CreateLanguageIndexMap(List<LanguageItem> supportedLanguages)
     {
-        Dictionary<string, int> indexMap = new Dictionary<string, int>(supportedLanguages.Count);
+        Dictionary<string, int> indexMap = new(supportedLanguages.Count);
         for (int i = 0; i < supportedLanguages.Count; i++)
         {
             indexMap[supportedLanguages[i].Code] = i;

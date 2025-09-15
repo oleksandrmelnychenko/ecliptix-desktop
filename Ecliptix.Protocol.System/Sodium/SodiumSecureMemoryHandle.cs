@@ -73,18 +73,18 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         {
             if (IsInvalid || IsClosed)
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.NullPointer("Handle disposed"));
+                    SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.HandleDisposed));
 
             if (data.Length > Length)
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.BufferTooLarge($"Data ({data.Length}) > buffer ({Length})"));
+                    SodiumFailure.BufferTooLarge(string.Format(ProtocolSystemConstants.ErrorMessages.DataExceedsBuffer, data.Length, Length)));
 
             if (data.IsEmpty) return Result<Unit, SodiumFailure>.Ok(Unit.Value);
 
             DangerousAddRef(ref success);
             if (!success)
                 return Result<Unit, SodiumFailure>.Err(
-                    SodiumFailure.MemoryPinningFailed("Ref count failed"));
+                    SodiumFailure.MemoryPinningFailed(ProtocolSystemConstants.ErrorMessages.RefCountFailed));
 
             unsafe
             {
@@ -100,7 +100,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         catch (Exception ex)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.MemoryProtectionFailed("Unexpected write error", ex));
+                SodiumFailure.MemoryProtectionFailed(ProtocolSystemConstants.ErrorMessages.UnexpectedWriteError, ex));
         }
         finally
         {
@@ -358,15 +358,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         }
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.Kernel32, SetLastError = true)]
     private static extern bool VirtualLock(IntPtr lpAddress, UIntPtr dwSize);
 
-    [DllImport("kernel32.dll", SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.Kernel32, SetLastError = true)]
     private static extern bool VirtualUnlock(IntPtr lpAddress, UIntPtr dwSize);
 
-    [DllImport("libc", SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.LibC, SetLastError = true)]
     private static extern int mlock(IntPtr addr, UIntPtr len);
 
-    [DllImport("libc", SetLastError = true)]
+    [DllImport(ProtocolSystemConstants.Libraries.LibC, SetLastError = true)]
     private static extern int munlock(IntPtr addr, UIntPtr len);
 }

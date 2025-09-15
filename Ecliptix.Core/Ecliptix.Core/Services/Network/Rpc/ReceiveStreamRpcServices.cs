@@ -10,7 +10,6 @@ using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
@@ -43,34 +42,18 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
             try
             {
                 Result<RpcFlow, NetworkFailure> result = handler(request.Payload, token);
-
-                if (result.IsOk)
-                {
-                    Log.Debug("Stream service {ServiceMethod} processed successfully for req_id: {ReqId}",
-                        request.RpcServiceMethod, request.ReqId);
-                }
-                else
-                {
-                    Log.Warning("Stream service {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}",
-                        request.RpcServiceMethod, request.ReqId, result.UnwrapErr().Message);
-                }
-
                 return Task.FromResult(result);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Stream service {ServiceMethod} threw exception for req_id: {ReqId}",
-                    request.RpcServiceMethod, request.ReqId);
                 return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding(ex.Message, ex)
                 ));
             }
         }
 
-        Log.Warning("Unsupported stream service method: {ServiceMethod} for req_id: {ReqId}",
-            request.RpcServiceMethod, request.ReqId);
         return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(
-            NetworkFailure.InvalidRequestType("Unsupported service method")
+            NetworkFailure.InvalidRequestType(NetworkServiceMessages.RpcService.UnsupportedServiceMethod)
         ));
     }
 
@@ -79,8 +62,6 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
     {
         try
         {
-            Log.Debug("Initiating verification stream with payload size: {PayloadSize}", payload?.Cipher?.Length ?? 0);
-
             AsyncServerStreamingCall<CipherPayload> streamingCall =
                 _authenticationServicesClient.InitiateVerification(payload, cancellationToken: token);
 
@@ -89,25 +70,21 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                     .ToObservable()
                     .Select(response =>
                     {
-                        Log.Debug("Received stream response with size: {ResponseSize}", response?.Cipher?.Length ?? 0);
                         return response != null
                             ? Result<CipherPayload, NetworkFailure>.Ok(response)
-                            : Result<CipherPayload, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding("Received null response from stream"));
+                            : Result<CipherPayload, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream));
                     })
                     .Catch<Result<CipherPayload, NetworkFailure>, Exception>(ex =>
                     {
-                        Log.Warning(ex, "Stream response error: {Message}", ex.Message);
                         return Observable.Return(Result<CipherPayload, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding(ex.Message, ex)));
                     })
                     .ToAsyncEnumerable();
 
-            Log.Debug("Verification stream initialized successfully");
             return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.InboundStream(stream));
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Stream initialization failed: {Message}", ex.Message);
             return Result<RpcFlow, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }

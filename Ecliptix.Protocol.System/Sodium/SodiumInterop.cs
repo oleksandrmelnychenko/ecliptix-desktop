@@ -8,7 +8,7 @@ namespace Ecliptix.Protocol.System.Sodium;
 
 public static class SodiumInterop
 {
-    private const string LibSodium = "libsodium";
+    private const string LibSodium = ProtocolSystemConstants.Libraries.LibSodium;
 
     private const int MaxBufferSize = 1_000_000_000;
 
@@ -42,7 +42,7 @@ public static class SodiumInterop
             () =>
             {
                 int result = sodium_init();
-                const int dllImportSuccess = 0;
+                const int dllImportSuccess = ProtocolSystemConstants.Numeric.DllImportSuccess;
                 if (result < dllImportSuccess)
                     throw new InvalidOperationException(SodiumFailureMessages.SodiumInitFailed);
             },
@@ -172,19 +172,19 @@ public static class SodiumInterop
         try
         {
             int result = sodium_memcmp(a.ToArray(), b.ToArray(), (UIntPtr)a.Length);
-            return Result<bool, SodiumFailure>.Ok(result == 0);
+            return Result<bool, SodiumFailure>.Ok(result == ProtocolSystemConstants.Numeric.ZeroValue);
         }
         catch (Exception ex)
         {
             return Result<bool, SodiumFailure>.Err(
-                SodiumFailure.ComparisonFailed("libsodium constant-time comparison failed.", ex));
+                SodiumFailure.ComparisonFailed(ProtocolSystemConstants.ErrorMessages.LibSodiumConstantTimeComparisonFailed, ex));
         }
     }
 
     private static Result<Unit, SodiumFailure> WipeSmallBuffer(byte[] buffer)
     {
         return Result<Unit, SodiumFailure>.Try(
-            () => { Array.Clear(buffer, 0, buffer.Length); },
+            () => { Array.Clear(buffer, ProtocolSystemConstants.Numeric.ZeroValue, buffer.Length); },
             ex =>
                 SodiumFailure.SecureWipeFailed(
                     string.Format(SodiumFailureMessages.SmallBufferClearFailed, buffer.Length), ex));
@@ -198,7 +198,7 @@ public static class SodiumInterop
             {
                 handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
                 IntPtr ptr = handle.AddrOfPinnedObject();
-                if (ptr == IntPtr.Zero && buffer.Length > 0)
+                if (ptr == IntPtr.Zero && buffer.Length > ProtocolSystemConstants.Numeric.ZeroValue)
                     throw new InvalidOperationException(SodiumFailureMessages.AddressOfPinnedObjectFailed);
 
                 sodium_memzero(ptr, (UIntPtr)buffer.Length);

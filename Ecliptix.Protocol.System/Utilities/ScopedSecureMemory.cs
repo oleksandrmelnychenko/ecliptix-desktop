@@ -16,7 +16,7 @@ public sealed class ScopedSecureMemory : IDisposable
 
     public static ScopedSecureMemory Allocate(int size)
     {
-        return size <= 0 ? throw new ArgumentException("Size must be positive", nameof(size)) : new ScopedSecureMemory(new byte[size]);
+        return size <= 0 ? throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.SizePositive, nameof(size)) : new ScopedSecureMemory(new byte[size]);
     }
 
     public static ScopedSecureMemory Wrap(byte[] data, bool clearOnDispose = true)
@@ -29,8 +29,6 @@ public sealed class ScopedSecureMemory : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         return _data!.AsSpan();
     }
-
-    public int Length => _data?.Length ?? 0;
 
     public void Dispose()
     {

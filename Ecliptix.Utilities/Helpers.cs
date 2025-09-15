@@ -12,7 +12,7 @@ public static class Helpers
 
     public static uint GenerateRandomUInt32(bool excludeZero = false)
     {
-        byte[] buffer = new byte[sizeof(uint)];
+        byte[] buffer = new byte[UtilityConstants.Cryptography.UInt32SizeBytes];
         uint value;
         int attempts = 0;
         do
@@ -20,9 +20,9 @@ public static class Helpers
             Rng.GetBytes(buffer);
             value = BitConverter.ToUInt32(buffer, 0);
 
-            if (++attempts > 10 && IsLowEntropy(buffer))
+            if (++attempts > UtilityConstants.Cryptography.MaxEntropyCheckAttempts && IsLowEntropy(buffer))
             {
-                throw new InvalidOperationException("Random number generator appears to have insufficient entropy");
+                throw new InvalidOperationException(UtilityConstants.ErrorMessages.InsufficientEntropy);
             }
         } while (excludeZero && value == 0);
 
@@ -31,7 +31,7 @@ public static class Helpers
 
     private static bool IsLowEntropy(byte[] data)
     {
-        if (data.All(b => b == 0) || data.All(b => b == 255))
+        if (data.All(b => b == UtilityConstants.Cryptography.MinByteValue) || data.All(b => b == UtilityConstants.Cryptography.MaxByteValue))
             return true;
 
         if (data.All(b => b == data[0]))
@@ -63,30 +63,30 @@ public static class Helpers
 
     public static ByteString GuidToByteString(Guid guid)
     {
-        Span<byte> bytes = stackalloc byte[16];
+        Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
 
         guid.TryWriteBytes(bytes);
 
-        SwapBytes(bytes, 0, 3);
-        SwapBytes(bytes, 1, 2);
-        SwapBytes(bytes, 4, 5);
-        SwapBytes(bytes, 6, 7);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex0, UtilityConstants.Cryptography.ByteSwapIndex3);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex1, UtilityConstants.Cryptography.ByteSwapIndex2);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex4, UtilityConstants.Cryptography.ByteSwapIndex5);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex6, UtilityConstants.Cryptography.ByteSwapIndex7);
 
         return ByteString.CopyFrom(bytes);
     }
 
     public static Guid FromByteStringToGuid(ByteString byteString)
     {
-        Span<byte> bytes = stackalloc byte[16];
+        Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
 
-        byte[] tempArray = new byte[16];
+        byte[] tempArray = new byte[UtilityConstants.Cryptography.GuidSizeBytes];
         byteString.CopyTo(tempArray, 0);
         tempArray.CopyTo(bytes);
 
-        SwapBytes(bytes, 0, 3);
-        SwapBytes(bytes, 1, 2);
-        SwapBytes(bytes, 4, 5);
-        SwapBytes(bytes, 6, 7);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex0, UtilityConstants.Cryptography.ByteSwapIndex3);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex1, UtilityConstants.Cryptography.ByteSwapIndex2);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex4, UtilityConstants.Cryptography.ByteSwapIndex5);
+        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex6, UtilityConstants.Cryptography.ByteSwapIndex7);
 
         return new Guid(bytes);
     }
@@ -99,7 +99,7 @@ public static class Helpers
     public static uint GenerateRandomUInt32InRange(uint min, uint max)
     {
         using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-        byte[] bytes = new byte[4];
+        byte[] bytes = new byte[UtilityConstants.Cryptography.UInt32SizeBytes];
         rng.GetBytes(bytes);
         uint value = BitConverter.ToUInt32(bytes, 0);
         return min + value % (max - min + 1);
@@ -119,9 +119,9 @@ public static class Helpers
     {
         int totalLength = appInstanceId.Length + appDeviceId.Length + sizeof(uint);
         if (operationContextId.HasValue)
-            totalLength += 16;
+            totalLength += UtilityConstants.Cryptography.GuidSizeBytes;
 
-        Span<byte> buffer = totalLength <= 512 ? stackalloc byte[totalLength] : new byte[totalLength];
+        Span<byte> buffer = totalLength <= UtilityConstants.Cryptography.StackAllocThreshold ? stackalloc byte[totalLength] : new byte[totalLength];
 
         int offset = 0;
 
@@ -135,10 +135,10 @@ public static class Helpers
         offset += sizeof(uint);
 
         operationContextId?.TryWriteBytes(buffer[offset..]);
-        Span<byte> hash = stackalloc byte[32];
+        Span<byte> hash = stackalloc byte[UtilityConstants.Cryptography.Sha256OutputSize];
         SHA256.TryHashData(buffer, hash, out _);
 
-        return BinaryPrimitives.ReadUInt32BigEndian(hash[..4]);
+        return BinaryPrimitives.ReadUInt32BigEndian(hash[..UtilityConstants.Cryptography.HashBytesToRead]);
     }
 
     public static uint ComputeUniqueConnectId(
@@ -148,13 +148,13 @@ public static class Helpers
         Guid? operationContextId = null)
     {
         if (!Guid.TryParse(appInstanceIdString, out Guid appInstanceGuid))
-            throw new ArgumentException($"Invalid AppInstanceId format: {appInstanceIdString}");
+            throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppInstanceIdFormat}{appInstanceIdString}");
 
         if (!Guid.TryParse(appDeviceIdString, out Guid appDeviceGuid))
-            throw new ArgumentException($"Invalid AppDeviceId format: {appDeviceIdString}");
+            throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppDeviceIdFormat}{appDeviceIdString}");
 
-        Span<byte> appInstanceBytes = stackalloc byte[16];
-        Span<byte> appDeviceBytes = stackalloc byte[16];
+        Span<byte> appInstanceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
+        Span<byte> appDeviceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
 
         appInstanceGuid.TryWriteBytes(appInstanceBytes);
         appDeviceGuid.TryWriteBytes(appDeviceBytes);
@@ -166,11 +166,4 @@ public static class Helpers
             operationContextId);
     }
 
-    public static uint GenerateRandomUInt32()
-    {
-        using RandomNumberGenerator rng = RandomNumberGenerator.Create();
-        byte[] bytes = new byte[4];
-        rng.GetBytes(bytes);
-        return BitConverter.ToUInt32(bytes, 0);
-    }
 }

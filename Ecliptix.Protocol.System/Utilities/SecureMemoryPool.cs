@@ -10,12 +10,12 @@ public sealed class SecureMemoryPool : IDisposable
     private int _currentPoolSize;
     private bool _disposed;
 
-    public SecureMemoryPool(int defaultBufferSize = 4096, int maxPoolSize = 100)
+    public SecureMemoryPool(int defaultBufferSize = ProtocolSystemConstants.MemoryPool.DefaultBufferSize, int maxPoolSize = ProtocolSystemConstants.MemoryPool.MaxPoolSize)
     {
         if (defaultBufferSize <= 0)
-            throw new ArgumentException("Buffer size must be positive", nameof(defaultBufferSize));
+            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.BufferSizePositive, nameof(defaultBufferSize));
         if (maxPoolSize <= 0)
-            throw new ArgumentException("Max pool size must be positive", nameof(maxPoolSize));
+            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.MaxPoolSizePositive, nameof(maxPoolSize));
 
         _defaultBufferSize = defaultBufferSize;
         _maxPoolSize = maxPoolSize;

@@ -33,30 +33,9 @@ public static class StaticViewMapper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Control? CreateView(Type viewModelType)
     {
-        Serilog.Log.Information("🔍 StaticViewMapper.CreateView: Looking for factory for {ViewModelType}",
-            viewModelType.FullName);
-        if (ViewFactories.TryGetValue(viewModelType, out Lazy<Func<Control>>? lazyFactory))
-        {
-            try
-            {
-                Func<Control> factory = lazyFactory.Value;
-                Control result = factory();
-                Serilog.Log.Information(
-                    "✅ StaticViewMapper.CreateView: Successfully created {ViewType} for {ViewModelType}",
-                    result.GetType().Name, viewModelType.FullName);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, "❌ StaticViewMapper.CreateView: Exception creating view for {ViewModelType}",
-                    viewModelType.FullName);
-                return null;
-            }
-        }
-
-        Serilog.Log.Warning("❌ StaticViewMapper.CreateView: No factory found for {ViewModelType}",
-            viewModelType.FullName);
-        return null;
+        if (!ViewFactories.TryGetValue(viewModelType, out Lazy<Func<Control>>? lazyFactory)) return null;
+        Func<Control> factory = lazyFactory.Value;
+        Control result = factory();
+        return result;
     }
-
 }

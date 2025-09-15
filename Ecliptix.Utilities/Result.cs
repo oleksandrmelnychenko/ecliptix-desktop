@@ -62,7 +62,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             TE error = errorMapper(ex);
             if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TE : notnull");
+                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
             return Err(error);
         }
     }
@@ -80,7 +80,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             TE? error = errorMapper(ex);
             if (error == null)
-                throw new InvalidOperationException("Error mapper returned null, violating TE : notnull");
+                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
             return Result<Unit, TE>.Err(error);
         }
         finally
@@ -99,12 +99,12 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public T Unwrap()
     {
-        return IsOk ? _value! : throw new InvalidOperationException("Cannot unwrap an Err result");
+        return IsOk ? _value! : throw new InvalidOperationException(UtilityConstants.ErrorMessages.CannotUnwrapErr);
     }
 
     public TE UnwrapErr()
     {
-        return IsOk ? throw new InvalidOperationException("Cannot unwrap an Ok result") : _error!;
+        return IsOk ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.CannotUnwrapOk) : _error!;
     }
 
     public T? UnwrapOr(T? defaultValue)
@@ -134,7 +134,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public override string ToString()
     {
-        return IsOk ? "Ok" : "Err";
+        return IsOk ? UtilityConstants.ResultType.OkString : UtilityConstants.ResultType.ErrString;
     }
 
     public bool Equals(Result<T, TE> other)
@@ -154,9 +154,9 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     {
         unchecked
         {
-            int hash = 17;
-            hash = hash * 31 + IsOk.GetHashCode();
-            hash = hash * 31 + (IsOk
+            int hash = UtilityConstants.Hash.InitialHashSeed;
+            hash = hash * UtilityConstants.Hash.HashMultiplier + IsOk.GetHashCode();
+            hash = hash * UtilityConstants.Hash.HashMultiplier + (IsOk
                 ? EqualityComparer<T?>.Default.GetHashCode(_value)
                 : EqualityComparer<TE>.Default.GetHashCode(_error!));
             return hash;
@@ -171,22 +171,5 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     public static bool operator !=(Result<T, TE> left, Result<T, TE> right)
     {
         return !left.Equals(right);
-    }
-}
-
-public static class ResultExtensions
-{
-    public static void IgnoreResult()
-    {
-    }
-
-    public static void IgnoreResult<T>()
-    {
-    }
-
-    public static void IgnoreResult<T, TE>(Result<T, TE> result)
-    {
-        _ = result;
-        // Explicitly ignore the result
     }
 }

@@ -3,8 +3,6 @@ using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Google.Protobuf.WellKnownTypes;
-using Serilog;
-using Serilog.Events;
 
 namespace Ecliptix.Protocol.System.Core;
 
@@ -129,15 +127,11 @@ public sealed class AdaptiveRatchetManager : IDisposable
                     _currentConfig = CreateConfigForLoad(newLoad);
                     _lastConfigUpdate = now;
 
-                    if (Log.IsEnabled(LogEventLevel.Information))
-                        Log.Information("Adaptive ratchet - Load: {LoadLevel}, Rate: {MessageRate:F1} msg/sec, DH Interval: {DHInterval}",
-                            newLoad, messagesPerSecond, _currentConfig.DhRatchetEveryNMessages);
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Log.Error(ex, "Adaptive ratchet error in load analysis");
         }
     }
 
@@ -218,8 +212,6 @@ public sealed class AdaptiveRatchetManager : IDisposable
             _currentConfig = CreateConfigForLoad(targetLoad);
             _lastConfigUpdate = DateTime.UtcNow;
 
-            if (Log.IsEnabled(LogEventLevel.Information))
-                Log.Information("Adaptive ratchet forced config update to {TargetLoad}", targetLoad);
         }
     }
 
@@ -262,7 +254,7 @@ public sealed class AdaptiveRatchetManager : IDisposable
             catch (Exception ex)
             {
                 return Result<AdaptiveRatchetState, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic("Failed to serialize AdaptiveRatchetManager state", ex));
+                    EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.AdaptiveRatchet.FailedToSerializeState, ex));
             }
         }
     }
@@ -301,7 +293,7 @@ public sealed class AdaptiveRatchetManager : IDisposable
         catch (Exception ex)
         {
             return Result<AdaptiveRatchetManager, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Failed to deserialize AdaptiveRatchetManager state", ex));
+                EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.AdaptiveRatchet.FailedToDeserializeState, ex));
         }
     }
 
@@ -340,7 +332,5 @@ public sealed class AdaptiveRatchetManager : IDisposable
         {
         }
 
-        if (Log.IsEnabled(LogEventLevel.Debug))
-            Log.Debug("Adaptive ratchet manager disposed");
     }
 }

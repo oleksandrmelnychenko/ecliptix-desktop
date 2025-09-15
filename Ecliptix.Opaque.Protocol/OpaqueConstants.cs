@@ -52,6 +52,30 @@ public static class OpaqueConstants
         public const string MacVerificationFailed = "MAC verification failed: ";
         public const string ExportKeyDerivationFailed = "Export key derivation failed: ";
         public const string Pbkdf2Failed = "PBKDF2 failed: ";
+        public const string InvalidOprfResponseSize = "Invalid OPRF response size: expected {0} bytes, got {1}";
+        public const string InvalidClientPublicKeyLength = "Invalid client public key length: expected {0}, got {1}";
+        public const string InvalidCredentialsProvided = "Invalid credentials provided.";
+        public const string EllipticCurveNotFound = "Elliptic curve '{0}' not found";
+        public const string FailedToInitializeEllipticCurveParameters = "Failed to initialize elliptic curve parameters: {0}";
+        public const string FailedToInitializeSecureRandom = "Failed to initialize SecureRandom for cryptographic operations: {0}";
+        public const string InvalidEllipticCurvePoint = "Invalid elliptic curve point";
+        public const string PointNotInMainSubgroup = "Point not in main subgroup";
+        public const string Pbkdf2StretchingFailed = "PBKDF2 stretching failed";
+        public const string EnvelopeOperationFailed = "Envelope operation failed";
+        public const string ResponseMaskingFailed = "Response masking/unmasking failed";
+        public const string KeyDerivationFailed = "Key derivation failed";
+        public const string OpaqueInputKeyingMaterialEmpty = "Opaque input keying material (ikm) cannot be null or empty";
+        public const string OpaqueFailedToHashAfterMaxAttempts = "Opaque Failed to hash input to a valid curve point after 255 attempts.";
+        public const string OpaqueDecryptionFailed = " Opaque decryption failed";
+        public const string OpaqueEncryptionFailed = "Opaque encryption failed";
+        public const string OpaqueMacVerificationFailed = "Opaque MAC verification failed";
+    }
+
+    public static class OperationOffsets
+    {
+        public const int DigestStartOffset = 0;
+        public const int BlockUpdateStartOffset = 0;
+        public const int MacStartOffset = 0;
     }
 
     public static class ProtocolIndices

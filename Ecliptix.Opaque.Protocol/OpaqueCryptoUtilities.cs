@@ -24,11 +24,11 @@ public static class OpaqueCryptoUtilities
         try
         {
             X9ECParameters? curveParams = ECNamedCurveTable.GetByName(CryptographicConstants.EllipticCurveName);
-            return curveParams ?? throw new InvalidOperationException($"Elliptic curve '{CryptographicConstants.EllipticCurveName}' not found");
+            return curveParams ?? throw new InvalidOperationException(string.Format(OpaqueConstants.ErrorMessages.EllipticCurveNotFound, CryptographicConstants.EllipticCurveName));
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to initialize elliptic curve parameters: {ex.Message}", ex);
+            throw new InvalidOperationException(string.Format(OpaqueConstants.ErrorMessages.FailedToInitializeEllipticCurveParameters, ex.Message), ex);
         }
     }
 
@@ -43,7 +43,7 @@ public static class OpaqueCryptoUtilities
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to initialize SecureRandom for cryptographic operations: {ex.Message}", ex);
+            throw new InvalidOperationException(string.Format(OpaqueConstants.ErrorMessages.FailedToInitializeSecureRandom, ex.Message), ex);
         }
     }
 

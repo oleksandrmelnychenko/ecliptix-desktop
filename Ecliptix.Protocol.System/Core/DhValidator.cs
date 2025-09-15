@@ -10,15 +10,15 @@ public static class DhValidator
         if (publicKey.Length != Constants.X25519PublicKeySize)
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
-                    $"Invalid public key size: expected {Constants.X25519PublicKeySize}, got {publicKey.Length}"));
+                    string.Format(EcliptixProtocolFailureMessages.DhValidator.InvalidPublicKeySize, Constants.X25519PublicKeySize, publicKey.Length)));
 
         if (HasSmallOrder(publicKey))
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Public key has small order"));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyHasSmallOrder));
 
         if (!IsValidCurve25519Point(publicKey))
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput("Public key is not a valid Curve25519 point"));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyNotValidCurve25519Point));
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }

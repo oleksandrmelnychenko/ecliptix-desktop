@@ -119,8 +119,8 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvid
 
         using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
 
-        global::System.Security.Cryptography.HKDF.DeriveKey(
-            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
+        HKDF.DeriveKey(
+            HashAlgorithmName.SHA256,
             ikm: chainKey,
             output: msgKey.AsSpan(),
             salt: null,
