@@ -12,6 +12,7 @@ public static class AuthenticationConstants
     public const string SecureKeyRequiredKey = "ValidationErrors.SecureKey.Required";
     public const string InvalidCredentialsKey = "ValidationErrors.SecureKey.InvalidCredentials";
     public const string VerifySecureKeyDoesNotMatchKey = "ValidationErrors.VerifySecureKey.DoesNotMatch";
+    public const string CommonUnexpectedErrorKey = "Common.UnexpectedError";
 
     public const string PasswordStrengthInvalidKey = "ValidationErrors.PasswordStrength.Invalid";
     public const string PasswordStrengthVeryWeakKey = "ValidationErrors.PasswordStrength.VeryWeak";
@@ -21,8 +22,11 @@ public static class AuthenticationConstants
     public const string PasswordStrengthVeryStrongKey = "ValidationErrors.PasswordStrength.VeryStrong";
 
     public const string NetworkFailurePrefix = "Failed to parse response: ";
+    public const string GetResponseFailurePrefix = "Failed to get response: ";
     public const string VerificationFailurePrefix = "Verification failed: ";
     public const string RegistrationFailurePrefix = "Registration failed: ";
+
+    public const string OpaqueInitializationFailureMessage = "Failed to initialize OPAQUE protocol service";
 
     public const string InvalidOtpCodeKey = "Verification.Error.InvalidOtpCode";
     public const string RegistrationFailedKey = "Registration.Error.Failed";
