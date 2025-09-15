@@ -12,6 +12,7 @@ public static class ApplicationConstants
         public const string DevelopmentEnvironment = "Development";
         public const string ProductionEnvironment = "Production";
         public const string DotNetEnvironmentKey = "DOTNET_ENVIRONMENT";
+        public const string MutexNameFormat = "EcliptixDesktop_{0}";
     }
 
     public static class Configuration
@@ -22,6 +23,9 @@ public static class ApplicationConstants
         public const string SecureStoreOptionsSection = "SecureStoreOptions";
         public const string SecureStorageSection = "SecureStorage";
         public const string ImprovedRetryPolicySection = "ImprovedRetryPolicy";
+        public const string SerilogSection = "Serilog";
+        public const string MinimumLevelDefaultKey = "MinimumLevel:Default";
+        public const string PathSeparator = ":";
     }
 
     public static class Storage
@@ -34,6 +38,7 @@ public static class ApplicationConstants
         public const string ApplicationSupportDirectory = "Library/Application Support";
         public const string LogsDirectory = "logs";
         public const string LogFilePattern = "ecliptix-.log";
+        public const string AppDataEnvironmentVariable = "%APPDATA%";
     }
 
     public static class Timeouts
@@ -44,6 +49,7 @@ public static class ApplicationConstants
         public static readonly TimeSpan DefaultPollingInterval = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultInitialRetryDelay = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan DefaultMaxRetryDelay = TimeSpan.FromMinutes(2);
+        public static readonly TimeSpan RequestDeduplicationTimeout = TimeSpan.FromSeconds(10);
     }
 
     public static class Thresholds
@@ -52,6 +58,7 @@ public static class ApplicationConstants
         public const int DefaultSuccessThreshold = 1;
         public const int DefaultMaxRetries = 10;
         public const int RetryAttempts = 3;
+        public const int ExponentialBackoffBase = 2;
     }
 
     public static class ConfigurationKeys
@@ -72,8 +79,6 @@ public static class ApplicationConstants
 
     public static class Logging
     {
-        public const string ConsoleSinkAssembly = "Serilog.Sinks.Console";
-        public const string FileSinkAssembly = "Serilog.Sinks.File";
         public const string StartupMessage = "Starting Ecliptix application...";
         public const string ShutdownMessage = "Application shutting down";
         public const string FatalErrorMessage = "Application terminated unexpectedly during startup or runtime";
@@ -87,5 +92,19 @@ public static class ApplicationConstants
     {
         public const UnixFileMode SecureDirectoryMode =
             UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+    }
+
+    public static class ExitCodes
+    {
+        public const int FatalError = 1;
+    }
+
+    public static class LogLevels
+    {
+        public const string Debug = "Debug";
+        public const string Information = "Information";
+        public const string Warning = "Warning";
+        public const string Error = "Error";
+        public const string Fatal = "Fatal";
     }
 }

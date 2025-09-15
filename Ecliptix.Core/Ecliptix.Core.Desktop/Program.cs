@@ -77,12 +77,11 @@ public static class Program
     [STAThread]
     public static async Task Main(string[] args)
     {
-        string mutexName = $"EcliptixDesktop_{Environment.UserName}";
+        string mutexName = string.Format(ApplicationConstants.ApplicationSettings.MutexNameFormat, Environment.UserName);
         using Mutex mutex = new(true, mutexName, out bool createdNew);
 
         if (!createdNew)
         {
-            Log.Information("Another instance is already running - exiting");
             return;
         }
 
@@ -107,7 +106,7 @@ public static class Program
         {
             Log.Fatal(ex, ApplicationConstants.Logging.FatalErrorMessage);
             if (configuration[ApplicationConstants.ApplicationSettings.EnvironmentKey] != ApplicationConstants.ApplicationSettings.DevelopmentEnvironment)
-                Environment.Exit(1);
+                Environment.Exit(ApplicationConstants.ExitCodes.FatalError);
             throw;
         }
         finally
@@ -140,16 +139,16 @@ public static class Program
         {
             LoggerConfiguration loggerConfig = new();
 
-            IConfigurationSection serilogSection = configuration.GetSection("Serilog");
+            IConfigurationSection serilogSection = configuration.GetSection(ApplicationConstants.Configuration.SerilogSection);
 
-            string minLevel = serilogSection["MinimumLevel:Default"] ?? "Information";
+            string minLevel = serilogSection[ApplicationConstants.Configuration.MinimumLevelDefaultKey] ?? ApplicationConstants.LogLevels.Information;
             loggerConfig = minLevel switch
             {
-                "Debug" => loggerConfig.MinimumLevel.Debug(),
-                "Information" => loggerConfig.MinimumLevel.Information(),
-                "Warning" => loggerConfig.MinimumLevel.Warning(),
-                "Error" => loggerConfig.MinimumLevel.Error(),
-                "Fatal" => loggerConfig.MinimumLevel.Fatal(),
+                ApplicationConstants.LogLevels.Debug => loggerConfig.MinimumLevel.Debug(),
+                ApplicationConstants.LogLevels.Information => loggerConfig.MinimumLevel.Information(),
+                ApplicationConstants.LogLevels.Warning => loggerConfig.MinimumLevel.Warning(),
+                ApplicationConstants.LogLevels.Error => loggerConfig.MinimumLevel.Error(),
+                ApplicationConstants.LogLevels.Fatal => loggerConfig.MinimumLevel.Fatal(),
                 _ => loggerConfig.MinimumLevel.Information()
             };
 
@@ -173,6 +172,24 @@ public static class Program
     {
         ServiceCollection services = new();
 
+        ConfigureCoreServices(services, configuration);
+        ConfigureNetworkServices(services, configuration);
+        ConfigureSecurityServices(services, configuration);
+        ConfigureMessagingServices(services);
+        ConfigureAuthenticationServices(services);
+        ConfigureGrpc(services);
+        ConfigureModules(services);
+
+        return services;
+    }
+
+    private static string GetSectionValue(IConfigurationSection section, string key, string defaultValue = "")
+    {
+        return section[key] ?? defaultValue;
+    }
+
+    private static void ConfigureCoreServices(IServiceCollection services, IConfiguration configuration)
+    {
         services.AddLogging(builder => builder.AddSerilog(dispose: true));
 
         services
@@ -184,32 +201,12 @@ public static class Program
             .SetDefaultKeyLifetime(ApplicationConstants.Timeouts.DefaultKeyLifetime);
 
         services.AddSingleton(configuration);
-        services.AddSingleton<IOptions<DefaultSystemSettings>>(_ =>
-        {
-            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.DefaultAppSettingsSection);
-            DefaultSystemSettings settings = new()
-            {
-                DefaultTheme = section[ApplicationConstants.ConfigurationKeys.DefaultTheme] ?? string.Empty,
-                Environment = section[ApplicationConstants.ConfigurationKeys.Environment] ?? ApplicationConstants.ApplicationSettings.ProductionEnvironment,
-                DataCenterConnectionString = section[ApplicationConstants.ConfigurationKeys.DataCenterConnectionString] ?? string.Empty,
-                CountryCodeApi = section[ApplicationConstants.ConfigurationKeys.CountryCodeApi] ?? string.Empty,
-                DomainName = section[ApplicationConstants.ConfigurationKeys.DomainName] ?? string.Empty,
-                Culture = section[ApplicationConstants.ConfigurationKeys.Culture] ?? string.Empty
-            };
-            return Options.Create(settings);
-        });
-        services.AddSingleton<IOptions<SecureStoreOptions>>(_ =>
-        {
-            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.SecureStoreOptionsSection);
-            SecureStoreOptions options = new()
-            {
-                EncryptedStatePath = ResolvePath(
-                    section[ApplicationConstants.ConfigurationKeys.EncryptedStatePath] ?? ApplicationConstants.Storage.DefaultStatePath
-                )
-            };
-            return Options.Create(options);
-        });
+        services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
+        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
+    }
 
+    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration)
+    {
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
         {
             InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
@@ -223,10 +220,9 @@ public static class Program
                 .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
                 .WaitAndRetryAsync(
                     retryCount: ApplicationConstants.Thresholds.RetryAttempts,
-                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt))))
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.ExponentialBackoffBase, attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
 
-        services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
         services.AddSingleton<InternetConnectivityObserver>();
         services.AddSingleton(new InternetConnectivityObserverOptions
         {
@@ -235,20 +231,41 @@ public static class Program
             SuccessThreshold = ApplicationConstants.Thresholds.DefaultSuccessThreshold
         });
 
-        services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
+        services.AddSingleton<NetworkProvider>();
+        services.AddSingleton<RequestDeduplicationService>(_ => new RequestDeduplicationService(ApplicationConstants.Timeouts.RequestDeduplicationTimeout));
+        services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
+        services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
+        services.AddSingleton<ConnectionStateConfiguration>();
+    }
 
-        services.AddSingleton<ISystemEventService, SystemEventService>();
-        services.AddSingleton<INetworkEventService, NetworkEventService>();
-        services.AddSingleton<IBottomSheetService, BottomSheetService>();
-        services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
+    private static void ConfigureSecurityServices(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<IOptions<DefaultSystemSettings>>(_ =>
+        {
+            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.DefaultAppSettingsSection);
+            DefaultSystemSettings settings = new()
+            {
+                DefaultTheme = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DefaultTheme),
+                Environment = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Environment, ApplicationConstants.ApplicationSettings.ProductionEnvironment),
+                DataCenterConnectionString = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DataCenterConnectionString),
+                CountryCodeApi = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CountryCodeApi),
+                DomainName = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DomainName),
+                Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Culture)
+            };
+            return Options.Create(settings);
+        });
 
-        services.AddSingleton<ILocalizationService, LocalizationService>();
-        services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
-        services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
-        services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
-
-        services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
-        services.AddSingleton<IWindowActivationService, WindowActivationService>();
+        services.AddSingleton<IOptions<SecureStoreOptions>>(_ =>
+        {
+            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.SecureStoreOptionsSection);
+            SecureStoreOptions options = new()
+            {
+                EncryptedStatePath = ResolvePath(
+                    GetSectionValue(section, ApplicationConstants.ConfigurationKeys.EncryptedStatePath, ApplicationConstants.Storage.DefaultStatePath)
+                )
+            };
+            return Options.Create(options);
+        });
 
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DefaultSystemSettings>>().Value);
 
@@ -264,12 +281,13 @@ public static class Program
                 ApplicationConstants.Storage.EcliptixDirectoryName);
             return new CrossPlatformSecurityProvider(appDataPath);
         });
+
         services.AddSingleton<ISecureProtocolStateStorage>(sp =>
         {
             IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
 
-            string storagePath = config[ApplicationConstants.Configuration.SecureStorageSection + ":" + ApplicationConstants.ConfigurationKeys.StatePath]
+            string storagePath = config[ApplicationConstants.Configuration.SecureStorageSection + ApplicationConstants.Configuration.PathSeparator + ApplicationConstants.ConfigurationKeys.StatePath]
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                 ApplicationConstants.Storage.EcliptixDirectoryName, ApplicationConstants.Storage.SecureProtocolStateFile);
 
@@ -277,17 +295,27 @@ public static class Program
 
             return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
         });
+    }
+
+    private static void ConfigureMessagingServices(IServiceCollection services)
+    {
+        services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
+        services.AddSingleton<ISystemEventService, SystemEventService>();
+        services.AddSingleton<INetworkEventService, NetworkEventService>();
+        services.AddSingleton<IBottomSheetService, BottomSheetService>();
+        services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
+        services.AddSingleton<IWindowService, WindowService>();
+        services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
+        services.AddSingleton<IWindowActivationService, WindowActivationService>();
+    }
+
+    private static void ConfigureAuthenticationServices(IServiceCollection services)
+    {
+        services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
+        services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
+        services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
-
-        services.AddSingleton<ConnectionStateConfiguration>();
-
-        services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
-        services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
-
-        services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<RequestDeduplicationService>(_ => new RequestDeduplicationService(TimeSpan.FromSeconds(10)));
-
-        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
 
         services.AddSingleton<IRetryStrategy>(sp =>
         {
@@ -310,13 +338,6 @@ public static class Program
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
         services.AddSingleton<SecrecyChannelRetryInterceptor>();
-
-        services.AddSingleton<IWindowService, WindowService>();
-
-        ConfigureGrpc(services);
-        ConfigureModules(services);
-
-        return services;
     }
 
     private static ImprovedRetryConfiguration CreateRetryConfiguration(IConfigurationSection section)
@@ -387,42 +408,54 @@ public static class Program
         services.AddTransient<MainViewModel>();
     }
 
+    private static string GetPlatformAppDataDirectory()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ApplicationConstants.Storage.LocalShareDirectory
+                )
+                : Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ApplicationConstants.Storage.ApplicationSupportDirectory
+                );
+    }
+
+    private static void SetSecurePermissionsIfUnix(string directory)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            try
+            {
+                File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
+                Log.Debug(ApplicationConstants.Logging.PermissionsSetMessage, directory);
+            }
+            catch (IOException ex)
+            {
+                Log.Warning(ex, ApplicationConstants.Logging.PermissionsFailMessage, directory);
+            }
+        }
+    }
+
     private static string ResolvePath(string path)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentException(ApplicationConstants.Logging.PathEmptyErrorMessage, nameof(path));
 
-        string appDataDir =
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-                : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                    ? Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        ApplicationConstants.Storage.LocalShareDirectory
-                    )
-                    : Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        ApplicationConstants.Storage.ApplicationSupportDirectory
-                    );
+        string appDataDir = GetPlatformAppDataDirectory();
 
         path = Environment.ExpandEnvironmentVariables(
-            path.Replace("%APPDATA%", Path.Combine(appDataDir, ApplicationConstants.Storage.EcliptixDirectoryName))
+            path.Replace(ApplicationConstants.Storage.AppDataEnvironmentVariable,
+                        Path.Combine(appDataDir, ApplicationConstants.Storage.EcliptixDirectoryName))
         );
 
         string? directory = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(directory)) return path;
+
         Directory.CreateDirectory(directory);
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-            && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return path;
-        try
-        {
-            File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
-            Log.Debug(ApplicationConstants.Logging.PermissionsSetMessage, directory);
-        }
-        catch (IOException ex)
-        {
-            Log.Warning(ex, ApplicationConstants.Logging.PermissionsFailMessage, directory);
-        }
+        SetSecurePermissionsIfUnix(directory);
 
         return path;
     }
