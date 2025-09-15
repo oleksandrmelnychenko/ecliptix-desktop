@@ -247,10 +247,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             if (IsUserInitiatedRequest(serviceType))
             {
-                Log.Information("🚫 REQUEST BLOCKED: User request '{ServiceType}' blocked during recovery state",
+                if (!waitForRecovery)
+                {
+                    Log.Information(
+                        "🚫 REQUEST BLOCKED: User request '{ServiceType}' blocked during recovery state (no wait)",
+                        serviceType);
+                    return Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.DataCenterNotResponding("System is recovering, please wait"));
+                }
+
+                Log.Information("⏳ REQUEST WAITING: User request '{ServiceType}' will wait for recovery completion",
                     serviceType);
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding("System is recovering, please wait"));
             }
 
             if (IsRecoveryRequest(serviceType))
@@ -293,6 +300,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
+
+            if (Volatile.Read(ref _outageState) == 0 && currentState == SystemState.Recovering &&
+                IsUserInitiatedRequest(serviceType))
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+                });
+            }
 
             string operationName = $"{serviceType}";
             Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
@@ -829,7 +845,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
 
-        // Early return if protocol doesn't exist - makes method idempotent
         if (!_connections.ContainsKey(connectId) && !_activeStreams.ContainsKey(connectId))
         {
             return;
@@ -2227,7 +2242,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-            Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
+            PubKeyExchangeType.DataCenterEphemeralConnect);
         _connections.TryRemove(connectId, out _);
 
         Result<byte[], SecureStorageFailure> stateResult =
@@ -2240,7 +2255,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 byte[] stateBytes = stateResult.Unwrap();
                 EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
-
 
                 Result<bool, NetworkFailure> restoreResult =
                     await RestoreSecrecyChannelForManualRetryAsync(state, _applicationInstanceSettings.Value!);

@@ -569,7 +569,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         if (!await _cleanupSemaphore.WaitAsync(waitTimeout))
         {
-            Log.Warning("Cleanup semaphore wait timed out, cleanup may be incomplete");
             return;
         }
 
