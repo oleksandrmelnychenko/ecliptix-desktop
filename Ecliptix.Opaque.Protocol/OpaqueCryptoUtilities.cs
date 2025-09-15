@@ -24,9 +24,7 @@ public static class OpaqueCryptoUtilities
         try
         {
             X9ECParameters? curveParams = ECNamedCurveTable.GetByName(CryptographicConstants.EllipticCurveName);
-            if (curveParams == null)
-                throw new InvalidOperationException($"Elliptic curve '{CryptographicConstants.EllipticCurveName}' not found");
-            return curveParams;
+            return curveParams ?? throw new InvalidOperationException($"Elliptic curve '{CryptographicConstants.EllipticCurveName}' not found");
         }
         catch (Exception ex)
         {
@@ -95,7 +93,7 @@ public static class OpaqueCryptoUtilities
     }
 
     public static byte[] DeriveKey(byte[] ikm, byte[]? salt, ReadOnlySpan<byte> info, int outputLength) =>
-        DeriveKey(ikm.AsSpan(), salt.AsSpan(), info, outputLength);
+        DeriveKey(ikm.AsSpan(), salt == null ? ReadOnlySpan<byte>.Empty : salt.AsSpan(), info, outputLength);
 
     private static byte[] DecompressPoint(BigInteger x, byte sign)
     {
@@ -146,23 +144,27 @@ public static class OpaqueCryptoUtilities
         try
         {
             using ScopedSecureMemoryCollection memoryCollection = new();
-
             using ScopedSecureMemory saltBuffer = memoryCollection.Allocate(OpaqueConstants.Pbkdf2SaltLength);
+
             Span<byte> salt = saltBuffer.AsSpan();
 
             byte[] saltBytes = HkdfExpand(oprfOutput.ToArray(), HkdfInfoStrings.OpaqueSalt.AsSpan(), Pbkdf2SaltLength);
             saltBytes.AsSpan().CopyTo(salt);
 
+            byte[] oprfBytes = oprfOutput.ToArray();
             byte[] saltArray = salt.ToArray();
+
             using Rfc2898DeriveBytes pbkdf2 = new(
-                oprfOutput.ToArray(),
+                oprfBytes,
                 saltArray,
                 Pbkdf2Iterations,
-                System.Security.Cryptography.HashAlgorithmName.SHA256
+                HashAlgorithmName.SHA256
             );
             CryptographicOperations.ZeroMemory(saltArray);
+            CryptographicOperations.ZeroMemory(oprfBytes);
 
             byte[] stretched = pbkdf2.GetBytes(HashLength);
+
             return Result<byte[], OpaqueFailure>.Ok(stretched);
         }
         catch (Exception ex)
@@ -279,6 +281,7 @@ public static class OpaqueCryptoUtilities
             ReadOnlySpan<byte> expectedMac = expectedEnvelope.AsSpan()[NonceLength..];
 
             bool isValid = CryptographicOperations.FixedTimeEquals(expectedMac, providedMac);
+
             return Result<bool, OpaqueFailure>.Ok(isValid);
         }
         catch (Exception ex)
@@ -287,40 +290,6 @@ public static class OpaqueCryptoUtilities
         }
     }
 
-    public static Result<byte[], OpaqueFailure> UnmaskResponse(
-        ReadOnlySpan<byte> maskedResponse,
-        ReadOnlySpan<byte> maskingKey)
-    {
-        try
-        {
-            if (maskedResponse.Length < NonceLength)
-                return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.InvalidInput(ErrorMessages.MaskedResponseTooShort));
-
-            ReadOnlySpan<byte> nonce = maskedResponse[..NonceLength];
-            ReadOnlySpan<byte> masked = maskedResponse[NonceLength..];
-
-            byte[] pad = HkdfExpand(maskingKey.ToArray(), nonce, masked.Length);
-
-            using ScopedSecureMemoryCollection memoryCollection = new();
-            using ScopedSecureMemory unmaskBuffer = memoryCollection.Allocate(masked.Length);
-            Span<byte> unmasked = unmaskBuffer.AsSpan();
-
-            for (int i = 0; i < masked.Length; i++)
-            {
-                unmasked[i] = (byte)(masked[i] ^ pad[i]);
-            }
-
-            byte[] result = unmasked.ToArray();
-
-            CryptographicOperations.ZeroMemory(pad);
-
-            return Result<byte[], OpaqueFailure>.Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return Result<byte[], OpaqueFailure>.Err(OpaqueFailure.MaskingFailed($"{ErrorMessages.ResponseUnmaskingFailed}{ex.Message}", ex));
-        }
-    }
 
     public static Result<byte[], OpaqueFailure> DeriveExportKey(
         ReadOnlySpan<byte> handshakeSecret,

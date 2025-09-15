@@ -20,7 +20,6 @@ public static class OpaqueConstants
     public const int Pbkdf2Iterations = 100000;
     public const int Pbkdf2SaltLength = 32;
 
-    public static readonly byte[] MaskingKeyInfo = "MaskingKey"u8.ToArray();
     public static readonly byte[] ExportKeyInfo = "ExportKey"u8.ToArray();
     public static readonly byte[] AuthKeyInfo = "AuthKey"u8.ToArray();
     public static readonly byte[] PrivateKeyInfo = "PrivateKey"u8.ToArray();
@@ -29,7 +28,6 @@ public static class OpaqueConstants
 
     public static class RfcCompliance
     {
-        public const bool EnableMasking = true;
         public const bool EnableOprfMasking = false;
         public const bool EnableRegistrationRecordMasking = true;
         public const bool EnableStretching = true;
@@ -50,11 +48,8 @@ public static class OpaqueConstants
         public const string SubgroupCheckFailed = "Point not in main subgroup";
         public const string OprfOutputEmpty = "OPRF output cannot be empty";
         public const string EnvelopeTooShort = "Envelope too short";
-        public const string MaskedResponseTooShort = "Masked response too short";
         public const string MacEnvelopeCreationFailed = "MAC envelope creation failed: ";
         public const string MacVerificationFailed = "MAC verification failed: ";
-        public const string ResponseMaskingFailed = "Response masking failed: ";
-        public const string ResponseUnmaskingFailed = "Response unmasking failed: ";
         public const string ExportKeyDerivationFailed = "Export key derivation failed: ";
         public const string Pbkdf2Failed = "PBKDF2 failed: ";
     }
