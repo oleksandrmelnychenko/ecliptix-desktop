@@ -644,7 +644,11 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             if (!isDisposing && !cleanupToken.IsCancellationRequested)
             {
-                ResetUiState();
+                RxApp.MainThreadScheduler.Schedule(() =>
+                {
+                    if (!_isDisposed)
+                        ResetUiState();
+                });
             }
         }
         catch (Exception ex)
