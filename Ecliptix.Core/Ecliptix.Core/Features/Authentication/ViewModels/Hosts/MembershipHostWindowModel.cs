@@ -20,6 +20,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 using Ecliptix.Core.Features.Authentication.Common;
@@ -51,26 +52,31 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
+    private readonly IUiDispatcher _uiDispatcher;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
 
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
+    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService,
+        NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
-        IOpaqueRegistrationService, IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
-            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService, IRoutableViewModel>>
+        IOpaqueRegistrationService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
+        new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
+            ILocalizationService,
+            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
+            IOpaqueRegistrationService, IUiDispatcher, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
+            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                 new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg) => new WelcomeViewModel(host, sys, loc, netProvider),
-            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
-                new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg),
-            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                    new WelcomeViewModel(host, sys, loc, netProvider),
+            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
+            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                 new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg),
-            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host, reg) =>
+            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                 new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
 
@@ -79,6 +85,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public RoutingState Router { get; } = new();
 
     private IRoutableViewModel? _currentView;
+
     public IRoutableViewModel? CurrentView
     {
         get => _currentView;
@@ -177,7 +184,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService,
         NetworkStatusNotificationViewModel networkStatusNotification,
-        IOpaqueRegistrationService opaqueRegistrationService)
+        IOpaqueRegistrationService opaqueRegistrationService,
+        IUiDispatcher uiDispatcher)
         : base(systemEventService, networkProvider, localizationService)
     {
         _networkEventService = networkEventService;
@@ -187,6 +195,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
+        _uiDispatcher = uiDispatcher;
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
@@ -198,7 +207,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
         BuildInfo = buildInfo?.BuildNumber ?? "development";
         FullVersionInfo = $"{VersionHelper.GetDisplayVersion()}" +
-                         (buildInfo != null ? $"\nBuild: {buildInfo.BuildNumber}\nCommit: {buildInfo.GitCommit[..8]}\nBranch: {buildInfo.GitBranch}" : "");
+                          (buildInfo != null
+                              ? $"\nBuild: {buildInfo.BuildNumber}\nCommit: {buildInfo.GitCommit[..8]}\nBranch: {buildInfo.GitBranch}"
+                              : "");
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
@@ -242,7 +253,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                         }
                         catch (Exception ex)
                         {
-                            Log.Warning("Failed to reset current ViewModel during back navigation: {Error}", ex.Message);
+                            Log.Warning("Failed to reset current ViewModel during back navigation: {Error}",
+                                ex.Message);
                         }
                     }
 
@@ -288,9 +300,10 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     return;
                 }
 
-                Window? currentWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
-                    : null;
+                Window? currentWindow =
+                    Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                        ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
+                        : null;
 
                 if (currentWindow == null)
                 {
@@ -311,7 +324,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 {
                     try
                     {
-                        MainViewModel? mainViewModel = mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+                        MainViewModel? mainViewModel =
+                            mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
                         if (mainViewModel != null)
                         {
                             mainWindow.DataContext = mainViewModel;
@@ -369,12 +383,13 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .DisposeWith(disposables);
         });
     }
-    
+
     public async Task ShowRedirectNotificationAsync(UserControl redirectView, bool isDismissable)
     {
         try
         {
-            await _bottomSheetService.ShowAsync(BottomSheetComponentType.RedirectNotification, redirectView, showScrim: true, isDismissable: false);
+            await _bottomSheetService.ShowAsync(BottomSheetComponentType.RedirectNotification, redirectView,
+                showScrim: true, isDismissable: false);
         }
         catch (Exception ex)
         {
@@ -382,18 +397,10 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             throw;
         }
     }
-    
+
     public async Task HideBottomSheetAsync()
     {
-        try
-        {
-            await _bottomSheetService.HideAsync();
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to hide bottom sheet");
-            throw;
-        }
+        await _bottomSheetService.HideAsync();
     }
 
     private async Task CheckCountryCultureMismatchAsync()
@@ -424,15 +431,19 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             Log.Information("Opening URL: {Url}", url);
 
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
+                    .Windows))
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
             }
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX))
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                         .OSPlatform.OSX))
             {
                 System.Diagnostics.Process.Start("open", url);
             }
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                         .OSPlatform.Linux))
             {
                 System.Diagnostics.Process.Start("xdg-open", url);
             }
@@ -463,20 +474,24 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     Log.Warning("Failed to reset ViewModel state for {ViewType}: {Error}", viewType, ex.Message);
                 }
             }
+
             return cachedViewModel;
         }
 
         if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService, IAuthenticationService,
-                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService, IRoutableViewModel>? factory))
+                out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
+                    IAuthenticationService,
+                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService,
+                    IUiDispatcher, IRoutableViewModel>? factory))
         {
             throw new ArgumentOutOfRangeException(nameof(viewType), $"No factory found for ViewType: {viewType}");
         }
 
         try
         {
-            IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider, LocalizationService,
-                _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService);
+            IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
+                LocalizationService,
+                _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService, _uiDispatcher);
             _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
             Log.Information("Created new ViewModel: {ViewModelType} for ViewType: {ViewType}",

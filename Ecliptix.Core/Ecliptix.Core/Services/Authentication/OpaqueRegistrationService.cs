@@ -151,15 +151,9 @@ public class OpaqueRegistrationService(
 
         uint streamConnectId = protocolResult.Unwrap();
 
-        CancellationTokenSource cancellationTokenSource;
-        if (cancellationToken == default)
-        {
-            cancellationTokenSource = new CancellationTokenSource();
-        }
-        else
-        {
-            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        }
+        CancellationTokenSource cancellationTokenSource = cancellationToken == CancellationToken.None
+            ? new CancellationTokenSource()
+            : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         InitiateVerificationRequest request = new()
         {
@@ -602,6 +596,7 @@ public class OpaqueRegistrationService(
         {
             if (_streamCancellations.TryRemove(sessionIdentifier, out CancellationTokenSource? cancellationTokenSource))
             {
+                cancellationTokenSource.Cancel();
                 cancellationTokenSource.Dispose();
             }
 

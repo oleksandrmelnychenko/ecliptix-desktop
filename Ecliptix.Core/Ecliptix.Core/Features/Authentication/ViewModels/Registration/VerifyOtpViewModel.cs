@@ -10,6 +10,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Protobuf.Membership;
@@ -32,6 +33,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly ILocalizationService _localizationService;
+    private readonly IUiDispatcher _uiDispatcher;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -94,13 +96,15 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         IScreen hostScreen,
         ByteString phoneNumberIdentifier,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IOpaqueRegistrationService registrationService) : base(systemEventService, networkProvider,
+        IOpaqueRegistrationService registrationService,
+        IUiDispatcher uiDispatcher) : base(systemEventService, networkProvider,
         localizationService)
     {
         _phoneNumberIdentifier = phoneNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _localizationService = localizationService;
+        _uiDispatcher = uiDispatcher;
 
         HostScreen = hostScreen;
 
@@ -138,7 +142,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables).DisposeWith(_disposables);
         });
-
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -148,7 +151,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             if (_isDisposed) return;
 
             await SafeDisposeStreamCancellationSource();
-            _streamCancellationSource = new CancellationTokenSource();
+            _streamCancellationSource = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             _disposables.Add(_streamCancellationSource);
 
             string deviceIdentifier = SystemDeviceIdentifier();
@@ -216,6 +219,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             {
                 Membership membership = result.Unwrap();
                 await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+                await SafeDisposeStreamCancellationSource();
 
                 if (HasValidSession)
                 {
@@ -373,7 +378,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         {
             ErrorMessage = _localizationService[error];
         }
-        
+
         HasValidSession = false;
         return 0;
     }
@@ -382,9 +387,17 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         if (_isDisposed) return;
 
+        // Cancel any existing redirect first
         _autoRedirectTimer?.Dispose();
-        AutoRedirectCountdown = seconds;
+        _autoRedirectTimer = null;
 
+        // Reset UI state before starting new redirect
+        IsUiLocked = false;
+        ShowDimmer = false;
+        ShowSpinner = false;
+
+        // Now start the new redirect
+        AutoRedirectCountdown = seconds;
         IsUiLocked = true;
         ShowDimmer = true;
         ShowSpinner = true;
@@ -512,7 +525,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         if (!_isDisposed && HostScreen is MembershipHostWindowModel membershipHostWindow)
         {
-            membershipHostWindow.Navigate.Execute(targetView).Subscribe().DisposeWith(_disposables);
+            membershipHostWindow.Navigate.Execute(targetView).Subscribe();
             membershipHostWindow.ClearNavigationStack();
         }
     }
@@ -627,15 +640,15 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 }
                 catch (OperationCanceledException)
                 {
+                    Log.Debug("Session cleanup cancelled");
                 }
                 catch (TimeoutException)
                 {
-                    Log.Warning("Verification session cleanup timed out after {Timeout}ms",
-                        AuthenticationConstants.Timeouts.VerificationCleanupTimeout.TotalMilliseconds);
+                    Log.Warning("Session cleanup timed out");
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning("Failed to cleanup verification session: {Error}", ex.Message);
+                    Log.Warning("Session cleanup failed (non-critical): {Error}", ex.Message);
                 }
             }
 
@@ -643,11 +656,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             if (!isDisposing && !cleanupToken.IsCancellationRequested)
             {
-                RxApp.MainThreadScheduler.Schedule(() =>
+                if (!_isDisposed)
                 {
-                    if (!_isDisposed)
-                        ResetUiState();
-                });
+                    await ResetUiState();
+                }
             }
         }
         catch (Exception ex)
@@ -660,48 +672,40 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         }
     }
 
-    private void ResetUiState()
+    private async Task ResetUiState()
     {
         if (_isDisposed) return;
 
-        _autoRedirectTimer?.Dispose();
-        _autoRedirectTimer = null;
-
-        IsUiLocked = false;
-        ShowDimmer = false;
-        ShowSpinner = false;
-
-        if (HostScreen is MembershipHostWindowModel hostWindow)
+        await _uiDispatcher.PostAsync(async () =>
         {
-            _ = Task.Run(async () =>
+            _autoRedirectTimer?.Dispose();
+            _autoRedirectTimer = null;
+
+            IsUiLocked = false;
+            ShowDimmer = false;
+            ShowSpinner = false;
+
+            if (HostScreen is MembershipHostWindowModel hostWindow)
             {
-                try
-                {
-                    if (!_isDisposed)
-                        await hostWindow.HideBottomSheetAsync();
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Failed to hide bottom sheet during reset: {Error}", ex.Message);
-                }
-            });
-        }
+                await hostWindow.HideBottomSheetAsync();
+            }
 
-        VerificationCode = "";
-        IsSent = false;
-        ErrorMessage = string.Empty;
-        HasError = false;
-        SecondsRemaining = 0;
-        RemainingTime = AuthenticationConstants.InitialRemainingTime;
-        IsMaxAttemptsReached = false;
-        AutoRedirectMessage = string.Empty;
-        AutoRedirectCountdown = 0;
-        CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
-        lock (_sessionLock)
-        {
-            _verificationSessionIdentifier = Guid.Empty;
-            HasValidSession = false;
-        }
+            VerificationCode = "";
+            IsSent = false;
+            ErrorMessage = string.Empty;
+            HasError = false;
+            SecondsRemaining = 0;
+            RemainingTime = AuthenticationConstants.InitialRemainingTime;
+            IsMaxAttemptsReached = false;
+            AutoRedirectMessage = string.Empty;
+            AutoRedirectCountdown = 0;
+            CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+            lock (_sessionLock)
+            {
+                _verificationSessionIdentifier = Guid.Empty;
+                HasValidSession = false;
+            }
+        });
     }
 
     public void ResetState()
@@ -713,7 +717,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             try
             {
                 if (!_isDisposed)
-                    await PerformCleanupAsync();
+                    await PerformCleanupAsync(true);
             }
             catch (Exception ex)
             {

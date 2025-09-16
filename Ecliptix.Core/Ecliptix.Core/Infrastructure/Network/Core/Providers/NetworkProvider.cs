@@ -881,28 +881,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void CancelOperationsForConnection(uint connectId)
     {
         string connectIdPrefix = $"{connectId}_";
-        List<string> keysToCancel = new();
-
-        foreach (string key in _inFlightRequests.Keys)
-        {
-            if (key.StartsWith(connectIdPrefix))
-            {
-                keysToCancel.Add(key);
-            }
-        }
+        List<string> keysToCancel = [];
+        keysToCancel.AddRange(_inFlightRequests.Keys.Where(key => key.StartsWith(connectIdPrefix)));
 
         foreach (string key in keysToCancel)
         {
-            if (_inFlightRequests.TryRemove(key, out CancellationTokenSource? operationCts))
+            if (!_inFlightRequests.TryRemove(key, out CancellationTokenSource? operationCts)) continue;
+            try
             {
-                try
-                {
-                    operationCts.Cancel();
-                    operationCts.Dispose();
-                }
-                catch (ObjectDisposedException)
-                {
-                }
+                operationCts.Cancel();
+                operationCts.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
     }
@@ -921,15 +912,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
 
         protocolSystem.Dispose();
-
-        Result<Unit, SecureStorageFailure> deleteResult =
-            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-
-        if (deleteResult.IsErr)
-        {
-            Log.Warning("Failed to delete protocol state for connectId {ConnectId}: {Error}",
-                connectId, deleteResult.UnwrapErr());
-        }
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }

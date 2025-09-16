@@ -7,6 +7,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Utilities;
@@ -29,6 +30,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly IUiDispatcher _uiDispatcher;
 
     [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
@@ -51,11 +53,13 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IOpaqueRegistrationService registrationService) : base(systemEventService, networkProvider, localizationService)
+        IOpaqueRegistrationService registrationService,
+        IUiDispatcher uiDispatcher) : base(systemEventService, networkProvider, localizationService)
     {
         _registrationService = registrationService;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _uiDispatcher = uiDispatcher;
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
     }
@@ -147,7 +151,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                 ByteString mobileNumberIdentifier = result.Unwrap();
 
                 VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
-                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
 
                 if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
                 {
