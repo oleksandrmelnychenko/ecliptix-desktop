@@ -29,30 +29,22 @@ public class OpaqueRegistrationService(
     : IOpaqueRegistrationService
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
-    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _streamCancellations = new();
 
     private readonly ConcurrentDictionary<ByteString, (BigInteger Blind, byte[] OprfResponse)>
         _opaqueRegistrationState = new();
 
     private OpaqueProtocolService CreateOpaqueService()
     {
-        try
-        {
-            byte[] serverPublicKeyBytes = ServerPublicKey();
+        byte[] serverPublicKeyBytes = ServerPublicKey();
 
-            Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint =
-                OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
-            ECPublicKeyParameters serverStaticPublicKeyParam = new(
-                serverPublicKeyPoint,
-                OpaqueCryptoUtilities.DomainParams
-            );
+        Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint =
+            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
+        ECPublicKeyParameters serverStaticPublicKeyParam = new(
+            serverPublicKeyPoint,
+            OpaqueCryptoUtilities.DomainParams
+        );
 
-            return new OpaqueProtocolService(serverStaticPublicKeyParam);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Failed to initialize OPAQUE protocol service", ex);
-        }
+        return new OpaqueProtocolService(serverStaticPublicKeyParam);
     }
 
     private byte[] ServerPublicKey() =>
@@ -151,9 +143,6 @@ public class OpaqueRegistrationService(
 
         uint streamConnectId = protocolResult.Unwrap();
 
-        CancellationTokenSource cancellationTokenSource = cancellationToken == CancellationToken.None
-            ? new CancellationTokenSource()
-            : CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         InitiateVerificationRequest request = new()
         {
@@ -167,15 +156,12 @@ public class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
-                cancellationTokenSource.Token, cancellationTokenSource),
-            true, cancellationTokenSource.Token);
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
+            true, cancellationToken);
 
         if (streamResult.IsErr)
         {
             string errorMessage = streamResult.UnwrapErr().Message;
-
-            cancellationTokenSource.Dispose();
 
             if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
             {
@@ -195,7 +181,8 @@ public class OpaqueRegistrationService(
         Guid sessionIdentifier,
         ByteString phoneNumberIdentifier,
         string deviceIdentifier,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
+        CancellationToken cancellationToken = default)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
@@ -227,18 +214,12 @@ public class OpaqueRegistrationService(
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
 
-        if (!_streamCancellations.TryGetValue(sessionIdentifier, out CancellationTokenSource? cancellationTokenSource))
-        {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
-        }
-
         Result<Unit, NetworkFailure> result = await networkProvider.ExecuteReceiveStreamRequestAsync(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate,
-                cancellationTokenSource.Token, cancellationTokenSource),
-            true, cancellationTokenSource.Token);
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
+            true, cancellationToken);
 
         if (result.IsErr)
         {
@@ -531,9 +512,7 @@ public class OpaqueRegistrationService(
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
         byte[] payload,
         uint streamConnectId,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate,
-        CancellationToken cancellationToken = default,
-        CancellationTokenSource? cancellationTokenSource = null)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
         try
         {
@@ -561,17 +540,13 @@ public class OpaqueRegistrationService(
                             Log.Warning("Background stream cleanup failed for session {SessionId}: {Error}",
                                 verificationIdentifier, ex.Message);
                         }
-                    }, cancellationToken);
+                    }, CancellationToken.None);
                 }
             }
 
             if (verificationIdentifier != Guid.Empty)
             {
                 _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
-                if (cancellationTokenSource != null)
-                {
-                    _streamCancellations.TryAdd(verificationIdentifier, cancellationTokenSource);
-                }
             }
 
             RxApp.MainThreadScheduler.Schedule(() =>
@@ -594,12 +569,6 @@ public class OpaqueRegistrationService(
     {
         if (_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
         {
-            if (_streamCancellations.TryRemove(sessionIdentifier, out CancellationTokenSource? cancellationTokenSource))
-            {
-                cancellationTokenSource.Cancel();
-                cancellationTokenSource.Dispose();
-            }
-
             Result<Unit, NetworkFailure> cleanupResult =
                 await networkProvider.CleanupStreamProtocolAsync(streamConnectId);
 

@@ -34,11 +34,8 @@ public static class AuthenticationConstants
     public const string VerificationSessionExpiredKey = "Verification.Error.SessionExpired";
     public const string NoActiveVerificationSessionKey = "Verification.Error.NoActiveSession";
     public const string MaxAttemptsReachedKey = "Verification.Error.MaxAttemptsReached";
-    public const string VerificationFailedKey = "Verification.Error.VerificationFailed";
     public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
-    public const string GlobalRateLimitExceededKey = "Verification.Error.GlobalRateLimitExceeded";
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
-    public const string RedirectingMessageKey = "Verification.Info.Redirecting";
 
     public const string InitialRemainingTime = "00:30";
     public const string ExpiredRemainingTime = "00:00";
@@ -47,12 +44,7 @@ public static class AuthenticationConstants
 
     public static class Timeouts
     {
-        public static readonly TimeSpan DefaultCleanupTimeout = TimeSpan.FromSeconds(5);
-        public static readonly TimeSpan VerificationCleanupTimeout = TimeSpan.FromSeconds(2);
-        public static readonly TimeSpan TaskWaitTimeout = TimeSpan.FromSeconds(1);
-        public static readonly TimeSpan StreamInitializationTimeout = TimeSpan.FromSeconds(10);
-        public static readonly TimeSpan OtpVerificationTimeout = TimeSpan.FromSeconds(15);
-        public static readonly TimeSpan PhoneValidationTimeout = TimeSpan.FromSeconds(10);
-        public static readonly TimeSpan DisposeTimeout = TimeSpan.FromSeconds(3);
+        public static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan SecrecyChannelRetryDelay = TimeSpan.FromSeconds(1);
     }
 }

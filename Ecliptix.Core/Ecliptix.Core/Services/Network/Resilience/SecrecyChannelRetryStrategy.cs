@@ -162,7 +162,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         try
         {
-            AsyncPolicyWrap<Result<TResponse, NetworkFailure>> retryPolicy =
+            IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy =
                 CreateTypedRetryPolicy<TResponse>(actualMaxRetries, operationKey, operationName, connectId.Value);
 
             Context context = new(operationName);
@@ -528,7 +528,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         }
     }
 
-    private AsyncPolicyWrap<Result<TResponse, NetworkFailure>> CreateTypedRetryPolicy<TResponse>(
+    private IAsyncPolicy<Result<TResponse, NetworkFailure>> CreateTypedRetryPolicy<TResponse>(
         int maxRetries,
         string operationKey,
         string operationName,
@@ -631,16 +631,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                     }
                 });
 
-        IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromSeconds(30),
-            onTimeoutAsync: (_, timespan, _) =>
-            {
-                Log.Warning("Operation {OperationName} timed out after {Timeout}", operationName, timespan);
-                return Task.CompletedTask;
-            });
-
-        return retryPolicy
-            .WrapAsync(timeoutPolicy);
+        return retryPolicy;
     }
 
     private async Task EnsureSecrecyChannelAsync(uint connectId)

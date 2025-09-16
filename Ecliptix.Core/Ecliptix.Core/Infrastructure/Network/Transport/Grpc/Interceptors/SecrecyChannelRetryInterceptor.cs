@@ -1,45 +1,26 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Network.Infrastructure;
-using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Utilities.Failures.Network;
 using Grpc.Core;
 using Grpc.Core.Interceptors;
-using Microsoft.Extensions.Configuration;
-using Polly;
-using Polly.Contrib.WaitAndRetry;
-using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 
 public class SecrecyChannelRetryInterceptor : Interceptor
 {
     private readonly NetworkProvider _networkProvider;
-    private readonly IAsyncPolicy _retryPolicy;
-    private readonly ImprovedRetryConfiguration _configuration;
     private readonly INetworkEventService _networkEvents;
-    private readonly RequestDeduplicationService _deduplicationService;
-    private readonly IPendingRequestManager _pendingRequestManager;
 
     public SecrecyChannelRetryInterceptor(
         NetworkProvider networkProvider,
-        IConfiguration configuration,
-        INetworkEventService networkEvents,
-        RequestDeduplicationService deduplicationService,
-        IPendingRequestManager pendingRequestManager)
+        INetworkEventService networkEvents)
     {
         _networkProvider = networkProvider;
         _networkEvents = networkEvents;
-        _deduplicationService = deduplicationService;
-        _pendingRequestManager = pendingRequestManager;
-        _configuration = GetRetryConfiguration(configuration);
-
-        _retryPolicy = CreateRetryPolicy();
     }
 
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(
@@ -84,27 +65,13 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         where TResponse : class
     {
         uint connectId = ExtractConnectionId(context);
-        string operationName = context.Method.FullName;
-
-        string? existingRequestId = context.Options.Headers?.Get("request-id")?.Value;
-        string requestId = existingRequestId ?? $"{operationName}_{connectId}_{Guid.NewGuid():N}";
-
-        byte[] requestIdBytes = System.Text.Encoding.UTF8.GetBytes(requestId);
-        if (await _deduplicationService.IsDuplicateRequestAsync(operationName, requestIdBytes, connectId))
-        {
-            throw new RpcException(new Status(StatusCode.AlreadyExists,
-                $"Duplicate request detected for {operationName}, rejecting"));
-        }
 
         try
         {
             bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
-
             if (!connectionResult)
             {
-                throw new RpcException(new Status(
-                    StatusCode.Unavailable,
-                    "Failed to establish SecrecyChannel"));
+                throw new RpcException(new Status(StatusCode.Unavailable, "Failed to establish SecrecyChannel"));
             }
 
             TResponse result = await responseTask;
@@ -112,49 +79,20 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
         catch (RpcException ex) when (IsServerShutdown(ex))
         {
-            TaskCompletionSource<TResponse> taskCompletionSource = new();
-
-            _pendingRequestManager.RegisterPendingRequest<TResponse>(requestId, async () =>
-            {
-                bool connectionRestored = await EnsureSecrecyChannelAsync(connectId);
-                if (!connectionRestored)
-                {
-                    Log.Information("🔄 PENDING REQUEST: Connection not restored for {RequestId}, will retry later", requestId);
-                    throw new RpcException(new Status(StatusCode.Unavailable, "Failed to restore connection"));
-                }
-
-                _deduplicationService.RemoveRequest(operationName, requestIdBytes, connectId);
-
-                AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
-                TResponse result = await retryCall.ResponseAsync;
-
-                Log.Information("🔄 PENDING REQUEST SUCCESS: Request {RequestId} succeeded on retry", requestId);
-                return result;
-            }, taskCompletionSource);
-
             await _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
-
-            return await taskCompletionSource.Task;
+            throw;
         }
-        catch (RpcException ex)
+        catch (RpcException ex) when (ShouldRetry(ex) && RequiresConnectionRecovery(ex))
         {
-            return await _retryPolicy.ExecuteAsync(async () =>
+            await ReestablishSecrecyChannelAsync(connectId);
+            bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
+            if (!connectionResult)
             {
-                if (!ShouldRetry(ex) || !RequiresConnectionRecovery(ex)) throw ex;
+                throw new RpcException(new Status(StatusCode.Unavailable, "Failed to establish SecrecyChannel"));
+            }
 
-                await ReestablishSecrecyChannelAsync(connectId);
-
-                bool connectionResult = await EnsureSecrecyChannelAsync(connectId);
-                if (!connectionResult)
-                {
-                    throw new RpcException(new Status(
-                        StatusCode.Unavailable,
-                        "Failed to establish SecrecyChannel"));
-                }
-
-                AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
-                return await retryCall.ResponseAsync;
-            });
+            AsyncUnaryCall<TResponse> retryCall = continuation(request, context);
+            return await retryCall.ResponseAsync;
         }
     }
 
@@ -205,34 +143,6 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         }
     }
 
-    private IAsyncPolicy CreateRetryPolicy()
-    {
-        System.Collections.Generic.IEnumerable<TimeSpan> retryDelays = _configuration.UseAdaptiveRetry
-            ? Backoff.DecorrelatedJitterBackoffV2(
-                medianFirstRetryDelay: _configuration.InitialRetryDelay,
-                retryCount: _configuration.MaxRetries,
-                fastFirst: true)
-            : Backoff.ExponentialBackoff(
-                initialDelay: _configuration.InitialRetryDelay,
-                retryCount: _configuration.MaxRetries,
-                factor: 2.0,
-                fastFirst: true);
-
-        IAsyncPolicy retryPolicy = Policy
-            .Handle<RpcException>(ShouldRetry)
-            .Or<TaskCanceledException>()
-            .Or<OperationCanceledException>()
-            .WaitAndRetryAsync(
-                retryDelays,
-                onRetry: (_, _, _, _) => { });
-
-        IAsyncPolicy timeoutPolicy = Policy.TimeoutAsync(
-            TimeSpan.FromSeconds(30),
-            onTimeoutAsync: (_, _, _) => Task.CompletedTask);
-
-        return retryPolicy
-            .WrapAsync(timeoutPolicy);
-    }
 
     private static bool ShouldRetry(RpcException ex)
     {
@@ -257,11 +167,6 @@ public class SecrecyChannelRetryInterceptor : Interceptor
                (ex.Status.Detail?.Contains("chain", StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
-    private static bool IsCircuitBreakerException(RpcException ex)
-    {
-        return ex.StatusCode == StatusCode.Unavailable ||
-               ex.StatusCode == StatusCode.ResourceExhausted;
-    }
 
     private static bool IsServerShutdown(RpcException ex)
     {
@@ -284,17 +189,6 @@ public class SecrecyChannelRetryInterceptor : Interceptor
         return 1;
     }
 
-    [UnconditionalSuppressMessage("Trimming",
-        "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
-        Justification = "Configuration binding is safe for simple types")]
-    [UnconditionalSuppressMessage("AOT",
-        "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling",
-        Justification = "Configuration binding is safe for simple types")]
-    private static ImprovedRetryConfiguration GetRetryConfiguration(IConfiguration configuration)
-    {
-        return configuration.GetSection("ImprovedRetryPolicy").Get<ImprovedRetryConfiguration>()
-               ?? ImprovedRetryConfiguration.Production;
-    }
 
     private class SecrecyChannelAwareStreamReader<T>(
         Task<bool> connectionTask,

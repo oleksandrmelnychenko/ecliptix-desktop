@@ -130,58 +130,35 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
         NetworkErrorMessage = string.Empty;
 
-        try
+        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
+
+        string systemDeviceIdentifier = SystemDeviceIdentifier();
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        Task<Result<ByteString, string>> validationTask = _registrationService.ValidatePhoneNumberAsync(
+            MobileNumber,
+            systemDeviceIdentifier,
+            connectId);
+
+        Result<ByteString, string> result = await validationTask.WaitAsync(timeoutCts.Token);
+
+        if (_isDisposed) return Unit.Default;
+
+        if (result.IsOk)
         {
-            using CancellationTokenSource timeoutCts = new(AuthenticationConstants.Timeouts.PhoneValidationTimeout);
+            ByteString mobileNumberIdentifier = result.Unwrap();
 
-            string systemDeviceIdentifier = SystemDeviceIdentifier();
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
 
-            Task<Result<ByteString, string>> validationTask = _registrationService.ValidatePhoneNumberAsync(
-                MobileNumber,
-                systemDeviceIdentifier,
-                connectId);
-
-            Result<ByteString, string> result = await validationTask.WaitAsync(timeoutCts.Token);
-
-            if (_isDisposed) return Unit.Default;
-
-            if (result.IsOk)
+            if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
             {
-                ByteString mobileNumberIdentifier = result.Unwrap();
-
-                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
-                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
-
-                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
-                {
-                    hostWindow.NavigateToViewModel(vm);
-                }
-            }
-            else if (!_isDisposed)
-            {
-                NetworkErrorMessage = result.UnwrapErr();
+                hostWindow.NavigateToViewModel(vm);
             }
         }
-        catch (OperationCanceledException) when (_isDisposed)
+        else if (!_isDisposed)
         {
-        }
-        catch (TimeoutException)
-        {
-            if (!_isDisposed)
-            {
-                Log.Warning("Phone validation timed out after {Timeout}ms",
-                    AuthenticationConstants.Timeouts.PhoneValidationTimeout.TotalMilliseconds);
-                NetworkErrorMessage = LocalizationService["Errors.ValidationTimeout"];
-            }
-        }
-        catch (Exception ex)
-        {
-            if (!_isDisposed)
-            {
-                Log.Error(ex, "Mobile verification failed");
-                NetworkErrorMessage = LocalizationService["Errors.NetworkError"];
-            }
+            NetworkErrorMessage = result.UnwrapErr();
         }
 
         return Unit.Default;

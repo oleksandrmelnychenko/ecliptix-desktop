@@ -64,7 +64,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _logicalOperationGates = new();
 
     private readonly ConcurrentDictionary<uint, DateTime> _lastRecoveryAttempts = new();
-    private readonly TimeSpan _recoveryThrottleInterval = TimeSpan.FromSeconds(10);
 
     private readonly ConcurrentDictionary<string, DateTime> _lastRequestAttempts = new();
     private readonly TimeSpan _requestDebounceInterval = TimeSpan.FromMilliseconds(500);
@@ -73,7 +72,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private int _outageState;
     private readonly Lock _outageLock = new();
-    private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
+    private readonly TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
 
     private SystemState _currentSystemState = SystemState.Running;
 
@@ -118,7 +117,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             });
     }
 
-
     private readonly Lock _appInstanceSetterLock = new();
 
     public void SetCountry(string country)
@@ -146,7 +144,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             appInstanceIdString,
             deviceIdString, pubKeyExchangeType);
 
-
         return connectId;
     }
 
@@ -158,10 +155,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
         RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
-
-        Log.Information(
-            "NetworkProvider: Creating protocol with config for exchange type {ExchangeType} - DH every {Messages} messages",
-            exchangeType, config.DhRatchetEveryNMessages);
 
         EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
 
@@ -249,21 +242,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 if (!waitForRecovery)
                 {
-                    Log.Information(
-                        "🚫 REQUEST BLOCKED: User request '{ServiceType}' blocked during recovery state (no wait)",
-                        serviceType);
+                    
                     return Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.DataCenterNotResponding("System is recovering, please wait"));
                 }
-
-                Log.Information("⏳ REQUEST WAITING: User request '{ServiceType}' will wait for recovery completion",
-                    serviceType);
-            }
-
-            if (IsRecoveryRequest(serviceType))
-            {
-                Log.Information("✅ RECOVERY REQUEST: Allowing recovery request '{ServiceType}' during recovery state",
-                    serviceType);
             }
         }
 
@@ -310,156 +292,60 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 });
             }
 
-            string operationName = $"{serviceType}";
-            Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                operation: async () =>
+            operationToken.ThrowIfCancellationRequested();
+
+            if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+            {
+                NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
+                    "Connection unavailable - server may be recovering");
+                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
+                return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
+            }
+
+            uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
+            Result<ServiceRequest, NetworkFailure> requestResult =
+                BuildRequestWithId(protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType);
+
+            if (requestResult.IsErr)
+            {
+                return Result<Unit, NetworkFailure>.Err(requestResult.UnwrapErr());
+            }
+
+            ServiceRequest request = requestResult.Unwrap();
+
+            try
+            {
+                Result<Unit, NetworkFailure> networkResult = flowType switch
                 {
-                    operationToken.ThrowIfCancellationRequested();
+                    ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted,
+                        operationToken),
+                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request,
+                        onCompleted, operationToken),
+                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted,
+                        operationToken),
+                    ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
+                        request, onCompleted, operationToken),
+                    _ => Result<Unit, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                };
 
-                    if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-                    {
-                        NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
-                            "Connection unavailable - server may be recovering");
+                if (!networkResult.IsOk || Volatile.Read(ref _outageState) == 0) return networkResult;
+                ExitOutage();
 
-                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
-
-                        return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
-                    }
-
-                    uint secondLogicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
-
-                    Result<ServiceRequest, NetworkFailure> requestResult =
-                        BuildRequestWithId(protocolSystem, secondLogicalOperationId, serviceType, plainBuffer,
-                            flowType);
-                    if (requestResult.IsErr)
-                    {
-                        NetworkFailure buildFailure = requestResult.UnwrapErr();
-                        if (FailureClassification.IsServerShutdown(buildFailure))
-                            EnterOutage(buildFailure.Message, connectId);
-
-                        return Result<Unit, NetworkFailure>.Err(buildFailure);
-                    }
-
-                    ServiceRequest request = requestResult.Unwrap();
-                    uint originalReqId = request.ReqId;
-
-                    string logicalOperationKey = $"{connectId}:op:{originalReqId}";
-
-                    try
-                    {
-                        Result<Unit, NetworkFailure> result = await WithRequestExecutionGate(logicalOperationKey,
-                            async () =>
-                            {
-                                return flowType switch
-                                {
-                                    ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request,
-                                        onCompleted,
-                                        operationToken).ConfigureAwait(false),
-                                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
-                                        request, onCompleted, operationToken).ConfigureAwait(false),
-                                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem,
-                                        request,
-                                        onCompleted, operationToken).ConfigureAwait(false),
-                                    ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(
-                                        protocolSystem, request, onCompleted, operationToken).ConfigureAwait(false),
-                                    _ => Result<Unit, NetworkFailure>.Err(
-                                        NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
-                                };
-                            }).ConfigureAwait(false);
-
-                        if (!result.IsErr) return result;
-                        NetworkFailure failure = result.UnwrapErr();
-
-                        if (FailureClassification.IsServerShutdown(failure))
-                        {
-                            string requestId = originalReqId.ToString();
-                            _pendingRequestManager.RegisterPendingRequest(requestId,
-                                async () =>
-                                {
-                                    await ReExecuteServiceFromPlaintextAsync(connectId, serviceType, plainBuffer,
-                                        flowType, onCompleted, originalReqId, token).ConfigureAwait(false);
-                                });
-
-                            EnterOutage(failure.Message, connectId);
-
-                            if (!waitForRecovery) return result;
-                            Log.Information("Request {ReqId} waiting for server recovery", originalReqId);
-                            try
-                            {
-                                await WaitForOutageRecoveryAsync(token, true);
-                                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                return Result<Unit, NetworkFailure>.Err(
-                                    NetworkFailure.DataCenterNotResponding(
-                                        "Request cancelled during outage recovery wait"));
-                            }
-                        }
-                        else if (FailureClassification.IsCryptoDesync(failure))
-                        {
-                            Log.Warning(
-                                "Cryptographic desync detected for connection {ConnectId}, initiating recovery",
-                                connectId);
-                            if (ShouldThrottleRecovery(connectId)) return result;
-                            _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
-                                (_, _) => DateTime.UtcNow);
-                            ExecuteBackgroundTask(PerformAdvancedRecoveryLogic,
-                                $"CryptographicRecovery-{connectId}");
-                        }
-                        else if (FailureClassification.IsChainRotationMismatch(failure))
-                        {
-                            Log.Warning(
-                                "Chain rotation mismatch detected for connection {ConnectId}: {Message}. Initiating protocol resynchronization",
-                                connectId, failure.Message);
-                            if (ShouldThrottleRecovery(connectId)) return result;
-                            _lastRecoveryAttempts.AddOrUpdate(connectId, DateTime.UtcNow,
-                                (_, _) => DateTime.UtcNow);
-                            ExecuteBackgroundTask(() => PerformProtocolResynchronization(connectId),
-                                $"ProtocolResync-{connectId}");
-                        }
-                        else if (FailureClassification.IsProtocolStateMismatch(failure))
-                        {
-                            Log.Warning(
-                                "Protocol state mismatch detected for connection {ConnectId}: {Message}. Forcing fresh protocol establishment",
-                                connectId, failure.Message);
-                            ExecuteBackgroundTask(() => PerformFreshProtocolEstablishment(connectId),
-                                $"FreshProtocol-{connectId}");
-                        }
-
-                        return result;
-                    }
-                    catch (OperationCanceledException) when (token.IsCancellationRequested)
-                    {
-                        Log.Information(
-                            "[STREAM-TERMINATION] Stream terminated by external cancellation for {ServiceType}",
-                            serviceType);
-                        throw;
-                    }
-                    catch (OperationCanceledException) when (flowType == ServiceFlowType.ReceiveStream)
-                    {
-                        Log.Information(
-                            "[STREAM-TERMINATION] Receive stream terminated gracefully for {ServiceType}, treating as successful completion",
-                            serviceType);
-                        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "Unexpected error during {ServiceType} request", serviceType);
-                        return Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding("Unexpected error during request"));
-                    }
-                },
-                operationName: operationName,
-                connectId: connectId,
-                maxRetries: 10,
-                cancellationToken: operationToken);
-
-            if (!networkResult.IsOk || Volatile.Read(ref _outageState) == 0) return networkResult;
-            Log.Information("Request succeeded after outage - clearing outage state");
-            ExitOutage();
-
-            return networkResult;
+                return networkResult;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+            catch (OperationCanceledException) when (flowType == ServiceFlowType.ReceiveStream)
+            {
+                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+            catch (Exception ex)
+            {
+                return Result<Unit, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));
+            }
         }
         finally
         {
@@ -472,8 +358,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task<Result<Unit, NetworkFailure>> PerformAdvancedRecoveryLogic()
     {
-        Log.Information("🔄 RECOVERY: Starting advanced recovery logic");
-
         if (!_applicationInstanceSettings.HasValue)
         {
             return Result<Unit, NetworkFailure>.Err(
@@ -482,9 +366,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (_retryStrategy.HasExhaustedOperations())
         {
-            Log.Information(
-                "System has exhausted retry operations - skipping automatic reconnection to allow manual retry");
-            return Result<Unit, NetworkFailure>.Err(
+             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
         }
 
@@ -514,19 +396,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     });
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Log.Warning(ex, "Failed to parse stored state for connection {ConnectId} during advanced recovery",
-                    connectId);
                 restorationSucceeded = false;
             }
         }
 
         if (!restorationSucceeded)
         {
-            Log.Warning(
-                "Restoration failed for {ConnectId} during advanced recovery - will continue retrying restoration only",
-                connectId);
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Restoration failed during advanced recovery"));
         }
@@ -550,17 +427,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
         }
 
-        Log.Warning("Restoration failed - will continue retrying restoration only, no new connection establishment");
         return Result<Unit, NetworkFailure>.Err(
             NetworkFailure.DataCenterNotResponding("Restoration failed, will retry restoration"));
     }
 
-    private async Task<Result<Unit, NetworkFailure>> PerformReconnectionLogic()
+    private async Task PerformReconnectionLogic()
     {
         if (!_applicationInstanceSettings.HasValue)
         {
-            return Result<Unit, NetworkFailure>.Err(
+            Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Application instance settings not available"));
+            return;
         }
 
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
@@ -570,14 +447,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (establishResult.IsErr)
         {
-            return establishResult;
+            return;
         }
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
         });
-        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+        Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
     private async Task RetryPendingRequestsAfterRecovery()
@@ -586,10 +463,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             await _pendingRequestManager.RetryAllPendingRequestsAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Error while retrying pending requests after recovery");
         }
         finally
         {
@@ -619,18 +492,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
-        Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
+        await SecureByteStringInterop.WithByteStringAsSpan(
             secrecyChannelState.ToByteString(),
             span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
-
-        if (saveResult.IsOk)
-        {
-            Log.Information("Protocol state saved securely for connection {ConnectId}", connectId);
-        }
-        else
-        {
-            Log.Warning("Failed to save protocol state: {Error}", saveResult.UnwrapErr().Message);
-        }
 
         string timestampKey = $"{connectId}_timestamp";
         await _applicationSecureStorageProvider.StoreAsync(timestampKey,
@@ -655,9 +519,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
             ? "en-US"
             : applicationInstanceSettings.Culture;
-        Log.Information(
-            "NetworkProvider: RestoreSecrecyChannel - Setting RpcMetaDataProvider culture to '{Culture}' (original: '{OriginalCulture}')",
-            culture, applicationInstanceSettings.Culture);
+       
         _rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), culture);
 
@@ -693,7 +555,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 : Result<bool, NetworkFailure>.Ok(true);
         }
 
-        Log.Information("Session not found on server (status: {Status}), will establish new channel", response.Status);
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
@@ -730,13 +591,41 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
+        int maxAttempts = 5;
+        TimeSpan delay = TimeSpan.FromSeconds(1);
         Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
-            await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
-                "EstablishSecrecyChannel",
-                connectId,
-                maxRetries: 15,
-                cancellationToken: combinedCts.Token);
+            Result<PubKeyExchange, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Failed after all attempts"));
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                establishAppDeviceSecrecyChannelResult =
+                    await _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                        action);
+
+                if (establishAppDeviceSecrecyChannelResult.IsOk)
+                    break;
+
+                if (attempt < maxAttempts)
+                {
+                    await Task.Delay(delay, combinedCts.Token);
+                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 10));
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                establishAppDeviceSecrecyChannelResult = Result<PubKeyExchange, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Operation cancelled"));
+                break;
+            }
+            catch (Exception ex)
+            {
+                establishAppDeviceSecrecyChannelResult = Result<PubKeyExchange, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding($"Attempt {attempt} failed: {ex.Message}"));
+            }
+        }
 
         if (establishAppDeviceSecrecyChannelResult.IsErr)
         {
@@ -790,20 +679,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? existingConnection))
         {
-            Log.Information(
-                "[PROTOCOL] Found existing protocol for connectId {ConnectId}, checking config compatibility...",
-                connectId);
-
-            RatchetConfig expectedConfig = GetRatchetConfigForExchangeType(exchangeType);
-
-            Log.Information("[PROTOCOL] Recreating protocol for type {Type} to ensure correct configuration",
-                exchangeType);
             _connections.TryRemove(connectId, out _);
-            existingConnection?.Dispose();
+            existingConnection.Dispose();
         }
-
-        Log.Information("[PROTOCOL] Creating new protocol for type {Type}, connectId {ConnectId}",
-            exchangeType, connectId);
 
         InitiateEcliptixProtocolSystemForType(connectId, exchangeType);
 
@@ -814,20 +692,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             _connections.TryRemove(connectId, out _);
             return Result<uint, NetworkFailure>.Err(establishOptionResult.UnwrapErr());
-        }
-
-        Option<EcliptixSessionState> optionState = establishOptionResult.Unwrap();
-
-        if (!optionState.HasValue) return Result<uint, NetworkFailure>.Ok(connectId);
-
-        Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
-            optionState.Value.ToByteString(),
-            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
-
-        if (saveResult.IsErr)
-        {
-            Log.Warning("Failed to save protocol state for type {Type}: {Error}",
-                exchangeType, saveResult.UnwrapErr());
         }
 
         return Result<uint, NetworkFailure>.Ok(connectId);
@@ -870,9 +734,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Warning("Failed to delete protocol state for type {Type}: {Error}",
                     exchangeType, deleteResult.UnwrapErr());
             }
-        }
-        else
-        {
         }
 
         Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -929,8 +790,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _ => RatchetConfig.Default
         };
 
-        Log.Information("[RATCHET-CONFIG] Created config for {ExchangeType}: DH every {Messages} messages",
-            exchangeType, config.DhRatchetEveryNMessages);
         return config;
     }
 
@@ -947,32 +806,23 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             uint testConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
             if (testConnectId != connectId) continue;
-            Log.Information("NetworkProvider: Determined exchange type {ExchangeType} for connectId {ConnectId}",
-                exchangeType, connectId);
+           
             return exchangeType;
         }
 
-        Log.Warning("NetworkProvider: Could not determine exchange type for connectId {ConnectId}, using default",
-            connectId);
         return PubKeyExchangeType.DataCenterEphemeralConnect;
     }
 
     private void InitiateEcliptixProtocolSystemForType(uint connectId,
         PubKeyExchangeType exchangeType)
     {
-        Log.Information("[PROTOCOL] Creating protocol system for type {Type}", exchangeType);
-
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
 
         RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
         EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
         protocolSystem.SetEventHandler(this);
 
-        bool addSuccess = _connections.TryAdd(connectId, protocolSystem);
-        Log.Information(
-            "[PROTOCOL-TRACKING] Added protocol to connections - ConnectId: {ConnectId}, Success: {Success}, Config.DhEvery: {DhEvery}",
-            connectId, addSuccess, config.DhRatchetEveryNMessages);
-
+        _connections.TryAdd(connectId, protocolSystem);
         ConnectionHealth initialHealth = new()
         {
             ConnectId = connectId,
@@ -1123,10 +973,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
         }
 
-        Log.Information(
-            "[RESTORE] Recreated protocol connection for connectId {ConnectId} with exchange type {ExchangeType} - DH every {Messages} messages",
-            state.ConnectId, exchangeType, config.DhRatchetEveryNMessages);
-
         return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap(), config);
     }
 
@@ -1184,27 +1030,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, []));
     }
 
-    private static Result<ServiceRequest, NetworkFailure> BuildRequest(
-        EcliptixProtocolSystem protocolSystem,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        ServiceFlowType flowType)
-    {
-        Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
-            protocolSystem.ProduceOutboundMessage(plainBuffer);
-
-        if (outboundPayload.IsErr)
-        {
-            return Result<ServiceRequest, NetworkFailure>.Err(
-                outboundPayload.UnwrapErr().ToNetworkFailure());
-        }
-
-        CipherPayload cipherPayload = outboundPayload.Unwrap();
-
-        return Result<ServiceRequest, NetworkFailure>.Ok(
-            ServiceRequest.New(flowType, serviceType, cipherPayload, []));
-    }
-
     private async Task<Result<Unit, NetworkFailure>> SendUnaryRequestAsync(
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
@@ -1244,54 +1069,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         await onCompleted(decryptedData.Unwrap());
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-    }
-
-    private async Task<Result<Unit, NetworkFailure>> ReExecuteServiceFromPlaintextAsync(
-        uint connectId,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        uint originalReqId,
-        CancellationToken token)
-    {
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
-        }
-
-        Result<ServiceRequest, NetworkFailure> requestResult =
-            BuildRequest(protocolSystem, serviceType, plainBuffer, flowType);
-
-        if (requestResult.IsErr)
-        {
-            return Result<Unit, NetworkFailure>.Err(requestResult.UnwrapErr());
-        }
-
-        ServiceRequest request = requestResult.Unwrap();
-
-        Log.Information(
-            "Re-executing request with fresh encryption - original ReqId {OriginalReqId}, new ReqId {NewReqId}",
-            originalReqId, request.ReqId);
-
-        Result<Unit, NetworkFailure> result = request.ActionType switch
-        {
-            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted, token),
-            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request, onCompleted,
-                token),
-            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted, token),
-            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem, request,
-                onCompleted, token),
-            _ => Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType($"Unsupported flow type: {request.ActionType}"))
-        };
-
-        if (result.IsOk)
-        {
-        }
-
-        return result;
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendReceiveStreamRequestAsync(
@@ -1350,14 +1127,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (OperationCanceledException) when (streamCts.Token.IsCancellationRequested)
         {
-            Log.Information(
-                "[STREAM-CANCEL] Stream cancelled by server or cleanup - terminating gracefully. ConnectId: {ConnectId}",
-                connectId);
-        }
-        catch (OperationCanceledException)
-        {
-            Log.Information("[STREAM-CANCEL] Stream cancelled by external token - ConnectId: {ConnectId}", connectId);
-            throw;
+           
         }
         finally
         {
@@ -1380,7 +1150,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (invokeResult.IsErr)
         {
-            Log.Warning("InvokeServiceRequestAsync failed: {Error}", invokeResult.UnwrapErr().Message);
             return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
         }
 
@@ -1414,7 +1183,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
-
 
     private async Task<Result<Unit, NetworkFailure>> SendSendStreamRequestAsync(
         EcliptixProtocolSystem protocolSystem,
@@ -1493,33 +1261,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private void EnterOutage(string reason, uint connectId)
-    {
-        if (Interlocked.Exchange(ref _outageState, 1) != 0) return;
-
-        lock (_outageLock)
-        {
-            _outageRecoveredTcs = CreateOutageTcs();
-        }
-
-
-        _currentSystemState = SystemState.Recovering;
-
-        Log.Warning("Server appears unavailable/shutdown (ConnectId: {ConnectId}). Entering recovery mode: {Reason}",
-            connectId, reason);
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
-            _ = _systemEvents.NotifySystemStateAsync(SystemState.Recovering);
-        });
-
-        CancelActiveRecoveryOperations();
-        CancelActiveRequestsDuringRecovery("Server shutdown detected");
-
-        ExecuteBackgroundTask(ServerShutdownRecoveryLoop, $"ServerShutdownRecovery-{connectId}");
-    }
-
     private void ExitOutage()
     {
         if (Interlocked.Exchange(ref _outageState, 0) == 0) return;
@@ -1530,7 +1271,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _outageRecoveredTcs.TrySetResult(true);
         }
 
-
         _currentSystemState = SystemState.Running;
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1538,8 +1278,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRestored);
             _ = _systemEvents.NotifySystemStateAsync(SystemState.Running);
         });
-
-        Log.Information("Recovery completed. Secrecy channel is healthy; resuming all requests");
     }
 
     private async Task ServerShutdownRecoveryLoop()
@@ -1555,10 +1293,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (_retryStrategy.HasExhaustedOperations())
                 {
-                    Log.Information(
-                        "🛑 RECOVERY STOPPED: Retry strategy has exhausted operations - waiting for manual retry");
-
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
                     });
@@ -1576,10 +1311,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
 
                 TimeSpan delay = ComputeOutageBackoff(attempt);
-                Log.Warning(
-                    "Server still unavailable; retrying secrecy channel recovery in {Delay} (attempt {Attempt})",
-                    delay, attempt);
-
+               
                 try
                 {
                     await Task.Delay(delay, token);
@@ -1590,11 +1322,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Log.Error(ex, "Error in server shutdown recovery loop");
-
-
             if (_retryStrategy.HasExhaustedOperations())
             {
                 try
@@ -1634,7 +1363,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             if (_connectionRecoveryCts != null)
             {
-                Log.Information("Cancelling active recovery operations");
                 _connectionRecoveryCts.Cancel();
                 _connectionRecoveryCts.Dispose();
             }
@@ -1643,12 +1371,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private void CancelActiveRequestsDuringRecovery(string reason)
+    private void CancelActiveRequestsDuringRecovery()
     {
         if (_inFlightRequests.IsEmpty) return;
-
-        Log.Information("Cancelling {Count} active requests during recovery: {Reason}",
-            _inFlightRequests.Count, reason);
 
         foreach (KeyValuePair<string, CancellationTokenSource> kv in _inFlightRequests.ToArray())
         {
@@ -1678,72 +1403,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private async Task<T> WithRequestExecutionGate<T>(string operationKey, Func<Task<T>> action)
-    {
-        SemaphoreSlim gate = _logicalOperationGates.GetOrAdd(operationKey, _ => new SemaphoreSlim(1, 1));
-
-
-        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
-
-        try
-        {
-            await gate.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            throw new TimeoutException($"Timeout waiting for execution gate: {operationKey}");
-        }
-
-        try
-        {
-            T result = await action().ConfigureAwait(false);
-            Log.Debug("Operation completed successfully: {OperationKey}", operationKey);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Exception in gate-protected operation: {OperationKey}", operationKey);
-            throw;
-        }
-        finally
-        {
-            try
-            {
-                gate.Release();
-
-                if (_logicalOperationGates.TryRemove(operationKey, out SemaphoreSlim? removedGate))
-                {
-                    removedGate?.Dispose();
-                }
-            }
-            catch (Exception cleanupEx)
-            {
-                Log.Warning(cleanupEx, "Failed to cleanup gate for operation: {OperationKey}", operationKey);
-                _logicalOperationGates.TryRemove(operationKey, out _);
-            }
-        }
-    }
-
-    private bool ShouldThrottleRecovery(uint connectId)
-    {
-        if (!_lastRecoveryAttempts.TryGetValue(connectId, out DateTime lastRecovery))
-        {
-            return false;
-        }
-
-        return DateTime.UtcNow - lastRecovery < _recoveryThrottleInterval;
-    }
-
     private async Task InitiateConnectionRecoveryWithCancellation(uint connectId)
     {
         try
         {
             CancelActiveRecoveryOperations();
-            CancelActiveRequestsDuringRecovery("Connection recovery initiated");
+            CancelActiveRequestsDuringRecovery();
 
             _connectionStateManager.MarkConnectionRecovering(connectId);
-
-            Log.Information("Initiating recovery with cancellation for connection {ConnectId}", connectId);
 
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -1752,7 +1419,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (!_applicationInstanceSettings.HasValue)
             {
-                Log.Warning("Cannot recover connection {ConnectId} - application settings not available", connectId);
                 return;
             }
 
@@ -1775,9 +1441,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
                     restorationSuccessful = restoreResult.IsOk && restoreResult.Unwrap();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Log.Warning(ex, "Failed to parse stored state for connection {ConnectId}", connectId);
                     restorationSuccessful = false;
                 }
             }
@@ -1790,14 +1455,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (restorationSuccessful)
             {
-                Log.Information("Recovery completed for connection {ConnectId}", connectId);
                 ExitOutage();
                 ResetRetryStrategyAfterOutage();
             }
             else
             {
-                Log.Warning("Recovery failed for connection {ConnectId}, falling back to reconnection",
-                    connectId);
                 await PerformReconnectionLogic();
             }
         }
@@ -1821,87 +1483,38 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         Task.Run(async () =>
         {
-            try
+            if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
             {
-                Log.Information(
-                    "DH Ratchet performed - ConnectId: {ConnectId}, Type: {Type}, Index: {Index}. Saving protocol state...",
-                    connectId, isSending ? "Sending" : "Receiving", newIndex);
+                EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+                EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+                if (connection == null)
+                    return;
 
-                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+                if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
                 {
-                    try
-                    {
-                        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-                        if (connection == null)
-                            return;
-
-                        if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
-                        {
-                            Log.Information(
-                                "DH Ratchet performed for SERVER_STREAMING - ConnectId: {ConnectId}, Type: {Type}, Index: {Index}. Skipping persistence (memory-only)",
-                                connectId, isSending ? "Sending" : "Receiving", newIndex);
-                            return;
-                        }
-
-                        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-                        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-                        if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
-                        {
-                            EcliptixSessionState state = new()
-                            {
-                                ConnectId = connectId,
-                                IdentityKeys = idKeysStateResult.Unwrap(),
-                                RatchetState = ratchetStateResult.Unwrap()
-                            };
-
-                            Result<Unit, SecureStorageFailure> saveResult =
-                                await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
-                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
-                                        connectId.ToString()));
-
-                            if (saveResult.IsOk)
-                            {
-                                Log.Information(
-                                    "Protocol state saved successfully after {ChainType} chain rotation - ConnectId: {ConnectId}, Index: {Index}",
-                                    isSending ? "sending" : "receiving", connectId, newIndex);
-                            }
-                            else
-                            {
-                                Log.Warning("Failed to save protocol state after DH ratchet: {Error}",
-                                    saveResult.UnwrapErr().Message);
-                            }
-
-                            string timestampKey = $"{connectId}_timestamp";
-                            await _applicationSecureStorageProvider.StoreAsync(timestampKey,
-                                BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
-                        }
-                        else
-                        {
-                            Log.Error(
-                                "Failed to create protocol state after chain rotation - ConnectId: {ConnectId}, IdKeysError: {IdKeysError}, RatchetError: {RatchetError}",
-                                connectId,
-                                idKeysStateResult.IsErr ? idKeysStateResult.UnwrapErr().ToString() : "OK",
-                                ratchetStateResult.IsErr ? ratchetStateResult.UnwrapErr().ToString() : "OK");
-                        }
-                    }
-                    catch (Exception innerEx)
-                    {
-                        Log.Error(innerEx,
-                            "Exception creating protocol state after chain rotation - ConnectId: {ConnectId}",
-                            connectId);
-                    }
+                    return;
                 }
-                else
+
+                Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+                Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+                if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
                 {
-                    Log.Warning("Protocol system not found for chain rotation state save - ConnectId: {ConnectId}",
-                        connectId);
+                    EcliptixSessionState state = new()
+                    {
+                        ConnectId = connectId,
+                        IdentityKeys = idKeysStateResult.Unwrap(),
+                        RatchetState = ratchetStateResult.Unwrap()
+                    };
+
+                    await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
+                        span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
+                            connectId.ToString()));
+
+                    string timestampKey = $"{connectId}_timestamp";
+                    await _applicationSecureStorageProvider.StoreAsync(timestampKey,
+                        BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error saving protocol state after chain rotation - ConnectId: {ConnectId}", connectId);
             }
         });
     }
@@ -1912,10 +1525,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             try
             {
-                Log.Information(
-                    "Chain synchronized - ConnectId: {ConnectId}, Local: {Local}, Remote: {Remote}. Saving protocol state...",
-                    connectId, localLength, remoteLength);
-
                 if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
                     try
@@ -1927,9 +1536,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                         if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
                         {
-                            Log.Information(
-                                "Chain synchronized for SERVER_STREAMING - ConnectId: {ConnectId}, Local: {Local}, Remote: {Remote}. Skipping persistence (memory-only)",
-                                connectId, localLength, remoteLength);
                             return;
                         }
 
@@ -1945,22 +1551,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                                 RatchetState = ratchetStateResult.Unwrap()
                             };
 
-                            Result<Unit, SecureStorageFailure> saveResult =
-                                await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
-                                    span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
-                                        connectId.ToString()));
-
-                            if (saveResult.IsOk)
-                            {
-                                Log.Information(
-                                    "Protocol state saved successfully after chain synchronization - ConnectId: {ConnectId}",
-                                    connectId);
-                            }
-                            else
-                            {
-                                Log.Warning("Failed to save protocol state after chain sync: {Error}",
-                                    saveResult.UnwrapErr().Message);
-                            }
+                            await SecureByteStringInterop.WithByteStringAsSpan(state.ToByteString(),
+                                span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(),
+                                    connectId.ToString()));
 
                             string timestampKey = $"{connectId}_timestamp";
                             await _applicationSecureStorageProvider.StoreAsync(timestampKey,
@@ -1985,9 +1578,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
     {
-        Log.Debug(
-            "Message processed - ConnectId: {ConnectId}, Index: {Index}, SkippedKeys: {SkippedKeys}",
-            connectId, messageIndex, hasSkippedKeys);
     }
 
     private void ExecuteBackgroundTask(Func<Task> taskFactory, string taskName)
@@ -2051,7 +1641,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     if (!_activeStreams.TryRemove(kv.Key, out CancellationTokenSource? streamCts)) continue;
                     try
                     {
-                        Log.Information("[DISPOSE] Cancelling active stream for connectId {ConnectId}", kv.Key);
                         streamCts.Cancel();
                         streamCts.Dispose();
                     }
@@ -2124,8 +1713,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _logicalOperationGates.Clear();
 
                 _shutdownCts.Dispose();
-
-                Log.Information("NetworkProvider disposed safely");
             }
             catch (Exception ex)
             {
@@ -2134,73 +1721,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private async Task<Result<Unit, NetworkFailure>> PerformProtocolResynchronization(uint connectId)
-    {
-        try
-        {
-            if (!_applicationInstanceSettings.HasValue)
-            {
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.InvalidRequestType("Application instance settings not available for resync"));
-            }
-
-            if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
-            {
-                try
-                {
-                    oldSystem.Dispose();
-                    Log.Debug("Disposed old protocol system for connection {ConnectId}", connectId);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Error disposing old protocol system for connection {ConnectId}", connectId);
-                }
-            }
-
-            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            Log.Debug("Cleared stored protocol state for resynchronization");
-
-            InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
-
-            Result<EcliptixSessionState, NetworkFailure> establishResult =
-                await EstablishSecrecyChannelAsync(connectId);
-
-            if (establishResult.IsErr)
-            {
-                Log.Error("Failed to re-establish secrecy channel during resynchronization: {Error}",
-                    establishResult.UnwrapErr());
-                return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
-            }
-
-            EcliptixSessionState newState = establishResult.Unwrap();
-            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
-                newState.ToByteString(),
-                span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
-
-            if (saveResult.IsOk)
-            {
-            }
-            else
-            {
-                Log.Warning("Protocol resynchronized but failed to save state: {Error}", saveResult.UnwrapErr());
-            }
-
-            await RetryPendingRequestsAfterRecovery().ConfigureAwait(false);
-
-            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Exception during protocol resynchronization for connection {ConnectId}", connectId);
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding($"Resynchronization failed: {ex.Message}"));
-        }
-    }
-
     public async Task<Result<Unit, NetworkFailure>> ForceFreshConnectionAsync()
     {
         _retryStrategy.ClearExhaustedOperations();
-
 
         Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic();
 
@@ -2208,7 +1731,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             return immediateResult;
         }
-
 
         Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync();
 
