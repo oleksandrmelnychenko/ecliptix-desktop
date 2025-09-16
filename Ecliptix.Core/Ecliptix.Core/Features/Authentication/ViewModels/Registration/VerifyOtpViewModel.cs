@@ -327,7 +327,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         if (!string.IsNullOrEmpty(error))
         {
-            ErrorMessage = _localizationService[error];
+            ErrorMessage = error;
         }
 
         HasValidSession = false;
