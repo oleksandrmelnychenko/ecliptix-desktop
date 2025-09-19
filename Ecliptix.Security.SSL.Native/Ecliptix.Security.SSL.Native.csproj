@@ -14,15 +14,19 @@
         <ProjectReference Include="../Ecliptix.Utilities/Ecliptix.Utilities.csproj" />
     </ItemGroup>
 
-    <!-- Native library files -->
+    <!-- Native library files from C++ build -->
     <ItemGroup>
-        <Content Include="libecliptix_security.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/macos/lib/libecliptix_security.dylib" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/macos/lib/libecliptix_security.dylib')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <PackagePath>runtimes/osx-arm64/native/</PackagePath>
+            <Link>libecliptix_security.dylib</Link>
         </Content>
-        <Content Include="libecliptix_security.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/windows/ecliptix_security.dll" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/windows/ecliptix_security.dll')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <PackagePath>runtimes/osx-x64/native/</PackagePath>
+            <Link>ecliptix_security.dll</Link>
+        </Content>
+        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/linux/libecliptix_security.so" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/linux/libecliptix_security.so')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>libecliptix_security.so</Link>
         </Content>
     </ItemGroup>
 

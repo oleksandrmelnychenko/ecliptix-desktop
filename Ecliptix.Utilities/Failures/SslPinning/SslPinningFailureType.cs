@@ -1,0 +1,36 @@
+namespace Ecliptix.Utilities.Failures.SslPinning;
+
+public enum SslPinningFailureType
+{
+    ServiceNotInitialized,
+    ServiceDisposed,
+    LibraryInitializationFailed,
+    InitializationException,
+    CertificateDataRequired,
+    HostnameRequired,
+    CertificateValidationFailed,
+    CertificateValidationException,
+    PlaintextRequired,
+    PlaintextTooLarge,
+    RsaEncryptionFailed,
+    RsaEncryptionException,
+    CiphertextRequired,
+    PrivateKeyRequired,
+    RsaDecryptionFailed,
+    RsaDecryptionException,
+    InvalidCiphertextSize,
+    InvalidKeySize,
+    AesGcmDecryptionFailed,
+    AesGcmDecryptionException,
+    MessageRequired,
+    InvalidPrivateKeySize,
+    Ed25519SigningFailed,
+    Ed25519SigningException,
+    InvalidSignatureSize,
+    Ed25519VerificationError,
+    Ed25519VerificationException,
+    InvalidNonceSize,
+    RandomBytesGenerationFailed,
+    RandomBytesGenerationException,
+    LibraryCleanupError
+}

@@ -3,6 +3,7 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -25,6 +26,7 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.SslPinning;
 using Google.Protobuf;
 using Serilog;
 
@@ -49,8 +51,21 @@ public class ApplicationInitializer(
     {
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
 
-        Log.Information("Initializing native SSL pinning library");
-        Result<Unit, string> sslInitResult = await sslPinningService.InitializeAsync();
+        Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
+
+        byte[] helloWorld = Encoding.ASCII.GetBytes("Hello, World!");
+        Result<byte[], SslPinningFailure> encryptionResult = await sslPinningService.EncryptAsync(helloWorld);
+
+        if (encryptionResult.IsErr)
+        {
+            Log.Error("RSA encryption test failed: {Error}", encryptionResult.UnwrapErr());
+        }
+        else
+        {
+            Log.Information("RSA encryption test successful! Encrypted {InputLength} bytes to {OutputLength} bytes",
+                helloWorld.Length, encryptionResult.Unwrap().Length);
+        }
+
         if (sslInitResult.IsErr)
         {
             await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
