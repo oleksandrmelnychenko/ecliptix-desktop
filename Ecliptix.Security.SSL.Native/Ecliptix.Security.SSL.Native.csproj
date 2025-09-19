@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <ProjectReference Include="../Ecliptix.Utilities/Ecliptix.Utilities.csproj" />
+        <ProjectReference Include="../Ecliptix.Protocol.System/Ecliptix.Protocol.System.csproj" />
     </ItemGroup>
 
     <!-- Native library files from C++ build -->

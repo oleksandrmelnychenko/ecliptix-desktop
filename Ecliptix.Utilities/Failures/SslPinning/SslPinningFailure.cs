@@ -109,4 +109,13 @@ public record SslPinningFailure(
 
     public static SslPinningFailure LibraryCleanupError(Exception ex) =>
         new(SslPinningFailureType.LibraryCleanupError, $"{SslPinningFailureMessages.LibraryCleanupError}: {ex.Message}", ex);
+
+    public static SslPinningFailure SecureMemoryAllocationFailed(string details) =>
+        new(SslPinningFailureType.SecureMemoryAllocationFailed, $"{SslPinningFailureMessages.SecureMemoryAllocationFailed}: {details}");
+
+    public static SslPinningFailure SecureMemoryWriteFailed(string details) =>
+        new(SslPinningFailureType.SecureMemoryWriteFailed, $"{SslPinningFailureMessages.SecureMemoryWriteFailed}: {details}");
+
+    public static SslPinningFailure SecureMemoryReadFailed(string details) =>
+        new(SslPinningFailureType.SecureMemoryReadFailed, $"{SslPinningFailureMessages.SecureMemoryReadFailed}: {details}");
 }

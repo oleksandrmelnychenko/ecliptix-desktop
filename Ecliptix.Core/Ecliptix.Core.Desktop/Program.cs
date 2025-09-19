@@ -297,8 +297,7 @@ public static class Program
             return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
         });
 
-        // Register SSL Pinning Service
-        services.AddSingleton<NativeSslPinningService>();
+        services.AddSingleton<SslPinningService>();
     }
 
     private static void ConfigureMessagingServices(IServiceCollection services)

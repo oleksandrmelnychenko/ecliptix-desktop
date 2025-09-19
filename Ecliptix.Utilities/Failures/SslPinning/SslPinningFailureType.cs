@@ -32,5 +32,8 @@ public enum SslPinningFailureType
     InvalidNonceSize,
     RandomBytesGenerationFailed,
     RandomBytesGenerationException,
-    LibraryCleanupError
+    LibraryCleanupError,
+    SecureMemoryAllocationFailed,
+    SecureMemoryWriteFailed,
+    SecureMemoryReadFailed
 }

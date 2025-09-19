@@ -33,4 +33,7 @@ public static class SslPinningFailureMessages
     public const string RandomBytesGenerationFailed = "Random bytes generation failed";
     public const string RandomBytesGenerationException = "Nonce generation exception";
     public const string LibraryCleanupError = "Error during native library cleanup";
+    public const string SecureMemoryAllocationFailed = "Secure memory allocation failed";
+    public const string SecureMemoryWriteFailed = "Failed to write to secure memory";
+    public const string SecureMemoryReadFailed = "Failed to read from secure memory";
 }

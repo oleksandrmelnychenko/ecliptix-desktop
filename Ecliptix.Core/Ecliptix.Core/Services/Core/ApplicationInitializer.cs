@@ -27,6 +27,7 @@ using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.SslPinning;
+using Ecliptix.Protocol.System.Sodium;
 using Google.Protobuf;
 using Serilog;
 
@@ -42,7 +43,7 @@ public class ApplicationInitializer(
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    NativeSslPinningService sslPinningService)
+    SslPinningService sslPinningService)
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -53,17 +54,18 @@ public class ApplicationInitializer(
 
         Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
 
-        byte[] helloWorld = Encoding.ASCII.GetBytes("Hello, World!");
-        Result<byte[], SslPinningFailure> encryptionResult = await sslPinningService.EncryptAsync(helloWorld);
+        byte[] helloWorld = "Hello, World!"u8.ToArray();
+        Result<SodiumSecureMemoryHandle, SslPinningFailure> encryptionResult = await sslPinningService.EncryptRsaSecureAsync(helloWorld);
 
         if (encryptionResult.IsErr)
         {
-            Log.Error("RSA encryption test failed: {Error}", encryptionResult.UnwrapErr());
+            Log.Error("RSA secure encryption test failed: {Error}", encryptionResult.UnwrapErr());
         }
         else
         {
-            Log.Information("RSA encryption test successful! Encrypted {InputLength} bytes to {OutputLength} bytes",
-                helloWorld.Length, encryptionResult.Unwrap().Length);
+            using SodiumSecureMemoryHandle encryptedHandle = encryptionResult.Unwrap();
+            Log.Information("RSA secure encryption test successful! Encrypted {InputLength} bytes to {OutputLength} bytes (stored in secure memory)",
+                helloWorld.Length, encryptedHandle.Length);
         }
 
         if (sslInitResult.IsErr)
