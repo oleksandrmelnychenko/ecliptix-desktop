@@ -11,12 +11,17 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
+using Ecliptix.Protocol.System.Core;
+using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings;
+using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
@@ -32,7 +37,8 @@ public class ApplicationInitializer(
     ISecureProtocolStateStorage secureProtocolStateStorage,
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
-    IIpGeolocationService ipGeolocationService)
+    IIpGeolocationService ipGeolocationService,
+    IIdentityService identityService)
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -57,7 +63,9 @@ public class ApplicationInitializer(
             await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
         });
 
-        string culture = string.IsNullOrEmpty(settings.Culture) ? "en-US" : settings.Culture;
+        string culture = string.IsNullOrEmpty(settings.Culture)
+            ? AppCultureSettingsConstants.DefaultCultureCode
+            : settings.Culture;
         localizationService.SetCulture(culture);
 
         if (isNewInstance)
@@ -128,7 +136,40 @@ public class ApplicationInitializer(
             }
         }
 
-        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
+            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
+            : null;
+
+        if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
+        {
+            byte[]? masterKey = await identityService.LoadMasterKeyAsync(membershipId);
+            if (masterKey != null)
+            {
+                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
+                    EcliptixSystemIdentityKeys.CreateFromMasterKey(
+                        masterKey, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
+
+                if (identityResult.IsOk)
+                {
+                    networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
+                        applicationInstanceSettings, connectId, identityResult.Unwrap());
+                }
+                else
+                {
+                    networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                }
+
+                SodiumInterop.SecureWipe(masterKey);
+            }
+            else
+            {
+                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+            }
+        }
+        else
+        {
+            networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+        }
 
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId);

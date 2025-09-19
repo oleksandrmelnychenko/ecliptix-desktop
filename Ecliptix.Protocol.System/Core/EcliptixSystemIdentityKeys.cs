@@ -299,6 +299,94 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         }
     }
 
+    public static Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>
+        CreateFromMasterKey(byte[] masterKey, string membershipId, uint oneTimeKeyCount)
+    {
+        SodiumSecureMemoryHandle? edSkHandle = null;
+        SodiumSecureMemoryHandle? idXSkHandle = null;
+        SodiumSecureMemoryHandle? spkSkHandle = null;
+        List<OneTimePreKeyLocal>? opks = null;
+        byte[]? ed25519Seed = null;
+        byte[]? x25519Seed = null;
+
+        try
+        {
+            ed25519Seed = MasterKeyDerivation.DeriveEd25519Seed(masterKey, membershipId);
+            KeyPair edKeyPair = PublicKeyAuth.GenerateKeyPair(ed25519Seed);
+
+            edSkHandle = SodiumSecureMemoryHandle.Allocate(Constants.Ed25519SecretKeySize).Unwrap();
+            edSkHandle.Write(edKeyPair.PrivateKey).Unwrap();
+            SodiumInterop.SecureWipe(edKeyPair.PrivateKey);
+
+            x25519Seed = MasterKeyDerivation.DeriveX25519Seed(masterKey, membershipId);
+            idXSkHandle = SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize).Unwrap();
+            idXSkHandle.Write(x25519Seed).Unwrap();
+
+            byte[] x25519PublicKey = ScalarMult.Base(x25519Seed);
+
+            uint spkId = Helpers.GenerateRandomUInt32();
+            Result<(SodiumSecureMemoryHandle, byte[]), EcliptixProtocolFailure> spkResult =
+                GenerateX25519SignedPreKey(spkId);
+            if (spkResult.IsErr)
+            {
+                edSkHandle.Dispose();
+                idXSkHandle.Dispose();
+                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(spkResult.UnwrapErr());
+            }
+
+            (spkSkHandle, byte[] spkPk) = spkResult.Unwrap();
+
+            Result<byte[], EcliptixProtocolFailure> signatureResult = SignSignedPreKey(edSkHandle, spkPk);
+            if (signatureResult.IsErr)
+            {
+                edSkHandle.Dispose();
+                idXSkHandle.Dispose();
+                spkSkHandle.Dispose();
+                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(signatureResult.UnwrapErr());
+            }
+
+            byte[] spkSig = signatureResult.Unwrap();
+
+            Result<List<OneTimePreKeyLocal>, EcliptixProtocolFailure> opksResult =
+                GenerateOneTimePreKeys(oneTimeKeyCount);
+            if (opksResult.IsErr)
+            {
+                edSkHandle.Dispose();
+                idXSkHandle.Dispose();
+                spkSkHandle.Dispose();
+                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(opksResult.UnwrapErr());
+            }
+
+            opks = opksResult.Unwrap();
+
+            EcliptixSystemIdentityKeys keys = new(
+                edSkHandle, edKeyPair.PublicKey,
+                idXSkHandle, x25519PublicKey,
+                spkId, spkSkHandle, spkPk, spkSig,
+                opks
+            );
+
+            edSkHandle = null;
+            idXSkHandle = null;
+            spkSkHandle = null;
+            opks = null;
+
+            return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Ok(keys);
+        }
+        finally
+        {
+            if (ed25519Seed != null) SodiumInterop.SecureWipe(ed25519Seed);
+            if (x25519Seed != null) SodiumInterop.SecureWipe(x25519Seed);
+            edSkHandle?.Dispose();
+            idXSkHandle?.Dispose();
+            spkSkHandle?.Dispose();
+            if (opks != null)
+            {
+                foreach (OneTimePreKeyLocal opk in opks) opk.Dispose();
+            }
+        }
+    }
+
     private static Result<(SodiumSecureMemoryHandle skHandle, byte[] pk), EcliptixProtocolFailure> GenerateEd25519Keys()
     {
         SodiumSecureMemoryHandle? skHandle;

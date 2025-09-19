@@ -24,4 +24,5 @@ message ApplicationInstanceSettings {
   
   // Membership
   ecliptix.proto.membership.Membership membership = 9;
+  bytes membership_identifier = 10;
 }

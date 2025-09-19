@@ -4,14 +4,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protocol.System.Core;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Validations;
@@ -22,19 +25,24 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
+public record SignInResult(byte[] SessionKey, Ecliptix.Protobuf.Membership.Membership? Membership);
+
 public class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
-    ISystemEventService systemEvents)
+    ISystemEventService systemEvents,
+    IIdentityService identityService,
+    IApplicationSecureStorageProvider applicationSecureStorageProvider,
+    ISessionKeyService sessionKeyService)
     : IAuthenticationService
 {
-    public async Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
+    public async Task<Result<Unit, string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
         uint connectId)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
             string mobileRequiredError = localizationService[AuthenticationConstants.MobileNumberRequiredKey];
-            return Result<byte[], string>.Err(mobileRequiredError);
+            return Result<Unit, string>.Err(mobileRequiredError);
         }
 
         byte[]? passwordBytes = null;
@@ -48,11 +56,11 @@ public class OpaqueAuthenticationService(
             }
 
             string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-            return Result<byte[], string>.Err(requiredError);
+            return Result<Unit, string>.Err(requiredError);
         }
         catch (Exception)
         {
-            return Result<byte[], string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
         }
         finally
         {
@@ -60,7 +68,7 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<byte[], string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
+    private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
         OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
@@ -70,8 +78,8 @@ public class OpaqueAuthenticationService(
         {
             OpaqueFailure opaqueError = oprfResult.UnwrapErr();
             await systemEvents.NotifySystemStateAsync(SystemState.FatalError, opaqueError.Message);
-            Result<byte[], string> errorResult =
-                Result<byte[], string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
+            Result<Unit, string> errorResult =
+                Result<Unit, string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
             return errorResult;
         }
 
@@ -85,7 +93,7 @@ public class OpaqueAuthenticationService(
         Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
         if (initResult.IsErr)
         {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(initResult.UnwrapErr());
+            Result<Unit, string> errorResult = Result<Unit, string>.Err(initResult.UnwrapErr());
             return errorResult;
         }
 
@@ -94,7 +102,7 @@ public class OpaqueAuthenticationService(
         Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
         if (validationResult.IsErr)
         {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(validationResult.UnwrapErr().Message);
+            Result<Unit, string> errorResult = Result<Unit, string>.Err(validationResult.UnwrapErr().Message);
             return errorResult;
         }
 
@@ -105,7 +113,7 @@ public class OpaqueAuthenticationService(
 
         if (finalizationResult.IsErr)
         {
-            Result<byte[], string> errorResult = Result<byte[], string>.Err(
+            Result<Unit, string> errorResult = Result<Unit, string>.Err(
                 localizationService[AuthenticationConstants.InvalidCredentialsKey]);
             return errorResult;
         }
@@ -113,11 +121,41 @@ public class OpaqueAuthenticationService(
         (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
             byte[] transcriptHash, byte[] exportKey) = finalizationResult.Unwrap();
 
-        Result<byte[], string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+
+        if (finalResult.IsOk)
+        {
+            SignInResult signInResult = finalResult.Unwrap();
+
+            await sessionKeyService.StoreSessionKeyAsync(signInResult.SessionKey, connectId);
+
+            if (signInResult.Membership != null)
+            {
+                ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+
+                if (!ValidateMembershipIdentifier(membershipIdentifier))
+                {
+                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier");
+                    return Result<Unit, string>.Err(localizationService[AuthenticationConstants.InvalidCredentialsKey]);
+                }
+
+                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(exportKey, membershipIdentifier);
+                string memberId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
+                await identityService.StoreIdentityAsync(masterKey, memberId);
+                SodiumInterop.SecureWipe(masterKey);
+
+                await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
+            }
+        }
 
         CryptographicOperations.ZeroMemory(exportKey);
 
-        return finalResult;
+        if (finalResult.IsOk)
+        {
+            return Result<Unit, string>.Ok(Unit.Value);
+        }
+
+        return Result<Unit, string>.Err(finalResult.UnwrapErr());
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
@@ -205,7 +243,7 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<byte[], string>> SendFinalizeRequestAndVerifyAsync(OpaqueSignInFinalizeRequest finalizeRequest,
+    private async Task<Result<SignInResult, string>> SendFinalizeRequestAndVerifyAsync(OpaqueSignInFinalizeRequest finalizeRequest,
         byte[] sessionKey,
         byte[] serverMacKey,
         byte[] transcriptHash, uint connectId)
@@ -237,7 +275,7 @@ public class OpaqueAuthenticationService(
         {
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
-            return Result<byte[], string>.Err(failure.Message);
+            return Result<SignInResult, string>.Err(failure.Message);
         }
 
         OpaqueSignInFinalizeResponse capturedResponse;
@@ -247,7 +285,7 @@ public class OpaqueAuthenticationService(
         }
         catch (Exception ex)
         {
-            return Result<byte[], string>.Err($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}");
+            return Result<SignInResult, string>.Err($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}");
         }
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
@@ -255,15 +293,55 @@ public class OpaqueAuthenticationService(
             string message = capturedResponse.HasMessage
                 ? capturedResponse.Message
                 : localizationService[AuthenticationConstants.InvalidCredentialsKey];
-            return Result<byte[], string>.Err(message);
+            return Result<SignInResult, string>.Err(message);
         }
 
         Result<byte[], OpaqueFailure> verificationResult = OpaqueProtocolService.VerifyServerMacAndGetSessionKey(
             capturedResponse, sessionKey, serverMacKey, transcriptHash);
 
-        if (!verificationResult.IsErr) return Result<byte[], string>.Ok(verificationResult.Unwrap());
+        if (!verificationResult.IsErr)
+        {
+            byte[] finalSessionKey = verificationResult.Unwrap();
+
+            byte[] serverSessionKey = capturedResponse.SessionKey != null && !capturedResponse.SessionKey.IsEmpty
+                ? capturedResponse.SessionKey.ToByteArray()
+                : finalSessionKey;
+
+            SignInResult result = new(serverSessionKey, capturedResponse.Membership);
+            return Result<SignInResult, string>.Ok(result);
+        }
+
         string errorMessage = localizationService[AuthenticationConstants.InvalidCredentialsKey];
         await systemEvents.NotifySystemStateAsync(SystemState.FatalError, verificationResult.UnwrapErr().Message);
-        return Result<byte[], string>.Err(errorMessage);
+        return Result<SignInResult, string>.Err(errorMessage);
+    }
+
+    private bool ValidateMembershipIdentifier(ByteString identifier)
+    {
+        if (identifier == null || identifier.Length != 16)
+            return false;
+
+        try
+        {
+            Guid memberGuid = Helpers.FromByteStringToGuid(identifier);
+            if (memberGuid == Guid.Empty)
+                return false;
+
+            byte[] bytes = identifier.ToByteArray();
+            int zeroCount = 0;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (bytes[i] == 0) zeroCount++;
+            }
+
+            if (zeroCount > 12)
+                return false;
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

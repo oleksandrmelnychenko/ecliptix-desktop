@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Ecliptix.Utilities/Ecliptix.Utilities.csproj" />
+    </ItemGroup>
+
+    <!-- Native library files -->
+    <ItemGroup>
+        <Content Include="libecliptix_security.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <PackagePath>runtimes/osx-arm64/native/</PackagePath>
+        </Content>
+        <Content Include="libecliptix_security.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <PackagePath>runtimes/osx-x64/native/</PackagePath>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+    </ItemGroup>
+
+</Project>

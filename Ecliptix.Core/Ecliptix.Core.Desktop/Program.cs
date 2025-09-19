@@ -314,6 +314,9 @@ public static class Program
     {
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
+        services.AddSingleton<IIdentityService, IdentityService>();
+        services.AddSingleton<ISessionKeyService, SessionKeyService>();
+        services.AddSingleton<IDualLayerEncryptionService, DualLayerEncryptionService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
 
