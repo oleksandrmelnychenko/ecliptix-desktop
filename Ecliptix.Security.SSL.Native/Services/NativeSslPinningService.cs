@@ -18,6 +18,7 @@ public sealed class NativeSslPinningService : IDisposable
     public NativeSslPinningService(ILogger<NativeSslPinningService> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger.LogInformation("NativeSslPinningService created");
     }
 
     /// <summary>

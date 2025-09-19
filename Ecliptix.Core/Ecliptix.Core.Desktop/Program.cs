@@ -46,6 +46,7 @@ using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Security.SSL.Native.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Features.Splash.ViewModels;
@@ -295,6 +296,9 @@ public static class Program
 
             return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
         });
+
+        // Register SSL Pinning Service
+        services.AddSingleton<NativeSslPinningService>();
     }
 
     private static void ConfigureMessagingServices(IServiceCollection services)

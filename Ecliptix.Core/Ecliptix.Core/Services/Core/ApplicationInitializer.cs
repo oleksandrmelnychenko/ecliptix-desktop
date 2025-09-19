@@ -16,6 +16,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Security.SSL.Native.Services;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
@@ -38,7 +39,8 @@ public class ApplicationInitializer(
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
-    IIdentityService identityService)
+    IIdentityService identityService,
+    NativeSslPinningService sslPinningService)
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -46,6 +48,17 @@ public class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
+
+        // Initialize SSL Pinning Service
+        Log.Information("Initializing native SSL pinning library");
+        var sslInitResult = await sslPinningService.InitializeAsync();
+        if (sslInitResult.IsErr)
+        {
+            Log.Error("Failed to initialize SSL pinning service: {Error}", sslInitResult.UnwrapErr());
+            await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
+            return false;
+        }
+        Log.Information("Native SSL pinning library initialized successfully");
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);

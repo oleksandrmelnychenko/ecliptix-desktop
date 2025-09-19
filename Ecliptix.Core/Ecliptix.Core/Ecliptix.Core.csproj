@@ -99,6 +99,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Ecliptix.Opaque.Protocol\Ecliptix.Opaque.Protocol.csproj" />
     <ProjectReference Include="..\..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
+    <ProjectReference Include="..\..\Ecliptix.Security.SSL.Native\Ecliptix.Security.SSL.Native.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Fonts\" />
