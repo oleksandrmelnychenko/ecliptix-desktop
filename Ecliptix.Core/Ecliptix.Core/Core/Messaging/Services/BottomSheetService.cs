@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
@@ -14,7 +13,7 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
     {
         if (_disposed) return;
 
-        BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(componentType, showScrim, control);
+        BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(componentType, showScrim, control, isDismissable);
         await messageBus.PublishAsync(evt);
     }
 
@@ -33,6 +32,18 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
         return messageBus.Subscribe(handler, lifetime);
     }
 
+    public IDisposable OnBottomSheetHidden(
+        Func<BottomSheetHiddenEvent, Task> handler,
+        SubscriptionLifetime lifetime = SubscriptionLifetime.Weak)
+    {
+        return messageBus.Subscribe(handler, lifetime);
+    }
+
+    public async Task BottomSheetDismissed()
+    {
+        await messageBus.PublishAsync(BottomSheetHiddenEvent.UserDismissed());
+    }
+    
     public void Dispose()
     {
         _disposed = true;

@@ -17,8 +17,9 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
-public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>
+public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
 {
+    private bool _disposed;
     private bool _isAnimating;
     private double _sheetHeight;
 
@@ -346,6 +347,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         if (IsDismissableOnScrimClick && ViewModel is not null && !_isAnimating)
         {
             ViewModel.IsVisible = false;
+            ViewModel.BottomSheetDismissed();
         }
     }
 
@@ -378,13 +380,22 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         return newTransform;
     }
 
-    public class ElasticEaseOut1 : Easing
+    public void Dispose()
     {
-        public override double Ease(double p)
-        {
-            const double halfPi = Math.PI / 2;
-            const double frequency = -5.5d;
-            return Math.Sin(frequency * halfPi * (p + 1)) * Math.Pow(2d, -10d * p) + 1d;
-        }
+        if (_disposed) return;
+        
+        if (ViewModel is IActivatableViewModel activatable)
+            activatable.Activator.Deactivate();
+        
+        if (ViewModel is IDisposable disposableViewModel)
+            disposableViewModel.Dispose();
+        
+        _disposed = true;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        Dispose();
     }
 }

@@ -24,10 +24,25 @@ public sealed record BottomSheetChangedEvent
         ShowScrim = showScrim;
         ComponentType = componentType;
         Control = userControl;
-        IsDismissable = IsDismissable;
+        IsDismissable = isDismissable;
         Timestamp = DateTime.UtcNow;
     }
 
     public static BottomSheetChangedEvent New(BottomSheetComponentType componentType, bool showScrim = true, UserControl? userControl = null, bool isDismissable = true) =>
         new(componentType, showScrim, userControl, isDismissable);
+}
+
+public sealed record BottomSheetHiddenEvent
+{
+    public bool WasDismissedByUser { get; }
+    public DateTime Timestamp { get; }
+
+    private BottomSheetHiddenEvent(bool wasDismissedByUser)
+    {
+        WasDismissedByUser = wasDismissedByUser;
+        Timestamp = DateTime.UtcNow;
+    }
+
+    public static BottomSheetHiddenEvent UserDismissed() => new(true);
+    public static BottomSheetHiddenEvent ProgrammaticallyHidden() => new(false);
 }

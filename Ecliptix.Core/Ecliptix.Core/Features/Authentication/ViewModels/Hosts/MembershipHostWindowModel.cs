@@ -11,9 +11,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
-using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
@@ -27,6 +27,7 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Views.Core;
 using Ecliptix.Protobuf.Device;
@@ -46,9 +47,14 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
+    private IDisposable _languageSubscription;
+    private IDisposable _bottomSheetHiddenSubscription;
     private readonly INetworkEventService _networkEventService;
     private readonly NetworkProvider _networkProvider;
-
+    private readonly ILanguageDetectionService _languageDetectionService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
+    
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
@@ -85,7 +91,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public RoutingState Router { get; } = new();
 
     private IRoutableViewModel? _currentView;
-
+    
     public IRoutableViewModel? CurrentView
     {
         get => _currentView;
@@ -185,9 +191,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IAuthenticationService authenticationService,
         NetworkStatusNotificationViewModel networkStatusNotification,
         IOpaqueRegistrationService opaqueRegistrationService,
-        IUiDispatcher uiDispatcher)
+        IUiDispatcher uiDispatcher,
+        ILanguageDetectionService languageDetectionService)
         : base(systemEventService, networkProvider, localizationService)
     {
+        _rpcMetaDataProvider = rpcMetaDataProvider;
+        _localizationService = localizationService;
         _networkEventService = networkEventService;
         _bottomSheetService = bottomSheetService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -196,7 +205,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
         _uiDispatcher = uiDispatcher;
-
+        _languageDetectionService = languageDetectionService;
+        
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
         NetworkStatusNotification = networkStatusNotification;
@@ -383,6 +393,64 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .DisposeWith(disposables);
         });
     }
+    
+    private async Task HandleLanguageDetectionEvent(LanguageDetectionDialogEvent evt)
+    {
+        try
+        {
+            switch (evt.Action)
+            {
+                case LanguageDetectionAction.Confirm when !string.IsNullOrEmpty(evt.TargetCulture):
+                    ChangeApplicationLanguage(evt.TargetCulture);
+                    break;
+                
+                case LanguageDetectionAction.Decline:
+                    Log.Information("Language change declined by user");
+                    break;
+            }
+            await _bottomSheetService.HideAsync();
+        }
+        finally
+        {
+            _languageSubscription.Dispose();
+            _bottomSheetHiddenSubscription.Dispose();
+        }
+    }
+
+    private async Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
+    {
+        try
+        {
+            if (evt.WasDismissedByUser)
+            {
+                Log.Information("Bottom sheet dismissed by user");
+            }
+        }
+        finally
+        {
+            _languageSubscription.Dispose();
+            _bottomSheetHiddenSubscription.Dispose();
+        }
+    }
+    
+    private void ChangeApplicationLanguage(string targetCulture)
+    {
+        try
+        {
+            _localizationService.SetCulture(targetCulture,
+                () =>
+                {
+                    _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture);
+                    _rpcMetaDataProvider.SetCulture(targetCulture);
+                });
+            
+            Log.Information("Language changed to: {Culture}", targetCulture);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to change language to: {Culture}", targetCulture);
+        }
+    }
 
     public async Task ShowRedirectNotificationAsync(UserControl redirectView, bool isDismissable)
     {
@@ -413,14 +481,39 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             ApplicationInstanceSettings applicationInstanceSettings = appSettings.Unwrap();
             if (!string.IsNullOrEmpty(applicationInstanceSettings.Country) && applicationInstanceSettings.IsNewInstance)
             {
+                _languageSubscription =
+                    _languageDetectionService.OnLanguageDetectionRequested(HandleLanguageDetectionEvent,
+                        SubscriptionLifetime.Scoped);
+                _bottomSheetHiddenSubscription =
+                    _bottomSheetService.OnBottomSheetHidden(HandleBottomSheetDismissedEvent,
+                        SubscriptionLifetime.Scoped);
+
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
 
                 string expectedCulture = LanguageConfig.GetCultureByCountry(applicationInstanceSettings.Country);
 
                 if (!string.Equals(currentCulture, expectedCulture, StringComparison.OrdinalIgnoreCase))
                 {
-                    await _bottomSheetService.ShowAsync(BottomSheetComponentType.DetectedLocalization);
+                    DetectLanguageDialogViewModel detectLanguageViewModel = new(
+                        LocalizationService,
+                        _languageDetectionService,
+                        _networkProvider
+                    );
+                    
+                    DetectLanguageDialog detectLanguageView = new()
+                    {
+                        DataContext = detectLanguageViewModel
+                    };
+                    
+                    await _bottomSheetService.ShowAsync(
+                        BottomSheetComponentType.DetectedLocalization,
+                        detectLanguageView,
+                        showScrim: true,
+                        isDismissable: true
+                    );
                 }
+                    
+                
             }
         }
     }

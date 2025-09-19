@@ -4,25 +4,32 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Services;
-using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Core.Messaging.Services;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
-public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
+public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
+    private bool _disposed;
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
     private bool _showScrim;
+    private readonly IBottomSheetService _bottomSheetService;
 
     private UserControl? _content;
 
     public UserControl? Content
     {
         get => _content;
-        set => this.RaiseAndSetIfChanged(ref _content, value);
+        set
+        {
+            if (_content != null && _content != value && _content.DataContext is IDisposable disposableContext)
+            {
+                disposableContext.Dispose();
+            }
+            this.RaiseAndSetIfChanged(ref _content, value);
+        }
     }
 
     public bool ShowScrim
@@ -51,8 +58,10 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
 
-    public BottomSheetViewModel(IUnifiedMessageBus messageBus, ILocalizationService localizationService)
+    public BottomSheetViewModel(
+        IBottomSheetService bottomSheetService)
     {
+        _bottomSheetService = bottomSheetService;
         _content = null;
         _isVisible = false;
         _isDismissableOnScrimClick = true;
@@ -77,9 +86,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
         this.WhenActivated(disposables =>
         {
-            messageBus.GetEvent<BottomSheetChangedEvent>()
-                .ObserveOn(RxApp.MainThreadScheduler)
-                .Subscribe(eventArgs =>
+            _bottomSheetService.OnBottomSheetChanged(eventArgs =>
                 {
                     bool shouldBeVisible = eventArgs.Control != null;
 
@@ -112,9 +119,21 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                     {
                         IsDismissableOnScrimClick = eventArgs.IsDismissable;
                     }
+                    return System.Threading.Tasks.Task.CompletedTask;
                     
-                })
+                }, SubscriptionLifetime.Scoped)
                 .DisposeWith(disposables);
         });
+    }
+    
+    public void BottomSheetDismissed()
+    {
+        _bottomSheetService.BottomSheetDismissed();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
     }
 }

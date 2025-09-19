@@ -1,20 +1,24 @@
+using System;
 using System.Globalization;
 using System.Reactive;
+using System.Reactive.Disposables;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls.LanguageSelector;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class DetectLanguageDialogViewModel : ReactiveObject
+public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
-    private readonly IUnifiedMessageBus _messageBus;
+    private readonly ILanguageDetectionService _languageDetectionService;
 
+    public ViewModelActivator Activator { get; } = new();
+
+    private bool _disposed;
     public string Title { get; }
     public string PromptText { get; }
     public string ConfirmButtonText { get; }
@@ -26,37 +30,72 @@ public class DetectLanguageDialogViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
-
+    
+    
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
-        IUnifiedMessageBus messageBus,
+        ILanguageDetectionService languageDetectionService,
         NetworkProvider networkProvider
         )
     {
-        _messageBus = messageBus;
+        _languageDetectionService = languageDetectionService;
+        
+        ConfirmCommand = ReactiveCommand.CreateFromTask(OnConfirm);
+        DeclineCommand = ReactiveCommand.CreateFromTask(OnDecline);
+        
         string country = networkProvider.ApplicationInstanceSettings.Country;
-        _targetCulture = LanguageConfig.GetCultureByCountry(country);
-        CultureInfo targetInfo = CultureInfo.GetCultureInfo(_targetCulture);
+        
+        if (string.IsNullOrWhiteSpace(country))
+            _targetCulture = CultureInfo.CurrentCulture.Name;
+        else
+            _targetCulture = LanguageConfig.GetCultureByCountry(country) ?? CultureInfo.CurrentCulture.Name;
 
-        Title = localizationService["LanguageDetection.Title"];
-        PromptText = localizationService.GetString("LanguageDetection.Prompt", LanguageConfig.GetDisplayName(_targetCulture));
-        ConfirmButtonText = localizationService["LanguageDetection.Button.Confirm"];
-        DeclineButtonText = localizationService["LanguageDetection.Button.Decline"];
+        CultureInfo targetInfo;
+        try
+        {
+            targetInfo = CultureInfo.GetCultureInfo(_targetCulture);
+        }
+        catch (CultureNotFoundException)
+        {
+            targetInfo = CultureInfo.CurrentCulture;
+            _targetCulture = targetInfo.Name;
+        }
+        
+        string languageName = targetInfo.DisplayName;
+        int parenthesisIndex = languageName.IndexOf('(');
+        if (parenthesisIndex > 0)
+            languageName = languageName.Substring(0, parenthesisIndex).Trim();
 
+        Title = localizationService?["LanguageDetection.Title"] ?? "Language Detection";
+        PromptText = localizationService?.GetString("LanguageDetection.Prompt",
+                LanguageConfig.GetDisplayName(languageName)) ?? $"Switch to {languageName}?";
+        ConfirmButtonText = localizationService?["LanguageDetection.Button.Confirm"] ?? "Confirm";
+        DeclineButtonText = localizationService?["LanguageDetection.Button.Decline"] ?? "Decline";
+
+      
         LanguageItem? languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
         FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg";
 
-        ConfirmCommand = ReactiveCommand.Create(OnConfirm);
-        DeclineCommand = ReactiveCommand.Create(OnDecline);
+        this.WhenActivated(disposables =>
+        {
+            ConfirmCommand.DisposeWith(disposables);
+            DeclineCommand.DisposeWith(disposables);
+        });
+    }
+    
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
     }
 
-    private async void OnConfirm()
+    private async Task OnConfirm()
     {
-        await _messageBus.PublishAsync(LanguageDetectionDialogEvent.Confirm(_targetCulture));
+        await _languageDetectionService.ConfirmLanguageChangeAsync(targetCulture: _targetCulture);
     }
 
-    private async void OnDecline()
+    private async Task OnDecline()
     {
-        await _messageBus.PublishAsync(LanguageDetectionDialogEvent.Decline());
+        await _languageDetectionService.DeclineLanguageChangeAsync();
     }
 }
