@@ -2,99 +2,78 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Ecliptix.Security.SSL.Native.Native;
 using Ecliptix.Utilities;
-using Microsoft.Extensions.Logging;
+using Ecliptix.Utilities.Failures.SslPinning;
 
 namespace Ecliptix.Security.SSL.Native.Services;
 
-/// <summary>
-/// SSL certificate pinning service using the native Ecliptix security library
-/// </summary>
 public sealed class NativeSslPinningService : IDisposable
 {
-    private readonly ILogger<NativeSslPinningService> _logger;
     private volatile bool _isInitialized;
     private volatile bool _disposed;
 
-    public NativeSslPinningService(ILogger<NativeSslPinningService> logger)
+    public NativeSslPinningService()
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _logger.LogInformation("NativeSslPinningService created");
     }
 
-    /// <summary>
-    /// Initialize the native SSL pinning library
-    /// </summary>
-    public Task<Result<Unit, string>> InitializeAsync()
+    public Task<Result<Unit, SslPinningFailure>> InitializeAsync()
     {
         return Task.Run(InitializeSync);
     }
 
-    private Result<Unit, string> InitializeSync()
+    private Result<Unit, SslPinningFailure> InitializeSync()
     {
         if (_disposed)
-            return Result<Unit, string>.Err("Service has been disposed");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (_isInitialized)
-            return Result<Unit, string>.Ok(Unit.Value);
+            return Result<Unit, SslPinningFailure>.Ok(Unit.Value);
 
         try
         {
-            _logger.LogInformation("Initializing native SSL pinning library");
-
             unsafe
             {
-                // Initialize the library
                 EcliptixResult result = EcliptixNativeLibrary.Initialize();
 
                 if (result != EcliptixResult.Success)
                 {
                     string error = GetErrorString(result);
-                    _logger.LogError("Failed to initialize native SSL library: {Error}", error);
-                    return Result<Unit, string>.Err($"Library initialization failed: {error}");
+                    return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.LibraryInitializationFailed(error));
                 }
 
-                // Verify library is initialized
                 int initialized = EcliptixNativeLibrary.IsInitialized();
                 if (initialized == 0)
                 {
-                    _logger.LogWarning("Native SSL library initialization status unclear");
-                    // Continue anyway - this is not critical
                 }
             }
 
             _isInitialized = true;
-            _logger.LogInformation("Native SSL pinning library initialized successfully");
 
-            return Result<Unit, string>.Ok(Unit.Value);
+            return Result<Unit, SslPinningFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during native SSL library initialization");
-            return Result<Unit, string>.Err($"Initialization exception: {ex.Message}");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.InitializationException(ex));
         }
     }
 
-    /// <summary>
-    /// Validate and pin an SSL certificate
-    /// </summary>
-    public Task<Result<Unit, string>> ValidateCertificateAsync(byte[] certificateData, string hostname)
+    public Task<Result<Unit, SslPinningFailure>> ValidateCertificateAsync(byte[] certificateData, string hostname)
     {
         return Task.Run(() => ValidateCertificateSync(certificateData, hostname));
     }
 
-    private Result<Unit, string> ValidateCertificateSync(byte[] certificateData, string hostname)
+    private Result<Unit, SslPinningFailure> ValidateCertificateSync(byte[] certificateData, string hostname)
     {
         if (!_isInitialized)
-            return Result<Unit, string>.Err("Service not initialized");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<Unit, string>.Err("Service has been disposed");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (certificateData == null || certificateData.Length == 0)
-            return Result<Unit, string>.Err("Certificate data is required");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.CertificateDataRequired());
 
         if (string.IsNullOrWhiteSpace(hostname))
-            return Result<Unit, string>.Err("Hostname is required");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.HostnameRequired());
 
         try
         {
@@ -102,11 +81,9 @@ public sealed class NativeSslPinningService : IDisposable
             {
                 fixed (byte* certPtr = certificateData)
                 {
-                    // Use Marshal.StringToHGlobalAnsi for C string
                     IntPtr hostnamePtr = Marshal.StringToHGlobalAnsi(hostname);
                     try
                     {
-                        // Use 0x07 for all validation flags: time + hostname + pin
                         EcliptixResult result = EcliptixNativeLibrary.ValidateCertificate(
                             certPtr, (nuint)certificateData.Length,
                             (byte*)hostnamePtr, 0x07);
@@ -114,8 +91,7 @@ public sealed class NativeSslPinningService : IDisposable
                         if (result != EcliptixResult.Success)
                         {
                             string error = GetErrorString(result);
-                            _logger.LogWarning("Certificate validation failed for {Hostname}: {Error}", hostname, error);
-                            return Result<Unit, string>.Err($"Certificate validation failed: {error}");
+                            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.CertificateValidationFailed(error));
                         }
                     }
                     finally
@@ -125,45 +101,38 @@ public sealed class NativeSslPinningService : IDisposable
                 }
             }
 
-            _logger.LogDebug("Certificate validation successful for {Hostname}", hostname);
-            return Result<Unit, string>.Ok(Unit.Value);
+            return Result<Unit, SslPinningFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during certificate validation for {Hostname}", hostname);
-            return Result<Unit, string>.Err($"Validation exception: {ex.Message}");
+            return Result<Unit, SslPinningFailure>.Err(SslPinningFailure.CertificateValidationException(ex));
         }
     }
 
-    /// <summary>
-    /// Encrypt data using embedded RSA public key from server certificate
-    /// </summary>
-    public Task<Result<byte[], string>> EncryptAsync(byte[] plaintext)
+    public Task<Result<byte[], SslPinningFailure>> EncryptAsync(byte[] plaintext)
     {
         return Task.Run(() => EncryptSync(plaintext));
     }
 
-    private Result<byte[], string> EncryptSync(byte[] plaintext)
+    private Result<byte[], SslPinningFailure> EncryptSync(byte[] plaintext)
     {
         if (!_isInitialized)
-            return Result<byte[], string>.Err("Service not initialized");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<byte[], string>.Err("Service has been disposed");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (plaintext == null || plaintext.Length == 0)
-            return Result<byte[], string>.Err("Plaintext is required");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.PlaintextRequired());
 
-        // RSA max plaintext size (2048-bit key with OAEP padding)
-        const int maxPlaintextSize = 214; // 256 - 42 bytes OAEP padding
+        const int maxPlaintextSize = 214;
         if (plaintext.Length > maxPlaintextSize)
-            return Result<byte[], string>.Err($"Plaintext too large for RSA encryption (max {maxPlaintextSize} bytes)");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.PlaintextTooLarge());
 
         try
         {
             unsafe
             {
-                // Allocate buffer for RSA ciphertext (2048-bit = 256 bytes)
                 const int rsaKeySize = 256;
                 byte[] ciphertext = new byte[rsaKeySize];
                 nuint ciphertextSize = (nuint)rsaKeySize;
@@ -178,51 +147,44 @@ public sealed class NativeSslPinningService : IDisposable
                     if (result != EcliptixResult.Success)
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("RSA encryption failed: {Error}", error);
-                        return Result<byte[], string>.Err($"RSA encryption failed: {error}");
+                        return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaEncryptionFailed(error));
                     }
                 }
 
-                // Resize to actual output size
                 Array.Resize(ref ciphertext, (int)ciphertextSize);
-                return Result<byte[], string>.Ok(ciphertext);
+                return Result<byte[], SslPinningFailure>.Ok(ciphertext);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during RSA encryption");
-            return Result<byte[], string>.Err($"RSA encryption exception: {ex.Message}");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaEncryptionException(ex));
         }
     }
 
-    /// <summary>
-    /// Decrypt data using RSA private key (server-side only)
-    /// </summary>
-    public Task<Result<byte[], string>> DecryptRsaAsync(byte[] ciphertext, byte[] privateKeyPem)
+    public Task<Result<byte[], SslPinningFailure>> DecryptRsaAsync(byte[] ciphertext, byte[] privateKeyPem)
     {
         return Task.Run(() => DecryptRsaSync(ciphertext, privateKeyPem));
     }
 
-    private Result<byte[], string> DecryptRsaSync(byte[] ciphertext, byte[] privateKeyPem)
+    private Result<byte[], SslPinningFailure> DecryptRsaSync(byte[] ciphertext, byte[] privateKeyPem)
     {
         if (!_isInitialized)
-            return Result<byte[], string>.Err("Service not initialized");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<byte[], string>.Err("Service has been disposed");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (ciphertext == null || ciphertext.Length == 0)
-            return Result<byte[], string>.Err("Ciphertext is required");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.CiphertextRequired());
 
         if (privateKeyPem == null || privateKeyPem.Length == 0)
-            return Result<byte[], string>.Err("Private key is required");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.PrivateKeyRequired());
 
         try
         {
             unsafe
             {
-                // Allocate buffer for decrypted plaintext (max RSA key size)
-                const int maxPlaintextSize = 214; // Max for 2048-bit RSA with OAEP
+                const int maxPlaintextSize = 214;
                 byte[] plaintext = new byte[maxPlaintextSize];
                 nuint plaintextSize = (nuint)maxPlaintextSize;
 
@@ -238,55 +200,47 @@ public sealed class NativeSslPinningService : IDisposable
                     if (result != EcliptixResult.Success)
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("RSA decryption failed: {Error}", error);
-                        return Result<byte[], string>.Err($"RSA decryption failed: {error}");
+                        return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaDecryptionFailed(error));
                     }
                 }
 
-                // Resize to actual output size
                 Array.Resize(ref plaintext, (int)plaintextSize);
-                return Result<byte[], string>.Ok(plaintext);
+                return Result<byte[], SslPinningFailure>.Ok(plaintext);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during RSA decryption");
-            return Result<byte[], string>.Err($"RSA decryption exception: {ex.Message}");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaDecryptionException(ex));
         }
     }
 
-    /// <summary>
-    /// Decrypt data using AES-GCM
-    /// </summary>
-    public Task<Result<byte[], string>> DecryptAsync(byte[] ciphertext, byte[] key)
+    public Task<Result<byte[], SslPinningFailure>> DecryptAsync(byte[] ciphertext, byte[] key)
     {
         return Task.Run(() => DecryptSync(ciphertext, key));
     }
 
-    private Result<byte[], string> DecryptSync(byte[] ciphertext, byte[] key)
+    private Result<byte[], SslPinningFailure> DecryptSync(byte[] ciphertext, byte[] key)
     {
         if (!_isInitialized)
-            return Result<byte[], string>.Err("Service not initialized");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<byte[], string>.Err("Service has been disposed");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (ciphertext == null || ciphertext.Length <= EcliptixConstants.AesGcmIvSize + EcliptixConstants.AesGcmTagSize)
-            return Result<byte[], string>.Err("Invalid ciphertext size");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.InvalidCiphertextSize());
 
         if (key == null || key.Length != EcliptixConstants.AesGcmKeySize)
-            return Result<byte[], string>.Err($"Key must be {EcliptixConstants.AesGcmKeySize} bytes");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.InvalidKeySize(EcliptixConstants.AesGcmKeySize));
 
         try
         {
             unsafe
             {
-                // Allocate buffer for plaintext
                 int maxPlaintextSize = ciphertext.Length - EcliptixConstants.AesGcmIvSize - EcliptixConstants.AesGcmTagSize;
                 byte[] output = new byte[maxPlaintextSize];
                 nuint actualOutputSize = (nuint)maxPlaintextSize;
 
-                // Extract nonce and tag from combined ciphertext
                 int actualCiphertextSize = ciphertext.Length - EcliptixConstants.AesGcmIvSize - EcliptixConstants.AesGcmTagSize;
                 byte[] actualCiphertext = new byte[actualCiphertextSize];
                 byte[] nonce = new byte[EcliptixConstants.AesGcmIvSize];
@@ -306,7 +260,7 @@ public sealed class NativeSslPinningService : IDisposable
                         ciphertextPtr, (nuint)actualCiphertextSize,
                         tagPtr, (nuint)EcliptixConstants.AesGcmTagSize,
                         keyPtr, (nuint)key.Length,
-                        null, 0, // no additional data
+                        null, 0,
                         noncePtr, (nuint)EcliptixConstants.AesGcmIvSize,
                         EcliptixConstants.AlgorithmAesGcm,
                         outputPtr, &actualOutputSize);
@@ -314,44 +268,38 @@ public sealed class NativeSslPinningService : IDisposable
                     if (result != EcliptixResult.Success)
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("Decryption failed: {Error}", error);
-                        return Result<byte[], string>.Err($"Decryption failed: {error}");
+                        return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.AesGcmDecryptionFailed(error));
                     }
                 }
 
-                // Resize to actual output size
                 Array.Resize(ref output, (int)actualOutputSize);
-                return Result<byte[], string>.Ok(output);
+                return Result<byte[], SslPinningFailure>.Ok(output);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during decryption");
-            return Result<byte[], string>.Err($"Decryption exception: {ex.Message}");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.AesGcmDecryptionException(ex));
         }
     }
 
-    /// <summary>
-    /// Sign data using Ed25519
-    /// </summary>
-    public Task<Result<byte[], string>> SignEd25519Async(byte[] message, byte[] privateKey)
+    public Task<Result<byte[], SslPinningFailure>> SignEd25519Async(byte[] message, byte[] privateKey)
     {
         return Task.Run(() => SignEd25519Sync(message, privateKey));
     }
 
-    private Result<byte[], string> SignEd25519Sync(byte[] message, byte[] privateKey)
+    private Result<byte[], SslPinningFailure> SignEd25519Sync(byte[] message, byte[] privateKey)
     {
         if (!_isInitialized)
-            return Result<byte[], string>.Err("Service not initialized");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<byte[], string>.Err("Service has been disposed");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (message == null || message.Length == 0)
-            return Result<byte[], string>.Err("Message is required");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.MessageRequired());
 
         if (privateKey == null || privateKey.Length != EcliptixConstants.Ed25519PrivateKeySize)
-            return Result<byte[], string>.Err($"Private key must be {EcliptixConstants.Ed25519PrivateKeySize} bytes");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.InvalidPrivateKeySize(EcliptixConstants.Ed25519PrivateKeySize));
 
         try
         {
@@ -362,7 +310,6 @@ public sealed class NativeSslPinningService : IDisposable
                 fixed (byte* messagePtr = message)
                 fixed (byte* sigPtr = signature)
                 {
-                    // The native library uses embedded private key
                     EcliptixResult result = EcliptixNativeLibrary.SignEd25519(
                         messagePtr, (nuint)message.Length,
                         sigPtr);
@@ -370,42 +317,37 @@ public sealed class NativeSslPinningService : IDisposable
                     if (result != EcliptixResult.Success)
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("Ed25519 signing failed: {Error}", error);
-                        return Result<byte[], string>.Err($"Signing failed: {error}");
+                        return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.Ed25519SigningFailed(error));
                     }
                 }
 
-                return Result<byte[], string>.Ok(signature);
+                return Result<byte[], SslPinningFailure>.Ok(signature);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during Ed25519 signing");
-            return Result<byte[], string>.Err($"Signing exception: {ex.Message}");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.Ed25519SigningException(ex));
         }
     }
 
-    /// <summary>
-    /// Verify Ed25519 signature using embedded public key
-    /// </summary>
-    public Task<Result<bool, string>> VerifyEd25519Async(byte[] message, byte[] signature)
+    public Task<Result<bool, SslPinningFailure>> VerifyEd25519Async(byte[] message, byte[] signature)
     {
         return Task.Run(() => VerifyEd25519Sync(message, signature));
     }
 
-    private Result<bool, string> VerifyEd25519Sync(byte[] message, byte[] signature)
+    private Result<bool, SslPinningFailure> VerifyEd25519Sync(byte[] message, byte[] signature)
     {
         if (!_isInitialized)
-            return Result<bool, string>.Err("Service not initialized");
+            return Result<bool, SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<bool, string>.Err("Service has been disposed");
+            return Result<bool, SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (message == null || message.Length == 0)
-            return Result<bool, string>.Err("Message is required");
+            return Result<bool, SslPinningFailure>.Err(SslPinningFailure.MessageRequired());
 
         if (signature == null || signature.Length != EcliptixConstants.Ed25519SignatureSize)
-            return Result<bool, string>.Err($"Signature must be {EcliptixConstants.Ed25519SignatureSize} bytes");
+            return Result<bool, SslPinningFailure>.Err(SslPinningFailure.InvalidSignatureSize(EcliptixConstants.Ed25519SignatureSize));
 
         try
         {
@@ -419,46 +361,41 @@ public sealed class NativeSslPinningService : IDisposable
 
                     if (result == EcliptixResult.Success)
                     {
-                        return Result<bool, string>.Ok(true);
+                        return Result<bool, SslPinningFailure>.Ok(true);
                     }
                     else if (result == EcliptixResult.ErrorVerificationFailed)
                     {
-                        return Result<bool, string>.Ok(false);
+                        return Result<bool, SslPinningFailure>.Ok(false);
                     }
                     else
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("Ed25519 verification error: {Error}", error);
-                        return Result<bool, string>.Err($"Verification error: {error}");
+                        return Result<bool, SslPinningFailure>.Err(SslPinningFailure.Ed25519VerificationError(error));
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during Ed25519 verification");
-            return Result<bool, string>.Err($"Verification exception: {ex.Message}");
+            return Result<bool, SslPinningFailure>.Err(SslPinningFailure.Ed25519VerificationException(ex));
         }
     }
 
-    /// <summary>
-    /// Generate a cryptographically secure random nonce
-    /// </summary>
-    public Task<Result<byte[], string>> GenerateNonceAsync(int size = EcliptixConstants.AesGcmIvSize)
+    public Task<Result<byte[], SslPinningFailure>> GenerateNonceAsync(int size = EcliptixConstants.AesGcmIvSize)
     {
         return Task.Run(() => GenerateNonceSync(size));
     }
 
-    private Result<byte[], string> GenerateNonceSync(int size)
+    private Result<byte[], SslPinningFailure> GenerateNonceSync(int size)
     {
         if (!_isInitialized)
-            return Result<byte[], string>.Err("Service not initialized");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
 
         if (_disposed)
-            return Result<byte[], string>.Err("Service has been disposed");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
 
         if (size <= 0 || size > 1024)
-            return Result<byte[], string>.Err("Invalid nonce size");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.InvalidNonceSize());
 
         try
         {
@@ -473,18 +410,16 @@ public sealed class NativeSslPinningService : IDisposable
                     if (result != EcliptixResult.Success)
                     {
                         string error = GetErrorString(result);
-                        _logger.LogError("Random bytes generation failed: {Error}", error);
-                        return Result<byte[], string>.Err($"Random bytes generation failed: {error}");
+                        return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RandomBytesGenerationFailed(error));
                     }
                 }
 
-                return Result<byte[], string>.Ok(nonce);
+                return Result<byte[], SslPinningFailure>.Ok(nonce);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during nonce generation");
-            return Result<byte[], string>.Err($"Nonce generation exception: {ex.Message}");
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RandomBytesGenerationException(ex));
         }
     }
 
@@ -500,7 +435,6 @@ public sealed class NativeSslPinningService : IDisposable
         }
         catch
         {
-            // Ignore errors getting error string
         }
 
         return $"Error code: {result}";
@@ -519,13 +453,11 @@ public sealed class NativeSslPinningService : IDisposable
                                   ? Marshal.PtrToStringUTF8((IntPtr)errorInfo->SourceFile) ?? "unknown"
                                   : "unknown";
 
-                // Log to console for now - in production, use proper logging
                 Console.WriteLine($"[Native SSL] Error {errorInfo->ErrorCode}: {message} at {sourceFile}:{errorInfo->SourceLine}");
             }
         }
         catch
         {
-            // Ignore errors in error callback to prevent recursion
         }
     }
 
@@ -539,12 +471,10 @@ public sealed class NativeSslPinningService : IDisposable
             if (_isInitialized)
             {
                 EcliptixNativeLibrary.Cleanup();
-                _logger.LogInformation("Native SSL pinning library cleaned up");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger.LogError(ex, "Error during native library cleanup");
         }
         finally
         {

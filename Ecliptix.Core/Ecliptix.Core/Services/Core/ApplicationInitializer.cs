@@ -49,16 +49,13 @@ public class ApplicationInitializer(
     {
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
 
-        // Initialize SSL Pinning Service
         Log.Information("Initializing native SSL pinning library");
-        var sslInitResult = await sslPinningService.InitializeAsync();
+        Result<Unit, string> sslInitResult = await sslPinningService.InitializeAsync();
         if (sslInitResult.IsErr)
         {
-            Log.Error("Failed to initialize SSL pinning service: {Error}", sslInitResult.UnwrapErr());
             await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
             return false;
         }
-        Log.Information("Native SSL pinning library initialized successfully");
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
