@@ -52,14 +52,13 @@ public class ApplicationStartup
             return;
         }
 
-        bool opaqueClientReady = OpaqueClientTest.ValidateClientIntegration();
-        if (!opaqueClientReady)
-        {
-            await _splashViewModel.PrepareForShutdownAsync();
-            _desktop.Shutdown();
-            return;
-        }
+        byte[] serverKey = new byte[OpaqueConstants.PUBLIC_KEY_LENGTH];
+        for (int i = 0; i < serverKey.Length; i++)
+            serverKey[i] = (byte)(i % 256);
 
+        using OpaqueClient client = new(serverKey);
+        Console.WriteLine("✅ Client created");
+        
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
         {

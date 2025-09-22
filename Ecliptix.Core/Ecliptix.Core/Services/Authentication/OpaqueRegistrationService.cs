@@ -17,8 +17,6 @@ using System.Reactive.Concurrency;
 using Serilog;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Math;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -30,22 +28,7 @@ public class OpaqueRegistrationService(
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
 
-    private readonly ConcurrentDictionary<ByteString, (BigInteger Blind, byte[] OprfResponse)>
-        _opaqueRegistrationState = new();
-
-    private OpaqueProtocolService CreateOpaqueService()
-    {
-        byte[] serverPublicKeyBytes = ServerPublicKey();
-
-        Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint =
-            OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
-        ECPublicKeyParameters serverStaticPublicKeyParam = new(
-            serverPublicKeyPoint,
-            OpaqueCryptoUtilities.DomainParams
-        );
-
-        return new OpaqueProtocolService(serverStaticPublicKeyParam);
-    }
+    private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
@@ -315,7 +298,7 @@ public class OpaqueRegistrationService(
 
     private async Task<Result<OpaqueRegistrationInitResponse, string>> InitiateOpaqueRegistrationAsync(
         ByteString membershipIdentifier,
-        byte[] oprfRequest,
+        byte[] registrationRequest,
         uint connectId)
     {
         if (membershipIdentifier.IsEmpty)
@@ -328,7 +311,7 @@ public class OpaqueRegistrationService(
         {
             OpaqueRegistrationInitRequest request = new()
             {
-                PeerOprf = ByteString.CopyFrom(oprfRequest),
+                PeerOprf = ByteString.CopyFrom(registrationRequest),
                 MembershipIdentifier = membershipIdentifier
             };
 
@@ -387,22 +370,25 @@ public class OpaqueRegistrationService(
 
         try
         {
-            Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = default;
-            secureKey.WithSecureBytes(bytes =>
+            byte[] serverPublicKeyBytes = ServerPublicKey();
+
+            using OpaqueClient opaqueClient = new OpaqueClient(serverPublicKeyBytes);
+
+            // Step 1: Create registration request
+            RegistrationResult? registrationResult = null;
+            secureKey.WithSecureBytes(passwordBytes =>
             {
-                oprfResult = OpaqueProtocolService.CreateOprfRequest(bytes.ToArray());
+                registrationResult = opaqueClient.CreateRegistrationRequest(passwordBytes.ToArray());
             });
 
-            if (oprfResult.IsErr)
+            if (registrationResult == null)
             {
-                return Result<Unit, string>.Err(
-                    $"{AuthenticationConstants.RegistrationFailurePrefix}{oprfResult.UnwrapErr().Message}");
+                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
             }
 
-            (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
-
+            // Step 2: Send registration request to server
             Result<OpaqueRegistrationInitResponse, string> initResult =
-                await InitiateOpaqueRegistrationAsync(membershipIdentifier, oprfRequest, connectId);
+                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.Request, connectId);
 
             if (initResult.IsErr)
             {
@@ -422,27 +408,14 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(errorMessage);
             }
 
-            byte[] serverOprfResponse =
+            // Store registration state for finalization
+            _opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult);
+
+            // Step 3: Finalize registration with server response
+            byte[] serverRegistrationResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
-            _opaqueRegistrationState.TryAdd(membershipIdentifier, (blind, serverOprfResponse));
 
-            Result<byte[], OpaqueFailure> recordResult = default;
-            secureKey.WithSecureBytes(passwordBytes =>
-            {
-                OpaqueProtocolService opaqueService = CreateOpaqueService();
-                recordResult =
-                    opaqueService.CreateRegistrationRecord(passwordBytes.ToArray(), serverOprfResponse,
-                        blind);
-            });
-
-            if (recordResult.IsErr)
-            {
-                _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
-                return Result<Unit, string>.Err(
-                    $"{AuthenticationConstants.RegistrationFailurePrefix}{recordResult.UnwrapErr().Message}");
-            }
-
-            byte[] registrationRecord = recordResult.Unwrap();
+            byte[] registrationRecord = opaqueClient.FinalizeRegistration(serverRegistrationResponse, registrationResult);
 
             OpaqueRegistrationCompleteRequest completeRequest = new()
             {

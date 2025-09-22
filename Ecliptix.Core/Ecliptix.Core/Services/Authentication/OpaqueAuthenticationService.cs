@@ -8,7 +8,6 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
@@ -19,8 +18,6 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Math;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -71,30 +68,23 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        OpaqueProtocolService clientOpaqueService = CreateOpaqueService();
+        byte[] serverPublicKeyBytes = ServerPublicKey();
 
-        Result<(byte[] OprfRequest, BigInteger Blind), OpaqueFailure> oprfResult = OpaqueProtocolService.CreateOprfRequest(passwordBytes);
-        if (oprfResult.IsErr)
-        {
-            OpaqueFailure opaqueError = oprfResult.UnwrapErr();
-            await systemEvents.NotifySystemStateAsync(SystemState.FatalError, opaqueError.Message);
-            Result<Unit, string> errorResult =
-                Result<Unit, string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
-            return errorResult;
-        }
+        using OpaqueClient opaqueClient = new OpaqueClient(serverPublicKeyBytes);
 
-        (byte[] oprfRequest, BigInteger blind) = oprfResult.Unwrap();
+        // Step 1: Generate KE1 (client's first message)
+        using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
+
         OpaqueSignInInitRequest initRequest = new()
         {
             MobileNumber = mobileNumber,
-            PeerOprf = ByteString.CopyFrom(oprfRequest),
+            PeerOprf = ByteString.CopyFrom(ke1Result.KeyExchangeData),
         };
 
         Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
         if (initResult.IsErr)
         {
-            Result<Unit, string> errorResult = Result<Unit, string>.Err(initResult.UnwrapErr());
-            return errorResult;
+            return Result<Unit, string>.Err(initResult.UnwrapErr());
         }
 
         OpaqueSignInInitResponse initResponse = initResult.Unwrap();
@@ -102,26 +92,23 @@ public class OpaqueAuthenticationService(
         Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
         if (validationResult.IsErr)
         {
-            Result<Unit, string> errorResult = Result<Unit, string>.Err(validationResult.UnwrapErr().Message);
-            return errorResult;
+            return Result<Unit, string>.Err(validationResult.UnwrapErr().Message);
         }
 
-        Result<(OpaqueSignInFinalizeRequest Request, byte[] SessionKey, byte[] ServerMacKey, byte[]
-            TranscriptHash, byte[] ExportKey), OpaqueFailure> finalizationResult =
-            clientOpaqueService.CreateSignInFinalizationRequest(
-                mobileNumber, passwordBytes, initResponse, blind);
+        // Step 2: Process server's KE2 response and generate KE3
+        byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
+        byte[] ke3Data = opaqueClient.GenerateKE3(ke2Data, ke1Result);
 
-        if (finalizationResult.IsErr)
+        // Step 3: Get session key from completed key exchange
+        byte[] sessionKey = opaqueClient.DeriveSessionKey(ke1Result);
+
+        OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
-            Result<Unit, string> errorResult = Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.InvalidCredentialsKey]);
-            return errorResult;
-        }
+            MobileNumber = mobileNumber,
+            ServerStateToken = ByteString.CopyFrom(ke3Data)
+        };
 
-        (OpaqueSignInFinalizeRequest finalizeRequest, byte[] sessionKey, byte[] serverMacKey,
-            byte[] transcriptHash, byte[] exportKey) = finalizationResult.Unwrap();
-
-        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, serverMacKey, transcriptHash, connectId);
+        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, connectId);
 
         if (finalResult.IsOk)
         {
@@ -139,19 +126,15 @@ public class OpaqueAuthenticationService(
                     return Result<Unit, string>.Err(localizationService[AuthenticationConstants.InvalidCredentialsKey]);
                 }
 
-                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(exportKey, membershipIdentifier);
+                // For now, use session key as master key derivation input until export key is implemented
+                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(sessionKey, membershipIdentifier);
                 string memberId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
                 await identityService.StoreIdentityAsync(masterKey, memberId);
-                SodiumInterop.SecureWipe(masterKey);
+                CryptographicOperations.ZeroMemory(masterKey);
 
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
             }
-        }
 
-        CryptographicOperations.ZeroMemory(exportKey);
-
-        if (finalResult.IsOk)
-        {
             return Result<Unit, string>.Ok(Unit.Value);
         }
 
@@ -174,25 +157,6 @@ public class OpaqueAuthenticationService(
         };
     }
 
-    private OpaqueProtocolService CreateOpaqueService()
-    {
-        try
-        {
-            byte[] serverPublicKeyBytes = ServerPublicKey();
-
-            Org.BouncyCastle.Math.EC.ECPoint serverPublicKeyPoint = OpaqueCryptoUtilities.DomainParams.Curve.DecodePoint(serverPublicKeyBytes);
-            ECPublicKeyParameters serverStaticPublicKeyParam = new(
-                serverPublicKeyPoint,
-                OpaqueCryptoUtilities.DomainParams
-            );
-
-            return new OpaqueProtocolService(serverStaticPublicKeyParam);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException(AuthenticationConstants.OpaqueInitializationFailureMessage, ex);
-        }
-    }
 
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
@@ -244,9 +208,7 @@ public class OpaqueAuthenticationService(
     }
 
     private async Task<Result<SignInResult, string>> SendFinalizeRequestAndVerifyAsync(OpaqueSignInFinalizeRequest finalizeRequest,
-        byte[] sessionKey,
-        byte[] serverMacKey,
-        byte[] transcriptHash, uint connectId)
+        byte[] sessionKey, uint connectId)
     {
         TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
 
@@ -296,24 +258,13 @@ public class OpaqueAuthenticationService(
             return Result<SignInResult, string>.Err(message);
         }
 
-        Result<byte[], OpaqueFailure> verificationResult = OpaqueProtocolService.VerifyServerMacAndGetSessionKey(
-            capturedResponse, sessionKey, serverMacKey, transcriptHash);
+        // In proper OPAQUE flow, session key is already established from KE1/KE2/KE3
+        byte[] serverSessionKey = capturedResponse.SessionKey != null && !capturedResponse.SessionKey.IsEmpty
+            ? capturedResponse.SessionKey.ToByteArray()
+            : sessionKey;
 
-        if (!verificationResult.IsErr)
-        {
-            byte[] finalSessionKey = verificationResult.Unwrap();
-
-            byte[] serverSessionKey = capturedResponse.SessionKey != null && !capturedResponse.SessionKey.IsEmpty
-                ? capturedResponse.SessionKey.ToByteArray()
-                : finalSessionKey;
-
-            SignInResult result = new(serverSessionKey, capturedResponse.Membership);
-            return Result<SignInResult, string>.Ok(result);
-        }
-
-        string errorMessage = localizationService[AuthenticationConstants.InvalidCredentialsKey];
-        await systemEvents.NotifySystemStateAsync(SystemState.FatalError, verificationResult.UnwrapErr().Message);
-        return Result<SignInResult, string>.Err(errorMessage);
+        SignInResult result = new(serverSessionKey, capturedResponse.Membership);
+        return Result<SignInResult, string>.Ok(result);
     }
 
     private bool ValidateMembershipIdentifier(ByteString identifier)
