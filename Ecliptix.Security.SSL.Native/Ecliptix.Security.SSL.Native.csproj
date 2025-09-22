@@ -15,19 +15,19 @@
         <ProjectReference Include="../Ecliptix.Protocol.System/Ecliptix.Protocol.System.csproj" />
     </ItemGroup>
 
-    <!-- Native library files from C++ build -->
+    <!-- Native libraries embedded in project -->
     <ItemGroup>
-        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/macos/lib/libecliptix_security.dylib" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/macos/lib/libecliptix_security.dylib')">
+        <Content Include="native/macos/libecliptix.client.dylib" Condition="Exists('native/macos/libecliptix.client.dylib')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>libecliptix_security.dylib</Link>
+            <Link>libecliptix.client.dylib</Link>
         </Content>
-        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/windows/ecliptix_security.dll" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/windows/ecliptix_security.dll')">
+        <Content Include="native/windows/ecliptix.client.dll" Condition="Exists('native/windows/ecliptix.client.dll')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>ecliptix_security.dll</Link>
+            <Link>ecliptix.client.dll</Link>
         </Content>
-        <Content Include="../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/linux/libecliptix_security.so" Condition="Exists('../../CLionProjects/Ecliptix.Security.SSL.Pining/builds/linux/libecliptix_security.so')">
+        <Content Include="native/linux/libecliptix.client.so" Condition="Exists('native/linux/libecliptix.client.so')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>libecliptix_security.so</Link>
+            <Link>libecliptix.client.so</Link>
         </Content>
     </ItemGroup>
 

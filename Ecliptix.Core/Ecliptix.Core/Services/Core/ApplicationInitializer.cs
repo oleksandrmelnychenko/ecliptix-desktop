@@ -27,7 +27,6 @@ using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.SslPinning;
-using Ecliptix.Protocol.System.Sodium;
 using Google.Protobuf;
 using Serilog;
 
