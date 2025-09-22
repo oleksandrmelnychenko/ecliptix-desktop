@@ -27,6 +27,7 @@ using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.SslPinning;
+using Ecliptix.Opaque.Protocol;
 using Google.Protobuf;
 using Serilog;
 
@@ -72,6 +73,17 @@ public class ApplicationInitializer(
             await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
             return false;
         }
+
+        // Initialize and validate OPAQUE client library
+        Log.Information("Validating OPAQUE client library integration...");
+        bool opaqueValidation = OpaqueClientTest.ValidateClientIntegration();
+        if (!opaqueValidation)
+        {
+            Log.Error("OPAQUE client library validation failed");
+            await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
+            return false;
+        }
+        Log.Information("OPAQUE client library validation successful");
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
