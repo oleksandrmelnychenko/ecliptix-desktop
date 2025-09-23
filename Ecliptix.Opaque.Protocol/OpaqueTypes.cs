@@ -10,14 +10,16 @@ public static class OpaqueConstants
     public const int PUBLIC_KEY_LENGTH = 32;
     public const int PRIVATE_KEY_LENGTH = 32;
     public const int HASH_LENGTH = 64;
-    public const int NONCE_LENGTH = 24;
+    public const int NONCE_LENGTH = 32;
+    public const int MAC_LENGTH = 64;
+    public const int ENVELOPE_LENGTH = 144;
     public const int REGISTRATION_REQUEST_LENGTH = 32;
-    public const int REGISTRATION_RESPONSE_LENGTH = 64;
-    public const int REGISTRATION_RECORD_LENGTH = 168; // nonce(24) + ciphertext(96) + auth_tag(16) + public_key(32)
+    public const int REGISTRATION_RESPONSE_LENGTH = 96;
+    public const int REGISTRATION_RECORD_LENGTH = 176; // ENVELOPE_LENGTH + PUBLIC_KEY_LENGTH
     public const int KE1_LENGTH = 96;
-    public const int KE2_LENGTH = 192;
+    public const int KE2_LENGTH = 304;
     public const int KE3_LENGTH = 64;
-    public const int SESSION_KEY_LENGTH = 32;
+    public const int SESSION_KEY_LENGTH = 64; // Using HASH_LENGTH for session key
 }
 
 /// <summary>

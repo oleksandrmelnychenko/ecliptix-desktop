@@ -11,8 +11,19 @@ public sealed class OpaqueClient : IDisposable
     private readonly IntPtr _clientHandle;
     private bool _disposed;
 
+
     /// <summary>
-    /// Creates new OPAQUE client with server public key
+    /// Creates new OPAQUE client with hardcoded server public key
+    /// </summary>
+    public OpaqueClient()
+    {
+        int result = OpaqueNative.opaque_client_create_default(out _clientHandle);
+        if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
+            throw new InvalidOperationException($"Failed to create OPAQUE client: {(OpaqueResult)result}");
+    }
+
+    /// <summary>
+    /// Creates new OPAQUE client with custom server public key
     /// </summary>
     /// <param name="serverPublicKey">Server's public key (32 bytes)</param>
     public OpaqueClient(byte[] serverPublicKey)
@@ -151,7 +162,7 @@ public sealed class OpaqueClient : IDisposable
     {
         ThrowIfDisposed();
 
-        byte[] sessionKey = new byte[OpaqueConstants.SESSION_KEY_LENGTH];
+        byte[] sessionKey = new byte[OpaqueConstants.HASH_LENGTH];
 
         int result = OpaqueNative.opaque_client_finish(
             _clientHandle, keyExchangeState.StateHandle, sessionKey, (UIntPtr)sessionKey.Length);
@@ -160,6 +171,16 @@ public sealed class OpaqueClient : IDisposable
             throw new InvalidOperationException($"Failed to derive session key: {(OpaqueResult)result}");
 
         return sessionKey;
+    }
+
+    /// <summary>
+    /// Gets the OPAQUE client library version
+    /// </summary>
+    /// <returns>Version string (e.g., "1.0.0")</returns>
+    public static string GetVersion()
+    {
+        IntPtr versionPtr = OpaqueNative.opaque_client_get_version();
+        return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(versionPtr) ?? "unknown";
     }
 
     private void ThrowIfDisposed()

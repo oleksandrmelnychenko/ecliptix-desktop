@@ -55,18 +55,14 @@ public class ApplicationInitializer(
         Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
 
         byte[] helloWorld = "Hello, World!"u8.ToArray();
-        Result<SodiumSecureMemoryHandle, SslPinningFailure> encryptionResult = await sslPinningService.EncryptRsaSecureAsync(helloWorld);
+        Result<byte[], SslPinningFailure> pub = await sslPinningService.GetPublicKeyAsync();
+        Result<byte[], SslPinningFailure> encryptionResult = await sslPinningService.EncryptAsync(helloWorld);
 
         if (encryptionResult.IsErr)
         {
             Log.Error("RSA secure encryption test failed: {Error}", encryptionResult.UnwrapErr());
         }
-        else
-        {
-            using SodiumSecureMemoryHandle encryptedHandle = encryptionResult.Unwrap();
-            Log.Information("RSA secure encryption test successful! Encrypted {InputLength} bytes to {OutputLength} bytes (stored in secure memory)",
-                helloWorld.Length, encryptedHandle.Length);
-        }
+        
 
         if (sslInitResult.IsErr)
         {

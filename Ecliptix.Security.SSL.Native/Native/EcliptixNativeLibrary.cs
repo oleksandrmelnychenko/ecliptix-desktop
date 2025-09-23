@@ -41,6 +41,20 @@ internal static unsafe class EcliptixNativeLibrary
         byte* data, nuint dataLen,
         byte* signature, nuint signatureLen);
 
+    [DllImport(LibraryName, EntryPoint = "ecliptix_client_encrypt", CallingConvention = CallingConvention.Cdecl)]
+    public static extern EcliptixResult Encrypt(
+        byte* plaintext, nuint plaintextLen,
+        byte* ciphertext, nuint* ciphertextLen);
+
+    [DllImport(LibraryName, EntryPoint = "ecliptix_client_decrypt", CallingConvention = CallingConvention.Cdecl)]
+    public static extern EcliptixResult Decrypt(
+        byte* ciphertext, nuint ciphertextLen,
+        byte* plaintext, nuint* plaintextLen);
+
+    [DllImport(LibraryName, EntryPoint = "ecliptix_client_get_public_key", CallingConvention = CallingConvention.Cdecl)]
+    public static extern EcliptixResult GetPublicKey(
+        byte* publicKeyDer, nuint* publicKeyLen);
+
     [DllImport(LibraryName, EntryPoint = "ecliptix_client_get_error", CallingConvention = CallingConvention.Cdecl)]
     public static extern byte* GetErrorMessage();
 }

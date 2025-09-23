@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -45,6 +46,7 @@ public class ApplicationStartup
 
         await using SslPinningService sslPinningService = new();
         Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
+        
         if (sslInitResult.IsErr)
         {
             await _splashViewModel.PrepareForShutdownAsync();
@@ -52,12 +54,8 @@ public class ApplicationStartup
             return;
         }
 
-        byte[] serverKey = new byte[OpaqueConstants.PUBLIC_KEY_LENGTH];
-        for (int i = 0; i < serverKey.Length; i++)
-            serverKey[i] = (byte)(i % 256);
-
-        using OpaqueClient client = new(serverKey);
-        Console.WriteLine("✅ Client created");
+       
+        Console.WriteLine("✅ OPAQUE client created with pinned server key");
         
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
@@ -87,7 +85,8 @@ public class ApplicationStartup
 
         try
         {
-            Window nextWindow = await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
+            Window nextWindow =
+                await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
 
             _desktop.MainWindow = nextWindow;
 

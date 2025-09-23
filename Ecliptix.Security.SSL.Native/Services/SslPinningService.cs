@@ -51,6 +51,20 @@ public sealed class SslPinningService : IDisposable, IAsyncDisposable
         CancellationToken cancellationToken = default)
         => Task.Run(() => VerifyServerSignatureSync(data, signature), cancellationToken);
 
+    public Task<Result<byte[], SslPinningFailure>> EncryptAsync(
+        byte[] plaintext,
+        CancellationToken cancellationToken = default)
+        => Task.Run(() => EncryptSync(plaintext), cancellationToken);
+
+    public Task<Result<byte[], SslPinningFailure>> DecryptAsync(
+        byte[] ciphertext,
+        CancellationToken cancellationToken = default)
+        => Task.Run(() => DecryptSync(ciphertext), cancellationToken);
+
+    public Task<Result<byte[], SslPinningFailure>> GetPublicKeyAsync(
+        CancellationToken cancellationToken = default)
+        => Task.Run(() => GetPublicKeySync(), cancellationToken);
+
     private Result<bool, SslPinningFailure> VerifyServerSignatureSync(byte[] data, byte[] signature)
     {
         if (IsDisposed)
@@ -89,6 +103,130 @@ public sealed class SslPinningService : IDisposable, IAsyncDisposable
         catch (Exception ex)
         {
             return Result<bool, SslPinningFailure>.Err(SslPinningFailure.Ed25519VerificationException(ex));
+        }
+    }
+
+    private Result<byte[], SslPinningFailure> EncryptSync(byte[] plaintext)
+    {
+        if (IsDisposed)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
+
+        if (!IsInitialized)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
+
+        if (plaintext == null || plaintext.Length == 0)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.PlaintextRequired());
+
+        try
+        {
+            unsafe
+            {
+                fixed (byte* plaintextPtr = plaintext)
+                {
+                    nuint ciphertextLen = 256;
+                    byte[] ciphertext = new byte[ciphertextLen];
+
+                    fixed (byte* ciphertextPtr = ciphertext)
+                    {
+                        EcliptixResult result = EcliptixNativeLibrary.Encrypt(
+                            plaintextPtr, (nuint)plaintext.Length,
+                            ciphertextPtr, &ciphertextLen);
+
+                        if (result == EcliptixResult.Success)
+                        {
+                            Array.Resize(ref ciphertext, (int)ciphertextLen);
+                            return Result<byte[], SslPinningFailure>.Ok(ciphertext);
+                        }
+
+                        return Result<byte[], SslPinningFailure>.Err(
+                            SslPinningFailure.RsaEncryptionFailed(GetErrorString(result)));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaEncryptionException(ex));
+        }
+    }
+
+    private Result<byte[], SslPinningFailure> DecryptSync(byte[] ciphertext)
+    {
+        if (IsDisposed)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
+
+        if (!IsInitialized)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
+
+        if (ciphertext == null || ciphertext.Length == 0)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.CiphertextRequired());
+
+        try
+        {
+            unsafe
+            {
+                fixed (byte* ciphertextPtr = ciphertext)
+                {
+                    nuint plaintextLen = (nuint)ciphertext.Length;
+                    byte[] plaintext = new byte[plaintextLen];
+
+                    fixed (byte* plaintextPtr = plaintext)
+                    {
+                        EcliptixResult result = EcliptixNativeLibrary.Decrypt(
+                            ciphertextPtr, (nuint)ciphertext.Length,
+                            plaintextPtr, &plaintextLen);
+
+                        if (result == EcliptixResult.Success)
+                        {
+                            Array.Resize(ref plaintext, (int)plaintextLen);
+                            return Result<byte[], SslPinningFailure>.Ok(plaintext);
+                        }
+
+                        return Result<byte[], SslPinningFailure>.Err(
+                            SslPinningFailure.RsaDecryptionFailed(GetErrorString(result)));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.RsaDecryptionException(ex));
+        }
+    }
+
+    private Result<byte[], SslPinningFailure> GetPublicKeySync()
+    {
+        if (IsDisposed)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceDisposed());
+
+        if (!IsInitialized)
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.ServiceNotInitialized());
+
+        try
+        {
+            unsafe
+            {
+                nuint keyLen = 512;
+                byte[] publicKey = new byte[keyLen];
+
+                fixed (byte* keyPtr = publicKey)
+                {
+                    EcliptixResult result = EcliptixNativeLibrary.GetPublicKey(keyPtr, &keyLen);
+
+                    if (result == EcliptixResult.Success)
+                    {
+                        Array.Resize(ref publicKey, (int)keyLen);
+                        return Result<byte[], SslPinningFailure>.Ok(publicKey);
+                    }
+
+                    return Result<byte[], SslPinningFailure>.Err(
+                        SslPinningFailure.CertificateValidationFailed(GetErrorString(result)));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], SslPinningFailure>.Err(SslPinningFailure.CertificateValidationException(ex));
         }
     }
 

@@ -17,9 +17,9 @@
 
     <!-- Native libraries embedded in project -->
     <ItemGroup>
-        <Content Include="native/macos/libecliptix.client.dylib" Condition="Exists('native/macos/libecliptix.client.dylib')">
+        <Content Include="Native/macos/libsslpinning.dylib" Condition="Exists('Native/macos/libsslpinning.dylib')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>libecliptix.client.dylib</Link>
+            <Link>libsslpinning.dylib</Link>
         </Content>
         <Content Include="native/windows/ecliptix.client.dll" Condition="Exists('native/windows/ecliptix.client.dll')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

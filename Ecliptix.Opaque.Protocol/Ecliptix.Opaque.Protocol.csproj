@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Library</OutputType>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- OPAQUE Client Library -->
         <Content Include="Native/Macos/libopaque_client.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
             <CopyToPublishDirectory>Always</CopyToPublishDirectory>
@@ -24,6 +24,7 @@
             <CopyToPublishDirectory>Always</CopyToPublishDirectory>
             <Link>opaque_client.dll</Link>
         </Content>
+
     </ItemGroup>
 
 </Project>

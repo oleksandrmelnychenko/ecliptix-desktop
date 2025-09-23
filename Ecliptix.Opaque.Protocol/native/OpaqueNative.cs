@@ -1,11 +1,7 @@
-using System;
 using System.Runtime.InteropServices;
 
 namespace Ecliptix.Opaque.Protocol.Native;
 
-/// <summary>
-/// Native library interface for OPAQUE protocol client operations
-/// </summary>
 internal static class OpaqueNative
 {
     private const string Library = "libopaque_client";
@@ -60,4 +56,10 @@ internal static class OpaqueNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finish(
         IntPtr clientHandle, IntPtr stateHandle, byte[] sessionKey, UIntPtr sessionKeyBufferSize);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int opaque_client_create_default(out IntPtr handle);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern IntPtr opaque_client_get_version();
 }
