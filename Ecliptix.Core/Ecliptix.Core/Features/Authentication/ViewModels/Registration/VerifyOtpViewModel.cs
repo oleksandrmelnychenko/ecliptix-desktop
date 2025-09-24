@@ -16,6 +16,7 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Protobuf.Protocol;
@@ -356,14 +357,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
         string message = _localizationService.GetString(key);
 
-        ShowRedirectNotification(message, seconds, () =>
+        ShowRedirectNotification(BottomSheetComponentType.RedirectNotification, message, seconds, () =>
         {
             if (!_isDisposed)
                 CleanupAndNavigate(targetView);
         });
     }
 
-    private void ShowRedirectNotification(string message, int seconds, Action onComplete)
+    private void ShowRedirectNotification(BottomSheetComponentType componentType, string message, int seconds, Action onComplete)
     {
         if (_isDisposed)
         {
@@ -381,7 +382,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 try
                 {
                     if (!_isDisposed)
-                        await hostWindow.ShowRedirectNotificationAsync(redirectView, isDismissable: false);
+                        await hostWindow.ShowBottomSheet(componentType, redirectView, showScrim: true, isDismissable: false);
                     else
                         onComplete();
                 }

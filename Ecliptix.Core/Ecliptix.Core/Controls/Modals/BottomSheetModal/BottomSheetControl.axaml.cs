@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -198,8 +199,23 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             _sheetHeight = MinHeight;
             return;
         }
-
-        Size availableSize = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        
+        double sheetWidth = _sheetBorder.Width;
+        if (double.IsNaN(sheetWidth) || sheetWidth <= 0)
+        {
+            sheetWidth = DefaultBottomSheetVariables.DefaultWidth;
+        }
+        
+        Thickness padding = _sheetBorder.Padding;
+        Thickness borderThickness = _sheetBorder.BorderThickness;
+        
+        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
+        double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
+        
+        double availableWidth = sheetWidth - horizontalExtras;
+        double availableHeight = MaxHeight - verticalExtras;
+        
+        Size availableSize = new Size(availableWidth, double.PositiveInfinity);
         _contentControl.Measure(availableSize);
 
         double contentHeight = _contentControl.DesiredSize.Height;
@@ -208,20 +224,16 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             contentHeight = MinHeight;
         }
-
-        Thickness padding = _sheetBorder.Padding;
-        Thickness borderThickness = _sheetBorder.BorderThickness;
         
-        double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
-        double maxContentHeight = Math.Max(MinHeight, MaxHeight - verticalExtras);
-
+        double maxContentHeight = Math.Max(MinHeight, availableHeight);
+        
         _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
         _sheetBorder.Height = _sheetHeight;
     }
 
     private async Task ShowBottomSheet()
     {
-        if (_sheetBorder is null || _scrimBorder is null || _rootGrid is null)
+        if (_sheetBorder is null ||  _rootGrid is null)
         {
             return;
         }
@@ -229,7 +241,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         UpdateSheetHeight();
         CreateAnimations();
 
-        if (_showAnimation is null || _scrimShowAnimation is null)
+        if (_showAnimation is null)
         {
             return;
         }
@@ -239,15 +251,24 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _rootGrid.IsVisible = true;
         _sheetBorder.IsVisible = true;
-        _scrimBorder.IsVisible = true;
+        
+        if (ViewModel?.ShowScrim == true && _scrimBorder is not null)
+        {
+            _scrimBorder.IsVisible = true;
+        }
 
         try
         {
-            Task[] showTasks = new[]
+            List<Task> showTasks = new()
             {
-                _showAnimation.RunAsync(_sheetBorder, CancellationToken.None),
-                _scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+                _showAnimation.RunAsync(_sheetBorder, CancellationToken.None)
             };
+        
+            if (ViewModel?.ShowScrim == true && _scrimShowAnimation is not null && _scrimBorder is not null)
+            {
+                showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+            }
+        
             await Task.WhenAll(showTasks);
         }
         finally
@@ -259,7 +280,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private async Task HideBottomSheet()
     {
-        if (_hideAnimation is null || _scrimHideAnimation is null || _sheetBorder is null || _scrimBorder is null || _rootGrid is null)
+        if (_hideAnimation is null || _sheetBorder is null || _rootGrid is null)
         {
             return;
         }
@@ -269,15 +290,24 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         try
         {
-            Task[] hideTasks = new[]
+            List<Task> hideTasks = new()
             {
-                _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None),
-                _scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None)
+                _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)
             };
+
+            if (ViewModel?.ShowScrim == true && _scrimHideAnimation is not null && _scrimBorder is not null)
+            {
+                hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
+            }
+
             await Task.WhenAll(hideTasks);
 
             _sheetBorder.IsVisible = false;
-            _scrimBorder.IsVisible = false;
+            if (_scrimBorder is not null)
+            {
+                _scrimBorder.IsVisible = false;
+            }
+
             _rootGrid.IsVisible = false;
         }
         finally
@@ -317,29 +347,32 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             }
         };
 
-        _scrimShowAnimation = new Animation
+        if (ViewModel?.ShowScrim == true)
         {
-            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Both,
-            Children =
+            _scrimShowAnimation = new Animation
             {
-                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } },
-                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } }
-            }
-        };
+                Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
+                Easing = new CubicEaseInOut(),
+                FillMode = FillMode.Both,
+                Children =
+                {
+                    new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                    new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } }
+                }
+            };
 
-        _scrimHideAnimation = new Animation
-        {
-            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
-            Easing = new CubicEaseInOut(),
-            FillMode = FillMode.Both,
-            Children =
+            _scrimHideAnimation = new Animation
             {
-                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } },
-                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } }
-            }
-        };
+                Duration = BottomSheetAnimationConstants.HideAnimationDuration,
+                Easing = new CubicEaseInOut(),
+                FillMode = FillMode.Both,
+                Children =
+                {
+                    new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } },
+                    new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } }
+                }
+            };
+        }
     }
 
     private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)

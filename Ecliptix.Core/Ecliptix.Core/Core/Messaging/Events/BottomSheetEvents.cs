@@ -7,6 +7,7 @@ public enum BottomSheetComponentType
 {
     DetectedLocalization,
     RedirectNotification,
+    UserRequestError,
     Hidden
 }
 

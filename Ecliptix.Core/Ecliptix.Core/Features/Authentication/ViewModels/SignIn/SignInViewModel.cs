@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -18,12 +19,15 @@ using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Protocol;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
 public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
+    private readonly ILocalizationService _localizationService;
     private readonly IAuthenticationService _authService;
     private readonly INetworkEventService _networkEventService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
@@ -62,6 +66,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IScreen hostScreen) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
+        _localizationService = localizationService;
         _authService = authService;
         _networkEventService = networkEventService;
         _hostWindowModel = (MembershipHostWindowModel)hostScreen;
@@ -245,6 +250,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             {
                 _hasSecureKeyBeenTouched = true;
                 _signInErrorSubject.OnNext(error);
+                ShowServerErrorNotification(error);
             })
             .DisposeWith(_disposables);
 
@@ -306,6 +312,33 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         {
             IDisposable disp = SignInCommand.Execute().Subscribe();
             _disposables.Add(disp);
+        }
+    }
+    
+    private void ShowServerErrorNotification(string errorMessage)
+    {
+        if (_isDisposed || string.IsNullOrEmpty(errorMessage)) return;
+
+        UserRequestErrorViewModel errorViewModel = new(errorMessage, _localizationService);
+        UserRequestErrorView errorView = new() { DataContext = errorViewModel };
+
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await hostWindow.ShowBottomSheet(
+                        BottomSheetComponentType.UserRequestError, 
+                        errorView, 
+                        showScrim: false, 
+                        isDismissable: true);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to show server error notification");
+                }
+            });
         }
     }
 

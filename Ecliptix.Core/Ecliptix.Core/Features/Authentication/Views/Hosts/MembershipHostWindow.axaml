@@ -98,8 +98,6 @@
                 ZIndex="111"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                MinHeight="200"
-                MaxHeight="600"
                 DismissableScrimColor="DarkGray"
                 UnDismissableScrimColor="Black"
                 IsDismissableOnScrimClick="True"

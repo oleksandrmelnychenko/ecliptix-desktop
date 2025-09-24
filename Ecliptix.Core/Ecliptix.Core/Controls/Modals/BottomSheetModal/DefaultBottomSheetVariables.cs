@@ -5,8 +5,9 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public static class DefaultBottomSheetVariables
 {
-    public const double MinHeight = 200.0;
+    public const double MinHeight = 10.0;
     public const double MaxHeight = 600.0;
+    public const double DefaultWidth = 400.0;
 
     private const double ContentDelayMs = 40.0;
 
