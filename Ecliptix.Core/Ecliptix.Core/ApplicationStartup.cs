@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -8,9 +7,6 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Splash.Views;
-using Ecliptix.Opaque.Protocol;
-using Ecliptix.Security.Certificate.Pinning.Services;
-using Ecliptix.Utilities;
 using Splat;
 using Serilog;
 
@@ -21,10 +17,7 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
     private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
     private readonly IWindowService _windowService = Locator.Current.GetService<IWindowService>()!;
-
-    private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory =
-        Locator.Current.GetService<ICertificatePinningServiceFactory>()!;
-
+    
     private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
 
@@ -58,12 +51,6 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 
     private async Task TransitionToNextWindowAsync()
     {
-        if (_splashScreen is null)
-        {
-            Log.Warning("TransitionToNextWindow called but _splashScreen is null");
-            return;
-        }
-
         try
         {
             Window nextWindow =

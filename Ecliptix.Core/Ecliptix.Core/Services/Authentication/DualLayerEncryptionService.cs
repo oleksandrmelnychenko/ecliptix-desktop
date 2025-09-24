@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Services.Authentication;
 
 public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : IDualLayerEncryptionService
 {
-    public async Task<Result<byte[], string>> EncryptHeaderAsync(CipherHeader header, uint connectId)
+    public async Task<Result<byte[], string>> EncryptHeaderAsync(EnvelopeMetadata header, uint connectId)
     {
         try
         {
@@ -72,7 +72,7 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
         }
     }
 
-    public async Task<Result<CipherHeader, string>> DecryptHeaderAsync(byte[] headerBytes, uint connectId)
+    public async Task<Result<EnvelopeMetadata, string>> DecryptHeaderAsync(byte[] headerBytes, uint connectId)
     {
         try
         {
@@ -82,23 +82,23 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                 // No session key - assume header is unencrypted
                 try
                 {
-                    CipherHeader header = CipherHeader.Parser.ParseFrom(headerBytes);
+                    EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
                     Log.Debug("🔒 No session key available for connectId {ConnectId}, parsing header as plaintext", connectId);
-                    return Result<CipherHeader, string>.Ok(header);
+                    return Result<EnvelopeMetadata, string>.Ok(header);
                 }
                 catch (InvalidProtocolBufferException ex)
                 {
-                    return Result<CipherHeader, string>.Err($"Failed to parse unencrypted header: {ex.Message}");
+                    return Result<EnvelopeMetadata, string>.Err($"Failed to parse unencrypted header: {ex.Message}");
                 }
             }
             if (sessionKey.Length != 32)
             {
                 CryptographicOperations.ZeroMemory(sessionKey);
-                return Result<CipherHeader, string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
+                return Result<EnvelopeMetadata, string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
             }
 
             // Try to decrypt first - if it fails, try parsing as unencrypted
-            Result<CipherHeader, string> decryptResult = DecryptWithSessionKey(headerBytes, sessionKey);
+            Result<EnvelopeMetadata, string> decryptResult = DecryptWithSessionKey(headerBytes, sessionKey);
             CryptographicOperations.ZeroMemory(sessionKey);
 
             if (decryptResult.IsOk)
@@ -110,63 +110,64 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
             // Decryption failed - try parsing as unencrypted header
             try
             {
-                CipherHeader header = CipherHeader.Parser.ParseFrom(headerBytes);
+                EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
                 Log.Debug("🔒 Header decryption failed, parsing as plaintext for connectId {ConnectId}", connectId);
-                return Result<CipherHeader, string>.Ok(header);
+                return Result<EnvelopeMetadata, string>.Ok(header);
             }
             catch (InvalidProtocolBufferException ex)
             {
-                return Result<CipherHeader, string>.Err($"Failed to decrypt or parse header: {ex.Message}");
+                return Result<EnvelopeMetadata, string>.Err($"Failed to decrypt or parse header: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
-            return Result<CipherHeader, string>.Err($"Header decryption failed: {ex.Message}");
+            return Result<EnvelopeMetadata, string>.Err($"Header decryption failed: {ex.Message}");
         }
     }
 
-    public async Task<Result<CipherPayload, string>> CreateCipherPayloadAsync(CipherHeader header, byte[] encryptedPayload, uint connectId)
+    public async Task<Result<SecureEnvelope, string>> CreateSecureEnvelopeAsync(EnvelopeMetadata metadata, byte[] encryptedPayload, uint connectId)
     {
         try
         {
-            Result<byte[], string> encryptedHeaderResult = await EncryptHeaderAsync(header, connectId);
+            Result<byte[], string> encryptedHeaderResult = await EncryptHeaderAsync(metadata, connectId);
             if (encryptedHeaderResult.IsErr)
-                return Result<CipherPayload, string>.Err(encryptedHeaderResult.UnwrapErr());
+                return Result<SecureEnvelope, string>.Err(encryptedHeaderResult.UnwrapErr());
 
             byte[] headerBytes = encryptedHeaderResult.Unwrap();
 
-            CipherPayload payload = new()
+            SecureEnvelope envelope = new()
             {
-                Header = ByteString.CopyFrom(headerBytes),
-                Payload = ByteString.CopyFrom(encryptedPayload),
-                CreatedAt = GetProtoTimestamp()
+                MetaData = ByteString.CopyFrom(headerBytes),
+                EncryptedPayload = ByteString.CopyFrom(encryptedPayload),
+                Timestamp = GetProtoTimestamp(),
+                ResultCode = ByteString.CopyFrom(BitConverter.GetBytes((int)EnvelopeResultCode.Success))
             };
 
-            return Result<CipherPayload, string>.Ok(payload);
+            return Result<SecureEnvelope, string>.Ok(envelope);
         }
         catch (Exception ex)
         {
-            return Result<CipherPayload, string>.Err($"CipherPayload creation failed: {ex.Message}");
+            return Result<SecureEnvelope, string>.Err($"SecureEnvelope creation failed: {ex.Message}");
         }
     }
 
-    public async Task<Result<(CipherHeader Header, byte[] EncryptedPayload), string>> ProcessCipherPayloadAsync(CipherPayload cipherPayload, uint connectId)
+    public async Task<Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>> ProcessSecureEnvelopeAsync(SecureEnvelope secureEnvelope, uint connectId)
     {
         try
         {
-            Result<CipherHeader, string> headerResult =
-                await DecryptHeaderAsync(cipherPayload.Header.ToByteArray(), connectId);
+            Result<EnvelopeMetadata, string> headerResult =
+                await DecryptHeaderAsync(secureEnvelope.MetaData.ToByteArray(), connectId);
             if (headerResult.IsErr)
-                return Result<(CipherHeader Header, byte[] EncryptedPayload), string>.Err(headerResult.UnwrapErr());
+                return Result<(EnvelopeMetadata Header, byte[] EncryptedPayload), string>.Err(headerResult.UnwrapErr());
 
-            CipherHeader header = headerResult.Unwrap();
-            byte[] encryptedPayload = cipherPayload.Payload.ToByteArray();
+            EnvelopeMetadata header = headerResult.Unwrap();
+            byte[] encryptedPayload = secureEnvelope.EncryptedPayload.ToByteArray();
 
-            return Result<(CipherHeader Header, byte[] EncryptedPayload), string>.Ok((header, encryptedPayload));
+            return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>.Ok((header, encryptedPayload));
         }
         catch (Exception ex)
         {
-            return Result<(CipherHeader Header, byte[] EncryptedPayload), string>.Err($"CipherPayload processing failed: {ex.Message}");
+            return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>.Err($"SecureEnvelope processing failed: {ex.Message}");
         }
     }
 
@@ -209,13 +210,13 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
         return result;
     }
 
-    private Result<CipherHeader, string> DecryptWithSessionKey(byte[] encryptedData, byte[] sessionKey)
+    private Result<EnvelopeMetadata, string> DecryptWithSessionKey(byte[] encryptedData, byte[] sessionKey)
     {
         try
         {
             if (encryptedData.Length < 28)
             {
-                return Result<CipherHeader, string>.Err("Encrypted data too short for AES-GCM format");
+                return Result<EnvelopeMetadata, string>.Err("Encrypted data too short for AES-GCM format");
             }
 
             byte[] nonce = new byte[12];
@@ -231,23 +232,23 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
 
             aes.Decrypt(nonce, ciphertext, tag, plaintext);
 
-            CipherHeader header = CipherHeader.Parser.ParseFrom(plaintext);
+            EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(plaintext);
             CryptographicOperations.ZeroMemory(plaintext);
             CryptographicOperations.ZeroMemory(ciphertext);
 
-            return Result<CipherHeader, string>.Ok(header);
+            return Result<EnvelopeMetadata, string>.Ok(header);
         }
         catch (CryptographicException ex)
         {
-            return Result<CipherHeader, string>.Err($"Cryptographic error during header decryption: {ex.Message}");
+            return Result<EnvelopeMetadata, string>.Err($"Cryptographic error during header decryption: {ex.Message}");
         }
         catch (InvalidProtocolBufferException ex)
         {
-            return Result<CipherHeader, string>.Err($"Failed to parse decrypted header: {ex.Message}");
+            return Result<EnvelopeMetadata, string>.Err($"Failed to parse decrypted header: {ex.Message}");
         }
         catch (Exception ex)
         {
-            return Result<CipherHeader, string>.Err($"Header decryption failed: {ex.Message}");
+            return Result<EnvelopeMetadata, string>.Err($"Header decryption failed: {ex.Message}");
         }
     }
 

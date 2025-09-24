@@ -41,8 +41,8 @@ public class ApplicationInitializer(
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
-    IIdentityService identityService,
-    ICertificatePinningServiceFactory certificatePinningServiceFactory)
+    IIdentityService identityService
+    )
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -50,23 +50,6 @@ public class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
-
-        byte[] helloWorld = "Hello, World!"u8.ToArray();
-
-        CertificatePinningService? certificatePinningService = await certificatePinningServiceFactory.GetOrInitializeServiceAsync();
-        if (certificatePinningService == null)
-        {
-            Log.Error("Failed to initialize certificate pinning service");
-            return false;
-        }
-
-        CertificatePinningByteArrayResult pub = await certificatePinningService.GetPublicKeyAsync();
-        CertificatePinningByteArrayResult encryptionResult = await certificatePinningService.EncryptAsync(helloWorld);
-
-        if (!encryptionResult.IsSuccess)
-        {
-            Log.Error("RSA secure encryption test failed: {Error}", encryptionResult.Error);
-        }
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);

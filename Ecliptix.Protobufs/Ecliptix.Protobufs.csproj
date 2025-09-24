@@ -12,7 +12,7 @@
     <Protobuf Include="Sources\authentication\verification_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     
     <!-- Common proto files -->
-    <Protobuf Include="Sources\common\cipher_payload.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+    <Protobuf Include="Sources\common\secure_envelope.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\encryption.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\health_check.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\types.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />

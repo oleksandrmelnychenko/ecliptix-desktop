@@ -19,8 +19,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
 {
     private readonly Dictionary<RpcServiceType, GrpcMethodDelegate> _serviceMethods;
 
-    private delegate Task<Result<CipherPayload, NetworkFailure>> GrpcMethodDelegate(
-        CipherPayload payload,
+    private delegate Task<Result<SecureEnvelope, NetworkFailure>> GrpcMethodDelegate(
+        SecureEnvelope payload,
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         CancellationToken token
@@ -44,8 +44,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         };
         return;
 
-        async Task<Result<CipherPayload, NetworkFailure>> RegisterDeviceAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> RegisterDeviceAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -62,8 +62,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> ValidatePhoneNumberAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> ValidatePhoneNumberAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -80,8 +80,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -98,8 +98,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> VerifyCodeAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> VerifyCodeAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -116,8 +116,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -134,8 +134,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInInitRequestAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInInitRequestAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -152,8 +152,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<CipherPayload, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
-            CipherPayload payload,
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
+            SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
             CancellationToken token
@@ -180,7 +180,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     {
         if (_serviceMethods.TryGetValue(request.RpcServiceMethod, out GrpcMethodDelegate? method))
         {
-            Result<CipherPayload, NetworkFailure> result = await method(
+            Result<SecureEnvelope, NetworkFailure> result = await method(
                 request.Payload,
                 networkEvents,
                 systemEvents,
@@ -196,27 +196,27 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         );
     }
 
-    private static async Task<Result<CipherPayload, NetworkFailure>> ExecuteGrpcCallAsync(
+    private static async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteGrpcCallAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        Func<AsyncUnaryCall<CipherPayload>> grpcCallFactory
+        Func<AsyncUnaryCall<SecureEnvelope>> grpcCallFactory
     )
     {
         try
         {
-            AsyncUnaryCall<CipherPayload> call = grpcCallFactory();
-            CipherPayload response = await call.ResponseAsync;
+            AsyncUnaryCall<SecureEnvelope> call = grpcCallFactory();
+            SecureEnvelope response = await call.ResponseAsync;
 
             await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
 
-            return Result<CipherPayload, NetworkFailure>.Ok(response);
+            return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
         catch (Exception exc)
         {
             Log.Warning(exc, "gRPC call failed: {Message}", exc.Message);
             await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
 
-            return Result<CipherPayload, NetworkFailure>.Err(
+            return Result<SecureEnvelope, NetworkFailure>.Err(
                 NetworkFailure.DataCenterShutdown(exc.Message)
             );
         }

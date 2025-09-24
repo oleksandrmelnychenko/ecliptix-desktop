@@ -7,5 +7,5 @@ namespace Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 
 public interface IOutboundSink
 {
-    Task<Result<Unit, NetworkFailure>> SendAsync(CipherPayload payload);
+    Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope envelope);
 }

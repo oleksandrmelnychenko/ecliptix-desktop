@@ -16,7 +16,7 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
 {
     private readonly
-        Dictionary<RpcServiceType, Func<CipherPayload, CancellationToken, Result<RpcFlow, NetworkFailure>>>
+        Dictionary<RpcServiceType, Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>>
         _serviceHandlers;
 
     private readonly AuthVerificationServices.AuthVerificationServicesClient _authenticationServicesClient;
@@ -27,7 +27,7 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         _authenticationServicesClient = authenticationServicesClient;
         _serviceHandlers =
             new Dictionary<RpcServiceType,
-                Func<CipherPayload, CancellationToken, Result<RpcFlow, NetworkFailure>>>
+                Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>>
             {
                 { RpcServiceType.InitiateVerification, InitiateVerification }
             };
@@ -37,7 +37,7 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         CancellationToken token)
     {
         if (_serviceHandlers.TryGetValue(request.RpcServiceMethod,
-                out Func<CipherPayload, CancellationToken, Result<RpcFlow, NetworkFailure>>? handler))
+                out Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>? handler))
         {
             try
             {
@@ -57,26 +57,26 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         ));
     }
 
-    private Result<RpcFlow, NetworkFailure> InitiateVerification(CipherPayload payload,
+    private Result<RpcFlow, NetworkFailure> InitiateVerification(SecureEnvelope payload,
         CancellationToken token)
     {
         try
         {
-            AsyncServerStreamingCall<CipherPayload> streamingCall =
+            AsyncServerStreamingCall<SecureEnvelope> streamingCall =
                 _authenticationServicesClient.InitiateVerification(payload, cancellationToken: token);
 
-            IAsyncEnumerable<Result<CipherPayload, NetworkFailure>> stream =
+            IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream =
                 streamingCall.ResponseStream.ReadAllAsync(token)
                     .ToObservable()
                     .Select(response =>
                     {
                         return response != null
-                            ? Result<CipherPayload, NetworkFailure>.Ok(response)
-                            : Result<CipherPayload, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream));
+                            ? Result<SecureEnvelope, NetworkFailure>.Ok(response)
+                            : Result<SecureEnvelope, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream));
                     })
-                    .Catch<Result<CipherPayload, NetworkFailure>, Exception>(ex =>
+                    .Catch<Result<SecureEnvelope, NetworkFailure>, Exception>(ex =>
                     {
-                        return Observable.Return(Result<CipherPayload, NetworkFailure>.Err(
+                        return Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding(ex.Message, ex)));
                     })
                     .ToAsyncEnumerable();
