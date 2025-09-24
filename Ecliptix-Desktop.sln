@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Opaque.Protocol", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Utilities", "Ecliptix.Utilities\Ecliptix.Utilities.csproj", "{05F2DAF4-B21B-4429-966C-029EAA1924BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Security.SSL.Native", "Ecliptix.Security.SSL.Native\Ecliptix.Security.SSL.Native.csproj", "{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Security.Certificate.Pinning", "Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj", "{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

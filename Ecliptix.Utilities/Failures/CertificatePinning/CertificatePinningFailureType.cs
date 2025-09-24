@@ -1,6 +1,6 @@
-namespace Ecliptix.Utilities.Failures.SslPinning;
+namespace Ecliptix.Utilities.Failures.CertificatePinning;
 
-public enum SslPinningFailureType
+public enum CertificatePinningFailureType
 {
     ServiceNotInitialized,
     ServiceDisposed,
@@ -35,5 +35,9 @@ public enum SslPinningFailureType
     LibraryCleanupError,
     SecureMemoryAllocationFailed,
     SecureMemoryWriteFailed,
-    SecureMemoryReadFailed
+    SecureMemoryReadFailed,
+    NativeLibraryNotFound,
+    NativeOperationFailed,
+    ServiceInitializing,
+    ServiceInvalidState
 }

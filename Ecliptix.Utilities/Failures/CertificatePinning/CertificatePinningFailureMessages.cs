@@ -1,6 +1,6 @@
-namespace Ecliptix.Utilities.Failures.SslPinning;
+namespace Ecliptix.Utilities.Failures.CertificatePinning;
 
-public static class SslPinningFailureMessages
+public static class CertificatePinningFailureMessages
 {
     public const string ServiceNotInitialized = "Service not initialized";
     public const string ServiceDisposed = "Service has been disposed";
@@ -36,4 +36,8 @@ public static class SslPinningFailureMessages
     public const string SecureMemoryAllocationFailed = "Secure memory allocation failed";
     public const string SecureMemoryWriteFailed = "Failed to write to secure memory";
     public const string SecureMemoryReadFailed = "Failed to read from secure memory";
+    public const string NativeLibraryNotFound = "Native library not found";
+    public const string NativeOperationFailed = "Native operation failed";
+    public const string ServiceInitializing = "Service is currently initializing";
+    public const string ServiceInvalidState = "Service is in an invalid state";
 }

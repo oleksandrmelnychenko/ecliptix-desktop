@@ -9,54 +9,35 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Splash.Views;
 using Ecliptix.Opaque.Protocol;
-using Ecliptix.Security.SSL.Native.Services;
+using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.SslPinning;
 using Splat;
 using Serilog;
 
 namespace Ecliptix.Core;
 
-public class ApplicationStartup
+public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 {
-    private readonly IClassicDesktopStyleApplicationLifetime _desktop;
-    private readonly IApplicationInitializer _initializer;
-    private readonly IModuleManager _moduleManager;
-    private readonly IWindowService _windowService;
+    private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
+    private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
+    private readonly IWindowService _windowService = Locator.Current.GetService<IWindowService>()!;
+
+    private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory =
+        Locator.Current.GetService<ICertificatePinningServiceFactory>()!;
+
     private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
-
-    public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
-    {
-        _desktop = desktop;
-        _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
-        _moduleManager = Locator.Current.GetService<IModuleManager>()!;
-        _windowService = Locator.Current.GetService<IWindowService>()!;
-    }
 
     public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
         _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
         _splashScreen = new SplashWindow { DataContext = _splashViewModel };
 
-        _desktop.MainWindow = _splashScreen;
+        desktop.MainWindow = _splashScreen;
         _splashScreen?.Show();
 
         await _splashViewModel.IsSubscribed.Task;
 
-        await using SslPinningService sslPinningService = new();
-        Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
-        
-        if (sslInitResult.IsErr)
-        {
-            await _splashViewModel.PrepareForShutdownAsync();
-            _desktop.Shutdown();
-            return;
-        }
-
-       
-        Console.WriteLine("✅ OPAQUE client created with pinned server key");
-        
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
         {
@@ -66,7 +47,7 @@ public class ApplicationStartup
         else
         {
             await _splashViewModel.PrepareForShutdownAsync();
-            _desktop.Shutdown();
+            desktop.Shutdown();
         }
     }
 
@@ -88,7 +69,7 @@ public class ApplicationStartup
             Window nextWindow =
                 await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
 
-            _desktop.MainWindow = nextWindow;
+            desktop.MainWindow = nextWindow;
 
             await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
 

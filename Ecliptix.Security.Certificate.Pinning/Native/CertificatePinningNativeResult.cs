@@ -1,6 +1,6 @@
-namespace Ecliptix.Security.SSL.Native.Native;
+namespace Ecliptix.Security.Certificate.Pinning.Native;
 
-public enum EcliptixResult
+public enum CertificatePinningNativeResult
 {
     Success = 0,
     ErrorInvalidParams = -1,

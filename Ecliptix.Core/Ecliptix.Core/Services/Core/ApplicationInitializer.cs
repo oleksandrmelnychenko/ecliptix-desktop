@@ -17,7 +17,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Security.SSL.Native.Services;
+using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
@@ -26,7 +26,6 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.SslPinning;
 using Ecliptix.Opaque.Protocol;
 using Google.Protobuf;
 using Serilog;
@@ -43,7 +42,7 @@ public class ApplicationInitializer(
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    SslPinningService sslPinningService)
+    ICertificatePinningServiceFactory certificatePinningServiceFactory)
     : IApplicationInitializer
 {
     public bool IsMembershipConfirmed { get; } = false;
@@ -52,22 +51,21 @@ public class ApplicationInitializer(
     {
         await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
 
-        Result<Unit, SslPinningFailure> sslInitResult = await sslPinningService.InitializeAsync();
-
         byte[] helloWorld = "Hello, World!"u8.ToArray();
-        Result<byte[], SslPinningFailure> pub = await sslPinningService.GetPublicKeyAsync();
-        Result<byte[], SslPinningFailure> encryptionResult = await sslPinningService.EncryptAsync(helloWorld);
 
-        if (encryptionResult.IsErr)
+        CertificatePinningService? certificatePinningService = await certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+        if (certificatePinningService == null)
         {
-            Log.Error("RSA secure encryption test failed: {Error}", encryptionResult.UnwrapErr());
-        }
-        
-
-        if (sslInitResult.IsErr)
-        {
-            await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
+            Log.Error("Failed to initialize certificate pinning service");
             return false;
+        }
+
+        CertificatePinningByteArrayResult pub = await certificatePinningService.GetPublicKeyAsync();
+        CertificatePinningByteArrayResult encryptionResult = await certificatePinningService.EncryptAsync(helloWorld);
+
+        if (!encryptionResult.IsSuccess)
+        {
+            Log.Error("RSA secure encryption test failed: {Error}", encryptionResult.Error);
         }
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
