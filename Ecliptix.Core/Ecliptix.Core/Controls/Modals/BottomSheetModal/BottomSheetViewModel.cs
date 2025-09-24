@@ -3,6 +3,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
 using ReactiveUI;
@@ -24,9 +25,17 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         get => _content;
         set
         {
-            if (_content != null && _content != value && _content.DataContext is IDisposable disposableContext)
+            if (_content != null && _content != value)
             {
-                disposableContext.Dispose();
+                UserControl? oldContent = _content;
+            
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (oldContent.DataContext is IDisposable disposableContext)
+                    {
+                        disposableContext.Dispose();
+                    }
+                });
             }
             this.RaiseAndSetIfChanged(ref _content, value);
         }
@@ -97,16 +106,22 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                             Content = eventArgs.Control;
                         }
                     }
+                    
+                    if (_showScrim != eventArgs.ShowScrim)
+                    {
+                        ShowScrim = eventArgs.ShowScrim;
+                    }
 
+                    if (_isDismissableOnScrimClick != eventArgs.IsDismissable)
+                    {
+                        IsDismissableOnScrimClick = eventArgs.IsDismissable;
+                    }
+                    
                     if (_isVisible != shouldBeVisible)
                     {
                         IsVisible = shouldBeVisible;
                     }
 
-                    if (_showScrim != eventArgs.ShowScrim)
-                    {
-                        ShowScrim = eventArgs.ShowScrim;
-                    }
                     if (!shouldBeVisible && _content != null)
                     {
                         Observable.Timer(BottomSheetAnimationConstants.HideAnimationDuration)
@@ -115,10 +130,6 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                             .DisposeWith(disposables);
                     }
 
-                    if (_isDismissableOnScrimClick != eventArgs.IsDismissable)
-                    {
-                        IsDismissableOnScrimClick = eventArgs.IsDismissable;
-                    }
                     return System.Threading.Tasks.Task.CompletedTask;
                     
                 }, SubscriptionLifetime.Scoped)

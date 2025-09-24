@@ -452,12 +452,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
     }
 
-    public async Task ShowRedirectNotificationAsync(UserControl redirectView, bool isDismissable)
+    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView, bool showScrim = true, bool isDismissable = false)
     {
         try
         {
-            await _bottomSheetService.ShowAsync(BottomSheetComponentType.RedirectNotification, redirectView,
-                showScrim: true, isDismissable: false);
+            await _bottomSheetService.ShowAsync(componentType, redirectView,
+                showScrim: showScrim, isDismissable: isDismissable);
         }
         catch (Exception ex)
         {

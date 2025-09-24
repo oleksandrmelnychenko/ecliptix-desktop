@@ -15,7 +15,6 @@
             <Setter Property="CornerRadius" Value="16,16,16,16" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="LightGray" />
-            <Setter Property="MinHeight" Value="200" />
             <Setter Property="ZIndex" Value="1" />
         </Style>
 
@@ -35,7 +34,14 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             IsHitTestVisible="True"
-            PointerPressed="OnScrimPointerPressed" />
+            />
+        <Border
+            x:Name="HitTestBorder"
+            Background="Transparent"
+            Opacity="0"
+            IsVisible="True"
+            PointerPressed="OnScrimPointerPressed"></Border>
+
         <Border x:Name="SheetBorder"
                 Classes="sheet"
                 VerticalAlignment="Bottom"
