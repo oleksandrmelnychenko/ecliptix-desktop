@@ -17,6 +17,7 @@ using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.ProtocolState;
@@ -164,9 +165,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
 
         PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
-        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        RatchetConfig ratchetConfig = GetRatchetConfigForExchangeType(exchangeType);
 
-        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys, ratchetConfig);
 
         protocolSystem.SetEventHandler(this);
 
@@ -178,12 +179,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Status = ConnectionHealthStatus.Healthy,
             LastHealthCheck = DateTime.UtcNow
         };
+
         _connectionStateManager.RegisterConnection(connectId, initialHealth);
 
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? "en-US"
+            ? AppCultureSettingsConstants.DefaultCultureCode
             : applicationInstanceSettings.Culture;
 
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
@@ -278,7 +280,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 if (!waitForRecovery)
                 {
-                    
                     return Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.DataCenterNotResponding("System is recovering, please wait"));
                 }
@@ -402,7 +403,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (_retryStrategy.HasExhaustedOperations())
         {
-             return Result<Unit, NetworkFailure>.Err(
+            return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
         }
 
@@ -555,7 +556,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
             ? "en-US"
             : applicationInstanceSettings.Culture;
-       
+
         _rpcMetaDataProvider.SetAppInfo(Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), culture);
 
@@ -608,15 +609,35 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
         }
 
+       
+
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
+
 
         if (pubKeyExchangeRequest.IsErr)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
+        
+        /*
+        EnvelopeMetadata metaData = new()
+        {
+            EnvelopeType = EnvelopeType.Request,
+            EnvelopeId = Guid.NewGuid().ToString()
+        };
+
+        SecureEnvelope envelope = new()
+        {
+            MetaData = metaData.ToByteString(),
+            EncryptedPayload = 
+        };
+        */
+
+        //TODO: Certificate pinning for PubKeyExchangeType.
+        
 
         SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
             SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
@@ -633,6 +654,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Result<PubKeyExchange, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Failed after all attempts"));
 
+        //It will be removed this loop.
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
             try
@@ -800,7 +822,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
             if (computedConnectId != connectId) continue;
-           
+
             return exchangeType;
         }
 
@@ -1121,7 +1143,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (OperationCanceledException) when (streamCts.Token.IsCancellationRequested)
         {
-           
         }
         finally
         {
@@ -1287,7 +1308,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (_retryStrategy.HasExhaustedOperations())
                 {
-                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
                     });
@@ -1305,7 +1326,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
 
                 TimeSpan delay = ComputeOutageBackoff(attempt);
-               
+
                 try
                 {
                     await Task.Delay(delay, token);

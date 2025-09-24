@@ -116,6 +116,8 @@ public class ApplicationInitializer(
 
         if (!isNewInstance)
         {
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            
             Result<byte[], SecureStorageFailure> loadResult =
                 await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
