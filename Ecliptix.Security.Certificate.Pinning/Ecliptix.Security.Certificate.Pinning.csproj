@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <PlatformTarget>AnyCPU</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../Ecliptix.Utilities/Ecliptix.Utilities.csproj" />
+        <ProjectReference Include="../Ecliptix.Protocol.System/Ecliptix.Protocol.System.csproj" />
+    </ItemGroup>
+
+    <!-- Native libraries embedded in project -->
+    <ItemGroup>
+        <Content Include="Native/macos/libsslpinning.dylib" Condition="Exists('Native/macos/libsslpinning.dylib')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>libsslpinning.dylib</Link>
+        </Content>
+        <Content Include="native/windows/ecliptix.client.dll" Condition="Exists('native/windows/ecliptix.client.dll')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>ecliptix.client.dll</Link>
+        </Content>
+        <Content Include="native/windows/ecliptix.server.dll" Condition="Exists('native/windows/ecliptix.server.dll')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>ecliptix.server.dll</Link>
+        </Content>
+        <Content Include="native/linux/libecliptix.client.so" Condition="Exists('native/linux/libecliptix.client.so')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>libecliptix.client.so</Link>
+        </Content>
+        <Content Include="native/linux/libecliptix.server.so" Condition="Exists('native/linux/libecliptix.server.so')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>libecliptix.server.so</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
+    </ItemGroup>
+
+</Project>

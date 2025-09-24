@@ -1,0 +1,377 @@
+using System.Runtime.InteropServices;
+using Ecliptix.Security.Certificate.Pinning.Native;
+using Ecliptix.Utilities.Failures.CertificatePinning;
+
+namespace Ecliptix.Security.Certificate.Pinning.Services;
+
+public sealed class CertificatePinningService : IAsyncDisposable
+{
+    private const int NotInitialized = 0;
+    private const int Initializing = 1;
+    private const int Initialized = 2;
+    private const int Disposed = 3;
+
+    private volatile int _state = NotInitialized;
+    private readonly SemaphoreSlim _initializationLock = new(1, 1);
+
+    public async Task<CertificatePinningOperationResult> InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_state == Disposed)
+            return CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed());
+
+        if (_state == Initialized)
+            return CertificatePinningOperationResult.Success();
+
+        await _initializationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_state == Initialized)
+                return CertificatePinningOperationResult.Success();
+
+            if (_state == Disposed)
+                return CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed());
+
+            Interlocked.Exchange(ref _state, Initializing);
+
+            CertificatePinningOperationResult result = await InitializeCoreAsync().ConfigureAwait(false);
+
+            Interlocked.Exchange(ref _state, result.IsSuccess ? Initialized : NotInitialized);
+            return result;
+        }
+        finally
+        {
+            _initializationLock.Release();
+        }
+    }
+
+    private static Task<CertificatePinningOperationResult> InitializeCoreAsync()
+    {
+        try
+        {
+            CertificatePinningNativeResult nativeResult = CertificatePinningNativeLibrary.Initialize();
+            if (nativeResult != CertificatePinningNativeResult.Success)
+            {
+                string error = GetErrorStringStatic(nativeResult);
+                return Task.FromResult(CertificatePinningOperationResult.FromError(
+                    CertificatePinningFailure.LibraryInitializationFailed(error)));
+            }
+
+            return Task.FromResult(CertificatePinningOperationResult.Success());
+        }
+        catch (Exception ex)
+        {
+            return Task.FromResult(CertificatePinningOperationResult.FromError(
+                CertificatePinningFailure.InitializationException(ex)));
+        }
+    }
+
+    public async Task<CertificatePinningBoolResult> VerifyServerSignatureAsync(
+        ReadOnlyMemory<byte> data,
+        ReadOnlyMemory<byte> signature,
+        CancellationToken cancellationToken = default)
+    {
+        CertificatePinningOperationResult stateCheck = ValidateOperationState();
+        if (!stateCheck.IsSuccess)
+            return CertificatePinningBoolResult.FromError(stateCheck.Error!);
+
+        if (data.IsEmpty)
+            return CertificatePinningBoolResult.FromError(CertificatePinningFailure.MessageRequired());
+
+        if (signature.IsEmpty)
+            return CertificatePinningBoolResult.FromError(CertificatePinningFailure.InvalidSignatureSize(0));
+
+        return await VerifySignatureCoreAsync(data, signature, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<CertificatePinningBoolResult> VerifySignatureCoreAsync(
+        ReadOnlyMemory<byte> data,
+        ReadOnlyMemory<byte> signature,
+        CancellationToken cancellationToken)
+    {
+        return await Task.Run(() => VerifySignatureUnsafe(data.Span, signature.Span), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static CertificatePinningBoolResult VerifySignatureUnsafe(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)
+    {
+        try
+        {
+            unsafe
+            {
+                fixed (byte* dataPtr = data)
+                fixed (byte* signaturePtr = signature)
+                {
+                    CertificatePinningNativeResult result = CertificatePinningNativeLibrary.VerifySignature(
+                        dataPtr, (nuint)data.Length,
+                        signaturePtr, (nuint)signature.Length);
+
+                    return result switch
+                    {
+                        CertificatePinningNativeResult.Success => CertificatePinningBoolResult.FromValue(true),
+                        CertificatePinningNativeResult.ErrorVerificationFailed => CertificatePinningBoolResult.FromValue(false),
+                        _ => CertificatePinningBoolResult.FromError(
+                            CertificatePinningFailure.Ed25519VerificationError(GetErrorStringStatic(result)))
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return CertificatePinningBoolResult.FromError(CertificatePinningFailure.Ed25519VerificationException(ex));
+        }
+    }
+
+    public async Task<CertificatePinningByteArrayResult> EncryptAsync(
+        ReadOnlyMemory<byte> plaintext,
+        CancellationToken cancellationToken = default)
+    {
+        CertificatePinningOperationResult stateCheck = ValidateOperationState();
+        if (!stateCheck.IsSuccess)
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+
+        if (plaintext.IsEmpty)
+            return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.PlaintextRequired());
+
+        return await EncryptCoreAsync(plaintext, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<CertificatePinningByteArrayResult> EncryptCoreAsync(
+        ReadOnlyMemory<byte> plaintext,
+        CancellationToken cancellationToken)
+    {
+        return await Task.Run(() => EncryptUnsafe(plaintext.Span), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static CertificatePinningByteArrayResult EncryptUnsafe(ReadOnlySpan<byte> plaintext)
+    {
+        try
+        {
+            unsafe
+            {
+                fixed (byte* plaintextPtr = plaintext)
+                {
+                    const nuint maxStackSize = 1024;
+                    nuint estimatedSize = (nuint)plaintext.Length + 256;
+
+                    if (estimatedSize <= maxStackSize)
+                    {
+                        byte* stackBuffer = stackalloc byte[(int)estimatedSize];
+                        nuint actualSize = estimatedSize;
+
+                        CertificatePinningNativeResult result = CertificatePinningNativeLibrary.Encrypt(
+                            plaintextPtr, (nuint)plaintext.Length,
+                            stackBuffer, &actualSize);
+
+                        if (result == CertificatePinningNativeResult.Success)
+                        {
+                            byte[] output = new byte[actualSize];
+                            fixed (byte* outputPtr = output)
+                            {
+                                Buffer.MemoryCopy(stackBuffer, outputPtr, actualSize, actualSize);
+                            }
+                            return CertificatePinningByteArrayResult.FromValue(output);
+                        }
+
+                        return CertificatePinningByteArrayResult.FromError(
+                            CertificatePinningFailure.RsaEncryptionFailed(GetErrorStringStatic(result)));
+                    }
+                    else
+                    {
+                        byte[] ciphertext = new byte[estimatedSize];
+                        nuint actualSize = estimatedSize;
+
+                        fixed (byte* ciphertextPtr = ciphertext)
+                        {
+                            CertificatePinningNativeResult result = CertificatePinningNativeLibrary.Encrypt(
+                                plaintextPtr, (nuint)plaintext.Length,
+                                ciphertextPtr, &actualSize);
+
+                            if (result == CertificatePinningNativeResult.Success)
+                            {
+                                if (actualSize != estimatedSize)
+                                {
+                                    byte[] resized = new byte[actualSize];
+                                    Array.Copy(ciphertext, resized, (int)actualSize);
+                                    return CertificatePinningByteArrayResult.FromValue(resized);
+                                }
+                                return CertificatePinningByteArrayResult.FromValue(ciphertext);
+                            }
+
+                            return CertificatePinningByteArrayResult.FromError(
+                                CertificatePinningFailure.RsaEncryptionFailed(GetErrorStringStatic(result)));
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.RsaEncryptionException(ex));
+        }
+    }
+
+    public async Task<CertificatePinningByteArrayResult> DecryptAsync(
+        ReadOnlyMemory<byte> ciphertext,
+        CancellationToken cancellationToken = default)
+    {
+        CertificatePinningOperationResult stateCheck = ValidateOperationState();
+        if (!stateCheck.IsSuccess)
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+
+        if (ciphertext.IsEmpty)
+            return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.CiphertextRequired());
+
+        return await DecryptCoreAsync(ciphertext, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<CertificatePinningByteArrayResult> DecryptCoreAsync(
+        ReadOnlyMemory<byte> ciphertext,
+        CancellationToken cancellationToken)
+    {
+        return await Task.Run(() => DecryptUnsafe(ciphertext.Span), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static CertificatePinningByteArrayResult DecryptUnsafe(ReadOnlySpan<byte> ciphertext)
+    {
+        try
+        {
+            unsafe
+            {
+                fixed (byte* ciphertextPtr = ciphertext)
+                {
+                    nuint plaintextLen = (nuint)ciphertext.Length;
+                    byte[] plaintext = new byte[plaintextLen];
+
+                    fixed (byte* plaintextPtr = plaintext)
+                    {
+                        CertificatePinningNativeResult result = CertificatePinningNativeLibrary.Decrypt(
+                            ciphertextPtr, (nuint)ciphertext.Length,
+                            plaintextPtr, &plaintextLen);
+
+                        if (result == CertificatePinningNativeResult.Success)
+                        {
+                            if (plaintextLen != (nuint)ciphertext.Length)
+                            {
+                                byte[] resized = new byte[plaintextLen];
+                                Array.Copy(plaintext, resized, (int)plaintextLen);
+                                return CertificatePinningByteArrayResult.FromValue(resized);
+                            }
+                            return CertificatePinningByteArrayResult.FromValue(plaintext);
+                        }
+
+                        return CertificatePinningByteArrayResult.FromError(
+                            CertificatePinningFailure.RsaDecryptionFailed(GetErrorStringStatic(result)));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.RsaDecryptionException(ex));
+        }
+    }
+
+    public async Task<CertificatePinningByteArrayResult> GetPublicKeyAsync(CancellationToken cancellationToken = default)
+    {
+        CertificatePinningOperationResult stateCheck = ValidateOperationState();
+        if (!stateCheck.IsSuccess)
+            return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+
+        return await GetPublicKeyCoreAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<CertificatePinningByteArrayResult> GetPublicKeyCoreAsync(CancellationToken cancellationToken)
+    {
+        return await Task.Run(GetPublicKeyUnsafe, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static CertificatePinningByteArrayResult GetPublicKeyUnsafe()
+    {
+        try
+        {
+            unsafe
+            {
+                const nuint initialKeyBufferSize = 1024;
+                nuint keyLen = initialKeyBufferSize;
+                byte[] publicKey = new byte[keyLen];
+
+                fixed (byte* keyPtr = publicKey)
+                {
+                    CertificatePinningNativeResult result = CertificatePinningNativeLibrary.GetPublicKey(keyPtr, &keyLen);
+
+                    if (result == CertificatePinningNativeResult.Success)
+                    {
+                        if (keyLen != initialKeyBufferSize)
+                        {
+                            byte[] resized = new byte[keyLen];
+                            Array.Copy(publicKey, resized, (int)keyLen);
+                            return CertificatePinningByteArrayResult.FromValue(resized);
+                        }
+                        return CertificatePinningByteArrayResult.FromValue(publicKey);
+                    }
+
+                    return CertificatePinningByteArrayResult.FromError(
+                        CertificatePinningFailure.CertificateValidationFailed(GetErrorStringStatic(result)));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.CertificateValidationException(ex));
+        }
+    }
+
+    private CertificatePinningOperationResult ValidateOperationState()
+    {
+        return _state switch
+        {
+            Disposed => CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed()),
+            NotInitialized => CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceNotInitialized()),
+            Initializing => CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceInitializing()),
+            Initialized => CertificatePinningOperationResult.Success(),
+            _ => CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceInvalidState())
+        };
+    }
+
+    private static unsafe string GetErrorStringStatic(CertificatePinningNativeResult result)
+    {
+        try
+        {
+            byte* errorPtr = CertificatePinningNativeLibrary.GetErrorMessage();
+            if (errorPtr != null)
+            {
+                return Marshal.PtrToStringUTF8((IntPtr)errorPtr) ?? FormattableString.Invariant($"Unknown error: {result}");
+            }
+        }
+        catch
+        {
+            // Swallow exceptions in error handling
+        }
+
+        return FormattableString.Invariant($"Error code: {result}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _state, Disposed) == Disposed)
+            return;
+
+        try
+        {
+            await Task.Run(static () =>
+            {
+                try
+                {
+                    CertificatePinningNativeLibrary.Cleanup();
+                }
+                catch
+                {
+                    // Swallow cleanup exceptions
+                }
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            _initializationLock.Dispose();
+        }
+    }
+}

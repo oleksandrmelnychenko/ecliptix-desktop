@@ -7,5 +7,5 @@ namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
 public interface IAuthenticationService
 {
-    Task<Result<byte[], string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword, uint connectId);
+    Task<Result<Unit, string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword, uint connectId);
 }

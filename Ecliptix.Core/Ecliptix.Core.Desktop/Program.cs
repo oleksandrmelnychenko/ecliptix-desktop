@@ -46,6 +46,7 @@ using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Features.Splash.ViewModels;
@@ -77,7 +78,8 @@ public static class Program
     [STAThread]
     public static async Task Main(string[] args)
     {
-        string mutexName = string.Format(ApplicationConstants.ApplicationSettings.MutexNameFormat, Environment.UserName);
+        string mutexName =
+            string.Format(ApplicationConstants.ApplicationSettings.MutexNameFormat, Environment.UserName);
         using Mutex mutex = new(true, mutexName, out bool createdNew);
 
         if (!createdNew)
@@ -105,7 +107,8 @@ public static class Program
         catch (Exception ex)
         {
             Log.Fatal(ex, ApplicationConstants.Logging.FatalErrorMessage);
-            if (configuration[ApplicationConstants.ApplicationSettings.EnvironmentKey] != ApplicationConstants.ApplicationSettings.DevelopmentEnvironment)
+            if (configuration[ApplicationConstants.ApplicationSettings.EnvironmentKey] !=
+                ApplicationConstants.ApplicationSettings.DevelopmentEnvironment)
                 Environment.Exit(ApplicationConstants.ExitCodes.FatalError);
             throw;
         }
@@ -128,7 +131,8 @@ public static class Program
         return new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile(ApplicationConstants.Configuration.AppSettingsFile, optional: false, reloadOnChange: true)
-            .AddJsonFile(string.Format(ApplicationConstants.Configuration.EnvironmentAppSettingsPattern, environment), optional: true, reloadOnChange: true)
+            .AddJsonFile(string.Format(ApplicationConstants.Configuration.EnvironmentAppSettingsPattern, environment),
+                optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
     }
@@ -139,9 +143,11 @@ public static class Program
         {
             LoggerConfiguration loggerConfig = new();
 
-            IConfigurationSection serilogSection = configuration.GetSection(ApplicationConstants.Configuration.SerilogSection);
+            IConfigurationSection serilogSection =
+                configuration.GetSection(ApplicationConstants.Configuration.SerilogSection);
 
-            string minLevel = serilogSection[ApplicationConstants.Configuration.MinimumLevelDefaultKey] ?? ApplicationConstants.LogLevels.Information;
+            string minLevel = serilogSection[ApplicationConstants.Configuration.MinimumLevelDefaultKey] ??
+                              ApplicationConstants.LogLevels.Information;
             loggerConfig = minLevel switch
             {
                 ApplicationConstants.LogLevels.Debug => loggerConfig.MinimumLevel.Debug(),
@@ -154,7 +160,8 @@ public static class Program
 
             loggerConfig = loggerConfig.WriteTo.Console();
 
-            string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory, ApplicationConstants.Storage.LogFilePattern);
+            string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory,
+                ApplicationConstants.Storage.LogFilePattern);
             loggerConfig = loggerConfig.WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
 
             return loggerConfig.CreateLogger();
@@ -163,7 +170,9 @@ public static class Program
         {
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .WriteTo.File(Path.Combine(ApplicationConstants.Storage.LogsDirectory, ApplicationConstants.Storage.LogFilePattern), rollingInterval: RollingInterval.Day)
+                .WriteTo.File(
+                    Path.Combine(ApplicationConstants.Storage.LogsDirectory,
+                        ApplicationConstants.Storage.LogFilePattern), rollingInterval: RollingInterval.Day)
                 .CreateLogger();
         }
     }
@@ -220,7 +229,9 @@ public static class Program
                 .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
                 .WaitAndRetryAsync(
                     retryCount: ApplicationConstants.Thresholds.RetryAttempts,
-                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.ExponentialBackoffBase, attempt))))
+                    sleepDurationProvider: attempt =>
+                        TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.ExponentialBackoffBase,
+                            attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
 
         services.AddSingleton<InternetConnectivityObserver>();
@@ -232,7 +243,8 @@ public static class Program
         });
 
         services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<RequestDeduplicationService>(_ => new RequestDeduplicationService(ApplicationConstants.Timeouts.RequestDeduplicationTimeout));
+        services.AddSingleton<RequestDeduplicationService>(_ =>
+            new RequestDeduplicationService(ApplicationConstants.Timeouts.RequestDeduplicationTimeout));
         services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
         services.AddSingleton<ConnectionStateConfiguration>();
@@ -242,12 +254,15 @@ public static class Program
     {
         services.AddSingleton<IOptions<DefaultSystemSettings>>(_ =>
         {
-            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.DefaultAppSettingsSection);
+            IConfigurationSection section =
+                configuration.GetSection(ApplicationConstants.Configuration.DefaultAppSettingsSection);
             DefaultSystemSettings settings = new()
             {
                 DefaultTheme = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DefaultTheme),
-                Environment = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Environment, ApplicationConstants.ApplicationSettings.ProductionEnvironment),
-                DataCenterConnectionString = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DataCenterConnectionString),
+                Environment = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Environment,
+                    ApplicationConstants.ApplicationSettings.ProductionEnvironment),
+                DataCenterConnectionString = GetSectionValue(section,
+                    ApplicationConstants.ConfigurationKeys.DataCenterConnectionString),
                 CountryCodeApi = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CountryCodeApi),
                 DomainName = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DomainName),
                 Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Culture)
@@ -257,11 +272,13 @@ public static class Program
 
         services.AddSingleton<IOptions<SecureStoreOptions>>(_ =>
         {
-            IConfigurationSection section = configuration.GetSection(ApplicationConstants.Configuration.SecureStoreOptionsSection);
+            IConfigurationSection section =
+                configuration.GetSection(ApplicationConstants.Configuration.SecureStoreOptionsSection);
             SecureStoreOptions options = new()
             {
                 EncryptedStatePath = ResolvePath(
-                    GetSectionValue(section, ApplicationConstants.ConfigurationKeys.EncryptedStatePath, ApplicationConstants.Storage.DefaultStatePath)
+                    GetSectionValue(section, ApplicationConstants.ConfigurationKeys.EncryptedStatePath,
+                        ApplicationConstants.Storage.DefaultStatePath)
                 )
             };
             return Options.Create(options);
@@ -287,14 +304,20 @@ public static class Program
             IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
 
-            string storagePath = config[ApplicationConstants.Configuration.SecureStorageSection + ApplicationConstants.Configuration.PathSeparator + ApplicationConstants.ConfigurationKeys.StatePath]
+            string storagePath =
+                config[
+                    ApplicationConstants.Configuration.SecureStorageSection +
+                    ApplicationConstants.Configuration.PathSeparator + ApplicationConstants.ConfigurationKeys.StatePath]
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                                ApplicationConstants.Storage.EcliptixDirectoryName, ApplicationConstants.Storage.SecureProtocolStateFile);
+                    ApplicationConstants.Storage.EcliptixDirectoryName,
+                    ApplicationConstants.Storage.SecureProtocolStateFile);
 
             byte[] deviceId = Encoding.UTF8.GetBytes(Environment.MachineName + Environment.UserName);
 
             return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
         });
+
+        services.AddSingleton<ICertificatePinningServiceFactory, CertificatePinningServiceFactory>();
     }
 
     private static void ConfigureMessagingServices(IServiceCollection services)
@@ -314,6 +337,9 @@ public static class Program
     {
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
+        services.AddSingleton<IIdentityService, IdentityService>();
+        services.AddSingleton<ISessionKeyService, SessionKeyService>();
+        services.AddSingleton<IDualLayerEncryptionService, DualLayerEncryptionService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
 
@@ -323,7 +349,8 @@ public static class Program
             INetworkEventService networkEvents = sp.GetRequiredService<INetworkEventService>();
             IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
 
-            IConfigurationSection section = config.GetSection(ApplicationConstants.Configuration.ImprovedRetryPolicySection);
+            IConfigurationSection section =
+                config.GetSection(ApplicationConstants.Configuration.ImprovedRetryPolicySection);
             ImprovedRetryConfiguration retryConfig = CreateRetryConfiguration(section);
 
             SecrecyChannelRetryStrategy retryStrategy = new(retryConfig, networkEvents, uiDispatcher);
@@ -344,13 +371,20 @@ public static class Program
     {
         return new ImprovedRetryConfiguration
         {
-            InitialRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.InitialRetryDelay], out TimeSpan initialDelay)
-                ? initialDelay : ApplicationConstants.Timeouts.DefaultInitialRetryDelay,
-            MaxRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetryDelay], out TimeSpan maxDelay)
-                ? maxDelay : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
+            InitialRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.InitialRetryDelay],
+                out TimeSpan initialDelay)
+                ? initialDelay
+                : ApplicationConstants.Timeouts.DefaultInitialRetryDelay,
+            MaxRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetryDelay],
+                out TimeSpan maxDelay)
+                ? maxDelay
+                : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
             MaxRetries = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetries], out int maxRetries)
-                ? maxRetries : ApplicationConstants.Thresholds.DefaultMaxRetries,
-            UseAdaptiveRetry = !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) || adaptive
+                ? maxRetries
+                : ApplicationConstants.Thresholds.DefaultMaxRetries,
+            UseAdaptiveRetry =
+                !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) ||
+                adaptive
         };
     }
 
@@ -364,9 +398,11 @@ public static class Program
         {
             DefaultSystemSettings settings = services.BuildServiceProvider()
                 .GetRequiredService<DefaultSystemSettings>();
-            string endpoint = settings.Environment.Equals(ApplicationConstants.ApplicationSettings.DevelopmentEnvironment, StringComparison.OrdinalIgnoreCase)
-                ? settings.DataCenterConnectionString
-                : string.Empty;
+            string endpoint =
+                settings.Environment.Equals(ApplicationConstants.ApplicationSettings.DevelopmentEnvironment,
+                    StringComparison.OrdinalIgnoreCase)
+                    ? settings.DataCenterConnectionString
+                    : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))
                 throw new InvalidOperationException(ApplicationConstants.Logging.GrpcEndpointErrorMessage);
@@ -379,7 +415,8 @@ public static class Program
     {
         services.AddSingleton<ModuleDependencyResolver>();
         services.AddSingleton<ModuleResourceManager>();
-        services.AddHostedService<ModuleResourceManager>(provider => provider.GetRequiredService<ModuleResourceManager>());
+        services.AddHostedService<ModuleResourceManager>(provider =>
+            provider.GetRequiredService<ModuleResourceManager>());
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleSharedState, ModuleSharedState>();
@@ -448,7 +485,7 @@ public static class Program
 
         path = Environment.ExpandEnvironmentVariables(
             path.Replace(ApplicationConstants.Storage.AppDataEnvironmentVariable,
-                        Path.Combine(appDataDir, ApplicationConstants.Storage.EcliptixDirectoryName))
+                Path.Combine(appDataDir, ApplicationConstants.Storage.EcliptixDirectoryName))
         );
 
         string? directory = Path.GetDirectoryName(path);

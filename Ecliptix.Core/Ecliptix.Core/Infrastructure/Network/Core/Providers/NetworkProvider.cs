@@ -23,6 +23,7 @@ using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -44,11 +45,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly IRetryStrategy _retryStrategy;
     private readonly IConnectionStateManager _connectionStateManager;
     private readonly IPendingRequestManager _pendingRequestManager;
+    private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory;
 
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
 
-    private const int DefaultOneTimeKeyCount = 5;
+    public const int DefaultOneTimeKeyCount = 5;
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
 
@@ -93,7 +95,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ISystemEventService systemEvents,
         IRetryStrategy retryStrategy,
         IConnectionStateManager connectionStateManager,
-        IPendingRequestManager pendingRequestManager)
+        IPendingRequestManager pendingRequestManager,
+        ICertificatePinningServiceFactory certificatePinningServiceFactory)
     {
         _rpcServiceManager = rpcServiceManager;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -104,13 +107,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _retryStrategy = retryStrategy;
         _connectionStateManager = connectionStateManager;
         _pendingRequestManager = pendingRequestManager;
+        _certificatePinningServiceFactory = certificatePinningServiceFactory;
 
         _connectionStateManager.HealthChanged
             .Where(health => health.Status is ConnectionHealthStatus.Failed or ConnectionHealthStatus.Unhealthy)
             .Subscribe(health =>
             {
-                Log.Warning("Connection {ConnectId} health degraded to {Status}, initiating recovery with cancellation",
-                    health.ConnectId, health.Status);
                 ExecuteBackgroundTask(
                     () => InitiateConnectionRecoveryWithCancellation(health.ConnectId),
                     $"ConnectionRecovery-{health.ConnectId}");
@@ -147,6 +149,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return connectId;
     }
 
+    public uint ComputeUniqueConnectId(PubKeyExchangeType pubKeyExchangeType)
+    {
+        if (!_applicationInstanceSettings.HasValue)
+            throw new InvalidOperationException("Application instance settings not initialized");
+
+        return ComputeUniqueConnectId(_applicationInstanceSettings.Value!, pubKeyExchangeType);
+    }
+
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
@@ -176,6 +186,32 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ? "en-US"
             : applicationInstanceSettings.Culture;
 
+        _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
+    }
+
+    public void InitiateEcliptixProtocolSystemWithIdentity(
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId,
+        EcliptixSystemIdentityKeys identityKeys)
+    {
+        _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
+        PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
+        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
+        protocolSystem.SetEventHandler(this);
+        _connections.TryAdd(connectId, protocolSystem);
+        ConnectionHealth initialHealth = new()
+        {
+            ConnectId = connectId,
+            Status = ConnectionHealthStatus.Healthy,
+            LastHealthCheck = DateTime.UtcNow
+        };
+        _connectionStateManager.RegisterConnection(connectId, initialHealth);
+        Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
+        Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
+            ? "en-US"
+            : applicationInstanceSettings.Culture;
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
 
@@ -574,7 +610,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId,
-                Protobuf.Protocol.PubKeyExchangeType.DataCenterEphemeralConnect);
+                PubKeyExchangeType.DataCenterEphemeralConnect);
 
         if (pubKeyExchangeRequest.IsErr)
         {
@@ -697,48 +733,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 
-    public async Task RemoveProtocolForTypeAsync(PubKeyExchangeType exchangeType)
-    {
-        if (!_applicationInstanceSettings.HasValue)
-        {
-            Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Application not initialized"));
-            return;
-        }
-
-        ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
-        uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
-
-        if (!_connections.ContainsKey(connectId) && !_activeStreams.ContainsKey(connectId))
-        {
-            return;
-        }
-
-        CancelOperationsForConnection(connectId);
-
-        if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? streamCts))
-        {
-            streamCts.Cancel();
-            streamCts.Dispose();
-        }
-
-        if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
-        {
-            protocolSystem.Dispose();
-
-            Result<Unit, SecureStorageFailure> deleteResult =
-                await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-
-            if (deleteResult.IsErr)
-            {
-                Log.Warning("Failed to delete protocol state for type {Type}: {Error}",
-                    exchangeType, deleteResult.UnwrapErr());
-            }
-        }
-
-        Result<Unit, NetworkFailure>.Ok(Unit.Value);
-    }
-
     private void CancelOperationsForConnection(uint connectId)
     {
         string connectIdPrefix = $"{connectId}_";
@@ -804,8 +798,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         foreach (PubKeyExchangeType exchangeType in knownTypes)
         {
-            uint testConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
-            if (testConnectId != connectId) continue;
+            uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
+            if (computedConnectId != connectId) continue;
            
             return exchangeType;
         }
@@ -1015,7 +1009,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType)
     {
-        Result<CipherPayload, EcliptixProtocolFailure> outboundPayload =
+        Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundMessage(plainBuffer);
 
         if (outboundPayload.IsErr)
@@ -1024,7 +1018,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 outboundPayload.UnwrapErr().ToNetworkFailure());
         }
 
-        CipherPayload cipherPayload = outboundPayload.Unwrap();
+        SecureEnvelope cipherPayload = outboundPayload.Unwrap();
 
         return Result<ServiceRequest, NetworkFailure>.Ok(
             ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, []));
@@ -1051,13 +1045,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType($"Expected SingleCall flow but received {flow.GetType().Name}"));
         }
 
-        Result<CipherPayload, NetworkFailure> callResult = await singleCall.Result;
+        Result<SecureEnvelope, NetworkFailure> callResult = await singleCall.Result;
         if (callResult.IsErr)
         {
             return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
         }
 
-        CipherPayload inboundPayload = callResult.Unwrap();
+        SecureEnvelope inboundPayload = callResult.Unwrap();
 
         Result<byte[], EcliptixProtocolFailure> decryptedData =
             protocolSystem.ProcessInboundMessage(inboundPayload);
@@ -1103,7 +1097,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
-            await foreach (Result<CipherPayload, NetworkFailure> streamItem in
+            await foreach (Result<SecureEnvelope, NetworkFailure> streamItem in
                            inboundStream.Stream.WithCancellation(streamCts.Token))
             {
                 if (streamItem.IsErr)
@@ -1114,7 +1108,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     return errResult;
                 }
 
-                CipherPayload streamPayload = streamItem.Unwrap();
+                SecureEnvelope streamPayload = streamItem.Unwrap();
                 Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
                     protocolSystem.ProcessInboundMessage(streamPayload);
                 if (streamDecryptedData.IsErr)
@@ -1160,7 +1154,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
         }
 
-        await foreach (Result<CipherPayload, NetworkFailure> streamItem in
+        await foreach (Result<SecureEnvelope, NetworkFailure> streamItem in
                        inboundStream.Stream.WithCancellation(token))
         {
             if (streamItem.IsErr)
@@ -1169,7 +1163,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 continue;
             }
 
-            CipherPayload streamPayload = streamItem.Unwrap();
+            SecureEnvelope streamPayload = streamItem.Unwrap();
             Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
                 protocolSystem.ProcessInboundMessage(streamPayload);
             if (streamDecryptedData.IsErr)

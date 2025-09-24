@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -81,12 +82,10 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             CryptographicOperations.ZeroMemory(encryptionKey);
             CryptographicOperations.ZeroMemory(protocolState);
 
-            Log.Information("Protocol state saved securely with hardware protection");
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to save secure state");
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Save failed: {ex.Message}"));
         }
@@ -94,7 +93,25 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     public Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(ReadOnlySpan<byte> protocolState, string connectId)
     {
-        return SaveStateAsync(protocolState.ToArray(), connectId);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(protocolState.Length);
+        int length = protocolState.Length;
+        try
+        {
+            protocolState.CopyTo(buffer.AsSpan(0, length));
+            Task<Result<Unit, SecureStorageFailure>> result = SaveStateAsync(buffer.AsMemory(0, length).ToArray(), connectId);
+            return result.ContinueWith(t =>
+            {
+                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, length));
+                ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
+                return t.Result;
+            });
+        }
+        catch
+        {
+            CryptographicOperations.ZeroMemory(buffer.AsSpan(0, length));
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
+            throw;
+        }
     }
 
     public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId)
@@ -114,7 +131,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             byte[]? container = await VerifyTamperProtectionAsync(protectedContainer);
             if (container == null)
             {
-                Log.Error("SECURITY ALERT: State file has been tampered with!");
                 return Result<byte[], SecureStorageFailure>.Err(
                     new SecureStorageFailure("Security violation: tampered state detected"));
             }
@@ -146,7 +162,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             CryptographicOperations.ZeroMemory(encryptionKey);
 
-            Log.Information("Protocol state loaded and verified successfully");
             return Result<byte[], SecureStorageFailure>.Ok(plaintext);
         }
         catch (Exception ex)
@@ -281,28 +296,49 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private static byte[] CreateSecureContainer(
         byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData)
     {
-        using MemoryStream ms = new();
-        using BinaryWriter writer = new(ms);
+        byte[] magicBytes = Encoding.ASCII.GetBytes(MagicHeader);
 
-        writer.Write(Encoding.ASCII.GetBytes(MagicHeader));
-        writer.Write(CurrentVersion);
+        int totalSize = magicBytes.Length + 4 + // magic header + version
+                       4 + salt.Length +        // salt length + salt
+                       4 + nonce.Length +       // nonce length + nonce
+                       4 + tag.Length +         // tag length + tag
+                       4 + associatedData.Length + // ad length + ad
+                       4 + ciphertext.Length;   // ciphertext length + ciphertext
 
-        writer.Write(salt.Length);
-        writer.Write(salt);
+        byte[] container = new byte[totalSize];
+        int offset = 0;
 
-        writer.Write(nonce.Length);
-        writer.Write(nonce);
+        magicBytes.CopyTo(container, offset);
+        offset += magicBytes.Length;
 
-        writer.Write(tag.Length);
-        writer.Write(tag);
+        BitConverter.GetBytes(CurrentVersion).CopyTo(container, offset);
+        offset += 4;
 
-        writer.Write(associatedData.Length);
-        writer.Write(associatedData);
+        BitConverter.GetBytes(salt.Length).CopyTo(container, offset);
+        offset += 4;
+        salt.CopyTo(container, offset);
+        offset += salt.Length;
 
-        writer.Write(ciphertext.Length);
-        writer.Write(ciphertext);
+        BitConverter.GetBytes(nonce.Length).CopyTo(container, offset);
+        offset += 4;
+        nonce.CopyTo(container, offset);
+        offset += nonce.Length;
 
-        return ms.ToArray();
+        BitConverter.GetBytes(tag.Length).CopyTo(container, offset);
+        offset += 4;
+        tag.CopyTo(container, offset);
+        offset += tag.Length;
+
+        BitConverter.GetBytes(associatedData.Length).CopyTo(container, offset);
+        offset += 4;
+        associatedData.CopyTo(container, offset);
+        offset += associatedData.Length;
+
+        BitConverter.GetBytes(ciphertext.Length).CopyTo(container, offset);
+        offset += 4;
+        ciphertext.CopyTo(container, offset);
+
+        return container;
     }
 
     private static (byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData)

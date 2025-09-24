@@ -54,7 +54,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
-    public ReactiveCommand<SystemU, Result<byte[], string>>? SignInCommand { get; private set; }
+    public ReactiveCommand<SystemU, Result<Unit, string>>? SignInCommand { get; private set; }
     public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
@@ -221,7 +221,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 try
                 {
                     uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-                    Result<byte[], string> result =
+                    Result<Unit, string> result =
                         await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
                     return result;
                 }
@@ -259,9 +259,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(result =>
             {
                 _signInErrorSubject.OnNext(string.Empty);
-                byte[] sessionKey = result.Unwrap();
-
-                Array.Clear(sessionKey, 0, sessionKey.Length);
 
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
                     _ => { },

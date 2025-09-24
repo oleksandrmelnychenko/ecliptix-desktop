@@ -10,77 +10,63 @@ using Ecliptix.Core.Features.Splash.Views;
 using Splat;
 using Serilog;
 
-namespace Ecliptix.Core
+namespace Ecliptix.Core;
+
+public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 {
-    public class ApplicationStartup
+    private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
+    private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
+    private readonly IWindowService _windowService = Locator.Current.GetService<IWindowService>()!;
+    
+    private SplashWindowViewModel? _splashViewModel;
+    private SplashWindow? _splashScreen;
+
+    public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
-        private readonly IClassicDesktopStyleApplicationLifetime _desktop;
-        private readonly IApplicationInitializer _initializer;
-        private readonly IModuleManager _moduleManager;
-        private readonly IWindowService _windowService;
-        private SplashWindowViewModel? _splashViewModel;
-        private SplashWindow? _splashScreen;
+        _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
+        _splashScreen = new SplashWindow { DataContext = _splashViewModel };
 
-        public ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
+        desktop.MainWindow = _splashScreen;
+        _splashScreen?.Show();
+
+        await _splashViewModel.IsSubscribed.Task;
+
+        bool success = await _initializer.InitializeAsync(defaultSystemSettings);
+        if (success)
         {
-            _desktop = desktop;
-            _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
-            _moduleManager = Locator.Current.GetService<IModuleManager>()!;
-            _windowService = Locator.Current.GetService<IWindowService>()!;
+            await LoadAuthenticationModuleAsync();
+            await TransitionToNextWindowAsync();
         }
-
-        public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
+        else
         {
-            _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
-            _splashScreen = new SplashWindow { DataContext = _splashViewModel };
-
-            _desktop.MainWindow = _splashScreen;
-            _splashScreen?.Show();
-
-            await _splashViewModel.IsSubscribed.Task;
-
-            bool success = await _initializer.InitializeAsync(defaultSystemSettings);
-            if (success)
-            {
-                await LoadAuthenticationModuleAsync();
-                await TransitionToNextWindowAsync();
-            }
-            else
-            {
-                await _splashViewModel.PrepareForShutdownAsync();
-                _desktop.Shutdown();
-            }
+            await _splashViewModel.PrepareForShutdownAsync();
+            desktop.Shutdown();
         }
+    }
 
-        private async Task LoadAuthenticationModuleAsync()
+    private async Task LoadAuthenticationModuleAsync()
+    {
+        await _moduleManager.LoadModuleAsync(ModuleIdentifier.Authentication.ToName());
+    }
+
+    private async Task TransitionToNextWindowAsync()
+    {
+        try
         {
-            await _moduleManager.LoadModuleAsync(ModuleIdentifier.Authentication.ToName());
+            Window nextWindow =
+                await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
+
+            desktop.MainWindow = nextWindow;
+
+            await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
+
+            _splashScreen.Close();
+            _splashScreen = null;
         }
-
-        private async Task TransitionToNextWindowAsync()
+        catch (Exception ex)
         {
-            if (_splashScreen is null)
-            {
-                Log.Warning("TransitionToNextWindow called but _splashScreen is null");
-                return;
-            }
-
-            try
-            {
-                Window nextWindow = await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
-
-                _desktop.MainWindow = nextWindow;
-
-                await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
-
-                _splashScreen.Close();
-                _splashScreen = null;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to transition from splash screen");
-                throw;
-            }
+            Log.Error(ex, "Failed to transition from splash screen");
+            throw;
         }
     }
 }

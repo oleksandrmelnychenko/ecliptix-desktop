@@ -27,11 +27,8 @@ public class App : Application
             {
                 await InitializeModulesAsync();
 
-                Serilog.Log.Information("Modules loaded, starting ApplicationStartup...");
-
                 await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    Serilog.Log.Information("On UI thread, creating ApplicationStartup...");
                     await new ApplicationStartup(desktop).RunAsync(defaultSystemSettings);
                 });
             });

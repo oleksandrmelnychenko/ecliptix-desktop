@@ -19,8 +19,8 @@
         
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' != 'x86'">win-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')) AND '$(PlatformTarget)' == 'x86'">win-x86</RuntimeIdentifier>
-        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')) AND '$(Prefer32Bit)' != 'true'">osx-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')) AND $([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()) == 'Arm64'">osx-arm64</RuntimeIdentifier>
+        <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('OSX')) AND '$(Prefer32Bit)' != 'true'">osx-x64</RuntimeIdentifier>
         <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</RuntimeIdentifier>
 
 

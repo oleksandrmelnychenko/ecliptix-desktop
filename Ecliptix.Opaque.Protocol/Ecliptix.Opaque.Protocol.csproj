@@ -1,19 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Ecliptix.Protocol.System\Ecliptix.Protocol.System.csproj" />
-      <ProjectReference Include="..\Ecliptix.Protobufs\Ecliptix.Protobufs.csproj" />
-      <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
-    </ItemGroup>
+        <!-- OPAQUE Client Library -->
+        <Content Include="Native/Macos/libopaque_client.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <Link>libopaque_client.dylib</Link>
+        </Content>
+        <Content Include="Native/Linux/libopaque_client.so" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <Link>libopaque_client.so</Link>
+        </Content>
+        <Content Include="Native/Windows/opaque_client.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+            <Link>opaque_client.dll</Link>
+        </Content>
 
-    <ItemGroup>
-      <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     </ItemGroup>
 
 </Project>

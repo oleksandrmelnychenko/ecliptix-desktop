@@ -7,7 +7,7 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 public class ServiceRequest
 {
     private ServiceRequest(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        CipherPayload payload, List<CipherPayload> encryptedChunks)
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
     {
         ReqId = reqId;
         ActionType = actionType;
@@ -22,19 +22,19 @@ public class ServiceRequest
 
     public RpcServiceType RpcServiceMethod { get; }
 
-    public CipherPayload Payload { get; }
+    public SecureEnvelope Payload { get; }
 
-    public List<CipherPayload> EncryptedChunks { get; }
+    public List<SecureEnvelope> EncryptedChunks { get; }
 
     public static ServiceRequest New(ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        CipherPayload payload, List<CipherPayload> encryptedChunks)
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
     {
         uint reqId = Helpers.GenerateRandomUInt32InRange(UtilityConstants.NetworkConstants.MinRequestId, uint.MaxValue);
         return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
     }
 
     public static ServiceRequest New(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        CipherPayload payload, List<CipherPayload> encryptedChunks)
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
     {
         return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
     }
