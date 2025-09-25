@@ -5,8 +5,11 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.Common;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Google.Protobuf;
 using Grpc.Core;
 using Serilog;
 
@@ -16,29 +19,26 @@ public sealed class SecrecyChannelRpcServices(
     DeviceService.DeviceServiceClient deviceServiceClient
 ) : ISecrecyChannelRpcServices
 {
-    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
+    public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        PubKeyExchange request,
+        SecureEnvelope request,
         PubKeyExchangeType? exchangeType = null
     )
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        CallOptions callOptions = new();
+        Metadata headers = new();
         if (exchangeType.HasValue)
         {
-            Metadata headers = new()
-            {
-                { "exchange-type", exchangeType.Value.ToString() }
-            };
-            callOptions = callOptions.WithHeaders(headers);
+            headers.Add("exchange-type", exchangeType.Value.ToString());
         }
 
-        return await ExecuteAsync<PubKeyExchange>(
+        return await ExecuteSecureEnvelopeAsync(
             networkEvents,
             systemEvents,
-            () => deviceServiceClient.EstablishSecureChannelAsync(request, callOptions)
+            request,
+            headers
         );
     }
 
@@ -56,6 +56,32 @@ public sealed class SecrecyChannelRpcServices(
             systemEvents,
             () => deviceServiceClient.RestoreSecureChannelAsync(request)
         );
+    }
+
+    private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteSecureEnvelopeAsync(
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        SecureEnvelope request,
+        Metadata headers
+    )
+    {
+        try
+        {
+            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.EstablishSecureChannelAsync(request, headers);
+            SecureEnvelope response = await call.ResponseAsync;
+
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+
+            return Result<SecureEnvelope, NetworkFailure>.Ok(response);
+        }
+        catch (Exception exc)
+        {
+            Log.Debug(exc, "Secrecy channel gRPC call failed: {Message}", exc.Message);
+            await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterShutdown(exc.Message)
+            );
+        }
     }
 
     private static async Task<Result<TResponse, NetworkFailure>> ExecuteAsync<TResponse>(

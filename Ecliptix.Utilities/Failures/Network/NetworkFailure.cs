@@ -26,5 +26,6 @@ public record NetworkFailure(
     public static NetworkFailure DataCenterShutdown(string details, Exception? inner = null) =>
         new(NetworkFailureType.DataCenterShutdown, details, inner);
 
-
+    public static NetworkFailure RsaEncryption(string details, Exception? inner = null) =>
+        new(NetworkFailureType.RsaEncryptionFailure, details, inner);
 }

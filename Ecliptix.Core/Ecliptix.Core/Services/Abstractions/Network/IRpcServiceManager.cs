@@ -4,6 +4,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 
@@ -11,15 +12,16 @@ namespace Ecliptix.Core.Services.Abstractions.Network;
 
 public interface IRpcServiceManager
 {
-    Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
+    Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest);
+        SecureEnvelope envelope,
+        PubKeyExchangeType? exchangeType = null);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest);
+        RestoreChannelRequest request);
 
     Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request, CancellationToken token);
 }

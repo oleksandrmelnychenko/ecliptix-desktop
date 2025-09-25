@@ -6,6 +6,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Serilog;
@@ -42,25 +43,26 @@ public class RpcServiceManager : IRpcServiceManager
             };
     }
 
-    public async Task<Result<PubKeyExchange, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
+    public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> serviceRequest)
+        SecureEnvelope envelope,
+        PubKeyExchangeType? exchangeType = null)
     {
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
-            serviceRequest.PubKeyExchange,
-            serviceRequest.ExchangeType);
+            envelope,
+            exchangeType);
     }
 
     public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest)
+        RestoreChannelRequest request)
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
-            serviceRequest.PubKeyExchange);
+            request);
     }
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,

@@ -5,5 +5,6 @@ public enum NetworkFailureType
     DataCenterNotResponding,
     DataCenterShutdown,
     InvalidRequestType,
-    EcliptixProtocolFailure
+    EcliptixProtocolFailure,
+    RsaEncryptionFailure,
 }

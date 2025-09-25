@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Events;
@@ -561,19 +562,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), culture);
 
         RestoreChannelRequest request = new();
-        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest =
-            SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse>.New(
-                ServiceFlowType.Single,
-                RpcServiceType.RestoreSecrecyChannel,
-                request);
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
         Result<RestoreChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
             await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                    serviceRequest),
+                () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, request),
                 "RestoreSecrecyChannel",
                 ecliptixSecrecyChannelState.ConnectId,
                 cancellationToken: combinedCts.Token);
@@ -609,81 +604,80 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.DataCenterNotResponding("Connection unavailable - server may be recovering"));
         }
 
-       
-
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
-
 
         if (pubKeyExchangeRequest.IsErr)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
-        
-        /*
-        EnvelopeMetadata metaData = new()
+
+        EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+            requestId: connectId,
+            nonce: ByteString.Empty,
+            ratchetIndex: 0,
+            envelopeType: EnvelopeType.Request
+        );
+
+        CertificatePinningService? certificatePinningService =
+            await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+
+        if (certificatePinningService == null)
         {
-            EnvelopeType = EnvelopeType.Request,
-            EnvelopeId = Guid.NewGuid().ToString()
-        };
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
+        }
 
-        SecureEnvelope envelope = new()
+        byte[] originalData = pubKeyExchangeRequest.Unwrap().ToByteArray();
+        const int rsaMaxChunkSize = 120;
+
+        List<byte[]> encryptedChunks = [];
+
+        for (int offset = 0; offset < originalData.Length; offset += rsaMaxChunkSize)
         {
-            MetaData = metaData.ToByteString(),
-            EncryptedPayload = 
-        };
-        */
+            int chunkSize = Math.Min(rsaMaxChunkSize, originalData.Length - offset);
+            Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
-        //TODO: Certificate pinning for PubKeyExchangeType.
-        
+            CertificatePinningByteArrayResult chunkResult =
+                await certificatePinningService!.EncryptAsync(chunk);
 
-        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
-            SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
-                ServiceFlowType.Single,
-                RpcServiceType.EstablishSecrecyChannel,
-                pubKeyExchangeRequest.Unwrap());
-
-        CancellationToken recoveryToken = GetConnectionRecoveryToken();
-        using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
-
-        int maxAttempts = 5;
-        TimeSpan delay = TimeSpan.FromSeconds(1);
-        Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
-            Result<PubKeyExchange, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Failed after all attempts"));
-
-        //It will be removed this loop.
-        for (int attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
+            if (chunkResult.Error != null)
             {
-                establishAppDeviceSecrecyChannelResult =
-                    await _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                        action);
-
-                if (establishAppDeviceSecrecyChannelResult.IsOk)
-                    break;
-
-                if (attempt < maxAttempts)
-                {
-                    await Task.Delay(delay, combinedCts.Token);
-                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 10));
-                }
+                return Result<EcliptixSessionState, NetworkFailure>.Err(
+                        NetworkFailure.RsaEncryption("RSA encryption failed: " + chunkResult.Error.Message)
+                );
             }
-            catch (OperationCanceledException)
+
+            if (chunkResult.Value != null)
             {
-                establishAppDeviceSecrecyChannelResult = Result<PubKeyExchange, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding("Operation cancelled"));
-                break;
-            }
-            catch (Exception ex)
-            {
-                establishAppDeviceSecrecyChannelResult = Result<PubKeyExchange, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding($"Attempt {attempt} failed: {ex.Message}"));
+                encryptedChunks.Add(chunkResult.Value);
             }
         }
+
+        int totalSize = encryptedChunks.Sum(chunk => chunk.Length);
+        byte[] combinedEncryptedPayload = new byte[totalSize];
+        int currentOffset = 0;
+
+        foreach (byte[] chunk in encryptedChunks)
+        {
+            Array.Copy(chunk, 0, combinedEncryptedPayload, currentOffset, chunk.Length);
+            currentOffset += chunk.Length;
+        }
+
+        SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
+            metadata,
+            ByteString.CopyFrom(combinedEncryptedPayload)
+        );
+        
+        Result<SecureEnvelope, NetworkFailure> establishAppDeviceSecrecyChannelResult =
+            await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+                    PubKeyExchangeType.DataCenterEphemeralConnect),
+                "EstablishSecrecyChannel",
+                connectId,
+                cancellationToken: GetConnectionRecoveryToken());
 
         if (establishAppDeviceSecrecyChannelResult.IsErr)
         {
@@ -691,7 +685,35 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 .UnwrapErr());
         }
 
-        PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
+        SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
+
+        byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
+        const int rsaEncryptedChunkSize = 256;
+
+        List<byte> decryptedResponseData = [];
+
+        for (int offset = 0; offset < combinedEncryptedResponse.Length; offset += rsaEncryptedChunkSize)
+        {
+            int chunkSize = Math.Min(rsaEncryptedChunkSize, combinedEncryptedResponse.Length - offset);
+            Memory<byte> encryptedChunk = combinedEncryptedResponse.AsMemory(offset, chunkSize);
+
+            CertificatePinningByteArrayResult chunkDecryptResult =
+                await certificatePinningService!.DecryptAsync(encryptedChunk);
+
+            if (!chunkDecryptResult.IsSuccess)
+            {
+                return Result<EcliptixSessionState, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / rsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
+                );
+            }
+
+            if (chunkDecryptResult.Value != null)
+            {
+                decryptedResponseData.AddRange(chunkDecryptResult.Value);
+            }
+        }
+
+        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptedResponseData.ToArray());
 
         Result<Unit, EcliptixProtocolFailure> completeResult =
             protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
@@ -871,19 +893,44 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
 
-        SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange> action =
-            SecrecyKeyExchangeServiceRequest<PubKeyExchange, PubKeyExchange>.New(
-                ServiceFlowType.Single,
-                RpcServiceType.EstablishSecrecyChannel,
-                pubKeyExchangeRequest.Unwrap(),
-                exchangeType);
+        // Convert PubKeyExchange to SecureEnvelope for RPC call
+        EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+            requestId: connectId,
+            nonce: ByteString.Empty,
+            ratchetIndex: 0,
+            envelopeType: EnvelopeType.Request
+        );
+
+        CertificatePinningService? certificatePinningService =
+            await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+
+        if (certificatePinningService == null)
+        {
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
+        }
+
+        CertificatePinningByteArrayResult encryptedPayload =
+            await certificatePinningService.EncryptAsync(pubKeyExchangeRequest.Unwrap().ToByteArray());
+
+        if (encryptedPayload.Error != null || encryptedPayload.Value == null)
+        {
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"RSA encryption failed: {encryptedPayload.Error?.Message}"));
+        }
+
+        SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
+            metadata,
+            ByteString.CopyFrom(encryptedPayload.Value)
+        );
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-        Result<PubKeyExchange, NetworkFailure> establishAppDeviceSecrecyChannelResult =
+        Result<SecureEnvelope, NetworkFailure> establishAppDeviceSecrecyChannelResult =
             await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, action),
+                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+                    exchangeType),
                 "EstablishSecrecyChannel",
                 connectId,
                 maxRetries: 15,
@@ -895,7 +942,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 .UnwrapErr());
         }
 
-        PubKeyExchange peerPubKeyExchange = establishAppDeviceSecrecyChannelResult.Unwrap();
+        // Extract and decrypt PubKeyExchange from response envelope
+        SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
+
+        CertificatePinningByteArrayResult decryptedPayload =
+            await certificatePinningService.DecryptAsync(responseEnvelope.EncryptedPayload.ToByteArray());
+
+        if (!decryptedPayload.IsSuccess)
+        {
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("Failed to decrypt response payload"));
+        }
+
+        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptedPayload.Value);
 
         Result<Unit, EcliptixProtocolFailure> completeResult =
             protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
@@ -1823,20 +1882,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), applicationInstanceSettings.Culture);
 
         RestoreChannelRequest request = new();
-        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest =
-            SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse>.New(
-                ServiceFlowType.Single,
-                RpcServiceType.RestoreSecrecyChannel,
-                request);
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
         using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-
         Result<RestoreChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
             await _retryStrategy.ExecuteManualRetryOperationAsync(
-                () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                    serviceRequest),
+                () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, request),
                 "RestoreSecrecyChannel",
                 ecliptixSecrecyChannelState.ConnectId,
                 cancellationToken: combinedCts.Token);
@@ -1918,17 +1970,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId), applicationInstanceSettings.Culture);
 
         RestoreChannelRequest request = new();
-        SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse> serviceRequest =
-            SecrecyKeyExchangeServiceRequest<RestoreChannelRequest, RestoreChannelResponse>.New(
-                ServiceFlowType.Single,
-                RpcServiceType.RestoreSecrecyChannel,
-                request);
 
         try
         {
             Result<RestoreChannelResponse, NetworkFailure> restoreAppDeviceSecrecyChannelResponse =
-                await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                    serviceRequest);
+                await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, request);
 
             if (restoreAppDeviceSecrecyChannelResponse.IsErr)
             {
