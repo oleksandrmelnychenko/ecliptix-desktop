@@ -35,12 +35,25 @@ public class OpaqueAuthenticationService(
 {
     private readonly object _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
+    private byte[]? _cachedServerPublicKey;
 
-    private OpaqueClient GetOrCreateOpaqueClient()
+    private byte[] ServerPublicKey() =>
+        SecureByteStringInterop.WithByteStringAsSpan(
+            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+            span => span.ToArray());
+
+    private OpaqueClient GetOrCreateOpaqueClient(byte[] serverPublicKey)
     {
         lock (_opaqueClientLock)
         {
-            _opaqueClient ??= new OpaqueClient();
+            if (_opaqueClient == null || _cachedServerPublicKey == null ||
+                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            {
+                _opaqueClient?.Dispose();
+                _opaqueClient = new OpaqueClient(serverPublicKey);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            }
+
             return _opaqueClient;
         }
     }
@@ -80,7 +93,8 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
+        byte[] serverPublicKeyBytes = ServerPublicKey();
+        OpaqueClient opaqueClient = GetOrCreateOpaqueClient(serverPublicKeyBytes);
 
         using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
 
@@ -112,7 +126,7 @@ public class OpaqueAuthenticationService(
         OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
             MobileNumber = mobileNumber,
-            ServerStateToken = ByteString.CopyFrom(ke3Data)
+            ClientMac =  ByteString.CopyFrom(ke3Data),
         };
 
         Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, connectId);
@@ -164,11 +178,6 @@ public class OpaqueAuthenticationService(
             _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
         };
     }
-
-    private byte[] ServerPublicKey() =>
-        SecureByteStringInterop.WithByteStringAsSpan(
-            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-            span => span.ToArray());
 
     private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
@@ -265,7 +274,6 @@ public class OpaqueAuthenticationService(
             return Result<SignInResult, string>.Err(message);
         }
 
-        // In proper OPAQUE flow, session key is already established from KE1/KE2/KE3
         byte[] serverSessionKey = capturedResponse.SessionKey != null && !capturedResponse.SessionKey.IsEmpty
             ? capturedResponse.SessionKey.ToByteArray()
             : sessionKey;

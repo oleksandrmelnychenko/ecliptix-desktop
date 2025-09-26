@@ -8,13 +8,6 @@ public sealed class OpaqueClient : IDisposable
     private readonly IntPtr _clientHandle;
     private bool _disposed;
 
-    public OpaqueClient()
-    {
-        int result = OpaqueNative.opaque_client_create_default(out _clientHandle);
-        if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
-            throw new InvalidOperationException($"Failed to create OPAQUE client: {(OpaqueResult)result}");
-    }
-
     public OpaqueClient(byte[] serverPublicKey)
     {
         if (serverPublicKey?.Length != OpaqueConstants.PUBLIC_KEY_LENGTH)

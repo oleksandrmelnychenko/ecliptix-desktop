@@ -79,7 +79,6 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
             byte[]? sessionKey = await sessionKeyService.GetSessionKeyAsync(connectId);
             if (sessionKey == null)
             {
-                // No session key - assume header is unencrypted
                 try
                 {
                     EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
@@ -97,7 +96,6 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                 return Result<EnvelopeMetadata, string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
             }
 
-            // Try to decrypt first - if it fails, try parsing as unencrypted
             Result<EnvelopeMetadata, string> decryptResult = DecryptWithSessionKey(headerBytes, sessionKey);
             CryptographicOperations.ZeroMemory(sessionKey);
 
@@ -107,7 +105,6 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                 return decryptResult;
             }
 
-            // Decryption failed - try parsing as unencrypted header
             try
             {
                 EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
