@@ -63,7 +63,7 @@ public sealed class OpaqueClient : IDisposable
             throw new ArgumentException(
                 $"Server response must be {OpaqueConstants.REGISTRATION_RESPONSE_LENGTH} bytes");
 
-        byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH]; // Envelope + client public key
+        byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
 
         int result = OpaqueNative.opaque_client_finalize_registration(
             _clientHandle, serverResponse, (UIntPtr)serverResponse.Length,
