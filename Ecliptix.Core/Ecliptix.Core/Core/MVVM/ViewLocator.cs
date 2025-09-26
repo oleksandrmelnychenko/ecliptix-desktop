@@ -20,6 +20,8 @@ public class ViewLocator : IViewLocator
         RegisterFactory<TViewModel>(() => new TView());
     }
 
+    [RequiresUnreferencedCode("ViewLocator uses reflection to validate ViewModel types")]
+    [RequiresDynamicCode("ViewLocator may create types dynamically")]
     public void Register(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -27,6 +29,10 @@ public class ViewLocator : IViewLocator
     {
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");
+
+        Func<object> factory = () => Activator.CreateInstance(viewType)
+            ?? throw new InvalidOperationException($"Could not create instance of {viewType.Name}");
+        _viewFactories[viewModelType] = factory;
     }
 
     public void RegisterFactory<TViewModel>(Func<object> factory)
@@ -40,6 +46,7 @@ public class ViewLocator : IViewLocator
         return ResolveView((object?)viewModel);
     }
 
+    [RequiresUnreferencedCode("ViewLocator uses reflection to determine view model types")]
     public object? ResolveView(object? viewModel)
     {
         if (viewModel == null)

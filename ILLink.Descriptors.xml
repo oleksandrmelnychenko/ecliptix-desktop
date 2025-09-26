@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <!-- Preserve Ecliptix Core Types -->
+  <assembly fullname="Ecliptix.Core" preserve="all">
+    <type fullname="*ViewModel" preserve="all" />
+    <type fullname="*View" preserve="all" />
+    <type fullname="*Control" preserve="all" />
+    <type fullname="*Window" preserve="all" />
+    <type fullname="*Event" preserve="all" />
+    <type fullname="*Request" preserve="all" />
+    <type fullname="*Response" preserve="all" />
+  </assembly>
+
+  <!-- Preserve Protocol and Security -->
+  <assembly fullname="Ecliptix.Protocol.System" preserve="all" />
+  <assembly fullname="Ecliptix.Opaque.Protocol" preserve="all" />
+  <assembly fullname="Ecliptix.Security.Certificate.Pinning" preserve="all" />
+  <assembly fullname="Ecliptix.Protobufs" preserve="all" />
+  <assembly fullname="Ecliptix.Utilities" preserve="all" />
+
+  <!-- Avalonia Framework -->
+  <assembly fullname="Avalonia.Base">
+    <type fullname="Avalonia.Data.*" preserve="all" />
+    <type fullname="Avalonia.Markup.*" preserve="all" />
+    <type fullname="Avalonia.Controls.*" preserve="all" />
+    <type fullname="Avalonia.Styling.*" preserve="all" />
+    <type fullname="Avalonia.Animation.*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Avalonia.Controls">
+    <type fullname="*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Avalonia.Themes.Fluent">
+    <type fullname="*" preserve="all" />
+  </assembly>
+
+  <!-- ReactiveUI -->
+  <assembly fullname="ReactiveUI">
+    <type fullname="ReactiveUI.ReactiveObject" preserve="all" />
+    <type fullname="ReactiveUI.ReactiveCommand*" preserve="all" />
+    <type fullname="ReactiveUI.IReactiveCommand*" preserve="all" />
+    <type fullname="ReactiveUI.IActivatableViewModel" preserve="all" />
+    <type fullname="ReactiveUI.*ViewLocator*" preserve="all" />
+  </assembly>
+
+  <!-- System.Reactive -->
+  <assembly fullname="System.Reactive">
+    <type fullname="System.Reactive.*" preserve="all" />
+  </assembly>
+
+  <!-- gRPC and Protobuf -->
+  <assembly fullname="Grpc.Net.Client">
+    <type fullname="*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Grpc.Core.Api">
+    <type fullname="*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Google.Protobuf">
+    <type fullname="Google.Protobuf.MessageParser*" preserve="all" />
+    <type fullname="Google.Protobuf.IMessage*" preserve="all" />
+    <type fullname="Google.Protobuf.Reflection.*" preserve="all" />
+  </assembly>
+
+  <!-- Core Dependencies Only -->
+
+  <!-- Microsoft Extensions -->
+  <assembly fullname="Microsoft.Extensions.DependencyInjection">
+    <type fullname="Microsoft.Extensions.DependencyInjection.*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Microsoft.Extensions.Configuration">
+    <type fullname="Microsoft.Extensions.Configuration.*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Microsoft.Extensions.Logging">
+    <type fullname="Microsoft.Extensions.Logging.*" preserve="all" />
+  </assembly>
+
+  <!-- Polly Resilience -->
+  <assembly fullname="Polly">
+    <type fullname="Polly.*" preserve="all" />
+  </assembly>
+
+  <assembly fullname="Polly.Core">
+    <type fullname="Polly.*" preserve="all" />
+  </assembly>
+</linker>

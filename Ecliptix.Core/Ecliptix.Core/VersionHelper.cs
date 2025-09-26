@@ -1,14 +1,17 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Ecliptix.Core;
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    WriteIndented = false,
+    GenerationMode = JsonSourceGenerationMode.Metadata | JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(BuildInfo))]
-public partial class VersionJsonContext : JsonSerializerContext;
+public partial class EcliptixJsonContext : JsonSerializerContext;
 
 public static class VersionHelper
 {
@@ -27,17 +30,25 @@ public static class VersionHelper
 
     private static string CalculateApplicationVersion()
     {
-        Version version = Assembly.GetExecutingAssembly().GetName().Version
-                          ?? Assembly.GetEntryAssembly()?.GetName().Version
-                          ?? new Version(0, 1, 0, 0);
-        return $"{version.Major}.{version.Minor}.{version.Build}";
+        return typeof(VersionHelper).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
     }
 
+    [RequiresUnreferencedCode("Reads assembly attributes which may be trimmed")]
     private static string CalculateInformationalVersion()
     {
-        Assembly? assembly = Assembly.GetExecutingAssembly();
-        AssemblyInformationalVersionAttribute? attribute = assembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
-        return attribute?.InformationalVersion ?? GetApplicationVersion();
+        try
+        {
+            string informationalVersion = typeof(VersionHelper).Assembly
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                is System.Reflection.AssemblyInformationalVersionAttribute[] attrs && attrs.Length > 0
+                ? ((System.Reflection.AssemblyInformationalVersionAttribute)attrs[0]).InformationalVersion
+                : GetApplicationVersion();
+            return informationalVersion;
+        }
+        catch
+        {
+            return GetApplicationVersion();
+        }
     }
 
     private static BuildInfo? LoadBuildInfo()
@@ -49,7 +60,7 @@ public static class VersionHelper
                 return null;
 
             string json = File.ReadAllText(buildInfoPath);
-            return JsonSerializer.Deserialize(json, VersionJsonContext.Default.BuildInfo);
+            return JsonSerializer.Deserialize(json, EcliptixJsonContext.Default.BuildInfo);
         }
         catch
         {

@@ -68,11 +68,8 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        byte[] serverPublicKeyBytes = ServerPublicKey();
+        using OpaqueClient opaqueClient = new();
 
-        using OpaqueClient opaqueClient = new OpaqueClient(serverPublicKeyBytes);
-
-        // Step 1: Generate KE1 (client's first message)
         using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
 
         OpaqueSignInInitRequest initRequest = new()
@@ -95,11 +92,9 @@ public class OpaqueAuthenticationService(
             return Result<Unit, string>.Err(validationResult.UnwrapErr().Message);
         }
 
-        // Step 2: Process server's KE2 response and generate KE3
         byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
         byte[] ke3Data = opaqueClient.GenerateKE3(ke2Data, ke1Result);
 
-        // Step 3: Get session key from completed key exchange
         byte[] sessionKey = opaqueClient.DeriveSessionKey(ke1Result);
 
         OpaqueSignInFinalizeRequest finalizeRequest = new()

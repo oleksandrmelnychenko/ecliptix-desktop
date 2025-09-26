@@ -7,7 +7,9 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <PlatformTarget>AnyCPU</PlatformTarget>
+        <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('Windows'))">x64</PlatformTarget>
+        <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('OSX'))">arm64</PlatformTarget>
+        <PlatformTarget Condition="$([MSBuild]::IsOSPlatform('Linux'))">x64</PlatformTarget>
     </PropertyGroup>
 
     <ItemGroup>

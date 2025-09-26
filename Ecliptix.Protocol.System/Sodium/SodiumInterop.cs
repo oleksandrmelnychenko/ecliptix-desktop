@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Sodium;
@@ -6,7 +7,7 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Sodium;
 
-public static class SodiumInterop
+public static partial class SodiumInterop
 {
     private const string LibSodium = ProtocolSystemConstants.Libraries.LibSodium;
 
@@ -21,20 +22,25 @@ public static class SodiumInterop
 
     public static bool IsInitialized => InitializationResult.IsOk;
 
-    [DllImport(LibSodium, CallingConvention = CallingConvention.Cdecl, SetLastError = false, ExactSpelling = true)]
-    private static extern int sodium_init();
+    [LibraryImport(LibSodium, EntryPoint = "sodium_init")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static partial int sodium_init();
 
-    [DllImport(LibSodium, CallingConvention = CallingConvention.Cdecl, SetLastError = false, ExactSpelling = true)]
-    internal static extern IntPtr sodium_malloc(UIntPtr size);
+    [LibraryImport(LibSodium, EntryPoint = "sodium_malloc")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    internal static partial IntPtr sodium_malloc(nuint size);
 
-    [DllImport(LibSodium, CallingConvention = CallingConvention.Cdecl, SetLastError = false, ExactSpelling = true)]
-    internal static extern void sodium_free(IntPtr ptr);
+    [LibraryImport(LibSodium, EntryPoint = "sodium_free")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    internal static partial void sodium_free(IntPtr ptr);
 
-    [DllImport(LibSodium, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    private static extern void sodium_memzero(IntPtr ptr, UIntPtr length);
+    [LibraryImport(LibSodium, EntryPoint = "sodium_memzero")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static partial void sodium_memzero(IntPtr ptr, nuint length);
 
-    [DllImport(LibSodium, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-    private static extern int sodium_memcmp(byte[] b1, byte[] b2, UIntPtr length);
+    [LibraryImport(LibSodium, EntryPoint = "sodium_memcmp")]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static partial int sodium_memcmp(byte[] b1, byte[] b2, nuint length);
 
     private static Result<Unit, SodiumFailure> InitializeSodium()
     {

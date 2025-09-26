@@ -55,7 +55,7 @@ public sealed class RegistrationResult : IDisposable
     {
         if (!_disposed && StateHandle != IntPtr.Zero)
         {
-            Native.OpaqueNative.opaque_client_state_destroy(StateHandle);
+            NativeLibraries.OpaqueNative.opaque_client_state_destroy(StateHandle);
             _disposed = true;
         }
     }
@@ -80,7 +80,7 @@ public sealed class KeyExchangeResult : IDisposable
     {
         if (!_disposed && StateHandle != IntPtr.Zero)
         {
-            Native.OpaqueNative.opaque_client_state_destroy(StateHandle);
+            NativeLibraries.OpaqueNative.opaque_client_state_destroy(StateHandle);
             _disposed = true;
         }
     }

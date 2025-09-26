@@ -1,20 +1,13 @@
 using System;
-using Ecliptix.Opaque.Protocol.Native;
+using Ecliptix.Opaque.Protocol.NativeLibraries;
 
 namespace Ecliptix.Opaque.Protocol;
 
-/// <summary>
-/// Ultra-thin OPAQUE protocol client wrapper
-/// </summary>
 public sealed class OpaqueClient : IDisposable
 {
     private readonly IntPtr _clientHandle;
     private bool _disposed;
 
-
-    /// <summary>
-    /// Creates new OPAQUE client with hardcoded server public key
-    /// </summary>
     public OpaqueClient()
     {
         int result = OpaqueNative.opaque_client_create_default(out _clientHandle);
@@ -22,25 +15,17 @@ public sealed class OpaqueClient : IDisposable
             throw new InvalidOperationException($"Failed to create OPAQUE client: {(OpaqueResult)result}");
     }
 
-    /// <summary>
-    /// Creates new OPAQUE client with custom server public key
-    /// </summary>
-    /// <param name="serverPublicKey">Server's public key (32 bytes)</param>
     public OpaqueClient(byte[] serverPublicKey)
     {
         if (serverPublicKey?.Length != OpaqueConstants.PUBLIC_KEY_LENGTH)
             throw new ArgumentException($"Server public key must be {OpaqueConstants.PUBLIC_KEY_LENGTH} bytes");
 
-        int result = OpaqueNative.opaque_client_create(serverPublicKey, (UIntPtr)serverPublicKey.Length, out _clientHandle);
+        int result =
+            OpaqueNative.opaque_client_create(serverPublicKey, (UIntPtr)serverPublicKey.Length, out _clientHandle);
         if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
             throw new InvalidOperationException($"Failed to create OPAQUE client: {(OpaqueResult)result}");
     }
 
-    /// <summary>
-    /// Creates registration request for new user account
-    /// </summary>
-    /// <param name="password">User password</param>
-    /// <returns>Registration result with request data and state</returns>
     public RegistrationResult CreateRegistrationRequest(byte[] password)
     {
         ThrowIfDisposed();
@@ -71,17 +56,12 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    /// <summary>
-    /// Finalizes registration with server response
-    /// </summary>
-    /// <param name="serverResponse">Server's registration response</param>
-    /// <param name="registrationState">Registration state from CreateRegistrationRequest</param>
-    /// <returns>Registration record to store on server</returns>
     public byte[] FinalizeRegistration(byte[] serverResponse, RegistrationResult registrationState)
     {
         ThrowIfDisposed();
         if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
-            throw new ArgumentException($"Server response must be {OpaqueConstants.REGISTRATION_RESPONSE_LENGTH} bytes");
+            throw new ArgumentException(
+                $"Server response must be {OpaqueConstants.REGISTRATION_RESPONSE_LENGTH} bytes");
 
         byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH]; // Envelope + client public key
 
@@ -95,11 +75,6 @@ public sealed class OpaqueClient : IDisposable
         return record;
     }
 
-    /// <summary>
-    /// Generates KE1 message for authentication
-    /// </summary>
-    /// <param name="password">User password</param>
-    /// <returns>Key exchange result with KE1 data and state</returns>
     public KeyExchangeResult GenerateKE1(byte[] password)
     {
         ThrowIfDisposed();
@@ -130,12 +105,6 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    /// <summary>
-    /// Generates KE3 message and completes authentication
-    /// </summary>
-    /// <param name="ke2">Server's KE2 message</param>
-    /// <param name="keyExchangeState">State from GenerateKE1</param>
-    /// <returns>KE3 message for server</returns>
     public byte[] GenerateKE3(byte[] ke2, KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
@@ -153,11 +122,6 @@ public sealed class OpaqueClient : IDisposable
         return ke3;
     }
 
-    /// <summary>
-    /// Derives session key after successful authentication
-    /// </summary>
-    /// <param name="keyExchangeState">State from GenerateKE1</param>
-    /// <returns>32-byte session key</returns>
     public byte[] DeriveSessionKey(KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
@@ -173,16 +137,6 @@ public sealed class OpaqueClient : IDisposable
         return sessionKey;
     }
 
-    /// <summary>
-    /// Gets the OPAQUE client library version
-    /// </summary>
-    /// <returns>Version string (e.g., "1.0.0")</returns>
-    public static string GetVersion()
-    {
-        IntPtr versionPtr = OpaqueNative.opaque_client_get_version();
-        return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(versionPtr) ?? "unknown";
-    }
-
     private void ThrowIfDisposed()
     {
         if (_disposed) throw new ObjectDisposedException(nameof(OpaqueClient));
@@ -190,10 +144,7 @@ public sealed class OpaqueClient : IDisposable
 
     private static void ClearPassword(byte[] password)
     {
-        if (password != null)
-        {
-            Array.Clear(password, 0, password.Length);
-        }
+        Array.Clear(password, 0, password.Length);
     }
 
     public void Dispose()

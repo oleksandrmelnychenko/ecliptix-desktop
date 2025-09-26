@@ -18,10 +18,15 @@
     <!-- Security -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     
-    <!-- Performance -->
+    <!-- AOT Configuration -->
     <PublishAot>true</PublishAot>
     <TrimMode>link</TrimMode>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <PublishAotWarnings>true</PublishAotWarnings>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <TrimmerSingleWarn>true</TrimmerSingleWarn>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     
     <!-- Version information -->
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
@@ -46,11 +51,13 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
   </ItemGroup>
 
-  <!-- Conditional packages for UI projects -->
+  <!-- Conditional packages for UI projects with AOT support -->
   <ItemGroup Condition="$(MSBuildProjectName.Contains('Core'))">
     <PackageReference Include="Avalonia" Version="11.3.3" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.3" />
     <PackageReference Include="ReactiveUI" Version="20.1.81" />
+    <!-- Preserve ReactiveUI for AOT -->
+    <TrimmerRootDescriptor Include="$(MSBuildThisFileDirectory)ReactiveUI.xml" Condition="Exists('$(MSBuildThisFileDirectory)ReactiveUI.xml')" />
   </ItemGroup>
 
   <!-- Conditional packages for test projects -->

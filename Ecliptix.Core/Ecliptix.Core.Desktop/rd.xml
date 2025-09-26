@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Directives xmlns="http://schemas.microsoft.com/netfx/2013/01/metadata">
+  <Application>
+    <!-- Preserve all ViewModels and Views for Avalonia data binding -->
+    <Assembly Name="Ecliptix.Core">
+      <Type Name="*ViewModel" Dynamic="Required All" />
+      <Type Name="*View" Dynamic="Required All" />
+      <Type Name="*Control" Dynamic="Required All" />
+      <Type Name="*Window" Dynamic="Required All" />
+
+      <!-- Preserve message types for event aggregation -->
+      <Type Name="*Event" Dynamic="Required All" />
+      <Type Name="*Request" Dynamic="Required All" />
+      <Type Name="*Response" Dynamic="Required All" />
+    </Assembly>
+
+    <!-- Avalonia Framework -->
+    <Assembly Name="Avalonia.Base">
+      <Type Name="Avalonia.Data.*" Dynamic="Required All" />
+      <Type Name="Avalonia.Markup.*" Dynamic="Required All" />
+      <Type Name="Avalonia.Controls.*" Dynamic="Required All" />
+    </Assembly>
+
+    <Assembly Name="Avalonia.Controls">
+      <Type Name="*" Dynamic="Required All" />
+    </Assembly>
+
+    <!-- ReactiveUI -->
+    <Assembly Name="ReactiveUI">
+      <Type Name="ReactiveUI.*" Dynamic="Required All" />
+    </Assembly>
+
+    <!-- System.Reactive -->
+    <Assembly Name="System.Reactive">
+      <Type Name="System.Reactive.*" Dynamic="Required All" />
+    </Assembly>
+
+    <!-- Protobuf Messages -->
+    <Assembly Name="Ecliptix.Protobufs">
+      <Type Name="*" Dynamic="Required All" />
+    </Assembly>
+  </Application>
+</Directives>

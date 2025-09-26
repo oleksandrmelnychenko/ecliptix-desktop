@@ -462,17 +462,16 @@ public static class Program
 
     private static void SetSecurePermissionsIfUnix(string directory)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
+            !RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+        try
         {
-            try
-            {
-                File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
-                Log.Debug(ApplicationConstants.Logging.PermissionsSetMessage, directory);
-            }
-            catch (IOException ex)
-            {
-                Log.Warning(ex, ApplicationConstants.Logging.PermissionsFailMessage, directory);
-            }
+            File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
+            Log.Debug(ApplicationConstants.Logging.PermissionsSetMessage, directory);
+        }
+        catch (IOException ex)
+        {
+            Log.Warning(ex, ApplicationConstants.Logging.PermissionsFailMessage, directory);
         }
     }
 

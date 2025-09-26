@@ -7,24 +7,25 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <ItemGroup>
-        <!-- OPAQUE Client Library -->
-        <Content Include="Native/Macos/libopaque_client.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <Link>libopaque_client.dylib</Link>
-        </Content>
-        <Content Include="Native/Linux/libopaque_client.so" Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <Link>libopaque_client.so</Link>
-        </Content>
-        <Content Include="Native/Windows/opaque_client.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-            <CopyToPublishDirectory>Always</CopyToPublishDirectory>
-            <Link>opaque_client.dll</Link>
-        </Content>
+  <!-- Native OPAQUE client library - Platform-specific -->
+  <ItemGroup>
+    <Content Include="NativeLibraries\macos\libopaque_client.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) AND Exists('NativeLibraries\macos\libopaque_client.dylib')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libopaque_client.dylib</TargetPath>
+    </Content>
+    <Content Include="NativeLibraries\linux\libopaque_client.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) AND Exists('NativeLibraries\linux\libopaque_client.so')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libopaque_client.so</TargetPath>
+    </Content>
+    <Content Include="NativeLibraries\windows\libopaque_client.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) AND Exists('NativeLibraries\windows\libopaque_client.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>libopaque_client.dll</TargetPath>
+    </Content>
+  </ItemGroup>
 
-    </ItemGroup>
+  <ItemGroup>
+    <Folder Include="NativeLibraries\linux\" />
+    <Folder Include="NativeLibraries\windows\" />
+  </ItemGroup>
 
 </Project>
