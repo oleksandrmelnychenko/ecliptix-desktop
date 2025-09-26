@@ -18,20 +18,64 @@ internal static unsafe class CertificatePinningNativeLibrary
     [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with RequiresUnreferencedCodeAttribute require dynamic access otherwise can break when trimming application code", Justification = "Assembly.GetExecutingAssembly is AOT-safe")]
     private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName == LibraryName)
+        if (libraryName != LibraryName)
+            return IntPtr.Zero;
+
+        string extension;
+        string fileName;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            string extension = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".dll" :
-                              RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? ".dylib" : ".so";
+            extension = ".dll";
+            fileName = "ecliptix.client.dll";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            extension = ".dylib";
+            fileName = $"{LibraryName}{extension}";
+        }
+        else
+        {
+            extension = ".so";
+            fileName = $"{LibraryName}{extension}";
+        }
 
-            string libPath = Path.Combine(AppContext.BaseDirectory, $"{LibraryName}{extension}");
+        string[] searchPaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, fileName),
+            Path.Combine(AppContext.BaseDirectory, "runtimes", GetRuntimeIdentifier(), "native", fileName),
+            Path.Combine(Path.GetDirectoryName(assembly.Location) ?? string.Empty, fileName)
+        };
 
+        foreach (string libPath in searchPaths)
+        {
             if (File.Exists(libPath))
             {
-                return NativeLibrary.Load(libPath);
+                try
+                {
+                    return NativeLibrary.Load(libPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to load library at {libPath}: {ex.Message}");
+                }
             }
         }
 
         return IntPtr.Zero;
+    }
+
+    private static string GetRuntimeIdentifier()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return RuntimeInformation.ProcessArchitecture == Architecture.X86 ? "win-x86" : "win-x64";
+        }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "osx-arm64" : "osx-x64";
+        }
+        return "linux-x64";
     }
 
     [DllImport(LibraryName, EntryPoint = "ecliptix_client_init", CallingConvention = CallingConvention.Cdecl)]
