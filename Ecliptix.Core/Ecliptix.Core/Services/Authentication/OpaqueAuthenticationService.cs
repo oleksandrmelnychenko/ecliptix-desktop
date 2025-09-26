@@ -31,8 +31,20 @@ public class OpaqueAuthenticationService(
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     ISessionKeyService sessionKeyService)
-    : IAuthenticationService
+    : IAuthenticationService, IDisposable
 {
+    private readonly object _opaqueClientLock = new();
+    private OpaqueClient? _opaqueClient;
+
+    private OpaqueClient GetOrCreateOpaqueClient()
+    {
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient ??= new OpaqueClient();
+            return _opaqueClient;
+        }
+    }
+
     public async Task<Result<Unit, string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
         uint connectId)
     {
@@ -68,7 +80,7 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        using OpaqueClient opaqueClient = new();
+        OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
         using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
 
@@ -121,10 +133,11 @@ public class OpaqueAuthenticationService(
                     return Result<Unit, string>.Err(localizationService[AuthenticationConstants.InvalidCredentialsKey]);
                 }
 
-                // For now, use session key as master key derivation input until export key is implemented
                 byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(sessionKey, membershipIdentifier);
                 string memberId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
+
                 await identityService.StoreIdentityAsync(masterKey, memberId);
+                
                 CryptographicOperations.ZeroMemory(masterKey);
 
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
@@ -151,7 +164,6 @@ public class OpaqueAuthenticationService(
             _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
         };
     }
-
 
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
@@ -288,6 +300,15 @@ public class OpaqueAuthenticationService(
         catch
         {
             return false;
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient?.Dispose();
+            _opaqueClient = null;
         }
     }
 }

@@ -24,16 +24,36 @@ namespace Ecliptix.Core.Services.Authentication;
 public class OpaqueRegistrationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService)
-    : IOpaqueRegistrationService
+    : IOpaqueRegistrationService, IDisposable
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
 
     private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
+    private readonly object _opaqueClientLock = new();
+    private OpaqueClient? _opaqueClient;
+    private byte[]? _cachedServerPublicKey;
+
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
             networkProvider.ApplicationInstanceSettings.ServerPublicKey,
             span => span.ToArray());
+
+    private OpaqueClient GetOrCreateOpaqueClient(byte[] serverPublicKey)
+    {
+        lock (_opaqueClientLock)
+        {
+            if (_opaqueClient == null || _cachedServerPublicKey == null ||
+                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            {
+                _opaqueClient?.Dispose();
+                _opaqueClient = new OpaqueClient(serverPublicKey);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            }
+
+            return _opaqueClient;
+        }
+    }
 
     public async Task<Result<ByteString, string>> ValidatePhoneNumberAsync(
         string mobileNumber,
@@ -372,9 +392,8 @@ public class OpaqueRegistrationService(
         {
             byte[] serverPublicKeyBytes = ServerPublicKey();
 
-            using OpaqueClient opaqueClient = new OpaqueClient(serverPublicKeyBytes);
+            OpaqueClient opaqueClient = GetOrCreateOpaqueClient(serverPublicKeyBytes);
 
-            // Step 1: Create registration request
             RegistrationResult? registrationResult = null;
             secureKey.WithSecureBytes(passwordBytes =>
             {
@@ -550,5 +569,15 @@ public class OpaqueRegistrationService(
         }
 
         return Result<Unit, string>.Ok(Unit.Value);
+    }
+
+    public void Dispose()
+    {
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient?.Dispose();
+            _opaqueClient = null;
+            _cachedServerPublicKey = null;
+        }
     }
 }

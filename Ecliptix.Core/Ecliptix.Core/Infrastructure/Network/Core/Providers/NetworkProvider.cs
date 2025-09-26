@@ -54,6 +54,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public const int DefaultOneTimeKeyCount = 5;
 
+    private const int RsaMaxChunkSize = 120;
+    private const int RsaEncryptedChunkSize = 256;
+
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
 
     private readonly Lock _cancellationLock = new();
@@ -631,13 +634,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         byte[] originalData = pubKeyExchangeRequest.Unwrap().ToByteArray();
-        const int rsaMaxChunkSize = 120;
 
         List<byte[]> encryptedChunks = [];
 
-        for (int offset = 0; offset < originalData.Length; offset += rsaMaxChunkSize)
+        for (int offset = 0; offset < originalData.Length; offset += RsaMaxChunkSize)
         {
-            int chunkSize = Math.Min(rsaMaxChunkSize, originalData.Length - offset);
+            int chunkSize = Math.Min(RsaMaxChunkSize, originalData.Length - offset);
             Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkResult =
@@ -688,13 +690,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
 
         byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
-        const int rsaEncryptedChunkSize = 256;
 
         List<byte> decryptedResponseData = [];
 
-        for (int offset = 0; offset < combinedEncryptedResponse.Length; offset += rsaEncryptedChunkSize)
+        for (int offset = 0; offset < combinedEncryptedResponse.Length; offset += RsaEncryptedChunkSize)
         {
-            int chunkSize = Math.Min(rsaEncryptedChunkSize, combinedEncryptedResponse.Length - offset);
+            int chunkSize = Math.Min(RsaEncryptedChunkSize, combinedEncryptedResponse.Length - offset);
             Memory<byte> encryptedChunk = combinedEncryptedResponse.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkDecryptResult =
@@ -703,7 +704,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (!chunkDecryptResult.IsSuccess)
             {
                 return Result<EcliptixSessionState, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / rsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
+                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
                 );
             }
 
@@ -879,10 +880,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.DataCenterNotResponding("Protocol system not found"));
         }
 
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
         {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
-        });
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
+            });
+        }
 
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
             protocolSystem.BeginDataCenterPubKeyExchange(connectId, exchangeType);
@@ -893,7 +897,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
 
-        // Convert PubKeyExchange to SecureEnvelope for RPC call
         EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
             requestId: connectId,
             nonce: ByteString.Empty,
@@ -910,18 +913,44 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
         }
 
-        CertificatePinningByteArrayResult encryptedPayload =
-            await certificatePinningService.EncryptAsync(pubKeyExchangeRequest.Unwrap().ToByteArray());
+        byte[] originalData = pubKeyExchangeRequest.Unwrap().ToByteArray();
 
-        if (encryptedPayload.Error != null || encryptedPayload.Value == null)
+        List<byte[]> encryptedChunks = [];
+
+        for (int offset = 0; offset < originalData.Length; offset += RsaMaxChunkSize)
         {
-            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
-                NetworkFailure.RsaEncryption($"RSA encryption failed: {encryptedPayload.Error?.Message}"));
+            int chunkSize = Math.Min(RsaMaxChunkSize, originalData.Length - offset);
+            Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
+
+            CertificatePinningByteArrayResult chunkResult =
+                await certificatePinningService.EncryptAsync(chunk);
+
+            if (chunkResult.Error != null)
+            {
+                return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}")
+                );
+            }
+
+            if (chunkResult.Value != null)
+            {
+                encryptedChunks.Add(chunkResult.Value);
+            }
+        }
+
+        int totalSize = encryptedChunks.Sum(chunk => chunk.Length);
+        byte[] combinedEncryptedPayload = new byte[totalSize];
+        int currentOffset = 0;
+
+        foreach (byte[] chunk in encryptedChunks)
+        {
+            Array.Copy(chunk, 0, combinedEncryptedPayload, currentOffset, chunk.Length);
+            currentOffset += chunk.Length;
         }
 
         SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
             metadata,
-            ByteString.CopyFrom(encryptedPayload.Value)
+            ByteString.CopyFrom(combinedEncryptedPayload)
         );
 
         CancellationToken recoveryToken = GetConnectionRecoveryToken();
@@ -942,19 +971,34 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 .UnwrapErr());
         }
 
-        // Extract and decrypt PubKeyExchange from response envelope
         SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        CertificatePinningByteArrayResult decryptedPayload =
-            await certificatePinningService.DecryptAsync(responseEnvelope.EncryptedPayload.ToByteArray());
+        byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
 
-        if (!decryptedPayload.IsSuccess)
+        List<byte> decryptedResponseData = [];
+
+        for (int offset = 0; offset < combinedEncryptedResponse.Length; offset += RsaEncryptedChunkSize)
         {
-            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Failed to decrypt response payload"));
+            int chunkSize = Math.Min(RsaEncryptedChunkSize, combinedEncryptedResponse.Length - offset);
+            Memory<byte> encryptedChunk = combinedEncryptedResponse.AsMemory(offset, chunkSize);
+
+            CertificatePinningByteArrayResult chunkDecryptResult =
+                await certificatePinningService.DecryptAsync(encryptedChunk);
+
+            if (!chunkDecryptResult.IsSuccess)
+            {
+                return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
+                );
+            }
+
+            if (chunkDecryptResult.Value != null)
+            {
+                decryptedResponseData.AddRange(chunkDecryptResult.Value);
+            }
         }
 
-        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptedPayload.Value);
+        PubKeyExchange peerPubKeyExchange = PubKeyExchange.Parser.ParseFrom(decryptedResponseData.ToArray());
 
         Result<Unit, EcliptixProtocolFailure> completeResult =
             protocolSystem.CompleteDataCenterPubKeyExchange(peerPubKeyExchange);
