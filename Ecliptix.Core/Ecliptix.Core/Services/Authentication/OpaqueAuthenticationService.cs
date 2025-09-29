@@ -119,7 +119,7 @@ public class OpaqueAuthenticationService(
         }
 
         byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
-        byte[] ke3Data = opaqueClient.GenerateKE3(ke2Data, ke1Result);
+        byte[] ke3Data = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
         byte[] sessionKey = opaqueClient.DeriveSessionKey(ke1Result);
 
