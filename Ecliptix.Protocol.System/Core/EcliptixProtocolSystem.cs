@@ -296,13 +296,13 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ? ByteString.CopyFrom(newSenderDhPublicKey)
                 : ByteString.Empty;
 
-            EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+            EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
                 requestId,
                 ByteString.CopyFrom(nonce),
                 messageKey!.Index,
                 dhPublicKeyBytes);
 
-            SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
+            SecureEnvelope envelope = EnvelopeBuilder.CreateSecureEnvelope(
                 metadata,
                 ByteString.CopyFrom(encrypted),
                 GetProtoTimestamp());
@@ -336,7 +336,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
         Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
-            ProtocolMigrationHelper.ParseEnvelopeMetadata(secureEnvelope.MetaData);
+            EnvelopeBuilder.ParseEnvelopeMetadata(secureEnvelope.MetaData);
         if (metadataResult.IsErr)
             return Result<byte[], EcliptixProtocolFailure>.Err(metadataResult.UnwrapErr());
 
@@ -453,7 +453,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[] ad, EcliptixProtocolConnection? connection)
     {
         Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
-            ProtocolMigrationHelper.ParseEnvelopeMetadata(envelope.MetaData);
+            EnvelopeBuilder.ParseEnvelopeMetadata(envelope.MetaData);
         if (metadataResult.IsErr)
             return Result<byte[], EcliptixProtocolFailure>.Err(metadataResult.UnwrapErr());
 
@@ -689,7 +689,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ? ByteString.CopyFrom(newSenderDhPublicKey)
                 : ByteString.Empty;
 
-            EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+            EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
                 requestId,
                 ByteString.CopyFrom(nonce),
                 messageKey!.Index,

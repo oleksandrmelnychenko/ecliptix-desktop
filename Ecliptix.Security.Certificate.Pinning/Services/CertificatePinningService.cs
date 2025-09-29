@@ -14,7 +14,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
     private volatile int _state = NotInitialized;
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
 
-    public async Task<CertificatePinningOperationResult> InitializeAsync(CancellationToken cancellationToken = default)
+    public CertificatePinningOperationResult Initialize(CancellationToken cancellationToken = default)
     {
         if (_state == Disposed)
             return CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed());
@@ -22,7 +22,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         if (_state == Initialized)
             return CertificatePinningOperationResult.Success();
 
-        await _initializationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        _initializationLock.Wait(cancellationToken);
         try
         {
             if (_state == Initialized)
@@ -33,7 +33,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
 
             Interlocked.Exchange(ref _state, Initializing);
 
-            CertificatePinningOperationResult result = await InitializeCoreAsync().ConfigureAwait(false);
+            CertificatePinningOperationResult result = InitializeCore();
 
             Interlocked.Exchange(ref _state, result.IsSuccess ? Initialized : NotInitialized);
             return result;
@@ -44,7 +44,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
     }
 
-    private static Task<CertificatePinningOperationResult> InitializeCoreAsync()
+    private static CertificatePinningOperationResult InitializeCore()
     {
         try
         {
@@ -52,20 +52,20 @@ public sealed class CertificatePinningService : IAsyncDisposable
             if (nativeResult != CertificatePinningNativeResult.Success)
             {
                 string error = GetErrorStringStatic(nativeResult);
-                return Task.FromResult(CertificatePinningOperationResult.FromError(
-                    CertificatePinningFailure.LibraryInitializationFailed(error)));
+                return CertificatePinningOperationResult.FromError(
+                    CertificatePinningFailure.LibraryInitializationFailed(error));
             }
 
-            return Task.FromResult(CertificatePinningOperationResult.Success());
+            return CertificatePinningOperationResult.Success();
         }
         catch (Exception ex)
         {
-            return Task.FromResult(CertificatePinningOperationResult.FromError(
-                CertificatePinningFailure.InitializationException(ex)));
+            return CertificatePinningOperationResult.FromError(
+                CertificatePinningFailure.InitializationException(ex));
         }
     }
 
-    public async Task<CertificatePinningBoolResult> VerifyServerSignatureAsync(
+    public CertificatePinningBoolResult VerifyServerSignature(
         ReadOnlyMemory<byte> data,
         ReadOnlyMemory<byte> signature,
         CancellationToken cancellationToken = default)
@@ -80,16 +80,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
         if (signature.IsEmpty)
             return CertificatePinningBoolResult.FromError(CertificatePinningFailure.InvalidSignatureSize(0));
 
-        return await VerifySignatureCoreAsync(data, signature, cancellationToken).ConfigureAwait(false);
+        return VerifySignatureUnsafe(data.Span, signature.Span);
     }
 
-    private static async Task<CertificatePinningBoolResult> VerifySignatureCoreAsync(
-        ReadOnlyMemory<byte> data,
-        ReadOnlyMemory<byte> signature,
-        CancellationToken cancellationToken)
-    {
-        return await Task.Run(() => VerifySignatureUnsafe(data.Span, signature.Span), cancellationToken).ConfigureAwait(false);
-    }
 
     private static CertificatePinningBoolResult VerifySignatureUnsafe(ReadOnlySpan<byte> data, ReadOnlySpan<byte> signature)
     {
@@ -120,7 +113,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
     }
 
-    public async Task<CertificatePinningByteArrayResult> EncryptAsync(
+    public CertificatePinningByteArrayResult Encrypt(
         ReadOnlyMemory<byte> plaintext,
         CancellationToken cancellationToken = default)
     {
@@ -131,15 +124,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
         if (plaintext.IsEmpty)
             return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.PlaintextRequired());
 
-        return await EncryptCoreAsync(plaintext, cancellationToken).ConfigureAwait(false);
+        return EncryptUnsafe(plaintext.Span);
     }
 
-    private static async Task<CertificatePinningByteArrayResult> EncryptCoreAsync(
-        ReadOnlyMemory<byte> plaintext,
-        CancellationToken cancellationToken)
-    {
-        return await Task.Run(() => EncryptUnsafe(plaintext.Span), cancellationToken).ConfigureAwait(false);
-    }
 
     private static CertificatePinningByteArrayResult EncryptUnsafe(ReadOnlySpan<byte> plaintext)
     {
@@ -209,7 +196,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
     }
 
-    public async Task<CertificatePinningByteArrayResult> DecryptAsync(
+    public CertificatePinningByteArrayResult Decrypt(
         ReadOnlyMemory<byte> ciphertext,
         CancellationToken cancellationToken = default)
     {
@@ -220,15 +207,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
         if (ciphertext.IsEmpty)
             return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.CiphertextRequired());
 
-        return await DecryptCoreAsync(ciphertext, cancellationToken).ConfigureAwait(false);
+        return DecryptUnsafe(ciphertext.Span);
     }
 
-    private static async Task<CertificatePinningByteArrayResult> DecryptCoreAsync(
-        ReadOnlyMemory<byte> ciphertext,
-        CancellationToken cancellationToken)
-    {
-        return await Task.Run(() => DecryptUnsafe(ciphertext.Span), cancellationToken).ConfigureAwait(false);
-    }
 
     private static CertificatePinningByteArrayResult DecryptUnsafe(ReadOnlySpan<byte> ciphertext)
     {
@@ -270,19 +251,15 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
     }
 
-    public async Task<CertificatePinningByteArrayResult> GetPublicKeyAsync(CancellationToken cancellationToken = default)
+    public CertificatePinningByteArrayResult GetPublicKey(CancellationToken cancellationToken = default)
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
             return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
 
-        return await GetPublicKeyCoreAsync(cancellationToken).ConfigureAwait(false);
+        return GetPublicKeyUnsafe();
     }
 
-    private static async Task<CertificatePinningByteArrayResult> GetPublicKeyCoreAsync(CancellationToken cancellationToken)
-    {
-        return await Task.Run(GetPublicKeyUnsafe, cancellationToken).ConfigureAwait(false);
-    }
 
     private static CertificatePinningByteArrayResult GetPublicKeyUnsafe()
     {

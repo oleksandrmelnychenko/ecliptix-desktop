@@ -617,7 +617,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
 
-        EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+        EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
             requestId: connectId,
             nonce: ByteString.Empty,
             ratchetIndex: 0,
@@ -625,7 +625,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         );
 
         CertificatePinningService? certificatePinningService =
-            await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+            _certificatePinningServiceFactory.GetOrInitializeService();
 
         if (certificatePinningService == null)
         {
@@ -643,12 +643,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkResult =
-                await certificatePinningService!.EncryptAsync(chunk);
+                certificatePinningService.Encrypt(chunk);
 
             if (chunkResult.Error != null)
             {
                 return Result<EcliptixSessionState, NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption("RSA encryption failed: " + chunkResult.Error.Message)
+                    NetworkFailure.RsaEncryption("RSA encryption failed: " + chunkResult.Error.Message)
                 );
             }
 
@@ -668,11 +668,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             currentOffset += chunk.Length;
         }
 
-        SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
+        SecureEnvelope envelope = EnvelopeBuilder.CreateSecureEnvelope(
             metadata,
             ByteString.CopyFrom(combinedEncryptedPayload)
         );
-        
+
         Result<SecureEnvelope, NetworkFailure> establishAppDeviceSecrecyChannelResult =
             await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                 () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
@@ -689,8 +689,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
+        CertificatePinningBoolResult certificatePinningBoolResult = certificatePinningService.VerifyServerSignature(
+            responseEnvelope.EncryptedPayload.Memory,
+            responseEnvelope.AuthenticationTag.Memory);
 
+        if (!certificatePinningBoolResult.IsSuccess)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"Server signature verification failed: {certificatePinningBoolResult.Error?.Message}"));
+        }
+
+        byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
         List<byte> decryptedResponseData = [];
 
         for (int offset = 0; offset < combinedEncryptedResponse.Length; offset += RsaEncryptedChunkSize)
@@ -699,12 +708,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Memory<byte> encryptedChunk = combinedEncryptedResponse.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkDecryptResult =
-                await certificatePinningService!.DecryptAsync(encryptedChunk);
+                certificatePinningService.Decrypt(encryptedChunk);
 
             if (!chunkDecryptResult.IsSuccess)
             {
                 return Result<EcliptixSessionState, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
+                    NetworkFailure.DataCenterNotResponding(
+                        $"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
                 );
             }
 
@@ -897,7 +907,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 pubKeyExchangeRequest.UnwrapErr().ToNetworkFailure());
         }
 
-        EnvelopeMetadata metadata = ProtocolMigrationHelper.CreateEnvelopeMetadata(
+        EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
             requestId: connectId,
             nonce: ByteString.Empty,
             ratchetIndex: 0,
@@ -905,7 +915,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         );
 
         CertificatePinningService? certificatePinningService =
-            await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+            _certificatePinningServiceFactory.GetOrInitializeService();
 
         if (certificatePinningService == null)
         {
@@ -923,7 +933,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkResult =
-                await certificatePinningService.EncryptAsync(chunk);
+                certificatePinningService.Encrypt(chunk);
 
             if (chunkResult.Error != null)
             {
@@ -948,7 +958,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             currentOffset += chunk.Length;
         }
 
-        SecureEnvelope envelope = ProtocolMigrationHelper.CreateSecureEnvelope(
+        SecureEnvelope envelope = EnvelopeBuilder.CreateSecureEnvelope(
             metadata,
             ByteString.CopyFrom(combinedEncryptedPayload)
         );
@@ -983,12 +993,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Memory<byte> encryptedChunk = combinedEncryptedResponse.AsMemory(offset, chunkSize);
 
             CertificatePinningByteArrayResult chunkDecryptResult =
-                await certificatePinningService.DecryptAsync(encryptedChunk);
+                certificatePinningService.Decrypt(encryptedChunk);
 
             if (!chunkDecryptResult.IsSuccess)
             {
                 return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding($"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
+                    NetworkFailure.DataCenterNotResponding(
+                        $"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}")
                 );
             }
 

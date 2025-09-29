@@ -7,7 +7,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public static class ProtocolMigrationHelper
+public static class EnvelopeBuilder
 {
     public static EnvelopeMetadata CreateEnvelopeMetadata(
         uint requestId,
@@ -31,14 +31,8 @@ public static class ProtocolMigrationHelper
             metadata.DhPublicKey = dhPublicKey;
         }
 
-        if (channelKeyId != null && channelKeyId.Length > 0)
-        {
-            metadata.ChannelKeyId = ByteString.CopyFrom(channelKeyId);
-        }
-        else
-        {
-            metadata.ChannelKeyId = GenerateChannelKeyId();
-        }
+        metadata.ChannelKeyId =
+            channelKeyId is { Length: > 0 } ? ByteString.CopyFrom(channelKeyId) : GenerateChannelKeyId();
 
         if (!string.IsNullOrEmpty(correlationId))
         {

@@ -8,7 +8,7 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
     
     private bool _disposed;
 
-    public async Task<CertificatePinningService?> GetOrInitializeServiceAsync()
+    public CertificatePinningService? GetOrInitializeService()
     {
         if (_disposed)
             return null;
@@ -16,7 +16,7 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
         if (_service != null)
             return _service;
 
-        await _initializationSemaphore.WaitAsync().ConfigureAwait(false);
+        _initializationSemaphore.Wait();
         try
         {
             if (_disposed)
@@ -26,7 +26,7 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
                 return _service;
 
             CertificatePinningService service = new();
-            CertificatePinningOperationResult result = await service.InitializeAsync().ConfigureAwait(false);
+            CertificatePinningOperationResult result = service.Initialize();
 
             if (result.IsSuccess)
             {
@@ -35,7 +35,7 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
                 return _service;
             }
 
-            await service.DisposeAsync().ConfigureAwait(false);
+            service.DisposeAsync().AsTask().Wait();
             return null;
         }
         finally
