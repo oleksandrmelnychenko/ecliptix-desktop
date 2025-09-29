@@ -98,19 +98,24 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    public byte[] GenerateKE3(byte[] ke2, KeyExchangeResult keyExchangeState)
+    public byte[] GenerateKe3(byte[]? ke2, KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
         if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
+        {
             throw new ArgumentException($"KE2 must be {OpaqueConstants.KE2_LENGTH} bytes");
+        }
 
         byte[] ke3 = new byte[OpaqueConstants.KE3_LENGTH];
 
         int result = OpaqueNative.opaque_client_generate_ke3(
             _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
 
+        //TODO: handle -5. AuthenticationError specifically to indicate wrong password.
         if (result != (int)OpaqueResult.Success)
+        {
             throw new InvalidOperationException($"Failed to generate KE3: {(OpaqueResult)result}");
+        }
 
         return ke3;
     }
