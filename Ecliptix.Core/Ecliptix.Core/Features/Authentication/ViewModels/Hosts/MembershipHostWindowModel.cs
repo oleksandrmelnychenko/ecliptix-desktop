@@ -456,8 +456,19 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     {
         try
         {
-            await _bottomSheetService.ShowAsync(componentType, redirectView,
-                showScrim: showScrim, isDismissable: isDismissable);
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                await _uiDispatcher.PostAsync(async () =>
+                {
+                    await _bottomSheetService.ShowAsync(componentType, redirectView,
+                        showScrim: showScrim, isDismissable: isDismissable);
+                });
+            }
+            else
+            {
+                await _bottomSheetService.ShowAsync(componentType, redirectView,
+                    showScrim: showScrim, isDismissable: isDismissable);
+            }
         }
         catch (Exception ex)
         {
@@ -468,7 +479,27 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     public async Task HideBottomSheetAsync()
     {
-        await _bottomSheetService.HideAsync();
+        try
+        {
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                await _uiDispatcher.PostAsync(async () =>
+                {
+                    await _bottomSheetService.HideAsync();
+                });
+            }
+            else
+            {
+                await _bottomSheetService.HideAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to hide redirect notification bottom sheet");
+            throw;
+        }
+
+
     }
 
     private async Task CheckCountryCultureMismatchAsync()

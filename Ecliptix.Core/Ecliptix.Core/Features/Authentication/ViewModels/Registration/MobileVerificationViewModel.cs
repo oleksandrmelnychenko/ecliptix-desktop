@@ -81,17 +81,11 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
             .Replay(1)
             .RefCount();
 
-        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber, x => x.NetworkErrorMessage)
-            .CombineLatest(mobileValidation, (inputs, validationError) =>
+        IObservable<string> mobileErrorStream = this.WhenAnyValue(x => x.MobileNumber)
+            .CombineLatest(mobileValidation, (mobile, validationError) =>
             {
-                string mobile = inputs.Item1;
-                string? networkError = inputs.Item2;
-
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
                     _hasMobileNumberBeenTouched = true;
-
-                if (!string.IsNullOrEmpty(networkError))
-                    return networkError;
 
                 return !_hasMobileNumberBeenTouched ? string.Empty : validationError;
             })
@@ -159,6 +153,8 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         else if (!_isDisposed)
         {
             NetworkErrorMessage = result.UnwrapErr();
+            if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
         }
 
         return Unit.Default;

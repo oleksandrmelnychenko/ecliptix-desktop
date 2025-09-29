@@ -147,7 +147,8 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .RefCount();
 
         keyDisplayErrorStream
-            .Subscribe(error => SecureKeyError = error)
+            .Subscribe(
+                error => SecureKeyError = error)
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.SecureKeyError)
@@ -250,7 +251,8 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             {
                 _hasSecureKeyBeenTouched = true;
                 _signInErrorSubject.OnNext(error);
-                ShowServerErrorNotification(error);
+                if (HostScreen is MembershipHostWindowModel hostWindow)
+                    ShowServerErrorNotification(hostWindow, error);    
             })
             .DisposeWith(_disposables);
 
@@ -312,33 +314,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         }
     }
     
-    private void ShowServerErrorNotification(string errorMessage)
-    {
-        if (_isDisposed || string.IsNullOrEmpty(errorMessage)) return;
-
-        UserRequestErrorViewModel errorViewModel = new(errorMessage, _localizationService);
-        UserRequestErrorView errorView = new() { DataContext = errorViewModel };
-
-        if (HostScreen is MembershipHostWindowModel hostWindow)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await hostWindow.ShowBottomSheet(
-                        BottomSheetComponentType.UserRequestError, 
-                        errorView, 
-                        showScrim: false, 
-                        isDismissable: true);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to show server error notification");
-                }
-            });
-        }
-    }
-
     public void ResetState()
     {
         if (_isDisposed) return;

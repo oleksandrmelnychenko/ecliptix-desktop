@@ -105,9 +105,15 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
                 .DisposeWith(disposables);
 
             this.WhenAnyValue(x => x.ServerError)
-                .Select(e => !string.IsNullOrEmpty(e))
                 .DistinctUntilChanged()
-                .Subscribe(flag => HasServerError = flag)
+                .Subscribe(
+                    err 
+                        =>
+                    {
+                        HasServerError = !string.IsNullOrEmpty(err);
+                        if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                            ShowServerErrorNotification(hostWindow, err);
+                    })
                 .DisposeWith(disposables);
 
             SubmitCommand
@@ -304,7 +310,8 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
         if (VerificationSessionId == null)
         {
-            SecureKeyError = LocalizationService[AuthenticationConstants.NoVerificationSessionKey];
+            ServerError = LocalizationService[AuthenticationConstants.NoVerificationSessionKey];
+            HasServerError = true;
             return;
         }
 
@@ -316,6 +323,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         if (registrationResult.IsErr)
         {
             ServerError = registrationResult.UnwrapErr();
+            HasServerError = true;
         }
     }
 

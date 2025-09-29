@@ -130,9 +130,15 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             OnViewLoaded().Subscribe().DisposeWith(disposables).DisposeWith(_disposables);
 
             this.WhenAnyValue(x => x.ErrorMessage)
-                .Select(e => !string.IsNullOrEmpty(e))
                 .DistinctUntilChanged()
-                .Subscribe(flag => HasError = flag)
+                .Subscribe(
+                    err 
+                        =>
+                    {
+                        HasError = !string.IsNullOrEmpty(err);
+                        if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                            ShowServerErrorNotification(hostWindow, err);
+                    })
                 .DisposeWith(disposables).DisposeWith(_disposables);
 
             this.WhenAnyValue(x => x.SecondsRemaining)
@@ -312,14 +318,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        ErrorMessage = _localizationService[AuthenticationConstants.MaxAttemptsReachedKey];
+        //ErrorMessage = _localizationService[AuthenticationConstants.MaxAttemptsReachedKey];
         StartAutoRedirect(5, MembershipViewType.Welcome);
         return 0;
     }
 
     private uint HandleNotFoundStatus()
     {
-        ErrorMessage = _localizationService[AuthenticationConstants.SessionNotFoundKey];
+        //  ErrorMessage = _localizationService[AuthenticationConstants.SessionNotFoundKey];
         StartAutoRedirect(5, MembershipViewType.Welcome);
         return 0;
     }
@@ -329,6 +335,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         if (!string.IsNullOrEmpty(error))
         {
             ErrorMessage = error;
+            HasError = true;
         }
 
         HasValidSession = false;

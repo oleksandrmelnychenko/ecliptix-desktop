@@ -1,14 +1,19 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
+using Ecliptix.Core.Controls.Modals;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using ReactiveUI;
+using Serilog;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
@@ -85,6 +90,30 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             CharacterWarningType.MultipleCharacters => LocalizationService["ValidationWarnings.SecureKey.MultipleCharacters"],
             _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
         };
+    }
+    
+    public void ShowServerErrorNotification(MembershipHostWindowModel hostWindow, string errorMessage)
+    {
+        if (string.IsNullOrEmpty(errorMessage)) return;
+        
+        UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
+        UserRequestErrorView errorView = new() { DataContext = errorViewModel };
+        
+        _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await hostWindow.ShowBottomSheet(
+                        BottomSheetComponentType.UserRequestError, 
+                        errorView, 
+                        showScrim: false, 
+                        isDismissable: true);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to show server error notification");
+                }
+            });
     }
     
     protected virtual void Dispose(bool disposing)
