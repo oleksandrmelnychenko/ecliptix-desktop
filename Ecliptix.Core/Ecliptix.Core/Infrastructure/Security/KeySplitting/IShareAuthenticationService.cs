@@ -1,17 +1,15 @@
 using System.Threading.Tasks;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public interface IShareAuthenticationService
 {
-    Task<Result<byte[], string>> GenerateHmacKeyAsync(string identifier);
+    Task<Result<Unit, KeySplittingFailure>> RemoveHmacKeyAsync(string identifier);
 
-    Task<Result<Unit, string>> StoreHmacKeyAsync(string identifier, byte[] hmacKey);
+    Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> GenerateHmacKeyHandleAsync(string identifier);
 
-    Task<Result<byte[], string>> RetrieveHmacKeyAsync(string identifier);
-
-    Task<Result<bool, string>> HasHmacKeyAsync(string identifier);
-
-    Task<Result<Unit, string>> RemoveHmacKeyAsync(string identifier);
+    Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> RetrieveHmacKeyHandleAsync(string identifier);
 }

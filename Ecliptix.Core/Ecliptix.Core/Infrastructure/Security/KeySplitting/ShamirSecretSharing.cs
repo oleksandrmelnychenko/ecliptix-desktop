@@ -4,70 +4,74 @@ using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
-using Serilog;
+using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public sealed class ShamirSecretSharing : ISecureKeySplitter
 {
-    private const int PRIME_256_BIT_SIZE = 32;
-    // Using secp256k1 prime: 2^256 - 2^32 - 977
-    // This is a well-known cryptographically secure prime used in Bitcoin/Ethereum
-    private static readonly BigInteger Prime256 = BigInteger.Parse("115792089237316195423570985008687907853269984665640564039457584007908634671663");
+    private const int Prime256BitSize = 32;
+    private const int DefaultThreshold = 3;
+    private const int DefaultTotalShares = 5;
+    private const int MinimumShares = 2;
+    private const int MaximumShares = 255;
+    private const int MaxKeyChunks = 1000;
+    private const int MaxKeyLength = 1024 * 1024;
+    private const int ShareExpirationDays = 30;
 
-    // Configurable share expiration (default: 30 days)
-    public TimeSpan ShareExpiration { get; set; } = TimeSpan.FromDays(30);
+    private static readonly BigInteger Prime256 =
+        BigInteger.Parse("115792089237316195423570985008687907853269984665640564039457584007908634671663");
 
-    public async Task<Result<KeySplitResult, string>> SplitKeyAsync(byte[] key, int threshold = 3, int totalShares = 5, byte[]? hmacKey = null)
+    private TimeSpan ShareExpiration { get; } = TimeSpan.FromDays(ShareExpirationDays);
+
+    private static async Task<Result<KeySplitResult, KeySplittingFailure>> SplitKeyAsync(byte[] key,
+        int threshold = DefaultThreshold, int totalShares = DefaultTotalShares, byte[]? hmacKey = null)
     {
-        if (key == null || key.Length == 0)
-            return Result<KeySplitResult, string>.Err("Key cannot be null or empty");
+        if (threshold < MinimumShares || threshold > totalShares)
+            return Result<KeySplitResult, KeySplittingFailure>.Err(
+                KeySplittingFailure.InvalidThreshold(threshold, totalShares));
 
-        if (threshold < 2 || threshold > totalShares)
-            return Result<KeySplitResult, string>.Err($"Invalid threshold: {threshold}. Must be between 2 and {totalShares}");
+        if (totalShares is < MinimumShares or > MaximumShares)
+            return Result<KeySplitResult, KeySplittingFailure>.Err(KeySplittingFailure.InvalidShareCount(totalShares));
 
-        if (totalShares < 2 || totalShares > 255)
-            return Result<KeySplitResult, string>.Err($"Invalid total shares: {totalShares}. Must be between 2 and 255");
-
-        // Validate key length to prevent integer overflow
-        if (key.Length > int.MaxValue - PRIME_256_BIT_SIZE)
-            return Result<KeySplitResult, string>.Err("Key is too large to process safely");
+        if (key.Length > int.MaxValue - Prime256BitSize)
+            return Result<KeySplitResult, KeySplittingFailure>.Err(KeySplittingFailure.InvalidKeyLength(key.Length));
 
         return await Task.Run(() =>
         {
-            KeyShare[] shares = null;
-            byte[][] allSharesData = null;
-            BigInteger[] coefficients = null;
+            KeyShare[]? shares = null;
+            byte[][]? allSharesData = null;
+            BigInteger[]? coefficients = null;
 
             try
             {
                 shares = new KeyShare[totalShares];
-                int chunksNeeded = checked((key.Length + PRIME_256_BIT_SIZE - 1) / PRIME_256_BIT_SIZE);
+                int chunksNeeded = checked((key.Length + Prime256BitSize - 1) / Prime256BitSize);
 
-                // Limit chunks to prevent DoS
-                if (chunksNeeded > 1000)
-                    return Result<KeySplitResult, string>.Err("Key requires too many chunks (>1000)");
+                if (chunksNeeded > MaxKeyChunks)
+                    return Result<KeySplitResult, KeySplittingFailure>.Err(
+                        KeySplittingFailure.KeySplittingFailed($"Key requires too many chunks (>{MaxKeyChunks})"));
 
                 allSharesData = new byte[totalShares][];
                 for (int i = 0; i < totalShares; i++)
                 {
-                    allSharesData[i] = new byte[chunksNeeded * (PRIME_256_BIT_SIZE + 1) + 4];
+                    allSharesData[i] = new byte[chunksNeeded * (Prime256BitSize + 1) + 4];
                     BitConverter.GetBytes(key.Length).CopyTo(allSharesData[i], 0);
                 }
 
                 for (int chunkIndex = 0; chunkIndex < chunksNeeded; chunkIndex++)
                 {
-                    int startIdx = chunkIndex * PRIME_256_BIT_SIZE;
-                    int chunkSize = Math.Min(PRIME_256_BIT_SIZE, key.Length - startIdx);
+                    int startIdx = chunkIndex * Prime256BitSize;
+                    int chunkSize = Math.Min(Prime256BitSize, key.Length - startIdx);
 
-                    byte[] chunk = new byte[PRIME_256_BIT_SIZE];
+                    byte[] chunk = new byte[Prime256BitSize];
                     Array.Copy(key, startIdx, chunk, 0, chunkSize);
 
-                    BigInteger secret = new BigInteger(chunk, true, true);
+                    BigInteger secret = new(chunk, true, true);
 
-                    // CRITICAL FIX: Reduce secret modulo prime to ensure it's in the field
-                    secret = secret % Prime256;
+                    secret %= Prime256;
                     if (secret < 0) secret += Prime256;
 
                     coefficients = new BigInteger[threshold];
@@ -75,7 +79,7 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
 
                     for (int i = 1; i < threshold; i++)
                     {
-                        byte[] randomBytes = RandomNumberGenerator.GetBytes(PRIME_256_BIT_SIZE);
+                        byte[] randomBytes = RandomNumberGenerator.GetBytes(Prime256BitSize);
                         BigInteger coeff = new BigInteger(randomBytes, true, true) % Prime256;
                         if (coeff < 0) coeff += Prime256;
                         coefficients[i] = coeff;
@@ -87,61 +91,49 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
 
                         byte[] shareBytes = shareValue.ToByteArray(true, true);
 
-                        // FIX: Handle both undersized and oversized byte arrays
-                        if (shareBytes.Length != PRIME_256_BIT_SIZE)
+                        if (shareBytes.Length != Prime256BitSize)
                         {
-                            byte[] adjustedBytes = new byte[PRIME_256_BIT_SIZE];
-                            if (shareBytes.Length > PRIME_256_BIT_SIZE)
+                            byte[] adjustedBytes = new byte[Prime256BitSize];
+                            if (shareBytes.Length > Prime256BitSize)
                             {
-                                // Take the least significant bytes if oversized
-                                Array.Copy(shareBytes, shareBytes.Length - PRIME_256_BIT_SIZE,
-                                          adjustedBytes, 0, PRIME_256_BIT_SIZE);
+                                Array.Copy(shareBytes, shareBytes.Length - Prime256BitSize,
+                                    adjustedBytes, 0, Prime256BitSize);
                             }
                             else
                             {
-                                // Pad with zeros at the beginning if undersized
                                 Array.Copy(shareBytes, 0, adjustedBytes,
-                                          PRIME_256_BIT_SIZE - shareBytes.Length, shareBytes.Length);
+                                    Prime256BitSize - shareBytes.Length, shareBytes.Length);
                             }
+
                             shareBytes = adjustedBytes;
                         }
 
-                        int shareOffset = 4 + chunkIndex * (PRIME_256_BIT_SIZE + 1);
+                        int shareOffset = 4 + chunkIndex * (Prime256BitSize + 1);
                         allSharesData[x - 1][shareOffset] = (byte)x;
-                        Array.Copy(shareBytes, 0, allSharesData[x - 1], shareOffset + 1, PRIME_256_BIT_SIZE);
+                        Array.Copy(shareBytes, 0, allSharesData[x - 1], shareOffset + 1, Prime256BitSize);
                     }
                 }
 
-                // Create KeySplitResult first to get the SessionId
-                KeySplitResult result = new(null!, threshold); // We'll set shares after
+                KeySplitResult result = new(null!, threshold);
                 Guid sessionId = result.SessionId;
 
-                // Create shares with the SessionId from KeySplitResult
                 for (int i = 0; i < totalShares; i++)
                 {
                     ShareLocation location = (ShareLocation)(i % Enum.GetValues<ShareLocation>().Length);
                     shares[i] = new KeyShare(allSharesData[i], i + 1, location, sessionId);
 
-                    // Add HMAC if key provided
-                    if (hmacKey != null && hmacKey.Length > 0)
-                    {
-                        using HMACSHA256 hmac = new(hmacKey);
-                        byte[] shareHmac = hmac.ComputeHash(allSharesData[i]);
-                        shares[i].SetHmac(shareHmac);
-                    }
+                    if (hmacKey is not { Length: > 0 }) continue;
+                    using HMACSHA256 hmac = new(hmacKey);
+                    byte[] shareHmac = hmac.ComputeHash(allSharesData[i]);
+                    shares[i].SetHmac(shareHmac);
                 }
 
-                // Now set the shares in the result
                 result.SetShares(shares);
 
-                Log.Debug("Split key into {TotalShares} shares with threshold {Threshold}", totalShares, threshold);
-                return Result<KeySplitResult, string>.Ok(result);
+                return Result<KeySplitResult, KeySplittingFailure>.Ok(result);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to split key using Shamir's Secret Sharing");
-
-                // Dispose any created shares on error
                 if (shares != null)
                 {
                     foreach (KeyShare share in shares)
@@ -150,11 +142,11 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
                     }
                 }
 
-                return Result<KeySplitResult, string>.Err($"Key splitting failed: {ex.Message}");
+                return Result<KeySplitResult, KeySplittingFailure>.Err(
+                    KeySplittingFailure.KeySplittingFailed(ex.Message, ex));
             }
             finally
             {
-                // Clear sensitive data from memory
                 if (coefficients != null)
                 {
                     for (int i = 0; i < coefficients.Length; i++)
@@ -163,42 +155,41 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
                     }
                 }
 
-                if (allSharesData != null && shares == null) // Only clear if not used in shares
+                if (allSharesData != null && shares == null)
                 {
                     foreach (byte[] data in allSharesData)
                     {
-                        if (data != null)
-                            CryptographicOperations.ZeroMemory(data);
+                        CryptographicOperations.ZeroMemory(data);
                     }
                 }
             }
         });
     }
 
-    public async Task<Result<byte[], string>> ReconstructKeyAsync(KeyShare[] shares, byte[]? hmacKey = null)
+    private async Task<Result<byte[], KeySplittingFailure>> ReconstructMasterKeyAsync(KeyShare[] shares,
+        byte[]? hmacKey = null)
     {
-        if (shares == null || shares.Length < 2)
-            return Result<byte[], string>.Err("Insufficient shares for reconstruction");
+        if (shares.Length < MinimumShares)
+            return Result<byte[], KeySplittingFailure>.Err(
+                KeySplittingFailure.InsufficientShares(shares.Length, MinimumShares));
 
-        // Validate share consistency
         if (!ValidateSharesForReconstruction(shares, hmacKey, out string validationError))
-            return Result<byte[], string>.Err(validationError);
+            return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.ShareValidationFailed(validationError));
 
         return await Task.Run(() =>
         {
             try
             {
-                // Validate array bounds before reading
                 if (shares[0].ShareData.Length < 4)
-                    return Result<byte[], string>.Err("Invalid share format: missing length header");
+                    return Result<byte[], KeySplittingFailure>.Err(
+                        KeySplittingFailure.InvalidShareData("Invalid share format: missing length header"));
 
                 int keyLength = BitConverter.ToInt32(shares[0].ShareData, 0);
 
-                // Validate key length is reasonable
-                if (keyLength <= 0 || keyLength > 1024 * 1024) // Max 1MB
-                    return Result<byte[], string>.Err($"Invalid key length: {keyLength}");
+                if (keyLength is <= 0 or > MaxKeyLength)
+                    return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidKeyLength(keyLength));
 
-                int chunksNeeded = checked((keyLength + PRIME_256_BIT_SIZE - 1) / PRIME_256_BIT_SIZE);
+                int chunksNeeded = checked((keyLength + Prime256BitSize - 1) / Prime256BitSize);
 
                 byte[] reconstructedKey = new byte[keyLength];
 
@@ -209,82 +200,78 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
 
                     for (int i = 0; i < shares.Length; i++)
                     {
-                        int shareOffset = 4 + chunkIndex * (PRIME_256_BIT_SIZE + 1);
+                        int shareOffset = 4 + chunkIndex * (Prime256BitSize + 1);
 
-                        // Validate bounds before accessing
                         if (shareOffset >= shares[i].ShareData.Length)
-                            return Result<byte[], string>.Err($"Invalid share format at index {i}, chunk {chunkIndex}");
+                            return Result<byte[], KeySplittingFailure>.Err(
+                                KeySplittingFailure.InvalidShareData(
+                                    $"Invalid share format at index {i}, chunk {chunkIndex}"));
 
-                        if (shareOffset + 1 + PRIME_256_BIT_SIZE > shares[i].ShareData.Length)
-                            return Result<byte[], string>.Err($"Share data truncated at index {i}, chunk {chunkIndex}");
+                        if (shareOffset + 1 + Prime256BitSize > shares[i].ShareData.Length)
+                            return Result<byte[], KeySplittingFailure>.Err(
+                                KeySplittingFailure.InvalidShareData(
+                                    $"Share data truncated at index {i}, chunk {chunkIndex}"));
 
                         x[i] = shares[i].ShareData[shareOffset];
 
-                        byte[] yBytes = new byte[PRIME_256_BIT_SIZE];
-                        Array.Copy(shares[i].ShareData, shareOffset + 1, yBytes, 0, PRIME_256_BIT_SIZE);
+                        byte[] yBytes = new byte[Prime256BitSize];
+                        Array.Copy(shares[i].ShareData, shareOffset + 1, yBytes, 0, Prime256BitSize);
                         y[i] = new BigInteger(yBytes, true, true);
                     }
 
                     BigInteger reconstructedSecret = LagrangeInterpolation(x, y, 0);
 
                     byte[] secretBytes = reconstructedSecret.ToByteArray(true, true);
-                    int startIdx = chunkIndex * PRIME_256_BIT_SIZE;
-                    int copySize = Math.Min(secretBytes.Length, Math.Min(PRIME_256_BIT_SIZE, keyLength - startIdx));
+                    int startIdx = chunkIndex * Prime256BitSize;
+                    int copySize = Math.Min(secretBytes.Length, Math.Min(Prime256BitSize, keyLength - startIdx));
                     Array.Copy(secretBytes, 0, reconstructedKey, startIdx, copySize);
                 }
 
-                Log.Debug("Successfully reconstructed key from {ShareCount} shares", shares.Length);
-                return Result<byte[], string>.Ok(reconstructedKey);
+                return Result<byte[], KeySplittingFailure>.Ok(reconstructedKey);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to reconstruct key from shares");
-                return Result<byte[], string>.Err($"Key reconstruction failed: {ex.Message}");
+                return Result<byte[], KeySplittingFailure>.Err(
+                    KeySplittingFailure.KeyReconstructionFailed(ex.Message, ex));
             }
         });
     }
 
-    public bool ValidateShares(KeyShare[] shares, byte[]? hmacKey = null)
+    private static bool ValidateShares(KeyShare[] shares, byte[]? hmacKey = null)
     {
-        if (shares == null || shares.Length < 2)
+        if (shares.Length < MinimumShares)
             return false;
 
         try
         {
-            // Basic validation
             int expectedLength = shares[0].ShareData.Length;
-            if (!shares.All(s => s.ShareData != null && s.ShareData.Length == expectedLength))
+            if (shares.Any(s => s.ShareData.Length != expectedLength))
                 return false;
 
-            // Check for duplicate share indices
-            HashSet<int> seenIndices = new();
-            foreach (KeyShare share in shares)
+            HashSet<int> seenIndices = [];
+            if (shares.Any(share => !seenIndices.Add(share.ShareIndex)))
             {
-                if (!seenIndices.Add(share.ShareIndex))
-                    return false; // Duplicate index found
+                return false;
             }
 
-            // All shares should have same SessionId
             Guid? sessionId = shares[0].SessionId;
-            if (!shares.All(s => s.SessionId == sessionId))
+            if (shares.Any(s => s.SessionId != sessionId))
                 return false;
 
-            // Check share indices are in valid range (1-based)
-            if (shares.Any(s => s.ShareIndex < 1 || s.ShareIndex > 255))
+            if (shares.Any(s => s.ShareIndex < 1 || s.ShareIndex > MaximumShares))
                 return false;
 
-            // Validate HMAC if key provided
-            if (hmacKey != null && hmacKey.Length > 0)
+            if (hmacKey is { Length: > 0 })
             {
                 using HMACSHA256 hmac = new(hmacKey);
                 foreach (KeyShare share in shares)
                 {
                     if (share.Hmac == null || share.Hmac.Length == 0)
-                        return false; // HMAC expected but not present
+                        return false;
 
                     byte[] expectedHmac = hmac.ComputeHash(share.ShareData);
                     if (!ConstantTimeEquals(expectedHmac, share.Hmac))
-                        return false; // HMAC mismatch
+                        return false;
                 }
             }
 
@@ -306,29 +293,6 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
             return false;
         }
 
-        // Additional reconstruction-specific validation
-        // Note: We allow shares from the same location type for flexibility.
-        // In production, you may want to enforce location diversity based on your threat model.
-        // For example, if an attacker compromises one storage location, they shouldn't
-        // be able to reconstruct the key. However, during recovery scenarios or testing,
-        // you might need to use shares from fewer location types.
-
-        // Optional: Uncomment to enforce location diversity
-        /*
-        HashSet<ShareLocation> locations = new();
-        foreach (KeyShare share in shares)
-        {
-            locations.Add(share.Location);
-        }
-
-        if (locations.Count < Math.Min(shares.Length, 3)) // Require at least 3 different locations if possible
-        {
-            error = $"Insufficient location diversity. Found {locations.Count} unique locations, recommend at least 3";
-            return false;
-        }
-        */
-
-        // Check share age if expiration is configured
         if (ShareExpiration > TimeSpan.Zero)
         {
             DateTime now = DateTime.UtcNow;
@@ -345,21 +309,23 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
         return true;
     }
 
-    public async Task<Result<Unit, string>> SecurelyDisposeSharesAsync(KeyShare[] shares)
+    public async Task<Result<Unit, KeySplittingFailure>> SecurelyDisposeSharesAsync(KeyShare[]? shares)
     {
         return await Task.Run(() =>
         {
             try
             {
-                foreach (KeyShare share in shares ?? Array.Empty<KeyShare>())
+                foreach (KeyShare share in shares ?? [])
                 {
-                    share?.Dispose();
+                    share.Dispose();
                 }
-                return Result<Unit, string>.Ok(Unit.Value);
+
+                return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
             }
             catch (Exception ex)
             {
-                return Result<Unit, string>.Err($"Failed to dispose shares: {ex.Message}");
+                return Result<Unit, KeySplittingFailure>.Err(
+                    KeySplittingFailure.InvalidKeyData($"Failed to dispose shares: {ex.Message}"));
             }
         });
     }
@@ -416,20 +382,16 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
 
     private static BigInteger ModInverse(BigInteger a, BigInteger m)
     {
-        // Validate inputs
         if (m <= 1)
             throw new ArgumentException("Modulus must be greater than 1", nameof(m));
 
-        // Normalize a to be positive and within modulus
         a = a % m;
         if (a < 0) a += m;
 
-        // Check if inverse exists (gcd must be 1)
         BigInteger gcd = BigInteger.GreatestCommonDivisor(a, m);
         if (gcd != 1)
             throw new InvalidOperationException($"No modular inverse exists for {a} mod {m} (gcd={gcd})");
 
-        // Extended Euclidean Algorithm
         BigInteger m0 = m;
         BigInteger x0 = 0;
         BigInteger x1 = 1;
@@ -454,7 +416,7 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
 
     private static bool ConstantTimeEquals(byte[] a, byte[] b)
     {
-        if (a == null || b == null || a.Length != b.Length)
+        if (a.Length != b.Length)
             return false;
 
         uint diff = 0;
@@ -462,6 +424,111 @@ public sealed class ShamirSecretSharing : ISecureKeySplitter
         {
             diff |= (uint)(a[i] ^ b[i]);
         }
+
         return diff == 0;
+    }
+
+    public async Task<Result<KeySplitResult, KeySplittingFailure>> SplitKeyAsync(
+        SodiumSecureMemoryHandle keyHandle,
+        int threshold = DefaultThreshold,
+        int totalShares = DefaultTotalShares,
+        SodiumSecureMemoryHandle? hmacKeyHandle = null)
+    {
+        if (keyHandle.IsInvalid)
+            return Result<KeySplitResult, KeySplittingFailure>.Err(
+                KeySplittingFailure.InvalidKeyData("Key handle cannot be null or invalid"));
+
+        byte[]? keyBytes = null;
+        byte[]? hmacKeyBytes = null;
+
+        try
+        {
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+                keyHandle.ReadBytes(keyHandle.Length);
+            if (readResult.IsErr)
+                return Result<KeySplitResult, KeySplittingFailure>.Err(
+                    KeySplittingFailure.MemoryReadFailed(readResult.UnwrapErr().Message));
+
+            keyBytes = readResult.Unwrap();
+
+            if (hmacKeyHandle is { IsInvalid: false })
+            {
+                Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> hmacReadResult =
+                    hmacKeyHandle.ReadBytes(hmacKeyHandle.Length);
+                if (hmacReadResult.IsErr)
+                    return Result<KeySplitResult, KeySplittingFailure>.Err(
+                        KeySplittingFailure.HmacKeyRetrievalFailed(hmacReadResult.UnwrapErr().Message));
+
+                hmacKeyBytes = hmacReadResult.Unwrap();
+            }
+
+            return await SplitKeyAsync(keyBytes, threshold, totalShares, hmacKeyBytes);
+        }
+        finally
+        {
+            if (keyBytes != null)
+                CryptographicOperations.ZeroMemory(keyBytes);
+            if (hmacKeyBytes != null)
+                CryptographicOperations.ZeroMemory(hmacKeyBytes);
+        }
+    }
+
+    public async Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> ReconstructKeyHandleAsync(
+        KeyShare[] shares,
+        SodiumSecureMemoryHandle? hmacKeyHandle = null)
+    {
+        byte[]? hmacKeyBytes = null;
+
+        try
+        {
+            if (hmacKeyHandle is { IsInvalid: false })
+            {
+                Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> hmacReadResult =
+                    hmacKeyHandle.ReadBytes(hmacKeyHandle.Length);
+                if (hmacReadResult.IsErr)
+                    return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                        KeySplittingFailure.HmacKeyRetrievalFailed(hmacReadResult.UnwrapErr().Message));
+
+                hmacKeyBytes = hmacReadResult.Unwrap();
+            }
+
+            Result<byte[], KeySplittingFailure> reconstructResult =
+                await ReconstructMasterKeyAsync(shares, hmacKeyBytes);
+            if (reconstructResult.IsErr)
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(reconstructResult.UnwrapErr());
+
+            byte[] reconstructedKey = reconstructResult.Unwrap();
+
+            try
+            {
+                Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocateResult =
+                    SodiumSecureMemoryHandle.Allocate(reconstructedKey.Length);
+                if (allocateResult.IsErr)
+                    return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                        KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
+
+                SodiumSecureMemoryHandle handle = allocateResult.Unwrap();
+
+                Result<Unit, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> writeResult =
+                    handle.Write(reconstructedKey);
+                if (writeResult.IsErr)
+                {
+                    handle.Dispose();
+                    return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                        KeySplittingFailure.MemoryWriteFailed(writeResult.UnwrapErr().Message));
+                }
+
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Ok(handle);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(reconstructedKey);
+            }
+        }
+        finally
+        {
+            if (hmacKeyBytes != null)
+                CryptographicOperations.ZeroMemory(hmacKeyBytes);
+        }
     }
 }

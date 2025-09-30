@@ -16,16 +16,32 @@ using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Core;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Sodium;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
-using Serilog;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public record SignInResult(byte[] SessionKey, Ecliptix.Protobuf.Membership.Membership? Membership);
+public sealed class SignInResult(
+    SodiumSecureMemoryHandle masterKeyHandle,
+    Ecliptix.Protobuf.Membership.Membership? membership)
+    : IDisposable
+{
+    public SodiumSecureMemoryHandle? MasterKeyHandle { get; private set; } = masterKeyHandle;
+    public Ecliptix.Protobuf.Membership.Membership? Membership { get; } = membership;
+
+    public void Dispose()
+    {
+        MasterKeyHandle?.Dispose();
+        MasterKeyHandle = null;
+    }
+}
 
 public class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
@@ -33,7 +49,6 @@ public class OpaqueAuthenticationService(
     ISystemEventService systemEvents,
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    ISessionKeyService sessionKeyService,
     IEnhancedKeyDerivation enhancedKeyDerivation,
     IMultiLocationKeyStorage multiLocationKeyStorage,
     ISecureKeySplitter keySplitter,
@@ -82,13 +97,13 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    public async Task<Result<Unit, string>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
+    public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
         uint connectId)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
             string mobileRequiredError = localizationService[AuthenticationConstants.MobileNumberRequiredKey];
-            return Result<Unit, string>.Err(mobileRequiredError);
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
 
         byte[]? passwordBytes = null;
@@ -102,11 +117,12 @@ public class OpaqueAuthenticationService(
             }
 
             string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-            return Result<Unit, string>.Err(requiredError);
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey]);
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.UnexpectedError(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey], ex));
         }
         finally
         {
@@ -114,7 +130,7 @@ public class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<Unit, string>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
+    private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
         byte[] serverPublicKeyBytes = ServerPublicKey();
@@ -128,10 +144,10 @@ public class OpaqueAuthenticationService(
             PeerOprf = ByteString.CopyFrom(ke1Result.KeyExchangeData),
         };
 
-        Result<OpaqueSignInInitResponse, string> initResult = await SendInitRequestAsync(initRequest, connectId);
+        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult = await SendInitRequestAsync(initRequest, connectId);
         if (initResult.IsErr)
         {
-            return Result<Unit, string>.Err(initResult.UnwrapErr());
+            return Result<Unit, AuthenticationFailure>.Err(initResult.UnwrapErr());
         }
 
         OpaqueSignInInitResponse initResponse = initResult.Unwrap();
@@ -139,83 +155,89 @@ public class OpaqueAuthenticationService(
         Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
         if (validationResult.IsErr)
         {
-            return Result<Unit, string>.Err(validationResult.UnwrapErr().Message);
+            ValidationFailure validation = validationResult.UnwrapErr();
+            AuthenticationFailure authFailure = validation.FailureType switch
+            {
+                ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation.Message),
+                ValidationFailureType.LoginAttemptExceeded => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+                _ => AuthenticationFailure.UnexpectedError(validation.Message)
+            };
+            return Result<Unit, AuthenticationFailure>.Err(authFailure);
         }
 
         byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
-        
+
         Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
         if (ke3DataResult.IsErr)
-        { 
+        {
             string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
-            return Result<Unit, string>.Err(errorMessage);
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(errorMessage));
         }
-        
+
         byte[] ke3Data = ke3DataResult.Unwrap();
 
-        byte[] baseSessionKey = opaqueClient.DeriveSessionKey(ke1Result);
+        byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
-        Result<byte[], string> enhancedKeyResult = await enhancedKeyDerivation.DeriveEnhancedKeyAsync(
-            baseSessionKey,
-            "ecliptix-signin-session",
-            connectId,
-            new KeyDerivationOptions
-            {
-                MemorySize = 262144,
-                Iterations = 4,
-                DegreeOfParallelism = 4,
-                UseHardwareEntropy = true,
-                OutputLength = 64
-            });
-
-        if (enhancedKeyResult.IsErr)
+        Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
+            SodiumSecureMemoryHandle.Allocate(baseSessionKeyBytes.Length);
+        if (baseHandleResult.IsErr)
         {
-            Log.Error("Failed to derive enhanced session key: {Error}", enhancedKeyResult.UnwrapErr());
-            return Result<Unit, string>.Err("Failed to derive enhanced session key");
+            CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.SecureMemoryAllocationFailed(baseHandleResult.UnwrapErr().Message));
         }
 
-        byte[] enhancedSessionKey = enhancedKeyResult.Unwrap();
-        CryptographicOperations.ZeroMemory(baseSessionKey);
+        using SodiumSecureMemoryHandle baseKeyHandle = baseHandleResult.Unwrap();
+        Result<Unit, SodiumFailure> writeResult = baseKeyHandle.Write(baseSessionKeyBytes);
+        CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
+
+        if (writeResult.IsErr)
+        {
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
+        }
+
+        Result<SodiumSecureMemoryHandle, KeySplittingFailure> enhancedMasterKeyHandleResult =
+            await enhancedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
+                baseKeyHandle,
+                "ecliptix-signin-session",
+                connectId,
+                new KeyDerivationOptions
+                {
+                    MemorySize = 262144,
+                    Iterations = 4,
+                    DegreeOfParallelism = 4,
+                    UseHardwareEntropy = true,
+                    OutputLength = 64
+                });
+
+        if (enhancedMasterKeyHandleResult.IsErr)
+        {
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.KeyDerivationFailed(enhancedMasterKeyHandleResult.UnwrapErr().Message));
+        }
+
+        using SodiumSecureMemoryHandle enhancedMasterKeyHandle = enhancedMasterKeyHandleResult.Unwrap();
 
         OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
             MobileNumber = mobileNumber,
-            ClientMac =  ByteString.CopyFrom(ke3Data),
+            ClientMac = ByteString.CopyFrom(ke3Data),
         };
 
-        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedSessionKey, connectId);
+        Result<SignInResult, AuthenticationFailure> finalResult =
+            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId);
 
         if (finalResult.IsOk)
         {
-            SignInResult signInResult = finalResult.Unwrap();
+            using SignInResult signInResult = finalResult.Unwrap();
 
-            // Store session key shares for current session (indexed by connectId)
-            // This is optional since session keys are ephemeral
-            Log.Debug("Splitting and storing session key using Shamir's Secret Sharing for connection {ConnectId}", connectId);
-            Result<KeySplitResult, string> splitResult = await keySplitter.SplitKeyAsync(
-                signInResult.SessionKey,
-                threshold: 3,
-                totalShares: 5);
-
-            if (splitResult.IsOk)
+            if (signInResult.MasterKeyHandle == null)
             {
-                using KeySplitResult splitKeys = splitResult.Unwrap();
-
-                Result<Unit, string> storeResult = await multiLocationKeyStorage.StoreKeySharesAsync(splitKeys, connectId);
-                if (storeResult.IsErr)
-                {
-                    Log.Warning("Failed to store session key shares: {Error}", storeResult.UnwrapErr());
-                    // Continue - session key storage is optional
-                }
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.SecureMemoryAllocationFailed("Failed to create master key handle"));
             }
-            else
-            {
-                Log.Warning("Failed to split session key: {Error}", splitResult.UnwrapErr());
-                // Continue - session key storage is optional
-            }
-
-            await sessionKeyService.StoreSessionKeyAsync(signInResult.SessionKey, connectId);
 
             if (signInResult.Membership != null)
             {
@@ -224,71 +246,58 @@ public class OpaqueAuthenticationService(
                 if (!ValidateMembershipIdentifier(membershipIdentifier))
                 {
                     await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier");
-                    return Result<Unit, string>.Err(localizationService[AuthenticationConstants.InvalidCredentialsKey]);
+                    return Result<Unit, AuthenticationFailure>.Err(
+                        AuthenticationFailure.InvalidMembershipIdentifier(localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                 }
 
-                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(enhancedSessionKey, membershipIdentifier);
-                string memberId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
+                Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
+                    MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle, membershipIdentifier);
 
-                // Store master key using Shamir's Secret Sharing indexed by membershipId
-                Log.Information("Splitting and storing master key using Shamir's Secret Sharing for member {MemberId}", memberId);
-
-                // Generate HMAC key for share validation
-                Result<byte[], string> hmacKeyResult = await shareAuthenticationService.GenerateHmacKeyAsync(memberId);
-                byte[]? hmacKey = hmacKeyResult.IsOk ? hmacKeyResult.Unwrap() : null;
-
-                if (hmacKeyResult.IsErr)
+                if (masterKeyHandleResult.IsErr)
                 {
-                    Log.Warning("Failed to generate HMAC key for member {MemberId}: {Error}", memberId, hmacKeyResult.UnwrapErr());
+                    return Result<Unit, AuthenticationFailure>.Err(
+                        AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr().Message));
                 }
 
-                Result<KeySplitResult, string> masterSplitResult = await keySplitter.SplitKeyAsync(
-                    masterKey,
+                using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
+                Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+
+                Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
+                    await shareAuthenticationService.GenerateHmacKeyHandleAsync(membershipId.ToString());
+
+                if (hmacKeyHandleResult.IsErr)
+                {
+                    return Result<Unit, AuthenticationFailure>.Err(
+                        AuthenticationFailure.HmacKeyGenerationFailed(hmacKeyHandleResult.UnwrapErr().Message));
+                }
+
+                using SodiumSecureMemoryHandle hmacKeyHandle = hmacKeyHandleResult.Unwrap();
+
+                Result<KeySplitResult, KeySplittingFailure> masterSplitResult = await keySplitter.SplitKeyAsync(
+                    masterKeyHandle,
                     threshold: 3,
                     totalShares: 5,
-                    hmacKey: hmacKey);
+                    hmacKeyHandle: hmacKeyHandle);
 
                 if (masterSplitResult.IsOk)
                 {
                     using KeySplitResult masterSplitKeys = masterSplitResult.Unwrap();
 
-                    // Store master key shares indexed by membershipId (persistent)
-                    Result<Unit, string> masterStoreResult = await multiLocationKeyStorage.StoreKeySharesAsync(masterSplitKeys, memberId);
+                    Result<Unit, KeySplittingFailure> masterStoreResult =
+                        await multiLocationKeyStorage.StoreKeySharesAsync(masterSplitKeys, membershipId);
                     if (masterStoreResult.IsErr)
                     {
-                        Log.Error("Failed to store master key shares for member {MemberId}: {Error}", memberId, masterStoreResult.UnwrapErr());
-                        // Continue anyway - we still have identityService as fallback
-                    }
-                    else
-                    {
-                        Log.Information("Successfully stored master key shares for member {MemberId}", memberId);
                     }
                 }
-                else
-                {
-                    Log.Error("Failed to split master key for member {MemberId}: {Error}", memberId, masterSplitResult.UnwrapErr());
-                }
 
-                // Clean up HMAC key
-                if (hmacKey != null)
-                {
-                    CryptographicOperations.ZeroMemory(hmacKey);
-                }
-
-                // Still store via identityService for backward compatibility
-                await identityService.StoreIdentityAsync(masterKey, memberId);
-
-                CryptographicOperations.ZeroMemory(masterKey);
-
+                await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
             }
 
-            CryptographicOperations.ZeroMemory(enhancedSessionKey);
-            return Result<Unit, string>.Ok(Unit.Value);
+            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
         }
 
-        CryptographicOperations.ZeroMemory(enhancedSessionKey);
-        return Result<Unit, string>.Err(finalResult.UnwrapErr());
+        return Result<Unit, AuthenticationFailure>.Err(finalResult.UnwrapErr());
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
@@ -307,7 +316,7 @@ public class OpaqueAuthenticationService(
         };
     }
 
-    private async Task<Result<OpaqueSignInInitResponse, string>> SendInitRequestAsync(
+    private async Task<Result<OpaqueSignInInitResponse, AuthenticationFailure>> SendInitRequestAsync(
         OpaqueSignInInitRequest initRequest, uint connectId)
     {
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
@@ -320,7 +329,8 @@ public class OpaqueAuthenticationService(
             {
                 try
                 {
-                    OpaqueSignInInitResponse response = Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
+                    OpaqueSignInInitResponse response =
+                        Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                     responseCompletionSource.TrySetResult(response);
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
@@ -328,7 +338,8 @@ public class OpaqueAuthenticationService(
                 {
                     responseCompletionSource.TrySetException(ex);
                     return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding($"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
+                        NetworkFailure.DataCenterNotResponding(
+                            $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
                 }
             }, false, CancellationToken.None, waitForRecovery: true
         );
@@ -337,22 +348,25 @@ public class OpaqueAuthenticationService(
         {
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
-            return Result<OpaqueSignInInitResponse, string>.Err(string.Empty);
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed(failure.Message));
         }
 
         try
         {
             OpaqueSignInInitResponse response = await responseCompletionSource.Task;
-            return Result<OpaqueSignInInitResponse, string>.Ok(response);
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(response);
         }
         catch (Exception ex)
         {
-            return Result<OpaqueSignInInitResponse, string>.Err($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}");
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}", ex));
         }
     }
 
-    private async Task<Result<SignInResult, string>> SendFinalizeRequestAndVerifyAsync(OpaqueSignInFinalizeRequest finalizeRequest,
-        byte[] sessionKey, uint connectId)
+    private async Task<Result<SignInResult, AuthenticationFailure>> SendFinalizeRequestAndVerifyAsync(
+        OpaqueSignInFinalizeRequest finalizeRequest,
+        SodiumSecureMemoryHandle sessionKeyHandle, uint connectId)
     {
         TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
 
@@ -364,7 +378,8 @@ public class OpaqueAuthenticationService(
             {
                 try
                 {
-                    OpaqueSignInFinalizeResponse response = Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
+                    OpaqueSignInFinalizeResponse response =
+                        Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
                     responseCompletionSource.TrySetResult(response);
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
@@ -372,7 +387,8 @@ public class OpaqueAuthenticationService(
                 {
                     responseCompletionSource.TrySetException(ex);
                     return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding($"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
+                        NetworkFailure.DataCenterNotResponding(
+                            $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
                 }
             }, false, CancellationToken.None, waitForRecovery: true
         );
@@ -381,7 +397,8 @@ public class OpaqueAuthenticationService(
         {
             NetworkFailure failure = networkResult.UnwrapErr();
             responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
-            return Result<SignInResult, string>.Err(failure.Message);
+            return Result<SignInResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed(failure.Message));
         }
 
         OpaqueSignInFinalizeResponse capturedResponse;
@@ -391,7 +408,8 @@ public class OpaqueAuthenticationService(
         }
         catch (Exception ex)
         {
-            return Result<SignInResult, string>.Err($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}");
+            return Result<SignInResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}", ex));
         }
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
@@ -399,18 +417,14 @@ public class OpaqueAuthenticationService(
             string message = capturedResponse.HasMessage
                 ? capturedResponse.Message
                 : localizationService[AuthenticationConstants.InvalidCredentialsKey];
-            return Result<SignInResult, string>.Err(message);
+            return Result<SignInResult, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(message));
         }
 
-        byte[] serverSessionKey = capturedResponse.SessionKey != null && !capturedResponse.SessionKey.IsEmpty
-            ? capturedResponse.SessionKey.ToByteArray()
-            : sessionKey;
-
-        SignInResult result = new(serverSessionKey, capturedResponse.Membership);
-        return Result<SignInResult, string>.Ok(result);
+        SignInResult result = new(sessionKeyHandle, capturedResponse.Membership);
+        return Result<SignInResult, AuthenticationFailure>.Ok(result);
     }
 
-    private bool ValidateMembershipIdentifier(ByteString identifier)
+    private static bool ValidateMembershipIdentifier(ByteString identifier)
     {
         if (identifier.Length != 16)
             return false;

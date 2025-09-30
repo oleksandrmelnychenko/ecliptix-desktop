@@ -1,15 +1,15 @@
 using System.Threading.Tasks;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public interface ISecureKeySplitter
 {
-    Task<Result<KeySplitResult, string>> SplitKeyAsync(byte[] key, int threshold = 3, int totalShares = 5, byte[]? hmacKey = null);
+    Task<Result<Unit, KeySplittingFailure>> SecurelyDisposeSharesAsync(KeyShare[] shares);
 
-    Task<Result<byte[], string>> ReconstructKeyAsync(KeyShare[] shares, byte[]? hmacKey = null);
+    Task<Result<KeySplitResult, KeySplittingFailure>> SplitKeyAsync(SodiumSecureMemoryHandle keyHandle, int threshold = 3, int totalShares = 5, SodiumSecureMemoryHandle? hmacKeyHandle = null);
 
-    bool ValidateShares(KeyShare[] shares, byte[]? hmacKey = null);
-
-    Task<Result<Unit, string>> SecurelyDisposeSharesAsync(KeyShare[] shares);
+    Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> ReconstructKeyHandleAsync(KeyShare[] shares, SodiumSecureMemoryHandle? hmacKeyHandle = null);
 }

@@ -1,28 +1,22 @@
 using System.Threading.Tasks;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public interface IEnhancedKeyDerivation
 {
-    Task<Result<byte[], string>> DeriveEnhancedKeyAsync(
-        byte[] baseKey,
+    Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> DeriveEnhancedMasterKeyHandleAsync(
+        SodiumSecureMemoryHandle baseKeyHandle,
         string context,
         uint connectId,
-        KeyDerivationOptions? options = null);
-
-    Task<Result<byte[], string>> StretchKeyAsync(
-        byte[] input,
-        byte[] salt,
-        int outputLength,
-        KeyDerivationOptions? options = null);
-
-    byte[] GenerateContextSalt(string context, uint connectId);
+        KeyDerivationOptions options);
 }
 
 public class KeyDerivationOptions
 {
-    public int MemorySize { get; set; } = 262144; // 256MB
+    public int MemorySize { get; set; } = 262144;
     public int Iterations { get; set; } = 4;
     public int DegreeOfParallelism { get; set; } = 4;
     public bool UseHardwareEntropy { get; set; } = true;

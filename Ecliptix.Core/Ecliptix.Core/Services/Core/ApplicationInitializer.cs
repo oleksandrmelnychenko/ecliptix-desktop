@@ -4,7 +4,6 @@ using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using System;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -19,7 +18,6 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
@@ -28,9 +26,9 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
@@ -119,10 +117,29 @@ public class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
+        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
+            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
+            : null;
+
         if (!isNewInstance)
         {
-            //await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+
+            if (!string.IsNullOrEmpty(membershipId))
+            {
+                await identityService.ClearAllCacheAsync(membershipId);
+
+                if (multiLocationStorage != null)
+                {
+                    await multiLocationStorage.ClearAllCacheAsync();
+                }
+
+                if (shareAuthenticationService != null)
+                {
+                    await shareAuthenticationService.RemoveHmacKeyAsync(membershipId);
+                }
+            }
+
             Result<byte[], SecureStorageFailure> loadResult =
                 await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
@@ -147,118 +164,117 @@ public class ApplicationInitializer(
             }
         }
 
-        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
-            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
-            : null;
-
         if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
         {
-            byte[]? masterKey = null;
+            SodiumSecureMemoryHandle? masterKeyHandle = null;
 
-            // Try to reconstruct from Shamir shares first if available
             if (multiLocationStorage != null && keySplitter != null)
             {
+                Guid membershipGuid = Guid.Parse(membershipId);
                 try
                 {
-                    // Use membershipId (persistent) instead of connectId (ephemeral)
-                    Result<bool, string> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipId);
+                    Result<bool, KeySplittingFailure> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipGuid);
                     if (hasShares.IsOk && hasShares.Unwrap())
                     {
-                        Log.Information("Attempting to reconstruct master key from Shamir shares for member {MembershipId}", membershipId);
-
-                        Result<KeyShare[], string> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipId, 3);
+                        Result<KeyShare[], KeySplittingFailure> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipGuid, 3);
                         if (sharesResult.IsOk)
                         {
                             KeyShare[] shares = sharesResult.Unwrap();
                             try
                             {
-                                // Retrieve HMAC key from secure storage for validation
-                                byte[]? hmacKey = null;
+                                SodiumSecureMemoryHandle? hmacKeyHandle = null;
                                 if (shareAuthenticationService != null)
                                 {
-                                    Result<byte[], string> hmacKeyResult = await shareAuthenticationService.RetrieveHmacKeyAsync(membershipId);
-                                    if (hmacKeyResult.IsOk)
+                                    Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
+                                        await shareAuthenticationService.RetrieveHmacKeyHandleAsync(membershipId);
+                                    if (hmacKeyHandleResult.IsOk)
                                     {
-                                        hmacKey = hmacKeyResult.Unwrap();
-                                        Log.Debug("Retrieved HMAC key for share validation for member {MembershipId}", membershipId);
+                                        hmacKeyHandle = hmacKeyHandleResult.Unwrap();
                                     }
                                     else
                                     {
-                                        Log.Warning("No HMAC key found for member {MembershipId}, reconstructing without validation: {Error}",
-                                            membershipId, hmacKeyResult.UnwrapErr());
+                                        await keySplitter.SecurelyDisposeSharesAsync(shares);
+                                        await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
                                     }
                                 }
 
-                                Result<byte[], string> reconstructResult = await keySplitter.ReconstructKeyAsync(shares, hmacKey);
+                                Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructHandleResult =
+                                    await keySplitter.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
 
-                                // Clean up HMAC key
-                                if (hmacKey != null)
-                                {
-                                    CryptographicOperations.ZeroMemory(hmacKey);
-                                }
+                                hmacKeyHandle?.Dispose();
 
-                                if (reconstructResult.IsOk)
+                                if (reconstructHandleResult.IsOk)
                                 {
-                                    masterKey = reconstructResult.Unwrap();
-                                    Log.Information("Successfully reconstructed master key from {ShareCount} Shamir shares for member {MembershipId}",
-                                        shares.Length, membershipId);
+                                    masterKeyHandle = reconstructHandleResult.Unwrap();
                                 }
-                                else
-                                {
-                                    Log.Warning("Failed to reconstruct master key from shares for member {MembershipId}: {Error}",
-                                        membershipId, reconstructResult.UnwrapErr());
-                                }
+                                
                             }
                             finally
                             {
-                                // Dispose shares after use
                                 foreach (KeyShare share in shares)
                                 {
                                     share?.Dispose();
                                 }
                             }
                         }
-                        else
-                        {
-                            Log.Warning("Failed to retrieve shares for member {MembershipId}: {Error}",
-                                membershipId, sharesResult.UnwrapErr());
-                        }
-                    }
-                    else
-                    {
-                        Log.Debug("No Shamir shares found for member {MembershipId}", membershipId);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "Error attempting to reconstruct master key from Shamir shares for member {MembershipId}", membershipId);
+                     await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
                 }
             }
 
-            // Fallback to direct load if Shamir reconstruction failed or unavailable
-            if (masterKey == null)
+            if (masterKeyHandle == null)
             {
-                Log.Debug("Loading master key directly from identity service");
-                masterKey = await identityService.LoadMasterKeyAsync(membershipId);
+                Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await identityService.LoadMasterKeyHandleAsync(membershipId);
+                if (loadResult.IsOk)
+                {
+                    masterKeyHandle = loadResult.Unwrap();
+                }
             }
 
-            if (masterKey != null)
+            if (masterKeyHandle != null)
             {
-                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
-                    EcliptixSystemIdentityKeys.CreateFromMasterKey(
-                        masterKey, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
-
-                if (identityResult.IsOk)
+                try
                 {
-                    networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
-                        applicationInstanceSettings, connectId, identityResult.Unwrap());
-                }
-                else
-                {
-                    networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                }
+                    Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+                        masterKeyHandle.ReadBytes(masterKeyHandle.Length);
 
-                SodiumInterop.SecureWipe(masterKey);
+                    if (readResult.IsOk)
+                    {
+                        byte[] masterKeyBytes = readResult.Unwrap();
+
+                        try
+                        {
+                            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
+                                EcliptixSystemIdentityKeys.CreateFromMasterKey(
+                                    masterKeyBytes, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
+
+                            if (identityResult.IsOk)
+                            {
+                                networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
+                                    applicationInstanceSettings, connectId, identityResult.Unwrap());
+                            }
+                            else
+                            {
+                                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                            }
+                        }
+                        finally
+                        {
+                            CryptographicOperations.ZeroMemory(masterKeyBytes);
+                        }
+                    }
+                    else
+                    {
+                        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                    }
+                }
+                finally
+                {
+                    masterKeyHandle.Dispose();
+                }
             }
             else
             {

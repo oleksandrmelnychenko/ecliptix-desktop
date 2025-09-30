@@ -3,43 +3,31 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Sodium;
 using Konscious.Security.Cryptography;
-using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
+public sealed class EnhancedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IEnhancedKeyDerivation
 {
-    private readonly IPlatformSecurityProvider _platformSecurityProvider;
-    private const string KEY_CONTEXT_PREFIX = "ecliptix-session-key";
+    private const string KeyContextPrefix = "ecliptix-session-key";
+    private const int AdditionalRoundsCount = 3;
 
-    public EnhancedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider)
-    {
-        _platformSecurityProvider = platformSecurityProvider ?? throw new ArgumentNullException(nameof(platformSecurityProvider));
-    }
-
-    public async Task<Result<byte[], string>> DeriveEnhancedKeyAsync(
+    private async Task<Result<byte[], KeySplittingFailure>> DeriveEnhancedKeyAsync(
         byte[] baseKey,
         string context,
         uint connectId,
-        KeyDerivationOptions? options = null)
+        KeyDerivationOptions options)
     {
-        if (baseKey == null || baseKey.Length == 0)
-            return Result<byte[], string>.Err("Base key cannot be null or empty");
-
-        if (string.IsNullOrWhiteSpace(context))
-            return Result<byte[], string>.Err("Context cannot be null or empty");
-
-        options ??= new KeyDerivationOptions();
-
         try
         {
-            Log.Debug("Starting enhanced key derivation for connection {ConnectId}", connectId);
-
             byte[] salt = GenerateContextSalt(context, connectId);
 
-            Result<byte[], string> stretchedResult = await StretchKeyAsync(baseKey, salt, options.OutputLength, options);
+            Result<byte[], KeySplittingFailure> stretchedResult =
+                await StretchKeyAsync(baseKey, salt, options.OutputLength, options);
             if (stretchedResult.IsErr)
                 return stretchedResult;
 
@@ -47,17 +35,16 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
 
             byte[] expandedKey = await ExpandKeyWithHkdfAsync(stretchedKey, connectId, options.OutputLength);
 
-            if (options.UseHardwareEntropy && _platformSecurityProvider.IsHardwareSecurityAvailable())
+            if (options.UseHardwareEntropy && platformSecurityProvider.IsHardwareSecurityAvailable())
             {
                 byte[]? hwEntropy = null;
                 try
                 {
-                    hwEntropy = await _platformSecurityProvider.GenerateSecureRandomAsync(options.OutputLength);
+                    hwEntropy = await platformSecurityProvider.GenerateSecureRandomAsync(options.OutputLength);
                     for (int i = 0; i < expandedKey.Length && i < hwEntropy.Length; i++)
                     {
                         expandedKey[i] ^= hwEntropy[i];
                     }
-                    Log.Debug("Applied hardware entropy to derived key");
                 }
                 finally
                 {
@@ -71,30 +58,20 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
             CryptographicOperations.ZeroMemory(stretchedKey);
             CryptographicOperations.ZeroMemory(expandedKey);
 
-            Log.Information("Successfully derived enhanced key for connection {ConnectId}", connectId);
-            return Result<byte[], string>.Ok(finalKey);
+            return Result<byte[], KeySplittingFailure>.Ok(finalKey);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to derive enhanced key for connection {ConnectId}", connectId);
-            return Result<byte[], string>.Err($"Key derivation failed: {ex.Message}");
+            return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.KeyDerivationFailed(ex.Message, ex));
         }
     }
 
-    public async Task<Result<byte[], string>> StretchKeyAsync(
+    private async Task<Result<byte[], KeySplittingFailure>> StretchKeyAsync(
         byte[] input,
         byte[] salt,
         int outputLength,
-        KeyDerivationOptions? options = null)
+        KeyDerivationOptions options)
     {
-        if (input == null || input.Length == 0)
-            return Result<byte[], string>.Err("Input cannot be null or empty");
-
-        if (salt == null || salt.Length == 0)
-            return Result<byte[], string>.Err("Salt cannot be null or empty");
-
-        options ??= new KeyDerivationOptions();
-
         try
         {
             return await Task.Run(() =>
@@ -108,34 +85,27 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
                 };
 
                 byte[] hash = argon2.GetBytes(outputLength);
-                Log.Debug("Completed Argon2id key stretching with {MemorySize}KB memory", options.MemorySize);
-                return Result<byte[], string>.Ok(hash);
+                return Result<byte[], KeySplittingFailure>.Ok(hash);
             });
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Argon2id key stretching failed");
-            return Result<byte[], string>.Err($"Key stretching failed: {ex.Message}");
+            return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.KeyDerivationFailed(ex.Message, ex));
         }
     }
 
-    public byte[] GenerateContextSalt(string context, uint connectId)
+    private static byte[] GenerateContextSalt(string context, uint connectId)
     {
-        // CRITICAL FIX: Make salt deterministic for key reconstruction
-        // Salt must be reproducible given same context and connectId
-        string saltInput = $"{KEY_CONTEXT_PREFIX}:{context}:{connectId}";
+        string saltInput = $"{KeyContextPrefix}:{context}:{connectId}";
         byte[] saltBytes = SHA256.HashData(Encoding.UTF8.GetBytes(saltInput));
-
-        // Return the full 32-byte SHA256 hash as the salt
-        // No timestamp or other non-deterministic elements
         return saltBytes;
     }
 
-    private async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, uint connectId, int outputLength)
+    private static async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, uint connectId, int outputLength)
     {
         return await Task.Run(() =>
         {
-            byte[] info = Encoding.UTF8.GetBytes($"{KEY_CONTEXT_PREFIX}-{connectId}");
+            byte[] info = Encoding.UTF8.GetBytes($"{KeyContextPrefix}-{connectId}");
 
             byte[] salt = SHA256.HashData(BitConverter.GetBytes(connectId));
 
@@ -150,7 +120,7 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
             int bytesGenerated = 0;
 
             using HMACSHA512 expandHmac = new(pseudoRandomKey);
-            byte[] previousBlock = Array.Empty<byte>();
+            byte[] previousBlock = [];
 
             for (int i = 1; bytesGenerated < outputLength; i++)
             {
@@ -175,14 +145,14 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
         });
     }
 
-    private async Task<byte[]> ApplyAdditionalRoundsAsync(byte[] key, uint connectId)
+    private static async Task<byte[]> ApplyAdditionalRoundsAsync(byte[] key, uint connectId)
     {
         return await Task.Run(() =>
         {
             byte[] result = new byte[key.Length];
             Array.Copy(key, result, key.Length);
 
-            for (int round = 0; round < 3; round++)
+            for (int round = 0; round < AdditionalRoundsCount; round++)
             {
                 using HMACSHA512 hmac = new(result);
                 byte[] roundKey = hmac.ComputeHash(Encoding.UTF8.GetBytes($"round-{round}-{connectId}"));
@@ -192,13 +162,73 @@ public sealed class EnhancedKeyDerivation : IEnhancedKeyDerivation
                     result[i] ^= roundKey[i];
                 }
 
-                using SHA512 sha = SHA512.Create();
-                byte[] temp = sha.ComputeHash(result);
+                byte[] temp = SHA512.HashData(result);
                 Array.Copy(temp, result, Math.Min(temp.Length, result.Length));
             }
 
-            Log.Debug("Applied 3 additional cryptographic rounds to key");
             return result;
         });
+    }
+
+    public async Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> DeriveEnhancedMasterKeyHandleAsync(
+        SodiumSecureMemoryHandle baseKeyHandle,
+        string context,
+        uint connectId,
+        KeyDerivationOptions options)
+    {
+        byte[]? baseKeyBytes = null;
+
+        try
+        {
+            Result<byte[], SodiumFailure> readResult =
+                baseKeyHandle.ReadBytes(baseKeyHandle.Length);
+            if (readResult.IsErr)
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                    KeySplittingFailure.MemoryReadFailed(readResult.UnwrapErr().Message));
+
+            baseKeyBytes = readResult.Unwrap();
+
+            Result<byte[], KeySplittingFailure> deriveResult =
+                await DeriveEnhancedKeyAsync(baseKeyBytes, context, connectId, options);
+            if (deriveResult.IsErr)
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(deriveResult.UnwrapErr());
+
+            byte[] derivedKey = deriveResult.Unwrap();
+
+            try
+            {
+                Result<SodiumSecureMemoryHandle, SodiumFailure> allocateResult =
+                    SodiumSecureMemoryHandle.Allocate(derivedKey.Length);
+                if (allocateResult.IsErr)
+                    return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                        KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
+
+                SodiumSecureMemoryHandle handle = allocateResult.Unwrap();
+
+                Result<Unit, SodiumFailure> writeResult = handle.Write(derivedKey);
+                if (writeResult.IsErr)
+                {
+                    handle.Dispose();
+                    return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                        KeySplittingFailure.MemoryWriteFailed(writeResult.UnwrapErr().Message));
+                }
+
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Ok(handle);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(derivedKey);
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
+                KeySplittingFailure.KeyDerivationFailed(ex.Message, ex));
+        }
+        finally
+        {
+            if (baseKeyBytes != null)
+                CryptographicOperations.ZeroMemory(baseKeyBytes);
+        }
     }
 }

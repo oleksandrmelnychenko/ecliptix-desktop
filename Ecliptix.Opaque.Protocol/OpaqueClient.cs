@@ -104,7 +104,7 @@ public sealed class OpaqueClient : IDisposable
         ThrowIfDisposed();
         if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
         {
-            throw new ArgumentException($"KE2 must be {OpaqueConstants.KE2_LENGTH} bytes");
+            return Result<byte[], OpaqueResult>.Err(OpaqueResult.InvalidInput);
         }
 
         byte[] ke3 = new byte[OpaqueConstants.KE3_LENGTH];
@@ -112,15 +112,12 @@ public sealed class OpaqueClient : IDisposable
         int result = OpaqueNative.opaque_client_generate_ke3(
             _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
 
-        if (result != (int)OpaqueResult.Success)
-        {
-            return Result<byte[], OpaqueResult>.Err((OpaqueResult)result);
-        }
-        
-        return Result<byte[], OpaqueResult>.Ok(ke3);
+        return result != (int)OpaqueResult.Success
+            ? Result<byte[], OpaqueResult>.Err((OpaqueResult)result)
+            : Result<byte[], OpaqueResult>.Ok(ke3);
     }
 
-    public byte[] DeriveSessionKey(KeyExchangeResult keyExchangeState)
+    public byte[] DeriveBaseMasterKey(KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
 

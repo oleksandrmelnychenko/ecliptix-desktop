@@ -12,5 +12,6 @@ public enum SodiumFailureType
     BufferTooLarge,
     NullPointer,
     MemoryProtectionFailed,
-    ComparisonFailed
+    ComparisonFailed,
+    DerivationFailed
 }

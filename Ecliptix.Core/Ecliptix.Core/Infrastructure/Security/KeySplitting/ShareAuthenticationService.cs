@@ -1,137 +1,188 @@
 using System;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
-using Serilog;
+using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public class ShareAuthenticationService : IShareAuthenticationService
+public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorage) : IShareAuthenticationService
 {
-    private readonly ISecureProtocolStateStorage _secureStorage;
+    private const int HmacKeySizeBytes = 64;
 
-    public ShareAuthenticationService(ISecureProtocolStateStorage secureStorage)
+    private static Result<Unit, KeySplittingFailure> ValidateIdentifier(string identifier)
     {
-        _secureStorage = secureStorage;
+        if (Guid.TryParse(identifier, out _))
+            return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+
+        if (uint.TryParse(identifier, out _))
+            return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+
+        return Result<Unit, KeySplittingFailure>.Err(
+            KeySplittingFailure.InvalidIdentifier($"Identifier must be a valid GUID or numeric value: {identifier}"));
     }
 
-    public async Task<Result<byte[], string>> GenerateHmacKeyAsync(string identifier)
+    private async Task<Result<byte[], KeySplittingFailure>> GenerateHmacKeyAsync(string identifier)
     {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return Result<byte[], KeySplittingFailure>.Err(validationResult.UnwrapErr());
+
+        Result<bool, KeySplittingFailure> hasKeyResult = await HasHmacKeyAsync(identifier);
+        if (hasKeyResult.IsOk && hasKeyResult.Unwrap())
+        {
+            return await RetrieveHmacKeyAsync(identifier);
+        }
+
+        byte[] hmacKey = RandomNumberGenerator.GetBytes(HmacKeySizeBytes);
+
+        Result<Unit, KeySplittingFailure> storeResult = await StoreHmacKeyAsync(identifier, hmacKey);
+        if (storeResult.IsErr)
+        {
+            CryptographicOperations.ZeroMemory(hmacKey);
+            return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.HmacKeyStorageFailed(storeResult.UnwrapErr().ToString()));
+        }
+
+        return Result<byte[], KeySplittingFailure>.Ok(hmacKey);
+    }
+
+    private async Task<Result<Unit, KeySplittingFailure>> StoreHmacKeyAsync(string identifier, byte[] hmacKey)
+    {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return validationResult;
+
+        string storageKey = $"hmac_key_{identifier}";
+        Result<Unit, SecureStorageFailure> saveResult = await secureStorage.SaveStateAsync(hmacKey, storageKey);
+
+        if (saveResult.IsErr)
+        {
+            SecureStorageFailure failure = saveResult.UnwrapErr();
+            return Result<Unit, KeySplittingFailure>.Err(KeySplittingFailure.HmacKeyStorageFailed(failure.Message));
+        }
+
+        return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+    }
+
+    private async Task<Result<byte[], KeySplittingFailure>> RetrieveHmacKeyAsync(string identifier)
+    {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return Result<byte[], KeySplittingFailure>.Err(validationResult.UnwrapErr());
+
+        string storageKey = $"hmac_key_{identifier}";
+        Result<byte[], SecureStorageFailure> loadResult = await secureStorage.LoadStateAsync(storageKey);
+
+        if (loadResult.IsErr)
+        {
+            return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.HmacKeyMissing(identifier));
+        }
+
+        return Result<byte[], KeySplittingFailure>.Ok(loadResult.Unwrap());
+    }
+
+    private async Task<Result<bool, KeySplittingFailure>> HasHmacKeyAsync(string identifier)
+    {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return Result<bool, KeySplittingFailure>.Err(validationResult.UnwrapErr());
+
+        string storageKey = $"hmac_key_{identifier}";
+        Result<byte[], SecureStorageFailure> loadResult = await secureStorage.LoadStateAsync(storageKey);
+        return Result<bool, KeySplittingFailure>.Ok(loadResult.IsOk);
+    }
+
+    public async Task<Result<Unit, KeySplittingFailure>> RemoveHmacKeyAsync(string identifier)
+    {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return validationResult;
+
+        string storageKey = $"hmac_key_{identifier}";
+        Result<Unit, SecureStorageFailure> deleteResult = await secureStorage.DeleteStateAsync(storageKey);
+
+        if (deleteResult.IsErr)
+        {
+            SecureStorageFailure failure = deleteResult.UnwrapErr();
+            return Result<Unit, KeySplittingFailure>.Err(KeySplittingFailure.HmacKeyRemovalFailed(failure.Message));
+        }
+
+        return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+    }
+
+    public async Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> GenerateHmacKeyHandleAsync(string identifier)
+    {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(validationResult.UnwrapErr());
+
+        Result<byte[], KeySplittingFailure> generateResult = await GenerateHmacKeyAsync(identifier);
+        if (generateResult.IsErr)
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(generateResult.UnwrapErr());
+
+        byte[] hmacKey = generateResult.Unwrap();
+
         try
         {
-            // Check if HMAC key already exists
-            Result<bool, string> hasKeyResult = await HasHmacKeyAsync(identifier);
-            if (hasKeyResult.IsOk && hasKeyResult.Unwrap())
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocateResult =
+                SodiumSecureMemoryHandle.Allocate(hmacKey.Length);
+            if (allocateResult.IsErr)
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
+
+            SodiumSecureMemoryHandle handle = allocateResult.Unwrap();
+
+            Result<Unit, SodiumFailure> writeResult = handle.Write(hmacKey);
+            if (writeResult.IsErr)
             {
-                Log.Debug("HMAC key already exists for identifier {Identifier}, retrieving existing key", identifier);
-                return await RetrieveHmacKeyAsync(identifier);
+                handle.Dispose();
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(KeySplittingFailure.MemoryWriteFailed(writeResult.UnwrapErr().Message));
             }
 
-            byte[] hmacKey = RandomNumberGenerator.GetBytes(64);
-
-            Result<Unit, string> storeResult = await StoreHmacKeyAsync(identifier, hmacKey);
-            if (storeResult.IsErr)
-            {
-                CryptographicOperations.ZeroMemory(hmacKey);
-                return Result<byte[], string>.Err($"Failed to store HMAC key: {storeResult.UnwrapErr()}");
-            }
-
-            Log.Information("Generated and stored HMAC key for identifier {Identifier}", identifier);
-            return Result<byte[], string>.Ok(hmacKey);
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Ok(handle);
         }
-        catch (Exception ex)
+        finally
         {
-            Log.Error(ex, "Failed to generate HMAC key for identifier {Identifier}", identifier);
-            return Result<byte[], string>.Err($"Failed to generate HMAC key: {ex.Message}");
+            CryptographicOperations.ZeroMemory(hmacKey);
         }
     }
 
-    public async Task<Result<Unit, string>> StoreHmacKeyAsync(string identifier, byte[] hmacKey)
+    public async Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> RetrieveHmacKeyHandleAsync(string identifier)
     {
+        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
+        if (validationResult.IsErr)
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(validationResult.UnwrapErr());
+
+        Result<byte[], KeySplittingFailure> retrieveResult = await RetrieveHmacKeyAsync(identifier);
+        if (retrieveResult.IsErr)
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(retrieveResult.UnwrapErr());
+
+        byte[] hmacKey = retrieveResult.Unwrap();
+
         try
         {
-            string storageKey = $"hmac_key_{identifier}";
-            Result<Unit, SecureStorageFailure> saveResult = await _secureStorage.SaveStateAsync(hmacKey, storageKey);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocateResult =
+                SodiumSecureMemoryHandle.Allocate(hmacKey.Length);
+            if (allocateResult.IsErr)
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
 
-            if (saveResult.IsErr)
+            SodiumSecureMemoryHandle handle = allocateResult.Unwrap();
+
+            Result<Unit, SodiumFailure> writeResult = handle.Write(hmacKey);
+            if (writeResult.IsErr)
             {
-                SecureStorageFailure failure = saveResult.UnwrapErr();
-                return Result<Unit, string>.Err($"Failed to store HMAC key: {failure.Message}");
+                handle.Dispose();
+                return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(KeySplittingFailure.MemoryWriteFailed(writeResult.UnwrapErr().Message));
             }
 
-            Log.Debug("Stored HMAC key for identifier {Identifier}", identifier);
-            return Result<Unit, string>.Ok(Unit.Value);
+            return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Ok(handle);
         }
-        catch (Exception ex)
+        finally
         {
-            Log.Error(ex, "Failed to store HMAC key for identifier {Identifier}", identifier);
-            return Result<Unit, string>.Err($"Failed to store HMAC key: {ex.Message}");
-        }
-    }
-
-    public async Task<Result<byte[], string>> RetrieveHmacKeyAsync(string identifier)
-    {
-        try
-        {
-            string storageKey = $"hmac_key_{identifier}";
-            Result<byte[], SecureStorageFailure> loadResult = await _secureStorage.LoadStateAsync(storageKey);
-
-            if (loadResult.IsErr)
-            {
-                SecureStorageFailure failure = loadResult.UnwrapErr();
-                Log.Warning("No HMAC key found for identifier {Identifier}: {Error}", identifier, failure.Message);
-                return Result<byte[], string>.Err($"No HMAC key found: {failure.Message}");
-            }
-
-            Log.Debug("Retrieved HMAC key for identifier {Identifier}", identifier);
-            return Result<byte[], string>.Ok(loadResult.Unwrap());
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to retrieve HMAC key for identifier {Identifier}", identifier);
-            return Result<byte[], string>.Err($"Failed to retrieve HMAC key: {ex.Message}");
-        }
-    }
-
-    public async Task<Result<bool, string>> HasHmacKeyAsync(string identifier)
-    {
-        try
-        {
-            string storageKey = $"hmac_key_{identifier}";
-            Result<byte[], SecureStorageFailure> loadResult = await _secureStorage.LoadStateAsync(storageKey);
-            return Result<bool, string>.Ok(loadResult.IsOk);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to check HMAC key existence for identifier {Identifier}", identifier);
-            return Result<bool, string>.Err($"Failed to check HMAC key: {ex.Message}");
-        }
-    }
-
-    public async Task<Result<Unit, string>> RemoveHmacKeyAsync(string identifier)
-    {
-        try
-        {
-            string storageKey = $"hmac_key_{identifier}";
-            Result<Unit, SecureStorageFailure> deleteResult = await _secureStorage.DeleteStateAsync(storageKey);
-
-            if (deleteResult.IsErr)
-            {
-                SecureStorageFailure failure = deleteResult.UnwrapErr();
-                Log.Warning("Failed to remove HMAC key for identifier {Identifier}: {Error}", identifier, failure.Message);
-                return Result<Unit, string>.Err($"Failed to remove HMAC key: {failure.Message}");
-            }
-
-            Log.Debug("Removed HMAC key for identifier {Identifier}", identifier);
-            return Result<Unit, string>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to remove HMAC key for identifier {Identifier}", identifier);
-            return Result<Unit, string>.Err($"Failed to remove HMAC key: {ex.Message}");
+            CryptographicOperations.ZeroMemory(hmacKey);
         }
     }
 }

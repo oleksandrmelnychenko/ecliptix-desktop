@@ -14,7 +14,6 @@ using Google.Protobuf;
 using Ecliptix.Core.Services.Authentication.Constants;
 using System.Collections.Concurrent;
 using System.Reactive.Concurrency;
-using Serilog;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
 using Unit = Ecliptix.Utilities.Unit;
@@ -479,11 +478,6 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
             }
 
-            // Registration completed successfully. The user's credentials are now registered.
-            // The secure session key with enhanced protection will be created during the automatic
-            // sign-in that happens immediately after registration in SecureKeyVerifierViewModel.
-            Log.Information("Successfully completed OPAQUE registration for connection {ConnectId}", connectId);
-
             return Result<Unit, string>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -529,10 +523,9 @@ public class OpaqueRegistrationService(
                         {
                             await CleanupStreamAsync(verificationIdentifier);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            Log.Warning("Background stream cleanup failed for session {SessionId}: {Error}",
-                                verificationIdentifier, ex.Message);
+                            // Ignore cleanup exceptions
                         }
                     }, CancellationToken.None);
                 }

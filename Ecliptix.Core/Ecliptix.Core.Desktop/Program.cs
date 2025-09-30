@@ -339,7 +339,6 @@ public static class Program
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
         services.AddSingleton<IIdentityService, IdentityService>();
-        services.AddSingleton<ISessionKeyService, SessionKeyService>();
 
         // Key splitting and secure storage services
         services.AddSingleton<ISecureKeySplitter, ShamirSecretSharing>();
@@ -352,7 +351,6 @@ public static class Program
                 sp.GetRequiredService<ISecureKeySplitter>(),
                 sp.GetRequiredService<IShareAuthenticationService>()));
 
-        services.AddSingleton<IDualLayerEncryptionService, DualLayerEncryptionService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
 

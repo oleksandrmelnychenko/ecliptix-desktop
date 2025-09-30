@@ -18,6 +18,7 @@ using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
@@ -330,7 +331,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             MembershipHostWindowModel hostViewModel = (MembershipHostWindowModel)HostScreen;
             string registrationMobileNumber = hostViewModel.RegistrationMobileNumber!;
 
-            Result<Unit, string> signInResult = await _authenticationService.SignInAsync(
+            Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
                 registrationMobileNumber,
                 _secureKeyBuffer,
                 connectId);
