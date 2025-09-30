@@ -22,6 +22,14 @@ public class ShareAuthenticationService : IShareAuthenticationService
     {
         try
         {
+            // Check if HMAC key already exists
+            Result<bool, string> hasKeyResult = await HasHmacKeyAsync(identifier);
+            if (hasKeyResult.IsOk && hasKeyResult.Unwrap())
+            {
+                Log.Debug("HMAC key already exists for identifier {Identifier}, retrieving existing key", identifier);
+                return await RetrieveHmacKeyAsync(identifier);
+            }
+
             byte[] hmacKey = RandomNumberGenerator.GetBytes(64);
 
             Result<Unit, string> storeResult = await StoreHmacKeyAsync(identifier, hmacKey);

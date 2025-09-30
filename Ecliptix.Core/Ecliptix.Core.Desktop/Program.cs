@@ -344,8 +344,13 @@ public static class Program
         // Key splitting and secure storage services
         services.AddSingleton<ISecureKeySplitter, ShamirSecretSharing>();
         services.AddSingleton<IEnhancedKeyDerivation, EnhancedKeyDerivation>();
-        services.AddSingleton<IMultiLocationKeyStorage, MultiLocationKeyStorage>();
         services.AddSingleton<IShareAuthenticationService, ShareAuthenticationService>();
+        services.AddSingleton<IMultiLocationKeyStorage>(sp =>
+            new MultiLocationKeyStorage(
+                sp.GetRequiredService<IPlatformSecurityProvider>(),
+                sp.GetRequiredService<IApplicationSecureStorageProvider>(),
+                sp.GetRequiredService<ISecureKeySplitter>(),
+                sp.GetRequiredService<IShareAuthenticationService>()));
 
         services.AddSingleton<IDualLayerEncryptionService, DualLayerEncryptionService>();
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();

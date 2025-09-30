@@ -27,16 +27,19 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
     private readonly ConcurrentDictionary<string, HashSet<string>> _keychainTracker = new();
     private readonly ReaderWriterLockSlim _cacheLock = new();
     private readonly object _storageLock = new();
+    private readonly IShareAuthenticationService? _shareAuthenticationService;
     private bool _disposed;
 
     public MultiLocationKeyStorage(
         IPlatformSecurityProvider platformSecurityProvider,
         IApplicationSecureStorageProvider secureStorageProvider,
-        ISecureKeySplitter keySplitter)
+        ISecureKeySplitter keySplitter,
+        IShareAuthenticationService? shareAuthenticationService = null)
     {
         _platformSecurityProvider = platformSecurityProvider ?? throw new ArgumentNullException(nameof(platformSecurityProvider));
         _secureStorageProvider = secureStorageProvider ?? throw new ArgumentNullException(nameof(secureStorageProvider));
         _keySplitter = keySplitter ?? throw new ArgumentNullException(nameof(keySplitter));
+        _shareAuthenticationService = shareAuthenticationService;
     }
 
     public async Task<Result<Unit, string>> StoreKeySharesAsync(KeySplitResult splitKeys, uint connectId)
@@ -207,6 +210,28 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
             }
 
             await Task.WhenAll(removalTasks);
+
+            // Clean up associated HMAC key if available
+            if (_shareAuthenticationService != null)
+            {
+                try
+                {
+                    Result<Unit, string> hmacRemovalResult = await _shareAuthenticationService.RemoveHmacKeyAsync(identifier);
+                    if (hmacRemovalResult.IsOk)
+                    {
+                        Log.Debug("Cleaned up HMAC key for identifier {Identifier}", identifier);
+                    }
+                    else
+                    {
+                        Log.Warning("Failed to clean up HMAC key for identifier {Identifier}: {Error}",
+                            identifier, hmacRemovalResult.UnwrapErr());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Error cleaning up HMAC key for identifier {Identifier}", identifier);
+                }
+            }
 
             Log.Information("Removed all key shares for identifier {Identifier}", identifier);
             return Result<Unit, string>.Ok(Unit.Value);
