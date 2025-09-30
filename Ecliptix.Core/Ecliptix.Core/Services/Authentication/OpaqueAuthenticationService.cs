@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,7 +43,24 @@ public class OpaqueAuthenticationService(
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
-
+    
+    private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
+    {
+        { OpaqueResult.InvalidInput, AuthenticationConstants.InvalidCredentialsKey },
+        { OpaqueResult.CryptoError, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.MemoryError, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.ValidationError, AuthenticationConstants.InvalidCredentialsKey},
+        { OpaqueResult.AuthenticationError, AuthenticationConstants.InvalidCredentialsKey },
+        { OpaqueResult.InvalidPublicKey, AuthenticationConstants.CommonUnexpectedErrorKey },
+    };
+    
+    private string GetOpaqueErrorMessage(OpaqueResult error)
+    {
+        return OpaqueErrorMessages.TryGetValue(error, out string? key)
+            ? localizationService[key]
+            : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+    }
+    
     private byte[] ServerPublicKey() =>
         SecureByteStringInterop.WithByteStringAsSpan(
             networkProvider.ApplicationInstanceSettings.ServerPublicKey,
@@ -125,7 +143,16 @@ public class OpaqueAuthenticationService(
         }
 
         byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
-        byte[] ke3Data = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+        
+        Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+
+        if (ke3DataResult.IsErr)
+        { 
+            string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
+            return Result<Unit, string>.Err(errorMessage);
+        }
+        
+        byte[] ke3Data = ke3DataResult.Unwrap();
 
         byte[] baseSessionKey = opaqueClient.DeriveSessionKey(ke1Result);
 
