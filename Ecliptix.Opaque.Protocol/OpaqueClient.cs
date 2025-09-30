@@ -1,5 +1,6 @@
 using System;
 using Ecliptix.Opaque.Protocol.NativeLibraries;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Opaque.Protocol;
 
@@ -98,7 +99,7 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    public byte[] GenerateKe3(byte[]? ke2, KeyExchangeResult keyExchangeState)
+    public Result<byte[], OpaqueResult> GenerateKe3(byte[]? ke2, KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
         if (ke2?.Length != OpaqueConstants.KE2_LENGTH)
@@ -111,13 +112,12 @@ public sealed class OpaqueClient : IDisposable
         int result = OpaqueNative.opaque_client_generate_ke3(
             _clientHandle, ke2, (UIntPtr)ke2.Length, keyExchangeState.StateHandle, ke3, (UIntPtr)ke3.Length);
 
-        //TODO: handle -5. AuthenticationError specifically to indicate wrong password.
         if (result != (int)OpaqueResult.Success)
         {
-            throw new InvalidOperationException($"Failed to generate KE3: {(OpaqueResult)result}");
+            return Result<byte[], OpaqueResult>.Err((OpaqueResult)result);
         }
-
-        return ke3;
+        
+        return Result<byte[], OpaqueResult>.Ok(ke3);
     }
 
     public byte[] DeriveSessionKey(KeyExchangeResult keyExchangeState)

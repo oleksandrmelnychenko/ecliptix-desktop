@@ -28,4 +28,8 @@
     <Folder Include="NativeLibraries\windows\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Ecliptix.Utilities\Ecliptix.Utilities.csproj" />
+  </ItemGroup>
+
 </Project>
