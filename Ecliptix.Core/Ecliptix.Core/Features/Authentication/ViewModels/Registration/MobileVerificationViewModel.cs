@@ -147,6 +147,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
             if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
             {
+                hostWindow.RegistrationMobileNumber = MobileNumber;
                 hostWindow.NavigateToViewModel(vm);
             }
         }

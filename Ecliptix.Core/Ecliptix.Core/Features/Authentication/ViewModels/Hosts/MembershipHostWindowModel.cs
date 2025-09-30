@@ -81,7 +81,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                 new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
             [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
-                new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg),
+                new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                 new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
@@ -118,6 +118,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public string BuildInfo { get; }
 
     public string FullVersionInfo { get; }
+
+    public string? RegistrationMobileNumber { get; set; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 

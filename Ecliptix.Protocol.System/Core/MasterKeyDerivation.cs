@@ -43,7 +43,7 @@ public static class MasterKeyDerivation
 
         try
         {
-            stretchedKey = DeriveWithArgon2id(exportKey, argonSalt);
+            stretchedKey = DeriveWithArgon2Id(exportKey, argonSalt);
 
             byte[] masterKey = GenericHash.HashSaltPersonal(
                 message: stretchedKey,
@@ -75,8 +75,6 @@ public static class MasterKeyDerivation
             ? stackalloc byte[totalLength]
             : new byte[totalLength];
 
-        byte[]? salt = null;
-
         try
         {
             int offset = 0;
@@ -88,9 +86,9 @@ public static class MasterKeyDerivation
 
             domainBytes.CopyTo(combinedInput[offset..]);
 
-            salt = ComputeHashFromSpan(combinedInput);
+            byte[] salt = ComputeHashFromSpan(combinedInput);
 
-            return salt!;
+            return salt;
         }
         finally
         {
@@ -98,7 +96,7 @@ public static class MasterKeyDerivation
         }
     }
 
-    private static byte[] DeriveWithArgon2id(byte[] exportKey, byte[] salt)
+    private static byte[] DeriveWithArgon2Id(byte[] exportKey, byte[] salt)
     {
         using Argon2id argon2 = new(exportKey)
         {
@@ -191,8 +189,7 @@ public static class MasterKeyDerivation
 
     private static byte[] ComputeHashFromSpan(ReadOnlySpan<byte> data)
     {
-        using SHA256 sha256 = SHA256.Create();
-        return sha256.ComputeHash(data.ToArray());
+        return SHA256.HashData(data.ToArray());
     }
 
     private static byte[] HashWithGenericHashFromSpan(byte[] key, ReadOnlySpan<byte> data, int outputSize)

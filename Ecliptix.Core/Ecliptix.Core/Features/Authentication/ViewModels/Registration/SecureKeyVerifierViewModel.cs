@@ -60,6 +60,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly IAuthenticationService _authenticationService;
 
     public SecureKeyVerifierViewModel(
         ISystemEventService systemEventService,
@@ -67,12 +68,14 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IOpaqueRegistrationService registrationService
+        IOpaqueRegistrationService registrationService,
+        IAuthenticationService authenticationService
     ) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
+        _authenticationService = authenticationService;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
 
@@ -106,14 +109,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
 
             this.WhenAnyValue(x => x.ServerError)
                 .DistinctUntilChanged()
-                .Subscribe(
-                    err 
-                        =>
-                    {
-                        HasServerError = !string.IsNullOrEmpty(err);
-                        if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
-                            ShowServerErrorNotification(hostWindow, err);
-                    })
+                .Subscribe(err
+                    =>
+                {
+                    HasServerError = !string.IsNullOrEmpty(err);
+                    if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                        ShowServerErrorNotification(hostWindow, err);
+                })
                 .DisposeWith(disposables);
 
             SubmitCommand
@@ -324,6 +326,22 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         {
             ServerError = registrationResult.UnwrapErr();
             HasServerError = true;
+        }
+        else
+        {
+            MembershipHostWindowModel hostViewModel = (MembershipHostWindowModel)HostScreen;
+            string registrationMobileNumber = hostViewModel.RegistrationMobileNumber!;
+            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+            await _authenticationService.SignInAsync(
+                registrationMobileNumber,
+                _secureKeyBuffer,
+                connectId);
+
+            hostViewModel.SwitchToMainWindowCommand.Execute().Subscribe(
+                _ => { },
+                ex => Log.Error(ex, "Failed to transition to main window after automatic login"),
+                () => Log.Information("Automatic login and main window transition completed successfully")
+            );
         }
     }
 

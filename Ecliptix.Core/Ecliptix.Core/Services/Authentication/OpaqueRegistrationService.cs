@@ -405,7 +405,6 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
             }
 
-            // Step 2: Send registration request to server
             Result<OpaqueRegistrationInitResponse, string> initResult =
                 await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.Request, connectId);
 
@@ -427,10 +426,8 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(errorMessage);
             }
 
-            // Store registration state for finalization
             _opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult);
 
-            // Step 3: Finalize registration with server response
             byte[] serverRegistrationResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
