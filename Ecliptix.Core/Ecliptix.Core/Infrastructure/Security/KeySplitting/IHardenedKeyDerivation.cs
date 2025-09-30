@@ -5,7 +5,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public interface IEnhancedKeyDerivation
+public interface IHardenedKeyDerivation
 {
     Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> DeriveEnhancedMasterKeyHandleAsync(
         SodiumSecureMemoryHandle baseKeyHandle,

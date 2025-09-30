@@ -47,8 +47,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
-    private IDisposable _languageSubscription;
-    private IDisposable _bottomSheetHiddenSubscription;
+    private IDisposable? _languageSubscription;
+    private IDisposable? _bottomSheetHiddenSubscription;
     private readonly INetworkEventService _networkEventService;
     private readonly NetworkProvider _networkProvider;
     private readonly ILanguageDetectionService _languageDetectionService;
@@ -197,10 +197,19 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
         BuildInfo = buildInfo?.BuildNumber ?? "development";
-        FullVersionInfo = $"{VersionHelper.GetDisplayVersion()}" +
-                          (buildInfo != null
-                              ? $"\nBuild: {buildInfo.BuildNumber}\nCommit: {buildInfo.GitCommit[..8]}\nBranch: {buildInfo.GitBranch}"
-                              : "");
+
+        if (buildInfo != null)
+        {
+            FullVersionInfo = string.Concat(
+                VersionHelper.GetDisplayVersion(),
+                "\nBuild: ", buildInfo.BuildNumber,
+                "\nCommit: ", buildInfo.GitCommit.Substring(0, 8),
+                "\nBranch: ", buildInfo.GitBranch);
+        }
+        else
+        {
+            FullVersionInfo = VersionHelper.GetDisplayVersion();
+        }
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
@@ -260,10 +269,18 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 return;
             }
 
-            Window? currentWindow =
-                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
-                    : null;
+            Window? currentWindow = null;
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                foreach (Window window in desktop.Windows)
+                {
+                    if (window.DataContext == this)
+                    {
+                        currentWindow = window;
+                        break;
+                    }
+                }
+            }
 
             if (currentWindow == null)
             {
@@ -339,8 +356,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
         finally
         {
-            _languageSubscription.Dispose();
-            _bottomSheetHiddenSubscription.Dispose();
+            _languageSubscription?.Dispose();
+            _bottomSheetHiddenSubscription?.Dispose();
         }
     }
 
@@ -355,8 +372,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
         finally
         {
-            _languageSubscription.Dispose();
-            _bottomSheetHiddenSubscription.Dispose();
+            _languageSubscription?.Dispose();
+            _bottomSheetHiddenSubscription?.Dispose();
         }
     }
 
@@ -490,6 +507,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService,
                     IUiDispatcher, IRoutableViewModel>? factory))
         {
+            throw new InvalidOperationException($"No factory registered for view type: {viewType}");
         }
 
         IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
@@ -508,9 +526,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
             _viewModelCache.ToList();
 
-        foreach (WeakReference<IRoutableViewModel> weakRef in cachedItems.Select(item => item.Value))
+        foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
         {
-            if (!weakRef.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
+            if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
             if (viewModel is IResettable resettableViewModel)
             {
                 resettableViewModel.ResetState();

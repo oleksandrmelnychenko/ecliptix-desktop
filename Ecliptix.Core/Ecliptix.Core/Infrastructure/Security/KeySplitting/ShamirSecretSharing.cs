@@ -10,7 +10,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public sealed class ShamirSecretSharing : ISecureKeySplitter
+public sealed class ShamirSecretSharing : ISecretSharingService
 {
     private const int Prime256BitSize = 32;
     private const int DefaultThreshold = 3;

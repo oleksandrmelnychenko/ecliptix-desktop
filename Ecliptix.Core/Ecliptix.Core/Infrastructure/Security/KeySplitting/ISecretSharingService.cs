@@ -5,7 +5,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public interface ISecureKeySplitter
+public interface ISecretSharingService
 {
     Task<Result<Unit, KeySplittingFailure>> SecurelyDisposeSharesAsync(KeyShare[] shares);
 

@@ -49,16 +49,27 @@ public class OpaqueAuthenticationService(
     ISystemEventService systemEvents,
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    IEnhancedKeyDerivation enhancedKeyDerivation,
-    IMultiLocationKeyStorage multiLocationKeyStorage,
-    ISecureKeySplitter keySplitter,
-    IShareAuthenticationService shareAuthenticationService)
+    IHardenedKeyDerivation hardenedKeyDerivation,
+    IDistributedShareStorage distributedShareStorage,
+    ISecretSharingService keySplitter,
+    IHmacKeyManager hmacKeyManager)
     : IAuthenticationService, IDisposable
 {
+    private const int KeyDerivationMemorySize = 262144;
+    private const int KeyDerivationOutputLength = 64;
+    private const int KeyDerivationIterations = 4;
+    private const int KeyDerivationParallelism = 4;
+    private const int MinimumShareThreshold = 3;
+    private const int TotalKeyShares = 5;
+    private const int GuidByteLength = 16;
+    private const int MaxAllowedZeroBytes = 12;
+    private const string SignInSessionContext = "ecliptix-signin-session";
+
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
-    
+    private byte[]? _serverPublicKeyCache;
+
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
         { OpaqueResult.InvalidInput, AuthenticationConstants.InvalidCredentialsKey },
@@ -68,6 +79,15 @@ public class OpaqueAuthenticationService(
         { OpaqueResult.AuthenticationError, AuthenticationConstants.InvalidCredentialsKey },
         { OpaqueResult.InvalidPublicKey, AuthenticationConstants.CommonUnexpectedErrorKey },
     };
+
+    private static readonly KeyDerivationOptions DefaultKeyDerivationOptions = new()
+    {
+        MemorySize = KeyDerivationMemorySize,
+        Iterations = KeyDerivationIterations,
+        DegreeOfParallelism = KeyDerivationParallelism,
+        UseHardwareEntropy = true,
+        OutputLength = KeyDerivationOutputLength
+    };
     
     private string GetOpaqueErrorMessage(OpaqueResult error)
     {
@@ -76,10 +96,16 @@ public class OpaqueAuthenticationService(
             : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
     }
     
-    private byte[] ServerPublicKey() =>
-        SecureByteStringInterop.WithByteStringAsSpan(
-            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-            span => span.ToArray());
+    private byte[] GetServerPublicKey()
+    {
+        if (_serverPublicKeyCache == null)
+        {
+            _serverPublicKeyCache = SecureByteStringInterop.WithByteStringAsSpan(
+                networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+                span => span.ToArray());
+        }
+        return _serverPublicKeyCache;
+    }
 
     private OpaqueClient GetOrCreateOpaqueClient(byte[] serverPublicKey)
     {
@@ -90,7 +116,7 @@ public class OpaqueAuthenticationService(
             {
                 _opaqueClient?.Dispose();
                 _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+                _cachedServerPublicKey = serverPublicKey;
             }
 
             return _opaqueClient;
@@ -133,7 +159,7 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        byte[] serverPublicKeyBytes = ServerPublicKey();
+        byte[] serverPublicKeyBytes = GetServerPublicKey();
         OpaqueClient opaqueClient = GetOrCreateOpaqueClient(serverPublicKeyBytes);
 
         using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
@@ -199,18 +225,11 @@ public class OpaqueAuthenticationService(
         }
 
         Result<SodiumSecureMemoryHandle, KeySplittingFailure> enhancedMasterKeyHandleResult =
-            await enhancedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
+            await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
                 baseKeyHandle,
-                "ecliptix-signin-session",
+                SignInSessionContext,
                 connectId,
-                new KeyDerivationOptions
-                {
-                    MemorySize = 262144,
-                    Iterations = 4,
-                    DegreeOfParallelism = 4,
-                    UseHardwareEntropy = true,
-                    OutputLength = 64
-                });
+                DefaultKeyDerivationOptions);
 
         if (enhancedMasterKeyHandleResult.IsErr)
         {
@@ -263,7 +282,7 @@ public class OpaqueAuthenticationService(
                 Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
 
                 Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
-                    await shareAuthenticationService.GenerateHmacKeyHandleAsync(membershipId.ToString());
+                    await hmacKeyManager.GenerateHmacKeyHandleAsync(membershipId.ToString());
 
                 if (hmacKeyHandleResult.IsErr)
                 {
@@ -275,8 +294,8 @@ public class OpaqueAuthenticationService(
 
                 Result<KeySplitResult, KeySplittingFailure> masterSplitResult = await keySplitter.SplitKeyAsync(
                     masterKeyHandle,
-                    threshold: 3,
-                    totalShares: 5,
+                    threshold: MinimumShareThreshold,
+                    totalShares: TotalKeyShares,
                     hmacKeyHandle: hmacKeyHandle);
 
                 if (masterSplitResult.IsOk)
@@ -284,9 +303,11 @@ public class OpaqueAuthenticationService(
                     using KeySplitResult masterSplitKeys = masterSplitResult.Unwrap();
 
                     Result<Unit, KeySplittingFailure> masterStoreResult =
-                        await multiLocationKeyStorage.StoreKeySharesAsync(masterSplitKeys, membershipId);
+                        await distributedShareStorage.StoreKeySharesAsync(masterSplitKeys, membershipId);
                     if (masterStoreResult.IsErr)
                     {
+                        await systemEvents.NotifySystemStateAsync(SystemState.Busy,
+                            $"Failed to store key shares: {masterStoreResult.UnwrapErr().Message}");
                     }
                 }
 
@@ -426,7 +447,7 @@ public class OpaqueAuthenticationService(
 
     private static bool ValidateMembershipIdentifier(ByteString identifier)
     {
-        if (identifier.Length != 16)
+        if (identifier.Length != GuidByteLength)
             return false;
 
         ReadOnlySpan<byte> span = identifier.Span;
@@ -442,7 +463,7 @@ public class OpaqueAuthenticationService(
                 hasNonZero = true;
         }
 
-        return hasNonZero && zeroCount <= 12;
+        return hasNonZero && zeroCount <= MaxAllowedZeroBytes;
     }
 
     public void Dispose()

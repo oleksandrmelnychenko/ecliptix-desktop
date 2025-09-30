@@ -42,12 +42,15 @@ public class ApplicationInitializer(
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    IMultiLocationKeyStorage? multiLocationStorage = null,
-    ISecureKeySplitter? keySplitter = null,
-    IShareAuthenticationService? shareAuthenticationService = null
+    IDistributedShareStorage? multiLocationStorage = null,
+    ISecretSharingService? keySplitter = null,
+    IHmacKeyManager? shareAuthenticationService = null
     )
     : IApplicationInitializer
 {
+    private const int IpGeolocationTimeoutSeconds = 10;
+    private const int MinimumSharesForReconstruction = 3;
+
     public bool IsMembershipConfirmed { get; } = false;
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
@@ -79,7 +82,7 @@ public class ApplicationInitializer(
         {
             _ = Task.Run(async () =>
             {
-                using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
+                using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
                 Result<IpCountry, InternalServiceApiFailure> countryResult =
                     await ipGeolocationService.GetIpCountryAsync(cts.Token);
 
@@ -176,7 +179,7 @@ public class ApplicationInitializer(
                     Result<bool, KeySplittingFailure> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipGuid);
                     if (hasShares.IsOk && hasShares.Unwrap())
                     {
-                        Result<KeyShare[], KeySplittingFailure> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipGuid, 3);
+                        Result<KeyShare[], KeySplittingFailure> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipGuid, MinimumSharesForReconstruction);
                         if (sharesResult.IsOk)
                         {
                             KeyShare[] shares = sharesResult.Unwrap();

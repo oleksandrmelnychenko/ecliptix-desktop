@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,10 +12,15 @@ using Konscious.Security.Cryptography;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public sealed class EnhancedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IEnhancedKeyDerivation
+public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IHardenedKeyDerivation
 {
     private const string KeyContextPrefix = "ecliptix-session-key";
+    private const string RoundKeyFormat = "round-{0}-{1}";
     private const int AdditionalRoundsCount = 3;
+    private const int MaxInfoBufferSize = 128;
+    private const int HmacSha512HashSize = 64;
+    private const int MaxPreviousBlockSize = 64;
+    private const int MaxRoundBufferSize = 64;
 
     private async Task<Result<byte[], KeySplittingFailure>> DeriveEnhancedKeyAsync(
         byte[] baseKey,
@@ -105,7 +111,9 @@ public sealed class EnhancedKeyDerivation(IPlatformSecurityProvider platformSecu
     {
         return await Task.Run(() =>
         {
-            byte[] info = Encoding.UTF8.GetBytes($"{KeyContextPrefix}-{connectId}");
+            Span<byte> infoBuffer = stackalloc byte[MaxInfoBufferSize];
+            int infoLength = Encoding.UTF8.GetBytes($"{KeyContextPrefix}-{connectId}", infoBuffer);
+            ReadOnlySpan<byte> info = infoBuffer[..infoLength];
 
             byte[] salt = SHA256.HashData(BitConverter.GetBytes(connectId));
 
@@ -116,28 +124,38 @@ public sealed class EnhancedKeyDerivation(IPlatformSecurityProvider platformSecu
             }
 
             byte[] expandedKey = new byte[outputLength];
-            byte[] counter = new byte[1];
             int bytesGenerated = 0;
 
             using HMACSHA512 expandHmac = new(pseudoRandomKey);
             byte[] previousBlock = [];
 
-            for (int i = 1; bytesGenerated < outputLength; i++)
+            int maxDataToHashSize = MaxPreviousBlockSize + MaxInfoBufferSize + 1;
+            byte[] dataToHashBuffer = ArrayPool<byte>.Shared.Rent(maxDataToHashSize);
+
+            try
             {
-                counter[0] = (byte)i;
+                for (int i = 1; bytesGenerated < outputLength; i++)
+                {
+                    int offset = 0;
+                    previousBlock.CopyTo(dataToHashBuffer, offset);
+                    offset += previousBlock.Length;
+                    info.CopyTo(dataToHashBuffer.AsSpan(offset));
+                    offset += info.Length;
+                    dataToHashBuffer[offset] = (byte)i;
+                    offset++;
 
-                byte[] dataToHash = new byte[previousBlock.Length + info.Length + 1];
-                previousBlock.CopyTo(dataToHash, 0);
-                info.CopyTo(dataToHash, previousBlock.Length);
-                dataToHash[^1] = counter[0];
+                    byte[] currentBlock = expandHmac.ComputeHash(dataToHashBuffer, 0, offset);
 
-                byte[] currentBlock = expandHmac.ComputeHash(dataToHash);
+                    int bytesToCopy = Math.Min(currentBlock.Length, outputLength - bytesGenerated);
+                    Array.Copy(currentBlock, 0, expandedKey, bytesGenerated, bytesToCopy);
 
-                int bytesToCopy = Math.Min(currentBlock.Length, outputLength - bytesGenerated);
-                Array.Copy(currentBlock, 0, expandedKey, bytesGenerated, bytesToCopy);
-
-                bytesGenerated += bytesToCopy;
-                previousBlock = currentBlock;
+                    bytesGenerated += bytesToCopy;
+                    previousBlock = currentBlock;
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(dataToHashBuffer, clearArray: true);
             }
 
             CryptographicOperations.ZeroMemory(pseudoRandomKey);
@@ -149,13 +167,15 @@ public sealed class EnhancedKeyDerivation(IPlatformSecurityProvider platformSecu
     {
         return await Task.Run(() =>
         {
-            byte[] result = new byte[key.Length];
-            Array.Copy(key, result, key.Length);
+            byte[] result = (byte[])key.Clone();
+
+            Span<byte> roundBuffer = stackalloc byte[MaxRoundBufferSize];
 
             for (int round = 0; round < AdditionalRoundsCount; round++)
             {
                 using HMACSHA512 hmac = new(result);
-                byte[] roundKey = hmac.ComputeHash(Encoding.UTF8.GetBytes($"round-{round}-{connectId}"));
+                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(RoundKeyFormat, round, connectId), roundBuffer);
+                byte[] roundKey = hmac.ComputeHash(roundBuffer[..roundInputLength].ToArray());
 
                 for (int i = 0; i < result.Length && i < roundKey.Length; i++)
                 {

@@ -1,8 +1,10 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
@@ -256,9 +258,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             string secureKey = Encoding.UTF8.GetString(bytes);
             (error, List<string> recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
             strength = SecureKeyValidator.EstimatePasswordStrength(secureKey, LocalizationService);
-            if (recs.Count != 0)
+            if (recs.Count > 0)
             {
-                recommendations = recs.First();
+                recommendations = recs[0];
             }
         });
         return (error, recommendations, strength);
@@ -276,14 +278,24 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             return true;
         }
 
-        byte[] secureKeyArray = new byte[_secureKeyBuffer.Length];
-        byte[] verifyArray = new byte[_verifySecureKeyBuffer.Length];
+        int length = _secureKeyBuffer.Length;
+        byte[] secureKeyArray = ArrayPool<byte>.Shared.Rent(length);
+        byte[] verifyArray = ArrayPool<byte>.Shared.Rent(length);
 
-        _secureKeyBuffer.WithSecureBytes(secureKeyBytes => { secureKeyBytes.CopyTo(secureKeyArray.AsSpan()); });
+        try
+        {
+            _secureKeyBuffer.WithSecureBytes(secureKeyBytes => { secureKeyBytes.CopyTo(secureKeyArray.AsSpan()); });
+            _verifySecureKeyBuffer.WithSecureBytes(verifyBytes => { verifyBytes.CopyTo(verifyArray.AsSpan()); });
 
-        _verifySecureKeyBuffer.WithSecureBytes(verifyBytes => { verifyBytes.CopyTo(verifyArray.AsSpan()); });
-
-        return secureKeyArray.AsSpan().SequenceEqual(verifyArray);
+            return CryptographicOperations.FixedTimeEquals(
+                secureKeyArray.AsSpan(0, length),
+                verifyArray.AsSpan(0, length));
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(secureKeyArray, clearArray: true);
+            ArrayPool<byte>.Shared.Return(verifyArray, clearArray: true);
+        }
     }
 
     private string FormatSecureKeyStrengthMessage(PasswordStrength strength, string? error, string recommendations)
@@ -300,7 +312,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         };
 
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
-        return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
+        return string.IsNullOrEmpty(message) ? strengthText : string.Concat(strengthText, ": ", message);
     }
 
     private async Task SubmitRegistrationSecureKeyAsync()
@@ -351,7 +363,8 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             }
             else
             {
-                ServerError = $"Auto-login failed: {signInResult.UnwrapErr()}";
+                AuthenticationFailure failure = signInResult.UnwrapErr();
+                ServerError = string.Concat("Auto-login failed: ", failure.Message);
                 HasServerError = true;
             }
         }

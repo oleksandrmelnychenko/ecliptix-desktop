@@ -13,10 +13,21 @@ namespace Ecliptix.Core.Services.Authentication;
 public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
     : IIdentityService
 {
+    private const string MasterKeyStoragePrefix = "master_";
+    private const string KeychainWrapKeyPrefix = "ecliptix_master_wrap_";
+    private const int AesKeySize = 32;
+    private const int AesIvSize = 16;
+
+    private static string GetMasterKeyStorageKey(string membershipId) =>
+        string.Concat(MasterKeyStoragePrefix, membershipId);
+
+    private static string GetKeychainWrapKey(string membershipId) =>
+        string.Concat(KeychainWrapKeyPrefix, membershipId);
+
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
         Result<byte[], SecureStorageFailure> result =
-            await storage.LoadStateAsync($"master_{membershipId}");
+            await storage.LoadStateAsync(GetMasterKeyStorageKey(membershipId));
         return result.IsOk;
     }
 
@@ -25,11 +36,11 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         try
         {
             byte[] protectedKey = await WrapMasterKeyAsync(masterKey);
-            await storage.SaveStateAsync(protectedKey, $"master_{membershipId}");
+            await storage.SaveStateAsync(protectedKey, GetMasterKeyStorageKey(membershipId));
 
             if (platformProvider.IsHardwareSecurityAvailable())
             {
-                string keychainKey = $"ecliptix_master_wrap_{membershipId}";
+                string keychainKey = GetKeychainWrapKey(membershipId);
                 byte[] wrappingKey = await GenerateWrappingKeyAsync();
                 await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey);
             }
@@ -45,7 +56,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         try
         {
             Result<byte[], SecureStorageFailure> result =
-                await storage.LoadStateAsync($"master_{membershipId}");
+                await storage.LoadStateAsync(GetMasterKeyStorageKey(membershipId));
 
             if (!result.IsOk)
                 return null;
@@ -53,7 +64,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             byte[] protectedKey = result.Unwrap();
             return await UnwrapMasterKeyAsync(protectedKey, membershipId);
         }
-        catch
+        catch (Exception)
         {
             return null;
         }
@@ -63,9 +74,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
     {
         if (!platformProvider.IsHardwareSecurityAvailable())
         {
-            byte[] copy = new byte[masterKey.Length];
-            masterKey.CopyTo(copy, 0);
-            return copy;
+            return masterKey.AsSpan().ToArray();
         }
 
         try
@@ -87,11 +96,9 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             return wrappedData;
         }
-        catch
+        catch (Exception ex)
         {
-            byte[] copy = new byte[masterKey.Length];
-            masterKey.CopyTo(copy, 0);
-            return copy;
+            return masterKey.AsSpan().ToArray();
         }
     }
 
@@ -99,31 +106,25 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
     {
         if (!platformProvider.IsHardwareSecurityAvailable())
         {
-            byte[] copy = new byte[protectedKey.Length];
-            protectedKey.CopyTo(copy, 0);
-            return copy;
+            return protectedKey.AsSpan().ToArray();
         }
 
         try
         {
-            string keychainKey = $"ecliptix_master_wrap_{membershipId}";
+            string keychainKey = GetKeychainWrapKey(membershipId);
             byte[]? wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey);
 
             if (wrappingKey == null)
             {
-                byte[] copy = new byte[protectedKey.Length];
-                protectedKey.CopyTo(copy, 0);
-                return copy;
+                return protectedKey.AsSpan().ToArray();
             }
 
             using Aes aes = Aes.Create();
             aes.Key = wrappingKey;
 
-            byte[] iv = new byte[aes.BlockSize / 8];
-            byte[] encryptedKey = new byte[protectedKey.Length - iv.Length];
-
-            Array.Copy(protectedKey, 0, iv, 0, iv.Length);
-            Array.Copy(protectedKey, iv.Length, encryptedKey, 0, encryptedKey.Length);
+            ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
+            byte[] iv = protectedSpan[..AesIvSize].ToArray();
+            byte[] encryptedKey = protectedSpan[AesIvSize..].ToArray();
 
             aes.IV = iv;
             byte[] masterKey = aes.DecryptCbc(encryptedKey, iv);
@@ -133,17 +134,15 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             return masterKey;
         }
-        catch
+        catch (Exception)
         {
-            byte[] copy = new byte[protectedKey.Length];
-            protectedKey.CopyTo(copy, 0);
-            return copy;
+            return protectedKey.AsSpan().ToArray();
         }
     }
 
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
-        return await platformProvider.GenerateSecureRandomAsync(32);
+        return await platformProvider.GenerateSecureRandomAsync(AesKeySize);
     }
 
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
@@ -151,7 +150,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         try
         {
             Result<Unit, SecureStorageFailure> deleteStorageResult =
-                await storage.DeleteStateAsync($"master_{membershipId}");
+                await storage.DeleteStateAsync(GetMasterKeyStorageKey(membershipId));
 
             if (deleteStorageResult.IsErr)
             {
@@ -161,7 +160,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             if (platformProvider.IsHardwareSecurityAvailable())
             {
-                string keychainKey = $"ecliptix_master_wrap_{membershipId}";
+                string keychainKey = GetKeychainWrapKey(membershipId);
                 await platformProvider.DeleteKeyFromKeychainAsync(keychainKey);
             }
 

@@ -5,7 +5,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public interface IShareAuthenticationService
+public interface IHmacKeyManager
 {
     Task<Result<Unit, KeySplittingFailure>> RemoveHmacKeyAsync(string identifier);
 

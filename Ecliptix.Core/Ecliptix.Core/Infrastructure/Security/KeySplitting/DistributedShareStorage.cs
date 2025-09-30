@@ -15,7 +15,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposable
+public sealed class DistributedShareStorage : IDistributedShareStorage, IDisposable
 {
     private const int DefaultThreshold = 3;
     private const int CacheCapacityLimit = 100;
@@ -23,20 +23,20 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
 
     private readonly IPlatformSecurityProvider _platformSecurityProvider;
     private readonly IApplicationSecureStorageProvider _secureStorageProvider;
-    private readonly ISecureKeySplitter _keySplitter;
+    private readonly ISecretSharingService _keySplitter;
     private readonly ConcurrentDictionary<Guid, SodiumSecureMemoryHandle> _memoryShareCache = new();
     private readonly ConcurrentDictionary<Guid, DateTime> _memoryCacheAccessTimes = new();
     private readonly ConcurrentDictionary<string, HashSet<string>> _keychainTracker = new();
     private readonly ReaderWriterLockSlim _cacheLock = new();
     private readonly object _storageLock = new();
-    private readonly IShareAuthenticationService? _shareAuthenticationService;
+    private readonly IHmacKeyManager? _shareAuthenticationService;
     private bool _disposed;
 
-    public MultiLocationKeyStorage(
+    public DistributedShareStorage(
         IPlatformSecurityProvider platformSecurityProvider,
         IApplicationSecureStorageProvider secureStorageProvider,
-        ISecureKeySplitter keySplitter,
-        IShareAuthenticationService? shareAuthenticationService = null)
+        ISecretSharingService keySplitter,
+        IHmacKeyManager? shareAuthenticationService = null)
     {
         _platformSecurityProvider = platformSecurityProvider;
         _secureStorageProvider = secureStorageProvider;
@@ -404,7 +404,13 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
                 {
                     byte[]? value = getResult.Unwrap().Value;
                     if (value != null)
-                        shareData = await DoubleDecryptAsync(value);
+                    {
+                        Result<byte[], KeySplittingFailure> decryptResult = await DoubleDecryptAsync(value);
+                        if (decryptResult.IsOk)
+                        {
+                            shareData = decryptResult.Unwrap();
+                        }
+                    }
                 }
 
                 break;
@@ -493,7 +499,7 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
         }
     }
 
-    private async Task<byte[]> DoubleDecryptAsync(byte[] encryptedData)
+    private async Task<Result<byte[], KeySplittingFailure>> DoubleDecryptAsync(byte[] encryptedData)
     {
         byte[]? key = null;
         byte[]? platformEncrypted = null;
@@ -501,15 +507,15 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
         try
         {
             if (encryptedData == null || encryptedData.Length < 4)
-                throw new ArgumentException("Invalid encrypted data format");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Invalid encrypted data format"));
 
             int keyIdLength = BitConverter.ToInt32(encryptedData, 0);
 
             if (keyIdLength is <= 0 or > 256)
-                throw new InvalidOperationException($"Invalid key identifier length: {keyIdLength}");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat($"Invalid key identifier length: {keyIdLength}"));
 
             if (encryptedData.Length < 4 || encryptedData.Length - 4 < keyIdLength)
-                throw new InvalidOperationException($"Invalid key identifier length: insufficient data");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Invalid key identifier length: insufficient data"));
 
             byte[] keyIdBytes = new byte[keyIdLength];
             Array.Copy(encryptedData, 4, keyIdBytes, 0, keyIdLength);
@@ -517,7 +523,7 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
 
             key = await _platformSecurityProvider.GetKeyFromKeychainAsync(keyIdentifier);
             if (key == null)
-                throw new InvalidOperationException($"Encryption key not found in keychain: {keyIdentifier}");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.KeyNotFoundInKeychain($"Encryption key not found in keychain: {keyIdentifier}"));
 
             using Aes aes = Aes.Create();
             aes.Key = key;
@@ -526,14 +532,14 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
             int ivOffset = 4 + keyIdLength;
 
             if (ivOffset + 16 > encryptedData.Length)
-                throw new InvalidOperationException("Encrypted data truncated: missing IV");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Encrypted data truncated: missing IV"));
 
             Array.Copy(encryptedData, ivOffset, iv, 0, 16);
             aes.IV = iv;
 
             int ciphertextOffset = ivOffset + 16;
             if (ciphertextOffset >= encryptedData.Length)
-                throw new InvalidOperationException("Encrypted data truncated: missing ciphertext");
+                return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Encrypted data truncated: missing ciphertext"));
 
             byte[] ciphertext = new byte[encryptedData.Length - ciphertextOffset];
             Array.Copy(encryptedData, ciphertextOffset, ciphertext, 0, ciphertext.Length);
@@ -544,7 +550,7 @@ public sealed class MultiLocationKeyStorage : IMultiLocationKeyStorage, IDisposa
                 ? await _platformSecurityProvider.HardwareDecryptAsync(platformEncrypted)
                 : platformEncrypted;
 
-            return plaintext;
+            return Result<byte[], KeySplittingFailure>.Ok(plaintext);
         }
         finally
         {

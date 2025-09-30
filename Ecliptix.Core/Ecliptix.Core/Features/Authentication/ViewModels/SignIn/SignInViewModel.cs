@@ -180,28 +180,21 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     }
 
 
+    private static bool IsNetworkInOutage(NetworkStatus status) =>
+        status is NetworkStatus.DataCenterDisconnected
+            or NetworkStatus.ServerShutdown
+            or NetworkStatus.ConnectionRecovering;
+
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> networkStatusStream = Observable.Create<bool>(observer =>
             {
-                bool isInOutage = _networkEventService.CurrentStatus switch
-                {
-                    NetworkStatus.DataCenterDisconnected => true,
-                    NetworkStatus.ServerShutdown => true,
-                    NetworkStatus.ConnectionRecovering => true,
-                    _ => false
-                };
+                bool isInOutage = IsNetworkInOutage(_networkEventService.CurrentStatus);
                 observer.OnNext(isInOutage);
 
                 return _networkEventService.OnNetworkStatusChanged(evt =>
                 {
-                    bool outage = evt.State switch
-                    {
-                        NetworkStatus.DataCenterDisconnected => true,
-                        NetworkStatus.ServerShutdown => true,
-                        NetworkStatus.ConnectionRecovering => true,
-                        _ => false
-                    };
+                    bool outage = IsNetworkInOutage(evt.State);
                     observer.OnNext(outage);
                     return Task.CompletedTask;
                 });
@@ -265,13 +258,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private string ValidateSecureKey()
     {
-        string? error = null;
-        _secureKeyBuffer.WithSecureBytes(bytes => { error = ValidateSecureKeyBytes(bytes); });
-        return error ?? string.Empty;
+        return _secureKeyBuffer.Length == 0
+            ? LocalizationService["ValidationErrors.SecureKey.Required"]
+            : string.Empty;
     }
-
-    private string ValidateSecureKeyBytes(ReadOnlySpan<byte> passwordBytes) =>
-        passwordBytes.Length == 0 ? LocalizationService["ValidationErrors.SecureKey.Required"] : string.Empty;
 
     public new void Dispose() =>
         Dispose(true);
@@ -301,8 +291,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     {
         if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())
         {
-            IDisposable disp = SignInCommand.Execute().Subscribe();
-            _disposables.Add(disp);
+            SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
         }
     }
 

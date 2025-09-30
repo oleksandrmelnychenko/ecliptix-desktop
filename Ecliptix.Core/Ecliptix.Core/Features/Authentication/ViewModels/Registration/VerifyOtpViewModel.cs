@@ -452,12 +452,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         });
     }
 
-    private static string FormatRemainingTime(uint seconds)
-    {
-        TimeSpan time = TimeSpan.FromSeconds(seconds);
-        string formattedDataTimeString = time.ToString(@"mm\:ss");
-        return formattedDataTimeString;
-    }
+    private static string FormatRemainingTime(uint seconds) =>
+        TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
     public async void HandleEnterKeyPress()
     {

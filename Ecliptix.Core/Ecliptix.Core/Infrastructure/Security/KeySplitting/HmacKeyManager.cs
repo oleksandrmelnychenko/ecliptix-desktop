@@ -10,9 +10,10 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorage) : IShareAuthenticationService
+public class HmacKeyManager(ISecureProtocolStateStorage secureStorage) : IHmacKeyManager
 {
     private const int HmacKeySizeBytes = 64;
+    private const string HmacKeyPrefix = "hmac_key_";
 
     private static Result<Unit, KeySplittingFailure> ValidateIdentifier(string identifier)
     {
@@ -32,10 +33,10 @@ public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorag
         if (validationResult.IsErr)
             return Result<byte[], KeySplittingFailure>.Err(validationResult.UnwrapErr());
 
-        Result<bool, KeySplittingFailure> hasKeyResult = await HasHmacKeyAsync(identifier);
-        if (hasKeyResult.IsOk && hasKeyResult.Unwrap())
+        Result<byte[], KeySplittingFailure> existingKeyResult = await RetrieveHmacKeyAsync(identifier);
+        if (existingKeyResult.IsOk)
         {
-            return await RetrieveHmacKeyAsync(identifier);
+            return existingKeyResult;
         }
 
         byte[] hmacKey = RandomNumberGenerator.GetBytes(HmacKeySizeBytes);
@@ -50,13 +51,15 @@ public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorag
         return Result<byte[], KeySplittingFailure>.Ok(hmacKey);
     }
 
+    private static string GetStorageKey(string identifier) => string.Concat(HmacKeyPrefix, identifier);
+
     private async Task<Result<Unit, KeySplittingFailure>> StoreHmacKeyAsync(string identifier, byte[] hmacKey)
     {
         Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
         if (validationResult.IsErr)
             return validationResult;
 
-        string storageKey = $"hmac_key_{identifier}";
+        string storageKey = GetStorageKey(identifier);
         Result<Unit, SecureStorageFailure> saveResult = await secureStorage.SaveStateAsync(hmacKey, storageKey);
 
         if (saveResult.IsErr)
@@ -74,7 +77,7 @@ public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorag
         if (validationResult.IsErr)
             return Result<byte[], KeySplittingFailure>.Err(validationResult.UnwrapErr());
 
-        string storageKey = $"hmac_key_{identifier}";
+        string storageKey = GetStorageKey(identifier);
         Result<byte[], SecureStorageFailure> loadResult = await secureStorage.LoadStateAsync(storageKey);
 
         if (loadResult.IsErr)
@@ -85,24 +88,13 @@ public class ShareAuthenticationService(ISecureProtocolStateStorage secureStorag
         return Result<byte[], KeySplittingFailure>.Ok(loadResult.Unwrap());
     }
 
-    private async Task<Result<bool, KeySplittingFailure>> HasHmacKeyAsync(string identifier)
-    {
-        Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
-        if (validationResult.IsErr)
-            return Result<bool, KeySplittingFailure>.Err(validationResult.UnwrapErr());
-
-        string storageKey = $"hmac_key_{identifier}";
-        Result<byte[], SecureStorageFailure> loadResult = await secureStorage.LoadStateAsync(storageKey);
-        return Result<bool, KeySplittingFailure>.Ok(loadResult.IsOk);
-    }
-
     public async Task<Result<Unit, KeySplittingFailure>> RemoveHmacKeyAsync(string identifier)
     {
         Result<Unit, KeySplittingFailure> validationResult = ValidateIdentifier(identifier);
         if (validationResult.IsErr)
             return validationResult;
 
-        string storageKey = $"hmac_key_{identifier}";
+        string storageKey = GetStorageKey(identifier);
         Result<Unit, SecureStorageFailure> deleteResult = await secureStorage.DeleteStateAsync(storageKey);
 
         if (deleteResult.IsErr)

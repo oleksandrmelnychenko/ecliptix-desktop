@@ -330,8 +330,6 @@ public static class Program
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IWindowService, WindowService>();
-        services.AddSingleton<ISingleInstanceManager, SingleInstanceManager>();
-        services.AddSingleton<IWindowActivationService, WindowActivationService>();
     }
 
     private static void ConfigureAuthenticationServices(IServiceCollection services)
@@ -341,15 +339,15 @@ public static class Program
         services.AddSingleton<IIdentityService, IdentityService>();
 
         // Key splitting and secure storage services
-        services.AddSingleton<ISecureKeySplitter, ShamirSecretSharing>();
-        services.AddSingleton<IEnhancedKeyDerivation, EnhancedKeyDerivation>();
-        services.AddSingleton<IShareAuthenticationService, ShareAuthenticationService>();
-        services.AddSingleton<IMultiLocationKeyStorage>(sp =>
-            new MultiLocationKeyStorage(
+        services.AddSingleton<ISecretSharingService, ShamirSecretSharing>();
+        services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
+        services.AddSingleton<IHmacKeyManager, HmacKeyManager>();
+        services.AddSingleton<IDistributedShareStorage>(sp =>
+            new DistributedShareStorage(
                 sp.GetRequiredService<IPlatformSecurityProvider>(),
                 sp.GetRequiredService<IApplicationSecureStorageProvider>(),
-                sp.GetRequiredService<ISecureKeySplitter>(),
-                sp.GetRequiredService<IShareAuthenticationService>()));
+                sp.GetRequiredService<ISecretSharingService>(),
+                sp.GetRequiredService<IHmacKeyManager>()));
 
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
