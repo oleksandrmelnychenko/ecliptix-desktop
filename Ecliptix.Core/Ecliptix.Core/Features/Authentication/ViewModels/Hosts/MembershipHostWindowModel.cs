@@ -54,7 +54,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly ILanguageDetectionService _languageDetectionService;
     private readonly ILocalizationService _localizationService;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
-    
+
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
@@ -78,12 +78,15 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             [MembershipViewType.Welcome] =
                 (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
                     new WelcomeViewModel(host, sys, loc, netProvider),
-            [MembershipViewType.MobileVerification] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
-                new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
-            [MembershipViewType.ConfirmSecureKey] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
-                new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
-            [MembershipViewType.PassPhase] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
-                new PassPhaseViewModel(sys, loc, host, netProvider)
+            [MembershipViewType.MobileVerification] =
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                    new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
+            [MembershipViewType.ConfirmSecureKey] =
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                    new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
+            [MembershipViewType.PassPhase] =
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                    new PassPhaseViewModel(sys, loc, host, netProvider)
         }.ToFrozenDictionary();
 
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
@@ -91,7 +94,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public RoutingState Router { get; } = new();
 
     private IRoutableViewModel? _currentView;
-    
+
     public IRoutableViewModel? CurrentView
     {
         get => _currentView;
@@ -136,41 +139,17 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
-        try
+        if (_currentView != null)
         {
-            if (viewModel == null)
+            if (_currentView is IResettable currentResettable)
             {
-                Log.Warning("Attempted to navigate to null ViewModel");
-                return;
+                currentResettable.ResetState();
             }
 
-            if (_currentView != null)
-            {
-                if (_currentView is IResettable currentResettable)
-                {
-                    try
-                    {
-                        currentResettable.ResetState();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning("Failed to reset current ViewModel state: {Error}", ex.Message);
-                    }
-                }
-
-                _navigationStack.Push(_currentView);
-                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
-                    _currentView.GetType().Name, _navigationStack.Count);
-            }
-
-            CurrentView = viewModel;
-            Log.Information("Navigated directly to {ViewModelType}", viewModel.GetType().Name);
+            _navigationStack.Push(_currentView);
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to navigate to ViewModel: {ViewModelType}", viewModel?.GetType().Name ?? "null");
-            throw;
-        }
+
+        CurrentView = viewModel;
     }
 
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
@@ -208,7 +187,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _opaqueRegistrationService = opaqueRegistrationService;
         _uiDispatcher = uiDispatcher;
         _languageDetectionService = languageDetectionService;
-        
+
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
         NetworkStatusNotification = networkStatusNotification;
@@ -225,8 +204,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         _connectivitySubscription = connectivityObserver.Subscribe(status =>
         {
-            Log.Information("Network status changed to: {Status}", status);
-
             _ = _networkEventService.NotifyNetworkStatusAsync(status
                 ? NetworkStatus.DataCenterConnected
                 : NetworkStatus.NoInternet);
@@ -234,16 +211,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
         {
-            Log.Information("Navigate command executing for ViewType: {ViewType}", viewType);
             IRoutableViewModel viewModel = GetOrCreateViewModelForView(viewType);
-            Log.Information("Created/Retrieved ViewModel: {ViewModelType} for ViewType: {ViewType}",
-                viewModel.GetType().Name, viewType);
 
             if (_currentView != null)
             {
                 _navigationStack.Push(_currentView);
-                Log.Information("Pushed {ViewModelType} to navigation stack. Stack size: {Size}",
-                    _currentView.GetType().Name, _navigationStack.Count);
             }
 
             CurrentView = viewModel;
@@ -253,42 +225,23 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         NavigateBack = ReactiveCommand.Create(() =>
         {
-            try
+            if (_navigationStack.Count > 0)
             {
-                if (_navigationStack.Count > 0)
+                if (_currentView is IResettable resettable)
                 {
-                    if (_currentView is IResettable resettable)
-                    {
-                        try
-                        {
-                            resettable.ResetState();
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Warning("Failed to reset current ViewModel during back navigation: {Error}",
-                                ex.Message);
-                        }
-                    }
-
-                    IRoutableViewModel previousView = _navigationStack.Pop();
-                    Log.Information("Navigating back to {ViewModelType}. Stack size: {Size}",
-                        previousView.GetType().Name, _navigationStack.Count);
-
-                    _currentView = previousView;
-                    this.RaisePropertyChanged(nameof(CurrentView));
-                    CanNavigateBack = _navigationStack.Count > 0;
-
-                    return previousView;
+                    resettable.ResetState();
                 }
 
-                Log.Information("Cannot navigate back - navigation stack is empty");
-                return null;
+                IRoutableViewModel previousView = _navigationStack.Pop();
+
+                _currentView = previousView;
+                this.RaisePropertyChanged(nameof(CurrentView));
+                CanNavigateBack = _navigationStack.Count > 0;
+
+                return previousView;
             }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error during back navigation");
-                return null;
-            }
+
+            return null;
         });
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
@@ -299,70 +252,46 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
         SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            try
+            IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
+            IWindowService? windowService = Locator.Current.GetService<IWindowService>();
+
+            if (moduleManager == null || windowService == null)
             {
-                Log.Information("Starting transition to main window after successful authentication");
-
-                IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
-                IWindowService? windowService = Locator.Current.GetService<IWindowService>();
-
-                if (moduleManager == null || windowService == null)
-                {
-                    Log.Error("Required services not available for main window transition");
-                    return;
-                }
-
-                Window? currentWindow =
-                    Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                        ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
-                        : null;
-
-                if (currentWindow == null)
-                {
-                    Log.Error("Could not find current authentication window");
-                    return;
-                }
-
-                Log.Information("Loading Main module...");
-                IModule mainModule = await moduleManager.LoadModuleAsync("Main");
-                Log.Information("Main module loaded successfully");
-
-                Log.Information("Cleaning up authentication flow...");
-                CleanupAuthenticationFlow();
-
-                MainHostWindow mainWindow = new MainHostWindow();
-
-                if (mainModule.ServiceScope?.ServiceProvider != null)
-                {
-                    try
-                    {
-                        MainViewModel? mainViewModel =
-                            mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
-                        if (mainViewModel != null)
-                        {
-                            mainWindow.DataContext = mainViewModel;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning(ex, "Could not resolve MainViewModel from module scope, using default");
-                    }
-                }
-
-                await windowService.ShowAndWaitForWindowAsync(mainWindow);
-                windowService.PositionWindowRelativeTo(mainWindow, currentWindow);
-
-                await windowService.PerformCrossfadeTransitionAsync(currentWindow, mainWindow);
-
-                currentWindow.Close();
-
-                Log.Information("Successfully transitioned to main window");
+                return;
             }
-            catch (Exception ex)
+
+            Window? currentWindow =
+                Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                    ? desktop.Windows.FirstOrDefault(w => w.DataContext == this)
+                    : null;
+
+            if (currentWindow == null)
             {
-                Log.Error(ex, "Failed to transition to main window");
-                throw;
+                return;
             }
+
+            IModule mainModule = await moduleManager.LoadModuleAsync("Main");
+
+            CleanupAuthenticationFlow();
+
+            MainHostWindow mainWindow = new();
+
+            if (mainModule.ServiceScope?.ServiceProvider != null)
+            {
+                MainViewModel? mainViewModel =
+                    mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+                if (mainViewModel != null)
+                {
+                    mainWindow.DataContext = mainViewModel;
+                }
+            }
+
+            await windowService.ShowAndWaitForWindowAsync(mainWindow);
+            windowService.PositionWindowRelativeTo(mainWindow, currentWindow);
+
+            await windowService.PerformCrossfadeTransitionAsync(currentWindow, mainWindow);
+
+            currentWindow.Close();
         });
 
         OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/privacy"));
@@ -387,15 +316,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
             Navigate.Execute(MembershipViewType.Welcome)
-                .Subscribe(vm =>
-                {
-                    Log.Information("Navigation to Welcome completed. ViewModel: {ViewModelType}, UrlPath: {UrlPath}",
-                        vm.GetType().Name, vm.UrlPathSegment);
-                })
+                .Subscribe(_ => { })
                 .DisposeWith(disposables);
         });
     }
-    
+
     private async Task HandleLanguageDetectionEvent(LanguageDetectionDialogEvent evt)
     {
         try
@@ -405,11 +330,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 case LanguageDetectionAction.Confirm when !string.IsNullOrEmpty(evt.TargetCulture):
                     ChangeApplicationLanguage(evt.TargetCulture);
                     break;
-                
+
                 case LanguageDetectionAction.Decline:
-                    Log.Information("Language change declined by user");
                     break;
             }
+
             await _bottomSheetService.HideAsync();
         }
         finally
@@ -434,74 +359,45 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             _bottomSheetHiddenSubscription.Dispose();
         }
     }
-    
+
     private void ChangeApplicationLanguage(string targetCulture)
     {
-        try
-        {
-            _localizationService.SetCulture(targetCulture,
-                () =>
-                {
-                    _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture);
-                    _rpcMetaDataProvider.SetCulture(targetCulture);
-                });
-            
-            Log.Information("Language changed to: {Culture}", targetCulture);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to change language to: {Culture}", targetCulture);
-        }
+        _localizationService.SetCulture(targetCulture,
+            () =>
+            {
+                _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture);
+                _rpcMetaDataProvider.SetCulture(targetCulture);
+            });
     }
 
-    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView, bool showScrim = true, bool isDismissable = false)
+    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
+        bool showScrim = true, bool isDismissable = false)
     {
-        try
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                await _uiDispatcher.PostAsync(async () =>
-                {
-                    await _bottomSheetService.ShowAsync(componentType, redirectView,
-                        showScrim: showScrim, isDismissable: isDismissable);
-                });
-            }
-            else
+            await _uiDispatcher.PostAsync(async () =>
             {
                 await _bottomSheetService.ShowAsync(componentType, redirectView,
                     showScrim: showScrim, isDismissable: isDismissable);
-            }
+            });
         }
-        catch (Exception ex)
+        else
         {
-            Log.Error(ex, "Failed to show redirect notification bottom sheet");
-            throw;
+            await _bottomSheetService.ShowAsync(componentType, redirectView,
+                showScrim: showScrim, isDismissable: isDismissable);
         }
     }
 
     public async Task HideBottomSheetAsync()
     {
-        try
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                await _uiDispatcher.PostAsync(async () =>
-                {
-                    await _bottomSheetService.HideAsync();
-                });
-            }
-            else
-            {
-                await _bottomSheetService.HideAsync();
-            }
+            await _uiDispatcher.PostAsync(async () => { await _bottomSheetService.HideAsync(); });
         }
-        catch (Exception ex)
+        else
         {
-            Log.Error(ex, "Failed to hide redirect notification bottom sheet");
-            throw;
+            await _bottomSheetService.HideAsync();
         }
-
-
     }
 
     private async Task CheckCountryCultureMismatchAsync()
@@ -532,12 +428,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                         _languageDetectionService,
                         _networkProvider
                     );
-                    
+
                     DetectLanguageDialog detectLanguageView = new()
                     {
                         DataContext = detectLanguageViewModel
                     };
-                    
+
                     await _bottomSheetService.ShowAsync(
                         BottomSheetComponentType.DetectedLocalization,
                         detectLanguageView,
@@ -545,42 +441,33 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                         isDismissable: true
                     );
                 }
-                    
-                
             }
         }
     }
 
     private static void OpenUrl(string url)
     {
-        try
-        {
-            Log.Information("Opening URL: {Url}", url);
+        Log.Information("Opening URL: {Url}", url);
 
-            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
-                    .Windows))
-            {
-                System.Diagnostics.Process.Start(
-                    new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-            }
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                         .OSPlatform.OSX))
-            {
-                System.Diagnostics.Process.Start("open", url);
-            }
-            else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                         .OSPlatform.Linux))
-            {
-                System.Diagnostics.Process.Start("xdg-open", url);
-            }
-            else
-            {
-                Log.Warning("Unsupported platform for opening URL: {Url}", url);
-            }
-        }
-        catch (Exception ex)
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
+                .Windows))
         {
-            Log.Error(ex, "Failed to open URL: {Url}", url);
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.OSX))
+        {
+            System.Diagnostics.Process.Start("open", url);
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.Linux))
+        {
+            System.Diagnostics.Process.Start("xdg-open", url);
+        }
+        else
+        {
+            Log.Warning("Unsupported platform for opening URL: {Url}", url);
         }
     }
 
@@ -591,14 +478,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             if (resetState && cachedViewModel is IResettable resettable)
             {
-                try
-                {
-                    resettable.ResetState();
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Failed to reset ViewModel state for {ViewType}: {Error}", viewType, ex.Message);
-                }
+                resettable.ResetState();
             }
 
             return cachedViewModel;
@@ -610,93 +490,52 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService,
                     IUiDispatcher, IRoutableViewModel>? factory))
         {
-            throw new ArgumentOutOfRangeException(nameof(viewType), $"No factory found for ViewType: {viewType}");
         }
 
-        try
-        {
-            IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
-                LocalizationService,
-                _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService, _uiDispatcher);
-            _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
+        IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
+            LocalizationService,
+            _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
+            _uiDispatcher);
+        _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
-            Log.Information("Created new ViewModel: {ViewModelType} for ViewType: {ViewType}",
-                newViewModel.GetType().Name, viewType);
-
-            return newViewModel;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to create ViewModel for ViewType: {ViewType}", viewType);
-            throw;
-        }
+        return newViewModel;
     }
 
     public void CleanupAuthenticationFlow()
     {
-        Log.Information("Starting authentication flow cleanup");
+        ClearNavigationStack();
 
-        try
+        List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
+            _viewModelCache.ToList();
+
+        foreach (WeakReference<IRoutableViewModel> weakRef in cachedItems.Select(item => item.Value))
         {
-            ClearNavigationStack();
-
-            List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
-                _viewModelCache.ToList();
-
-            foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
+            if (!weakRef.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
+            if (viewModel is IResettable resettableViewModel)
             {
-                MembershipViewType viewType = item.Key;
-                WeakReference<IRoutableViewModel> weakRef = item.Value;
-                if (weakRef.TryGetTarget(out IRoutableViewModel? viewModel))
-                {
-                    Log.Information("Disposing cached ViewModel: {ViewModelType} for ViewType: {ViewType}",
-                        viewModel.GetType().Name, viewType);
-
-                    try
-                    {
-                        if (viewModel is IResettable resettableViewModel)
-                        {
-                            resettableViewModel.ResetState();
-                        }
-
-                        if (viewModel is IDisposable disposableViewModel)
-                        {
-                            disposableViewModel.Dispose();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warning("Failed to dispose ViewModel {ViewModelType}: {Error}",
-                            viewModel.GetType().Name, ex.Message);
-                    }
-                }
+                resettableViewModel.ResetState();
             }
 
-            _viewModelCache.Clear();
-            CurrentView = null;
+            if (viewModel is IDisposable disposableViewModel)
+            {
+                disposableViewModel.Dispose();
+            }
+        }
 
-            Log.Information("Authentication flow cleanup completed - all ViewModels disposed and cache cleared");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error during authentication flow cleanup");
-        }
+        _viewModelCache.Clear();
+        CurrentView = null;
     }
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            Log.Information("MembershipHostWindowModel disposing - starting cleanup");
-
             CleanupAuthenticationFlow();
 
             _connectivitySubscription.Dispose();
             _disposables.Dispose();
             LanguageSelector.Dispose();
             NetworkStatusNotification.Dispose();
-
-            Log.Information("MembershipHostWindowModel disposal complete");
         }
 
         base.Dispose(disposing);
