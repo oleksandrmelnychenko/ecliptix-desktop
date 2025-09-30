@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Utilities;

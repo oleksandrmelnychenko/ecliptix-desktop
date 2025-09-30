@@ -6,6 +6,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
@@ -18,6 +19,7 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
+using Serilog;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -30,10 +32,14 @@ public class OpaqueAuthenticationService(
     ISystemEventService systemEvents,
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    ISessionKeyService sessionKeyService)
+    ISessionKeyService sessionKeyService,
+    IEnhancedKeyDerivation enhancedKeyDerivation,
+    IMultiLocationKeyStorage multiLocationKeyStorage,
+    ISecureKeySplitter keySplitter,
+    IShareAuthenticationService shareAuthenticationService)
     : IAuthenticationService, IDisposable
 {
-    private readonly object _opaqueClientLock = new();
+    private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
 
@@ -121,7 +127,29 @@ public class OpaqueAuthenticationService(
         byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
         byte[] ke3Data = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
-        byte[] sessionKey = opaqueClient.DeriveSessionKey(ke1Result);
+        byte[] baseSessionKey = opaqueClient.DeriveSessionKey(ke1Result);
+
+        Result<byte[], string> enhancedKeyResult = await enhancedKeyDerivation.DeriveEnhancedKeyAsync(
+            baseSessionKey,
+            "ecliptix-signin-session",
+            connectId,
+            new KeyDerivationOptions
+            {
+                MemorySize = 262144,
+                Iterations = 4,
+                DegreeOfParallelism = 4,
+                UseHardwareEntropy = true,
+                OutputLength = 64
+            });
+
+        if (enhancedKeyResult.IsErr)
+        {
+            Log.Error("Failed to derive enhanced session key: {Error}", enhancedKeyResult.UnwrapErr());
+            return Result<Unit, string>.Err("Failed to derive enhanced session key");
+        }
+
+        byte[] enhancedSessionKey = enhancedKeyResult.Unwrap();
+        CryptographicOperations.ZeroMemory(baseSessionKey);
 
         OpaqueSignInFinalizeRequest finalizeRequest = new()
         {
@@ -129,11 +157,36 @@ public class OpaqueAuthenticationService(
             ClientMac =  ByteString.CopyFrom(ke3Data),
         };
 
-        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, sessionKey, connectId);
+        Result<SignInResult, string> finalResult = await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedSessionKey, connectId);
 
         if (finalResult.IsOk)
         {
             SignInResult signInResult = finalResult.Unwrap();
+
+            // Store session key shares for current session (indexed by connectId)
+            // This is optional since session keys are ephemeral
+            Log.Debug("Splitting and storing session key using Shamir's Secret Sharing for connection {ConnectId}", connectId);
+            Result<KeySplitResult, string> splitResult = await keySplitter.SplitKeyAsync(
+                signInResult.SessionKey,
+                threshold: 3,
+                totalShares: 5);
+
+            if (splitResult.IsOk)
+            {
+                using KeySplitResult splitKeys = splitResult.Unwrap();
+
+                Result<Unit, string> storeResult = await multiLocationKeyStorage.StoreKeySharesAsync(splitKeys, connectId);
+                if (storeResult.IsErr)
+                {
+                    Log.Warning("Failed to store session key shares: {Error}", storeResult.UnwrapErr());
+                    // Continue - session key storage is optional
+                }
+            }
+            else
+            {
+                Log.Warning("Failed to split session key: {Error}", splitResult.UnwrapErr());
+                // Continue - session key storage is optional
+            }
 
             await sessionKeyService.StoreSessionKeyAsync(signInResult.SessionKey, connectId);
 
@@ -147,19 +200,67 @@ public class OpaqueAuthenticationService(
                     return Result<Unit, string>.Err(localizationService[AuthenticationConstants.InvalidCredentialsKey]);
                 }
 
-                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(sessionKey, membershipIdentifier);
+                byte[] masterKey = MasterKeyDerivation.DeriveMasterKey(enhancedSessionKey, membershipIdentifier);
                 string memberId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
+                // Store master key using Shamir's Secret Sharing indexed by membershipId
+                Log.Information("Splitting and storing master key using Shamir's Secret Sharing for member {MemberId}", memberId);
+
+                // Generate HMAC key for share validation
+                Result<byte[], string> hmacKeyResult = await shareAuthenticationService.GenerateHmacKeyAsync(memberId);
+                byte[]? hmacKey = hmacKeyResult.IsOk ? hmacKeyResult.Unwrap() : null;
+
+                if (hmacKeyResult.IsErr)
+                {
+                    Log.Warning("Failed to generate HMAC key for member {MemberId}: {Error}", memberId, hmacKeyResult.UnwrapErr());
+                }
+
+                Result<KeySplitResult, string> masterSplitResult = await keySplitter.SplitKeyAsync(
+                    masterKey,
+                    threshold: 3,
+                    totalShares: 5,
+                    hmacKey: hmacKey);
+
+                if (masterSplitResult.IsOk)
+                {
+                    using KeySplitResult masterSplitKeys = masterSplitResult.Unwrap();
+
+                    // Store master key shares indexed by membershipId (persistent)
+                    Result<Unit, string> masterStoreResult = await multiLocationKeyStorage.StoreKeySharesAsync(masterSplitKeys, memberId);
+                    if (masterStoreResult.IsErr)
+                    {
+                        Log.Error("Failed to store master key shares for member {MemberId}: {Error}", memberId, masterStoreResult.UnwrapErr());
+                        // Continue anyway - we still have identityService as fallback
+                    }
+                    else
+                    {
+                        Log.Information("Successfully stored master key shares for member {MemberId}", memberId);
+                    }
+                }
+                else
+                {
+                    Log.Error("Failed to split master key for member {MemberId}: {Error}", memberId, masterSplitResult.UnwrapErr());
+                }
+
+                // Clean up HMAC key
+                if (hmacKey != null)
+                {
+                    CryptographicOperations.ZeroMemory(hmacKey);
+                }
+
+                // Still store via identityService for backward compatibility
                 await identityService.StoreIdentityAsync(masterKey, memberId);
-                
+
                 CryptographicOperations.ZeroMemory(masterKey);
 
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
             }
 
+            CryptographicOperations.ZeroMemory(enhancedSessionKey);
             return Result<Unit, string>.Ok(Unit.Value);
         }
 
+        CryptographicOperations.ZeroMemory(enhancedSessionKey);
         return Result<Unit, string>.Err(finalResult.UnwrapErr());
     }
 
@@ -284,31 +385,23 @@ public class OpaqueAuthenticationService(
 
     private bool ValidateMembershipIdentifier(ByteString identifier)
     {
-        if (identifier == null || identifier.Length != 16)
+        if (identifier.Length != 16)
             return false;
 
-        try
+        ReadOnlySpan<byte> span = identifier.Span;
+
+        int zeroCount = 0;
+        bool hasNonZero = false;
+
+        for (int i = 0; i < span.Length; i++)
         {
-            Guid memberGuid = Helpers.FromByteStringToGuid(identifier);
-            if (memberGuid == Guid.Empty)
-                return false;
-
-            byte[] bytes = identifier.ToByteArray();
-            int zeroCount = 0;
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                if (bytes[i] == 0) zeroCount++;
-            }
-
-            if (zeroCount > 12)
-                return false;
-
-            return true;
+            if (span[i] == 0)
+                zeroCount++;
+            else
+                hasNonZero = true;
         }
-        catch
-        {
-            return false;
-        }
+
+        return hasNonZero && zeroCount <= 12;
     }
 
     public void Dispose()

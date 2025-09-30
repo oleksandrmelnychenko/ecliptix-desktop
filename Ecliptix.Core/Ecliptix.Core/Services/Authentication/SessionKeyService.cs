@@ -3,15 +3,21 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
+using Serilog;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public class SessionKeyService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
+public class SessionKeyService(
+    ISecureProtocolStateStorage storage,
+    IPlatformSecurityProvider platformProvider,
+    IMultiLocationKeyStorage multiLocationStorage,
+    ISecureKeySplitter keySplitter)
     : ISessionKeyService
 {
     private readonly ConcurrentDictionary<uint, byte[]> _sessionKeyCache = new();
@@ -46,6 +52,53 @@ public class SessionKeyService(ISecureProtocolStateStorage storage, IPlatformSec
             return copy;
         }
 
+        Log.Debug("Attempting to retrieve session key for connection {ConnectId}", connectId);
+
+        Result<bool, string> hasShares = await multiLocationStorage.HasStoredSharesAsync(connectId);
+        if (hasShares.IsOk && hasShares.Unwrap())
+        {
+            Log.Information("Retrieving session key from split storage for connection {ConnectId}", connectId);
+            Result<KeyShare[], string> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(connectId, 3);
+
+            if (sharesResult.IsOk)
+            {
+                KeyShare[] shares = sharesResult.Unwrap();
+                try
+                {
+                    Result<byte[], string> reconstructResult = await keySplitter.ReconstructKeyAsync(shares);
+                    if (reconstructResult.IsOk)
+                    {
+                        byte[] sessionKey = reconstructResult.Unwrap();
+                        byte[] sessionKeyCopy = new byte[sessionKey.Length];
+                        sessionKey.CopyTo(sessionKeyCopy, 0);
+                        _sessionKeyCache.TryAdd(connectId, sessionKeyCopy);
+
+                        Log.Information("Successfully reconstructed session key from {ShareCount} shares", shares.Length);
+                        // Return a copy, not the original that gets stored in cache
+                        byte[] returnCopy = new byte[sessionKey.Length];
+                        sessionKey.CopyTo(returnCopy, 0);
+                        CryptographicOperations.ZeroMemory(sessionKey);
+                        return returnCopy;
+                    }
+                    else
+                    {
+                        Log.Error("Failed to reconstruct session key: {Error}", reconstructResult.UnwrapErr());
+                    }
+                }
+                finally
+                {
+                    foreach (KeyShare share in shares)
+                    {
+                        share?.Dispose();
+                    }
+                }
+            }
+            else
+            {
+                Log.Warning("Failed to retrieve key shares: {Error}", sharesResult.UnwrapErr());
+            }
+        }
+
         try
         {
             Result<byte[], SecureStorageFailure> result = await storage.LoadStateAsync($"session_{connectId}");
@@ -59,7 +112,11 @@ public class SessionKeyService(ISecureProtocolStateStorage storage, IPlatformSec
             sessionKey.CopyTo(sessionKeyCopy, 0);
             _sessionKeyCache.TryAdd(connectId, sessionKeyCopy);
 
-            return sessionKey;
+            // Return a copy, not the original that gets stored in cache
+            byte[] returnCopy = new byte[sessionKey.Length];
+            sessionKey.CopyTo(returnCopy, 0);
+            CryptographicOperations.ZeroMemory(sessionKey);
+            return returnCopy;
         }
         catch
         {
@@ -76,6 +133,8 @@ public class SessionKeyService(ISecureProtocolStateStorage storage, IPlatformSec
                 CryptographicOperations.ZeroMemory(cachedKey);
             }
 
+            await multiLocationStorage.RemoveKeySharesAsync(connectId);
+
             await storage.DeleteStateAsync($"session_{connectId}");
 
             if (platformProvider.IsHardwareSecurityAvailable())
@@ -83,9 +142,12 @@ public class SessionKeyService(ISecureProtocolStateStorage storage, IPlatformSec
                 string keychainKey = $"ecliptix_session_wrap_{connectId}";
                 await platformProvider.DeleteKeyFromKeychainAsync(keychainKey);
             }
+
+            Log.Information("Invalidated session key and removed all shares for connection {ConnectId}", connectId);
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Error(ex, "Error invalidating session key for connection {ConnectId}", connectId);
         }
     }
 

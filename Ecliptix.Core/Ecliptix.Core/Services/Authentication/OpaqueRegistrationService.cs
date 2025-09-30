@@ -479,6 +479,11 @@ public class OpaqueRegistrationService(
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
             }
 
+            // Registration completed successfully. The user's credentials are now registered.
+            // The secure session key with enhanced protection will be created during the automatic
+            // sign-in that happens immediately after registration in SecureKeyVerifierViewModel.
+            Log.Information("Successfully completed OPAQUE registration for connection {ConnectId}", connectId);
+
             return Result<Unit, string>.Ok(Unit.Value);
         }
         catch (Exception ex)

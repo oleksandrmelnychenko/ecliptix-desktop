@@ -3,6 +3,7 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using System;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -41,7 +43,10 @@ public class ApplicationInitializer(
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
-    IIdentityService identityService
+    IIdentityService identityService,
+    IMultiLocationKeyStorage? multiLocationStorage = null,
+    ISecureKeySplitter? keySplitter = null,
+    IShareAuthenticationService? shareAuthenticationService = null
     )
     : IApplicationInitializer
 {
@@ -116,7 +121,7 @@ public class ApplicationInitializer(
 
         if (!isNewInstance)
         {
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            //await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
             
             Result<byte[], SecureStorageFailure> loadResult =
                 await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
@@ -148,7 +153,95 @@ public class ApplicationInitializer(
 
         if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
         {
-            byte[]? masterKey = await identityService.LoadMasterKeyAsync(membershipId);
+            byte[]? masterKey = null;
+
+            // Try to reconstruct from Shamir shares first if available
+            if (multiLocationStorage != null && keySplitter != null)
+            {
+                try
+                {
+                    // Use membershipId (persistent) instead of connectId (ephemeral)
+                    Result<bool, string> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipId);
+                    if (hasShares.IsOk && hasShares.Unwrap())
+                    {
+                        Log.Information("Attempting to reconstruct master key from Shamir shares for member {MembershipId}", membershipId);
+
+                        Result<KeyShare[], string> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipId, 3);
+                        if (sharesResult.IsOk)
+                        {
+                            KeyShare[] shares = sharesResult.Unwrap();
+                            try
+                            {
+                                // Retrieve HMAC key from secure storage for validation
+                                byte[]? hmacKey = null;
+                                if (shareAuthenticationService != null)
+                                {
+                                    Result<byte[], string> hmacKeyResult = await shareAuthenticationService.RetrieveHmacKeyAsync(membershipId);
+                                    if (hmacKeyResult.IsOk)
+                                    {
+                                        hmacKey = hmacKeyResult.Unwrap();
+                                        Log.Debug("Retrieved HMAC key for share validation for member {MembershipId}", membershipId);
+                                    }
+                                    else
+                                    {
+                                        Log.Warning("No HMAC key found for member {MembershipId}, reconstructing without validation: {Error}",
+                                            membershipId, hmacKeyResult.UnwrapErr());
+                                    }
+                                }
+
+                                Result<byte[], string> reconstructResult = await keySplitter.ReconstructKeyAsync(shares, hmacKey);
+
+                                // Clean up HMAC key
+                                if (hmacKey != null)
+                                {
+                                    CryptographicOperations.ZeroMemory(hmacKey);
+                                }
+
+                                if (reconstructResult.IsOk)
+                                {
+                                    masterKey = reconstructResult.Unwrap();
+                                    Log.Information("Successfully reconstructed master key from {ShareCount} Shamir shares for member {MembershipId}",
+                                        shares.Length, membershipId);
+                                }
+                                else
+                                {
+                                    Log.Warning("Failed to reconstruct master key from shares for member {MembershipId}: {Error}",
+                                        membershipId, reconstructResult.UnwrapErr());
+                                }
+                            }
+                            finally
+                            {
+                                // Dispose shares after use
+                                foreach (KeyShare share in shares)
+                                {
+                                    share?.Dispose();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Log.Warning("Failed to retrieve shares for member {MembershipId}: {Error}",
+                                membershipId, sharesResult.UnwrapErr());
+                        }
+                    }
+                    else
+                    {
+                        Log.Debug("No Shamir shares found for member {MembershipId}", membershipId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error attempting to reconstruct master key from Shamir shares for member {MembershipId}", membershipId);
+                }
+            }
+
+            // Fallback to direct load if Shamir reconstruction failed or unavailable
+            if (masterKey == null)
+            {
+                Log.Debug("Loading master key directly from identity service");
+                masterKey = await identityService.LoadMasterKeyAsync(membershipId);
+            }
+
             if (masterKey != null)
             {
                 Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =

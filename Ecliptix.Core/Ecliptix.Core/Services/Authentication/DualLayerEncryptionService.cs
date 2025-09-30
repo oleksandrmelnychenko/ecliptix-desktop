@@ -18,10 +18,9 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
             byte[]? sessionKey = await sessionKeyService.GetSessionKeyAsync(connectId);
             if (sessionKey == null)
             {
-                // No session key available - return header as plaintext bytes
-                Log.Debug("🔒 No session key available for connectId {ConnectId}, skipping header encryption", connectId);
                 return Result<byte[], string>.Ok(header.ToByteArray());
             }
+
             if (sessionKey.Length != 32)
             {
                 CryptographicOperations.ZeroMemory(sessionKey);
@@ -45,31 +44,22 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
 
     public async Task<Result<byte[], string>> EncryptHeaderAsync(byte[] headerBytes, uint connectId)
     {
-        try
+        byte[]? sessionKey = await sessionKeyService.GetSessionKeyAsync(connectId);
+        if (sessionKey == null)
         {
-            byte[]? sessionKey = await sessionKeyService.GetSessionKeyAsync(connectId);
-            if (sessionKey == null)
-            {
-                // No session key available - return header bytes as-is
-                Log.Debug("🔒 No session key available for connectId {ConnectId}, skipping header encryption", connectId);
-                return Result<byte[], string>.Ok(headerBytes);
-            }
-            if (sessionKey.Length != 32)
-            {
-                CryptographicOperations.ZeroMemory(sessionKey);
-                return Result<byte[], string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
-            }
+            return Result<byte[], string>.Ok(headerBytes);
+        }
 
-            byte[] encryptedHeader = EncryptWithSessionKey(headerBytes, sessionKey);
+        if (sessionKey.Length != 32)
+        {
             CryptographicOperations.ZeroMemory(sessionKey);
+            return Result<byte[], string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
+        }
 
-            Log.Debug("🔒 Header encrypted with session key for connectId {ConnectId}", connectId);
-            return Result<byte[], string>.Ok(encryptedHeader);
-        }
-        catch (Exception ex)
-        {
-            return Result<byte[], string>.Err($"Header encryption failed: {ex.Message}");
-        }
+        byte[] encryptedHeader = EncryptWithSessionKey(headerBytes, sessionKey);
+        CryptographicOperations.ZeroMemory(sessionKey);
+
+        return Result<byte[], string>.Ok(encryptedHeader);
     }
 
     public async Task<Result<EnvelopeMetadata, string>> DecryptHeaderAsync(byte[] headerBytes, uint connectId)
@@ -82,7 +72,6 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                 try
                 {
                     EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
-                    Log.Debug("🔒 No session key available for connectId {ConnectId}, parsing header as plaintext", connectId);
                     return Result<EnvelopeMetadata, string>.Ok(header);
                 }
                 catch (InvalidProtocolBufferException ex)
@@ -90,10 +79,12 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                     return Result<EnvelopeMetadata, string>.Err($"Failed to parse unencrypted header: {ex.Message}");
                 }
             }
+
             if (sessionKey.Length != 32)
             {
                 CryptographicOperations.ZeroMemory(sessionKey);
-                return Result<EnvelopeMetadata, string>.Err("Invalid session key length. Expected 32 bytes for AES-256.");
+                return Result<EnvelopeMetadata, string>.Err(
+                    "Invalid session key length. Expected 32 bytes for AES-256.");
             }
 
             Result<EnvelopeMetadata, string> decryptResult = DecryptWithSessionKey(headerBytes, sessionKey);
@@ -101,14 +92,12 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
 
             if (decryptResult.IsOk)
             {
-                Log.Debug("🔒 Header decrypted with session key for connectId {ConnectId}", connectId);
                 return decryptResult;
             }
 
             try
             {
                 EnvelopeMetadata header = EnvelopeMetadata.Parser.ParseFrom(headerBytes);
-                Log.Debug("🔒 Header decryption failed, parsing as plaintext for connectId {ConnectId}", connectId);
                 return Result<EnvelopeMetadata, string>.Ok(header);
             }
             catch (InvalidProtocolBufferException ex)
@@ -122,7 +111,8 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
         }
     }
 
-    public async Task<Result<SecureEnvelope, string>> CreateSecureEnvelopeAsync(EnvelopeMetadata metadata, byte[] encryptedPayload, uint connectId)
+    public async Task<Result<SecureEnvelope, string>> CreateSecureEnvelopeAsync(EnvelopeMetadata metadata,
+        byte[] encryptedPayload, uint connectId)
     {
         try
         {
@@ -148,7 +138,8 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
         }
     }
 
-    public async Task<Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>> ProcessSecureEnvelopeAsync(SecureEnvelope secureEnvelope, uint connectId)
+    public async Task<Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>> ProcessSecureEnvelopeAsync(
+        SecureEnvelope secureEnvelope, uint connectId)
     {
         try
         {
@@ -164,7 +155,8 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
         }
         catch (Exception ex)
         {
-            return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>.Err($"SecureEnvelope processing failed: {ex.Message}");
+            return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), string>.Err(
+                $"SecureEnvelope processing failed: {ex.Message}");
         }
     }
 
@@ -179,6 +171,7 @@ public class DualLayerEncryptionService(ISessionKeyService sessionKeyService) : 
                 CryptographicOperations.ZeroMemory(sessionKey);
                 return isValid;
             }
+
             return false;
         }
         catch

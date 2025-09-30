@@ -235,7 +235,6 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         verifySecureKeyErrorStream
             .Subscribe(error => VerifySecureKeyError = error);
 
-
         this.WhenAnyValue(x => x.VerifySecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
             .Subscribe(flag => HasVerifySecureKeyError = flag);
@@ -256,7 +255,7 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             string secureKey = Encoding.UTF8.GetString(bytes);
             (error, List<string> recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
             strength = SecureKeyValidator.EstimatePasswordStrength(secureKey, LocalizationService);
-            if (recs.Any())
+            if (recs.Count != 0)
             {
                 recommendations = recs.First();
             }
@@ -314,10 +313,12 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             return;
         }
 
+        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
         Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
             VerificationSessionId,
             _secureKeyBuffer,
-            ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect));
+            connectId);
 
         if (registrationResult.IsErr)
         {
@@ -328,17 +329,30 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         {
             MembershipHostWindowModel hostViewModel = (MembershipHostWindowModel)HostScreen;
             string registrationMobileNumber = hostViewModel.RegistrationMobileNumber!;
-            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-            await _authenticationService.SignInAsync(
+
+            Result<Unit, string> signInResult = await _authenticationService.SignInAsync(
                 registrationMobileNumber,
                 _secureKeyBuffer,
                 connectId);
 
-            hostViewModel.SwitchToMainWindowCommand.Execute().Subscribe(
-                _ => { },
-                ex => Log.Error(ex, "Failed to transition to main window after automatic login"),
-                () => Log.Information("Automatic login and main window transition completed successfully")
-            );
+            if (signInResult.IsOk)
+            {
+                try
+                {
+                    await hostViewModel.SwitchToMainWindowCommand.Execute();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to switch to main window after successful sign-in");
+                    ServerError = $"Failed to navigate to main window: {ex.Message}";
+                    HasServerError = true;
+                }
+            }
+            else
+            {
+                ServerError = $"Auto-login failed: {signInResult.UnwrapErr()}";
+                HasServerError = true;
+            }
         }
     }
 
