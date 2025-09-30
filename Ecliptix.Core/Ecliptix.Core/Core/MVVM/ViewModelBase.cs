@@ -81,41 +81,37 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     protected Membership Membership() =>
         NetworkProvider.ApplicationInstanceSettings.Membership;
 
-    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null, string? multiChars = null)
+    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null,
+        string? multiChars = null)
     {
         return warningType switch
         {
             CharacterWarningType.NonLatinLetter => LocalizationService["ValidationWarnings.SecureKey.NonLatinLetter"],
-            CharacterWarningType.InvalidCharacter => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"],
-            CharacterWarningType.MultipleCharacters => LocalizationService["ValidationWarnings.SecureKey.MultipleCharacters"],
+            CharacterWarningType.InvalidCharacter => LocalizationService[
+                "ValidationWarnings.SecureKey.InvalidCharacter"],
+            CharacterWarningType.MultipleCharacters => LocalizationService[
+                "ValidationWarnings.SecureKey.MultipleCharacters"],
             _ => LocalizationService["ValidationWarnings.SecureKey.InvalidCharacter"]
         };
     }
-    
+
     public void ShowServerErrorNotification(MembershipHostWindowModel hostWindow, string errorMessage)
     {
         if (string.IsNullOrEmpty(errorMessage)) return;
-        
+
         UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
         UserRequestErrorView errorView = new() { DataContext = errorViewModel };
-        
+
         _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await hostWindow.ShowBottomSheet(
-                        BottomSheetComponentType.UserRequestError, 
-                        errorView, 
-                        showScrim: false, 
-                        isDismissable: true);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to show server error notification");
-                }
-            });
+        {
+            await hostWindow.ShowBottomSheet(
+                BottomSheetComponentType.UserRequestError,
+                errorView,
+                showScrim: false,
+                isDismissable: true);
+        });
     }
-    
+
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposedValue)

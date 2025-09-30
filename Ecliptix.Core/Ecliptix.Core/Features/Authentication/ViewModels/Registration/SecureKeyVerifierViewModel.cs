@@ -98,12 +98,9 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
             Observable.FromAsync(LoadMembershipAsync)
                 .Subscribe(result =>
                 {
-                    if (result.IsErr)
-                    {
-                        Log.Debug("Failed to load membership settings: {Error}", result.UnwrapErr().Message);
-                        ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-                        ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
-                    }
+                    if (!result.IsErr) return;
+                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
+                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                 })
                 .DisposeWith(disposables);
 

@@ -9,7 +9,6 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
 using Google.Protobuf;
@@ -19,7 +18,6 @@ using Unit = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Protobuf.Protocol;
-using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -165,16 +163,9 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     {
         if (_isDisposed) return;
 
-        try
+        if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
         {
-            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning("HandleEnterKeyPress failed: {Error}", ex.Message);
+            VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
         }
     }
 
