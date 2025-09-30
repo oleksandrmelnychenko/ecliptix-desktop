@@ -6,7 +6,7 @@ using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Authentication;
 
 namespace Ecliptix.Core.Services.Authentication;
 
@@ -20,7 +20,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         return result.IsOk;
     }
 
-    public async Task StoreIdentityAsync(byte[] masterKey, string membershipId)
+    private async Task StoreIdentityAsync(byte[] masterKey, string membershipId)
     {
         try
         {
@@ -40,7 +40,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         }
     }
 
-    public async Task<byte[]?> LoadMasterKeyAsync(string membershipId)
+    private async Task<byte[]?> LoadMasterKeyAsync(string membershipId)
     {
         try
         {
@@ -144,5 +144,91 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
         return await platformProvider.GenerateSecureRandomAsync(32);
+    }
+
+    public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
+    {
+        try
+        {
+            Result<Unit, SecureStorageFailure> deleteStorageResult =
+                await storage.DeleteStateAsync($"master_{membershipId}");
+
+            if (deleteStorageResult.IsErr)
+            {
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Failed to delete master key from storage: {deleteStorageResult.UnwrapErr().Message}"));
+            }
+
+            if (platformProvider.IsHardwareSecurityAvailable())
+            {
+                string keychainKey = $"ecliptix_master_wrap_{membershipId}";
+                await platformProvider.DeleteKeyFromKeychainAsync(keychainKey);
+            }
+
+            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityStorageFailed($"Failed to clear identity cache: {ex.Message}", ex));
+        }
+    }
+
+    public async Task StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
+    {
+        byte[]? masterKeyBytes = null;
+        try
+        {
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            if (readResult.IsErr)
+            {
+                return;
+            }
+
+            masterKeyBytes = readResult.Unwrap();
+            await StoreIdentityAsync(masterKeyBytes, membershipId);
+        }
+        finally
+        {
+            if (masterKeyBytes != null)
+            {
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+        }
+    }
+
+    public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
+    {
+        byte[]? masterKeyBytes = await LoadMasterKeyAsync(membershipId);
+        if (masterKeyBytes == null)
+        {
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityNotFound(membershipId));
+        }
+
+        try
+        {
+            Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
+            if (allocResult.IsErr)
+            {
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                    AuthenticationFailure.SecureMemoryAllocationFailed($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
+            }
+
+            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+            Result<Unit, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> writeResult = handle.Write(masterKeyBytes);
+            if (writeResult.IsErr)
+            {
+                handle.Dispose();
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                    AuthenticationFailure.SecureMemoryWriteFailed($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
+            }
+
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(masterKeyBytes);
+        }
     }
 }

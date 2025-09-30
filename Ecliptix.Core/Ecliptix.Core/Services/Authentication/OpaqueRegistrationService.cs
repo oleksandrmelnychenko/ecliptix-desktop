@@ -14,7 +14,6 @@ using Google.Protobuf;
 using Ecliptix.Core.Services.Authentication.Constants;
 using System.Collections.Concurrent;
 using System.Reactive.Concurrency;
-using Serilog;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
 using Unit = Ecliptix.Utilities.Unit;
@@ -524,10 +523,9 @@ public class OpaqueRegistrationService(
                         {
                             await CleanupStreamAsync(verificationIdentifier);
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            Log.Warning("Background stream cleanup failed for session {SessionId}: {Error}",
-                                verificationIdentifier, ex.Message);
+                            // Ignore cleanup exceptions
                         }
                     }, CancellationToken.None);
                 }

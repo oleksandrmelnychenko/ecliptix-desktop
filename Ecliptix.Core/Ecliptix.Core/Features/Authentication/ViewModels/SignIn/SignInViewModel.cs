@@ -18,6 +18,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Protocol;
@@ -54,7 +55,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
-    public ReactiveCommand<SystemU, Result<Unit, string>>? SignInCommand { get; private set; }
+    public ReactiveCommand<SystemU, Result<Unit, AuthenticationFailure>>? SignInCommand { get; private set; }
     public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
@@ -147,8 +148,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .RefCount();
 
         keyDisplayErrorStream
-            .Subscribe(
-                error => SecureKeyError = error)
+            .Subscribe(error => SecureKeyError = error)
             .DisposeWith(_disposables);
 
         this.WhenAnyValue(x => x.SecureKeyError)
@@ -219,18 +219,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
-                try
-                {
-                    uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-                    Result<Unit, string> result =
-                        await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error(ex, "🔐 SignInCommand: Exception in command execution");
-                    throw;
-                }
+                uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+                Result<Unit, AuthenticationFailure> result =
+                    await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
+                return result;
             },
             canSignIn);
 
@@ -250,9 +242,9 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .Subscribe(error =>
             {
                 _hasSecureKeyBeenTouched = true;
-                _signInErrorSubject.OnNext(error);
+                _signInErrorSubject.OnNext(error.Message);
                 if (HostScreen is MembershipHostWindowModel hostWindow)
-                    ShowServerErrorNotification(hostWindow, error);    
+                    ShowServerErrorNotification(hostWindow, error.Message);
             })
             .DisposeWith(_disposables);
 
@@ -304,7 +296,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         base.Dispose(disposing);
         _isDisposed = true;
     }
-    
+
     public async void HandleEnterKeyPress()
     {
         if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())
@@ -313,7 +305,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             _disposables.Add(disp);
         }
     }
-    
+
     public void ResetState()
     {
         if (_isDisposed) return;

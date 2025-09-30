@@ -32,6 +32,7 @@ using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Infrastructure.Security.Platform;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
@@ -338,8 +339,18 @@ public static class Program
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
         services.AddSingleton<IIdentityService, IdentityService>();
-        services.AddSingleton<ISessionKeyService, SessionKeyService>();
-        services.AddSingleton<IDualLayerEncryptionService, DualLayerEncryptionService>();
+
+        // Key splitting and secure storage services
+        services.AddSingleton<ISecureKeySplitter, ShamirSecretSharing>();
+        services.AddSingleton<IEnhancedKeyDerivation, EnhancedKeyDerivation>();
+        services.AddSingleton<IShareAuthenticationService, ShareAuthenticationService>();
+        services.AddSingleton<IMultiLocationKeyStorage>(sp =>
+            new MultiLocationKeyStorage(
+                sp.GetRequiredService<IPlatformSecurityProvider>(),
+                sp.GetRequiredService<IApplicationSecureStorageProvider>(),
+                sp.GetRequiredService<ISecureKeySplitter>(),
+                sp.GetRequiredService<IShareAuthenticationService>()));
+
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
 

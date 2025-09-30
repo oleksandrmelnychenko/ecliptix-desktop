@@ -79,9 +79,7 @@ public static class Helpers
     {
         Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
 
-        byte[] tempArray = new byte[UtilityConstants.Cryptography.GuidSizeBytes];
-        byteString.CopyTo(tempArray, 0);
-        tempArray.CopyTo(bytes);
+        byteString.Span.CopyTo(bytes);
 
         SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex0, UtilityConstants.Cryptography.ByteSwapIndex3);
         SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex1, UtilityConstants.Cryptography.ByteSwapIndex2);

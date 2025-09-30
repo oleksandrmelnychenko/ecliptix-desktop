@@ -3,7 +3,7 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
 using System;
-using System.Text;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -11,13 +11,13 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
@@ -26,9 +26,9 @@ using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Opaque.Protocol;
+using Ecliptix.Utilities.Failures;
+using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
@@ -41,7 +41,10 @@ public class ApplicationInitializer(
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
-    IIdentityService identityService
+    IIdentityService identityService,
+    IMultiLocationKeyStorage? multiLocationStorage = null,
+    ISecureKeySplitter? keySplitter = null,
+    IShareAuthenticationService? shareAuthenticationService = null
     )
     : IApplicationInitializer
 {
@@ -114,10 +117,29 @@ public class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
+        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
+            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
+            : null;
+
         if (!isNewInstance)
         {
             await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            
+
+            if (!string.IsNullOrEmpty(membershipId))
+            {
+                await identityService.ClearAllCacheAsync(membershipId);
+
+                if (multiLocationStorage != null)
+                {
+                    await multiLocationStorage.ClearAllCacheAsync();
+                }
+
+                if (shareAuthenticationService != null)
+                {
+                    await shareAuthenticationService.RemoveHmacKeyAsync(membershipId);
+                }
+            }
+
             Result<byte[], SecureStorageFailure> loadResult =
                 await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
@@ -142,30 +164,117 @@ public class ApplicationInitializer(
             }
         }
 
-        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
-            ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
-            : null;
-
         if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
         {
-            byte[]? masterKey = await identityService.LoadMasterKeyAsync(membershipId);
-            if (masterKey != null)
+            SodiumSecureMemoryHandle? masterKeyHandle = null;
+
+            if (multiLocationStorage != null && keySplitter != null)
             {
-                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
-                    EcliptixSystemIdentityKeys.CreateFromMasterKey(
-                        masterKey, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
-
-                if (identityResult.IsOk)
+                Guid membershipGuid = Guid.Parse(membershipId);
+                try
                 {
-                    networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
-                        applicationInstanceSettings, connectId, identityResult.Unwrap());
-                }
-                else
-                {
-                    networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                }
+                    Result<bool, KeySplittingFailure> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipGuid);
+                    if (hasShares.IsOk && hasShares.Unwrap())
+                    {
+                        Result<KeyShare[], KeySplittingFailure> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipGuid, 3);
+                        if (sharesResult.IsOk)
+                        {
+                            KeyShare[] shares = sharesResult.Unwrap();
+                            try
+                            {
+                                SodiumSecureMemoryHandle? hmacKeyHandle = null;
+                                if (shareAuthenticationService != null)
+                                {
+                                    Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
+                                        await shareAuthenticationService.RetrieveHmacKeyHandleAsync(membershipId);
+                                    if (hmacKeyHandleResult.IsOk)
+                                    {
+                                        hmacKeyHandle = hmacKeyHandleResult.Unwrap();
+                                    }
+                                    else
+                                    {
+                                        await keySplitter.SecurelyDisposeSharesAsync(shares);
+                                        await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
+                                    }
+                                }
 
-                SodiumInterop.SecureWipe(masterKey);
+                                Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructHandleResult =
+                                    await keySplitter.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
+
+                                hmacKeyHandle?.Dispose();
+
+                                if (reconstructHandleResult.IsOk)
+                                {
+                                    masterKeyHandle = reconstructHandleResult.Unwrap();
+                                }
+                                
+                            }
+                            finally
+                            {
+                                foreach (KeyShare share in shares)
+                                {
+                                    share?.Dispose();
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                     await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
+                }
+            }
+
+            if (masterKeyHandle == null)
+            {
+                Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await identityService.LoadMasterKeyHandleAsync(membershipId);
+                if (loadResult.IsOk)
+                {
+                    masterKeyHandle = loadResult.Unwrap();
+                }
+            }
+
+            if (masterKeyHandle != null)
+            {
+                try
+                {
+                    Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+                        masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+
+                    if (readResult.IsOk)
+                    {
+                        byte[] masterKeyBytes = readResult.Unwrap();
+
+                        try
+                        {
+                            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
+                                EcliptixSystemIdentityKeys.CreateFromMasterKey(
+                                    masterKeyBytes, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
+
+                            if (identityResult.IsOk)
+                            {
+                                networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
+                                    applicationInstanceSettings, connectId, identityResult.Unwrap());
+                            }
+                            else
+                            {
+                                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                            }
+                        }
+                        finally
+                        {
+                            CryptographicOperations.ZeroMemory(masterKeyBytes);
+                        }
+                    }
+                    else
+                    {
+                        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                    }
+                }
+                finally
+                {
+                    masterKeyHandle.Dispose();
+                }
             }
             else
             {
