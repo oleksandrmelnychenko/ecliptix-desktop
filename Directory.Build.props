@@ -47,15 +47,15 @@
 
   <!-- Common package references -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.9" />
   </ItemGroup>
 
   <!-- Conditional packages for UI projects with AOT support -->
   <ItemGroup Condition="$(MSBuildProjectName.Contains('Core'))">
-    <PackageReference Include="Avalonia" Version="11.3.3" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.3" />
-    <PackageReference Include="ReactiveUI" Version="20.1.81" />
+    <PackageReference Include="Avalonia" Version="11.3.6" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.6" />
+    <PackageReference Include="ReactiveUI" Version="20.1.1" />
     <!-- Preserve ReactiveUI for AOT -->
     <TrimmerRootDescriptor Include="$(MSBuildThisFileDirectory)ReactiveUI.xml" Condition="Exists('$(MSBuildThisFileDirectory)ReactiveUI.xml')" />
   </ItemGroup>

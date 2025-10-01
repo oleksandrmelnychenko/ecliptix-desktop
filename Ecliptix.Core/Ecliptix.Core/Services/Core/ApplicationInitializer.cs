@@ -47,7 +47,6 @@ public class ApplicationInitializer(
     IHmacKeyManager hmacKeyManager): IApplicationInitializer
 {
     private const int IpGeolocationTimeoutSeconds = 10;
-    private const int MinimumSharesForReconstruction = 3;
 
     public bool IsMembershipConfirmed { get; private set; }
 

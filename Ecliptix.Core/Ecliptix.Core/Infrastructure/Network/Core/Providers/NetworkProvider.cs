@@ -296,9 +296,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
 
         PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
-        RatchetConfig ratchetConfig = GetRatchetConfigForExchangeType(exchangeType);
 
-        EcliptixProtocolSystem protocolSystem = new(identityKeys, ratchetConfig);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
         protocolSystem.SetEventHandler(this);
 
@@ -320,8 +319,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
         PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
-        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
-        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys);
         protocolSystem.SetEventHandler(this);
         _connections.TryAdd(connectId, protocolSystem);
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
@@ -765,8 +763,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
 
-        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
-        EcliptixProtocolSystem protocolSystem = new(identityKeys, config);
+        EcliptixProtocolSystem protocolSystem = new(identityKeys);
         protocolSystem.SetEventHandler(this);
 
         _connections.TryAdd(connectId, protocolSystem);
@@ -1672,8 +1669,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
-            RatchetConfig ratchetConfig = GetRatchetConfigForExchangeType(exchangeType);
-            EcliptixProtocolSystem newProtocol = new(identityKeys, ratchetConfig);
+            EcliptixProtocolSystem newProtocol = new(identityKeys);
             newProtocol.SetEventHandler(this);
 
             Result<PubKeyExchange, EcliptixProtocolFailure> clientExchangeResult =

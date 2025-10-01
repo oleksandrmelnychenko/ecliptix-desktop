@@ -13,13 +13,11 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys, RatchetConfig customConfig)
+public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
     : IDisposable
 {
     private readonly Lock _lock = new();
 
-    private readonly AdaptiveRatchetManager _ratchetManager = new(customConfig);
-    private readonly ProtocolMetricsCollector _metricsCollector = new(ProtocolSystemConstants.Timeouts.DefaultMetricsInterval);
     private EcliptixProtocolConnection? _protocolConnection;
     private IProtocolEventHandler? _eventHandler;
 
@@ -49,8 +47,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
 
         connectionToDispose?.Dispose();
-        _ratchetManager.Dispose();
-        _metricsCollector.Dispose();
     }
 
     private EcliptixProtocolConnection? GetConnectionSafe()
@@ -238,8 +234,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        _ratchetManager.RecordMessage();
-
         EcliptixMessageKey? messageKey = null;
         byte[]? nonce = null;
         byte[]? ad = null;
@@ -308,8 +302,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 GetProtoTimestamp());
 
             stopwatch.Stop();
-            _metricsCollector.RecordOutboundMessage(stopwatch.Elapsed.TotalMilliseconds);
-            _metricsCollector.RecordEncryption();
 
             return Result<SecureEnvelope, EcliptixProtocolFailure>.Ok(envelope);
         }
@@ -522,14 +514,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
 
-        EcliptixProtocolSystem system = new(keys, RatchetConfig.Default) { _protocolConnection = connection };
+        EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
 
     public static Result<EcliptixProtocolSystem, EcliptixProtocolFailure> CreateFrom(EcliptixSystemIdentityKeys keys,
         EcliptixProtocolConnection connection, RatchetConfig ratchetConfig)
     {
-        EcliptixProtocolSystem system = new(keys, ratchetConfig) { _protocolConnection = connection };
+        EcliptixProtocolSystem system = new(keys) { _protocolConnection = connection };
         return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Ok(system);
     }
 
@@ -555,56 +547,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     }
 
 
-    public (LoadLevel Load, double MessageRate, uint RatchetInterval, TimeSpan MaxAge) GetLoadMetrics()
+    private static RatchetConfig GetConfigForExchangeType(PubKeyExchangeType exchangeType)
     {
-        return _ratchetManager.GetLoadMetrics();
-    }
-
-    public LoadLevel CurrentLoadLevel => _ratchetManager.CurrentLoad;
-
-    public RatchetConfig CurrentRatchetConfig => _ratchetManager.CurrentConfig;
-
-    public void ForceLoadLevel(LoadLevel targetLoad)
-    {
-        _ratchetManager.ForceConfigUpdate(targetLoad);
-    }
-
-    public ProtocolMetrics GetProtocolMetrics()
-    {
-        _metricsCollector.UpdateExternalState(_ratchetManager.CurrentLoad, CircuitBreakerState.Closed);
-
-        return _metricsCollector.GetCurrentMetrics();
-    }
-
-    public void LogPerformanceReport()
-    {
-        _metricsCollector.LogMetricsSummary();
-    }
-
-    public void ResetMetrics()
-    {
-        _metricsCollector.Reset();
-    }
-
-    public Result<AdaptiveRatchetState, EcliptixProtocolFailure> GetAdaptiveRatchetState()
-    {
-        if (_ratchetManager == null)
-        {
-            return Result<AdaptiveRatchetState, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.AdaptiveRatchetNotInitializedMessage));
-        }
-
-        return _ratchetManager.ToProtoState();
-    }
-
-    private RatchetConfig GetConfigForExchangeType(PubKeyExchangeType exchangeType)
-    {
-        return exchangeType switch
-        {
-            PubKeyExchangeType.ServerStreaming => _ratchetManager.CurrentConfig,
-            PubKeyExchangeType.DeviceToDevice => _ratchetManager.CurrentConfig,
-            _ => RatchetConfig.Default
-        };
+        return RatchetConfig.Default;
     }
 
     public Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure> ProduceOutboundMessageComponents(byte[] plainPayload)
@@ -631,8 +576,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-
-        _ratchetManager.RecordMessage();
 
         EcliptixMessageKey? messageKey = null;
         byte[]? nonce = null;
@@ -701,8 +644,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             encrypted.CopyTo(encryptedPayloadCopy, 0);
 
             stopwatch.Stop();
-            _metricsCollector.RecordOutboundMessage(stopwatch.Elapsed.TotalMilliseconds);
-            _metricsCollector.RecordEncryption();
 
             return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure>.Ok((metadata, encryptedPayloadCopy));
         }
@@ -719,8 +660,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         EcliptixProtocolConnection connection)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
-
-        _ratchetManager?.RecordMessage();
 
         byte[]? receivedDhKey = null;
         byte[]? ad = null;
@@ -767,15 +706,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             Result<byte[], EcliptixProtocolFailure> result = DecryptFromComponents(messageKey, metadata, encryptedPayload, ad, connection);
 
             stopwatch.Stop();
-            if (result.IsOk)
-            {
-                _metricsCollector.RecordInboundMessage(stopwatch.Elapsed.TotalMilliseconds);
-                _metricsCollector.RecordDecryption();
-            }
-            else
-            {
-                _metricsCollector.RecordError();
-            }
 
             return result;
         }

@@ -357,7 +357,7 @@ public class OpaqueAuthenticationService(
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
 
         using CancellationTokenSource timeoutCts = new(NetworkRequestTimeoutMs);
-        using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
+        await using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
             responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
