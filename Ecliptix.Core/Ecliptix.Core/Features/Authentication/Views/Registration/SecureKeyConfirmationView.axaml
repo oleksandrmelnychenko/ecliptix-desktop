@@ -77,8 +77,10 @@
             Foreground="{DynamicResource OnSecondary}"
             Command="{Binding SubmitCommand}"
             Content="{Binding LocalizationService[Authentication.SignUp.PasswordConfirmation.Button]}"
-            Classes="auth-button continue-button"
-            IsEnabled="{Binding CanSubmit}" />
+            IsEnabled="{Binding CanSubmit}"
+            Classes="auth-button continue-button loading-button"
+            Classes.is-busy="{Binding IsBusy}"
+            />
         
         <Border Grid.Row="4"
                 Background="Transparent"

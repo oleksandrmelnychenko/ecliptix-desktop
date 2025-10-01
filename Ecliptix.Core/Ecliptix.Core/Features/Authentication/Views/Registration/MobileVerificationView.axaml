@@ -64,6 +64,7 @@
                 Content="{Binding LocalizationService[Authentication.SignUp.PhoneVerification.Button]}"
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
-                Classes="auth-button continue-button" />
+                Classes="auth-button continue-button loading-button"
+                Classes.is-busy="{Binding IsBusy}" />
     </Grid>
 </UserControl>

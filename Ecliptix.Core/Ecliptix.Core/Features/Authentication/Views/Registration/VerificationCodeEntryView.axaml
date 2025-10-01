@@ -69,12 +69,15 @@
             <Button Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Resend]}"
                     IsEnabled="{Binding ResendSendVerificationCodeCommand.CanExecute}"
                     Command="{Binding ResendSendVerificationCodeCommand}"
-                    Classes="auth-button recovery-button" />
+                    Classes="auth-button recovery-button loading-button"
+                    Classes.is-busy="{Binding IsResending}" />
             <Button Grid.Column="1"
                     Content="{Binding LocalizationService[Authentication.SignUp.VerificationCodeEntry.Button.Verify]}"
                     Command="{Binding SendVerificationCodeCommand}"
                     IsEnabled="{Binding SendVerificationCodeCommand.CanExecute}"
-                    Classes="auth-button continue-button" />
+                    Classes="auth-button continue-button loading-button"
+                    Classes.is-busy="{Binding IsBusy}"
+                    />
         </Grid>
         
         <Border Grid.Row="4"

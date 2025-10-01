@@ -92,13 +92,15 @@
                         Content="{Binding LocalizationService[Authentication.SignIn.AccountRecovery]}"
                         Command="{Binding AccountRecoveryCommand}"
                         IsEnabled="{Binding !IsBusy}"
-                        Classes="auth-button recovery-button" />
+                        Classes="auth-button recovery-button loading-button"
+                        Classes.is-busy="{Binding AccountRecoveryCommand.CanExecute}"/>
 
                 <Button Grid.Column="1"
                         Content="{Binding LocalizationService[Authentication.SignIn.Continue]}"
                         Command="{Binding SignInCommand}"
-                        IsEnabled="{Binding SignInCommand.CanExecute}"
-                        Classes="auth-button continue-button" />
+                        IsEnabled="{Binding !IsBusy}"
+                        Classes="auth-button continue-button loading-button" 
+                        Classes.is-busy="{Binding IsBusy}"/>
             </Grid>
             
             <Border Grid.Row="4"
