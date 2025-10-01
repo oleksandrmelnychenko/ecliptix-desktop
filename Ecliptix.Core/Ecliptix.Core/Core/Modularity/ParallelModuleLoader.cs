@@ -8,6 +8,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
+
 public class ParallelModuleLoader : IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
@@ -50,13 +51,12 @@ public class ParallelModuleLoader : IDisposable
         ModulePriorityQueue priorityQueue = new();
         priorityQueue.EnqueueModules(modules);
 
-        List<IModule> loadedModules = new();
-        List<Task> currentBatch = new();
+        List<IModule> loadedModules = new(modules.Length);
+        List<Task<IModule>> currentBatch = new(_maxParallelism);
 
         while (priorityQueue.Count > 0 || currentBatch.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
 
             while (currentBatch.Count < _maxParallelism && priorityQueue.Count > 0)
             {
@@ -66,7 +66,7 @@ public class ParallelModuleLoader : IDisposable
                     break;
                 }
 
-                Task loadTask = LoadModuleWithRetryAsync(nextModule, cancellationToken);
+                Task<IModule> loadTask = LoadModuleWithContextAsync(nextModule, cancellationToken);
                 currentBatch.Add(loadTask);
 
                 Log.Debug("Queued module {ModuleName} for loading (Priority: {Priority})",
@@ -78,33 +78,21 @@ public class ParallelModuleLoader : IDisposable
                 throw new InvalidOperationException("Deadlock detected - no modules can be loaded due to circular dependencies");
             }
 
-
-            Task completedTask = await Task.WhenAny(currentBatch);
+            Task<IModule> completedTask = await Task.WhenAny(currentBatch);
             currentBatch.Remove(completedTask);
 
             try
             {
-                await completedTask;
-                if (completedTask is Task<IModule> moduleTask)
-                {
-                    IModule completedModule = await moduleTask;
-                    loadedModules.Add(completedModule);
+                IModule completedModule = await completedTask;
+                loadedModules.Add(completedModule);
 
-                    Log.Debug("Successfully loaded module {ModuleName}", completedModule.Id.ToName());
-                }
+                Log.Debug("Successfully loaded module {ModuleName}", completedModule.Id.ToName());
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Failed to load module");
                 throw;
             }
-        }
-
-
-        await Task.WhenAll(currentBatch);
-        foreach (Task<IModule> task in currentBatch.OfType<Task<IModule>>())
-        {
-            loadedModules.Add(await task);
         }
 
         TimeSpan loadTime = DateTime.UtcNow - startTime;
@@ -114,9 +102,9 @@ public class ParallelModuleLoader : IDisposable
         return loadedModules.AsReadOnly();
     }
 
-    private async Task<IModule> LoadModuleWithRetryAsync(IModule module, CancellationToken cancellationToken)
+    private Task<IModule> LoadModuleWithContextAsync(IModule module, CancellationToken cancellationToken)
     {
-        return await _loadingContext.GetOrCreateLoadingTask(module.Id.ToName(), async () =>
+        return _loadingContext.GetOrCreateLoadingTask(module.Id.ToName(), async () =>
         {
             Log.Debug("Loading module {ModuleName} (Strategy: {Strategy})",
                 module.Id.ToName(), module.Manifest.LoadingStrategy);
@@ -136,16 +124,7 @@ public class ParallelModuleLoader : IDisposable
         });
     }
 
-
-
-
-    public ModuleLoadingStats GetLoadingStats()
-    {
-        return _loadingContext.GetStats();
-    }
-
-
-
+    public ModuleLoadingStats GetLoadingStats() => _loadingContext.GetStats();
 
     public void PreloadModulesAsync(IEnumerable<IModule> modules)
     {

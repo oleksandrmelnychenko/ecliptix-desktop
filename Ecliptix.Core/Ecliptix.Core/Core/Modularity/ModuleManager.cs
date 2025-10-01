@@ -18,7 +18,6 @@ public class ModuleManager : IModuleManager
     private readonly ParallelModuleLoader _parallelLoader;
     private readonly IModuleMessageBus _messageBus;
     private readonly ConcurrentDictionary<string, ModuleState> _moduleStates = new();
-    private readonly ConcurrentDictionary<string, DateTime> _lastAccessTimes = new();
 
     public event EventHandler<ModuleLoadedEventArgs>? ModuleLoaded;
     public event EventHandler<ModuleUnloadedEventArgs>? ModuleUnloaded;
@@ -88,7 +87,6 @@ public class ModuleManager : IModuleManager
 
             stopwatch.Stop();
             _moduleStates[moduleName] = ModuleState.Loaded;
-            _lastAccessTimes[moduleName] = DateTime.UtcNow;
 
             try
             {
@@ -140,7 +138,6 @@ public class ModuleManager : IModuleManager
             foreach (IModule module in loadedModules)
             {
                 _moduleStates[module.Id.ToName()] = ModuleState.Loaded;
-                _lastAccessTimes[module.Id.ToName()] = DateTime.UtcNow;
 
                 try
                 {
@@ -245,7 +242,9 @@ public class ModuleManager : IModuleManager
         {
             await module.UnloadAsync();
             _moduleStates[moduleName] = ModuleState.Unloaded;
-            _lastAccessTimes.TryRemove(moduleName, out _);
+
+            ModuleResourceManager? resourceManager = _serviceProvider.GetService<ModuleResourceManager>();
+            resourceManager?.RemoveModuleScope(moduleName);
 
             ModuleUnloaded?.Invoke(this, new ModuleUnloadedEventArgs { ModuleName = moduleName });
 
@@ -259,26 +258,10 @@ public class ModuleManager : IModuleManager
         }
     }
 
-    public async Task UnloadInactiveModulesAsync(TimeSpan inactiveThreshold)
+    public Task UnloadInactiveModulesAsync(TimeSpan inactiveThreshold)
     {
-        DateTime cutoffTime = DateTime.UtcNow - inactiveThreshold;
-
-        IEnumerable<string> inactiveModules = _lastAccessTimes
-            .Where(kvp => kvp.Value < cutoffTime && IsModuleLoaded(kvp.Key))
-            .Select(kvp => kvp.Key);
-
-        foreach (string moduleName in inactiveModules)
-        {
-            try
-            {
-                await UnloadModuleAsync(moduleName);
-                _logger.LogInformation("Unloaded inactive module '{ModuleName}'", moduleName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to unload inactive module '{ModuleName}'", moduleName);
-            }
-        }
+        _logger.LogDebug("UnloadInactiveModulesAsync is deprecated and does nothing");
+        return Task.CompletedTask;
     }
 
     public bool IsModuleLoaded(string moduleName) =>
@@ -320,13 +303,6 @@ public class ModuleManager : IModuleManager
         }
     }
 
-    public void UpdateLastAccessTime(string moduleName)
-    {
-        if (IsModuleLoaded(moduleName))
-        {
-            _lastAccessTimes[moduleName] = DateTime.UtcNow;
-        }
-    }
 
     private class ModuleMetadata : IModuleMetadata
     {

@@ -40,9 +40,8 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         this.WhenActivated(disposables =>
         {
             subscription.DisposeWith(disposables);
+            IsSubscribed.TrySetResult();
         });
-
-        IsSubscribed.TrySetResult();
     }
 
     private void ProcessNetworkStatusChange(NetworkStatus status)

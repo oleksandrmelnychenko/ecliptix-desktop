@@ -20,4 +20,9 @@ public interface ISecrecyChannelRpcServices
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         RestoreChannelRequest request);
+
+    Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        AuthenticatedEstablishRequest request);
 }

@@ -59,6 +59,78 @@ public sealed class SecrecyChannelRpcServices(
         );
     }
 
+    public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        AuthenticatedEstablishRequest request
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        try
+        {
+            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.AuthenticatedEstablishSecureChannelAsync(request);
+            SecureEnvelope response = await call.ResponseAsync;
+
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+
+            return Result<SecureEnvelope, NetworkFailure>.Ok(response);
+        }
+        catch (RpcException rpcEx)
+        {
+            if (GrpcErrorClassifier.IsBusinessError(rpcEx))
+            {
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}"));
+            }
+
+            if (GrpcErrorClassifier.IsAuthenticationError(rpcEx))
+            {
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}"));
+            }
+
+            if (GrpcErrorClassifier.IsCancelled(rpcEx))
+            {
+                throw;
+            }
+
+            if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcEx))
+            {
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.ProtocolStateMismatch(rpcEx.Status.Detail ?? "Protocol state mismatch"));
+            }
+
+            if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
+            {
+                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable"));
+            }
+
+            if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
+            {
+                await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed"));
+            }
+
+            if (GrpcErrorClassifier.IsTransientInfrastructure(rpcEx))
+            {
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure"));
+            }
+
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(rpcEx.Message));
+        }
+        catch (Exception ex)
+        {
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message));
+        }
+    }
+
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteSecureEnvelopeAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,

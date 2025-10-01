@@ -9,7 +9,6 @@ using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
@@ -65,6 +64,16 @@ public class RpcServiceManager : IRpcServiceManager
             request);
     }
 
+    public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        AuthenticatedEstablishRequest request)
+    {
+        return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(networkEvents,
+            systemEvents,
+            request);
+    }
+
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,
         CancellationToken token)
     {
@@ -72,17 +81,6 @@ public class RpcServiceManager : IRpcServiceManager
                 out Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>? invoker))
         {
             Result<RpcFlow, NetworkFailure> result = await invoker(request, token);
-
-            if (result.IsOk)
-            {
-                Log.Debug("Action {ServiceMethod} executed successfully for req_id: {ReqId}",
-                    request.RpcServiceMethod, request.ReqId);
-            }
-            else
-            {
-                Log.Warning("Action {ServiceMethod} failed for req_id: {ReqId}. Error: {Error}",
-                    request.RpcServiceMethod, request.ReqId, result.UnwrapErr().Message);
-            }
 
             return result;
         }

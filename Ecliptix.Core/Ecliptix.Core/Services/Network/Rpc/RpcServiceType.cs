@@ -12,4 +12,5 @@ public enum RpcServiceType : short
     OpaqueRegistrationComplete,
     OpaqueSignInInitRequest,
     OpaqueSignInCompleteRequest,
+    AuthenticatedEstablishSecureChannel,
 }

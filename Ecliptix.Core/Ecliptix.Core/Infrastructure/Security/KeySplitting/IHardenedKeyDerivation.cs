@@ -10,7 +10,6 @@ public interface IHardenedKeyDerivation
     Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> DeriveEnhancedMasterKeyHandleAsync(
         SodiumSecureMemoryHandle baseKeyHandle,
         string context,
-        uint connectId,
         KeyDerivationOptions options);
 }
 

@@ -15,6 +15,7 @@ using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -166,7 +167,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        InternetConnectivityObserver connectivityObserver,
+        IInternetConnectivityObserver connectivityObserver,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService,
@@ -289,6 +290,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
             IModule mainModule = await moduleManager.LoadModuleAsync("Main");
 
+            await moduleManager.UnloadModuleAsync("Authentication");
+
             CleanupAuthenticationFlow();
 
             MainHostWindow mainWindow = new();
@@ -361,7 +364,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
     }
 
-    private async Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
+    private Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
     {
         try
         {
@@ -375,6 +378,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
             _languageSubscription?.Dispose();
             _bottomSheetHiddenSubscription?.Dispose();
         }
+
+        return Task.CompletedTask;
     }
 
     private void ChangeApplicationLanguage(string targetCulture)

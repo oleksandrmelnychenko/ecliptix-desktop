@@ -235,7 +235,7 @@ public static class Program
                             attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
 
-        services.AddSingleton<InternetConnectivityObserver>();
+        services.AddTransient<IInternetConnectivityObserver, InternetConnectivityObserver>();
         services.AddSingleton(new InternetConnectivityObserverOptions
         {
             PollingInterval = ApplicationConstants.Timeouts.DefaultPollingInterval,
@@ -338,7 +338,6 @@ public static class Program
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
         services.AddSingleton<IIdentityService, IdentityService>();
 
-        // Key splitting and secure storage services
         services.AddSingleton<ISecretSharingService, ShamirSecretSharing>();
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
         services.AddSingleton<IHmacKeyManager, HmacKeyManager>();
@@ -423,8 +422,6 @@ public static class Program
     {
         services.AddSingleton<ModuleDependencyResolver>();
         services.AddSingleton<ModuleResourceManager>();
-        services.AddHostedService<ModuleResourceManager>(provider =>
-            provider.GetRequiredService<ModuleResourceManager>());
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
         services.AddSingleton<IModuleSharedState, ModuleSharedState>();

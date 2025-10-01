@@ -31,112 +31,179 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         return result.IsOk;
     }
 
-    private async Task StoreIdentityAsync(byte[] masterKey, string membershipId)
+    private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
     {
+        byte[]? wrappingKey = null;
         try
         {
-            byte[] protectedKey = await WrapMasterKeyAsync(masterKey);
+            byte[] protectedKey = await WrapMasterKeyAsync(masterKeyHandle);
             await storage.SaveStateAsync(protectedKey, GetMasterKeyStorageKey(membershipId));
 
             if (platformProvider.IsHardwareSecurityAvailable())
             {
                 string keychainKey = GetKeychainWrapKey(membershipId);
-                byte[] wrappingKey = await GenerateWrappingKeyAsync();
+                wrappingKey = await GenerateWrappingKeyAsync();
                 await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey);
             }
         }
         finally
         {
-            CryptographicOperations.ZeroMemory(masterKey);
+            if (wrappingKey != null)
+                CryptographicOperations.ZeroMemory(wrappingKey);
         }
     }
 
-    private async Task<byte[]?> LoadMasterKeyAsync(string membershipId)
+    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(string membershipId)
     {
         try
         {
             Result<byte[], SecureStorageFailure> result =
                 await storage.LoadStateAsync(GetMasterKeyStorageKey(membershipId));
 
-            if (!result.IsOk)
-                return null;
+            if (result.IsErr)
+            {
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Failed to load protected key: {result.UnwrapErr().Message}"));
+            }
 
             byte[] protectedKey = result.Unwrap();
             return await UnwrapMasterKeyAsync(protectedKey, membershipId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return null;
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityStorageFailed($"Failed to load master key: {ex.Message}", ex));
         }
     }
 
-    private async Task<byte[]> WrapMasterKeyAsync(byte[] masterKey)
+    private async Task<byte[]> WrapMasterKeyAsync(SodiumSecureMemoryHandle masterKeyHandle)
     {
-        if (!platformProvider.IsHardwareSecurityAvailable())
+        byte[]? masterKeyBytes = null;
+        try
         {
-            return masterKey.AsSpan().ToArray();
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+                masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            if (readResult.IsErr)
+            {
+                throw new InvalidOperationException($"Failed to read master key: {readResult.UnwrapErr().Message}");
+            }
+
+            masterKeyBytes = readResult.Unwrap();
+
+            if (!platformProvider.IsHardwareSecurityAvailable())
+            {
+                return masterKeyBytes.AsSpan().ToArray();
+            }
+
+            byte[]? wrappingKey = null;
+            byte[]? encryptedKey = null;
+            try
+            {
+                wrappingKey = await GenerateWrappingKeyAsync();
+
+                using Aes aes = Aes.Create();
+                aes.Key = wrappingKey;
+                aes.GenerateIV();
+
+                encryptedKey = aes.EncryptCbc(masterKeyBytes, aes.IV);
+
+                byte[] wrappedData = new byte[aes.IV.Length + encryptedKey.Length];
+                aes.IV.CopyTo(wrappedData, 0);
+                encryptedKey.CopyTo(wrappedData, aes.IV.Length);
+
+                return wrappedData;
+            }
+            finally
+            {
+                if (wrappingKey != null)
+                    CryptographicOperations.ZeroMemory(wrappingKey);
+                if (encryptedKey != null)
+                    CryptographicOperations.ZeroMemory(encryptedKey);
+            }
         }
+        catch (Exception)
+        {
+            if (masterKeyBytes == null)
+                throw;
+            return masterKeyBytes.AsSpan().ToArray();
+        }
+        finally
+        {
+            if (masterKeyBytes != null)
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+        }
+    }
+
+    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> UnwrapMasterKeyAsync(byte[] protectedKey, string membershipId)
+    {
+        byte[]? masterKeyBytes = null;
+        byte[]? wrappingKey = null;
+        byte[]? encryptedKey = null;
+        byte[]? iv = null;
 
         try
         {
-            byte[] wrappingKey = await GenerateWrappingKeyAsync();
+            if (!platformProvider.IsHardwareSecurityAvailable())
+            {
+                masterKeyBytes = protectedKey.AsSpan().ToArray();
+            }
+            else
+            {
+                string keychainKey = GetKeychainWrapKey(membershipId);
+                wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey);
 
-            using Aes aes = Aes.Create();
-            aes.Key = wrappingKey;
-            aes.GenerateIV();
+                if (wrappingKey == null)
+                {
+                    masterKeyBytes = protectedKey.AsSpan().ToArray();
+                }
+                else
+                {
+                    using Aes aes = Aes.Create();
+                    aes.Key = wrappingKey;
 
-            byte[] encryptedKey = aes.EncryptCbc(masterKey, aes.IV);
+                    ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
+                    iv = protectedSpan[..AesIvSize].ToArray();
+                    encryptedKey = protectedSpan[AesIvSize..].ToArray();
 
-            byte[] wrappedData = new byte[aes.IV.Length + encryptedKey.Length];
-            aes.IV.CopyTo(wrappedData, 0);
-            encryptedKey.CopyTo(wrappedData, aes.IV.Length);
+                    aes.IV = iv;
+                    masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
+                }
+            }
 
-            CryptographicOperations.ZeroMemory(wrappingKey);
-            CryptographicOperations.ZeroMemory(encryptedKey);
+            Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocResult =
+                SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
+            if (allocResult.IsErr)
+            {
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                    AuthenticationFailure.SecureMemoryAllocationFailed($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
+            }
 
-            return wrappedData;
+            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+            Result<Unit, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> writeResult = handle.Write(masterKeyBytes);
+            if (writeResult.IsErr)
+            {
+                handle.Dispose();
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                    AuthenticationFailure.SecureMemoryWriteFailed($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
+            }
+
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
         }
         catch (Exception ex)
         {
-            return masterKey.AsSpan().ToArray();
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityStorageFailed($"Failed to unwrap master key: {ex.Message}", ex));
         }
-    }
-
-    private async Task<byte[]> UnwrapMasterKeyAsync(byte[] protectedKey, string membershipId)
-    {
-        if (!platformProvider.IsHardwareSecurityAvailable())
+        finally
         {
-            return protectedKey.AsSpan().ToArray();
-        }
-
-        try
-        {
-            string keychainKey = GetKeychainWrapKey(membershipId);
-            byte[]? wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey);
-
-            if (wrappingKey == null)
-            {
-                return protectedKey.AsSpan().ToArray();
-            }
-
-            using Aes aes = Aes.Create();
-            aes.Key = wrappingKey;
-
-            ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
-            byte[] iv = protectedSpan[..AesIvSize].ToArray();
-            byte[] encryptedKey = protectedSpan[AesIvSize..].ToArray();
-
-            aes.IV = iv;
-            byte[] masterKey = aes.DecryptCbc(encryptedKey, iv);
-
-            CryptographicOperations.ZeroMemory(wrappingKey);
-            CryptographicOperations.ZeroMemory(encryptedKey);
-
-            return masterKey;
-        }
-        catch (Exception)
-        {
-            return protectedKey.AsSpan().ToArray();
+            if (masterKeyBytes != null)
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+            if (wrappingKey != null)
+                CryptographicOperations.ZeroMemory(wrappingKey);
+            if (encryptedKey != null)
+                CryptographicOperations.ZeroMemory(encryptedKey);
+            if (iv != null)
+                CryptographicOperations.ZeroMemory(iv);
         }
     }
 
@@ -175,59 +242,11 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     public async Task StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
     {
-        byte[]? masterKeyBytes = null;
-        try
-        {
-            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
-            if (readResult.IsErr)
-            {
-                return;
-            }
-
-            masterKeyBytes = readResult.Unwrap();
-            await StoreIdentityAsync(masterKeyBytes, membershipId);
-        }
-        finally
-        {
-            if (masterKeyBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(masterKeyBytes);
-            }
-        }
+        await StoreIdentityInternalAsync(masterKeyHandle, membershipId);
     }
 
     public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
     {
-        byte[]? masterKeyBytes = await LoadMasterKeyAsync(membershipId);
-        if (masterKeyBytes == null)
-        {
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.IdentityNotFound(membershipId));
-        }
-
-        try
-        {
-            Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
-            if (allocResult.IsErr)
-            {
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryAllocationFailed($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
-            }
-
-            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-            Result<Unit, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> writeResult = handle.Write(masterKeyBytes);
-            if (writeResult.IsErr)
-            {
-                handle.Dispose();
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryWriteFailed($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
-            }
-
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(masterKeyBytes);
-        }
+        return await LoadMasterKeyAsync(membershipId);
     }
 }

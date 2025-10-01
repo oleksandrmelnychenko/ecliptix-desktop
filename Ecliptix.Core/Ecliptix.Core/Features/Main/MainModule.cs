@@ -14,7 +14,7 @@ public record MainModuleManifest() : ModuleManifest(
     Version: new Version(1, 0, 0),
     Priority: 20,
     LoadingStrategy: ModuleLoadingStrategy.Lazy,
-    Dependencies: [ModuleIdentifier.Authentication],
+    Dependencies: [],
     ResourceConstraints: ModuleResourceConstraints.Default,
     ViewFactories: new Dictionary<Type, Func<Control>>(),
     ServiceMappings: new Dictionary<Type, Type>()

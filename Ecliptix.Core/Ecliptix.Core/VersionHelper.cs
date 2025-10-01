@@ -16,7 +16,11 @@ public partial class EcliptixJsonContext : JsonSerializerContext;
 public static class VersionHelper
 {
     private static readonly Lazy<string> ApplicationVersion = new(CalculateApplicationVersion);
+
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "InformationalVersion is only used for display purposes and has fallback to ApplicationVersion")]
     private static readonly Lazy<string> InformationalVersion = new(CalculateInformationalVersion);
+
     private static readonly Lazy<BuildInfo?> BuildInfo = new(LoadBuildInfo);
     private static readonly Lazy<string> DisplayVersion = new(CalculateDisplayVersion);
 
@@ -39,9 +43,9 @@ public static class VersionHelper
         try
         {
             string informationalVersion = typeof(VersionHelper).Assembly
-                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
-                is System.Reflection.AssemblyInformationalVersionAttribute[] attrs && attrs.Length > 0
-                ? ((System.Reflection.AssemblyInformationalVersionAttribute)attrs[0]).InformationalVersion
+                    .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                is System.Reflection.AssemblyInformationalVersionAttribute[] { Length: > 0 } attrs
+                ? attrs[0].InformationalVersion
                 : GetApplicationVersion();
             return informationalVersion;
         }
