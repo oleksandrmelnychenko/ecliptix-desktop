@@ -26,7 +26,6 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Infrastructure.Network.Core.State;
 using Ecliptix.Core.Infrastructure.Network.Core.State.Configuration;
 using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
@@ -48,6 +47,7 @@ using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Security.Certificate.Pinning.Services;
+using Ecliptix.Core.Infrastructure.Security.Crypto;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Features.Splash.ViewModels;
@@ -243,10 +243,10 @@ public static class Program
             SuccessThreshold = ApplicationConstants.Thresholds.DefaultSuccessThreshold
         });
 
+        services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
         services.AddSingleton<NetworkProvider>();
         services.AddSingleton<RequestDeduplicationService>(_ =>
             new RequestDeduplicationService(ApplicationConstants.Timeouts.RequestDeduplicationTimeout));
-        services.AddSingleton<IConnectionStateManager, ConnectionStateManager>();
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
         services.AddSingleton<ConnectionStateConfiguration>();
     }
@@ -373,7 +373,6 @@ public static class Program
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();
         services.AddSingleton<IRpcMetaDataProvider, RpcMetaDataProvider>();
         services.AddSingleton<RequestMetaDataInterceptor>();
-        services.AddSingleton<SecrecyChannelRetryInterceptor>();
     }
 
     private static ImprovedRetryConfiguration CreateRetryConfiguration(IConfigurationSection section)

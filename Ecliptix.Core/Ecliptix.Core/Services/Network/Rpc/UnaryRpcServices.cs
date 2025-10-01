@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Network;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Membership;
@@ -211,14 +212,67 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
-        catch (Exception exc)
+        catch (RpcException rpcEx)
         {
-            Log.Warning(exc, "gRPC call failed: {Message}", exc.Message);
-            await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+            if (GrpcErrorClassifier.IsBusinessError(rpcEx))
+            {
+                Log.Warning("Business error: {StatusCode} - {Detail}",
+                    rpcEx.StatusCode, rpcEx.Status.Detail);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}"));
+            }
 
+            if (GrpcErrorClassifier.IsAuthenticationError(rpcEx))
+            {
+                Log.Warning("Authentication error: {StatusCode}", rpcEx.StatusCode);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}"));
+            }
+
+            if (GrpcErrorClassifier.IsCancelled(rpcEx))
+            {
+                throw;
+            }
+
+            if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcEx))
+            {
+                Log.Warning("Protocol state mismatch: {Detail}", rpcEx.Status.Detail);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.ProtocolStateMismatch(rpcEx.Status.Detail ?? "Protocol state mismatch"));
+            }
+
+            if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
+            {
+                Log.Warning("Server shutdown: {Detail}", rpcEx.Status.Detail);
+                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable"));
+            }
+
+            if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
+            {
+                Log.Debug("Connection error requires handshake recovery: {StatusCode}", rpcEx.StatusCode);
+                await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed"));
+            }
+
+            if (GrpcErrorClassifier.IsTransientInfrastructure(rpcEx))
+            {
+                Log.Debug("Transient infrastructure error: {StatusCode}", rpcEx.StatusCode);
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure"));
+            }
+
+            Log.Warning("Unclassified gRPC error: {StatusCode}", rpcEx.StatusCode);
             return Result<SecureEnvelope, NetworkFailure>.Err(
-                NetworkFailure.DataCenterShutdown(exc.Message)
-            );
+                NetworkFailure.DataCenterNotResponding(rpcEx.Message));
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Non-gRPC exception: {Message}", ex.Message);
+            return Result<SecureEnvelope, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message));
         }
     }
 }

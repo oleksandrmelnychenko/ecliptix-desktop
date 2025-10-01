@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.Network;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
@@ -74,6 +75,11 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                             ? Result<SecureEnvelope, NetworkFailure>.Ok(response)
                             : Result<SecureEnvelope, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream));
                     })
+                    .Catch<Result<SecureEnvelope, NetworkFailure>, RpcException>(rpcEx =>
+                    {
+                        NetworkFailure failure = ClassifyRpcException(rpcEx);
+                        return Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(failure));
+                    })
                     .Catch<Result<SecureEnvelope, NetworkFailure>, Exception>(ex =>
                     {
                         return Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
@@ -83,10 +89,54 @@ public class ReceiveStreamRpcServices : IReceiveStreamRpcServices
 
             return Result<RpcFlow, NetworkFailure>.Ok(new RpcFlow.InboundStream(stream));
         }
+        catch (RpcException rpcEx)
+        {
+            return Result<RpcFlow, NetworkFailure>.Err(ClassifyRpcException(rpcEx));
+        }
         catch (Exception ex)
         {
             return Result<RpcFlow, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(ex.Message, ex));
         }
+    }
+
+    private static NetworkFailure ClassifyRpcException(RpcException rpcEx)
+    {
+        if (GrpcErrorClassifier.IsBusinessError(rpcEx))
+        {
+            return NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}");
+        }
+
+        if (GrpcErrorClassifier.IsAuthenticationError(rpcEx))
+        {
+            return NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}");
+        }
+
+        if (GrpcErrorClassifier.IsCancelled(rpcEx))
+        {
+            throw rpcEx;
+        }
+
+        if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcEx))
+        {
+            return NetworkFailure.ProtocolStateMismatch(rpcEx.Status.Detail ?? "Protocol state mismatch");
+        }
+
+        if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
+        {
+            return NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable");
+        }
+
+        if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
+        {
+            return NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed");
+        }
+
+        if (GrpcErrorClassifier.IsTransientInfrastructure(rpcEx))
+        {
+            return NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure");
+        }
+
+        return NetworkFailure.DataCenterNotResponding(rpcEx.Message);
     }
 }

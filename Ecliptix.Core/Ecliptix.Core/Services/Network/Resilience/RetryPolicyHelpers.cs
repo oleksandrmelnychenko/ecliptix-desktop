@@ -23,9 +23,7 @@ public static class RetryDecisionFactory
 
             NetworkFailure failure = result.UnwrapErr();
             return FailureClassification.IsProtocolStateMismatch(failure) ||
-                   FailureClassification.IsChainRotationMismatch(failure) ||
-                   FailureClassification.IsCryptoDesync(failure) ||
-                   failure.Message.Contains("Connection unavailable", StringComparison.OrdinalIgnoreCase);
+                   FailureClassification.IsCryptoDesync(failure);
         };
     }
 

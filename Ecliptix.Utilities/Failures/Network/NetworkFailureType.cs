@@ -7,4 +7,5 @@ public enum NetworkFailureType
     InvalidRequestType,
     EcliptixProtocolFailure,
     RsaEncryptionFailure,
+    ProtocolStateMismatch,
 }

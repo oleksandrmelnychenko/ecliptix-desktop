@@ -28,4 +28,7 @@ public record NetworkFailure(
 
     public static NetworkFailure RsaEncryption(string details, Exception? inner = null) =>
         new(NetworkFailureType.RsaEncryptionFailure, details, inner);
+
+    public static NetworkFailure ProtocolStateMismatch(string details, Exception? inner = null) =>
+        new(NetworkFailureType.ProtocolStateMismatch, details, inner);
 }
