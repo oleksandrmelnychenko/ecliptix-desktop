@@ -16,7 +16,6 @@ public abstract class RpcFlow
     {
         async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> EmptyStream()
         {
-            await Task.CompletedTask;
             yield break;
         }
 

@@ -39,11 +39,9 @@ public class ModuleManager : IModuleManager
         }
     }
 
-    public async Task<IEnumerable<IModuleMetadata>> DiscoverModulesAsync()
+    public Task<IEnumerable<IModuleMetadata>> DiscoverModulesAsync()
     {
-        await Task.CompletedTask;
-
-        return _catalog.GetModules().Select(m => new ModuleMetadata
+        IEnumerable<IModuleMetadata> modules = _catalog.GetModules().Select(m => new ModuleMetadata
         {
             Name = m.Id.ToName(),
             AssemblyPath = string.Empty,
@@ -51,6 +49,7 @@ public class ModuleManager : IModuleManager
             Priority = m.Manifest.Priority,
             Dependencies = m.Manifest.Dependencies.Select(d => d.ToName()).ToArray()
         });
+        return Task.FromResult(modules);
     }
 
     public async Task<IModule> LoadModuleAsync(ModuleIdentifier moduleId)

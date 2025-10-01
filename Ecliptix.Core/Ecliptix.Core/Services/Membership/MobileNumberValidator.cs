@@ -10,31 +10,26 @@ public static partial class MobileNumberValidator
 {
     public static string Validate(string mobileNumber, ILocalizationService localizationService)
     {
-        List<(Func<string, bool> IsInvalid, string ErrorMessageKey)> validationRules =
+        List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> validationRules =
         [
-            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CannotBeEmpty),
+            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CannotBeEmpty, null),
             (s => !s.StartsWith(MobileNumberValidatorConstants.ValidationRules.CountryCodePrefix),
-                MobileNumberValidatorConstants.LocalizationKeys.MustStartWithCountryCode),
+                MobileNumberValidatorConstants.LocalizationKeys.MustStartWithCountryCode, null),
             (s => s.Length > 1 && ContainsNonDigitsRegex().IsMatch(s[1..]),
-                MobileNumberValidatorConstants.LocalizationKeys.ContainsNonDigits),
+                MobileNumberValidatorConstants.LocalizationKeys.ContainsNonDigits, null),
             (s => s.Length is < MobileNumberValidatorConstants.ValidationRules.MinDigits + 1
                 or > MobileNumberValidatorConstants.ValidationRules.MaxDigits + 1,
-                MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength)
+                MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength,
+                [MobileNumberValidatorConstants.ValidationRules.MinDigits,
+                 MobileNumberValidatorConstants.ValidationRules.MaxDigits])
         ];
 
-        foreach ((Func<string, bool> isInvalid, string errorMessageKey) in validationRules)
+        foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in validationRules)
         {
             if (isInvalid(mobileNumber))
             {
-                if (errorMessageKey == MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength)
-                {
-                    string formatString = localizationService[errorMessageKey];
-                    return string.Format(formatString,
-                        MobileNumberValidatorConstants.ValidationRules.MinDigits,
-                        MobileNumberValidatorConstants.ValidationRules.MaxDigits);
-                }
-
-                return localizationService[errorMessageKey];
+                string message = localizationService[errorMessageKey];
+                return args != null ? string.Format(message, args) : message;
             }
         }
 

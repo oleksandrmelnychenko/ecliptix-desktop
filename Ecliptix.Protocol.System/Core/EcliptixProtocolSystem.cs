@@ -239,6 +239,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[]? ad = null;
         byte[]? encrypted = null;
         byte[]? newSenderDhPublicKey = null;
+        byte[]? metadataKey = null;
+        byte[]? metadataNonce = null;
+        byte[]? encryptedMetadata = null;
         try
         {
             Result<(EcliptixMessageKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
@@ -286,20 +289,40 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             encrypted = encryptResult.Unwrap();
 
             uint requestId = Helpers.GenerateRandomUInt32(true);
-            ByteString dhPublicKeyBytes = newSenderDhPublicKey is { Length: > ProtocolSystemConstants.ProtocolSystem.EmptyArrayLength }
-                ? ByteString.CopyFrom(newSenderDhPublicKey)
-                : ByteString.Empty;
 
             EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
                 requestId,
                 ByteString.CopyFrom(nonce),
-                messageKey!.Index,
-                dhPublicKeyBytes);
+                messageKey!.Index);
 
-            SecureEnvelope envelope = EnvelopeBuilder.CreateSecureEnvelope(
-                metadata,
-                ByteString.CopyFrom(encrypted),
-                GetProtoTimestamp());
+            // Get metadata encryption key
+            Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
+            if (metadataKeyResult.IsErr)
+                return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
+            metadataKey = metadataKeyResult.Unwrap();
+
+            // Generate metadata nonce
+            metadataNonce = new byte[Constants.AesGcmNonceSize];
+            global::System.Security.Cryptography.RandomNumberGenerator.Fill(metadataNonce);
+
+            // Encrypt metadata
+            Result<byte[], EcliptixProtocolFailure> encryptMetadataResult =
+                EnvelopeBuilder.EncryptMetadata(metadata, metadataKey, metadataNonce, ad);
+            if (encryptMetadataResult.IsErr)
+                return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(encryptMetadataResult.UnwrapErr());
+            encryptedMetadata = encryptMetadataResult.Unwrap();
+
+            SecureEnvelope envelope = new()
+            {
+                MetaData = ByteString.CopyFrom(encryptedMetadata),
+                EncryptedPayload = ByteString.CopyFrom(encrypted),
+                HeaderNonce = ByteString.CopyFrom(metadataNonce),
+                Timestamp = GetProtoTimestamp(),
+                ResultCode = ByteString.CopyFrom(BitConverter.GetBytes((int)EnvelopeResultCode.Success)),
+                DhPublicKey = newSenderDhPublicKey is { Length: > ProtocolSystemConstants.ProtocolSystem.EmptyArrayLength }
+                    ? ByteString.CopyFrom(newSenderDhPublicKey)
+                    : ByteString.Empty
+            };
 
             stopwatch.Stop();
 
@@ -311,6 +334,9 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (ad != null) SodiumInterop.SecureWipe(ad);
             if (encrypted != null) SodiumInterop.SecureWipe(encrypted);
             if (newSenderDhPublicKey != null) SodiumInterop.SecureWipe(newSenderDhPublicKey);
+            if (metadataKey != null) SodiumInterop.SecureWipe(metadataKey);
+            if (metadataNonce != null) SodiumInterop.SecureWipe(metadataNonce);
+            if (encryptedMetadata != null) Array.Clear(encryptedMetadata);
         }
     }
 
@@ -327,15 +353,72 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessage(SecureEnvelope secureEnvelope,
         EcliptixProtocolConnection connection)
     {
-        Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
-            EnvelopeBuilder.ParseEnvelopeMetadata(secureEnvelope.MetaData);
-        if (metadataResult.IsErr)
-            return Result<byte[], EcliptixProtocolFailure>.Err(metadataResult.UnwrapErr());
+        byte[]? dhPublicKey = null;
+        byte[]? headerNonce = null;
+        byte[]? metadataKey = null;
+        byte[]? ad = null;
+        byte[]? encryptedMetadata = null;
+        try
+        {
+            // Extract DH public key from envelope (NOT from metadata!)
+            if (secureEnvelope.DhPublicKey != null && !secureEnvelope.DhPublicKey.IsEmpty)
+            {
+                dhPublicKey = secureEnvelope.DhPublicKey.ToByteArray();
+            }
 
-        EnvelopeMetadata metadata = metadataResult.Unwrap();
-        byte[] encryptedPayload = secureEnvelope.EncryptedPayload.ToByteArray();
+            // Perform DH ratchet FIRST if DH key present (before decrypting metadata!)
+            if (dhPublicKey != null)
+            {
+                Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(dhPublicKey);
+                if (ratchetResult.IsErr)
+                    return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
+            }
 
-        return ProcessSingleInboundMessageFromComponents(metadata, encryptedPayload, connection);
+            // Extract header nonce
+            if (secureEnvelope.HeaderNonce == null || secureEnvelope.HeaderNonce.IsEmpty ||
+                secureEnvelope.HeaderNonce.Length != Constants.AesGcmNonceSize)
+                return Result<byte[], EcliptixProtocolFailure>.Err(
+                    EcliptixProtocolFailure.Decode("Invalid or missing header nonce for metadata decryption"));
+
+            headerNonce = secureEnvelope.HeaderNonce.ToByteArray();
+
+            // Get metadata encryption key (AFTER ratchet!)
+            Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
+            if (metadataKeyResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
+            metadataKey = metadataKeyResult.Unwrap();
+
+            // Build associated data for metadata decryption
+            Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
+            if (peerBundleResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+            LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
+
+            bool connectionIsInitiator = connection.IsInitiator();
+            ad = connectionIsInitiator
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+
+            // Decrypt metadata
+            encryptedMetadata = secureEnvelope.MetaData.ToByteArray();
+            Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
+                EnvelopeBuilder.DecryptMetadata(encryptedMetadata, metadataKey, headerNonce, ad);
+            if (metadataResult.IsErr)
+                return Result<byte[], EcliptixProtocolFailure>.Err(metadataResult.UnwrapErr());
+
+            EnvelopeMetadata metadata = metadataResult.Unwrap();
+            byte[] encryptedPayload = secureEnvelope.EncryptedPayload.ToByteArray();
+
+            return ProcessSingleInboundMessageFromComponents(metadata, encryptedPayload, connection);
+        }
+        finally
+        {
+            if (dhPublicKey != null) SodiumInterop.SecureWipe(dhPublicKey);
+            if (headerNonce != null) SodiumInterop.SecureWipe(headerNonce);
+            if (metadataKey != null) SodiumInterop.SecureWipe(metadataKey);
+            if (ad != null) SodiumInterop.SecureWipe(ad);
+            if (encryptedMetadata != null) Array.Clear(encryptedMetadata);
+        }
     }
 
     private Result<Unit, EcliptixProtocolFailure> PerformRatchetIfNeeded(byte[]? receivedDhKey)
@@ -628,15 +711,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             encrypted = encryptResult.Unwrap();
 
             uint requestId = Helpers.GenerateRandomUInt32(true);
-            ByteString dhPublicKeyBytes = newSenderDhPublicKey is { Length: > ProtocolSystemConstants.ProtocolSystem.EmptyArrayLength }
-                ? ByteString.CopyFrom(newSenderDhPublicKey)
-                : ByteString.Empty;
 
             EnvelopeMetadata metadata = EnvelopeBuilder.CreateEnvelopeMetadata(
                 requestId,
                 ByteString.CopyFrom(nonce),
                 messageKey!.Index,
-                dhPublicKeyBytes,
                 null,
                 EnvelopeType.Request);
 
@@ -661,23 +740,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        byte[]? receivedDhKey = null;
         byte[]? ad = null;
         try
         {
-            if (metadata.DhPublicKey != null && metadata.DhPublicKey.Length > ProtocolSystemConstants.ProtocolSystem.EmptyArrayLength)
-            {
-                SecureByteStringInterop.SecureCopyWithCleanup(metadata.DhPublicKey, out receivedDhKey);
-
-                Result<Unit, EcliptixProtocolFailure> dhValidationResult =
-                    DhValidator.ValidateX25519PublicKey(receivedDhKey!);
-                if (dhValidationResult.IsErr)
-                    return Result<byte[], EcliptixProtocolFailure>.Err(dhValidationResult.UnwrapErr());
-            }
-
-            Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(receivedDhKey);
-            if (ratchetResult.IsErr)
-                return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
+            // Note: DH ratchet already performed by caller (ProcessSingleInboundMessage)
+            // if the message came through that path. EnvelopeMetadata no longer contains dh_public_key.
 
             Result<Unit, EcliptixProtocolFailure> replayCheck = connection.CheckReplayProtection(
                 [.. metadata.Nonce],
@@ -711,7 +778,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
         finally
         {
-            if (receivedDhKey != null) SodiumInterop.SecureWipe(receivedDhKey);
             if (ad != null) SodiumInterop.SecureWipe(ad);
         }
     }

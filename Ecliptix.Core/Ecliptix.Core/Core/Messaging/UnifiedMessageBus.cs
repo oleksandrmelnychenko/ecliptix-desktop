@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Subscriptions;
+using Ecliptix.Core.Core.Utilities;
 
 namespace Ecliptix.Core.Core.Messaging;
 
@@ -145,10 +146,10 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
 
             IDisposable responseSubscription = Subscribe<TResponse>(
                 response => response.CorrelationId == request.MessageId,
-                async response =>
+                response =>
                 {
                     tcs.SetResult(response);
-                    await Task.CompletedTask;
+                    return Task.CompletedTask;
                 },
                 SubscriptionLifetime.Scoped);
 
@@ -263,20 +264,6 @@ internal sealed class ReactiveSubjectWrapper(object subject) : IDisposable
                 subject.OnCompleted();
                 subject.Dispose();
             }
-        }
-    }
-}
-
-internal sealed class DisposableAction(Action action) : IDisposable
-{
-    private bool _disposed;
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _disposed = true;
-            action();
         }
     }
 }

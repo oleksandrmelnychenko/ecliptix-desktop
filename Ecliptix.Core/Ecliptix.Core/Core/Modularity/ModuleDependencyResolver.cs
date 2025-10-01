@@ -8,22 +8,18 @@ namespace Ecliptix.Core.Core.Modularity;
 
 public class ModuleDependencyResolver
 {
-    public async Task<IEnumerable<IModule>> ResolveLoadOrderAsync(IEnumerable<IModule> modules)
+    public Task<IEnumerable<IModule>> ResolveLoadOrderAsync(IEnumerable<IModule> modules)
     {
-        await Task.CompletedTask;
-
         List<IModule> moduleList = modules.ToList();
         Dictionary<string, IModule> moduleMap = moduleList.ToDictionary(m => m.Id.ToName(), m => m);
 
         ValidateDependencies(moduleList, moduleMap);
 
-        return TopologicalSort(moduleList, moduleMap);
+        return Task.FromResult(TopologicalSort(moduleList, moduleMap));
     }
 
-    public async Task<IEnumerable<IModule>> GetRequiredModulesAsync(string moduleName, IEnumerable<IModule> availableModules)
+    public Task<IEnumerable<IModule>> GetRequiredModulesAsync(string moduleName, IEnumerable<IModule> availableModules)
     {
-        await Task.CompletedTask;
-
         Dictionary<string, IModule> moduleMap = availableModules.ToDictionary(m => m.Id.ToName(), m => m);
 
         if (!moduleMap.TryGetValue(moduleName, out IModule? targetModule))
@@ -32,7 +28,7 @@ public class ModuleDependencyResolver
         HashSet<string> required = new();
         GetDependenciesRecursive(targetModule, moduleMap, required);
 
-        return required.Select(name => moduleMap[name]);
+        return Task.FromResult(required.Select(name => moduleMap[name]));
     }
 
     private void ValidateDependencies(List<IModule> modules, Dictionary<string, IModule> moduleMap)

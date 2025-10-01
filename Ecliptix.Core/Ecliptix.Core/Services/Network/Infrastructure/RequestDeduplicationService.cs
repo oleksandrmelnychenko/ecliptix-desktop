@@ -1,33 +1,19 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Utilities;
 
 namespace Ecliptix.Core.Services.Network.Infrastructure;
 
 public class RequestDeduplicationService : IDisposable
 {
-    private readonly ConcurrentDictionary<string, RequestInfo> _recentRequests;
-    private readonly TimeSpan _deduplicationWindow;
-    private readonly Timer _cleanupTimer;
-    private readonly SemaphoreSlim _cleanupSemaphore;
+    private readonly ExpiringCache<string, RequestInfo> _recentRequests;
 
     public RequestDeduplicationService(
         TimeSpan deduplicationWindow)
     {
-        _deduplicationWindow = deduplicationWindow;
-        _recentRequests = new ConcurrentDictionary<string, RequestInfo>();
-        _cleanupSemaphore = new SemaphoreSlim(1, 1);
-
-        _cleanupTimer = new Timer(
-            CleanupExpiredEntries,
-            null,
-            TimeSpan.FromMinutes(1),
-            TimeSpan.FromMinutes(1));
+        _recentRequests = new ExpiringCache<string, RequestInfo>(deduplicationWindow);
     }
 
     public Task<bool> IsDuplicateRequestAsync(
@@ -36,31 +22,26 @@ public class RequestDeduplicationService : IDisposable
         uint connectId)
     {
         string requestHash = ComputeRequestHash(serviceType, requestData, connectId);
-        DateTime now = DateTime.UtcNow;
 
         if (_recentRequests.TryGetValue(requestHash, out RequestInfo? existingRequest))
         {
-            if (now - existingRequest.Timestamp < _deduplicationWindow)
-            {
-                return Task.FromResult(true);
-            }
+            return Task.FromResult(true);
         }
 
         RequestInfo requestInfo = new()
         {
             ServiceType = serviceType,
             ConnectId = connectId,
-            Timestamp = now,
+            Timestamp = DateTime.UtcNow,
             RequestCount = 1
         };
 
         _recentRequests.AddOrUpdate(
             requestHash,
             requestInfo,
-            (key, existing) =>
+            existing =>
             {
                 existing.RequestCount++;
-                existing.Timestamp = now;
                 return existing;
             });
 
@@ -75,7 +56,7 @@ public class RequestDeduplicationService : IDisposable
     public void RemoveRequest(string serviceType, byte[] requestData, uint connectId)
     {
         string requestHash = ComputeRequestHash(serviceType, requestData, connectId);
-        _recentRequests.TryRemove(requestHash, out _);
+        _recentRequests.TryRemove(requestHash);
     }
 
     private static string ComputeRequestHash(string serviceType, byte[] requestData, uint connectId)
@@ -85,45 +66,9 @@ public class RequestDeduplicationService : IDisposable
         return Convert.ToBase64String(hashBytes);
     }
 
-    private async void CleanupExpiredEntries(object? state)
-    {
-        try
-        {
-            if (!await _cleanupSemaphore.WaitAsync(0))
-                return;
-
-            try
-            {
-                DateTime cutoff = DateTime.UtcNow - _deduplicationWindow;
-                List<string> keysToRemove = [];
-                keysToRemove.AddRange(from kvp in _recentRequests where kvp.Value.Timestamp < cutoff select kvp.Key);
-
-                foreach (string key in keysToRemove)
-                {
-                    _recentRequests.TryRemove(key, out _);
-                }
-
-                if (keysToRemove.Count > 0)
-                {
-                    // Log cleanup activity if needed
-                }
-            }
-            finally
-            {
-                _cleanupSemaphore.Release();
-            }
-        }
-        catch (Exception ex)
-        {
-            // Log exception if logging is available
-            System.Diagnostics.Debug.WriteLine($"RequestDeduplication cleanup error: {ex.Message}");
-        }
-    }
-
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
-        _cleanupSemaphore?.Dispose();
+        _recentRequests?.Dispose();
     }
 
     private class RequestInfo

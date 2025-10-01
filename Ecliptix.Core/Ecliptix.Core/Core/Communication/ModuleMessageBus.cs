@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Utilities;
 
 namespace Ecliptix.Core.Core.Communication;
 
@@ -109,7 +110,7 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
                 return existing;
             });
 
-        return new SubscriptionDisposable(() =>
+        return new DisposableAction(() =>
         {
             if (!_subscriptions.TryGetValue(messageType, out ConcurrentBag<IMessageSubscription>? subscriptions))
                 return;
@@ -243,20 +244,6 @@ internal class MessageSubscription<T>(Func<T, bool> filter, Func<T, Task> handle
         if (message is T typedMessage && filter(typedMessage))
         {
             await handler(typedMessage);
-        }
-    }
-}
-
-internal class SubscriptionDisposable(Action disposeAction) : IDisposable
-{
-    private bool _disposed;
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            disposeAction();
-            _disposed = true;
         }
     }
 }

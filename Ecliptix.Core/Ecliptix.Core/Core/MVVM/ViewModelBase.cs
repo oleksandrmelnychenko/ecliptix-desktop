@@ -36,17 +36,6 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
 
-        this.WhenActivated(disposables =>
-        {
-            Observable.FromEvent(
-                    handler => localizationService.LanguageChanged += handler,
-                    handler => localizationService.LanguageChanged -= handler
-                )
-                .Do(_ => this.RaisePropertyChanged(string.Empty))
-                .Subscribe()
-                .DisposeWith(disposables);
-        });
-
         LanguageChanged = Observable.FromEvent(
                 handler => localizationService.LanguageChanged += handler,
                 handler => localizationService.LanguageChanged -= handler
@@ -54,6 +43,14 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             .StartWith(SystemU.Default)
             .Publish()
             .RefCount();
+
+        this.WhenActivated(disposables =>
+        {
+            LanguageChanged
+                .Do(_ => this.RaisePropertyChanged(string.Empty))
+                .Subscribe()
+                .DisposeWith(disposables);
+        });
     }
 
     protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)

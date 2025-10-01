@@ -94,26 +94,26 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         Logger?.LogInformation("Authentication module message handlers setup completed");
     }
 
-    private async Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
+    private Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
     {
         Logger?.LogInformation("User authenticated: {UserId} - {Username}",
             authEvent.UserId, authEvent.Username);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    private async Task OnUserSignedOut(UserSignedOutEvent signOutEvent)
+    private Task OnUserSignedOut(UserSignedOutEvent signOutEvent)
     {
         Logger?.LogInformation("User signed out: {UserId}", signOutEvent.UserId);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    private async Task OnNavigationRequested(NavigationRequestedEvent navEvent)
+    private Task OnNavigationRequested(NavigationRequestedEvent navEvent)
     {
         if (navEvent.TargetView == "Authentication")
         {
             Logger?.LogDebug("Navigation to authentication view requested from: {SourceModule}",
                 navEvent.SourceModule);
         }
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }
