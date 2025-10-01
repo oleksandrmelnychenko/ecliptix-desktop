@@ -2,33 +2,36 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Membership.Constants;
 
 namespace Ecliptix.Core.Services.Membership;
 
 public static partial class MobileNumberValidator
 {
-    private const int MinDigits = 7;
-    private const int MaxDigits = 15;
-
-    public static string Validate(string phoneNumber, ILocalizationService localizationService)
+    public static string Validate(string mobileNumber, ILocalizationService localizationService)
     {
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey)> validationRules =
         [
-            (string.IsNullOrWhiteSpace, "ValidationErrors.PhoneNumber.CannotBeEmpty"),
-            (s => !s.StartsWith("+"), "ValidationErrors.PhoneNumber.MustStartWithCountryCode"),
+            (string.IsNullOrWhiteSpace, MobileNumberValidatorConstants.LocalizationKeys.CannotBeEmpty),
+            (s => !s.StartsWith(MobileNumberValidatorConstants.ValidationRules.CountryCodePrefix),
+                MobileNumberValidatorConstants.LocalizationKeys.MustStartWithCountryCode),
             (s => s.Length > 1 && ContainsNonDigitsRegex().IsMatch(s[1..]),
-                "ValidationErrors.PhoneNumber.ContainsNonDigits"),
-            (s => s.Length is < MinDigits + 1 or > MaxDigits + 1, "ValidationErrors.PhoneNumber.IncorrectLength")
+                MobileNumberValidatorConstants.LocalizationKeys.ContainsNonDigits),
+            (s => s.Length is < MobileNumberValidatorConstants.ValidationRules.MinDigits + 1
+                or > MobileNumberValidatorConstants.ValidationRules.MaxDigits + 1,
+                MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength)
         ];
 
         foreach ((Func<string, bool> isInvalid, string errorMessageKey) in validationRules)
         {
-            if (isInvalid(phoneNumber))
+            if (isInvalid(mobileNumber))
             {
-                if (errorMessageKey == "ValidationErrors.PhoneNumber.IncorrectLength")
+                if (errorMessageKey == MobileNumberValidatorConstants.LocalizationKeys.IncorrectLength)
                 {
                     string formatString = localizationService[errorMessageKey];
-                    return string.Format(formatString, MinDigits, MaxDigits);
+                    return string.Format(formatString,
+                        MobileNumberValidatorConstants.ValidationRules.MinDigits,
+                        MobileNumberValidatorConstants.ValidationRules.MaxDigits);
                 }
 
                 return localizationService[errorMessageKey];

@@ -10,6 +10,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
@@ -52,7 +53,8 @@ public class OpaqueAuthenticationService(
     IHardenedKeyDerivation hardenedKeyDerivation,
     IDistributedShareStorage distributedShareStorage,
     ISecretSharingService keySplitter,
-    IHmacKeyManager hmacKeyManager)
+    IHmacKeyManager hmacKeyManager,
+    IServerPublicKeyProvider serverPublicKeyProvider)
     : IAuthenticationService, IDisposable
 {
     private const int KeyDerivationMemorySize = 262144;
@@ -69,7 +71,6 @@ public class OpaqueAuthenticationService(
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
-    private byte[]? _serverPublicKeyCache;
 
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
@@ -97,19 +98,10 @@ public class OpaqueAuthenticationService(
             : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
     }
     
-    private byte[] GetServerPublicKey()
+    private OpaqueClient GetOrCreateOpaqueClient()
     {
-        if (_serverPublicKeyCache == null)
-        {
-            _serverPublicKeyCache = SecureByteStringInterop.WithByteStringAsSpan(
-                networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-                span => span.ToArray());
-        }
-        return _serverPublicKeyCache;
-    }
+        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
 
-    private OpaqueClient GetOrCreateOpaqueClient(byte[] serverPublicKey)
-    {
         lock (_opaqueClientLock)
         {
             if (_opaqueClient == null || _cachedServerPublicKey == null ||
@@ -117,7 +109,7 @@ public class OpaqueAuthenticationService(
             {
                 _opaqueClient?.Dispose();
                 _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = serverPublicKey;
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
             }
 
             return _opaqueClient;
@@ -163,8 +155,7 @@ public class OpaqueAuthenticationService(
     private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
         uint connectId)
     {
-        byte[] serverPublicKeyBytes = GetServerPublicKey();
-        OpaqueClient opaqueClient = GetOrCreateOpaqueClient(serverPublicKeyBytes);
+        OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
         using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
 

@@ -40,12 +40,14 @@ using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Core.Services.Core.Localization;
+using Ecliptix.Core.Services.Security;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Core.Infrastructure.Security.Crypto;
 using Ecliptix.Core.Settings;
@@ -319,6 +321,7 @@ public static class Program
         });
 
         services.AddSingleton<ICertificatePinningServiceFactory, CertificatePinningServiceFactory>();
+        services.AddSingleton<IServerPublicKeyProvider, ServerPublicKeyProvider>();
     }
 
     private static void ConfigureMessagingServices(IServiceCollection services)

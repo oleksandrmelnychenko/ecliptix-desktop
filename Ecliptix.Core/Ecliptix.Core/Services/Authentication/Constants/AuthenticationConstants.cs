@@ -5,7 +5,7 @@ namespace Ecliptix.Core.Services.Authentication.Constants;
 public static class AuthenticationConstants
 {
     public const string MobileNumberRequiredKey = "ValidationErrors.MobileNumber.Required";
-    public const string PhoneNumberIdentifierRequiredKey = "ValidationErrors.PhoneNumberIdentifier.Required";
+    public const string MobileNumberIdentifierRequiredKey = "ValidationErrors.MobileNumberIdentifier.Required";
     public const string DeviceIdentifierRequiredKey = "ValidationErrors.DeviceIdentifier.Required";
     public const string SessionIdentifierRequiredKey = "ValidationErrors.SessionIdentifier.Required";
     public const string MembershipIdentifierRequiredKey = "ValidationErrors.MembershipIdentifier.Required";
@@ -41,6 +41,13 @@ public static class AuthenticationConstants
     public const string ExpiredRemainingTime = "00:00";
 
     public static readonly Guid EmptyGuid = Guid.Empty;
+
+    public static class ErrorMessages
+    {
+        public const string SessionNotFound = "Session not found";
+        public const string StartOver = "start over";
+        public const string SessionExpiredStartOver = "Session expired. Please start over.";
+    }
 
     public static class Timeouts
     {

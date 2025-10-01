@@ -9,11 +9,9 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using ReactiveUI;
-using Serilog;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
@@ -26,7 +24,6 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     protected NetworkProvider NetworkProvider { get; }
 
     private bool _disposedValue;
-    private byte[]? _cachedServerPublicKey;
 
     public ViewModelActivator Activator { get; } = new();
 
@@ -68,26 +65,13 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return connectId;
     }
 
-    protected byte[] ServerPublicKey()
-    {
-        if (_cachedServerPublicKey != null)
-            return _cachedServerPublicKey;
-
-        _cachedServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(
-            NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
-            span => span.ToArray());
-
-        return _cachedServerPublicKey;
-    }
-
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
 
     protected Membership Membership() =>
         NetworkProvider.ApplicationInstanceSettings.Membership;
 
-    public string GetLocalizedWarningMessage(CharacterWarningType warningType, char? character = null,
-        string? multiChars = null)
+    public string GetLocalizedWarningMessage(CharacterWarningType warningType)
     {
         return warningType switch
         {

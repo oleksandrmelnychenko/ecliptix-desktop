@@ -11,7 +11,9 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Membership;
+using Ecliptix.Core.Services.Membership.Constants;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Utilities;
 using ReactiveUI;
@@ -259,7 +261,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private string ValidateSecureKey()
     {
         return _secureKeyBuffer.Length == 0
-            ? LocalizationService["ValidationErrors.SecureKey.Required"]
+            ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.Required]
             : string.Empty;
     }
 

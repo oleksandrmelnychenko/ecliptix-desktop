@@ -127,7 +127,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         string systemDeviceIdentifier = SystemDeviceIdentifier();
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Task<Result<ByteString, string>> validationTask = _registrationService.ValidatePhoneNumberAsync(
+        Task<Result<ByteString, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
             MobileNumber,
             systemDeviceIdentifier,
             connectId);

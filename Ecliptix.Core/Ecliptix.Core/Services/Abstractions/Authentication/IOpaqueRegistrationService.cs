@@ -10,14 +10,14 @@ namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
 public interface IOpaqueRegistrationService
 {
-    Task<Result<ByteString, string>> ValidatePhoneNumberAsync(string mobileNumber, string deviceIdentifier,
+    Task<Result<ByteString, string>> ValidateMobileNumberAsync(string mobileNumber, string deviceIdentifier,
         uint connectId);
 
-    Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier, string deviceIdentifier,
+    Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString mobileNumberIdentifier, string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
-    Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString phoneNumberIdentifier,
+    Task<Result<Unit, string>> ResendOtpVerificationAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);

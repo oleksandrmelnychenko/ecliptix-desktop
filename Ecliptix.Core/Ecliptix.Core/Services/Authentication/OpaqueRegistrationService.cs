@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
@@ -22,7 +23,8 @@ namespace Ecliptix.Core.Services.Authentication;
 
 public class OpaqueRegistrationService(
     NetworkProvider networkProvider,
-    ILocalizationService localizationService)
+    ILocalizationService localizationService,
+    IServerPublicKeyProvider serverPublicKeyProvider)
     : IOpaqueRegistrationService, IDisposable
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
@@ -33,13 +35,10 @@ public class OpaqueRegistrationService(
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
 
-    private byte[] ServerPublicKey() =>
-        SecureByteStringInterop.WithByteStringAsSpan(
-            networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-            span => span.ToArray());
-
-    private OpaqueClient GetOrCreateOpaqueClient(byte[] serverPublicKey)
+    private OpaqueClient GetOrCreateOpaqueClient()
     {
+        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
+
         lock (_opaqueClientLock)
         {
             if (_opaqueClient == null || _cachedServerPublicKey == null ||
@@ -54,7 +53,7 @@ public class OpaqueRegistrationService(
         }
     }
 
-    public async Task<Result<ByteString, string>> ValidatePhoneNumberAsync(
+    public async Task<Result<ByteString, string>> ValidateMobileNumberAsync(
         string mobileNumber,
         string deviceIdentifier,
         uint connectId)
@@ -65,7 +64,7 @@ public class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.MobileNumberRequiredKey]);
         }
 
-        ValidatePhoneNumberRequest request = new()
+        ValidateMobileNumberRequest request = new()
         {
             MobileNumber = mobileNumber,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
@@ -75,14 +74,14 @@ public class OpaqueRegistrationService(
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
-            RpcServiceType.ValidatePhoneNumber,
+            RpcServiceType.ValidateMobileNumber,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
                 try
                 {
-                    ValidatePhoneNumberResponse response = Helpers.ParseFromBytes<ValidatePhoneNumberResponse>(payload);
+                    ValidateMobileNumberResponse response = Helpers.ParseFromBytes<ValidateMobileNumberResponse>(payload);
 
-                    if (response.Result == VerificationResult.InvalidPhone)
+                    if (response.Result == VerificationResult.InvalidMobile)
                     {
                         responseSource.TrySetException(new InvalidOperationException(response.Message));
                     }
@@ -117,15 +116,15 @@ public class OpaqueRegistrationService(
         }
     }
 
-    public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString phoneNumberIdentifier,
+    public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
-        if (phoneNumberIdentifier.IsEmpty)
+        if (mobileNumberIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.PhoneNumberIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
         }
 
         if (string.IsNullOrEmpty(deviceIdentifier))
@@ -148,7 +147,7 @@ public class OpaqueRegistrationService(
 
         InitiateVerificationRequest request = new()
         {
-            MobileNumberIdentifier = phoneNumberIdentifier,
+            MobileNumberIdentifier = mobileNumberIdentifier,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
             Purpose = VerificationPurpose.Registration,
             Type = InitiateVerificationRequest.Types.Type.SendOtp
@@ -165,12 +164,13 @@ public class OpaqueRegistrationService(
         {
             string errorMessage = streamResult.UnwrapErr().Message;
 
-            if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
+            if (errorMessage.Contains(AuthenticationConstants.ErrorMessages.SessionNotFound) ||
+                errorMessage.Contains(AuthenticationConstants.ErrorMessages.StartOver))
             {
                 RxApp.MainThreadScheduler.Schedule(() =>
                     onCountdownUpdate?.Invoke(0, Guid.Empty,
                         VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
-                        "Session expired. Please start over."));
+                        AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
             }
 
             return Result<Unit, string>.Err(errorMessage);
@@ -181,7 +181,7 @@ public class OpaqueRegistrationService(
 
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
-        ByteString phoneNumberIdentifier,
+        ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
@@ -192,10 +192,10 @@ public class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
         }
 
-        if (phoneNumberIdentifier.IsEmpty)
+        if (mobileNumberIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.PhoneNumberIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
         }
 
         if (string.IsNullOrEmpty(deviceIdentifier))
@@ -210,7 +210,7 @@ public class OpaqueRegistrationService(
 
         InitiateVerificationRequest request = new()
         {
-            MobileNumberIdentifier = phoneNumberIdentifier,
+            MobileNumberIdentifier = mobileNumberIdentifier,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
             Purpose = VerificationPurpose.Registration,
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
@@ -227,12 +227,13 @@ public class OpaqueRegistrationService(
         {
             string errorMessage = result.UnwrapErr().Message;
 
-            if (errorMessage.Contains("Session not found") || errorMessage.Contains("start over"))
+            if (errorMessage.Contains(AuthenticationConstants.ErrorMessages.SessionNotFound) ||
+                errorMessage.Contains(AuthenticationConstants.ErrorMessages.StartOver))
             {
                 RxApp.MainThreadScheduler.Schedule(() =>
                     onCountdownUpdate?.Invoke(0, Guid.Empty,
                         VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
-                        "Session expired. Please start over."));
+                        AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
             }
 
             return Result<Unit, string>.Err(errorMessage);
@@ -389,9 +390,7 @@ public class OpaqueRegistrationService(
 
         try
         {
-            byte[] serverPublicKeyBytes = ServerPublicKey();
-
-            OpaqueClient opaqueClient = GetOrCreateOpaqueClient(serverPublicKeyBytes);
+            OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
             RegistrationResult? registrationResult = null;
             secureKey.WithSecureBytes(passwordBytes =>

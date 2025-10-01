@@ -9,6 +9,7 @@ using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
+using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
@@ -1297,7 +1298,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return serviceType switch
         {
             RpcServiceType.InitiateVerification => true,
-            RpcServiceType.ValidatePhoneNumber => true,
+            RpcServiceType.ValidateMobileNumber => true,
             _ => false
         };
     }
@@ -1504,7 +1505,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await PerformRecoveryWithStateRestorationAsync(
             RestoreRetryMode.DirectNoRetry,
-            "Session not found on server",
+            NetworkConstants.ErrorMessages.SessionNotFoundOnServer,
             failOnMissingState: true);
     }
 

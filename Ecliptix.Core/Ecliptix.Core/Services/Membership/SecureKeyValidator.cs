@@ -3,16 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Membership.Constants;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Membership;
 
 public static partial class SecureKeyValidator
 {
-    private const int MinLength = 6;
-    private const int MaxLength = 21;
-    private const int MinCharClasses = 2;
-    private const double MinTotalEntropyBits = 30;
 
     private static readonly Regex HasUppercaseRegex = HasUppercaseRegexPattern();
     private static readonly Regex HasDigitRegex = HasDigitRegexPattern();
@@ -43,25 +40,32 @@ public static partial class SecureKeyValidator
 
         List<(Func<string, bool> IsInvalid, string ErrorMessageKey, object[]? Args)> hardValidationRules =
         [
-            (HasNonEnglishLetters, "ValidationErrors.SecureKey.NonEnglishLetters", null),
-            (string.IsNullOrWhiteSpace, "ValidationErrors.SecureKey.Required", null),
-            (s => s.Length < MinLength, "ValidationErrors.SecureKey.MinLength", [MinLength]),
-            (s => !HasUppercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoUppercase", null),
-            (s => !HasLowercaseRegex.IsMatch(s), "ValidationErrors.SecureKey.NoLowercase", null),
-            (s => !HasSpecialCharRegex.IsMatch(s), "ValidationErrors.SecureKey.NoSpecialChar", null)
+            (HasNonEnglishLetters, SecureKeyValidatorConstants.LocalizationKeys.NonEnglishLetters, null),
+            (string.IsNullOrWhiteSpace, SecureKeyValidatorConstants.LocalizationKeys.Required, null),
+            (s => s.Length < SecureKeyValidatorConstants.ValidationRules.MinLength,
+                SecureKeyValidatorConstants.LocalizationKeys.MinLength,
+                [SecureKeyValidatorConstants.ValidationRules.MinLength]),
+            (s => !HasUppercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NoUppercase, null),
+            (s => !HasLowercaseRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NoLowercase, null),
+            (s => !HasSpecialCharRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NoSpecialChar, null)
         ];
 
         List<(Func<string, bool> IsWeak, string ErrorMessageKey, object[]? Args)> recommendationRules =
         [
-            (s => !HasDigitRegex.IsMatch(s), "ValidationErrors.SecureKey.NoDigit", null),
-            (s => s.Length > MaxLength, "ValidationErrors.SecureKey.MaxLength", [MaxLength]),
-            (s => s.Trim() != s, "ValidationErrors.SecureKey.NoSpaces", null),
-            (s => CalculateTotalShannonEntropy(s) < MinTotalEntropyBits, "ValidationErrors.SecureKey.TooSimple", null),
-            (s => CommonlyUsedPasswords.Contains(s), "ValidationErrors.SecureKey.TooCommon", null),
-            (IsSequentialOrKeyboardPattern, "ValidationErrors.SecureKey.SequentialPattern", null),
-            (HasExcessiveRepeats, "ValidationErrors.SecureKey.RepeatedChars", null),
-            (LacksCharacterDiversity, "ValidationErrors.SecureKey.LacksDiversity", [MinCharClasses]),
-            (ContainsAppNameVariant, "ValidationErrors.SecureKey.ContainsAppName", null)
+            (s => !HasDigitRegex.IsMatch(s), SecureKeyValidatorConstants.LocalizationKeys.NoDigit, null),
+            (s => s.Length > SecureKeyValidatorConstants.ValidationRules.MaxLength,
+                SecureKeyValidatorConstants.LocalizationKeys.MaxLength,
+                [SecureKeyValidatorConstants.ValidationRules.MaxLength]),
+            (s => s.Trim() != s, SecureKeyValidatorConstants.LocalizationKeys.NoSpaces, null),
+            (s => CalculateTotalShannonEntropy(s) < SecureKeyValidatorConstants.ValidationRules.MinTotalEntropyBits,
+                SecureKeyValidatorConstants.LocalizationKeys.TooSimple, null),
+            (s => SecureKeyValidatorConstants.CommonlyUsedPasswords.Contains(s),
+                SecureKeyValidatorConstants.LocalizationKeys.TooCommon, null),
+            (IsSequentialOrKeyboardPattern, SecureKeyValidatorConstants.LocalizationKeys.SequentialPattern, null),
+            (HasExcessiveRepeats, SecureKeyValidatorConstants.LocalizationKeys.RepeatedChars, null),
+            (LacksCharacterDiversity, SecureKeyValidatorConstants.LocalizationKeys.LacksDiversity,
+                [SecureKeyValidatorConstants.ValidationRules.MinCharClasses]),
+            (ContainsAppNameVariant, SecureKeyValidatorConstants.LocalizationKeys.ContainsAppName, null)
         ];
 
         foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in hardValidationRules)
@@ -130,20 +134,6 @@ public static partial class SecureKeyValidator
         return strength;
     }
 
-    private static readonly HashSet<string> CommonlyUsedPasswords =
-        new(GetTopCommonPasswords(), StringComparer.OrdinalIgnoreCase);
-
-    private static readonly List<string> KeyboardRows = ["qwertyuiop", "asdfghjkl", "zxcvbnm", "1234567890"];
-    private static readonly List<string> AppNameVariants = ["ecliptix", "eclip", "opaque"];
-
-    private static IEnumerable<string> GetTopCommonPasswords()
-    {
-        yield return "123456";
-        yield return "password";
-        yield return "12345678";
-        yield return "123456789";
-        yield return "qwerty";
-    }
 
     private static bool IsSequentialOrKeyboardPattern(string s)
     {
@@ -152,7 +142,8 @@ public static partial class SecureKeyValidator
         for (int i = 0; i <= lower.Length - 4; i++)
         {
             string sub = lower.Substring(i, 4);
-            if (KeyboardRows.Any(row => row.Contains(sub)) || IsCharSequence(sub)) return true;
+            if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(sub)) || IsCharSequence(sub))
+                return true;
         }
 
         return false;
@@ -181,7 +172,8 @@ public static partial class SecureKeyValidator
         return false;
     }
 
-    private static bool LacksCharacterDiversity(string s) => GetCharacterClassCount(s) < MinCharClasses;
+    private static bool LacksCharacterDiversity(string s) =>
+        GetCharacterClassCount(s) < SecureKeyValidatorConstants.ValidationRules.MinCharClasses;
 
     private static int GetCharacterClassCount(string s)
     {
@@ -194,7 +186,8 @@ public static partial class SecureKeyValidator
     }
 
     private static bool ContainsAppNameVariant(string s) =>
-        AppNameVariants.Any(v => s.Contains(v, StringComparison.InvariantCultureIgnoreCase));
+        SecureKeyValidatorConstants.AppNameVariants.Any(v =>
+            s.Contains(v, StringComparison.InvariantCultureIgnoreCase));
 
     private static double CalculateTotalShannonEntropy(string s)
     {

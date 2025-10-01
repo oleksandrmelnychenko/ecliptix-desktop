@@ -8,14 +8,14 @@ public static class LocalizationData
     public static readonly FrozenDictionary<string, string> EnglishStrings = new Dictionary<string, string>
     {
 
-        ["Authentication.SignUp.PhoneVerification.Title"] = "Create Account",
-        ["Authentication.SignUp.PhoneVerification.Description"] = "Confirm your number. We'll text you a verification code.",
-        ["Authentication.SignUp.PhoneVerification.Hint"] = "Include country code",
-        ["Authentication.SignUp.PhoneVerification.Watermark"] = "Mobile Number",
-        ["Authentication.SignUp.PhoneVerification.Button"] = "Continue",
+        ["Authentication.SignUp.MobileVerification.Title"] = "Create Account",
+        ["Authentication.SignUp.MobileVerification.Description"] = "Confirm your number. We'll text you a verification code.",
+        ["Authentication.SignUp.MobileVerification.Hint"] = "Include country code",
+        ["Authentication.SignUp.MobileVerification.Watermark"] = "Mobile Number",
+        ["Authentication.SignUp.MobileVerification.Button"] = "Continue",
 
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Verify Your Number",
-        ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Enter the code sent to your phone.",
+        ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Enter the code sent to your mobile.",
         ["Authentication.SignUp.VerificationCodeEntry.Hint"] = "Verification Code",
         ["Authentication.SignUp.VerificationCodeEntry.Error_InvalidCode"] = "Invalid code. Please try again.",
         ["Authentication.SignUp.VerificationCodeEntry.Button.Verify"] = "Verify",
@@ -67,14 +67,14 @@ public static class LocalizationData
         ["Verification.Info.RedirectingInSeconds"] = "Redirecting in {0} seconds...",
 
 
-        ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Must start with +",
-        ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Digits only after code",
-        ["ValidationErrors.PhoneNumber.IncorrectLength"] = "{0}-{1} digits required",
-        ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Required",
+        ["ValidationErrors.MobileNumber.MustStartWithCountryCode"] = "Must start with +",
+        ["ValidationErrors.MobileNumber.ContainsNonDigits"] = "Digits only after code",
+        ["ValidationErrors.MobileNumber.IncorrectLength"] = "{0}-{1} digits required",
+        ["ValidationErrors.MobileNumber.CannotBeEmpty"] = "Required",
 
 
         ["ValidationErrors.MobileNumber.Required"] = "Mobile number is required",
-        ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Phone number identifier is required",
+        ["ValidationErrors.MobileNumberIdentifier.Required"] = "Mobile number identifier is required",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Device identifier is required",
         ["ValidationErrors.SessionIdentifier.Required"] = "Session identifier is required",
         ["ValidationErrors.MembershipIdentifier.Required"] = "Membership identifier is required",
@@ -150,14 +150,14 @@ public static class LocalizationData
     public static readonly FrozenDictionary<string, string> UkrainianStrings = new Dictionary<string, string>
     {
 
-        ["Authentication.SignUp.PhoneVerification.Title"] = "Створити акаунт",
-        ["Authentication.SignUp.PhoneVerification.Description"] = "Підтвердьте номер. Ми надішлемо код в SMS.",
-        ["Authentication.SignUp.PhoneVerification.Hint"] = "Включно з кодом країни",
-        ["Authentication.SignUp.PhoneVerification.Watermark"] = "Номер телефону",
-        ["Authentication.SignUp.PhoneVerification.Button"] = "Продовжити",
+        ["Authentication.SignUp.MobileVerification.Title"] = "Створити акаунт",
+        ["Authentication.SignUp.MobileVerification.Description"] = "Підтвердьте номер. Ми надішлемо код в SMS.",
+        ["Authentication.SignUp.MobileVerification.Hint"] = "Включно з кодом країни",
+        ["Authentication.SignUp.MobileVerification.Watermark"] = "Номер мобільного",
+        ["Authentication.SignUp.MobileVerification.Button"] = "Продовжити",
 
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Підтвердження номера",
-        ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Введіть код, надісланий на ваш телефон.",
+        ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Введіть код, надісланий на ваш мобільний.",
         ["Authentication.SignUp.VerificationCodeEntry.Hint"] = "Код підтвердження",
         ["Authentication.SignUp.VerificationCodeEntry.Error_InvalidCode"] = "Неправильний код. Спробуйте ще раз.",
         ["Authentication.SignUp.VerificationCodeEntry.Button.Verify"] = "Підтвердити",
@@ -209,14 +209,14 @@ public static class LocalizationData
         ["Verification.Info.RedirectingInSeconds"] = "Перенаправлення через {0} секунд...",
 
 
-        ["ValidationErrors.PhoneNumber.MustStartWithCountryCode"] = "Має починатись із +",
-        ["ValidationErrors.PhoneNumber.ContainsNonDigits"] = "Лише цифри після коду",
-        ["ValidationErrors.PhoneNumber.IncorrectLength"] = "Потрібно {0}-{1} цифр",
-        ["ValidationErrors.PhoneNumber.CannotBeEmpty"] = "Обов'язкове поле",
+        ["ValidationErrors.MobileNumber.MustStartWithCountryCode"] = "Має починатись із +",
+        ["ValidationErrors.MobileNumber.ContainsNonDigits"] = "Лише цифри після коду",
+        ["ValidationErrors.MobileNumber.IncorrectLength"] = "Потрібно {0}-{1} цифр",
+        ["ValidationErrors.MobileNumber.CannotBeEmpty"] = "Обов'язкове поле",
 
 
         ["ValidationErrors.MobileNumber.Required"] = "Номер мобільного телефону є обов'язковим",
-        ["ValidationErrors.PhoneNumberIdentifier.Required"] = "Ідентифікатор номера телефону є обов'язковим",
+        ["ValidationErrors.MobileNumberIdentifier.Required"] = "Ідентифікатор номера мобільного телефону є обов'язковим",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Ідентифікатор пристрою є обов'язковим",
         ["ValidationErrors.SessionIdentifier.Required"] = "Ідентифікатор сесії є обов'язковим",
         ["ValidationErrors.MembershipIdentifier.Required"] = "Ідентифікатор учасника є обов'язковим",

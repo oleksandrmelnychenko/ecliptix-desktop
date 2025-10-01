@@ -34,7 +34,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         _serviceMethods = new Dictionary<RpcServiceType, GrpcMethodDelegate>
         {
             [RpcServiceType.RegisterAppDevice] = RegisterDeviceAsync,
-            [RpcServiceType.ValidatePhoneNumber] = ValidatePhoneNumberAsync,
+            [RpcServiceType.ValidateMobileNumber] = ValidateMobileNumberAsync,
             [RpcServiceType.OpaqueRegistrationInit] = OpaqueRegistrationRecordRequestAsync,
             [RpcServiceType.VerifyOtp] = VerifyCodeAsync,
             [RpcServiceType.OpaqueRegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
@@ -60,7 +60,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             );
         }
 
-        async Task<Result<SecureEnvelope, NetworkFailure>> ValidatePhoneNumberAsync(
+        async Task<Result<SecureEnvelope, NetworkFailure>> ValidateMobileNumberAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
             ISystemEventService systemEvents,
@@ -71,7 +71,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 networkEvents,
                 systemEvents,
                 () =>
-                    authenticationServicesClient.ValidatePhoneNumberAsync(
+                    authenticationServicesClient.ValidateMobileNumberAsync(
                         payload,
                         new CallOptions(cancellationToken: token)
                     )

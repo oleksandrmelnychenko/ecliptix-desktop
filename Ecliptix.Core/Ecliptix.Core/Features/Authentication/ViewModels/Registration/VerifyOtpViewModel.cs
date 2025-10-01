@@ -30,7 +30,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
-    private readonly ByteString _phoneNumberIdentifier;
+    private readonly ByteString _mobileNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly ILocalizationService _localizationService;
@@ -95,13 +95,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
-        ByteString phoneNumberIdentifier,
+        ByteString mobileNumberIdentifier,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IUiDispatcher uiDispatcher) : base(systemEventService, networkProvider,
         localizationService)
     {
-        _phoneNumberIdentifier = phoneNumberIdentifier;
+        _mobileNumberIdentifier = mobileNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _localizationService = localizationService;
@@ -171,7 +171,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             string deviceIdentifier = SystemDeviceIdentifier();
             Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.InitiateOtpVerificationAsync(
-                _phoneNumberIdentifier,
+                _mobileNumberIdentifier,
                 deviceIdentifier,
                 onCountdownUpdate: (seconds, identifier, status, message) =>
                     RxApp.MainThreadScheduler.Schedule(() =>
@@ -279,7 +279,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 Result<Ecliptix.Utilities.Unit, string> result =
                     await _registrationService.ResendOtpVerificationAsync(
                         VerificationSessionIdentifier!.Value,
-                        _phoneNumberIdentifier,
+                        _mobileNumberIdentifier,
                         deviceIdentifier,
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
