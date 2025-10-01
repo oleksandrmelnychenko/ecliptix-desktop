@@ -41,6 +41,8 @@ public class ViewLocator : IViewLocator
         _viewFactories[typeof(TViewModel)] = factory;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "ResolveView delegates to the RequiresUnreferencedCode overload which handles reflection safely")]
     public object? ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel
     {
         return ResolveView((object?)viewModel);

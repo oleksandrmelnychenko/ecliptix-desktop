@@ -50,6 +50,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
 
     public const int DefaultOneTimeKeyCount = 5;
+    private const uint OperationIdMinValue = 10;
+    private const uint OperationIdReservedRange = 10;
+    private const int Sha256HashSize = 32;
+    private const int RequestKeyHexPrefixLength = 16;
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
 
@@ -221,7 +225,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private volatile bool _disposed;
-    private readonly object _disposeLock = new();
+    private readonly Lock _disposeLock = new();
 
     public NetworkProvider(
         IRpcServiceManager rpcServiceManager,
@@ -320,7 +324,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? "en-US"
+            ? AppCultureSettingsConstants.DefaultCultureCode
             : applicationInstanceSettings.Culture;
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
@@ -375,9 +379,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            string hex = Convert.ToHexString(plainBuffer);
-            string prefix = hex[..Math.Min(hex.Length, 16)];
-            requestKey = $"{connectId}_{serviceType}_{prefix}";
+            int bytesToHash = Math.Min(plainBuffer.Length, RequestKeyHexPrefixLength / 2);
+            Span<char> hexBuffer = stackalloc char[RequestKeyHexPrefixLength];
+            bool success = Convert.TryToHexString(plainBuffer.AsSpan(0, bytesToHash), hexBuffer, out int charsWritten);
+            requestKey = success
+                ? $"{connectId}_{serviceType}_{hexBuffer[..charsWritten].ToString()}"
+                : $"{connectId}_{serviceType}_fallback";
         }
 
         bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
@@ -459,19 +466,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 cts.Dispose();
             }
         }
-    }
-
-    private async Task<Result<Unit, NetworkFailure>> PerformAdvancedRecoveryLogic()
-    {
-        if (_retryStrategy.HasExhaustedOperations())
-        {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Restoration failed, awaiting manual retry"));
-        }
-
-        return await PerformRecoveryWithStateRestorationAsync(
-            RestoreRetryMode.AutoRetry,
-            "Restoration failed during advanced recovery");
     }
 
     private async Task PerformReconnectionLogic()
@@ -562,7 +556,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? "en-US"
+            ? AppCultureSettingsConstants.DefaultCultureCode
             : applicationInstanceSettings.Culture;
 
         _rpcMetaDataProvider.SetAppInfo(
@@ -693,12 +687,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void CancelOperationsForConnection(uint connectId)
     {
         string connectIdPrefix = $"{connectId}_";
-        List<string> keysToCancel = [];
-        keysToCancel.AddRange(_inFlightRequests.Keys.Where(key => key.StartsWith(connectIdPrefix)));
 
-        foreach (string key in keysToCancel)
+        foreach (KeyValuePair<string, CancellationTokenSource> kvp in _inFlightRequests)
         {
-            if (!_inFlightRequests.TryRemove(key, out CancellationTokenSource? operationCts)) continue;
+            if (!kvp.Key.StartsWith(connectIdPrefix)) continue;
+            if (!_inFlightRequests.TryRemove(kvp.Key, out CancellationTokenSource? operationCts)) continue;
             try
             {
                 operationCts.Cancel();
@@ -849,25 +842,55 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
     {
-        string logicalSemantic = serviceType.ToString() switch
+        Span<byte> hashBuffer = stackalloc byte[Sha256HashSize];
+        int hashLength = 0;
+
+        switch (serviceType.ToString())
         {
-            "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest" =>
-                $"auth:signin:{connectId}",
-            "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest" =>
-                $"auth:signup:{connectId}",
+            case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = Sha256HashSize;
+                break;
+            }
+            case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = Sha256HashSize;
+                break;
+            }
+            case "InitiateVerification":
+            {
+                Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
+                System.Security.Cryptography.SHA256.HashData(plainBuffer, payloadHash);
 
-            "InitiateVerification" =>
-                $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(plainBuffer))}",
+                string semantic = $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = Sha256HashSize;
+                break;
+            }
+            default:
+            {
+                Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
+                System.Security.Cryptography.SHA256.HashData(plainBuffer, payloadHash);
 
-            _ =>
-                $"data:{serviceType}:{connectId}:{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(plainBuffer))}"
-        };
+                string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = Sha256HashSize;
+                break;
+            }
+        }
 
-        byte[] semanticBytes = System.Text.Encoding.UTF8.GetBytes(logicalSemantic);
-        byte[] hashBytes = System.Security.Cryptography.SHA256.HashData(semanticBytes);
-
-        uint rawId = BitConverter.ToUInt32(hashBytes, 0);
-        uint finalId = Math.Max(rawId % (uint.MaxValue - 10), 10);
+        uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
+        uint finalId = Math.Max(rawId % (uint.MaxValue - OperationIdReservedRange), OperationIdMinValue);
 
         return finalId;
     }
@@ -1281,80 +1304,90 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex)
     {
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
-            if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+            try
             {
-                EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-                if (connection == null)
-                    return;
-
-                if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
+                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
-                    return;
-                }
+                    EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+                    EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+                    if (connection == null)
+                        return;
 
-                Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-                Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-                if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
-                {
-                    EcliptixSessionState state = new()
+                    if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
                     {
-                        ConnectId = connectId,
-                        IdentityKeys = idKeysStateResult.Unwrap(),
-                        RatchetState = ratchetStateResult.Unwrap()
-                    };
+                        return;
+                    }
 
-                    await PersistSessionStateAsync(state, connectId);
+                    Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+                    Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+                    if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
+                    {
+                        EcliptixSessionState state = new()
+                        {
+                            ConnectId = connectId,
+                            IdentityKeys = idKeysStateResult.Unwrap(),
+                            RatchetState = ratchetStateResult.Unwrap()
+                        };
+
+                        await PersistSessionStateAsync(state, connectId);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
+                        $"Failed to persist ratchet state for connection {connectId}: {ex.Message}");
+                });
             }
         });
     }
 
     public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength)
     {
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
             try
             {
                 if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
-                    try
+                    EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+                    EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+                    if (connection == null)
+                        return;
+
+                    if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
                     {
-                        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-                        if (connection == null)
-                            return;
-
-                        if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
-                        {
-                            return;
-                        }
-
-                        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-                        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-                        if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
-                        {
-                            EcliptixSessionState state = new()
-                            {
-                                ConnectId = connectId,
-                                IdentityKeys = idKeysStateResult.Unwrap(),
-                                RatchetState = ratchetStateResult.Unwrap()
-                            };
-
-                            await PersistSessionStateAsync(state, connectId);
-                        }
+                        return;
                     }
-                    catch (Exception)
+
+                    Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+                    Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+                    if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
                     {
+                        EcliptixSessionState state = new()
+                        {
+                            ConnectId = connectId,
+                            IdentityKeys = idKeysStateResult.Unwrap(),
+                            RatchetState = ratchetStateResult.Unwrap()
+                        };
+
+                        await PersistSessionStateAsync(state, connectId);
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
+                        $"Failed to persist chain state for connection {connectId}: {ex.Message}");
+                });
             }
         });
     }

@@ -29,7 +29,7 @@ public class OpaqueRegistrationService(
 
     private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
-    private readonly object _opaqueClientLock = new();
+    private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
 

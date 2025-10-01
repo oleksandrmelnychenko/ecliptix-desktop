@@ -64,6 +64,7 @@ public class OpaqueAuthenticationService(
     private const int GuidByteLength = 16;
     private const int MaxAllowedZeroBytes = 12;
     private const string SignInSessionContext = "ecliptix-signin-session";
+    private const int NetworkRequestTimeoutMs = 30000;
 
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
@@ -152,7 +153,10 @@ public class OpaqueAuthenticationService(
         }
         finally
         {
-            passwordBytes?.AsSpan().Clear();
+            if (passwordBytes != null)
+            {
+                CryptographicOperations.ZeroMemory(passwordBytes);
+            }
         }
     }
 
@@ -228,7 +232,6 @@ public class OpaqueAuthenticationService(
             await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
                 baseKeyHandle,
                 SignInSessionContext,
-                connectId,
                 DefaultKeyDerivationOptions);
 
         if (enhancedMasterKeyHandleResult.IsErr)
@@ -342,6 +345,10 @@ public class OpaqueAuthenticationService(
     {
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
 
+        using CancellationTokenSource timeoutCts = new(NetworkRequestTimeoutMs);
+        using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
+            responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
+
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.OpaqueSignInInitRequest,
@@ -378,6 +385,11 @@ public class OpaqueAuthenticationService(
             OpaqueSignInInitResponse response = await responseCompletionSource.Task;
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(response);
         }
+        catch (OperationCanceledException)
+        {
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkRequestTimeoutMs/1000} seconds"));
+        }
         catch (Exception ex)
         {
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
@@ -390,6 +402,10 @@ public class OpaqueAuthenticationService(
         SodiumSecureMemoryHandle sessionKeyHandle, uint connectId)
     {
         TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
+
+        using CancellationTokenSource timeoutCts = new(NetworkRequestTimeoutMs);
+        using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
+            responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -426,6 +442,11 @@ public class OpaqueAuthenticationService(
         try
         {
             capturedResponse = await responseCompletionSource.Task;
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<SignInResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkRequestTimeoutMs/1000} seconds"));
         }
         catch (Exception ex)
         {

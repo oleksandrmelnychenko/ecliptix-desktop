@@ -1,32 +1,27 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Ecliptix.Core.Core.Abstractions;
 using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
-public class ModuleResourceManager : BackgroundService
+
+public class ModuleResourceManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
-    private readonly IServiceProvider _serviceProvider;
-
-    private readonly Timer _resourceMonitorTimer;
-    private const int MonitorIntervalMs = 30000;
+    private readonly IServiceProvider _rootServiceProvider;
+    private bool _disposed;
 
     public ModuleResourceManager(IServiceProvider serviceProvider)
     {
-        _serviceProvider = serviceProvider;
-
-        _resourceMonitorTimer = new Timer(MonitorResources, null, MonitorIntervalMs, MonitorIntervalMs);
+        _rootServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
     public IModuleScope CreateModuleScope(string moduleName, IModuleResourceConstraints constraints, Action<IServiceCollection>? configureServices = null)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (string.IsNullOrWhiteSpace(moduleName))
             throw new ArgumentException("Module name cannot be null or empty", nameof(moduleName));
 
@@ -34,103 +29,61 @@ public class ModuleResourceManager : BackgroundService
 
         if (configureServices != null)
         {
-            IServiceScope parentScope = _serviceProvider.CreateScope();
+            IServiceScope parentScope = _rootServiceProvider.CreateScope();
             ServiceCollection moduleServices = new();
             configureServices(moduleServices);
+
             ServiceProvider moduleServiceProvider = moduleServices.BuildServiceProvider();
-            serviceScope = new CompositeServiceScope(moduleServiceProvider.CreateScope(), parentScope);
+            serviceScope = new CompositeServiceScope(moduleServiceProvider, parentScope);
         }
         else
         {
-            serviceScope = _serviceProvider.CreateScope();
+            serviceScope = _rootServiceProvider.CreateScope();
         }
 
-        ModuleScope moduleScope = new(moduleName, serviceScope, constraints);
+        ModuleScope moduleScope = new(moduleName, serviceScope);
 
-        _moduleScopes.TryAdd(moduleName, moduleScope);
+        if (!_moduleScopes.TryAdd(moduleName, moduleScope))
+        {
+            moduleScope.Dispose();
+            throw new InvalidOperationException($"Module scope for '{moduleName}' already exists");
+        }
 
-        Log.Information("Created module scope for {ModuleName} with constraints: MaxMemory={MaxMemoryMB}MB, MaxThreads={MaxThreads}",
-            moduleName, constraints.MaxMemoryMB, constraints.MaxThreads);
+        Log.Information("Created module scope for {ModuleName}", moduleName);
 
         return moduleScope;
     }
 
-    public void ValidateAllModuleResources()
+    public bool RemoveModuleScope(string moduleName)
     {
-        foreach (IModuleScope scope in _moduleScopes.Values)
+        if (_moduleScopes.TryRemove(moduleName, out IModuleScope? scope))
+        {
+            scope.Dispose();
+            Log.Information("Removed module scope for {ModuleName}", moduleName);
+            return true;
+        }
+
+        return false;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        foreach (KeyValuePair<string, IModuleScope> kvp in _moduleScopes)
         {
             try
             {
-                if (!scope.ValidateResourceUsage())
-                {
-                    Log.Warning("Module {ModuleName} violates resource constraints", scope.ModuleName);
-                }
+                kvp.Value.Dispose();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error validating resources for module {ModuleName}", scope.ModuleName);
+                Log.Error(ex, "Error disposing module scope for {ModuleName}", kvp.Key);
             }
-        }
-    }
-
-    public ModuleResourceSummary GetResourceSummary()
-    {
-        var moduleUsages = _moduleScopes.Values
-            .Select(scope => new { scope.ModuleName, Usage = scope.GetResourceUsage() })
-            .ToList();
-
-        return new ModuleResourceSummary
-        {
-            TotalModules = _moduleScopes.Count,
-            TotalMemoryMB = moduleUsages.Sum(m => m.Usage.MemoryUsageMB),
-            TotalThreads = moduleUsages.Sum(m => m.Usage.ActiveThreads),
-            ModuleUsages = moduleUsages.ToDictionary(m => m.ModuleName, m => m.Usage)
-        };
-    }
-
-    private void MonitorResources(object? state)
-    {
-        try
-        {
-            ValidateAllModuleResources();
-
-
-            ModuleResourceSummary summary = GetResourceSummary();
-            Log.Debug("Resource Summary - Modules: {ModuleCount}, Total Memory: {TotalMemoryMB}MB, Total Threads: {TotalThreads}",
-                summary.TotalModules, summary.TotalMemoryMB, summary.TotalThreads);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error during resource monitoring");
-        }
-    }
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        Log.Information("Module Resource Manager started");
-
-
-        return Task.CompletedTask;
-    }
-
-    public override void Dispose()
-    {
-        _resourceMonitorTimer.Dispose();
-
-        foreach (IModuleScope scope in _moduleScopes.Values)
-        {
-            scope.Dispose();
         }
 
         _moduleScopes.Clear();
-
-        base.Dispose();
     }
-}
-public record ModuleResourceSummary
-{
-    public int TotalModules { get; init; }
-    public long TotalMemoryMB { get; init; }
-    public int TotalThreads { get; init; }
-    public Dictionary<string, ModuleResourceUsage> ModuleUsages { get; init; } = new();
 }

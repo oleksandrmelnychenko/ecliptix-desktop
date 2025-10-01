@@ -11,6 +11,8 @@ public interface IViewLocator
         where TViewModel : class, IRoutableViewModel
         where TView : class, new();
 
+    [RequiresUnreferencedCode("ViewLocator uses reflection to validate ViewModel types")]
+    [RequiresDynamicCode("ViewLocator may create types dynamically")]
     void Register([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewModelType,
                   [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type viewType);
 
@@ -19,6 +21,7 @@ public interface IViewLocator
 
     object? ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel;
 
+    [RequiresUnreferencedCode("ViewLocator uses reflection to determine view model types")]
     object? ResolveView(object? viewModel);
 
     bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel;

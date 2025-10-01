@@ -42,16 +42,14 @@ public class ApplicationInitializer(
     ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
-    IDistributedShareStorage? multiLocationStorage = null,
-    ISecretSharingService? keySplitter = null,
-    IHmacKeyManager? shareAuthenticationService = null
-    )
-    : IApplicationInitializer
+    IDistributedShareStorage distributedShareStorage,
+    ISecretSharingService secretSharingService,
+    IHmacKeyManager hmacKeyManager): IApplicationInitializer
 {
     private const int IpGeolocationTimeoutSeconds = 10;
     private const int MinimumSharesForReconstruction = 3;
 
-    public bool IsMembershipConfirmed { get; } = false;
+    public bool IsMembershipConfirmed { get; private set; }
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
@@ -80,18 +78,7 @@ public class ApplicationInitializer(
 
         if (isNewInstance)
         {
-            _ = Task.Run(async () =>
-            {
-                using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
-                Result<IpCountry, InternalServiceApiFailure> countryResult =
-                    await ipGeolocationService.GetIpCountryAsync(cts.Token);
-
-                if (countryResult.IsOk)
-                {
-                    networkProvider.SetCountry(countryResult.Unwrap().Country);
-                    await applicationSecureStorageProvider.SetApplicationIpCountryAsync(countryResult.Unwrap());
-                }
-            });
+            _ = FetchIpGeolocationInBackgroundAsync();
         }
 
         Result<uint, NetworkFailure> connectIdResult =
@@ -126,162 +113,28 @@ public class ApplicationInitializer(
 
         if (!isNewInstance)
         {
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            Result<bool, NetworkFailure> restoreResult =
+                await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings);
 
-            if (!string.IsNullOrEmpty(membershipId))
-            {
-                await identityService.ClearAllCacheAsync(membershipId);
+            if (restoreResult.IsErr)
+                return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
 
-                if (multiLocationStorage != null)
-                {
-                    await multiLocationStorage.ClearAllCacheAsync();
-                }
-
-                if (shareAuthenticationService != null)
-                {
-                    await shareAuthenticationService.RemoveHmacKeyAsync(membershipId);
-                }
-            }
-
-            Result<byte[], SecureStorageFailure> loadResult =
-                await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
-
-            if (loadResult.IsOk)
-            {
-                byte[] stateBytes = loadResult.Unwrap();
-                EcliptixSessionState? state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
-
-                Result<bool, NetworkFailure> restoreSecrecyChannelResult =
-                    await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
-
-                if (restoreSecrecyChannelResult.IsErr)
-                    return Result<uint, NetworkFailure>.Err(restoreSecrecyChannelResult.UnwrapErr());
-
-                if (restoreSecrecyChannelResult.IsOk && restoreSecrecyChannelResult.Unwrap())
-                {
-                    return Result<uint, NetworkFailure>.Ok(connectId);
-                }
-
-                networkProvider.ClearConnection(connectId);
-                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-            }
+            if (restoreResult.Unwrap())
+                return Result<uint, NetworkFailure>.Ok(connectId);
         }
 
         if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
         {
-            SodiumSecureMemoryHandle? masterKeyHandle = null;
-
-            if (multiLocationStorage != null && keySplitter != null)
-            {
-                Guid membershipGuid = Guid.Parse(membershipId);
-                try
-                {
-                    Result<bool, KeySplittingFailure> hasShares = await multiLocationStorage.HasStoredSharesAsync(membershipGuid);
-                    if (hasShares.IsOk && hasShares.Unwrap())
-                    {
-                        Result<KeyShare[], KeySplittingFailure> sharesResult = await multiLocationStorage.RetrieveKeySharesAsync(membershipGuid, MinimumSharesForReconstruction);
-                        if (sharesResult.IsOk)
-                        {
-                            KeyShare[] shares = sharesResult.Unwrap();
-                            try
-                            {
-                                SodiumSecureMemoryHandle? hmacKeyHandle = null;
-                                if (shareAuthenticationService != null)
-                                {
-                                    Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
-                                        await shareAuthenticationService.RetrieveHmacKeyHandleAsync(membershipId);
-                                    if (hmacKeyHandleResult.IsOk)
-                                    {
-                                        hmacKeyHandle = hmacKeyHandleResult.Unwrap();
-                                    }
-                                    else
-                                    {
-                                        await keySplitter.SecurelyDisposeSharesAsync(shares);
-                                        await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
-                                    }
-                                }
-
-                                Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructHandleResult =
-                                    await keySplitter.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
-
-                                hmacKeyHandle?.Dispose();
-
-                                if (reconstructHandleResult.IsOk)
-                                {
-                                    masterKeyHandle = reconstructHandleResult.Unwrap();
-                                }
-                                
-                            }
-                            finally
-                            {
-                                foreach (KeyShare share in shares)
-                                {
-                                    share?.Dispose();
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                     await multiLocationStorage.RemoveKeySharesAsync(membershipGuid);
-                }
-            }
-
-            if (masterKeyHandle == null)
-            {
-                Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await identityService.LoadMasterKeyHandleAsync(membershipId);
-                if (loadResult.IsOk)
-                {
-                    masterKeyHandle = loadResult.Unwrap();
-                }
-            }
+            SodiumSecureMemoryHandle? masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId);
 
             if (masterKeyHandle != null)
             {
-                try
-                {
-                    Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
-                        masterKeyHandle.ReadBytes(masterKeyHandle.Length);
-
-                    if (readResult.IsOk)
-                    {
-                        byte[] masterKeyBytes = readResult.Unwrap();
-
-                        try
-                        {
-                            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
-                                EcliptixSystemIdentityKeys.CreateFromMasterKey(
-                                    masterKeyBytes, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
-
-                            if (identityResult.IsOk)
-                            {
-                                networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
-                                    applicationInstanceSettings, connectId, identityResult.Unwrap());
-                            }
-                            else
-                            {
-                                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                            }
-                        }
-                        finally
-                        {
-                            CryptographicOperations.ZeroMemory(masterKeyBytes);
-                        }
-                    }
-                    else
-                    {
-                        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                    }
-                }
-                finally
-                {
-                    masterKeyHandle.Dispose();
-                }
+                InitializeProtocolWithIdentity(
+                    masterKeyHandle, membershipId, applicationInstanceSettings, connectId);
             }
             else
             {
-                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
             }
         }
         else
@@ -289,21 +142,195 @@ public class ApplicationInitializer(
             networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
         }
 
+        return await EstablishAndSaveSecrecyChannelAsync(connectId);
+    }
+
+    private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId)
+    {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId);
 
         if (establishResult.IsErr)
-        {
             return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
-        }
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
         await SecureByteStringInterop.WithByteStringAsSpan(
             secrecyChannelState.ToByteString(),
-            span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
+            span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()))
+            .ConfigureAwait(false);
 
         return Result<uint, NetworkFailure>.Ok(connectId);
+    }
+
+    private void InitializeProtocolWithIdentity(
+        SodiumSecureMemoryHandle masterKeyHandle,
+        string membershipId,
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId)
+    {
+        IsMembershipConfirmed = true;
+
+        try
+        {
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+                masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+
+            if (readResult.IsErr)
+            {
+                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                return;
+            }
+
+            byte[] masterKeyBytes = readResult.Unwrap();
+
+            try
+            {
+                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
+                    EcliptixSystemIdentityKeys.CreateFromMasterKey(
+                        masterKeyBytes, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
+
+                if (identityResult.IsOk)
+                {
+                    networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
+                        applicationInstanceSettings, connectId, identityResult.Unwrap());
+                }
+                else
+                {
+                    networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+        }
+        finally
+        {
+            masterKeyHandle.Dispose();
+        }
+    }
+
+    private async Task InitializeProtocolWithoutIdentityAsync(
+        ApplicationInstanceSettings applicationInstanceSettings,
+        uint connectId)
+    {
+        IsMembershipConfirmed = false;
+
+        if (applicationInstanceSettings.Membership != null)
+        {
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
+        }
+
+        networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
+    }
+
+    private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyFromDistributedSharesAsync(string membershipId)
+    {
+        Guid membershipGuid = Guid.Parse(membershipId);
+
+        try
+        {
+            Result<bool, KeySplittingFailure> hasShares =
+                await distributedShareStorage.HasStoredSharesAsync(membershipGuid);
+
+            if (hasShares.IsErr || !hasShares.Unwrap())
+                return null;
+
+            Result<KeyShare[], KeySplittingFailure> sharesResult =
+                await distributedShareStorage.RetrieveKeySharesAsync(membershipGuid, MinimumSharesForReconstruction);
+
+            if (sharesResult.IsErr)
+                return null;
+
+            KeyShare[] shares = sharesResult.Unwrap();
+            try
+            {
+                SodiumSecureMemoryHandle? hmacKeyHandle =
+                    await TryRetrieveHmacKeyHandleAsync(membershipId);
+
+                if (hmacKeyHandle == null)
+                {
+                    await secretSharingService.SecurelyDisposeSharesAsync(shares);
+                    await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+                    return null;
+                }
+
+                Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructResult =
+                    await secretSharingService.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
+
+                hmacKeyHandle.Dispose();
+
+                return reconstructResult.IsOk ? reconstructResult.Unwrap() : null;
+            }
+            finally
+            {
+                foreach (KeyShare share in shares)
+                {
+                    share?.Dispose();
+                }
+            }
+        }
+        catch
+        {
+            await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+            return null;
+        }
+    }
+
+    private async Task<SodiumSecureMemoryHandle?> TryRetrieveHmacKeyHandleAsync(string membershipId)
+    {
+        Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyResult =
+            await hmacKeyManager.RetrieveHmacKeyHandleAsync(membershipId);
+
+        return hmacKeyResult.IsOk ? hmacKeyResult.Unwrap() : null;
+    }
+
+    private async Task<SodiumSecureMemoryHandle?> TryLoadMasterKeyFromStorageAsync(string membershipId)
+    {
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
+            await identityService.LoadMasterKeyHandleAsync(membershipId);
+
+        return loadResult.IsOk ? loadResult.Unwrap() : null;
+    }
+
+    private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyAsync(string membershipId)
+    {
+        SodiumSecureMemoryHandle? masterKeyHandle =
+            await TryReconstructMasterKeyFromDistributedSharesAsync(membershipId);
+
+        if (masterKeyHandle != null)
+            return masterKeyHandle;
+
+        return await TryLoadMasterKeyFromStorageAsync(membershipId);
+    }
+
+    private async Task<Result<bool, NetworkFailure>> TryRestoreSessionStateAsync(
+        uint connectId,
+        ApplicationInstanceSettings applicationInstanceSettings)
+    {
+        Result<byte[], SecureStorageFailure> loadResult =
+            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+
+        if (loadResult.IsErr)
+            return Result<bool, NetworkFailure>.Ok(false);
+
+        byte[] stateBytes = loadResult.Unwrap();
+        EcliptixSessionState? state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
+
+        Result<bool, NetworkFailure> restoreResult =
+            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
+
+        if (restoreResult.IsErr)
+            return Result<bool, NetworkFailure>.Err(restoreResult.UnwrapErr());
+
+        if (restoreResult.Unwrap())
+            return Result<bool, NetworkFailure>.Ok(true);
+
+        networkProvider.ClearConnection(connectId);
+        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+
+        return Result<bool, NetworkFailure>.Ok(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
@@ -333,5 +360,43 @@ public class ApplicationInitializer(
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None);
+    }
+
+    private Task FetchIpGeolocationInBackgroundAsync() =>
+        Task.Run(async () =>
+        {
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
+            Result<IpCountry, InternalServiceApiFailure> countryResult =
+                await ipGeolocationService.GetIpCountryAsync(cts.Token);
+
+            if (countryResult.IsOk)
+            {
+                IpCountry country = countryResult.Unwrap();
+                networkProvider.SetCountry(country.Country);
+                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country);
+            }
+        });
+    
+    public async Task CleanupForTestingAsync(uint connectId, string? membershipId = null)
+    {
+        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+
+        if (!string.IsNullOrEmpty(membershipId))
+        {
+            await identityService.ClearAllCacheAsync(membershipId);
+
+            await distributedShareStorage.ClearAllCacheAsync();
+
+            await hmacKeyManager.RemoveHmacKeyAsync(membershipId);
+
+            Guid membershipGuid = Guid.Parse(membershipId);
+            await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+        }
+
+        await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
+
+        networkProvider.ClearConnection(connectId);
+
+        IsMembershipConfirmed = false;
     }
 }

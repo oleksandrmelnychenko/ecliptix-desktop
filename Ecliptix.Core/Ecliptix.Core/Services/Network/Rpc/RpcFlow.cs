@@ -23,10 +23,8 @@ public abstract class RpcFlow
         return new InboundStream(EmptyStream());
     }
 
-    public static RpcFlow NewDrainOutboundSink()
-    {
-        return new OutboundSink(new DrainSink());
-    }
+    public static RpcFlow NewDrainOutboundSink() =>
+        new OutboundSink(new DrainSink());
 
     public static RpcFlow NewBidirectionalStream()
     {
@@ -37,12 +35,10 @@ public abstract class RpcFlow
     }
 
     private static IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> ToOkStream(
-        ChannelReader<SecureEnvelope> reader)
-    {
-        return reader.ReadAllAsync().Select(payload => Result<SecureEnvelope, NetworkFailure>.Ok(payload));
-    }
+        ChannelReader<SecureEnvelope> reader) =>
+        reader.ReadAllAsync().Select(payload => Result<SecureEnvelope, NetworkFailure>.Ok(payload));
 
-    public class SingleCall(Task<Result<SecureEnvelope, NetworkFailure>> result) : RpcFlow
+    public sealed class SingleCall(Task<Result<SecureEnvelope, NetworkFailure>> result) : RpcFlow
     {
         public SingleCall(Result<SecureEnvelope, NetworkFailure> result)
             : this(Task.FromResult(result))
@@ -52,43 +48,41 @@ public abstract class RpcFlow
         public Task<Result<SecureEnvelope, NetworkFailure>> Result { get; } = result;
     }
 
-    public class InboundStream(IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream)
+    public sealed class InboundStream(IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream)
         : RpcFlow
     {
         public IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> Stream { get; } = stream;
     }
 
-    public class OutboundSink(IOutboundSink sink) : RpcFlow
+    public sealed class OutboundSink(IOutboundSink sink) : RpcFlow
     {
         public IOutboundSink Sink { get; } = sink;
     }
 
-    public class BidirectionalStream(
+    public sealed class BidirectionalStream(
         IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> inbound,
         IOutboundSink outboundSink)
         : RpcFlow
     {
         public IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> Inbound { get; } = inbound;
-
-        public new IOutboundSink OutboundSink { get; } = outboundSink;
+        public IOutboundSink Outbound { get; } = outboundSink;
     }
 }
-internal class DrainSink : IOutboundSink
+
+internal sealed class DrainSink : IOutboundSink
 {
-    public Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope payload)
-    {
-        return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-    }
+    public Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope payload) =>
+        Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
 }
 
-internal class ChannelSink(ChannelWriter<SecureEnvelope> writer) : IOutboundSink
+internal sealed class ChannelSink(ChannelWriter<SecureEnvelope> writer) : IOutboundSink
 {
     public async Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope payload)
     {
         try
         {
             await writer.WriteAsync(payload);
-            return Result<Unit, NetworkFailure>.Ok(new Unit());
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {

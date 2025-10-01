@@ -26,6 +26,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     protected NetworkProvider NetworkProvider { get; }
 
     private bool _disposedValue;
+    private byte[]? _cachedServerPublicKey;
 
     public ViewModelActivator Activator { get; } = new();
 
@@ -38,27 +39,24 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
 
-        LanguageChanged = Observable.Create<SystemU>(observer =>
-            {
-                observer.OnNext(SystemU.Default);
-
-                void Handler() => observer.OnNext(SystemU.Default);
-
-                localizationService.LanguageChanged += Handler;
-                return Disposable.Create(() => localizationService.LanguageChanged -= Handler);
-            })
-            .Publish()
-            .RefCount();
-
         this.WhenActivated(disposables =>
         {
             Observable.FromEvent(
                     handler => localizationService.LanguageChanged += handler,
                     handler => localizationService.LanguageChanged -= handler
                 )
-                .Subscribe(_ => { this.RaisePropertyChanged(string.Empty); })
+                .Do(_ => this.RaisePropertyChanged(string.Empty))
+                .Subscribe()
                 .DisposeWith(disposables);
         });
+
+        LanguageChanged = Observable.FromEvent(
+                handler => localizationService.LanguageChanged += handler,
+                handler => localizationService.LanguageChanged -= handler
+            )
+            .StartWith(SystemU.Default)
+            .Publish()
+            .RefCount();
     }
 
     protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
@@ -70,10 +68,17 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return connectId;
     }
 
-    protected byte[] ServerPublicKey() =>
-        SecureByteStringInterop.WithByteStringAsSpan(
+    protected byte[] ServerPublicKey()
+    {
+        if (_cachedServerPublicKey != null)
+            return _cachedServerPublicKey;
+
+        _cachedServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(
             NetworkProvider.ApplicationInstanceSettings.ServerPublicKey,
             span => span.ToArray());
+
+        return _cachedServerPublicKey;
+    }
 
     protected string SystemDeviceIdentifier() =>
         NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;

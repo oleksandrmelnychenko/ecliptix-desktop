@@ -17,7 +17,7 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
     private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
     private readonly IWindowService _windowService = Locator.Current.GetService<IWindowService>()!;
-    
+
     private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
 
@@ -51,22 +51,16 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 
     private async Task TransitionToNextWindowAsync()
     {
-        try
-        {
-            Window nextWindow =
-                await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
+        Window nextWindow =
+            await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
 
-            desktop.MainWindow = nextWindow;
+        desktop.MainWindow = nextWindow;
 
-            await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
+        await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
 
-            _splashScreen.Close();
-            _splashScreen = null;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Failed to transition from splash screen");
-            throw;
-        }
+        _splashScreen.Close();
+        _splashViewModel?.Dispose();
+        _splashScreen = null;
+        _splashViewModel = null;
     }
 }

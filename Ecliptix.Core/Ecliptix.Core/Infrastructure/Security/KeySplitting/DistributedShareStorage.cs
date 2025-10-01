@@ -15,7 +15,7 @@ using Ecliptix.Utilities.Failures;
 
 namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
-public sealed class DistributedShareStorage : IDistributedShareStorage, IDisposable
+public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDisposable, IDisposable
 {
     private const int DefaultThreshold = 3;
     private const int CacheCapacityLimit = 100;
@@ -28,7 +28,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IDisposa
     private readonly ConcurrentDictionary<Guid, DateTime> _memoryCacheAccessTimes = new();
     private readonly ConcurrentDictionary<string, HashSet<string>> _keychainTracker = new();
     private readonly ReaderWriterLockSlim _cacheLock = new();
-    private readonly object _storageLock = new();
+    private readonly Lock _storageLock = new();
     private readonly IHmacKeyManager? _shareAuthenticationService;
     private bool _disposed;
 
@@ -600,41 +600,89 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IDisposa
         }
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        lock (_storageLock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+        }
+
+        List<Task> cleanupTasks = new();
+        foreach (KeyValuePair<string, HashSet<string>> tracker in _keychainTracker)
+        {
+            foreach (string keyIdentifier in tracker.Value)
+            {
+                cleanupTasks.Add(_platformSecurityProvider.DeleteKeyFromKeychainAsync(keyIdentifier));
+            }
+        }
+
+        await Task.WhenAll(cleanupTasks);
+        _keychainTracker.Clear();
+
+        _cacheLock.EnterWriteLock();
+        try
+        {
+            foreach (KeyValuePair<Guid, SodiumSecureMemoryHandle> kvp in _memoryShareCache)
+            {
+                kvp.Value?.Dispose();
+            }
+
+            _memoryShareCache.Clear();
+            _memoryCacheAccessTimes.Clear();
+        }
+        finally
+        {
+            _cacheLock.ExitWriteLock();
+        }
+
+        _cacheLock.Dispose();
+    }
+
     public void Dispose()
     {
         lock (_storageLock)
         {
             if (_disposed) return;
-
-            foreach (KeyValuePair<string, HashSet<string>> tracker in _keychainTracker)
-            {
-                foreach (string keyIdentifier in tracker.Value)
-                {
-                    _platformSecurityProvider.DeleteKeyFromKeychainAsync(keyIdentifier).GetAwaiter().GetResult();
-                }
-            }
-
-            _keychainTracker.Clear();
-
-            _cacheLock.EnterWriteLock();
-            try
-            {
-                foreach (KeyValuePair<Guid, SodiumSecureMemoryHandle> kvp in _memoryShareCache)
-                {
-                    kvp.Value?.Dispose();
-                }
-
-                _memoryShareCache.Clear();
-                _memoryCacheAccessTimes.Clear();
-            }
-            finally
-            {
-                _cacheLock.ExitWriteLock();
-            }
-
-            _cacheLock.Dispose();
             _disposed = true;
         }
+
+        foreach (KeyValuePair<string, HashSet<string>> tracker in _keychainTracker)
+        {
+            foreach (string keyIdentifier in tracker.Value)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _platformSecurityProvider.DeleteKeyFromKeychainAsync(keyIdentifier);
+                    }
+                    catch
+                    {
+                    }
+                });
+            }
+        }
+
+        _keychainTracker.Clear();
+
+        _cacheLock.EnterWriteLock();
+        try
+        {
+            foreach (KeyValuePair<Guid, SodiumSecureMemoryHandle> kvp in _memoryShareCache)
+            {
+                kvp.Value?.Dispose();
+            }
+
+            _memoryShareCache.Clear();
+            _memoryCacheAccessTimes.Clear();
+        }
+        finally
+        {
+            _cacheLock.ExitWriteLock();
+        }
+
+        _cacheLock.Dispose();
     }
 
     public async Task<Result<Unit, KeySplittingFailure>> ClearAllCacheAsync()

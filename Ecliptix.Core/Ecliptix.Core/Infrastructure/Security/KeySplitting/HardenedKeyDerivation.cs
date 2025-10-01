@@ -18,19 +18,17 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
     private const string RoundKeyFormat = "round-{0}-{1}";
     private const int AdditionalRoundsCount = 3;
     private const int MaxInfoBufferSize = 128;
-    private const int HmacSha512HashSize = 64;
     private const int MaxPreviousBlockSize = 64;
     private const int MaxRoundBufferSize = 64;
 
     private async Task<Result<byte[], KeySplittingFailure>> DeriveEnhancedKeyAsync(
         byte[] baseKey,
         string context,
-        uint connectId,
         KeyDerivationOptions options)
     {
         try
         {
-            byte[] salt = GenerateContextSalt(context, connectId);
+            byte[] salt = GenerateContextSalt(context);
 
             Result<byte[], KeySplittingFailure> stretchedResult =
                 await StretchKeyAsync(baseKey, salt, options.OutputLength, options);
@@ -39,7 +37,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
             byte[] stretchedKey = stretchedResult.Unwrap();
 
-            byte[] expandedKey = await ExpandKeyWithHkdfAsync(stretchedKey, connectId, options.OutputLength);
+            byte[] expandedKey = await ExpandKeyWithHkdfAsync(stretchedKey, options.OutputLength);
 
             if (options.UseHardwareEntropy && platformSecurityProvider.IsHardwareSecurityAvailable())
             {
@@ -59,7 +57,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 }
             }
 
-            byte[] finalKey = await ApplyAdditionalRoundsAsync(expandedKey, connectId);
+            byte[] finalKey = await ApplyAdditionalRoundsAsync(expandedKey);
 
             CryptographicOperations.ZeroMemory(stretchedKey);
             CryptographicOperations.ZeroMemory(expandedKey);
@@ -100,22 +98,22 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         }
     }
 
-    private static byte[] GenerateContextSalt(string context, uint connectId)
+    private static byte[] GenerateContextSalt(string context)
     {
-        string saltInput = $"{KeyContextPrefix}:{context}:{connectId}";
+        string saltInput = $"{KeyContextPrefix}:{context}";
         byte[] saltBytes = SHA256.HashData(Encoding.UTF8.GetBytes(saltInput));
         return saltBytes;
     }
 
-    private static async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, uint connectId, int outputLength)
+    private static async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, int outputLength)
     {
         return await Task.Run(() =>
         {
             Span<byte> infoBuffer = stackalloc byte[MaxInfoBufferSize];
-            int infoLength = Encoding.UTF8.GetBytes($"{KeyContextPrefix}-{connectId}", infoBuffer);
+            int infoLength = Encoding.UTF8.GetBytes(KeyContextPrefix, infoBuffer);
             ReadOnlySpan<byte> info = infoBuffer[..infoLength];
 
-            byte[] salt = SHA256.HashData(BitConverter.GetBytes(connectId));
+            byte[] salt = SHA256.HashData(Encoding.UTF8.GetBytes(KeyContextPrefix));
 
             byte[] pseudoRandomKey;
             using (HMACSHA512 hmac = new(salt))
@@ -163,7 +161,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         });
     }
 
-    private static async Task<byte[]> ApplyAdditionalRoundsAsync(byte[] key, uint connectId)
+    private static async Task<byte[]> ApplyAdditionalRoundsAsync(byte[] key)
     {
         return await Task.Run(() =>
         {
@@ -174,7 +172,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             for (int round = 0; round < AdditionalRoundsCount; round++)
             {
                 using HMACSHA512 hmac = new(result);
-                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(RoundKeyFormat, round, connectId), roundBuffer);
+                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(RoundKeyFormat, round, KeyContextPrefix), roundBuffer);
                 byte[] roundKey = hmac.ComputeHash(roundBuffer[..roundInputLength].ToArray());
 
                 for (int i = 0; i < result.Length && i < roundKey.Length; i++)
@@ -193,7 +191,6 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
     public async Task<Result<SodiumSecureMemoryHandle, KeySplittingFailure>> DeriveEnhancedMasterKeyHandleAsync(
         SodiumSecureMemoryHandle baseKeyHandle,
         string context,
-        uint connectId,
         KeyDerivationOptions options)
     {
         byte[]? baseKeyBytes = null;
@@ -209,7 +206,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             baseKeyBytes = readResult.Unwrap();
 
             Result<byte[], KeySplittingFailure> deriveResult =
-                await DeriveEnhancedKeyAsync(baseKeyBytes, context, connectId, options);
+                await DeriveEnhancedKeyAsync(baseKeyBytes, context, options);
             if (deriveResult.IsErr)
                 return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(deriveResult.UnwrapErr());
 

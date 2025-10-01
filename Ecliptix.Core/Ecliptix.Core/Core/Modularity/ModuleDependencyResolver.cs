@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
-using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -80,12 +79,14 @@ public class ModuleDependencyResolver
         {
             foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (!visited.Contains(dependency.ToName()))
+                string depName = dependency.ToName();
+
+                if (!visited.Contains(depName))
                 {
-                    if (HasCircularDependency(dependency.ToName(), moduleMap, visited, recursionStack))
+                    if (HasCircularDependency(depName, moduleMap, visited, recursionStack))
                         return true;
                 }
-                else if (recursionStack.Contains(dependency.ToName()))
+                else if (recursionStack.Contains(depName))
                 {
                     return true;
                 }
@@ -99,37 +100,41 @@ public class ModuleDependencyResolver
     private IEnumerable<IModule> TopologicalSort(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
         Dictionary<string, int> inDegree = modules.ToDictionary(m => m.Id.ToName(), _ => 0);
+        Dictionary<string, HashSet<string>> dependents = new();
+
+        foreach (IModule module in modules)
+        {
+            string moduleName = module.Id.ToName();
+            dependents[moduleName] = new HashSet<string>();
+        }
 
         foreach (IModule module in modules)
         {
             foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {
-                if (inDegree.ContainsKey(dependency.ToName()))
+                string depName = dependency.ToName();
+                if (dependents.ContainsKey(depName))
                 {
+                    dependents[depName].Add(module.Id.ToName());
                     inDegree[module.Id.ToName()]++;
                 }
             }
         }
 
         Queue<string> queue = new(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
-        List<IModule> result = new();
+        List<IModule> result = new(modules.Count);
 
         while (queue.Count > 0)
         {
             string current = queue.Dequeue();
             result.Add(moduleMap[current]);
 
-            IModule currentModule = moduleMap[current];
-
-            foreach (IModule module in modules)
+            foreach (string dependent in dependents[current])
             {
-                if (module.Manifest.Dependencies.Select(d => d.ToName()).Contains(current))
+                inDegree[dependent]--;
+                if (inDegree[dependent] == 0)
                 {
-                    inDegree[module.Id.ToName()]--;
-                    if (inDegree[module.Id.ToName()] == 0)
-                    {
-                        queue.Enqueue(module.Id.ToName());
-                    }
+                    queue.Enqueue(dependent);
                 }
             }
         }
@@ -146,9 +151,10 @@ public class ModuleDependencyResolver
     {
         foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
         {
-            if (!required.Contains(dependency.ToName()) && moduleMap.TryGetValue(dependency.ToName(), out IModule? depModule))
+            string depName = dependency.ToName();
+            if (!required.Contains(depName) && moduleMap.TryGetValue(depName, out IModule? depModule))
             {
-                required.Add(dependency.ToName());
+                required.Add(depName);
                 GetDependenciesRecursive(depModule, moduleMap, required);
             }
         }
