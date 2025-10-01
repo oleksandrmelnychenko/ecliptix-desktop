@@ -23,5 +23,10 @@ public interface IRpcServiceManager
         ISystemEventService systemEvents,
         RestoreChannelRequest request);
 
+    Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        AuthenticatedEstablishRequest request);
+
     Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request, CancellationToken token);
 }

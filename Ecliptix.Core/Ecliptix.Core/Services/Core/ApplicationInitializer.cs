@@ -238,7 +238,7 @@ public class ApplicationInitializer(
                 return null;
 
             Result<KeyShare[], KeySplittingFailure> sharesResult =
-                await distributedShareStorage.RetrieveKeySharesAsync(membershipGuid, MinimumSharesForReconstruction);
+                await distributedShareStorage.RetrieveKeySharesAsync(membershipGuid);
 
             if (sharesResult.IsErr)
                 return null;
@@ -267,7 +267,7 @@ public class ApplicationInitializer(
             {
                 foreach (KeyShare share in shares)
                 {
-                    share?.Dispose();
+                    share.Dispose();
                 }
             }
         }

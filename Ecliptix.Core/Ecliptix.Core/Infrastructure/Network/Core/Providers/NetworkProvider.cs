@@ -22,14 +22,17 @@ using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Core.Infrastructure.Security.Crypto;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
+using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Unit = Ecliptix.Utilities.Unit;
+using System.Security.Cryptography;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
@@ -1631,5 +1634,146 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 return Result<bool, NetworkFailure>.Ok(false);
             }
         });
+    }
+
+    public async Task<Result<Unit, NetworkFailure>> RecreateProtocolWithMasterKeyAsync(
+        SodiumSecureMemoryHandle masterKeyHandle,
+        ByteString membershipIdentifier,
+        uint connectId)
+    {
+        byte[]? masterKeyBytes = null;
+
+        try
+        {
+            Result<byte[], SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            if (readResult.IsErr)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding($"Failed to read master key: {readResult.UnwrapErr().Message}"));
+            }
+
+            masterKeyBytes = readResult.Unwrap();
+            string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
+
+            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
+                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId, DefaultOneTimeKeyCount);
+
+            if (identityKeysResult.IsErr)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    identityKeysResult.UnwrapErr().ToNetworkFailure());
+            }
+
+            EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
+
+            if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldProtocol))
+            {
+                oldProtocol?.Dispose();
+            }
+
+            PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
+            RatchetConfig ratchetConfig = GetRatchetConfigForExchangeType(exchangeType);
+            EcliptixProtocolSystem newProtocol = new(identityKeys, ratchetConfig);
+            newProtocol.SetEventHandler(this);
+
+            Result<PubKeyExchange, EcliptixProtocolFailure> clientExchangeResult =
+                newProtocol.BeginDataCenterPubKeyExchange(connectId, exchangeType);
+
+            if (clientExchangeResult.IsErr)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    clientExchangeResult.UnwrapErr().ToNetworkFailure());
+            }
+
+            PubKeyExchange clientExchange = clientExchangeResult.Unwrap();
+
+            AuthenticatedEstablishRequest authenticatedRequest = new()
+            {
+                MembershipUniqueId = membershipIdentifier,
+                ClientPubKeyExchange = clientExchange
+            };
+
+            Result<SecureEnvelope, NetworkFailure> serverResponseResult =
+                await _rpcServiceManager.AuthenticatedEstablishSecureChannelAsync(
+                    _networkEvents, _systemEvents, authenticatedRequest);
+
+            if (serverResponseResult.IsErr)
+            {
+                _connections.TryAdd(connectId, newProtocol);
+                return Result<Unit, NetworkFailure>.Err(serverResponseResult.UnwrapErr());
+            }
+
+            SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();
+
+            CertificatePinningService? certificatePinningService =
+                _certificatePinningServiceFactory.GetOrInitializeService();
+
+            if (certificatePinningService == null)
+            {
+                _connections.TryAdd(connectId, newProtocol);
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
+            }
+
+            byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
+            Result<byte[], NetworkFailure> decryptResult =
+                _rsaChunkEncryptor.DecryptInChunks(certificatePinningService, combinedEncryptedResponse);
+
+            if (decryptResult.IsErr)
+            {
+                _connections.TryAdd(connectId, newProtocol);
+                return Result<Unit, NetworkFailure>.Err(decryptResult.UnwrapErr());
+            }
+
+            PubKeyExchange serverExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
+
+            Result<Unit, EcliptixProtocolFailure> completeResult =
+                newProtocol.CompleteDataCenterPubKeyExchange(serverExchange);
+
+            if (completeResult.IsErr)
+            {
+                _connections.TryAdd(connectId, newProtocol);
+                return Result<Unit, NetworkFailure>.Err(
+                    completeResult.UnwrapErr().ToNetworkFailure());
+            }
+
+            _connections.TryAdd(connectId, newProtocol);
+
+            EcliptixProtocolConnection? connection = newProtocol.GetConnection();
+            if (connection != null)
+            {
+                Result<EcliptixSessionState, EcliptixProtocolFailure> sessionStateResult =
+                    identityKeys.ToProtoState()
+                        .AndThen(identityKeysProto => connection.ToProtoState()
+                            .Map(ratchetStateProto => new EcliptixSessionState
+                            {
+                                ConnectId = connectId,
+                                IdentityKeys = identityKeysProto,
+                                PeerHandshakeMessage = serverExchange,
+                                RatchetState = ratchetStateProto
+                            })
+                        );
+
+                if (sessionStateResult.IsOk)
+                {
+                    EcliptixSessionState sessionState = sessionStateResult.Unwrap();
+                    await PersistSessionStateAsync(sessionState, connectId);
+                }
+            }
+
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding($"Failed to recreate protocol: {ex.Message}"));
+        }
+        finally
+        {
+            if (masterKeyBytes != null)
+            {
+                CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+        }
     }
 }

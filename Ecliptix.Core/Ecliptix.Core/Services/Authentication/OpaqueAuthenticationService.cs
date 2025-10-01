@@ -316,6 +316,17 @@ public class OpaqueAuthenticationService(
 
                 await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
+
+                Result<Unit, NetworkFailure> recreateProtocolResult =
+                    await networkProvider.RecreateProtocolWithMasterKeyAsync(
+                        masterKeyHandle, membershipIdentifier, connectId);
+
+                if (recreateProtocolResult.IsErr)
+                {
+                    return Result<Unit, AuthenticationFailure>.Err(
+                        AuthenticationFailure.NetworkRequestFailed(
+                            $"Failed to establish authenticated protocol: {recreateProtocolResult.UnwrapErr().Message}"));
+                }
             }
 
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
