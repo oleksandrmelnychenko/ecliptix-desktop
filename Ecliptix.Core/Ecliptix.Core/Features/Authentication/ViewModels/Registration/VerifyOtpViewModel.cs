@@ -80,6 +80,9 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public bool ShowDimmer { get; private set; }
     [Reactive] public bool ShowSpinner { get; private set; }
     [Reactive] public bool HasValidSession { get; private set; }
+    
+    [ObservableAsProperty] public bool IsBusy { get; }
+    [ObservableAsProperty] public bool IsResending { get; }
 
 
     private IDisposable? _autoRedirectTimer;
@@ -124,6 +127,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             .Select(tuple => tuple is { Item1: 0, Item2: true })
             .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
+        
+        SendVerificationCodeCommand.IsExecuting
+            .ToPropertyEx(this, x => x.IsBusy)
+            .DisposeWith(_disposables);
+
+        ResendSendVerificationCodeCommand.IsExecuting
+            .ToPropertyEx(this, x => x.IsResending)
+            .DisposeWith(_disposables);
 
         this.WhenActivated(disposables =>
         {
