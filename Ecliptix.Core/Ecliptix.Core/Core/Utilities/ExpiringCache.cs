@@ -43,12 +43,6 @@ public sealed class ExpiringCache<TKey, TValue> : IDisposable
         return entry.Value;
     }
 
-    /// <summary>
-    /// Tries to get a value from the cache if it exists and hasn't expired.
-    /// </summary>
-    /// <param name="key">The key to look up.</param>
-    /// <param name="value">The value if found and not expired, otherwise default.</param>
-    /// <returns>True if the value was found and not expired, otherwise false.</returns>
     public bool TryGetValue(TKey key, out TValue value)
     {
         if (_cache.TryGetValue(key, out CacheEntry? entry))
@@ -64,73 +58,10 @@ public sealed class ExpiringCache<TKey, TValue> : IDisposable
         return false;
     }
 
-    /// <summary>
-    /// Checks if a key exists in the cache and hasn't expired.
-    /// </summary>
-    /// <param name="key">The key to check.</param>
-    /// <returns>True if the key exists and hasn't expired, otherwise false.</returns>
-    public bool Contains(TKey key)
-    {
-        if (_cache.TryGetValue(key, out CacheEntry? entry))
-        {
-            return DateTime.UtcNow - entry.Timestamp < _expirationWindow;
-        }
-        return false;
-    }
+    public bool TryRemove(TKey key) => _cache.TryRemove(key, out _);
 
-    /// <summary>
-    /// Removes an entry from the cache.
-    /// </summary>
-    /// <param name="key">The key to remove.</param>
-    /// <returns>True if the key was found and removed, otherwise false.</returns>
-    public bool TryRemove(TKey key)
-    {
-        return _cache.TryRemove(key, out _);
-    }
+    public void Clear() => _cache.Clear();
 
-    /// <summary>
-    /// Removes an entry from the cache and returns its value.
-    /// </summary>
-    /// <param name="key">The key to remove.</param>
-    /// <param name="value">The value that was removed, or default if not found.</param>
-    /// <returns>True if the key was found and removed, otherwise false.</returns>
-    public bool TryRemove(TKey key, out TValue value)
-    {
-        if (_cache.TryRemove(key, out CacheEntry? entry))
-        {
-            value = entry.Value;
-            return true;
-        }
-
-        value = default!;
-        return false;
-    }
-
-    /// <summary>
-    /// Clears all entries from the cache.
-    /// </summary>
-    public void Clear()
-    {
-        _cache.Clear();
-    }
-
-    /// <summary>
-    /// Gets all non-expired keys currently in the cache.
-    /// </summary>
-    /// <returns>Collection of non-expired keys.</returns>
-    public IEnumerable<TKey> GetKeys()
-    {
-        DateTime now = DateTime.UtcNow;
-        return _cache
-            .Where(kvp => now - kvp.Value.Timestamp < _expirationWindow)
-            .Select(kvp => kvp.Key)
-            .ToList();
-    }
-
-    /// <summary>
-    /// Manually triggers cleanup of expired entries.
-    /// </summary>
-    /// <returns>Number of entries removed.</returns>
     public async Task<int> CleanupAsync()
     {
         if (!await _cleanupSemaphore.WaitAsync(0))
@@ -170,7 +101,6 @@ public sealed class ExpiringCache<TKey, TValue> : IDisposable
         }
         catch (Exception)
         {
-            // Suppress exceptions in timer callback to prevent app crash
         }
     }
 
