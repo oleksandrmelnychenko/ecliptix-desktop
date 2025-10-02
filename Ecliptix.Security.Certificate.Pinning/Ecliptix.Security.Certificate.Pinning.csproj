@@ -27,18 +27,16 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>ecliptix.client.dll</Link>
         </Content>
-        <Content Include="native/windows/ecliptix.server.dll" Condition="Exists('native/windows/ecliptix.server.dll')">
+        <Content Include="libcrypto-3-x64.dll"
+                 Condition="('$(RuntimeIdentifier)' == 'win-x64' OR ('$(RuntimeIdentifier)' == '' AND $([MSBuild]::IsOSPlatform('Windows')))) AND Exists('ecliptix.client.dll')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>ecliptix.server.dll</Link>
+            <TargetPath>libcrypto-3-x64.dll</TargetPath>
         </Content>
         <Content Include="native/linux/libecliptix.client.so" Condition="Exists('native/linux/libecliptix.client.so')">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Link>libecliptix.client.so</Link>
         </Content>
-        <Content Include="native/linux/libecliptix.server.so" Condition="Exists('native/linux/libecliptix.server.so')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>libecliptix.server.so</Link>
-        </Content>
+        
     </ItemGroup>
 
     <ItemGroup>
