@@ -144,7 +144,6 @@ public class OpaqueRegistrationService(
 
         uint streamConnectId = protocolResult.Unwrap();
 
-
         InitiateVerificationRequest request = new()
         {
             MobileNumberIdentifier = mobileNumberIdentifier,

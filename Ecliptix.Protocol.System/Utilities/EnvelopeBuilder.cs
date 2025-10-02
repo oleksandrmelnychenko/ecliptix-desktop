@@ -170,9 +170,9 @@ public static class EnvelopeBuilder
         }
         finally
         {
-            if (metadataBytes != null) Array.Clear(metadataBytes);
-            if (ciphertext != null) Array.Clear(ciphertext);
-            if (tag != null) Array.Clear(tag);
+            if (metadataBytes != null) Sodium.SodiumInterop.SecureWipe(metadataBytes);
+            if (ciphertext != null) Sodium.SodiumInterop.SecureWipe(ciphertext);
+            if (tag != null) Sodium.SodiumInterop.SecureWipe(tag);
         }
     }
 
@@ -216,7 +216,7 @@ public static class EnvelopeBuilder
         }
         finally
         {
-            if (plaintext != null) Array.Clear(plaintext);
+            if (plaintext != null) Sodium.SodiumInterop.SecureWipe(plaintext);
         }
     }
 }

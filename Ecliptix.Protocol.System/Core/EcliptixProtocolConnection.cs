@@ -486,8 +486,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    internal Result<(RatchetChainKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure>
-        PrepareNextSendMessage()
+    internal Result<(RatchetChainKey RatchetKey, bool IncludeDhKey), EcliptixProtocolFailure> PrepareNextSendMessage()
     {
         using IDisposable timer = _profiler.StartOperation(EcliptixProtocolFailureMessages.OperationNames.PrepareNextSendMessage);
         lock (_lock)
@@ -828,7 +827,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
         RandomNumberGenerator.Fill(nonceBuffer[..ProtocolSystemConstants.Protocol.RandomNoncePrefixSize]);
         long nextCounter = Interlocked.Increment(ref _nonceCounter);
-        if (nextCounter >= uint.MaxValue)
+        if (nextCounter > ProtocolSystemConstants.Protocol.MaxNonceCounter)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.NonceCounterOverflow));

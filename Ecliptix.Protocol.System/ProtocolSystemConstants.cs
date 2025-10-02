@@ -88,6 +88,7 @@ public static class ProtocolSystemConstants
         public const string DhRatchetInfo = "ShieldDhRatchet";
 
         public const long InitialNonceCounter = 0;
+        public const long MaxNonceCounter = 10_000_000;
         public const int RandomNoncePrefixSize = 8;
         public const uint DefaultChainIndex = 0;
         public const uint DefaultMessageIndex = 0;
@@ -114,6 +115,7 @@ public static class ProtocolSystemConstants
     {
         public const int EmptyArrayLength = 0;
         public const int MaxIdentityKeyLength = 1024;
+        public const int MaxPayloadSize = 10 * 1024 * 1024;
         public const int IntegerOverflowDivisor = 2;
         public const int BufferCopyStartOffset = 0;
         public const int CipherLengthMinimumThreshold = 0;

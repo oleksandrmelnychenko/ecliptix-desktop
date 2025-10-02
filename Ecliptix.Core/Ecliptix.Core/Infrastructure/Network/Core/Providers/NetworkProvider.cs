@@ -838,7 +838,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(connResult.UnwrapErr());
         }
 
-        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap(), config);
+        return EcliptixProtocolSystem.CreateFrom(idKeysResult.Unwrap(), connResult.Unwrap());
     }
 
     private uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
@@ -904,7 +904,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceFlowType flowType)
     {
         Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
-            protocolSystem.ProduceOutboundMessage(plainBuffer);
+            protocolSystem.ProduceOutboundEnvelope(plainBuffer);
 
         if (outboundPayload.IsErr)
         {

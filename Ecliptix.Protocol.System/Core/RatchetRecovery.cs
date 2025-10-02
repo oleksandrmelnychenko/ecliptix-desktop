@@ -47,17 +47,15 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvid
 
         lock (_lock)
         {
-            if (_skippedMessageKeys.ContainsKey(messageIndex))
+            if (_skippedMessageKeys.TryGetValue(messageIndex, out SodiumSecureMemoryHandle? _))
             {
                 RatchetChainKey messageKey = new(messageIndex, this);
                 return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Ok(
                     Option<RatchetChainKey>.Some(messageKey));
             }
-            else
-            {
-                return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Ok(
-                    Option<RatchetChainKey>.None);
-            }
+
+            return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Ok(
+                Option<RatchetChainKey>.None);
         }
     }
 

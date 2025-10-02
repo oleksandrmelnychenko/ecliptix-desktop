@@ -1,3 +1,4 @@
+using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
@@ -39,18 +40,25 @@ public sealed class RatchetChainKey : IEquatable<RatchetChainKey>
                     $"Destination buffer must be at least {Constants.X25519KeySize} bytes, but was {destination.Length}."));
 
         byte[] buffer = new byte[Constants.X25519KeySize];
-        Result<Unit, EcliptixProtocolFailure> result = WithKeyMaterial<Unit>(keyMaterial =>
+        try
         {
-            keyMaterial[..Constants.X25519KeySize].CopyTo(buffer);
-            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
-        });
+            Result<Unit, EcliptixProtocolFailure> result = WithKeyMaterial<Unit>(keyMaterial =>
+            {
+                keyMaterial[..Constants.X25519KeySize].CopyTo(buffer);
+                return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+            });
 
-        if (result.IsOk)
-        {
-            buffer.CopyTo(destination);
+            if (result.IsOk)
+            {
+                buffer.CopyTo(destination);
+            }
+
+            return result;
         }
-
-        return result;
+        finally
+        {
+            SodiumInterop.SecureWipe(buffer);
+        }
     }
 
     public override bool Equals(object? obj)

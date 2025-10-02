@@ -47,20 +47,6 @@ public static class Helpers
         return isSequential;
     }
 
-    public static byte[] GenerateSecureRandomTag(int tagLengthBytes)
-    {
-        if (tagLengthBytes < 1) throw new ArgumentOutOfRangeException(nameof(tagLengthBytes));
-        byte[] tagBytes = new byte[tagLengthBytes];
-        Rng.GetBytes(tagBytes);
-        return tagBytes;
-    }
-
-    internal static void GenerateSecureRandomTag(Span<byte> destination)
-    {
-        if (destination.IsEmpty) throw new ArgumentException(null, nameof(destination));
-        Rng.GetBytes(destination);
-    }
-
     public static ByteString GuidToByteString(Guid guid)
     {
         Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
@@ -109,7 +95,7 @@ public static class Helpers
         return parser.ParseFrom(data);
     }
 
-    public static uint ComputeUniqueConnectId(
+    private static uint ComputeUniqueConnectId(
         ReadOnlySpan<byte> appInstanceId,
         ReadOnlySpan<byte> appDeviceId,
         PubKeyExchangeType contextType,

@@ -56,8 +56,6 @@ public class ApplicationInitializer(
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
-
-        
         
         if (settingsResult.IsErr)
         {
@@ -107,14 +105,12 @@ public class ApplicationInitializer(
         uint connectId =
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
-
-        
         
         string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
             ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
             : null;
 
-        //await CleanupForTestingAsync(connectId, membershipId);
+        await CleanupForTestingAsync(connectId, membershipId);
         
         if (!isNewInstance)
         {

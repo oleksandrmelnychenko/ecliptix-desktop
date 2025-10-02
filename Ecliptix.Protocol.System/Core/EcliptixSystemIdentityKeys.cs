@@ -823,11 +823,11 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                         dh1 = ScalarMult.Mult(identitySecretArray, remoteEphemeralArray);
                         dh2 = ScalarMult.Mult(signedPreKeySecretArray, remoteEphemeralArray);
                         dh3 = ScalarMult.Mult(signedPreKeySecretArray, remoteIdentityArray);
+                        dh3.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
+                        dhOffset += Constants.X25519KeySize;
                         dh1.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                         dhOffset += Constants.X25519KeySize;
                         dh2.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
-                        dhOffset += Constants.X25519KeySize;
-                        dh3.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                         dhOffset += Constants.X25519KeySize;
 
                         if (useOpk)
