@@ -948,7 +948,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         SecureEnvelope inboundPayload = callResult.Unwrap();
 
         Result<byte[], EcliptixProtocolFailure> decryptedData =
-            protocolSystem.ProcessInboundMessage(inboundPayload);
+            protocolSystem.ProcessInboundEnvelope(inboundPayload);
         if (decryptedData.IsErr)
         {
             return Result<Unit, NetworkFailure>.Err(decryptedData.UnwrapErr().ToNetworkFailure());
@@ -1003,7 +1003,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
                 Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
-                    protocolSystem.ProcessInboundMessage(streamPayload);
+                    protocolSystem.ProcessInboundEnvelope(streamPayload);
                 if (streamDecryptedData.IsErr)
                 {
                     continue;
@@ -1056,7 +1056,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             SecureEnvelope streamPayload = streamItem.Unwrap();
             Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
-                protocolSystem.ProcessInboundMessage(streamPayload);
+                protocolSystem.ProcessInboundEnvelope(streamPayload);
             if (streamDecryptedData.IsErr)
             {
                 continue;

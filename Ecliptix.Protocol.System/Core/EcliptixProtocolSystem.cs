@@ -234,7 +234,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        EcliptixMessageKey? messageKey = null;
         byte[]? nonce = null;
         byte[]? ad = null;
         byte[]? encrypted = null;
@@ -244,12 +243,12 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[]? encryptedMetadata = null;
         try
         {
-            Result<(EcliptixMessageKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
+            Result<(RatchetChainKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
                 connection.PrepareNextSendMessage();
             if (prepResult.IsErr)
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
 
-            (EcliptixMessageKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
+            (RatchetChainKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
 
 
             Result<byte[], EcliptixProtocolFailure> nonceResult = connection.GenerateNextNonce();
@@ -268,7 +267,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             {
             }
 
-            messageKey = prep.MessageKey;
+            RatchetChainKey? messageKey = prep.MessageKey;
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
@@ -295,17 +294,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ByteString.CopyFrom(nonce),
                 messageKey!.Index);
 
-            // Get metadata encryption key
             Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
             if (metadataKeyResult.IsErr)
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
             metadataKey = metadataKeyResult.Unwrap();
 
-            // Generate metadata nonce
             metadataNonce = new byte[Constants.AesGcmNonceSize];
-            global::System.Security.Cryptography.RandomNumberGenerator.Fill(metadataNonce);
+            RandomNumberGenerator.Fill(metadataNonce);
 
-            // Encrypt metadata
             Result<byte[], EcliptixProtocolFailure> encryptMetadataResult =
                 EnvelopeBuilder.EncryptMetadata(metadata, metadataKey, metadataNonce, ad);
             if (encryptMetadataResult.IsErr)
@@ -335,22 +331,21 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (encrypted != null) SodiumInterop.SecureWipe(encrypted);
             if (newSenderDhPublicKey != null) SodiumInterop.SecureWipe(newSenderDhPublicKey);
             if (metadataKey != null) SodiumInterop.SecureWipe(metadataKey);
-            if (metadataNonce != null) SodiumInterop.SecureWipe(metadataNonce);
             if (encryptedMetadata != null) Array.Clear(encryptedMetadata);
         }
     }
 
-    public Result<byte[], EcliptixProtocolFailure> ProcessInboundMessage(SecureEnvelope secureEnvelope)
+    public Result<byte[], EcliptixProtocolFailure> ProcessInboundEnvelope(SecureEnvelope secureEnvelope)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
 
-        return ProcessSingleInboundMessage(secureEnvelope, connection);
+        return ProcessInboundEnvelopeInternal(secureEnvelope, connection);
     }
 
-    private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessage(SecureEnvelope secureEnvelope,
+    private Result<byte[], EcliptixProtocolFailure> ProcessInboundEnvelopeInternal(SecureEnvelope secureEnvelope,
         EcliptixProtocolConnection connection)
     {
         byte[]? dhPublicKey = null;
@@ -360,13 +355,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         byte[]? encryptedMetadata = null;
         try
         {
-            // Extract DH public key from envelope (NOT from metadata!)
             if (secureEnvelope.DhPublicKey != null && !secureEnvelope.DhPublicKey.IsEmpty)
             {
                 dhPublicKey = secureEnvelope.DhPublicKey.ToByteArray();
             }
 
-            // Perform DH ratchet FIRST if DH key present (before decrypting metadata!)
             if (dhPublicKey != null)
             {
                 Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(dhPublicKey);
@@ -374,7 +367,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                     return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
             }
 
-            // Extract header nonce
             if (secureEnvelope.HeaderNonce == null || secureEnvelope.HeaderNonce.IsEmpty ||
                 secureEnvelope.HeaderNonce.Length != Constants.AesGcmNonceSize)
                 return Result<byte[], EcliptixProtocolFailure>.Err(
@@ -382,13 +374,11 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
 
             headerNonce = secureEnvelope.HeaderNonce.ToByteArray();
 
-            // Get metadata encryption key (AFTER ratchet!)
             Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
             if (metadataKeyResult.IsErr)
                 return Result<byte[], EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
             metadataKey = metadataKeyResult.Unwrap();
 
-            // Build associated data for metadata decryption
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
                 return Result<byte[], EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
@@ -399,7 +389,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
-            // Decrypt metadata
             encryptedMetadata = secureEnvelope.MetaData.ToByteArray();
             Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
                 EnvelopeBuilder.DecryptMetadata(encryptedMetadata, metadataKey, headerNonce, ad);
@@ -409,7 +398,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             EnvelopeMetadata metadata = metadataResult.Unwrap();
             byte[] encryptedPayload = secureEnvelope.EncryptedPayload.ToByteArray();
 
-            return ProcessSingleInboundMessageFromComponents(metadata, encryptedPayload, connection);
+            return ProcessInboundEnvelopeFromMaterials(metadata, encryptedPayload, connection);
         }
         finally
         {
@@ -490,7 +479,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         return ad;
     }
 
-    private static Result<byte[], EcliptixProtocolFailure> Encrypt(EcliptixMessageKey key, byte[] nonce,
+    private static Result<byte[], EcliptixProtocolFailure> Encrypt(RatchetChainKey key, byte[] nonce,
         byte[] plaintext, byte[] ad, EcliptixProtocolConnection? connection)
     {
         using IDisposable? timer = connection?.GetProfiler().StartOperation(ProtocolSystemConstants.ProtocolSystem.AesGcmEncryptOperationName);
@@ -524,7 +513,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
     }
 
-    private static Result<byte[], EcliptixProtocolFailure> Decrypt(EcliptixMessageKey key, SecureEnvelope envelope,
+    private static Result<byte[], EcliptixProtocolFailure> Decrypt(RatchetChainKey key, SecureEnvelope envelope,
         byte[] ad, EcliptixProtocolConnection? connection)
     {
         Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
@@ -537,7 +526,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         return DecryptFromComponents(key, metadata, encryptedPayload, ad, connection);
     }
 
-    private static Result<byte[], EcliptixProtocolFailure> DecryptLegacy(EcliptixMessageKey key, EnvelopeMetadata metadata, byte[] encryptedPayload,
+    private static Result<byte[], EcliptixProtocolFailure> DecryptLegacy(RatchetChainKey key, EnvelopeMetadata metadata, byte[] encryptedPayload,
         byte[] ad, EcliptixProtocolConnection? connection)
     {
         using IDisposable? timer = connection?.GetProfiler().StartOperation(ProtocolSystemConstants.ProtocolSystem.AesGcmDecryptOperationName);
@@ -635,7 +624,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         return RatchetConfig.Default;
     }
 
-    public Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure> ProduceOutboundMessageComponents(byte[] plainPayload)
+    public Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure> ProduceOutboundEnvelopeMaterials(byte[] plainPayload)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
@@ -645,14 +634,14 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         return ProduceSingleMessageComponents(plainPayload, connection);
     }
 
-    public Result<byte[], EcliptixProtocolFailure> ProcessInboundMessageFromComponents(EnvelopeMetadata metadata, byte[] encryptedPayload)
+    public Result<byte[], EcliptixProtocolFailure> ProcessInboundEnvelopeFromMaterials(EnvelopeMetadata metadata, byte[] encryptedPayload)
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
 
-        return ProcessSingleInboundMessageFromComponents(metadata, encryptedPayload, connection);
+        return ProcessInboundEnvelopeFromMaterials(metadata, encryptedPayload, connection);
     }
 
     private Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure> ProduceSingleMessageComponents(byte[] plainPayload,
@@ -660,19 +649,19 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        EcliptixMessageKey? messageKey = null;
+        RatchetChainKey? messageKey = null;
         byte[]? nonce = null;
         byte[]? ad = null;
         byte[]? encrypted = null;
         byte[]? newSenderDhPublicKey = null;
         try
         {
-            Result<(EcliptixMessageKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
+            Result<(RatchetChainKey MessageKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
                 connection.PrepareNextSendMessage();
             if (prepResult.IsErr)
                 return Result<(EnvelopeMetadata Metadata, byte[] EncryptedPayload), EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
 
-            (EcliptixMessageKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
+            (RatchetChainKey MessageKey, bool IncludeDhKey) prep = prepResult.Unwrap();
 
             Result<byte[], EcliptixProtocolFailure> nonceResult = connection.GenerateNextNonce();
             if (nonceResult.IsErr)
@@ -735,7 +724,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
     }
 
-    private Result<byte[], EcliptixProtocolFailure> ProcessSingleInboundMessageFromComponents(EnvelopeMetadata metadata, byte[] encryptedPayload,
+    private Result<byte[], EcliptixProtocolFailure> ProcessInboundEnvelopeFromMaterials(EnvelopeMetadata metadata, byte[] encryptedPayload,
         EcliptixProtocolConnection connection)
     {
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -752,12 +741,12 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
             if (replayCheck.IsErr)
                 return Result<byte[], EcliptixProtocolFailure>.Err(replayCheck.UnwrapErr());
 
-            Result<EcliptixMessageKey, EcliptixProtocolFailure> messageResult =
+            Result<RatchetChainKey, EcliptixProtocolFailure> messageResult =
                 connection.ProcessReceivedMessage(metadata.RatchetIndex);
             if (messageResult.IsErr)
                 return Result<byte[], EcliptixProtocolFailure>.Err(messageResult.UnwrapErr());
 
-            EcliptixMessageKey messageKey = messageResult.Unwrap();
+            RatchetChainKey messageKey = messageResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
@@ -782,7 +771,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
         }
     }
 
-    private static Result<byte[], EcliptixProtocolFailure> DecryptFromComponents(EcliptixMessageKey key, EnvelopeMetadata metadata,
+    private static Result<byte[], EcliptixProtocolFailure> DecryptFromComponents(RatchetChainKey key, EnvelopeMetadata metadata,
         byte[] encryptedPayload, byte[] ad, EcliptixProtocolConnection? connection)
     {
         using IDisposable? timer = connection?.GetProfiler().StartOperation(ProtocolSystemConstants.ProtocolSystem.AesGcmDecryptOperationName);

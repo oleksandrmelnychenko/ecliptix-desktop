@@ -39,24 +39,24 @@ public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvid
         }
     }
 
-    public Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure> TryRecoverMessageKey(uint messageIndex)
+    public Result<Option<RatchetChainKey>, EcliptixProtocolFailure> TryRecoverMessageKey(uint messageIndex)
     {
         if (_disposed)
-            return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Err(
+            return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(RatchetRecovery)));
 
         lock (_lock)
         {
             if (_skippedMessageKeys.ContainsKey(messageIndex))
             {
-                EcliptixMessageKey messageKey = new(messageIndex, this);
-                return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Ok(
-                    Option<EcliptixMessageKey>.Some(messageKey));
+                RatchetChainKey messageKey = new(messageIndex, this);
+                return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Ok(
+                    Option<RatchetChainKey>.Some(messageKey));
             }
             else
             {
-                return Result<Option<EcliptixMessageKey>, EcliptixProtocolFailure>.Ok(
-                    Option<EcliptixMessageKey>.None);
+                return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Ok(
+                    Option<RatchetChainKey>.None);
             }
         }
     }

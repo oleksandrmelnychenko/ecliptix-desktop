@@ -8,11 +8,11 @@ internal interface IKeyProvider
     Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation);
 }
 
-public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
+public sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 {
     private readonly IKeyProvider _keyProvider;
 
-    internal EcliptixMessageKey(uint index, IKeyProvider keyProvider)
+    internal RatchetChainKey(uint index, IKeyProvider keyProvider)
     {
         Index = index;
         _keyProvider = keyProvider;
@@ -20,7 +20,7 @@ public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
 
     public uint Index { get; }
 
-    public bool Equals(EcliptixMessageKey? other)
+    public bool Equals(RatchetChainKey? other)
     {
         if (other is null) return false;
         return Index == other.Index && ReferenceEquals(_keyProvider, other._keyProvider);
@@ -55,7 +55,7 @@ public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
 
     public override bool Equals(object? obj)
     {
-        return obj is EcliptixMessageKey other && Equals(other);
+        return obj is RatchetChainKey other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -63,14 +63,14 @@ public sealed class EcliptixMessageKey : IEquatable<EcliptixMessageKey>
         return Index.GetHashCode();
     }
 
-    public static bool operator ==(EcliptixMessageKey? left, EcliptixMessageKey? right)
+    public static bool operator ==(RatchetChainKey? left, RatchetChainKey? right)
     {
         if (ReferenceEquals(left, right)) return true;
         if (left is null || right is null) return false;
         return left.Equals(right);
     }
 
-    public static bool operator !=(EcliptixMessageKey? left, EcliptixMessageKey? right)
+    public static bool operator !=(RatchetChainKey? left, RatchetChainKey? right)
     {
         return !(left == right);
     }

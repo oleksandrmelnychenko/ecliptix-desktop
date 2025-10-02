@@ -238,32 +238,32 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
             writeResult.UnwrapErr().ToEcliptixProtocolFailure());
     }
 
-    internal Result<EcliptixMessageKey, EcliptixProtocolFailure> GetOrDeriveKeyFor(uint targetIndex)
+    internal Result<RatchetChainKey, EcliptixProtocolFailure> GetOrDeriveKeyFor(uint targetIndex)
     {
         if (_disposed)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+            return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
 
         if (_messageKeys.ContainsKey(targetIndex))
         {
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(new EcliptixMessageKey(targetIndex, this));
+            return Result<RatchetChainKey, EcliptixProtocolFailure>.Ok(new RatchetChainKey(targetIndex, this));
         }
 
         Result<uint, EcliptixProtocolFailure> currentIndexResult = GetCurrentIndex();
         if (currentIndexResult.IsErr)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
+            return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
 
         uint currentIndex = currentIndexResult.Unwrap();
 
         if (targetIndex <= currentIndex)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+            return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     string.Format(EcliptixProtocolFailureMessages.ChainStep.RequestedIndexNotFuture, _stepType, targetIndex, currentIndex)));
 
         Result<byte[], EcliptixProtocolFailure> chainKeyResult = _chainKeyHandle.ReadBytes(Constants.X25519KeySize)
             .MapSodiumFailure();
         if (chainKeyResult.IsErr)
-            return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(chainKeyResult.UnwrapErr());
+            return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(chainKeyResult.UnwrapErr());
 
         byte[] chainKey = chainKeyResult.Unwrap();
 
@@ -297,7 +297,7 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                    return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.DeriveKey(string.Format(EcliptixProtocolFailureMessages.ChainStep.HkdfFailedDuringDerivation, idx), ex));
                 }
 
@@ -305,7 +305,7 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                     SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
 
                 if (secureHandleResult.IsErr)
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                    return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ChainStep.FailedToAllocateSecureMemory, idx)));
 
                 SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
@@ -313,14 +313,14 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                 if (writeResult.IsErr)
                 {
                     secureHandle.Dispose();
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                    return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                         writeResult.UnwrapErr().ToEcliptixProtocolFailure());
                 }
 
                 if (!_messageKeys.TryAdd(idx, secureHandle))
                 {
                     secureHandle.Dispose();
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                    return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(
                             string.Format(EcliptixProtocolFailureMessages.ChainStep.KeyUnexpectedlyAppeared, idx)));
                 }
@@ -331,7 +331,7 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                 {
                     _messageKeys.Remove(idx, out SodiumSecureMemoryHandle? removedHandle);
                     removedHandle?.Dispose();
-                    return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(chainWriteResult.UnwrapErr());
+                    return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(chainWriteResult.UnwrapErr());
                 }
 
                 nextChainKey.CopyTo(currentChainKey);
@@ -339,17 +339,17 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
             Result<Unit, EcliptixProtocolFailure> setIndexResult = SetCurrentIndex(targetIndex);
             if (setIndexResult.IsErr)
-                return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(setIndexResult.UnwrapErr());
+                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(setIndexResult.UnwrapErr());
 
             PruneOldKeys();
 
             if (_messageKeys.ContainsKey(targetIndex))
             {
-                return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Ok(new EcliptixMessageKey(targetIndex, this));
+                return Result<RatchetChainKey, EcliptixProtocolFailure>.Ok(new RatchetChainKey(targetIndex, this));
             }
             else
             {
-                return Result<EcliptixMessageKey, EcliptixProtocolFailure>.Err(
+                return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic(
                         string.Format(EcliptixProtocolFailureMessages.ChainStep.DerivedKeyMissingAfterLoop, targetIndex)));
             }
@@ -369,7 +369,7 @@ public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
         for (uint i = _currentIndex + ProtocolSystemConstants.ChainStep.IndexIncrement; i <= targetIndex; i++)
         {
-            Result<EcliptixMessageKey, EcliptixProtocolFailure> keyResult = GetOrDeriveKeyFor(i);
+            Result<RatchetChainKey, EcliptixProtocolFailure> keyResult = GetOrDeriveKeyFor(i);
             if (keyResult.IsErr)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
