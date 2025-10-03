@@ -369,7 +369,7 @@
                                 HorizontalAlignment="Center"
                                 Width="8"
                                 Height="8"
-                                Margin="6,0,0,0" 
+                                Margin="6,2,0,0" 
                                 Stretch="UniformToFill"/>
 
                         </Border>

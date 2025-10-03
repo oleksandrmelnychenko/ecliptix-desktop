@@ -106,7 +106,10 @@ public static class LocalizationData
         ["ValidationErrors.PasswordStrength.Strong"] = "Strong",
         ["ValidationErrors.PasswordStrength.VeryStrong"] = "Very Strong",
 
-
+        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Latin letters only",
+        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Invalid character used",
+        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Multiple instances of character type",
+        
         ["Welcome.SignInButton"] = "Sign In",
         ["Welcome.CreateAccountButton"] = "Create Account",
 
@@ -248,6 +251,11 @@ public static class LocalizationData
         ["ValidationErrors.PasswordStrength.Strong"] = "Сильний",
         ["ValidationErrors.PasswordStrength.VeryStrong"] = "Дуже сильний",
 
+        ["ValidationWarnings.SecureKey.NonLatinLetter"] = "Лише латинські літери",
+        ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Використано недопустимий символ",
+        ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Кілька символів одного типу",
+
+        
         ["Welcome.SignInButton"] = "Увійти",
         ["Welcome.CreateAccountButton"] = "Створити акаунт",
 

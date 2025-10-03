@@ -14,6 +14,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Services.Membership;
@@ -123,6 +124,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<bool> HasWarningProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasWarning));
 
+    
+    public static readonly StyledProperty<int> WarningDisplayDurationMsProperty =
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(WarningDisplayDurationMs),
+            HintedTextBoxConstants.DefaultWarningDisplayDurationMs);
+
+
     public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
         RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected), RoutingStrategies.Bubble);
 
@@ -144,6 +151,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         add => AddHandler(SecureKeyCharactersRemovedEvent, value);
         remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
+    }
+    
+    public int WarningDisplayDurationMs
+    {
+        get => GetValue(WarningDisplayDurationMsProperty);
+        set => SetValue(WarningDisplayDurationMsProperty, value);
     }
 
     public bool IsSecureKeyMode
@@ -352,6 +365,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private bool _isUpdatingFromCode;
     private bool _isDisposed;
     private bool _isControlInitialized;
+    private DispatcherTimer? _warningTimer;
 
 
     private static readonly Dictionary<string, SolidColorBrush> BrushCache = new();
@@ -446,6 +460,27 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         if (e.Text.Length > 1)
         {
             e.Handled = true;
+            CharacterRejectedEventArgs multiCharArgs =
+                new CharacterRejectedEventArgs('\0', CharacterWarningType.MultipleCharacters, e.Text)
+                {
+                    RoutedEvent = CharacterRejectedEvent
+                };
+            RaiseEvent(multiCharArgs);
+            StartWarningTimer();
+            return;
+        }
+        
+        char inputChar = e.Text[0];
+        if (!IsAllowedCharacter(inputChar))
+        {
+            e.Handled = true;
+            CharacterWarningType warningType = GetWarningType(inputChar);
+            CharacterRejectedEventArgs args = new CharacterRejectedEventArgs(inputChar, warningType)
+            {
+                RoutedEvent = CharacterRejectedEvent
+            };
+            RaiseEvent(args);
+            StartWarningTimer();
         }
         
         if (_mainTextBox != null)
@@ -459,6 +494,53 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
+    private void StartWarningTimer()
+    {
+        if (_warningTimer == null)
+        {
+            _warningTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs)
+            };
+            _warningTimer.Tick += OnWarningTimerTick;
+        }
+        else
+        {
+            _warningTimer.Interval = TimeSpan.FromMilliseconds(WarningDisplayDurationMs);
+        }
+        
+        _warningTimer.Stop();
+        _warningTimer.Start();
+    }
+    
+    private void OnWarningTimerTick(object? sender, System.EventArgs e)
+    {
+        HasWarning = false;
+        _warningTimer?.Stop();
+    }
+    
+    private static CharacterWarningType GetWarningType(char c)
+    {
+        if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
+            return CharacterWarningType.NonLatinLetter;
+
+        return CharacterWarningType.InvalidCharacter;
+    }
+    
+    private static bool IsAllowedCharacter(char c)
+    {
+        if (char.IsDigit(c))
+            return true;
+        
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+            return true;
+        
+        if (!char.IsLetter(c) && !char.IsDigit(c))
+            return true;
+
+        return false;
+    }
+    
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
         if (!IsSecureKeyMode) return;
@@ -1218,6 +1300,13 @@ private void UpdateBorderStateInternal(bool isFocused, bool hasError, PasswordSt
                 _secureKeyDebounceTimer.Stop();
                 _secureKeyDebounceTimer.Tick -= OnSecureKeyDebounceTimerTick;
                 _secureKeyDebounceTimer = null;
+            }
+
+            if (_warningTimer != null)
+            {
+                _warningTimer.Stop();
+                _warningTimer.Tick -= OnWarningTimerTick;
+                _warningTimer = null;
             }
 
             _currentTypingAnimation?.Dispose();
