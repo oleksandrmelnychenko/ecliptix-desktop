@@ -10,6 +10,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Features.Authentication.Common;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
@@ -34,6 +35,9 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
     public ReactiveCommand<Unit, IRoutableViewModel> NavToCreateAccountCommand { get; }
     public ReactiveCommand<Unit, IRoutableViewModel> NavToSignInCommand { get; }
+    [ObservableAsProperty] public bool IsCreateAccountBusy { get; }
+    [ObservableAsProperty] public bool IsSignInBusy { get; }
+
 
     public WelcomeViewModel(IScreen hostScreen, ISystemEventService systemEventService, ILocalizationService localizationService,
         NetworkProvider networkProvider) : base(systemEventService, networkProvider, localizationService)
@@ -54,6 +58,9 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
             return hostWindow.Navigate.Execute(viewType);
         });
 
+        NavToCreateAccountCommand.IsExecuting.ToPropertyEx(this, x => x.IsCreateAccountBusy);
+        NavToSignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsSignInBusy);
+        
         _disposables.Add(NavToCreateAccountCommand);
         _disposables.Add(NavToSignInCommand);
     }

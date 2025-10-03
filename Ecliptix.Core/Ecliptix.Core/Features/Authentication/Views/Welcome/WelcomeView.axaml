@@ -78,6 +78,7 @@
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
                     Classes="auth-button recovery-button loading-button"
+                    Classes.is-busy="{Binding IsSignInBusy}"
                     HorizontalAlignment="Stretch" />
 
             <!-- Create Account Button -->
@@ -85,6 +86,7 @@
                     Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                     Command="{Binding NavToCreateAccountCommand}"
                     Classes="auth-button continue-button loading-button"
+                    Classes.is-busy="{Binding IsCreateAccountBusy}"
                     HorizontalAlignment="Stretch" />
         </Grid>
     </Grid>
