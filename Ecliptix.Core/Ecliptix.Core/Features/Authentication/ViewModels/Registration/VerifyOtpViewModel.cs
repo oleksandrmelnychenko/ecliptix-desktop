@@ -334,12 +334,22 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             ErrorMessage = error;
             HasError = true;
         }
+        
+        StartAutoRedirect(5, MembershipViewType.Welcome, ErrorMessage);
 
         HasValidSession = false;
         return 0;
     }
 
-    private async void StartAutoRedirect(int seconds, MembershipViewType targetView)
+    private uint HandleUnavailable()
+    {
+        // TODO WasDisconnected = true;
+        ErrorMessage = "";
+        SecondsRemaining = 0;
+        return 0;
+    }
+
+    private async void StartAutoRedirect(int seconds, MembershipViewType targetView, string localizaedMessage = "")
     {
         if (_isDisposed) return;
 
@@ -355,12 +365,21 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             return Task.CompletedTask;
         });
 
-        string key = IsMaxAttemptsReached
-            ? AuthenticationConstants.MaxAttemptsReachedKey
-            : AuthenticationConstants.SessionNotFoundKey;
+        string message = "";
+        
+        if (!string.IsNullOrEmpty(localizaedMessage))
+        {
+            message = localizaedMessage;
+        }
+        else
+        {
+            string key = IsMaxAttemptsReached
+                ? AuthenticationConstants.MaxAttemptsReachedKey
+                : AuthenticationConstants.SessionNotFoundKey;
 
-        string message = _localizationService.GetString(key);
-
+            message = _localizationService.GetString(key);
+        }
+        
         ShowRedirectNotification(BottomSheetComponentType.RedirectNotification, message, seconds, () =>
         {
             if (!_isDisposed)
@@ -430,6 +449,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleNotFoundStatus(),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(),
             _ => Math.Min(seconds, SecondsRemaining)
         };
         CurrentStatus = status;

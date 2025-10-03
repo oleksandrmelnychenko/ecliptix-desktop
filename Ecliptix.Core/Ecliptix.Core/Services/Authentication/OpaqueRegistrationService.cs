@@ -161,7 +161,8 @@ public class OpaqueRegistrationService(
 
         if (streamResult.IsErr)
         {
-            string errorMessage = streamResult.UnwrapErr().Message;
+            NetworkFailure failure = streamResult.UnwrapErr();
+            string errorMessage = failure.Message;
 
             if (errorMessage.Contains(AuthenticationConstants.ErrorMessages.SessionNotFound) ||
                 errorMessage.Contains(AuthenticationConstants.ErrorMessages.StartOver))
@@ -170,6 +171,16 @@ public class OpaqueRegistrationService(
                     onCountdownUpdate?.Invoke(0, Guid.Empty,
                         VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
                         AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
+            }
+
+            //TODO checking for a passed type here and sending status
+            if (failure.FailureType == NetworkFailureType.DataCenterNotResponding ||
+                failure.FailureType == NetworkFailureType.DataCenterShutdown)
+            {
+                RxApp.MainThreadScheduler.Schedule(() =>
+                    onCountdownUpdate?.Invoke(0, Guid.Empty,
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable,
+                        errorMessage));
             }
 
             return Result<Unit, string>.Err(errorMessage);

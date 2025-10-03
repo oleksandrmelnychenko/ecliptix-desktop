@@ -995,10 +995,23 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 if (streamItem.IsErr)
                 {
-                    Result<Unit, NetworkFailure> errResult = Result<Unit, NetworkFailure>.Err(
-                        streamItem.UnwrapErr());
+                    NetworkFailure failure = streamItem.UnwrapErr();
 
-                    return errResult;
+                    //TODO Olexandr Viktorovych check if this is the right way to handle it
+                    // We are passing to opaque service no message because we only want to open notification
+                    if (failure.FailureType == NetworkFailureType.DataCenterNotResponding ||
+                        failure.FailureType == NetworkFailureType.DataCenterNotResponding)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterDisconnected);
+                        });
+                        return Result<Unit, NetworkFailure>.Err(
+                            NetworkFailure.DataCenterNotResponding(""));
+                        
+                    }
+
+                    return Result<Unit, NetworkFailure>.Err(failure);;
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
