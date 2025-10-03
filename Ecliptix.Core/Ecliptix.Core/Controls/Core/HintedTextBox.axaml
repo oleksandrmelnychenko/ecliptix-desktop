@@ -63,6 +63,8 @@
                     <BrushTransition Property="CaretBrush" Duration="0:0:0.15" Easing="CubicEaseOut" />
                 </Transitions>
             </Setter>
+            <Setter Property="ContextMenu" Value="{x:Null}" />
+            <Setter Property="ContextFlyout" Value="{x:Null}" />
         </Style>
 
         <Style Selector="TextBox#MainTextBox:focus">
