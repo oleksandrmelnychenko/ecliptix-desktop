@@ -131,6 +131,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .RefCount();
 
         mobileErrorStream
+            .DistinctUntilChanged()
             .Subscribe(error => MobileNumberError = error)
             .DisposeWith(_disposables);
 
@@ -150,6 +151,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .RefCount();
 
         keyDisplayErrorStream
+            .DistinctUntilChanged()
             .Subscribe(error => SecureKeyError = error)
             .DisposeWith(_disposables);
 
@@ -159,6 +161,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .DisposeWith(_disposables);
 
         _signInErrorSubject
+            .DistinctUntilChanged()
             .Subscribe(err => ServerError = err)
             .DisposeWith(_disposables);
 

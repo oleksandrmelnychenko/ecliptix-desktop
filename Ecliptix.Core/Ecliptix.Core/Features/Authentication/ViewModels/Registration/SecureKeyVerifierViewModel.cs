@@ -232,10 +232,13 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
                     : string.Empty;
             })
             .DistinctUntilChanged()
+            .Throttle(TimeSpan.FromMilliseconds(150))
+            .ObserveOn(RxApp.MainThreadScheduler)
             .Replay(1)
             .RefCount();
 
         verifySecureKeyErrorStream
+            .DistinctUntilChanged()
             .Subscribe(error => VerifySecureKeyError = error);
 
         this.WhenAnyValue(x => x.VerifySecureKeyError)

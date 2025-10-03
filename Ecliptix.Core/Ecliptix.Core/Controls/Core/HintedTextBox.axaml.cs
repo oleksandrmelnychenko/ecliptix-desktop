@@ -743,62 +743,77 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.CaretIndex = Math.Clamp(caretIndex, HintedTextBoxConstants.InitialCaretIndex, text.Length);
         _isUpdatingFromCode = false;
     }
-
+    
     private void UpdateBorderState()
     {
-        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null) return;
-
-        bool isFocused = _mainTextBox.IsFocused;
+        if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
+            return;
+        
         bool currentHasError = HasError;
         PasswordStrength currentPasswordStrength = PasswordStrength;
         bool currentIsPasswordStrengthMode = IsPasswordStrengthMode;
-
-        if (isFocused == _lastIsFocused &&
-            currentHasError == _lastHasError &&
-            currentPasswordStrength == _lastPasswordStrength &&
-            currentIsPasswordStrengthMode == _lastIsPasswordStrengthMode)
+        
+        Dispatcher.UIThread.Post(() =>
         {
-            return;
-        }
+            if (_isDisposed) return;
+            if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null) return;
 
-        _lastIsFocused = isFocused;
-        _lastHasError = currentHasError;
-        _lastPasswordStrength = currentPasswordStrength;
-        _lastIsPasswordStrengthMode = currentIsPasswordStrengthMode;
+            bool isFocused = _mainTextBox.IsFocused;
+            if (isFocused == _lastIsFocused
+                && currentHasError == _lastHasError
+                && currentPasswordStrength == _lastPasswordStrength
+                && currentIsPasswordStrengthMode == _lastIsPasswordStrengthMode)
+            {
+                return;
+            }
 
-        if (currentIsPasswordStrengthMode)
-        {
-            (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(currentPasswordStrength);
+            _lastIsFocused = isFocused;
+            _lastHasError = currentHasError;
+            _lastPasswordStrength = currentPasswordStrength;
+            _lastIsPasswordStrengthMode = currentIsPasswordStrengthMode;
 
-            _focusBorder.BorderBrush = GetCachedBrush(borderColor);
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
-
-            PasswordStrengthIconBrush = GetCachedBrush(iconColor);
-            PasswordStrengthTextBrush = GetCachedBrush(iconColor);
-        }
-        else if (currentHasError)
-        {
-            _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ErrorColorHex));
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ErrorShadowKey);
-        }
-        else if (isFocused)
-        {
-            _focusBorder.BorderBrush = FocusBorderBrush;
-            _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
-            _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FocusShadowKey);
-        }
-        else
-        {
-            _focusBorder.Opacity = HintedTextBoxConstants.ZeroOpacity;
-            _mainBorder.BorderBrush = MainBorderBrush;
-            _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DefaultShadowKey);
-        }
+            UpdateBorderStateInternal(isFocused, currentHasError, currentPasswordStrength, currentIsPasswordStrengthMode);
+        }, DispatcherPriority.Render);
     }
+
+private void UpdateBorderStateInternal(bool isFocused, bool hasError, PasswordStrength passwordStrength, bool isPasswordStrengthMode)
+{
+    if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
+        return;
+    
+    if (isPasswordStrengthMode)
+    {
+        (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(passwordStrength);
+        
+        _focusBorder.BorderBrush = GetCachedBrush(borderColor);
+        _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+        _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+        _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
+
+        PasswordStrengthIconBrush = GetCachedBrush(iconColor);
+        PasswordStrengthTextBrush = GetCachedBrush(iconColor);
+    }
+    else if (hasError)
+    {
+        _focusBorder.BorderBrush = GetCachedBrush(GetCachedColor(HintedTextBoxConstants.ErrorColorHex));
+        _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+        _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+        _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.ErrorShadowKey);
+    }
+    else if (isFocused)
+    {
+        _focusBorder.BorderBrush = FocusBorderBrush;
+        _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
+        _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
+        _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.FocusShadowKey);
+    }
+    else
+    {
+        _focusBorder.Opacity = HintedTextBoxConstants.ZeroOpacity;
+        _mainBorder.BorderBrush = MainBorderBrush;
+        _shadowBorder.BoxShadow = GetCachedResource(HintedTextBoxConstants.DefaultShadowKey);
+    }
+}
 
     private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(
         PasswordStrength strength)
@@ -876,11 +891,12 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void SetupReactiveBindings()
     {
-        Observable.Merge(
-                this.WhenAnyValue(x => x.HasError).Select(_ => System.Reactive.Unit.Default),
-                this.WhenAnyValue(x => x.PasswordStrength).Select(_ => System.Reactive.Unit.Default),
-                this.WhenAnyValue(x => x.IsPasswordStrengthMode).Select(_ => System.Reactive.Unit.Default)
-            )
+        this.WhenAnyValue(
+                x => x.HasError,
+                x => x.PasswordStrength,
+                x => x.IsPasswordStrengthMode,
+                (hasError, passwordStrength, isPasswordStrengthMode) => (hasError, passwordStrength, isPasswordStrengthMode))
+            .DistinctUntilChanged()
             .Subscribe(_ =>
             {
                 try
