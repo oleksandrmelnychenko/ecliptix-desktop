@@ -77,15 +77,14 @@
             <Button Grid.Column="0"
                     Content="{Binding LocalizationService[Welcome.SignInButton]}"
                     Command="{Binding NavToSignInCommand}"
-                    Classes="auth-button signin-button"
-                    Foreground="{DynamicResource OnSurface}"
+                    Classes="auth-button recovery-button loading-button"
                     HorizontalAlignment="Stretch" />
 
             <!-- Create Account Button -->
             <Button Grid.Column="1"
                     Content="{Binding LocalizationService[Welcome.CreateAccountButton]}"
                     Command="{Binding NavToCreateAccountCommand}"
-                    Classes="auth-button create-account-button"
+                    Classes="auth-button continue-button loading-button"
                     HorizontalAlignment="Stretch" />
         </Grid>
     </Grid>
