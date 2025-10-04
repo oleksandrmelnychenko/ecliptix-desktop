@@ -9,7 +9,6 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Network.Infrastructure;
 
-// AOT-safe interface for typed pending requests
 internal interface ITypedPendingRequest
 {
     Task ExecuteAsync(CancellationToken cancellationToken);
@@ -218,7 +217,7 @@ internal class TypedPendingRequest<T> : ITypedPendingRequest
     {
         try
         {
-            var result = await _retryAction();
+            T result = await _retryAction();
             _originalTaskCompletionSource.SetResult(result);
         }
         catch (Exception ex)

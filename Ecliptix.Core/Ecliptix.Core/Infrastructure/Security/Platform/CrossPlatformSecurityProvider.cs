@@ -95,7 +95,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch
         {
-            // Ignore hardware random errors
         }
     }
 
@@ -184,7 +183,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 }
                 catch (Exception)
                 {
-                    // Ignore errors during deletion
                 }
             }
         });
@@ -380,7 +378,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
             catch
             {
-                // Ignore deletion errors
             }
 
             return Result<byte[], SecureStorageFailure>.Err(
@@ -423,7 +420,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
             catch
             {
-                // Ignore read errors and regenerate the key
             }
         }
 
@@ -440,7 +436,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch
         {
-            // Ignore write errors
         }
 
         return _cachedMachineKey;

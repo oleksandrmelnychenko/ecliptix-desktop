@@ -510,7 +510,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
             foreach (string key in abandonedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out var operation))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
                 {
                     Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
                         operation.OperationName, OperationTimeoutMinutes);

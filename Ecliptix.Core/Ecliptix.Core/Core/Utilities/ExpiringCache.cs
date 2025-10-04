@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog;
 
 namespace Ecliptix.Core.Core.Utilities;
 
@@ -99,8 +100,9 @@ public sealed class ExpiringCache<TKey, TValue> : IDisposable
         {
             await CleanupAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Error(ex, "ExpiringCache cleanup failed");
         }
     }
 

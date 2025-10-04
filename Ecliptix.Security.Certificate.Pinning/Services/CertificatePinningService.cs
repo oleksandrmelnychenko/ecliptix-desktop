@@ -321,7 +321,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
         catch
         {
-            // Swallow exceptions in error handling
         }
 
         return FormattableString.Invariant($"Error code: {result}");
@@ -342,7 +341,6 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 }
                 catch
                 {
-                    // Swallow cleanup exceptions
                 }
             }).ConfigureAwait(false);
         }

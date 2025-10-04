@@ -52,7 +52,6 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
         }
         catch
         {
-            // ignored
         }
     }
 
@@ -82,7 +81,6 @@ public class CertificatePinningServiceFactory : ICertificatePinningServiceFactor
             }
             catch
             {
-                // Ignore disposal exceptions
             }
         }
         finally

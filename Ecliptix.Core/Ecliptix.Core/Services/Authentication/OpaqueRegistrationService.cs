@@ -534,7 +534,6 @@ public class OpaqueRegistrationService(
                         }
                         catch (Exception)
                         {
-                            // Ignore cleanup exceptions
                         }
                     }, CancellationToken.None);
                 }

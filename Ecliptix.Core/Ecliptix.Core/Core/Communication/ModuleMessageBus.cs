@@ -157,7 +157,6 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
             catch (Exception)
             {
-                // Message processing error ignored
             }
             finally
             {
@@ -192,7 +191,6 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
                 }
                 catch (Exception)
                 {
-                    // Message handler error ignored
                 }
             }
         }
@@ -224,7 +222,6 @@ public class ModuleMessageBus : IModuleMessageBus, IDisposable
         }
         catch (Exception)
         {
-            // Error waiting for message processing task completion ignored
         }
 
         _cancellationTokenSource.Dispose();

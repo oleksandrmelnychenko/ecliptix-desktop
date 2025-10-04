@@ -170,7 +170,6 @@ public sealed class SecureStringHandler : IDisposable
             }
             finally
             {
-                // Note: Cannot clear the string from memory - this is why this method is discouraged
             }
         });
     }

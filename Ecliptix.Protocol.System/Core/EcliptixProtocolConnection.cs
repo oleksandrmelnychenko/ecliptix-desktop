@@ -297,7 +297,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
             receivingStep = null;
             rootKeyHandle = null;
 
-            // Derive metadata encryption key from restored root key
             Result<Unit, EcliptixProtocolFailure> metadataKeyResult = connection.DeriveMetadataEncryptionKey();
             if (metadataKeyResult.IsErr)
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
@@ -470,7 +469,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 _peerDhPublicKey = peerDhPublicCopy;
                 peerDhPublicCopy = null;
 
-                // Derive metadata encryption key from root key
                 Result<Unit, EcliptixProtocolFailure> metadataKeyResult = DeriveMetadataEncryptionKey();
                 if (metadataKeyResult.IsErr) return metadataKeyResult;
 
@@ -789,7 +787,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
             _receivedNewDhKey = false;
             _lastRatchetTime = DateTime.UtcNow;
 
-            // Re-derive metadata encryption key after DH ratchet updates root key
             Result<Unit, EcliptixProtocolFailure> metadataKeyResult = DeriveMetadataEncryptionKey();
             if (metadataKeyResult.IsErr) return metadataKeyResult;
 
