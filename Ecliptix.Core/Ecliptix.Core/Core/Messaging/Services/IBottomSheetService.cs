@@ -10,13 +10,13 @@ public interface IBottomSheetService
     Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true);
 
     Task HideAsync();
-    
+
     Task BottomSheetDismissed();
 
     IDisposable OnBottomSheetChanged(
         Func<BottomSheetChangedEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
-    
+
     IDisposable OnBottomSheetHidden(
         Func<BottomSheetHiddenEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);

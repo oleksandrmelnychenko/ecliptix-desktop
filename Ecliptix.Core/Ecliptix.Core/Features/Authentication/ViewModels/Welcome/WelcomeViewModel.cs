@@ -60,7 +60,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
         NavToCreateAccountCommand.IsExecuting.ToPropertyEx(this, x => x.IsCreateAccountBusy);
         NavToSignInCommand.IsExecuting.ToPropertyEx(this, x => x.IsSignInBusy);
-        
+
         _disposables.Add(NavToCreateAccountCommand);
         _disposables.Add(NavToSignInCommand);
     }

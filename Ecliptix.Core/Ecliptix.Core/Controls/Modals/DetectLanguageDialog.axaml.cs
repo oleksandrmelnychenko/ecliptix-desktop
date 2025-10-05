@@ -43,5 +43,5 @@ public partial class DetectLanguageDialog : ReactiveUserControl<DetectLanguageDi
             Resources[key] = value;
         }
     }
-    
+
 }

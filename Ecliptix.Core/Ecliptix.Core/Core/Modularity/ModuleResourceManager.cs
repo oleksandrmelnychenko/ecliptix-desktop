@@ -7,6 +7,43 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
+public sealed class ModuleServiceContext
+{
+    private readonly IServiceProvider _parentProvider;
+
+    public ModuleServiceContext(IServiceProvider parentProvider)
+    {
+        _parentProvider = parentProvider ?? throw new ArgumentNullException(nameof(parentProvider));
+    }
+
+    public T GetParentService<T>() where T : notnull => _parentProvider.GetRequiredService<T>();
+}
+
+public static class ModuleServiceExtensions
+{
+    public static IServiceCollection ForwardParentService<T>(this IServiceCollection services) where T : class
+    {
+        services.AddSingleton(sp =>
+        {
+            ModuleServiceContext context = sp.GetRequiredService<ModuleServiceContext>();
+            return context.GetParentService<T>();
+        });
+        return services;
+    }
+
+    public static IServiceCollection ForwardParentService<TService, TImplementation>(this IServiceCollection services)
+        where TService : class
+        where TImplementation : class, TService
+    {
+        services.AddSingleton<TService>(sp =>
+        {
+            ModuleServiceContext context = sp.GetRequiredService<ModuleServiceContext>();
+            return context.GetParentService<TImplementation>();
+        });
+        return services;
+    }
+}
+
 public class ModuleResourceManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
@@ -31,6 +68,12 @@ public class ModuleResourceManager : IDisposable
         {
             IServiceScope parentScope = _rootServiceProvider.CreateScope();
             ServiceCollection moduleServices = new();
+
+            ModuleServiceContext context = new(parentScope.ServiceProvider);
+            moduleServices.AddSingleton(context);
+
+            AutoForwardCoreServices(moduleServices, context);
+
             configureServices(moduleServices);
 
             ServiceProvider moduleServiceProvider = moduleServices.BuildServiceProvider();
@@ -52,6 +95,16 @@ public class ModuleResourceManager : IDisposable
         Log.Information("Created module scope for {ModuleName}", moduleName);
 
         return moduleScope;
+    }
+
+    private void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
+    {
+        moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.ISystemEventService>());
+        moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.INetworkEventService>());
+        moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Core.Providers.NetworkProvider>());
+        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.ILocalizationService>());
+
+        Log.Debug("Auto-forwarded core services to module service collection");
     }
 
     public bool RemoveModuleScope(string moduleName)

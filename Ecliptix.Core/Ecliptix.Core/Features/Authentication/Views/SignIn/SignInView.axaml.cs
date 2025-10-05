@@ -69,7 +69,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         tb.HasWarning = true;
     }
 
-    
+
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
         if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;

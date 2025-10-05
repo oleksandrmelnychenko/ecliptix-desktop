@@ -67,8 +67,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
 
     public CertificatePinningBoolResult VerifyServerSignature(
         ReadOnlyMemory<byte> data,
-        ReadOnlyMemory<byte> signature,
-        CancellationToken cancellationToken = default)
+        ReadOnlyMemory<byte> signature)
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
@@ -114,8 +113,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
     }
 
     public CertificatePinningByteArrayResult Encrypt(
-        ReadOnlyMemory<byte> plaintext,
-        CancellationToken cancellationToken = default)
+        ReadOnlyMemory<byte> plaintext)
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
@@ -197,8 +195,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
     }
 
     public CertificatePinningByteArrayResult Decrypt(
-        ReadOnlyMemory<byte> ciphertext,
-        CancellationToken cancellationToken = default)
+        ReadOnlyMemory<byte> ciphertext)
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
@@ -251,7 +248,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
         }
     }
 
-    public CertificatePinningByteArrayResult GetPublicKey(CancellationToken cancellationToken = default)
+    public CertificatePinningByteArrayResult GetPublicKey()
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)

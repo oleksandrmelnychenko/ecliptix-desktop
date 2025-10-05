@@ -118,7 +118,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         vm.HandleEnterKeyPress();
         e.Handled = true;
     }
-    
+
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
         if (DataContext is not SecureKeyVerifierViewModel vm || sender is not HintedTextBox tb) return;

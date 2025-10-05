@@ -173,7 +173,6 @@ public class OpaqueRegistrationService(
                         AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
             }
 
-            //TODO checking for a passed type here and sending status
             if (failure.FailureType == NetworkFailureType.DataCenterNotResponding ||
                 failure.FailureType == NetworkFailureType.DataCenterShutdown)
             {

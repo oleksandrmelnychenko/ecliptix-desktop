@@ -14,10 +14,12 @@ public abstract class RpcFlow
 {
     public static RpcFlow NewEmptyInboundStream()
     {
+#pragma warning disable CS1998
         async IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> EmptyStream()
         {
             yield break;
         }
+#pragma warning restore CS1998
 
         return new InboundStream(EmptyStream());
     }

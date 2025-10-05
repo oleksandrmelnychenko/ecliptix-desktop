@@ -324,17 +324,16 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
             byte[] x25519PublicKey = ScalarMult.Base(x25519Seed);
 
-            uint spkId = Helpers.GenerateRandomUInt32();
-            Result<(SodiumSecureMemoryHandle, byte[]), EcliptixProtocolFailure> spkResult =
-                GenerateX25519SignedPreKey(spkId);
-            if (spkResult.IsErr)
-            {
-                edSkHandle.Dispose();
-                idXSkHandle.Dispose();
-                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(spkResult.UnwrapErr());
-            }
+            byte[] spkSeed = MasterKeyDerivation.DeriveSignedPreKeySeed(masterKey, membershipId);
+            uint spkId = BitConverter.ToUInt32(spkSeed, 0);
+            byte[] spkPrivateKey = new byte[Constants.X25519PrivateKeySize];
+            Array.Copy(spkSeed, 0, spkPrivateKey, 0, Constants.X25519PrivateKeySize);
+            byte[] spkPk = ScalarMult.Base(spkPrivateKey);
 
-            (spkSkHandle, byte[] spkPk) = spkResult.Unwrap();
+            spkSkHandle = SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize).Unwrap();
+            spkSkHandle.Write(spkPrivateKey).Unwrap();
+            SodiumInterop.SecureWipe(spkPrivateKey);
+            SodiumInterop.SecureWipe(spkSeed);
 
             Result<byte[], EcliptixProtocolFailure> signatureResult = SignSignedPreKey(edSkHandle, spkPk);
             if (signatureResult.IsErr)

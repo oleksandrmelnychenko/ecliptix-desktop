@@ -5,6 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Modularity;
 using Ecliptix.Core.Features.Main.ViewModels;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Features.Main;
 
@@ -27,7 +30,6 @@ public class MainModule : ModuleBase<MainModuleManifest>
 
     public override void RegisterServices(IServiceCollection services)
     {
-
         services.AddTransient<MainViewModel>();
     }
 

@@ -211,7 +211,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid)
-            .Do(canExecute => Serilog.Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));
+            .Do(canExecute => Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));
         ;
 
         SignInCommand = ReactiveCommand.CreateFromTask(
@@ -253,9 +253,15 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 _signInErrorSubject.OnNext(string.Empty);
 
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
-                    _ => { },
-                    ex => Serilog.Log.Error(ex, "Failed to transition to main window"),
-                    () => Serilog.Log.Information("Main window transition completed")
+                    _ =>
+                    {
+                        
+                    },
+                    ex =>
+                    {
+                        Log.Error(ex, "Failed to transition to main window");
+                    },
+                    () => Log.Information("Main window transition completed")
                 );
             })
             .DisposeWith(_disposables);

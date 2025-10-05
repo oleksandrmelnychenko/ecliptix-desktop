@@ -90,14 +90,14 @@ public class OpaqueAuthenticationService(
         UseHardwareEntropy = true,
         OutputLength = KeyDerivationOutputLength
     };
-    
+
     private string GetOpaqueErrorMessage(OpaqueResult error)
     {
         return OpaqueErrorMessages.TryGetValue(error, out string? key)
             ? localizationService[key]
             : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
     }
-    
+
     private OpaqueClient GetOrCreateOpaqueClient()
     {
         byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
@@ -390,7 +390,7 @@ public class OpaqueAuthenticationService(
         catch (OperationCanceledException)
         {
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkRequestTimeoutMs/1000} seconds"));
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkRequestTimeoutMs / 1000} seconds"));
         }
         catch (Exception ex)
         {
@@ -448,7 +448,7 @@ public class OpaqueAuthenticationService(
         catch (OperationCanceledException)
         {
             return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkRequestTimeoutMs/1000} seconds"));
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkRequestTimeoutMs / 1000} seconds"));
         }
         catch (Exception ex)
         {

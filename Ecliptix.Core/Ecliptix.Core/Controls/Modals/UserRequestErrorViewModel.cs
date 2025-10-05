@@ -9,13 +9,13 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class UserRequestErrorViewModel: ReactiveObject, IDisposable, IActivatableViewModel
+public class UserRequestErrorViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
     private bool _disposed = false;
     private ILocalizationService _localizationService;
     [Reactive] public string ErrorMessage { get; set; }
-    
+
     public UserRequestErrorViewModel(
         string errorMessage,
         ILocalizationService localizationService,
@@ -24,8 +24,8 @@ public class UserRequestErrorViewModel: ReactiveObject, IDisposable, IActivatabl
         _localizationService = localizationService;
         ErrorMessage = errorMessage;
     }
-    
-    
+
+
     public void Dispose()
     {
         if (_disposed) return;

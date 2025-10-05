@@ -450,7 +450,6 @@ public static class Program
         services.AddSingleton<NetworkStatusNotificationViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<MembershipHostWindowModel>();
-        services.AddTransient<MainViewModel>();
     }
 
     private static string GetPlatformAppDataDirectory()

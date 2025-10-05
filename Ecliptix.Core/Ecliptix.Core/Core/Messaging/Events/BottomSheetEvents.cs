@@ -17,7 +17,7 @@ public sealed record BottomSheetChangedEvent
     public BottomSheetComponentType ComponentType { get; }
     public bool ShowScrim { get; }
     public DateTime Timestamp { get; }
-    
+
     public bool IsDismissable { get; }
 
     private BottomSheetChangedEvent(BottomSheetComponentType componentType, bool showScrim, UserControl? userControl, bool isDismissable)

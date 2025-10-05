@@ -30,8 +30,8 @@ public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActiv
     public ReactiveCommand<Unit, Unit> DeclineCommand { get; }
 
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
-    
-    
+
+
     public DetectLanguageDialogViewModel(
         ILocalizationService localizationService,
         ILanguageDetectionService languageDetectionService,
@@ -39,12 +39,12 @@ public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActiv
         )
     {
         _languageDetectionService = languageDetectionService;
-        
+
         ConfirmCommand = ReactiveCommand.CreateFromTask(OnConfirm);
         DeclineCommand = ReactiveCommand.CreateFromTask(OnDecline);
-        
+
         string country = networkProvider.ApplicationInstanceSettings.Country;
-        
+
         if (string.IsNullOrWhiteSpace(country))
             _targetCulture = CultureInfo.CurrentCulture.Name;
         else
@@ -60,7 +60,7 @@ public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActiv
             targetInfo = CultureInfo.CurrentCulture;
             _targetCulture = targetInfo.Name;
         }
-        
+
         string languageName = targetInfo.DisplayName;
         int parenthesisIndex = languageName.IndexOf('(');
         if (parenthesisIndex > 0)
@@ -72,7 +72,7 @@ public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActiv
         ConfirmButtonText = localizationService?["LanguageDetection.Button.Confirm"] ?? "Confirm";
         DeclineButtonText = localizationService?["LanguageDetection.Button.Decline"] ?? "Decline";
 
-      
+
         LanguageItem? languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
         FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg";
 
@@ -82,7 +82,7 @@ public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActiv
             DeclineCommand.DisposeWith(disposables);
         });
     }
-    
+
     public void Dispose()
     {
         if (_disposed) return;

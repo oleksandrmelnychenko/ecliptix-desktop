@@ -44,7 +44,7 @@ public class ApplicationInitializer(
     IIdentityService identityService,
     IDistributedShareStorage distributedShareStorage,
     ISecretSharingService secretSharingService,
-    IHmacKeyManager hmacKeyManager): IApplicationInitializer
+    IHmacKeyManager hmacKeyManager) : IApplicationInitializer
 {
     private const int IpGeolocationTimeoutSeconds = 10;
 
@@ -56,7 +56,7 @@ public class ApplicationInitializer(
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
-        
+
         if (settingsResult.IsErr)
         {
             await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
@@ -105,13 +105,13 @@ public class ApplicationInitializer(
         uint connectId =
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
-        
+
         string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
             ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
             : null;
 
         await CleanupForTestingAsync(connectId, membershipId);
-        
+
         if (!isNewInstance)
         {
             Result<bool, NetworkFailure> restoreResult =
@@ -377,7 +377,7 @@ public class ApplicationInitializer(
                 await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country);
             }
         });
-    
+
     public async Task CleanupForTestingAsync(uint connectId, string? membershipId = null)
     {
         await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());

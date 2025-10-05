@@ -80,7 +80,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public bool ShowDimmer { get; private set; }
     [Reactive] public bool ShowSpinner { get; private set; }
     [Reactive] public bool HasValidSession { get; private set; }
-    
+
     [ObservableAsProperty] public bool IsBusy { get; }
     [ObservableAsProperty] public bool IsResending { get; }
 
@@ -127,7 +127,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             .Select(tuple => tuple is { Item1: 0, Item2: true })
             .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
-        
+
         SendVerificationCodeCommand.IsExecuting
             .ToPropertyEx(this, x => x.IsBusy)
             .DisposeWith(_disposables);
@@ -334,7 +334,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             ErrorMessage = error;
             HasError = true;
         }
-        
+
         StartAutoRedirect(5, MembershipViewType.Welcome, ErrorMessage);
 
         HasValidSession = false;
@@ -343,7 +343,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
     private uint HandleUnavailable()
     {
-        // TODO WasDisconnected = true;
         ErrorMessage = "";
         SecondsRemaining = 0;
         return 0;
@@ -366,7 +365,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         });
 
         string message = "";
-        
+
         if (!string.IsNullOrEmpty(localizaedMessage))
         {
             message = localizaedMessage;
@@ -379,7 +378,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             message = _localizationService.GetString(key);
         }
-        
+
         ShowRedirectNotification(BottomSheetComponentType.RedirectNotification, message, seconds, () =>
         {
             if (!_isDisposed)

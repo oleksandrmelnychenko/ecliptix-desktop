@@ -28,7 +28,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
             if (_content != null && _content != value)
             {
                 UserControl? oldContent = _content;
-            
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (oldContent.DataContext is IDisposable disposableContext)
@@ -106,7 +106,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                             Content = eventArgs.Control;
                         }
                     }
-                    
+
                     if (_showScrim != eventArgs.ShowScrim)
                     {
                         ShowScrim = eventArgs.ShowScrim;
@@ -116,7 +116,7 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                     {
                         IsDismissableOnScrimClick = eventArgs.IsDismissable;
                     }
-                    
+
                     if (_isVisible != shouldBeVisible)
                     {
                         IsVisible = shouldBeVisible;
@@ -131,12 +131,12 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
                     }
 
                     return System.Threading.Tasks.Task.CompletedTask;
-                    
+
                 }, SubscriptionLifetime.Scoped)
                 .DisposeWith(disposables);
         });
     }
-    
+
     public void BottomSheetDismissed()
     {
         _bottomSheetService.BottomSheetDismissed();

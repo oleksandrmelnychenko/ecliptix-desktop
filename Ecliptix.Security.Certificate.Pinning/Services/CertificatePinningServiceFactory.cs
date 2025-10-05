@@ -3,9 +3,9 @@ namespace Ecliptix.Security.Certificate.Pinning.Services;
 public class CertificatePinningServiceFactory : ICertificatePinningServiceFactory
 {
     private CertificatePinningService? _service;
-    
+
     private readonly SemaphoreSlim _initializationSemaphore = new(1, 1);
-    
+
     private bool _disposed;
 
     public CertificatePinningService? GetOrInitializeService()

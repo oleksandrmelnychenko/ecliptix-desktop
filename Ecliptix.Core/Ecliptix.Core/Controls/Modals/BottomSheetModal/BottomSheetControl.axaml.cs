@@ -199,22 +199,22 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             _sheetHeight = MinHeight;
             return;
         }
-        
+
         double sheetWidth = _sheetBorder.Width;
         if (double.IsNaN(sheetWidth) || sheetWidth <= 0)
         {
             sheetWidth = DefaultBottomSheetVariables.DefaultWidth;
         }
-        
+
         Thickness padding = _sheetBorder.Padding;
         Thickness borderThickness = _sheetBorder.BorderThickness;
-        
+
         double verticalExtras = padding.Top + padding.Bottom + borderThickness.Top + borderThickness.Bottom;
         double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
-        
+
         double availableWidth = sheetWidth - horizontalExtras;
         double availableHeight = MaxHeight - verticalExtras;
-        
+
         Size availableSize = new Size(availableWidth, double.PositiveInfinity);
         _contentControl.Measure(availableSize);
 
@@ -224,16 +224,16 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         {
             contentHeight = MinHeight;
         }
-        
+
         double maxContentHeight = Math.Max(MinHeight, availableHeight);
-        
+
         _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
         _sheetBorder.Height = _sheetHeight;
     }
 
     private async Task ShowBottomSheet()
     {
-        if (_sheetBorder is null ||  _rootGrid is null)
+        if (_sheetBorder is null || _rootGrid is null)
         {
             return;
         }
@@ -251,7 +251,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         _rootGrid.IsVisible = true;
         _sheetBorder.IsVisible = true;
-        
+
         if (ViewModel?.ShowScrim == true && _scrimBorder is not null)
         {
             _scrimBorder.IsVisible = true;
@@ -263,12 +263,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             {
                 _showAnimation.RunAsync(_sheetBorder, CancellationToken.None)
             };
-        
+
             if (ViewModel?.ShowScrim == true && _scrimShowAnimation is not null && _scrimBorder is not null)
             {
                 showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
             }
-        
+
             await Task.WhenAll(showTasks);
         }
         finally
@@ -416,13 +416,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     public void Dispose()
     {
         if (_disposed) return;
-        
+
         if (ViewModel is IActivatableViewModel activatable)
             activatable.Activator.Deactivate();
-        
+
         if (ViewModel is IDisposable disposableViewModel)
             disposableViewModel.Dispose();
-        
+
         _disposed = true;
     }
 

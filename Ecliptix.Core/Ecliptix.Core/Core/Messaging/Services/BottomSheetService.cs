@@ -43,7 +43,7 @@ public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomS
     {
         await messageBus.PublishAsync(BottomSheetHiddenEvent.UserDismissed());
     }
-    
+
     public void Dispose()
     {
         _disposed = true;

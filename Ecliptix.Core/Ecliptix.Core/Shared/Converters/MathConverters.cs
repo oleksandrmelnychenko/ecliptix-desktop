@@ -19,10 +19,10 @@ public class AddConverter : IValueConverter
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue + param;
-        
+
         if (value is int intValue && parameter is string paramStr2 && int.TryParse(paramStr2, out int param2))
             return intValue + param2;
-        
+
         return value;
     }
 
@@ -38,7 +38,7 @@ public class SubtractConverter : IValueConverter
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue - param;
-        
+
         return value;
     }
 
@@ -54,7 +54,7 @@ public class MultiplyConverter : IValueConverter
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
             return doubleValue * param;
-        
+
         return value;
     }
 
@@ -70,7 +70,7 @@ public class DivideConverter : IValueConverter
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param) && param != 0)
             return doubleValue / param;
-        
+
         return value;
     }
 

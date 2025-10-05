@@ -23,6 +23,7 @@ public static class MasterKeyDerivation
     private const string DOMAIN_CONTEXT = "ECLIPTIX_MASTER_KEY";
     private const string ED25519_CONTEXT = "ED25519";
     private const string X25519_CONTEXT = "X25519";
+    private const string SPK_X25519_CONTEXT = "SPK_X25519";
 
     public static byte[] DeriveMasterKey(byte[] exportKey, ByteString membershipId)
     {
@@ -226,6 +227,45 @@ public static class MasterKeyDerivation
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
         ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(X25519_CONTEXT);
+
+        int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
+        Span<byte> memberBytes = memberBytesLength <= 256
+            ? stackalloc byte[memberBytesLength]
+            : new byte[memberBytesLength];
+        Encoding.UTF8.GetBytes(membershipId, memberBytes);
+
+        int totalLength = versionBytes.Length + contextBytes.Length + memberBytes.Length;
+        Span<byte> combinedContext = totalLength <= 512
+            ? stackalloc byte[totalLength]
+            : new byte[totalLength];
+
+        try
+        {
+            int offset = 0;
+            versionBytes.CopyTo(combinedContext[offset..]);
+            offset += versionBytes.Length;
+
+            contextBytes.CopyTo(combinedContext[offset..]);
+            offset += contextBytes.Length;
+
+            memberBytes.CopyTo(combinedContext[offset..]);
+
+            return HashWithGenericHashFromSpan(masterKey, combinedContext, KEY_SIZE);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(versionBytes);
+            CryptographicOperations.ZeroMemory(memberBytes);
+            CryptographicOperations.ZeroMemory(combinedContext);
+        }
+    }
+
+    public static byte[] DeriveSignedPreKeySeed(byte[] masterKey, string membershipId)
+    {
+        Span<byte> versionBytes = stackalloc byte[sizeof(int)];
+        BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
+
+        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(SPK_X25519_CONTEXT);
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
