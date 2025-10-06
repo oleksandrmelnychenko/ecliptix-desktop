@@ -14,16 +14,7 @@ namespace Ecliptix.Protocol.System.Core;
 public static class MasterKeyDerivation
 {
     private const int KEY_SIZE = 32;
-    private const int ARGON2_ITERATIONS = 4;
-    private const int ARGON2_MEMORY_SIZE = 262144; // 256MB
-    private const int ARGON2_PARALLELISM = 4;
     private const int CURRENT_VERSION = 1;
-
-    private const string MASTER_SALT = "ECLIPTIX_MSTR_V1";
-    private const string DOMAIN_CONTEXT = "ECLIPTIX_MASTER_KEY";
-    private const string ED25519_CONTEXT = "ED25519";
-    private const string X25519_CONTEXT = "X25519";
-    private const string SPK_X25519_CONTEXT = "SPK_X25519";
 
     public static byte[] DeriveMasterKey(byte[] exportKey, ByteString membershipId)
     {
@@ -37,44 +28,39 @@ public static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(DOMAIN_CONTEXT);
+        ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
 
         byte[] argonSalt = CreateArgonSalt(membershipBytes, versionBytes, domainBytes);
         byte[]? stretchedKey = null;
 
-        ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(MASTER_SALT);
+        ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
 
         try
         {
             stretchedKey = DeriveWithArgon2Id(exportKey, argonSalt);
 
-            // Log Argon2id stretched key fingerprint for verification
-            string stretchedKeyFingerprint = Convert.ToHexString(SHA256.HashData(stretchedKey))[..16];
+            string stretchedKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(stretchedKey);
             Serilog.Log.Information("[CLIENT-ARGON2ID] Argon2id stretched key derived. StretchedKeyFingerprint: {StretchedKeyFingerprint}", stretchedKeyFingerprint);
 
-            // Prepare Blake2b salt and personal parameters (must be exactly 16 bytes each)
             byte[] salt16 = masterSaltBytes.ToArray();
             byte[] personal16 = membershipBytes.ToArray();
 
-            // Validate parameter lengths for Blake2b
-            if (salt16.Length != 16)
+            if (salt16.Length != CryptographicConstants.Blake2BSaltSize)
             {
-                // Truncate or pad salt to exactly 16 bytes
-                byte[] adjustedSalt = new byte[16];
-                int copyLength = Math.Min(salt16.Length, 16);
+                byte[] adjustedSalt = new byte[CryptographicConstants.Blake2BSaltSize];
+                int copyLength = Math.Min(salt16.Length, CryptographicConstants.Blake2BSaltSize);
                 Array.Copy(salt16, 0, adjustedSalt, 0, copyLength);
                 salt16 = adjustedSalt;
                 Serilog.Log.Warning("[CLIENT-BLAKE2B-SALT] Salt adjusted to 16 bytes. Original length: {OriginalLength}", masterSaltBytes.Length);
             }
 
-            if (personal16.Length != 16)
+            if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
             {
                 throw new InvalidOperationException($"Personal parameter (membershipId) must be exactly 16 bytes, got {personal16.Length}");
             }
 
-            // Log Blake2b input parameters
-            string saltHex = Convert.ToHexString(salt16)[..16];
-            string personalHex = Convert.ToHexString(personal16)[..16];
+            string saltHex = Convert.ToHexString(salt16)[..CryptographicConstants.HashFingerprintLength];
+            string personalHex = Convert.ToHexString(personal16)[..CryptographicConstants.HashFingerprintLength];
             Serilog.Log.Information("[CLIENT-BLAKE2B-INPUT] Blake2b inputs. SaltLength: {SaltLength}, PersonalLength: {PersonalLength}, SaltPrefix: {SaltPrefix}, PersonalPrefix: {PersonalPrefix}",
                 salt16.Length, personal16.Length, saltHex, personalHex);
 
@@ -86,8 +72,7 @@ public static class MasterKeyDerivation
                 bytes: KEY_SIZE
             );
 
-            // Log master key fingerprint immediately after Blake2b
-            string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKey))[..16];
+            string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKey);
             Serilog.Log.Information("[CLIENT-BLAKE2B-OUTPUT] Master key derived from Blake2b. MasterKeyFingerprint: {MasterKeyFingerprint}", masterKeyFingerprint);
 
             return masterKey;
@@ -118,15 +103,14 @@ public static class MasterKeyDerivation
             Span<byte> versionBytes = stackalloc byte[sizeof(int)];
             BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-            ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(DOMAIN_CONTEXT);
+            ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
 
             byte[] argonSalt = CreateArgonSalt(membershipBytes, versionBytes, domainBytes);
             byte[]? stretchedKey = null;
 
-            ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(MASTER_SALT);
+            ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
 
-            // Log Argon2id salt for verification
-            string argonSaltHash = Convert.ToHexString(SHA256.HashData(argonSalt))[..16];
+            string argonSaltHash = CryptographicHelpers.ComputeSha256Fingerprint(argonSalt);
             Serilog.Log.Information("[CLIENT-ARGON2ID-SALT] Argon2id salt created. ArgonSaltHash: {ArgonSaltHash}, MembershipIdLength: {MembershipIdLength}",
                 argonSaltHash, membershipBytes.Length);
 
@@ -134,34 +118,29 @@ public static class MasterKeyDerivation
             {
                 stretchedKey = DeriveWithArgon2Id(exportKeySpan.ToArray(), argonSalt);
 
-                // Log Argon2id stretched key fingerprint for verification
-                string stretchedKeyFingerprint = Convert.ToHexString(SHA256.HashData(stretchedKey))[..16];
+                string stretchedKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(stretchedKey);
                 Serilog.Log.Information("[CLIENT-ARGON2ID-HANDLE] Argon2id stretched key derived. StretchedKeyFingerprint: {StretchedKeyFingerprint}", stretchedKeyFingerprint);
 
-                // Prepare Blake2b salt and personal parameters (must be exactly 16 bytes each)
                 byte[] salt16 = masterSaltBytes.ToArray();
                 byte[] personal16 = membershipBytes.ToArray();
 
-                // Validate parameter lengths for Blake2b
-                if (salt16.Length != 16)
+                if (salt16.Length != CryptographicConstants.Blake2BSaltSize)
                 {
-                    // Truncate or pad salt to exactly 16 bytes
-                    byte[] adjustedSalt = new byte[16];
-                    int copyLength = Math.Min(salt16.Length, 16);
+                    byte[] adjustedSalt = new byte[CryptographicConstants.Blake2BSaltSize];
+                    int copyLength = Math.Min(salt16.Length, CryptographicConstants.Blake2BSaltSize);
                     Array.Copy(salt16, 0, adjustedSalt, 0, copyLength);
                     salt16 = adjustedSalt;
                     Serilog.Log.Warning("[CLIENT-BLAKE2B-SALT-HANDLE] Salt adjusted to 16 bytes. Original length: {OriginalLength}", masterSaltBytes.Length);
                 }
 
-                if (personal16.Length != 16)
+                if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
                 {
                     return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
                         SodiumFailure.InvalidOperation($"Personal parameter (membershipId) must be exactly 16 bytes, got {personal16.Length}"));
                 }
 
-                // Log Blake2b input parameters
-                string saltHex = Convert.ToHexString(salt16)[..16];
-                string personalHex = Convert.ToHexString(personal16)[..16];
+                string saltHex = Convert.ToHexString(salt16)[..CryptographicConstants.HashFingerprintLength];
+                string personalHex = Convert.ToHexString(personal16)[..CryptographicConstants.HashFingerprintLength];
                 Serilog.Log.Information("[CLIENT-BLAKE2B-INPUT-HANDLE] Blake2b inputs. SaltLength: {SaltLength}, PersonalLength: {PersonalLength}, SaltPrefix: {SaltPrefix}, PersonalPrefix: {PersonalPrefix}",
                     salt16.Length, personal16.Length, saltHex, personalHex);
 
@@ -173,8 +152,7 @@ public static class MasterKeyDerivation
                     bytes: KEY_SIZE
                 );
 
-                // Log master key fingerprint immediately after Blake2b
-                string masterKeyFingerprint = Convert.ToHexString(global::System.Security.Cryptography.SHA256.HashData(masterKeyBytes))[..16];
+                string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytes);
                 Serilog.Log.Information("[CLIENT-BLAKE2B-OUTPUT-HANDLE] Master key derived from Blake2b. MasterKeyFingerprint: {MasterKeyFingerprint}", masterKeyFingerprint);
 
                 Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(KEY_SIZE);
@@ -187,7 +165,6 @@ public static class MasterKeyDerivation
                 SodiumSecureMemoryHandle masterKeyHandle = allocResult.Unwrap();
                 Result<Unit, SodiumFailure> writeResult = masterKeyHandle.Write(masterKeyBytes);
 
-                // Log master key handle stored successfully
                 Serilog.Log.Information("[CLIENT-MASTER-KEY-DERIVE] Master key handle created successfully. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                     membershipId.ToStringUtf8(), masterKeyFingerprint);
 
@@ -253,9 +230,9 @@ public static class MasterKeyDerivation
         using Argon2id argon2 = new(exportKey)
         {
             Salt = salt,
-            DegreeOfParallelism = ARGON2_PARALLELISM,
-            Iterations = ARGON2_ITERATIONS,
-            MemorySize = ARGON2_MEMORY_SIZE
+            DegreeOfParallelism = CryptographicConstants.Argon2.DefaultParallelism,
+            Iterations = CryptographicConstants.Argon2.DefaultIterations,
+            MemorySize = CryptographicConstants.Argon2.DefaultMemorySize
         };
 
         return argon2.GetBytes(KEY_SIZE);
@@ -266,7 +243,7 @@ public static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(ED25519_CONTEXT);
+        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.Ed25519Context);
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
@@ -305,7 +282,7 @@ public static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(X25519_CONTEXT);
+        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.X25519Context);
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
@@ -344,7 +321,7 @@ public static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(SPK_X25519_CONTEXT);
+        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.SignedPreKeyContext);
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256

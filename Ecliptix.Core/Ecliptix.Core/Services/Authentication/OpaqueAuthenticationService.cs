@@ -57,16 +57,7 @@ public class OpaqueAuthenticationService(
     IServerPublicKeyProvider serverPublicKeyProvider)
     : IAuthenticationService, IDisposable
 {
-    private const int KeyDerivationMemorySize = 262144;
-    private const int KeyDerivationOutputLength = 64;
-    private const int KeyDerivationIterations = 4;
-    private const int KeyDerivationParallelism = 4;
-    private const int MinimumShareThreshold = 3;
-    private const int TotalKeyShares = 5;
-    private const int GuidByteLength = 16;
     private const int MaxAllowedZeroBytes = 12;
-    private const string SignInSessionContext = "ecliptix-signin-session";
-    private const int NetworkRequestTimeoutMs = 30000;
 
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
@@ -84,11 +75,11 @@ public class OpaqueAuthenticationService(
 
     private static readonly KeyDerivationOptions DefaultKeyDerivationOptions = new()
     {
-        MemorySize = KeyDerivationMemorySize,
-        Iterations = KeyDerivationIterations,
-        DegreeOfParallelism = KeyDerivationParallelism,
+        MemorySize = CryptographicConstants.Argon2.DefaultMemorySize,
+        Iterations = CryptographicConstants.Argon2.DefaultIterations,
+        DegreeOfParallelism = CryptographicConstants.Argon2.DefaultParallelism,
         UseHardwareEntropy = false,
-        OutputLength = KeyDerivationOutputLength
+        OutputLength = CryptographicConstants.Argon2.DefaultOutputLength
     };
 
     private string GetOpaqueErrorMessage(OpaqueResult error)
@@ -200,8 +191,7 @@ public class OpaqueAuthenticationService(
 
         byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
-        // Log OPAQUE export_key (base session key) fingerprint
-        string baseKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(baseSessionKeyBytes))[..16];
+        string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
         Serilog.Log.Information("[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}", baseKeyFingerprint);
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
@@ -226,7 +216,7 @@ public class OpaqueAuthenticationService(
         Result<SodiumSecureMemoryHandle, KeySplittingFailure> enhancedMasterKeyHandleResult =
             await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
                 baseKeyHandle,
-                SignInSessionContext,
+                StorageKeyConstants.SessionContext.SignInSession,
                 DefaultKeyDerivationOptions);
 
         if (enhancedMasterKeyHandleResult.IsErr)
@@ -292,7 +282,7 @@ public class OpaqueAuthenticationService(
                 if (masterKeyBytesResult.IsOk)
                 {
                     byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
-                    string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytesTemp))[..16];
+                    string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
                     Serilog.Log.Information("[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                         membershipId, masterKeyFingerprint);
                     CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
@@ -316,12 +306,12 @@ public class OpaqueAuthenticationService(
                 using SodiumSecureMemoryHandle hmacKeyHandle = hmacKeyHandleResult.Unwrap();
 
                 Serilog.Log.Information("[LOGIN-KEY-SPLIT] Splitting master key into {TotalShares} shares (threshold: {Threshold}). MembershipId: {MembershipId}",
-                    TotalKeyShares, MinimumShareThreshold, membershipId);
+                    ShareDistributionConstants.DefaultTotalShares, ShareDistributionConstants.DefaultMinimumThreshold, membershipId);
 
                 Result<KeySplitResult, KeySplittingFailure> masterSplitResult = await keySplitter.SplitKeyAsync(
                     masterKeyHandle,
-                    threshold: MinimumShareThreshold,
-                    totalShares: TotalKeyShares,
+                    threshold: ShareDistributionConstants.DefaultMinimumThreshold,
+                    totalShares: ShareDistributionConstants.DefaultTotalShares,
                     hmacKeyHandle: hmacKeyHandle);
 
                 if (masterSplitResult.IsOk)
@@ -408,7 +398,7 @@ public class OpaqueAuthenticationService(
     {
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
 
-        using CancellationTokenSource timeoutCts = new(NetworkRequestTimeoutMs);
+        using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
         await using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
             responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
@@ -451,7 +441,7 @@ public class OpaqueAuthenticationService(
         catch (OperationCanceledException)
         {
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkRequestTimeoutMs / 1000} seconds"));
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
         }
         catch (Exception ex)
         {
@@ -466,7 +456,7 @@ public class OpaqueAuthenticationService(
     {
         TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
 
-        using CancellationTokenSource timeoutCts = new(NetworkRequestTimeoutMs);
+        using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
         using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
             responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
@@ -509,7 +499,7 @@ public class OpaqueAuthenticationService(
         catch (OperationCanceledException)
         {
             return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkRequestTimeoutMs / 1000} seconds"));
+                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
         }
         catch (Exception ex)
         {
@@ -531,7 +521,7 @@ public class OpaqueAuthenticationService(
 
     private static bool ValidateMembershipIdentifier(ByteString identifier)
     {
-        if (identifier.Length != GuidByteLength)
+        if (identifier.Length != CryptographicConstants.GuidByteLength)
             return false;
 
         ReadOnlySpan<byte> span = identifier.Span;

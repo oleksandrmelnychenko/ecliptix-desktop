@@ -17,9 +17,6 @@ namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 
 public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDisposable, IDisposable
 {
-    private const int DefaultThreshold = 3;
-    private const int CacheCapacityLimit = 100;
-    private const int CacheLruEvictionCount = 10;
 
     private readonly IPlatformSecurityProvider _platformSecurityProvider;
     private readonly IApplicationSecureStorageProvider _secureStorageProvider;
@@ -54,7 +51,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
         List<Task<Result<Unit, KeySplittingFailure>>> storageTasks = [];
 
-        for (int i = 0; i < splitKeys.Shares.Length && i < 5; i++)
+        for (int i = 0; i < splitKeys.Shares.Length && i < ShareDistributionConstants.DefaultTotalShares; i++)
         {
             KeyShare share = splitKeys.Shares[i];
             storageTasks.Add(StoreShareByLocationAsync(share, membershipId, i));
@@ -74,7 +71,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
     }
 
     public async Task<Result<KeyShare[], KeySplittingFailure>> RetrieveKeySharesAsync(Guid membershipId,
-        int minimumShares = DefaultThreshold)
+        int minimumShares = ShareDistributionConstants.DefaultMinimumThreshold)
     {
         lock (_storageLock)
         {
@@ -84,7 +81,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
         List<Task<Result<KeyShare, KeySplittingFailure>>> retrievalTasks = new();
 
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < ShareDistributionConstants.DefaultTotalShares; i++)
         {
             retrievalTasks.Add(RetrieveShareByLocationAsync(membershipId, i));
         }
@@ -120,12 +117,12 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
         if (_platformSecurityProvider.IsHardwareSecurityAvailable())
         {
-            removalTasks.Add(_platformSecurityProvider.DeleteKeyFromKeychainAsync($"hw_share_{identifier}_0"));
+            removalTasks.Add(_platformSecurityProvider.DeleteKeyFromKeychainAsync($"{StorageKeyConstants.Share.HardwarePrefix}{identifier}_0"));
         }
 
         for (int i = 1; i <= 4; i++)
         {
-            removalTasks.Add(_platformSecurityProvider.DeleteKeyFromKeychainAsync($"kc_share_{identifier}_{i}"));
+            removalTasks.Add(_platformSecurityProvider.DeleteKeyFromKeychainAsync($"{StorageKeyConstants.Share.KeychainPrefix}{identifier}_{i}"));
         }
 
         _cacheLock.EnterWriteLock();
@@ -161,7 +158,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
         string identifier = membershipId.ToString();
         Result<Option<byte[]>, InternalServiceApiFailure> localShare =
-            await _secureStorageProvider.TryGetByKeyAsync($"local_share_{identifier}");
+            await _secureStorageProvider.TryGetByKeyAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}");
 
         return Result<bool, KeySplittingFailure>.Ok(localShare.IsOk && localShare.Unwrap().HasValue);
     }
@@ -169,8 +166,8 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
     public async Task<Result<byte[], KeySplittingFailure>> StoreAndReconstructKeyAsync(
         byte[] originalKey,
         Guid membershipId,
-        int threshold = DefaultThreshold,
-        int totalShares = 5)
+        int threshold = ShareDistributionConstants.DefaultMinimumThreshold,
+        int totalShares = ShareDistributionConstants.DefaultTotalShares)
     {
         Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocResult =
             SodiumSecureMemoryHandle.Allocate(originalKey.Length);
@@ -259,7 +256,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
                 uint encryptId = (uint)membershipId.GetHashCode();
                 byte[] doubleEncrypted = await DoubleEncryptAsync(share.ShareData, encryptId, shareIndex);
                 Result<Unit, InternalServiceApiFailure> storeResult =
-                    await _secureStorageProvider.StoreAsync($"local_share_{identifier}", doubleEncrypted);
+                    await _secureStorageProvider.StoreAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}", doubleEncrypted);
 
                 CryptographicOperations.ZeroMemory(doubleEncrypted);
 
@@ -310,7 +307,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
             case 3:
                 Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                    await _secureStorageProvider.TryGetByKeyAsync($"local_share_{identifier}");
+                    await _secureStorageProvider.TryGetByKeyAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}");
 
                 if (getResult.IsOk && getResult.Unwrap().HasValue)
                 {
@@ -342,11 +339,11 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
     private static string GetSharePrefix(int shareIndex) => shareIndex switch
     {
-        0 => "hw",
-        1 => "kc",
-        2 => "mem",
-        3 => "local",
-        4 => "backup",
+        0 => StorageKeyConstants.Share.HardwarePrefix[..^1],
+        1 => StorageKeyConstants.Share.KeychainPrefix[..^1],
+        2 => StorageKeyConstants.Share.MemoryPrefix,
+        3 => StorageKeyConstants.Share.LocalPrefix[..^1],
+        4 => StorageKeyConstants.Share.BackupPrefix[..^1],
         _ => "unknown"
     };
 
@@ -368,7 +365,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
             encryptionKey = new byte[aes.Key.Length];
             aes.Key.CopyTo(encryptionKey, 0);
 
-            keyIdentifier = $"ecliptix_share_{connectId}_{shareIndex}_{DateTime.UtcNow.Ticks}";
+            keyIdentifier = $"{StorageKeyConstants.Share.EcliptixSharePrefix}{connectId}_{shareIndex}_{DateTime.UtcNow.Ticks}";
 
             await _platformSecurityProvider.StoreKeyInKeychainAsync(keyIdentifier, encryptionKey);
 
@@ -423,7 +420,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
 
             int keyIdLength = BitConverter.ToInt32(encryptedData, 0);
 
-            if (keyIdLength is <= 0 or > 256)
+            if (keyIdLength is <= ShareDistributionConstants.KeyIdLengthMin or > ShareDistributionConstants.KeyIdLengthMax)
                 return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat($"Invalid key identifier length: {keyIdLength}"));
 
             if (encryptedData.Length < 4 || encryptedData.Length - 4 < keyIdLength)
@@ -440,16 +437,16 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
             using Aes aes = Aes.Create();
             aes.Key = key;
 
-            byte[] iv = new byte[16];
+            byte[] iv = new byte[CryptographicConstants.AesIvSize];
             int ivOffset = 4 + keyIdLength;
 
-            if (ivOffset + 16 > encryptedData.Length)
+            if (ivOffset + CryptographicConstants.AesIvSize > encryptedData.Length)
                 return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Encrypted data truncated: missing IV"));
 
-            Array.Copy(encryptedData, ivOffset, iv, 0, 16);
+            Array.Copy(encryptedData, ivOffset, iv, 0, CryptographicConstants.AesIvSize);
             aes.IV = iv;
 
-            int ciphertextOffset = ivOffset + 16;
+            int ciphertextOffset = ivOffset + CryptographicConstants.AesIvSize;
             if (ciphertextOffset >= encryptedData.Length)
                 return Result<byte[], KeySplittingFailure>.Err(KeySplittingFailure.InvalidDataFormat("Encrypted data truncated: missing ciphertext"));
 

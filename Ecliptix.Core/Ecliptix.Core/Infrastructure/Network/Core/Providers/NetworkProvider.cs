@@ -639,8 +639,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (syncResult.IsErr)
             {
-                // If validation failed (e.g., empty auth tag), treat as restore failure
-                // This allows fallback to master key reconstruction
                 EcliptixProtocolFailure error = syncResult.UnwrapErr();
                 if (error.Message.Contains("Session validation failed"))
                 {
@@ -649,7 +647,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     return Result<bool, NetworkFailure>.Ok(false);
                 }
 
-                // Other errors are actual failures
                 return Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
             }
 
@@ -1782,7 +1779,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            // Log master key fingerprint before creating identity keys
             string masterKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(masterKeyBytes))[..16];
             Log.Information("[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                 connectId, membershipId, masterKeyFingerprint);
@@ -1811,7 +1807,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
 
-            // Log identity keys public key fingerprints
             string identityX25519Hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
             Log.Information("[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
                 connectId, identityX25519Hash);
@@ -1841,7 +1836,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 PubKeyExchange clientExchange = clientExchangeResult.Unwrap();
 
-                // Log client public key exchange being sent
                 Log.Information("[CLIENT-AUTH-HANDSHAKE-SEND] Sending client pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
                     connectId, clientExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(clientExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, clientExchange.InitialDhPublicKey.Length * 2)]);
 
@@ -1900,7 +1894,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 PubKeyExchange serverExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
 
-                // Log server public key exchange received
                 Log.Information("[CLIENT-AUTH-HANDSHAKE-RECV] Received server pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
                     connectId, serverExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(serverExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, serverExchange.InitialDhPublicKey.Length * 2)]);
 
@@ -1943,7 +1936,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         EcliptixSessionState sessionState = sessionStateResult.Unwrap();
 
-                        // Log root key and ratchet state details
                         string sessionRootKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.RootKey.ToByteArray()))[..16];
                         string sendingChainKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.SendingStep.ChainKey.ToByteArray()))[..16];
                         string receivingChainKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.ReceivingStep.ChainKey.ToByteArray()))[..16];

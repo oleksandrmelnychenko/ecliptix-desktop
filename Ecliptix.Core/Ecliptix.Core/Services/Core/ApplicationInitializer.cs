@@ -119,8 +119,6 @@ public class ApplicationInitializer(
             ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
             : null;
 
-            //await CleanupForTestingAsync(connectId, membershipId);
-
         if (!isNewInstance)
         {
             Result<bool, NetworkFailure> restoreResult =
