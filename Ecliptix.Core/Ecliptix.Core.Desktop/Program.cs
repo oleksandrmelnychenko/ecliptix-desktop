@@ -307,17 +307,16 @@ public static class Program
             IPlatformSecurityProvider platformProvider = sp.GetRequiredService<IPlatformSecurityProvider>();
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
 
-            string storagePath =
+            string storageDirectory =
                 config[
                     ApplicationConstants.Configuration.SecureStorageSection +
                     ApplicationConstants.Configuration.PathSeparator + ApplicationConstants.ConfigurationKeys.StatePath]
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    ApplicationConstants.Storage.EcliptixDirectoryName,
-                    ApplicationConstants.Storage.SecureProtocolStateFile);
+                    ApplicationConstants.Storage.EcliptixDirectoryName);
 
             byte[] deviceId = Encoding.UTF8.GetBytes(Environment.MachineName + Environment.UserName);
 
-            return new SecureProtocolStateStorage(platformProvider, storagePath, deviceId);
+            return new SecureProtocolStateStorage(platformProvider, storageDirectory, deviceId);
         });
 
         services.AddSingleton<ICertificatePinningServiceFactory, CertificatePinningServiceFactory>();

@@ -29,6 +29,7 @@ using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
+using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
@@ -89,11 +90,19 @@ public class ApplicationInitializer(
 
         uint connectId = connectIdResult.Unwrap();
 
+        Log.Information("[CLIENT-REGISTER] Calling RegisterDevice. ConnectId: {ConnectId}",
+            connectId);
+
         Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
         if (registrationResult.IsErr)
         {
+            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, Error: {Error}",
+                connectId, registrationResult.UnwrapErr().Message);
             return false;
         }
+
+        Log.Information("[CLIENT-REGISTER] RegisterDevice completed successfully. ConnectId: {ConnectId}",
+            connectId);
 
         await systemEvents.NotifySystemStateAsync(SystemState.Running);
         return true;
@@ -110,7 +119,7 @@ public class ApplicationInitializer(
             ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
             : null;
 
-        await CleanupForTestingAsync(connectId, membershipId);
+            //await CleanupForTestingAsync(connectId, membershipId);
 
         if (!isNewInstance)
         {
@@ -121,25 +130,88 @@ public class ApplicationInitializer(
                 return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
 
             if (restoreResult.Unwrap())
+            {
+                if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
+                {
+                    IsMembershipConfirmed = true;
+                    Log.Information("[CLIENT-RESTORE] Session restored successfully. ConnectId: {ConnectId}, IsMembershipConfirmed: {Confirmed}, MembershipId: {MembershipId}",
+                        connectId, IsMembershipConfirmed, membershipId);
+                }
+                else
+                {
+                    Log.Information("[CLIENT-RESTORE] Session restored successfully. ConnectId: {ConnectId}, IsMembershipConfirmed: {Confirmed}, Auth: Anonymous",
+                        connectId, IsMembershipConfirmed);
+                }
+
                 return Result<uint, NetworkFailure>.Ok(connectId);
+            }
         }
 
-        if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
-        {
-            SodiumSecureMemoryHandle? masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId);
+        Log.Information("[CLIENT-INIT-CHECK] Checking for stored identity. MembershipId: {MembershipId}, HasMembershipId: {HasMembershipId}",
+            membershipId ?? "NULL", !string.IsNullOrEmpty(membershipId));
 
-            if (masterKeyHandle != null)
+        if (!string.IsNullOrEmpty(membershipId))
+        {
+            bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipId);
+            Log.Information("[CLIENT-INIT-CHECK] HasStoredIdentity result: {HasStoredIdentity}, MembershipId: {MembershipId}",
+                hasStoredIdentity, membershipId);
+
+            if (hasStoredIdentity)
             {
-                InitializeProtocolWithIdentity(
-                    masterKeyHandle, membershipId, applicationInstanceSettings, connectId);
+                SodiumSecureMemoryHandle? masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId);
+
+                if (masterKeyHandle != null)
+                {
+                    Log.Information("[CLIENT-MASTERKEY] Master key reconstructed successfully. MembershipId: {MembershipId}",
+                        membershipId);
+
+                    try
+                    {
+                        ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier;
+                        Log.Information("[CLIENT-AUTH-HANDSHAKE] Creating authenticated protocol. ConnectId: {ConnectId}, MembershipId: {MembershipId}",
+                            connectId, membershipId);
+
+                        Result<Unit, NetworkFailure> recreateResult =
+                            await networkProvider.RecreateProtocolWithMasterKeyAsync(
+                                masterKeyHandle, membershipByteString, connectId);
+
+                        if (recreateResult.IsErr)
+                        {
+                            Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
+                                connectId, recreateResult.UnwrapErr().Message);
+                            await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
+                        }
+                        else
+                        {
+                            Log.Information("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol created successfully. ConnectId: {ConnectId}",
+                                connectId);
+                            IsMembershipConfirmed = true;
+                            return Result<uint, NetworkFailure>.Ok(connectId);
+                        }
+                    }
+                    finally
+                    {
+                        masterKeyHandle.Dispose();
+                    }
+                }
+                else
+                {
+                    Log.Warning("[CLIENT-MASTERKEY] Failed to reconstruct master key. Falling back to anonymous. MembershipId: {MembershipId}",
+                        membershipId);
+                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
+                }
             }
             else
             {
+                Log.Information("[CLIENT-INIT-CHECK] No stored identity found. Falling back to anonymous. MembershipId: {MembershipId}",
+                    membershipId);
                 await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
             }
         }
         else
         {
+            Log.Information("[CLIENT-INIT] Initializing anonymous protocol. ConnectId: {ConnectId}",
+                connectId);
             networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
         }
 
@@ -164,54 +236,6 @@ public class ApplicationInitializer(
         return Result<uint, NetworkFailure>.Ok(connectId);
     }
 
-    private void InitializeProtocolWithIdentity(
-        SodiumSecureMemoryHandle masterKeyHandle,
-        string membershipId,
-        ApplicationInstanceSettings applicationInstanceSettings,
-        uint connectId)
-    {
-        IsMembershipConfirmed = true;
-
-        try
-        {
-            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
-                masterKeyHandle.ReadBytes(masterKeyHandle.Length);
-
-            if (readResult.IsErr)
-            {
-                networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                return;
-            }
-
-            byte[] masterKeyBytes = readResult.Unwrap();
-
-            try
-            {
-                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityResult =
-                    EcliptixSystemIdentityKeys.CreateFromMasterKey(
-                        masterKeyBytes, membershipId, NetworkProvider.DefaultOneTimeKeyCount);
-
-                if (identityResult.IsOk)
-                {
-                    networkProvider.InitiateEcliptixProtocolSystemWithIdentity(
-                        applicationInstanceSettings, connectId, identityResult.Unwrap());
-                }
-                else
-                {
-                    networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
-                }
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(masterKeyBytes);
-            }
-        }
-        finally
-        {
-            masterKeyHandle.Dispose();
-        }
-    }
-
     private async Task InitializeProtocolWithoutIdentityAsync(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId)
@@ -229,22 +253,42 @@ public class ApplicationInitializer(
     private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyFromDistributedSharesAsync(string membershipId)
     {
         Guid membershipGuid = Guid.Parse(membershipId);
+        Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Attempting to reconstruct from distributed shares. MembershipId: {MembershipId}", membershipId);
 
         try
         {
             Result<bool, KeySplittingFailure> hasShares =
                 await distributedShareStorage.HasStoredSharesAsync(membershipGuid);
 
-            if (hasShares.IsErr || !hasShares.Unwrap())
+            if (hasShares.IsErr)
+            {
+                Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] HasStoredSharesAsync failed. MembershipId: {MembershipId}, Error: {Error}",
+                    membershipId, hasShares.UnwrapErr().Message);
                 return null;
+            }
+
+            if (!hasShares.Unwrap())
+            {
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] No distributed shares found. MembershipId: {MembershipId}", membershipId);
+                return null;
+            }
+
+            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Distributed shares exist. Retrieving... MembershipId: {MembershipId}", membershipId);
 
             Result<KeyShare[], KeySplittingFailure> sharesResult =
                 await distributedShareStorage.RetrieveKeySharesAsync(membershipGuid);
 
             if (sharesResult.IsErr)
+            {
+                Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] RetrieveKeySharesAsync failed. MembershipId: {MembershipId}, Error: {Error}",
+                    membershipId, sharesResult.UnwrapErr().Message);
                 return null;
+            }
 
             KeyShare[] shares = sharesResult.Unwrap();
+            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Retrieved {ShareCount} shares. MembershipId: {MembershipId}",
+                shares.Length, membershipId);
+
             try
             {
                 SodiumSecureMemoryHandle? hmacKeyHandle =
@@ -252,17 +296,28 @@ public class ApplicationInitializer(
 
                 if (hmacKeyHandle == null)
                 {
+                    Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key not found. Cleaning up shares. MembershipId: {MembershipId}", membershipId);
                     await secretSharingService.SecurelyDisposeSharesAsync(shares);
                     await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
                     return null;
                 }
+
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key retrieved. Reconstructing master key... MembershipId: {MembershipId}", membershipId);
 
                 Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructResult =
                     await secretSharingService.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
 
                 hmacKeyHandle.Dispose();
 
-                return reconstructResult.IsOk ? reconstructResult.Unwrap() : null;
+                if (reconstructResult.IsErr)
+                {
+                    Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] Reconstruction failed. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, reconstructResult.UnwrapErr().Message);
+                    return null;
+                }
+
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Successfully reconstructed master key from distributed shares. MembershipId: {MembershipId}", membershipId);
+                return reconstructResult.Unwrap();
             }
             finally
             {
@@ -272,8 +327,10 @@ public class ApplicationInitializer(
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] Exception during reconstruction. MembershipId: {MembershipId}, Exception: {Exception}",
+                membershipId, ex.Message);
             await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
             return null;
         }
@@ -281,57 +338,106 @@ public class ApplicationInitializer(
 
     private async Task<SodiumSecureMemoryHandle?> TryRetrieveHmacKeyHandleAsync(string membershipId)
     {
+        Log.Information("[CLIENT-MASTERKEY-HMAC] Attempting to retrieve HMAC key. MembershipId: {MembershipId}", membershipId);
+
         Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyResult =
             await hmacKeyManager.RetrieveHmacKeyHandleAsync(membershipId);
 
-        return hmacKeyResult.IsOk ? hmacKeyResult.Unwrap() : null;
+        if (hmacKeyResult.IsErr)
+        {
+            Log.Warning("[CLIENT-MASTERKEY-HMAC] HMAC key retrieval failed. MembershipId: {MembershipId}, Error: {Error}",
+                membershipId, hmacKeyResult.UnwrapErr().Message);
+            return null;
+        }
+
+        Log.Information("[CLIENT-MASTERKEY-HMAC] HMAC key retrieved successfully. MembershipId: {MembershipId}", membershipId);
+        return hmacKeyResult.Unwrap();
     }
 
     private async Task<SodiumSecureMemoryHandle?> TryLoadMasterKeyFromStorageAsync(string membershipId)
     {
+        Log.Information("[CLIENT-MASTERKEY-STORAGE] Attempting to load master key from storage. MembershipId: {MembershipId}", membershipId);
+
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
             await identityService.LoadMasterKeyHandleAsync(membershipId);
 
-        return loadResult.IsOk ? loadResult.Unwrap() : null;
+        if (loadResult.IsErr)
+        {
+            Log.Warning("[CLIENT-MASTERKEY-STORAGE] Master key load failed. MembershipId: {MembershipId}, Error: {Error}",
+                membershipId, loadResult.UnwrapErr().Message);
+            return null;
+        }
+
+        Log.Information("[CLIENT-MASTERKEY-STORAGE] Master key loaded successfully from storage. MembershipId: {MembershipId}", membershipId);
+        return loadResult.Unwrap();
     }
 
     private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyAsync(string membershipId)
     {
+        Log.Information("[CLIENT-MASTERKEY] Starting master key reconstruction. MembershipId: {MembershipId}", membershipId);
+
         SodiumSecureMemoryHandle? masterKeyHandle =
             await TryReconstructMasterKeyFromDistributedSharesAsync(membershipId);
 
         if (masterKeyHandle != null)
+        {
+            Log.Information("[CLIENT-MASTERKEY] Master key reconstructed from distributed shares. MembershipId: {MembershipId}", membershipId);
             return masterKeyHandle;
+        }
 
-        return await TryLoadMasterKeyFromStorageAsync(membershipId);
+        Log.Information("[CLIENT-MASTERKEY] Distributed shares failed, trying direct storage load. MembershipId: {MembershipId}", membershipId);
+
+        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId);
+
+        if (storageHandle != null)
+        {
+            Log.Information("[CLIENT-MASTERKEY] Master key loaded from storage. MembershipId: {MembershipId}", membershipId);
+            return storageHandle;
+        }
+
+        Log.Warning("[CLIENT-MASTERKEY] All master key reconstruction methods failed. MembershipId: {MembershipId}", membershipId);
+        return null;
     }
 
     private async Task<Result<bool, NetworkFailure>> TryRestoreSessionStateAsync(
         uint connectId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        Result<byte[], SecureStorageFailure> loadResult =
-            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+        try
+        {
+            Result<byte[], SecureStorageFailure> loadResult =
+                await secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
 
-        if (loadResult.IsErr)
+            if (loadResult.IsErr)
+                return Result<bool, NetworkFailure>.Ok(false);
+
+            byte[] stateBytes = loadResult.Unwrap();
+            EcliptixSessionState? state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
+
+            Result<bool, NetworkFailure> restoreResult =
+                await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
+
+            if (restoreResult.IsErr)
+            {
+                networkProvider.ClearConnection(connectId);
+                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+                return Result<bool, NetworkFailure>.Ok(false);
+            }
+
+            if (restoreResult.Unwrap())
+                return Result<bool, NetworkFailure>.Ok(true);
+
+            networkProvider.ClearConnection(connectId);
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+
             return Result<bool, NetworkFailure>.Ok(false);
-
-        byte[] stateBytes = loadResult.Unwrap();
-        EcliptixSessionState? state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
-
-        Result<bool, NetworkFailure> restoreResult =
-            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
-
-        if (restoreResult.IsErr)
-            return Result<bool, NetworkFailure>.Err(restoreResult.UnwrapErr());
-
-        if (restoreResult.Unwrap())
-            return Result<bool, NetworkFailure>.Ok(true);
-
-        networkProvider.ClearConnection(connectId);
-        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
-
-        return Result<bool, NetworkFailure>.Ok(false);
+        }
+        catch (Exception)
+        {
+            networkProvider.ClearConnection(connectId);
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
     }
 
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,

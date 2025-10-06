@@ -49,30 +49,31 @@ public static class Helpers
 
     public static ByteString GuidToByteString(Guid guid)
     {
-        Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
+        byte[] bytes = guid.ToByteArray();
 
-        guid.TryWriteBytes(bytes);
+        Array.Reverse(bytes, 0, 4);
+        Array.Reverse(bytes, 4, 2);
+        Array.Reverse(bytes, 6, 2);
 
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex0, UtilityConstants.Cryptography.ByteSwapIndex3);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex1, UtilityConstants.Cryptography.ByteSwapIndex2);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex4, UtilityConstants.Cryptography.ByteSwapIndex5);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex6, UtilityConstants.Cryptography.ByteSwapIndex7);
+        Console.WriteLine($"[CLIENT-GUID-TO-BYTES] GUID: {guid}, Bytes: {Convert.ToHexString(bytes)}");
 
         return ByteString.CopyFrom(bytes);
     }
 
     public static Guid FromByteStringToGuid(ByteString byteString)
     {
-        Span<byte> bytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
+        byte[] bytesOriginal = byteString.ToByteArray();
+        byte[] bytes = (byte[])bytesOriginal.Clone();
 
-        byteString.Span.CopyTo(bytes);
+        Array.Reverse(bytes, 0, 4);
+        Array.Reverse(bytes, 4, 2);
+        Array.Reverse(bytes, 6, 2);
 
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex0, UtilityConstants.Cryptography.ByteSwapIndex3);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex1, UtilityConstants.Cryptography.ByteSwapIndex2);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex4, UtilityConstants.Cryptography.ByteSwapIndex5);
-        SwapBytes(bytes, UtilityConstants.Cryptography.ByteSwapIndex6, UtilityConstants.Cryptography.ByteSwapIndex7);
+        Guid result = new Guid(bytes);
 
-        return new Guid(bytes);
+        Console.WriteLine($"[CLIENT-BYTES-TO-GUID] Bytes: {Convert.ToHexString(bytesOriginal)}, GUID: {result}");
+
+        return result;
     }
 
     private static void SwapBytes(Span<byte> bytes, int i, int j)

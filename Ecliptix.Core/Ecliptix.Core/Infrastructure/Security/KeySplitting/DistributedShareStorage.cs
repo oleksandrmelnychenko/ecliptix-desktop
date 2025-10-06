@@ -252,62 +252,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
                 break;
 
             case 2:
-                Result<SodiumSecureMemoryHandle, Utilities.Failures.Sodium.SodiumFailure> allocResult =
-                    SodiumSecureMemoryHandle.Allocate(share.ShareData.Length);
-
-                if (allocResult.IsOk)
-                {
-                    SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-                    Result<Unit, Utilities.Failures.Sodium.SodiumFailure> writeResult = handle.Write(share.ShareData);
-
-                    if (writeResult.IsOk)
-                    {
-                        _cacheLock.EnterWriteLock();
-                        try
-                        {
-                            if (_memoryShareCache.TryRemove(membershipId, out SodiumSecureMemoryHandle? oldHandle))
-                            {
-                                oldHandle.Dispose();
-                            }
-
-                            if (_memoryShareCache.Count >= CacheCapacityLimit)
-                            {
-                                List<KeyValuePair<Guid, DateTime>> lruEntries = _memoryCacheAccessTimes
-                                    .OrderBy(kvp => kvp.Value)
-                                    .Take(CacheLruEvictionCount)
-                                    .ToList();
-
-                                foreach (KeyValuePair<Guid, DateTime> entry in lruEntries)
-                                {
-                                    if (_memoryShareCache.TryRemove(entry.Key, out SodiumSecureMemoryHandle? oldEntry))
-                                    {
-                                        oldEntry?.Dispose();
-                                        _memoryCacheAccessTimes.TryRemove(entry.Key, out _);
-                                    }
-                                }
-                            }
-
-                            _memoryShareCache[membershipId] = handle;
-                            _memoryCacheAccessTimes[membershipId] = DateTime.UtcNow;
-                        }
-                        finally
-                        {
-                            _cacheLock.ExitWriteLock();
-                        }
-                    }
-                    else
-                    {
-                        handle.Dispose();
-                        return Result<Unit, KeySplittingFailure>.Err(
-                            KeySplittingFailure.MemoryWriteFailed(writeResult.UnwrapErr().Message));
-                    }
-                }
-                else
-                {
-                    return Result<Unit, KeySplittingFailure>.Err(
-                        KeySplittingFailure.AllocationFailed(allocResult.UnwrapErr().Message));
-                }
-
+                await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, share.ShareData);
                 break;
 
             case 3:
@@ -360,40 +305,7 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
                 break;
 
             case 2:
-                _cacheLock.EnterUpgradeableReadLock();
-                try
-                {
-                    if (_memoryShareCache.TryGetValue(membershipId, out SodiumSecureMemoryHandle? memHandle))
-                    {
-                        _cacheLock.EnterWriteLock();
-                        try
-                        {
-                            _memoryCacheAccessTimes[membershipId] = DateTime.UtcNow;
-                        }
-                        finally
-                        {
-                            _cacheLock.ExitWriteLock();
-                        }
-
-                        Result<byte[], Utilities.Failures.Sodium.SodiumFailure> readResult =
-                            memHandle.WithReadAccess<byte[]>(span =>
-                            {
-                                byte[] data = new byte[span.Length];
-                                span.CopyTo(data);
-                                return Result<byte[], Utilities.Failures.Sodium.SodiumFailure>.Ok(data);
-                            });
-
-                        if (readResult.IsOk)
-                        {
-                            shareData = readResult.Unwrap();
-                        }
-                    }
-                }
-                finally
-                {
-                    _cacheLock.ExitUpgradeableReadLock();
-                }
-
+                shareData = await _platformSecurityProvider.GetKeyFromKeychainAsync(shareKey);
                 break;
 
             case 3:

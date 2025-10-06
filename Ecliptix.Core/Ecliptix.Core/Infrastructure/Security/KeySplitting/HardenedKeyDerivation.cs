@@ -15,7 +15,7 @@ namespace Ecliptix.Core.Infrastructure.Security.KeySplitting;
 public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecurityProvider) : IHardenedKeyDerivation
 {
     private const string KeyContextPrefix = "ecliptix-session-key";
-    private const string RoundKeyFormat = "round-{0}-{1}";
+    private const string RoundKeyFormat = "round-{0}";
     private const int AdditionalRoundsCount = 3;
     private const int MaxInfoBufferSize = 128;
     private const int MaxPreviousBlockSize = 64;
@@ -37,7 +37,15 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
             byte[] stretchedKey = stretchedResult.Unwrap();
 
-            byte[] expandedKey = await ExpandKeyWithHkdfAsync(stretchedKey, options.OutputLength);
+            string stretchedKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stretchedKey))[..16];
+            Serilog.Log.Information("[CLIENT-ENHANCED-ARGON2ID] Enhanced key Argon2id stretch completed. Context: {Context}, StretchedKeyFingerprint: {StretchedKeyFingerprint}",
+                context, stretchedKeyFingerprint);
+
+            byte[] expandedKey = await ExpandKeyWithHkdfAsync(stretchedKey, context, options.OutputLength);
+
+            string expandedKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expandedKey))[..16];
+            Serilog.Log.Information("[CLIENT-ENHANCED-HKDF] Enhanced key HKDF expansion completed. Context: {Context}, ExpandedKeyFingerprint: {ExpandedKeyFingerprint}",
+                context, expandedKeyFingerprint);
 
             if (options.UseHardwareEntropy && platformSecurityProvider.IsHardwareSecurityAvailable())
             {
@@ -58,6 +66,10 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             }
 
             byte[] finalKey = await ApplyAdditionalRoundsAsync(expandedKey);
+
+            string finalKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(finalKey))[..16];
+            Serilog.Log.Information("[CLIENT-ENHANCED-FINAL] Enhanced key final (after additional rounds). Context: {Context}, FinalKeyFingerprint: {FinalKeyFingerprint}",
+                context, finalKeyFingerprint);
 
             CryptographicOperations.ZeroMemory(stretchedKey);
             CryptographicOperations.ZeroMemory(expandedKey);
@@ -105,15 +117,15 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         return saltBytes;
     }
 
-    private static async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, int outputLength)
+    private static async Task<byte[]> ExpandKeyWithHkdfAsync(byte[] key, string context, int outputLength)
     {
         return await Task.Run(() =>
         {
             Span<byte> infoBuffer = stackalloc byte[MaxInfoBufferSize];
-            int infoLength = Encoding.UTF8.GetBytes(KeyContextPrefix, infoBuffer);
+            int infoLength = Encoding.UTF8.GetBytes($"{KeyContextPrefix}-{context}", infoBuffer);
             ReadOnlySpan<byte> info = infoBuffer[..infoLength];
 
-            byte[] salt = SHA256.HashData(Encoding.UTF8.GetBytes(KeyContextPrefix));
+            byte[] salt = SHA256.HashData(Encoding.UTF8.GetBytes(context));
 
             byte[] pseudoRandomKey;
             using (HMACSHA512 hmac = new(salt))
@@ -172,7 +184,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             for (int round = 0; round < AdditionalRoundsCount; round++)
             {
                 using HMACSHA512 hmac = new(result);
-                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(RoundKeyFormat, round, KeyContextPrefix), roundBuffer);
+                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(RoundKeyFormat, round), roundBuffer);
                 byte[] roundKey = hmac.ComputeHash(roundBuffer[..roundInputLength].ToArray());
 
                 for (int i = 0; i < result.Length && i < roundKey.Length; i++)

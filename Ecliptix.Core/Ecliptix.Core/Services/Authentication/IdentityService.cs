@@ -7,6 +7,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
+using Serilog;
 
 namespace Ecliptix.Core.Services.Authentication;
 
@@ -26,24 +27,41 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
+        string storageKey = GetMasterKeyStorageKey(membershipId);
         Result<byte[], SecureStorageFailure> result =
-            await storage.LoadStateAsync(GetMasterKeyStorageKey(membershipId));
-        return result.IsOk;
+            await storage.LoadStateAsync(storageKey);
+        bool exists = result.IsOk;
+
+        Log.Information("[CLIENT-IDENTITY-CHECK] Checking stored identity. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Exists: {Exists}",
+            membershipId, storageKey, exists);
+
+        return exists;
     }
 
     private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
     {
         byte[]? wrappingKey = null;
+        string storageKey = GetMasterKeyStorageKey(membershipId);
+
         try
         {
-            byte[] protectedKey = await WrapMasterKeyAsync(masterKeyHandle);
-            await storage.SaveStateAsync(protectedKey, GetMasterKeyStorageKey(membershipId));
+            Log.Information("[CLIENT-IDENTITY-STORE-START] Starting identity storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
+                membershipId, storageKey);
 
-            if (platformProvider.IsHardwareSecurityAvailable())
+            (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle);
+            wrappingKey = returnedWrappingKey;
+            await storage.SaveStateAsync(protectedKey, storageKey);
+
+            Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
+                membershipId, storageKey, platformProvider.IsHardwareSecurityAvailable());
+
+            if (platformProvider.IsHardwareSecurityAvailable() && wrappingKey != null)
             {
                 string keychainKey = GetKeychainWrapKey(membershipId);
-                wrappingKey = await GenerateWrappingKeyAsync();
                 await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey);
+
+                Log.Information("[CLIENT-IDENTITY-KEYCHAIN] Wrapping key stored in keychain. MembershipId: {MembershipId}, KeychainKey: {KeychainKey}",
+                    membershipId, keychainKey);
             }
         }
         finally
@@ -55,30 +73,51 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(string membershipId)
     {
+        string storageKey = GetMasterKeyStorageKey(membershipId);
+
         try
         {
+            Log.Information("[CLIENT-IDENTITY-LOAD-START] Starting master key load. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
+                membershipId, storageKey);
+
             Result<byte[], SecureStorageFailure> result =
-                await storage.LoadStateAsync(GetMasterKeyStorageKey(membershipId));
+                await storage.LoadStateAsync(storageKey);
 
             if (result.IsErr)
             {
+                Log.Error("[CLIENT-IDENTITY-LOAD-ERROR] Failed to load protected key. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
+                    membershipId, storageKey, result.UnwrapErr().Message);
+
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Failed to load protected key: {result.UnwrapErr().Message}"));
             }
 
             byte[] protectedKey = result.Unwrap();
-            return await UnwrapMasterKeyAsync(protectedKey, membershipId);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, membershipId);
+
+            if (unwrapResult.IsOk)
+            {
+                Log.Information("[CLIENT-IDENTITY-LOAD] Master key loaded successfully. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
+                    membershipId, storageKey);
+            }
+
+            return unwrapResult;
         }
         catch (Exception ex)
         {
+            Log.Error(ex, "[CLIENT-IDENTITY-LOAD-EXCEPTION] Exception loading master key. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
+                membershipId, storageKey);
+
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to load master key: {ex.Message}", ex));
         }
     }
 
-    private async Task<byte[]> WrapMasterKeyAsync(SodiumSecureMemoryHandle masterKeyHandle)
+    private async Task<(byte[] wrappedData, byte[]? wrappingKey)> WrapMasterKeyAsync(SodiumSecureMemoryHandle masterKeyHandle)
     {
         byte[]? masterKeyBytes = null;
+        bool hardwareSecurityAvailable = platformProvider.IsHardwareSecurityAvailable();
+
         try
         {
             Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
@@ -90,15 +129,21 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             masterKeyBytes = readResult.Unwrap();
 
-            if (!platformProvider.IsHardwareSecurityAvailable())
+            Log.Information("[CLIENT-IDENTITY-WRAP] Wrapping master key. HardwareSecurityAvailable: {HardwareSecurityAvailable}",
+                hardwareSecurityAvailable);
+
+            if (!hardwareSecurityAvailable)
             {
-                return masterKeyBytes.AsSpan().ToArray();
+                Log.Information("[CLIENT-IDENTITY-WRAP] Using software-only protection (no hardware security)");
+                return (masterKeyBytes.AsSpan().ToArray(), null);
             }
 
             byte[]? wrappingKey = null;
             byte[]? encryptedKey = null;
             try
             {
+                Log.Information("[CLIENT-IDENTITY-WRAP] Using hardware-backed AES encryption");
+
                 wrappingKey = await GenerateWrappingKeyAsync();
 
                 using Aes aes = Aes.Create();
@@ -111,12 +156,12 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
                 aes.IV.CopyTo(wrappedData, 0);
                 encryptedKey.CopyTo(wrappedData, aes.IV.Length);
 
-                return wrappedData;
+                Log.Information("[CLIENT-IDENTITY-WRAP] Master key wrapped successfully with hardware encryption");
+
+                return (wrappedData, wrappingKey);
             }
             finally
             {
-                if (wrappingKey != null)
-                    CryptographicOperations.ZeroMemory(wrappingKey);
                 if (encryptedKey != null)
                     CryptographicOperations.ZeroMemory(encryptedKey);
             }
@@ -125,7 +170,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         {
             if (masterKeyBytes == null)
                 throw;
-            return masterKeyBytes.AsSpan().ToArray();
+            return (masterKeyBytes.AsSpan().ToArray(), null);
         }
         finally
         {
@@ -140,11 +185,16 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         byte[]? wrappingKey = null;
         byte[]? encryptedKey = null;
         byte[]? iv = null;
+        bool hardwareSecurityAvailable = platformProvider.IsHardwareSecurityAvailable();
 
         try
         {
-            if (!platformProvider.IsHardwareSecurityAvailable())
+            Log.Information("[CLIENT-IDENTITY-UNWRAP] Unwrapping master key. MembershipId: {MembershipId}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
+                membershipId, hardwareSecurityAvailable);
+
+            if (!hardwareSecurityAvailable)
             {
+                Log.Information("[CLIENT-IDENTITY-UNWRAP] Using software-only protection (no hardware security)");
                 masterKeyBytes = protectedKey.AsSpan().ToArray();
             }
             else
@@ -154,10 +204,14 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
                 if (wrappingKey == null)
                 {
+                    Log.Warning("[CLIENT-IDENTITY-UNWRAP] Wrapping key not found in keychain, falling back to software protection. KeychainKey: {KeychainKey}",
+                        keychainKey);
                     masterKeyBytes = protectedKey.AsSpan().ToArray();
                 }
                 else
                 {
+                    Log.Information("[CLIENT-IDENTITY-UNWRAP] Using hardware-backed AES decryption");
+
                     using Aes aes = Aes.Create();
                     aes.Key = wrappingKey;
 
@@ -167,6 +221,8 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
                     aes.IV = iv;
                     masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
+
+                    Log.Information("[CLIENT-IDENTITY-UNWRAP] Master key unwrapped successfully with hardware decryption");
                 }
             }
 

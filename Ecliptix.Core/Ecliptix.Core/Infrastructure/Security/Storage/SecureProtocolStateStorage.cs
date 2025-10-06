@@ -27,15 +27,15 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private const int HmacSha512Size = 64;
 
     private readonly IPlatformSecurityProvider _platformProvider;
-    private readonly string _storagePath;
+    private readonly string _storageDirectory;
     private readonly byte[] _deviceId;
     private byte[]? _masterKey;
     private bool _disposed;
 
-    public SecureProtocolStateStorage(IPlatformSecurityProvider platformProvider, string storagePath, byte[] deviceId)
+    public SecureProtocolStateStorage(IPlatformSecurityProvider platformProvider, string storageDirectory, byte[] deviceId)
     {
         _platformProvider = platformProvider;
-        _storagePath = storagePath;
+        _storageDirectory = storageDirectory;
         _deviceId = deviceId;
 
         InitializeSecureStorage();
@@ -43,17 +43,32 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private void InitializeSecureStorage()
     {
-        string? directory = Path.GetDirectoryName(_storagePath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        if (!Directory.Exists(_storageDirectory))
         {
-            Directory.CreateDirectory(directory);
+            Directory.CreateDirectory(_storageDirectory);
 
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                File.SetUnixFileMode(directory,
+                File.SetUnixFileMode(_storageDirectory,
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
         }
+    }
+
+    private string GetStorageFilePath(string connectId)
+    {
+        string sanitizedKey = SanitizeFilename(connectId);
+        return Path.Combine(_storageDirectory, $"{sanitizedKey}.ecliptix");
+    }
+
+    private static string SanitizeFilename(string key)
+    {
+        string invalid = new(Path.GetInvalidFileNameChars());
+        foreach (char c in invalid)
+        {
+            key = key.Replace(c, '_');
+        }
+        return key;
     }
 
     public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId)
@@ -75,12 +90,16 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             byte[] protectedContainer = await AddTamperProtectionAsync(container);
 
-            await WriteSecureFileAsync(protectedContainer);
+            string storagePath = GetStorageFilePath(connectId);
+            await WriteSecureFileAsync(protectedContainer, storagePath);
 
             await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{connectId}", encryptionKey);
 
             CryptographicOperations.ZeroMemory(encryptionKey);
             CryptographicOperations.ZeroMemory(protocolState);
+
+            Log.Information("[CLIENT-STATE-SAVE] Protocol state saved. ConnectId: {ConnectId}, FilePath: {FilePath}",
+                connectId, storagePath);
 
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
@@ -121,7 +140,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         try
         {
-            byte[]? protectedContainer = await ReadSecureFileAsync();
+            string storagePath = GetStorageFilePath(connectId);
+            byte[]? protectedContainer = await ReadSecureFileAsync(storagePath);
             if (protectedContainer == null)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
@@ -162,11 +182,15 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             CryptographicOperations.ZeroMemory(encryptionKey);
 
+            Log.Information("[CLIENT-STATE-LOAD] Protocol state loaded. ConnectId: {ConnectId}, FilePath: {FilePath}",
+                connectId, GetStorageFilePath(connectId));
+
             return Result<byte[], SecureStorageFailure>.Ok(plaintext);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to load secure state");
+            Log.Error(ex, "[CLIENT-STATE-LOAD-ERROR] Failed to load secure state. ConnectId: {ConnectId}, FilePath: {FilePath}",
+                connectId, GetStorageFilePath(connectId));
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Load failed: {ex.Message}"));
         }
@@ -179,15 +203,18 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         try
         {
-            await DeleteFileWithRetryAsync(_storagePath);
+            string storagePath = GetStorageFilePath(key);
+            await DeleteFileWithRetryAsync(storagePath);
             await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}");
 
-            Log.Information("Protocol state deleted securely for user {Key}", key);
+            Log.Information("[CLIENT-STATE-DELETE] Protocol state deleted securely. Key: {Key}, FilePath: {FilePath}",
+                key, storagePath);
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to delete secure state for user {Key}", key);
+            Log.Error(ex, "[CLIENT-STATE-DELETE-ERROR] Failed to delete secure state. Key: {Key}, FilePath: {FilePath}",
+                key, GetStorageFilePath(key));
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Delete failed: {ex.Message}"));
         }
@@ -404,9 +431,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         return data;
     }
 
-    private async Task WriteSecureFileAsync(byte[] data)
+    private async Task WriteSecureFileAsync(byte[] data, string filePath)
     {
-        string? directory = Path.GetDirectoryName(_storagePath);
+        string? directory = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
@@ -418,7 +445,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
         }
 
-        string tempPath = $"{_storagePath}.tmp.{Guid.NewGuid():N}";
+        string tempPath = $"{filePath}.tmp.{Guid.NewGuid():N}";
 
         try
         {
@@ -429,9 +456,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
-            await DeleteFileWithRetryAsync(_storagePath);
+            await DeleteFileWithRetryAsync(filePath);
 
-            File.Move(tempPath, _storagePath);
+            File.Move(tempPath, filePath);
         }
         catch (Exception)
         {
@@ -443,8 +470,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    private async Task<byte[]?> ReadSecureFileAsync() =>
-        !File.Exists(_storagePath) ? null : await File.ReadAllBytesAsync(_storagePath);
+    private async Task<byte[]?> ReadSecureFileAsync(string filePath) =>
+        !File.Exists(filePath) ? null : await File.ReadAllBytesAsync(filePath);
 
     public void Dispose()
     {

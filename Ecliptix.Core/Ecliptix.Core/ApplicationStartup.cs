@@ -34,7 +34,15 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
         bool success = await _initializer.InitializeAsync(defaultSystemSettings);
         if (success)
         {
-            await LoadAuthenticationModuleAsync();
+            if (_initializer.IsMembershipConfirmed)
+            {
+                await LoadMainModuleAsync();
+            }
+            else
+            {
+                await LoadAuthenticationModuleAsync();
+            }
+
             await TransitionToNextWindowAsync();
         }
         else
@@ -47,6 +55,11 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
     private async Task LoadAuthenticationModuleAsync()
     {
         await _moduleManager.LoadModuleAsync(ModuleIdentifier.Authentication.ToName());
+    }
+
+    private async Task LoadMainModuleAsync()
+    {
+        await _moduleManager.LoadModuleAsync(ModuleIdentifier.Main.ToName());
     }
 
     private async Task TransitionToNextWindowAsync()

@@ -87,7 +87,7 @@ public class OpaqueAuthenticationService(
         MemorySize = KeyDerivationMemorySize,
         Iterations = KeyDerivationIterations,
         DegreeOfParallelism = KeyDerivationParallelism,
-        UseHardwareEntropy = true,
+        UseHardwareEntropy = false,
         OutputLength = KeyDerivationOutputLength
     };
 
@@ -200,6 +200,10 @@ public class OpaqueAuthenticationService(
 
         byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
+        // Log OPAQUE export_key (base session key) fingerprint
+        string baseKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(baseSessionKeyBytes))[..16];
+        Serilog.Log.Information("[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}", baseKeyFingerprint);
+
         Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
             SodiumSecureMemoryHandle.Allocate(baseSessionKeyBytes.Length);
         if (baseHandleResult.IsErr)
@@ -255,36 +259,64 @@ public class OpaqueAuthenticationService(
             if (signInResult.Membership != null)
             {
                 ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+                Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+
+                Serilog.Log.Information("[LOGIN-START] Starting login flow for MembershipId: {MembershipId}", membershipId);
 
                 if (!ValidateMembershipIdentifier(membershipIdentifier))
                 {
+                    Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}", membershipId);
                     await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier");
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.InvalidMembershipIdentifier(localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                 }
+
+                Serilog.Log.Information("[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}", membershipId);
 
                 Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
                     MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle, membershipIdentifier);
 
                 if (masterKeyHandleResult.IsErr)
                 {
+                    Serilog.Log.Error("[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, masterKeyHandleResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr().Message));
                 }
 
+                Serilog.Log.Information("[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}", membershipId);
+
                 using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
-                Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+
+                Result<byte[], SodiumFailure> masterKeyBytesResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+                if (masterKeyBytesResult.IsOk)
+                {
+                    byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
+                    string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytesTemp))[..16];
+                    Serilog.Log.Information("[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
+                        membershipId, masterKeyFingerprint);
+                    CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
+                }
+
+                Serilog.Log.Information("[LOGIN-HMAC-GENERATE] Generating HMAC key. MembershipId: {MembershipId}", membershipId);
 
                 Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
                     await hmacKeyManager.GenerateHmacKeyHandleAsync(membershipId.ToString());
 
                 if (hmacKeyHandleResult.IsErr)
                 {
+                    Serilog.Log.Error("[LOGIN-HMAC-GENERATE] HMAC key generation failed. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, hmacKeyHandleResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.HmacKeyGenerationFailed(hmacKeyHandleResult.UnwrapErr().Message));
                 }
 
+                Serilog.Log.Information("[LOGIN-HMAC-GENERATE] HMAC key generated successfully. MembershipId: {MembershipId}", membershipId);
+
                 using SodiumSecureMemoryHandle hmacKeyHandle = hmacKeyHandleResult.Unwrap();
+
+                Serilog.Log.Information("[LOGIN-KEY-SPLIT] Splitting master key into {TotalShares} shares (threshold: {Threshold}). MembershipId: {MembershipId}",
+                    TotalKeyShares, MinimumShareThreshold, membershipId);
 
                 Result<KeySplitResult, KeySplittingFailure> masterSplitResult = await keySplitter.SplitKeyAsync(
                     masterKeyHandle,
@@ -294,19 +326,44 @@ public class OpaqueAuthenticationService(
 
                 if (masterSplitResult.IsOk)
                 {
+                    Serilog.Log.Information("[LOGIN-KEY-SPLIT] Master key split successfully. MembershipId: {MembershipId}", membershipId);
+
                     using KeySplitResult masterSplitKeys = masterSplitResult.Unwrap();
+
+                    Serilog.Log.Information("[LOGIN-SHARES-STORE] Storing {ShareCount} distributed shares. MembershipId: {MembershipId}",
+                        masterSplitKeys.Shares.Length, membershipId);
 
                     Result<Unit, KeySplittingFailure> masterStoreResult =
                         await distributedShareStorage.StoreKeySharesAsync(masterSplitKeys, membershipId);
+
                     if (masterStoreResult.IsErr)
                     {
+                        Serilog.Log.Error("[LOGIN-SHARES-STORE] Failed to store distributed shares. MembershipId: {MembershipId}, Error: {Error}",
+                            membershipId, masterStoreResult.UnwrapErr().Message);
                         await systemEvents.NotifySystemStateAsync(SystemState.Busy,
                             $"Failed to store key shares: {masterStoreResult.UnwrapErr().Message}");
                     }
+                    else
+                    {
+                        Serilog.Log.Information("[LOGIN-SHARES-STORE] Distributed shares stored successfully. MembershipId: {MembershipId}", membershipId);
+                    }
+                }
+                else
+                {
+                    Serilog.Log.Error("[LOGIN-KEY-SPLIT] Master key splitting failed. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, masterSplitResult.UnwrapErr().Message);
                 }
 
+                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
                 await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
+                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Identity stored successfully. MembershipId: {MembershipId}", membershipId);
+
+                Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
+                Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}", membershipId);
+
+                Serilog.Log.Information("[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
+                    membershipId, connectId);
 
                 Result<Unit, NetworkFailure> recreateProtocolResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(
@@ -314,10 +371,14 @@ public class OpaqueAuthenticationService(
 
                 if (recreateProtocolResult.IsErr)
                 {
+                    Serilog.Log.Error("[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, recreateProtocolResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.NetworkRequestFailed(
                             $"Failed to establish authenticated protocol: {recreateProtocolResult.UnwrapErr().Message}"));
                 }
+
+                Serilog.Log.Information("[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}", membershipId);
             }
 
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
