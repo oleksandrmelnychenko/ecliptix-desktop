@@ -77,8 +77,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
 
     [Reactive] public bool IsUiLocked { get; private set; }
-    [Reactive] public bool ShowDimmer { get; private set; }
-    [Reactive] public bool ShowSpinner { get; private set; }
     [Reactive] public bool HasValidSession { get; private set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -359,8 +357,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
             AutoRedirectCountdown = seconds;
             IsUiLocked = true;
-            ShowDimmer = true;
-            ShowSpinner = true;
             return Task.CompletedTask;
         });
 
@@ -379,41 +375,17 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             message = _localizationService.GetString(key);
         }
 
-        ShowRedirectNotification(BottomSheetComponentType.RedirectNotification, message, seconds, () =>
-        {
-            if (!_isDisposed)
-                CleanupAndNavigate(targetView);
-        });
-    }
-
-    private void ShowRedirectNotification(BottomSheetComponentType componentType, string message, int seconds,
-        Action onComplete)
-    {
-        if (_isDisposed)
-        {
-            onComplete();
-            return;
-        }
-
-        RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, _localizationService);
-        RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
-
         if (HostScreen is MembershipHostWindowModel hostWindow)
         {
-            _ = Task.Run(async () =>
+            ShowRedirectNotification(hostWindow, message, seconds, () =>
             {
                 if (!_isDisposed)
-                    await hostWindow.ShowBottomSheet(componentType, redirectView, showScrim: true,
-                        isDismissable: false);
-                else
-                    onComplete();
+                    CleanupAndNavigate(targetView);
             });
-        }
-        else
-        {
-            onComplete();
-        }
+        }    
+        
     }
+    
 
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
         VerificationCountdownUpdate.Types.CountdownUpdateStatus status, string? message)
@@ -466,19 +438,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         {
             if (!_isDisposed && HostScreen is MembershipHostWindowModel membershipHostWindow)
             {
-                membershipHostWindow.Navigate.Execute(targetView).Subscribe();
-                membershipHostWindow.ClearNavigationStack();
+                CleanupAndNavigate(membershipHostWindow, targetView);
             }
 
             return Task.CompletedTask;
-        });
-
-        _ = Task.Run(async () =>
-        {
-            if (HostScreen is MembershipHostWindowModel hostWindow)
-            {
-                await hostWindow.HideBottomSheetAsync();
-            }
         });
     }
 
@@ -514,8 +477,6 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             _autoRedirectTimer = null;
 
             IsUiLocked = false;
-            ShowDimmer = false;
-            ShowSpinner = false;
 
             if (HostScreen is MembershipHostWindowModel hostWindow)
             {

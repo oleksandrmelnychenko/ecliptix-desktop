@@ -10,7 +10,7 @@ namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
 public interface IOpaqueRegistrationService
 {
-    Task<Result<ByteString, string>> ValidateMobileNumberAsync(string mobileNumber, string deviceIdentifier,
+    Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(string mobileNumber, string deviceIdentifier,
         uint connectId);
 
     Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString mobileNumberIdentifier, string deviceIdentifier,

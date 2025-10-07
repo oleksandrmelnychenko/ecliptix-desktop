@@ -11,12 +11,15 @@ using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Features.Authentication.Common;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Unit = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -127,27 +130,23 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         string systemDeviceIdentifier = SystemDeviceIdentifier();
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Task<Result<ByteString, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
+        Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
             MobileNumber,
             systemDeviceIdentifier,
             connectId);
 
-        Result<ByteString, string> result = await validationTask.WaitAsync(timeoutCts.Token);
+        Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
 
         if (_isDisposed) return Unit.Default;
 
         if (result.IsOk)
         {
-            ByteString mobileNumberIdentifier = result.Unwrap();
-
-            VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
-                mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
-
-            if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
-            {
-                hostWindow.RegistrationMobileNumber = MobileNumber;
-                hostWindow.NavigateToViewModel(vm);
-            }
+            ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+            
+            if (validateMobileNumberResponse.Membership != null)
+                await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
+            else 
+                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
         }
         else if (!_isDisposed)
         {
@@ -159,6 +158,79 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         return Unit.Default;
     }
 
+    private async Task HandleExistingMembershipAsync(Membership membership)
+    {
+        if (_isDisposed) return;
+        
+        if (HostScreen is not MembershipHostWindowModel hostWindow) return;
+
+        switch (membership.CreationStatus)
+        {
+            case Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified:
+                await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+                await NavigateToSecureKeyConfirmationAsync();
+                break;
+            
+            case Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet:
+                await ShowAccountExistsRedirectAsync();
+                break;
+            
+            default:
+                NetworkErrorMessage = LocalizationService[AuthenticationConstants.UnexpectedMembershipStatusKey];
+                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                break;
+        }
+    }
+    
+    private Task NavigateToOtpVerificationAsync(ByteString mobileNumberIdentifier)
+    {
+        if (_isDisposed) return Task.CompletedTask;
+
+        VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
+
+        if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            hostWindow.RegistrationMobileNumber = MobileNumber;
+            hostWindow.NavigateToViewModel(vm);
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    private Task NavigateToSecureKeyConfirmationAsync()
+    {
+        if (_isDisposed) return Task.CompletedTask;
+
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            hostWindow.RegistrationMobileNumber = MobileNumber;
+            hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    private Task ShowAccountExistsRedirectAsync()
+    {
+        if (_isDisposed) return Task.CompletedTask;
+
+        string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey]; // "Account on this number already registered. Try sign in or use forgot password."
+
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            ShowRedirectNotification(hostWindow, message, 8, () =>
+            {
+                if (!_isDisposed)
+                {
+                    CleanupAndNavigate(hostWindow, MembershipViewType.Welcome);
+                }
+            });
+        }
+
+        return Task.CompletedTask;
+    }
+    
     public async void HandleEnterKeyPress()
     {
         if (_isDisposed) return;

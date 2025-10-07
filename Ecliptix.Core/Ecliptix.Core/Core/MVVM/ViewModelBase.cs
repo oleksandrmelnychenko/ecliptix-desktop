@@ -6,6 +6,7 @@ using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -81,7 +82,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         };
     }
 
-    public void ShowServerErrorNotification(MembershipHostWindowModel hostWindow, string errorMessage)
+    protected void ShowServerErrorNotification(MembershipHostWindowModel hostWindow, string errorMessage)
     {
         if (string.IsNullOrEmpty(errorMessage)) return;
 
@@ -95,6 +96,38 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 errorView,
                 showScrim: false,
                 isDismissable: true);
+        });
+    }
+    
+    protected void ShowRedirectNotification(MembershipHostWindowModel hostWindow, string message, int seconds, Action onComplete)
+    {
+        if (_disposedValue)
+        {
+            onComplete();
+            return;
+        }
+
+        RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
+        RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
+        
+        _ = Task.Run(async () =>
+        {
+            if (!_disposedValue)
+                await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView, showScrim: true, isDismissable: false);
+            else
+                onComplete();
+        });
+    }
+    
+    protected void CleanupAndNavigate(MembershipHostWindowModel membershipHostWindow, MembershipViewType targetView)
+    {
+        membershipHostWindow.Navigate.Execute(targetView).Subscribe();
+        membershipHostWindow.ClearNavigationStack();
+        
+        _ = Task.Run(async () =>
+        {
+            await membershipHostWindow.HideBottomSheetAsync();
+            
         });
     }
 

@@ -53,14 +53,14 @@ public class OpaqueRegistrationService(
         }
     }
 
-    public async Task<Result<ByteString, string>> ValidateMobileNumberAsync(
+    public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
         string deviceIdentifier,
         uint connectId)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
-            return Result<ByteString, string>.Err(
+            return Result<ValidateMobileNumberResponse, string>.Err(
                 localizationService[AuthenticationConstants.MobileNumberRequiredKey]);
         }
 
@@ -70,7 +70,7 @@ public class OpaqueRegistrationService(
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
         };
 
-        TaskCompletionSource<ByteString> responseSource = new();
+        TaskCompletionSource<ValidateMobileNumberResponse> responseSource = new();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -87,7 +87,7 @@ public class OpaqueRegistrationService(
                     }
                     else
                     {
-                        responseSource.TrySetResult(response.MobileNumberIdentifier);
+                        responseSource.TrySetResult(response);
                     }
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -102,17 +102,17 @@ public class OpaqueRegistrationService(
 
         if (networkResult.IsErr)
         {
-            return Result<ByteString, string>.Err(networkResult.UnwrapErr().Message);
+            return Result<ValidateMobileNumberResponse, string>.Err(networkResult.UnwrapErr().Message);
         }
 
         try
         {
-            ByteString identifier = await responseSource.Task;
-            return Result<ByteString, string>.Ok(identifier);
+            ValidateMobileNumberResponse identifier = await responseSource.Task;
+            return Result<ValidateMobileNumberResponse, string>.Ok(identifier);
         }
         catch (Exception ex)
         {
-            return Result<ByteString, string>.Err(ex.Message);
+            return Result<ValidateMobileNumberResponse, string>.Err(ex.Message);
         }
     }
 

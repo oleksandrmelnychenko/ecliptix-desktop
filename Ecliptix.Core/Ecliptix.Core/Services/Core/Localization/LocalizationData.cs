@@ -72,7 +72,9 @@ public static class LocalizationData
         ["ValidationErrors.MobileNumber.IncorrectLength"] = "{0}-{1} digits required",
         ["ValidationErrors.MobileNumber.CannotBeEmpty"] = "Required",
 
-
+        ["ResponseErrors.MobileNumber.AccountAlreadyRegistered"] = "Account on this number already registered. Try sign in or use forgot password.",
+        ["ResponseErrors.MobileNumber.UnexpectedMembershipStatus"] = "Unexpected membership status. Please try again.",
+            
         ["ValidationErrors.MobileNumber.Required"] = "Mobile number is required",
         ["ValidationErrors.MobileNumberIdentifier.Required"] = "Mobile number identifier is required",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Device identifier is required",
@@ -223,6 +225,9 @@ public static class LocalizationData
         ["ValidationErrors.DeviceIdentifier.Required"] = "Ідентифікатор пристрою є обов'язковим",
         ["ValidationErrors.SessionIdentifier.Required"] = "Ідентифікатор сесії є обов'язковим",
         ["ValidationErrors.MembershipIdentifier.Required"] = "Ідентифікатор учасника є обов'язковим",
+
+        ["ResponseErrors.MobileNumber.AccountAlreadyRegistered"] = "Акаунт з цим номером вже зареєстровано. Спробуйте увійти або скористайтеся відновленням пароля.",
+        ["ResponseErrors.MobileNumber.UnexpectedMembershipStatus"] = "Неочікуваний статус системи. Спробуйте ще раз.",
 
 
         ["ValidationErrors.SecureKey.Required"] = "Обов'язкове поле",
