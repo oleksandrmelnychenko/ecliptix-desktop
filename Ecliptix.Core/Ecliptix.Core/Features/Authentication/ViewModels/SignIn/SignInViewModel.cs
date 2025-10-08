@@ -204,7 +204,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                     return Task.CompletedTask;
                 });
             }).DistinctUntilChanged()
-            .Do(outage => Serilog.Log.Debug("🌐 Network outage status changed: {Outage}", outage));
+            .Do(outage => Log.Debug("🌐 Network outage status changed: {Outage}", outage));
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
