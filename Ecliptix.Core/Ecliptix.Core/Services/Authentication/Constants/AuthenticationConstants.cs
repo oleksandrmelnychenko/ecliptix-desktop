@@ -39,6 +39,8 @@ public static class AuthenticationConstants
 
     public const string AccountAlreadyExistsKey = "ResponseErrors.MobileNumber.AccountAlreadyRegistered";
     public const string UnexpectedMembershipStatusKey = "ResponseErrors.MobileNumber.UnexpectedMembershipStatus";
+    
+    public const string TimeoutExceededKey = "ResponseErrors.Common.TimeoutExceeded";
 
     public const string InitialRemainingTime = "00:30";
     public const string ExpiredRemainingTime = "00:00";

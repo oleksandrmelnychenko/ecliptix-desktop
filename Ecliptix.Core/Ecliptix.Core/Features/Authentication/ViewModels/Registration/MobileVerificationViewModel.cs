@@ -140,63 +140,87 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
         using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
 
-        string systemDeviceIdentifier = SystemDeviceIdentifier();
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-
-        if (_flowContext == AuthenticationFlowContext.Registration)
+        try
         {
-            Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
-                MobileNumber,
-                systemDeviceIdentifier,
-                connectId);
+            string systemDeviceIdentifier = SystemDeviceIdentifier();
+            uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-            Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
-
-            if (_isDisposed) return Unit.Default;
-
-            if (result.IsOk)
+            if (_flowContext == AuthenticationFlowContext.Registration)
             {
-                ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+                Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
+                    MobileNumber,
+                    systemDeviceIdentifier,
+                    connectId);
 
-                if (validateMobileNumberResponse.Membership != null)
-                    await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
-                else
-                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
+
+                if (_isDisposed) return Unit.Default;
+
+                if (result.IsOk)
+                {
+                    ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+
+                    if (validateMobileNumberResponse.Membership != null)
+                        await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
+                    else
+                        await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                }
+                else if (!_isDisposed)
+                {
+                    NetworkErrorMessage = result.UnwrapErr();
+                    if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                        ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                }
             }
-            else if (!_isDisposed)
+            else
             {
-                NetworkErrorMessage = result.UnwrapErr();
-                if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                Task<Result<ByteString, string>> recoveryValidationTask =
+                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId);
+
+                Result<ByteString, string> result = await recoveryValidationTask.WaitAsync(timeoutCts.Token);
+
+                if (_isDisposed) return Unit.Default;
+
+                if (result.IsOk)
+                {
+                    ByteString mobileNumberIdentifier = result.Unwrap();
+
+                    VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                        mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
+                        _flowContext, _passwordRecoveryService);
+
+                    if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                    {
+                        hostWindow.RecoveryMobileNumber = MobileNumber;
+                        hostWindow.NavigateToViewModel(vm);
+                    }
+                }
+                else if (!_isDisposed)
+                {
+                    NetworkErrorMessage = result.UnwrapErr();
+                    if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                        ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
+        {
+            if (!_isDisposed)
+            {
+                NetworkErrorMessage = LocalizationService[AuthenticationConstants.TimeoutExceededKey];
+                if (HostScreen is MembershipHostWindowModel hostWindow)
                     ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
             }
         }
-        else
+        catch (OperationCanceledException)
         {
-            Task<Result<ByteString, string>> recoveryValidationTask =
-                _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId);
-
-            Result<ByteString, string> result = await recoveryValidationTask.WaitAsync(timeoutCts.Token);
-
-            if (_isDisposed) return Unit.Default;
-
-            if (result.IsOk)
+        }
+        catch (Exception ex)
+        {
+            if (!_isDisposed)
             {
-                ByteString mobileNumberIdentifier = result.Unwrap();
-
-                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
-                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
-                    _flowContext, _passwordRecoveryService);
-
-                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
-                {
-                    hostWindow.RecoveryMobileNumber = MobileNumber;
-                    hostWindow.NavigateToViewModel(vm);
-                }
-            }
-            else if (!_isDisposed)
-            {
-                NetworkErrorMessage = result.UnwrapErr();
-                if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                NetworkErrorMessage = LocalizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+                if (HostScreen is MembershipHostWindowModel hostWindow)
                     ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
             }
         }
