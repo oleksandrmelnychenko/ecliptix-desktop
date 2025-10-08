@@ -10,10 +10,12 @@ using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
+using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
+using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
 
 namespace Ecliptix.Core.Features.Authentication;
 
@@ -38,9 +40,11 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
     {
         services.AddTransient<SignInViewModel>();
         services.AddTransient<MobileVerificationViewModel>();
+        services.AddTransient<VerifyOtpViewModel>();
         services.AddTransient<SecureKeyVerifierViewModel>();
         services.AddTransient<PassPhaseViewModel>();
         services.AddTransient<WelcomeViewModel>();
+        services.AddTransient<ForgotPasswordResetViewModel>();
         services.AddTransient<MembershipHostWindowModel>();
     }
 
@@ -50,9 +54,11 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         [
             typeof(SignInView),
             typeof(MobileVerificationView),
+            typeof(VerificationCodeEntryView),
             typeof(SecureKeyConfirmationView),
             typeof(PassPhaseView),
-            typeof(WelcomeView)
+            typeof(WelcomeView),
+            typeof(ForgotPasswordResetView)
         ];
     }
 
@@ -62,9 +68,11 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         [
             typeof(SignInViewModel),
             typeof(MobileVerificationViewModel),
+            typeof(VerifyOtpViewModel),
             typeof(SecureKeyVerifierViewModel),
             typeof(PassPhaseViewModel),
-            typeof(WelcomeViewModel)
+            typeof(WelcomeViewModel),
+            typeof(ForgotPasswordResetViewModel)
         ];
     }
 
@@ -72,11 +80,13 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
     {
         viewFactory.RegisterView<SignInViewModel, SignInView>();
         viewFactory.RegisterView<MobileVerificationViewModel, MobileVerificationView>();
+        viewFactory.RegisterView<VerifyOtpViewModel, VerificationCodeEntryView>();
         viewFactory.RegisterView<SecureKeyVerifierViewModel, SecureKeyConfirmationView>();
         viewFactory.RegisterView<PassPhaseViewModel, PassPhaseView>();
         viewFactory.RegisterView<WelcomeViewModel, WelcomeView>();
+        viewFactory.RegisterView<ForgotPasswordResetViewModel, ForgotPasswordResetView>();
 
-        Serilog.Log.Information("Registered {Count} view factories for Authentication module", 5);
+        Serilog.Log.Information("Registered {Count} view factories for Authentication module", 7);
     }
 
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)

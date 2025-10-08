@@ -253,6 +253,7 @@ public class ApplicationInitializer(
     private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyFromDistributedSharesAsync(string membershipId)
     {
         Guid membershipGuid = Guid.Parse(membershipId);
+        Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== MASTER KEY RECONSTRUCTION STARTED ==========");
         Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Attempting to reconstruct from distributed shares. MembershipId: {MembershipId}", membershipId);
 
         try
@@ -264,30 +265,36 @@ public class ApplicationInitializer(
             {
                 Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] HasStoredSharesAsync failed. MembershipId: {MembershipId}, Error: {Error}",
                     membershipId, hasShares.UnwrapErr().Message);
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: Pre-check error ==========");
                 return null;
             }
 
             if (!hasShares.Unwrap())
             {
                 Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] No distributed shares found. MembershipId: {MembershipId}", membershipId);
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: No shares exist ==========");
                 return null;
             }
 
-            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Distributed shares exist. Retrieving... MembershipId: {MembershipId}", membershipId);
+            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Distributed shares exist. Retrieving all 5 share locations... MembershipId: {MembershipId}", membershipId);
 
             Result<KeyShare[], KeySplittingFailure> sharesResult =
                 await distributedShareStorage.RetrieveKeySharesAsync(membershipGuid);
 
             if (sharesResult.IsErr)
             {
-                Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] RetrieveKeySharesAsync failed. MembershipId: {MembershipId}, Error: {Error}",
-                    membershipId, sharesResult.UnwrapErr().Message);
+                KeySplittingFailure failure = sharesResult.UnwrapErr();
+                Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] RetrieveKeySharesAsync failed. MembershipId: {MembershipId}, Error: {Error}, FailureType: {FailureType}",
+                    membershipId, failure.Message, failure.GetType().Name);
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: Share retrieval error ==========");
                 return null;
             }
 
             KeyShare[] shares = sharesResult.Unwrap();
-            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Retrieved {ShareCount} shares. MembershipId: {MembershipId}",
-                shares.Length, membershipId);
+
+            string sharesSummary = string.Join(", ", System.Linq.Enumerable.Select(shares, s => $"Share#{s.ShareIndex}({s.Location})"));
+            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Retrieved {ShareCount} shares successfully. MembershipId: {MembershipId}, Shares: [{SharesSummary}]",
+                shares.Length, membershipId, sharesSummary);
 
             try
             {
@@ -296,13 +303,16 @@ public class ApplicationInitializer(
 
                 if (hmacKeyHandle == null)
                 {
-                    Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key not found. Cleaning up shares. MembershipId: {MembershipId}", membershipId);
+                    Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key not found. Cleaning up {ShareCount} shares. MembershipId: {MembershipId}",
+                        shares.Length, membershipId);
                     await secretSharingService.SecurelyDisposeSharesAsync(shares);
                     await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+                    Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: HMAC key missing ==========");
                     return null;
                 }
 
-                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key retrieved. Reconstructing master key... MembershipId: {MembershipId}", membershipId);
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] HMAC key retrieved successfully. Reconstructing master key from {ShareCount} shares... MembershipId: {MembershipId}",
+                    shares.Length, membershipId);
 
                 Result<SodiumSecureMemoryHandle, KeySplittingFailure> reconstructResult =
                     await secretSharingService.ReconstructKeyHandleAsync(shares, hmacKeyHandle);
@@ -311,13 +321,18 @@ public class ApplicationInitializer(
 
                 if (reconstructResult.IsErr)
                 {
-                    Log.Warning("[CLIENT-MASTERKEY-DISTRIBUTED] Reconstruction failed. MembershipId: {MembershipId}, Error: {Error}",
-                        membershipId, reconstructResult.UnwrapErr().Message);
+                    KeySplittingFailure failure = reconstructResult.UnwrapErr();
+                    Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] Reconstruction failed. MembershipId: {MembershipId}, Error: {Error}, FailureType: {FailureType}, AvailableShares: {ShareCount}",
+                        membershipId, failure.Message, failure.GetType().Name, shares.Length);
+                    Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: Key reconstruction error ==========");
                     return null;
                 }
 
-                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Successfully reconstructed master key from distributed shares. MembershipId: {MembershipId}", membershipId);
-                return reconstructResult.Unwrap();
+                SodiumSecureMemoryHandle masterKeyHandle = reconstructResult.Unwrap();
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION SUCCESS ==========");
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Successfully reconstructed master key from distributed shares. MembershipId: {MembershipId}, SharesUsed: {ShareCount}, HandleLength: {Length}",
+                    membershipId, shares.Length, masterKeyHandle.Length);
+                return masterKeyHandle;
             }
             finally
             {
@@ -329,9 +344,21 @@ public class ApplicationInitializer(
         }
         catch (Exception ex)
         {
-            Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] Exception during reconstruction. MembershipId: {MembershipId}, Exception: {Exception}",
-                membershipId, ex.Message);
-            await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+            Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] Unhandled exception during reconstruction. MembershipId: {MembershipId}, ExceptionType: {ExceptionType}, Message: {Exception}, StackTrace: {StackTrace}",
+                membershipId, ex.GetType().Name, ex.Message, ex.StackTrace);
+
+            try
+            {
+                await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
+                Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] Shares cleaned up after exception. MembershipId: {MembershipId}", membershipId);
+            }
+            catch (Exception cleanupEx)
+            {
+                Log.Error("[CLIENT-MASTERKEY-DISTRIBUTED] Failed to cleanup shares after exception. MembershipId: {MembershipId}, CleanupError: {Error}",
+                    membershipId, cleanupEx.Message);
+            }
+
+            Log.Information("[CLIENT-MASTERKEY-DISTRIBUTED] ========== RECONSTRUCTION FAILED: Unhandled exception ==========");
             return null;
         }
     }
@@ -376,6 +403,18 @@ public class ApplicationInitializer(
     {
         Log.Information("[CLIENT-MASTERKEY] Starting master key reconstruction. MembershipId: {MembershipId}", membershipId);
 
+        Log.Information("[CLIENT-MASTERKEY] Trying direct storage load FIRST (bypassing distributed shares for testing). MembershipId: {MembershipId}", membershipId);
+
+        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId);
+
+        if (storageHandle != null)
+        {
+            Log.Information("[CLIENT-MASTERKEY] Master key loaded from direct storage. MembershipId: {MembershipId}", membershipId);
+            return storageHandle;
+        }
+
+        Log.Information("[CLIENT-MASTERKEY] Direct storage load failed, trying distributed shares reconstruction. MembershipId: {MembershipId}", membershipId);
+
         SodiumSecureMemoryHandle? masterKeyHandle =
             await TryReconstructMasterKeyFromDistributedSharesAsync(membershipId);
 
@@ -383,16 +422,6 @@ public class ApplicationInitializer(
         {
             Log.Information("[CLIENT-MASTERKEY] Master key reconstructed from distributed shares. MembershipId: {MembershipId}", membershipId);
             return masterKeyHandle;
-        }
-
-        Log.Information("[CLIENT-MASTERKEY] Distributed shares failed, trying direct storage load. MembershipId: {MembershipId}", membershipId);
-
-        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId);
-
-        if (storageHandle != null)
-        {
-            Log.Information("[CLIENT-MASTERKEY] Master key loaded from storage. MembershipId: {MembershipId}", membershipId);
-            return storageHandle;
         }
 
         Log.Warning("[CLIENT-MASTERKEY] All master key reconstruction methods failed. MembershipId: {MembershipId}", membershipId);

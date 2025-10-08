@@ -1779,7 +1779,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            string masterKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(masterKeyBytes))[..16];
+            string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytes))[..16];
             Log.Information("[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                 connectId, membershipId, masterKeyFingerprint);
 
@@ -1792,7 +1792,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 info: "ecliptix-protocol-root-key"u8.ToArray()
             );
 
-            string rootKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(rootKeyBytes))[..16];
+            string rootKeyHash = Convert.ToHexString(SHA256.HashData(rootKeyBytes))[..16];
             Log.Information("[CLIENT-AUTH-ROOTKEY] Derived root key from master key using HKDF. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
                 connectId, rootKeyHash);
 
@@ -1807,7 +1807,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
 
-            string identityX25519Hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
+            string identityX25519Hash = Convert.ToHexString(SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
             Log.Information("[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
                 connectId, identityX25519Hash);
 

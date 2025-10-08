@@ -33,8 +33,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private readonly ByteString _mobileNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly ILocalizationService _localizationService;
     private readonly IUiDispatcher _uiDispatcher;
+    private readonly AuthenticationFlowContext _flowContext;
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
     public IScreen HostScreen { get; }
@@ -96,21 +98,34 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         ByteString mobileNumberIdentifier,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IUiDispatcher uiDispatcher) : base(systemEventService, networkProvider,
+        IUiDispatcher uiDispatcher,
+        AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
+        IPasswordRecoveryService? passwordRecoveryService = null) : base(systemEventService, networkProvider,
         localizationService)
     {
         _mobileNumberIdentifier = mobileNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
+        _passwordRecoveryService = passwordRecoveryService;
+        _flowContext = flowContext;
         _localizationService = localizationService;
         _uiDispatcher = uiDispatcher;
+
+        if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
+        {
+            throw new ArgumentNullException(nameof(passwordRecoveryService),
+                "Password recovery service is required when flow context is PasswordRecovery");
+        }
 
         HostScreen = hostScreen;
 
         NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
             MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
-            return hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey);
+            MembershipViewType nextView = _flowContext == AuthenticationFlowContext.Registration
+                ? MembershipViewType.ConfirmSecureKey
+                : MembershipViewType.ForgotPasswordReset;
+            return hostWindow.Navigate.Execute(nextView);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(
@@ -168,23 +183,42 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             _disposables.Add(_operationCts);
 
             string deviceIdentifier = SystemDeviceIdentifier();
-            Result<Ecliptix.Utilities.Unit, string> result = await _registrationService.InitiateOtpVerificationAsync(
-                _mobileNumberIdentifier,
-                deviceIdentifier,
-                onCountdownUpdate: (seconds, identifier, status, message) =>
-                    RxApp.MainThreadScheduler.Schedule(() =>
-                    {
-                        if (_isDisposed) return;
-                        try
+
+            Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask = _flowContext == AuthenticationFlowContext.Registration
+                ? _registrationService.InitiateOtpVerificationAsync(
+                    _mobileNumberIdentifier,
+                    deviceIdentifier,
+                    onCountdownUpdate: (seconds, identifier, status, message) =>
+                        RxApp.MainThreadScheduler.Schedule(() =>
                         {
-                            HandleCountdownUpdate(seconds, identifier, status, message);
-                        }
-                        catch (ObjectDisposedException)
+                            if (_isDisposed) return;
+                            try
+                            {
+                                HandleCountdownUpdate(seconds, identifier, status, message);
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                            }
+                        }),
+                    cancellationToken: _operationCts.Token)
+                : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
+                    _mobileNumberIdentifier,
+                    deviceIdentifier,
+                    onCountdownUpdate: (seconds, identifier, status, message) =>
+                        RxApp.MainThreadScheduler.Schedule(() =>
                         {
-                        }
-                    }),
-                cancellationToken: _operationCts.Token
-            );
+                            if (_isDisposed) return;
+                            try
+                            {
+                                HandleCountdownUpdate(seconds, identifier, status, message);
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                            }
+                        }),
+                    cancellationToken: _operationCts.Token);
+
+            Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
             if (result.IsErr && !_isDisposed)
             {
@@ -217,12 +251,19 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             timeoutCts.Token,
             _operationCts?.Token ?? CancellationToken.None);
 
-        Result<Membership, string> result =
-            await _registrationService.VerifyOtpAsync(
+        Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
+            ? _registrationService.VerifyOtpAsync(
+                VerificationSessionIdentifier!.Value,
+                VerificationCode,
+                systemDeviceIdentifier,
+                connectId)
+            : _passwordRecoveryService!.VerifyPasswordResetOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
                 systemDeviceIdentifier,
                 connectId);
+
+        Result<Membership, string> result = await verifyTask;
 
         if (_isDisposed) return;
 
@@ -274,8 +315,19 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
 
                 _operationCts.Token.ThrowIfCancellationRequested();
 
-                Result<Ecliptix.Utilities.Unit, string> result =
-                    await _registrationService.ResendOtpVerificationAsync(
+                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = _flowContext == AuthenticationFlowContext.Registration
+                    ? _registrationService.ResendOtpVerificationAsync(
+                        VerificationSessionIdentifier!.Value,
+                        _mobileNumberIdentifier,
+                        deviceIdentifier,
+                        onCountdownUpdate: (seconds, identifier, status, message) =>
+                            RxApp.MainThreadScheduler.Schedule(() =>
+                            {
+                                if (!_isDisposed)
+                                    HandleCountdownUpdate(seconds, identifier, status, message);
+                            }),
+                        cancellationToken: _operationCts.Token)
+                    : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
                         VerificationSessionIdentifier!.Value,
                         _mobileNumberIdentifier,
                         deviceIdentifier,
@@ -286,6 +338,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                                     HandleCountdownUpdate(seconds, identifier, status, message);
                             }),
                         cancellationToken: _operationCts.Token);
+
+                Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
                 if (result.IsErr && !_isDisposed)
                 {

@@ -116,8 +116,10 @@ public class OpaqueRegistrationService(
         }
     }
 
-    public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString mobileNumberIdentifier,
+    public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(
+        ByteString mobileNumberIdentifier,
         string deviceIdentifier,
+        VerificationPurpose purpose = VerificationPurpose.Registration,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
@@ -148,7 +150,7 @@ public class OpaqueRegistrationService(
         {
             MobileNumberIdentifier = mobileNumberIdentifier,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
-            Purpose = VerificationPurpose.Registration,
+            Purpose = purpose,
             Type = InitiateVerificationRequest.Types.Type.SendOtp
         };
 
@@ -472,14 +474,20 @@ public class OpaqueRegistrationService(
 
             if (networkResult.IsErr)
             {
-                _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
+                if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? failedResult))
+                {
+                    failedResult?.Dispose();
+                }
                 return Result<Unit, string>.Err(
                     $"{AuthenticationConstants.RegistrationFailurePrefix}{networkResult.UnwrapErr().Message}");
             }
 
             OpaqueRegistrationCompleteResponse completeResponse = await responseSource.Task;
 
-            _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
+            if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
+            {
+                completedResult?.Dispose();
+            }
 
             if (completeResponse.Result != OpaqueRegistrationCompleteResponse.Types.RegistrationResult.Succeeded)
             {
@@ -490,7 +498,10 @@ public class OpaqueRegistrationService(
         }
         catch (Exception ex)
         {
-            _opaqueRegistrationState.TryRemove(membershipIdentifier, out _);
+            if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? exceptionResult))
+            {
+                exceptionResult?.Dispose();
+            }
             return Result<Unit, string>.Err($"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}");
         }
     }

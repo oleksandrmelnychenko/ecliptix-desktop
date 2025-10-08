@@ -6,9 +6,11 @@ using Avalonia.Controls;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
+using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
+using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
 
 namespace Ecliptix.Core.Core.MVVM;
 
@@ -26,7 +28,8 @@ public static class StaticViewMapper
             [typeof(VerifyOtpViewModel)] = new(() => () => new VerificationCodeEntryView()),
             [typeof(SecureKeyVerifierViewModel)] = new(() => () => new SecureKeyConfirmationView()),
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
-            [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView())
+            [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView()),
+            [typeof(ForgotPasswordResetViewModel)] = new(() => () => new ForgotPasswordResetView())
         };
     }
 

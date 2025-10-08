@@ -338,11 +338,13 @@ public static class Program
     {
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
+        services.AddSingleton<IPasswordRecoveryService, PasswordRecoveryService>();
         services.AddSingleton<IIdentityService, IdentityService>();
 
         services.AddSingleton<ISecretSharingService, ShamirSecretSharing>();
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
         services.AddSingleton<IHmacKeyManager, HmacKeyManager>();
+        services.AddSingleton<IKeyDiagnosticsService, KeyDiagnosticsService>();
         services.AddSingleton<IDistributedShareStorage>(sp =>
             new DistributedShareStorage(
                 sp.GetRequiredService<IPlatformSecurityProvider>(),

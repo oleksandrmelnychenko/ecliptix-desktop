@@ -5,6 +5,7 @@ using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Google.Protobuf;
+using VerificationPurpose = Ecliptix.Protobuf.Membership.VerificationPurpose;
 
 namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
@@ -13,7 +14,10 @@ public interface IOpaqueRegistrationService
     Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(string mobileNumber, string deviceIdentifier,
         uint connectId);
 
-    Task<Result<Unit, string>> InitiateOtpVerificationAsync(ByteString mobileNumberIdentifier, string deviceIdentifier,
+    Task<Result<Unit, string>> InitiateOtpVerificationAsync(
+        ByteString mobileNumberIdentifier,
+        string deviceIdentifier,
+        VerificationPurpose purpose = VerificationPurpose.Registration,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 

@@ -38,6 +38,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.OpaqueRegistrationInit] = OpaqueRegistrationRecordRequestAsync,
             [RpcServiceType.VerifyOtp] = VerifyCodeAsync,
             [RpcServiceType.OpaqueRegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
+            [RpcServiceType.OpaqueRecoverySecretKeyInit] = OpaqueRecoveryInitRequestAsync,
+            [RpcServiceType.OpaqueRecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
             [RpcServiceType.OpaqueSignInInitRequest] = OpaqueSignInInitRequestAsync,
             [RpcServiceType.OpaqueSignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
         };
@@ -162,6 +164,42 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 systemEvents,
                 () =>
                     membershipServicesClient.OpaqueSignInCompleteRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
+        }
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryInitRequestAsync(
+            SecureEnvelope payload,
+            INetworkEventService networkEvents,
+            ISystemEventService systemEvents,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueRecoverySecretKeyInitRequestAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            );
+        }
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryCompleteRequestAsync(
+            SecureEnvelope payload,
+            INetworkEventService networkEvents,
+            ISystemEventService systemEvents,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    membershipServicesClient.OpaqueRecoverySecretKeyCompleteRequestAsync(
                         payload,
                         new CallOptions(cancellationToken: token)
                     )

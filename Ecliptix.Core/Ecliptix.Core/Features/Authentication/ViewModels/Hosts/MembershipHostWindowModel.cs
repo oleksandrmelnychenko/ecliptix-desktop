@@ -27,6 +27,7 @@ using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
+using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Features.Main.ViewModels;
@@ -59,6 +60,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
+    private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
@@ -68,26 +70,29 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
-        IOpaqueRegistrationService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
+        IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
-            IOpaqueRegistrationService, IUiDispatcher, IRoutableViewModel>>
+            IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
                 new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
                     new WelcomeViewModel(host, sys, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
                     new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
             [MembershipViewType.ConfirmSecureKey] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
                     new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, uiDispatcher) =>
-                    new PassPhaseViewModel(sys, loc, host, netProvider)
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                    new PassPhaseViewModel(sys, loc, host, netProvider),
+            [MembershipViewType.ForgotPasswordReset] =
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                    new ForgotPasswordResetViewModel(sys, netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
@@ -124,6 +129,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public string FullVersionInfo { get; }
 
     public string? RegistrationMobileNumber { get; set; }
+    public string? RecoveryMobileNumber { get; set; }
 
     public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
 
@@ -153,6 +159,22 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         CurrentView = viewModel;
     }
 
+    public void StartPasswordRecoveryFlow()
+    {
+        ClearNavigationStack();
+        MobileVerificationViewModel vm = new(
+            _systemEventService,
+            _networkProvider,
+            LocalizationService,
+            this,
+            _applicationSecureStorageProvider,
+            _opaqueRegistrationService,
+            _uiDispatcher,
+            AuthenticationFlowContext.PasswordRecovery,
+            _passwordRecoveryService);
+        NavigateToViewModel(vm);
+    }
+
     public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
 
     public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
@@ -173,6 +195,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IAuthenticationService authenticationService,
         NetworkStatusNotificationViewModel networkStatusNotification,
         IOpaqueRegistrationService opaqueRegistrationService,
+        IPasswordRecoveryService passwordRecoveryService,
         IUiDispatcher uiDispatcher,
         ILanguageDetectionService languageDetectionService)
         : base(systemEventService, networkProvider, localizationService)
@@ -186,6 +209,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
+        _passwordRecoveryService = passwordRecoveryService;
         _uiDispatcher = uiDispatcher;
         _languageDetectionService = languageDetectionService;
 
@@ -510,7 +534,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
                     IAuthenticationService,
                     IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService,
-                    IUiDispatcher, IRoutableViewModel>? factory))
+                    IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory registered for view type: {viewType}");
         }
@@ -518,7 +542,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
-            _uiDispatcher);
+            _passwordRecoveryService, _uiDispatcher);
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;

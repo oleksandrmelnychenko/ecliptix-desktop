@@ -10,6 +10,8 @@ public enum RpcServiceType : short
     InitiateVerification,
     OpaqueRegistrationInit,
     OpaqueRegistrationComplete,
+    OpaqueRecoverySecretKeyInit,
+    OpaqueRecoverySecretKeyComplete,
     OpaqueSignInInitRequest,
     OpaqueSignInCompleteRequest,
     AuthenticatedEstablishSecureChannel,

@@ -36,6 +36,14 @@ public static class LocalizationData
         ["Authentication.SignUp.PasswordConfirmation.Error_PasswordMismatch"] = "Passwords do not match.",
         ["Authentication.SignUp.PasswordConfirmation.Button"] = "Set Password",
 
+        ["Authentication.PasswordRecovery.Reset.Title"] = "Reset Password",
+        ["Authentication.PasswordRecovery.Reset.Description"] = "Create a new secure password for your account.",
+        ["Authentication.PasswordRecovery.Reset.NewPasswordPlaceholder"] = "New Secure Key",
+        ["Authentication.PasswordRecovery.Reset.NewPasswordHint"] = "8 chars, 1 upper and 1 number",
+        ["Authentication.PasswordRecovery.Reset.ConfirmPasswordPlaceholder"] = "Confirm New Key",
+        ["Authentication.PasswordRecovery.Reset.ConfirmPasswordHint"] = "Re-enter your new secure key",
+        ["Authentication.PasswordRecovery.Reset.Button"] = "Reset Password",
+
         ["Authentication.SignUp.PassPhase.Title"] = "Set PIN",
         ["Authentication.SignUp.PassPhase.Description"] = "For quick and secure authentication.",
         ["Authentication.SignUp.PassPhase.Hint"] = "Your PIN",
@@ -182,6 +190,14 @@ public static class LocalizationData
         ["Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint"] = "Введіть ключ ще раз для підтвердження",
         ["Authentication.SignUp.PasswordConfirmation.Error_PasswordMismatch"] = "Паролі не збігаються.",
         ["Authentication.SignUp.PasswordConfirmation.Button"] = "Встановити пароль",
+
+        ["Authentication.PasswordRecovery.Reset.Title"] = "Скидання пароля",
+        ["Authentication.PasswordRecovery.Reset.Description"] = "Створіть новий безпечний пароль для облікового запису.",
+        ["Authentication.PasswordRecovery.Reset.NewPasswordPlaceholder"] = "Новий ключ безпеки",
+        ["Authentication.PasswordRecovery.Reset.NewPasswordHint"] = "8 символів, 1 велика літера та 1 цифра",
+        ["Authentication.PasswordRecovery.Reset.ConfirmPasswordPlaceholder"] = "Підтвердіть новий ключ",
+        ["Authentication.PasswordRecovery.Reset.ConfirmPasswordHint"] = "Введіть новий ключ ще раз",
+        ["Authentication.PasswordRecovery.Reset.Button"] = "Скинути пароль",
 
         ["Authentication.SignUp.PassPhase.Title"] = "Встановіть PIN-код",
         ["Authentication.SignUp.PassPhase.Description"] = "Для швидкої та безпечної автентифікації.",

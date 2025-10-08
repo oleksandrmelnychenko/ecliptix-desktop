@@ -21,6 +21,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Core.Features.Authentication.Common;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -31,7 +32,9 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly IUiDispatcher _uiDispatcher;
+    private readonly AuthenticationFlowContext _flowContext;
 
     [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
 
@@ -55,12 +58,23 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IUiDispatcher uiDispatcher) : base(systemEventService, networkProvider, localizationService)
+        IUiDispatcher uiDispatcher,
+        AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
+        IPasswordRecoveryService? passwordRecoveryService = null) : base(systemEventService, networkProvider, localizationService)
     {
         _registrationService = registrationService;
+        _passwordRecoveryService = passwordRecoveryService;
+        _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _uiDispatcher = uiDispatcher;
+
+        if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
+        {
+            throw new ArgumentNullException(nameof(passwordRecoveryService),
+                "Password recovery service is required when flow context is PasswordRecovery");
+        }
+
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
     }
@@ -130,29 +144,62 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         string systemDeviceIdentifier = SystemDeviceIdentifier();
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
-            MobileNumber,
-            systemDeviceIdentifier,
-            connectId);
-
-        Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
-
-        if (_isDisposed) return Unit.Default;
-
-        if (result.IsOk)
+        if (_flowContext == AuthenticationFlowContext.Registration)
         {
-            ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
-            
-            if (validateMobileNumberResponse.Membership != null)
-                await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
-            else 
-                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+            Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
+                MobileNumber,
+                systemDeviceIdentifier,
+                connectId);
+
+            Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
+
+            if (_isDisposed) return Unit.Default;
+
+            if (result.IsOk)
+            {
+                ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+
+                if (validateMobileNumberResponse.Membership != null)
+                    await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
+                else
+                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+            }
+            else if (!_isDisposed)
+            {
+                NetworkErrorMessage = result.UnwrapErr();
+                if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                    ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+            }
         }
-        else if (!_isDisposed)
+        else
         {
-            NetworkErrorMessage = result.UnwrapErr();
-            if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
-                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+            Task<Result<ByteString, string>> recoveryValidationTask =
+                _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId);
+
+            Result<ByteString, string> result = await recoveryValidationTask.WaitAsync(timeoutCts.Token);
+
+            if (_isDisposed) return Unit.Default;
+
+            if (result.IsOk)
+            {
+                ByteString mobileNumberIdentifier = result.Unwrap();
+
+                VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                    mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
+                    _flowContext, _passwordRecoveryService);
+
+                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                {
+                    hostWindow.RecoveryMobileNumber = MobileNumber;
+                    hostWindow.NavigateToViewModel(vm);
+                }
+            }
+            else if (!_isDisposed)
+            {
+                NetworkErrorMessage = result.UnwrapErr();
+                if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                    ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+            }
         }
 
         return Unit.Default;

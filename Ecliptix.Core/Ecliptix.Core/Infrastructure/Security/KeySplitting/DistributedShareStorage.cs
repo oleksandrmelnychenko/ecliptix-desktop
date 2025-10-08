@@ -227,50 +227,137 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
     {
         string identifier = membershipId.ToString();
         string shareKey = $"{GetSharePrefix(shareIndex)}_share_{identifier}_{shareIndex}";
+        DateTime timestamp = DateTime.UtcNow;
 
-        switch (shareIndex)
+        byte[] shareDataWithMetadata = PrependTimestampMetadata(share.ShareData, timestamp);
+
+        Serilog.Log.Information("[SHARE-STORE] Storing share with timestamp. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Location: {Location}, Timestamp: {Timestamp}, DataSize: {Size}",
+            identifier, shareIndex, GetShareLocationName(shareIndex), timestamp, shareDataWithMetadata.Length);
+
+        try
         {
-            case 0:
-                if (_platformSecurityProvider.IsHardwareSecurityAvailable())
-                {
-                    byte[] encrypted = await _platformSecurityProvider.HardwareEncryptAsync(share.ShareData);
-                    await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, encrypted);
-                    CryptographicOperations.ZeroMemory(encrypted);
-                }
-                else
-                {
-                    await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, share.ShareData);
-                }
+            switch (shareIndex)
+            {
+                case 0:
+                    if (_platformSecurityProvider.IsHardwareSecurityAvailable())
+                    {
+                        byte[] encrypted = await _platformSecurityProvider.HardwareEncryptAsync(shareDataWithMetadata);
+                        await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, encrypted);
+                        CryptographicOperations.ZeroMemory(encrypted);
+                        Serilog.Log.Information("[SHARE-STORE-HW] Hardware-encrypted share stored. ShareIndex: {ShareIndex}", shareIndex);
+                    }
+                    else
+                    {
+                        await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, shareDataWithMetadata);
+                        Serilog.Log.Information("[SHARE-STORE-HW] Unencrypted hardware share stored. ShareIndex: {ShareIndex}", shareIndex);
+                    }
 
-                break;
+                    break;
 
-            case 1:
-                await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, share.ShareData);
-                break;
+                case 1:
+                    await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, shareDataWithMetadata);
+                    Serilog.Log.Information("[SHARE-STORE-KC1] Keychain share 1 stored. ShareIndex: {ShareIndex}", shareIndex);
+                    break;
 
-            case 2:
-                await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, share.ShareData);
-                break;
+                case 2:
+                    await _platformSecurityProvider.StoreKeyInKeychainAsync(shareKey, shareDataWithMetadata);
+                    Serilog.Log.Information("[SHARE-STORE-KC2] Keychain share 2 stored. ShareIndex: {ShareIndex}", shareIndex);
+                    break;
 
-            case 3:
-                uint encryptId = (uint)membershipId.GetHashCode();
-                byte[] doubleEncrypted = await DoubleEncryptAsync(share.ShareData, encryptId, shareIndex);
-                Result<Unit, InternalServiceApiFailure> storeResult =
-                    await _secureStorageProvider.StoreAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}", doubleEncrypted);
+                case 3:
+                    uint encryptId = (uint)membershipId.GetHashCode();
+                    byte[] doubleEncrypted = await DoubleEncryptAsync(shareDataWithMetadata, encryptId, shareIndex);
+                    Result<Unit, InternalServiceApiFailure> storeResult =
+                        await _secureStorageProvider.StoreAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}", doubleEncrypted);
 
-                CryptographicOperations.ZeroMemory(doubleEncrypted);
+                    CryptographicOperations.ZeroMemory(doubleEncrypted);
 
-                if (storeResult.IsErr)
-                    return Result<Unit, KeySplittingFailure>.Err(KeySplittingFailure.ShareStorageFailed(shareIndex, storeResult.UnwrapErr().Message));
+                    if (storeResult.IsErr)
+                    {
+                        Serilog.Log.Error("[SHARE-STORE-LOCAL-ERROR] Local share storage failed. ShareIndex: {ShareIndex}, Error: {Error}",
+                            shareIndex, storeResult.UnwrapErr().Message);
+                        return Result<Unit, KeySplittingFailure>.Err(KeySplittingFailure.ShareStorageFailed(shareIndex, storeResult.UnwrapErr().Message));
+                    }
 
-                break;
+                    Serilog.Log.Information("[SHARE-STORE-LOCAL] Local encrypted share stored. ShareIndex: {ShareIndex}", shareIndex);
+                    break;
 
-            case 4:
-                await _platformSecurityProvider.StoreKeyInKeychainAsync($"backup_{shareKey}", share.ShareData);
-                break;
+                case 4:
+                    await _platformSecurityProvider.StoreKeyInKeychainAsync($"backup_{shareKey}", shareDataWithMetadata);
+                    Serilog.Log.Information("[SHARE-STORE-BACKUP] Backup share stored. ShareIndex: {ShareIndex}", shareIndex);
+                    break;
+            }
+
+            return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(shareDataWithMetadata);
+        }
+    }
+
+    private const uint SHARE_MAGIC_NUMBER = 0x45434C50;
+
+    private static byte[] PrependTimestampMetadata(byte[] shareData, DateTime timestamp)
+    {
+        const int magicSize = sizeof(uint);
+        const int versionSize = sizeof(int);
+        const int timestampSize = sizeof(long);
+
+        byte[] magicBytes = BitConverter.GetBytes(SHARE_MAGIC_NUMBER);
+        byte[] versionBytes = BitConverter.GetBytes(1);
+        byte[] timestampBytes = BitConverter.GetBytes(timestamp.ToBinary());
+
+        byte[] result = new byte[magicSize + versionSize + timestampBytes.Length + shareData.Length];
+
+        int offset = 0;
+        magicBytes.CopyTo(result, offset);
+        offset += magicSize;
+        versionBytes.CopyTo(result, offset);
+        offset += versionSize;
+        timestampBytes.CopyTo(result, offset);
+        offset += timestampSize;
+        shareData.CopyTo(result, offset);
+
+        return result;
+    }
+
+    private static (byte[] shareData, DateTime timestamp, int version) ExtractTimestampMetadata(byte[] shareDataWithMetadata)
+    {
+        const int magicSize = sizeof(uint);
+        const int versionSize = sizeof(int);
+        const int timestampSize = sizeof(long);
+        int headerSize = magicSize + versionSize + timestampSize;
+
+        if (shareDataWithMetadata.Length < magicSize)
+        {
+            throw new InvalidOperationException($"Share data too small. Size: {shareDataWithMetadata.Length}");
         }
 
-        return Result<Unit, KeySplittingFailure>.Ok(Unit.Value);
+        uint magic = BitConverter.ToUInt32(shareDataWithMetadata, 0);
+
+        if (magic != SHARE_MAGIC_NUMBER)
+        {
+            throw new InvalidOperationException($"Invalid magic number. Expected: 0x{SHARE_MAGIC_NUMBER:X8}, Got: 0x{magic:X8}. This is likely a legacy share without metadata.");
+        }
+
+        if (shareDataWithMetadata.Length < headerSize)
+        {
+            throw new InvalidOperationException($"Share data too small to contain full metadata header. Size: {shareDataWithMetadata.Length}, Required: {headerSize}");
+        }
+
+        int offset = magicSize;
+        int version = BitConverter.ToInt32(shareDataWithMetadata, offset);
+        offset += versionSize;
+
+        long timestampBinary = BitConverter.ToInt64(shareDataWithMetadata, offset);
+        DateTime timestamp = DateTime.FromBinary(timestampBinary);
+        offset += timestampSize;
+
+        byte[] shareData = new byte[shareDataWithMetadata.Length - headerSize];
+        Array.Copy(shareDataWithMetadata, offset, shareData, 0, shareData.Length);
+
+        return (shareData, timestamp, version);
     }
 
     private async Task<Result<KeyShare, KeySplittingFailure>> RetrieveShareByLocationAsync(Guid membershipId, int shareIndex)
@@ -278,6 +365,10 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
         string identifier = membershipId.ToString();
         string shareKey = $"{GetSharePrefix(shareIndex)}_share_{identifier}_{shareIndex}";
         byte[]? shareData = null;
+        string locationName = GetShareLocationName(shareIndex);
+
+        Serilog.Log.Information("[SHARE-RETRIEVE] Attempting to retrieve share. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Location: {Location}, ShareKey: {ShareKey}",
+            identifier, shareIndex, locationName, shareKey);
 
         switch (shareIndex)
         {
@@ -285,57 +376,178 @@ public sealed class DistributedShareStorage : IDistributedShareStorage, IAsyncDi
                 byte[]? hwShare = await _platformSecurityProvider.GetKeyFromKeychainAsync(shareKey);
                 if (hwShare != null)
                 {
-                    if (_platformSecurityProvider.IsHardwareSecurityAvailable())
+                    bool isHardwareAvailable = _platformSecurityProvider.IsHardwareSecurityAvailable();
+                    Serilog.Log.Information("[SHARE-RETRIEVE-HW] Hardware share retrieved. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, EncryptedSize: {Size}, HardwareAvailable: {HardwareAvailable}",
+                        identifier, shareIndex, hwShare.Length, isHardwareAvailable);
+
+                    if (isHardwareAvailable)
                     {
-                        shareData = await _platformSecurityProvider.HardwareDecryptAsync(hwShare);
+                        try
+                        {
+                            shareData = await _platformSecurityProvider.HardwareDecryptAsync(hwShare);
+                            Serilog.Log.Information("[SHARE-RETRIEVE-HW] Hardware decryption succeeded. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, DecryptedSize: {Size}",
+                                identifier, shareIndex, shareData.Length);
+                        }
+                        catch (Exception ex)
+                        {
+                            Serilog.Log.Error("[SHARE-RETRIEVE-HW-ERROR] Hardware decryption failed. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Error: {Error}",
+                                identifier, shareIndex, ex.Message);
+                        }
                     }
                     else
                     {
                         shareData = hwShare;
+                        Serilog.Log.Information("[SHARE-RETRIEVE-HW] Using unencrypted hardware share (no hardware security). MembershipId: {MembershipId}, ShareIndex: {ShareIndex}",
+                            identifier, shareIndex);
                     }
+                }
+                else
+                {
+                    Serilog.Log.Warning("[SHARE-RETRIEVE-HW] Hardware share not found in keychain. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, ShareKey: {ShareKey}",
+                        identifier, shareIndex, shareKey);
                 }
 
                 break;
 
             case 1:
                 shareData = await _platformSecurityProvider.GetKeyFromKeychainAsync(shareKey);
+                if (shareData != null)
+                {
+                    Serilog.Log.Information("[SHARE-RETRIEVE-KC1] Keychain share 1 retrieved. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Size: {Size}",
+                        identifier, shareIndex, shareData.Length);
+                }
+                else
+                {
+                    Serilog.Log.Warning("[SHARE-RETRIEVE-KC1] Keychain share 1 not found. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, ShareKey: {ShareKey}",
+                        identifier, shareIndex, shareKey);
+                }
                 break;
 
             case 2:
                 shareData = await _platformSecurityProvider.GetKeyFromKeychainAsync(shareKey);
+                if (shareData != null)
+                {
+                    Serilog.Log.Information("[SHARE-RETRIEVE-KC2] Keychain share 2 retrieved. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Size: {Size}",
+                        identifier, shareIndex, shareData.Length);
+                }
+                else
+                {
+                    Serilog.Log.Warning("[SHARE-RETRIEVE-KC2] Keychain share 2 not found. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, ShareKey: {ShareKey}",
+                        identifier, shareIndex, shareKey);
+                }
                 break;
 
             case 3:
-                Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                    await _secureStorageProvider.TryGetByKeyAsync($"{StorageKeyConstants.Share.LocalPrefix}{identifier}");
+                string localShareKey = $"{StorageKeyConstants.Share.LocalPrefix}{identifier}";
+                Serilog.Log.Information("[SHARE-RETRIEVE-LOCAL] Attempting local encrypted file share retrieval. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, StorageKey: {StorageKey}",
+                    identifier, shareIndex, localShareKey);
 
-                if (getResult.IsOk && getResult.Unwrap().HasValue)
+                Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+                    await _secureStorageProvider.TryGetByKeyAsync(localShareKey);
+
+                if (getResult.IsErr)
+                {
+                    Serilog.Log.Error("[SHARE-RETRIEVE-LOCAL-ERROR] Local share retrieval failed. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Error: {Error}",
+                        identifier, shareIndex, getResult.UnwrapErr().Message);
+                }
+                else if (getResult.Unwrap().HasValue)
                 {
                     byte[]? value = getResult.Unwrap().Value;
                     if (value != null)
                     {
+                        Serilog.Log.Information("[SHARE-RETRIEVE-LOCAL] Local encrypted share found. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, EncryptedSize: {Size}",
+                            identifier, shareIndex, value.Length);
+
                         Result<byte[], KeySplittingFailure> decryptResult = await DoubleDecryptAsync(value);
                         if (decryptResult.IsOk)
                         {
                             shareData = decryptResult.Unwrap();
+                            Serilog.Log.Information("[SHARE-RETRIEVE-LOCAL] Local share decrypted successfully. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, DecryptedSize: {Size}",
+                                identifier, shareIndex, shareData.Length);
+                        }
+                        else
+                        {
+                            Serilog.Log.Error("[SHARE-RETRIEVE-LOCAL-ERROR] Local share decryption failed. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Error: {Error}",
+                                identifier, shareIndex, decryptResult.UnwrapErr().Message);
                         }
                     }
+                    else
+                    {
+                        Serilog.Log.Warning("[SHARE-RETRIEVE-LOCAL] Local share exists but value is null. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}",
+                            identifier, shareIndex);
+                    }
+                }
+                else
+                {
+                    Serilog.Log.Warning("[SHARE-RETRIEVE-LOCAL] Local share not found in storage. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, StorageKey: {StorageKey}",
+                        identifier, shareIndex, localShareKey);
                 }
 
                 break;
 
             case 4:
-                shareData = await _platformSecurityProvider.GetKeyFromKeychainAsync($"backup_{shareKey}");
+                string backupShareKey = $"backup_{shareKey}";
+                shareData = await _platformSecurityProvider.GetKeyFromKeychainAsync(backupShareKey);
+                if (shareData != null)
+                {
+                    Serilog.Log.Information("[SHARE-RETRIEVE-BACKUP] Backup share retrieved. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Size: {Size}",
+                        identifier, shareIndex, shareData.Length);
+                }
+                else
+                {
+                    Serilog.Log.Warning("[SHARE-RETRIEVE-BACKUP] Backup share not found in keychain. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, ShareKey: {ShareKey}",
+                        identifier, shareIndex, backupShareKey);
+                }
                 break;
         }
 
         if (shareData == null)
+        {
+            Serilog.Log.Error("[SHARE-RETRIEVE-FAILED] Share retrieval failed. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Location: {Location}",
+                identifier, shareIndex, locationName);
             return Result<KeyShare, KeySplittingFailure>.Err(KeySplittingFailure.ShareNotFound(shareIndex));
+        }
+
+        byte[] actualShareData = shareData;
+        DateTime? shareTimestamp = null;
+        int? metadataVersion = null;
+
+        try
+        {
+            (byte[] extractedData, DateTime timestamp, int version) = ExtractTimestampMetadata(shareData);
+            actualShareData = extractedData;
+            shareTimestamp = timestamp;
+            metadataVersion = version;
+
+            TimeSpan age = DateTime.UtcNow - timestamp;
+            Serilog.Log.Information("[SHARE-RETRIEVE-METADATA] Share metadata extracted. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Timestamp: {Timestamp}, Age: {Age}, Version: {Version}",
+                identifier, shareIndex, timestamp, age, version);
+
+            CryptographicOperations.ZeroMemory(shareData);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("[SHARE-RETRIEVE-METADATA-ERROR] Failed to extract metadata (legacy share format?). MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Error: {Error}. Using raw share data.",
+                identifier, shareIndex, ex.Message);
+        }
+
+        Serilog.Log.Information("[SHARE-RETRIEVE-SUCCESS] Share retrieved successfully. MembershipId: {MembershipId}, ShareIndex: {ShareIndex}, Location: {Location}, Size: {Size}, HasMetadata: {HasMetadata}",
+            identifier, shareIndex, locationName, actualShareData.Length, shareTimestamp.HasValue);
 
         ShareLocation location = (ShareLocation)shareIndex;
         int shamirShareNumber = shareIndex + 1;
-        return Result<KeyShare, KeySplittingFailure>.Ok(new KeyShare(shareData, shamirShareNumber, location));
+        return Result<KeyShare, KeySplittingFailure>.Ok(new KeyShare(actualShareData, shamirShareNumber, location));
     }
+
+    private static string GetShareLocationName(int shareIndex) => shareIndex switch
+    {
+        0 => "Hardware/Keychain",
+        1 => "Keychain-1",
+        2 => "Keychain-2",
+        3 => "Local-Encrypted-File",
+        4 => "Backup-Keychain",
+        _ => "Unknown"
+    };
 
     private static string GetSharePrefix(int shareIndex) => shareIndex switch
     {

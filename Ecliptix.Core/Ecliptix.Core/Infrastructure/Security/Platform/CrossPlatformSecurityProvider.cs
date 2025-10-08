@@ -348,36 +348,66 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     {
         string keyFile = GetKeyFilePath(identifier);
         if (!File.Exists(keyFile))
+        {
+            Log.Debug("[KEYCHAIN-FILE] Key file not found. Identifier: {Identifier}, Path: {Path}",
+                identifier, keyFile);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure("Key file not found"));
+        }
+
+        FileInfo fileInfo = new(keyFile);
+        Log.Information("[KEYCHAIN-FILE] Reading encrypted key file. Identifier: {Identifier}, Path: {Path}, Size: {Size}, LastModified: {LastModified}",
+            identifier, keyFile, fileInfo.Length, fileInfo.LastWriteTimeUtc);
 
         try
         {
             byte[] encrypted = File.ReadAllBytes(keyFile);
             if (encrypted.Length < AesIvSize)
+            {
+                Log.Error("[KEYCHAIN-FILE-ERROR] Invalid encrypted file format (too small). Identifier: {Identifier}, Size: {Size}, MinSize: {MinSize}",
+                    identifier, encrypted.Length, AesIvSize);
                 return Result<byte[], SecureStorageFailure>.Err(
                     new SecureStorageFailure("Invalid encrypted file format"));
+            }
 
             byte[] machineKey = GetMachineKey();
+            string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
+
             using Aes aes = Aes.Create();
             aes.Key = machineKey;
 
             Span<byte> iv = encrypted.AsSpan(0, AesIvSize);
             aes.IV = iv.ToArray();
 
+            Log.Debug("[KEYCHAIN-FILE] Decrypting with machine key. Identifier: {Identifier}, MachineKeyFingerprint: {MachineKeyFingerprint}, EncryptedSize: {Size}",
+                identifier, machineKeyFingerprint, encrypted.Length);
+
             using ICryptoTransform decryptor = aes.CreateDecryptor();
             byte[] decrypted = decryptor.TransformFinalBlock(encrypted, AesIvSize, encrypted.Length - AesIvSize);
 
+            Log.Information("[KEYCHAIN-FILE-SUCCESS] Successfully decrypted key file. Identifier: {Identifier}, DecryptedSize: {Size}",
+                identifier, decrypted.Length);
+
             return Result<byte[], SecureStorageFailure>.Ok(decrypted);
         }
-        catch (CryptographicException)
+        catch (CryptographicException cryptoEx)
         {
+            byte[] machineKey = GetMachineKey();
+            string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
+
+            Log.Error("[KEYCHAIN-FILE-DECRYPT-FAILED] Decryption failed - likely machine key mismatch or file corruption. Identifier: {Identifier}, Path: {Path}, Size: {Size}, MachineKeyFingerprint: {MachineKeyFingerprint}, Error: {Error}, LastModified: {LastModified}",
+                identifier, keyFile, fileInfo.Length, machineKeyFingerprint, cryptoEx.Message, fileInfo.LastWriteTimeUtc);
+
             try
             {
                 File.Delete(keyFile);
+                Log.Warning("[KEYCHAIN-FILE-DELETED] Corrupted key file deleted. Identifier: {Identifier}, Path: {Path}",
+                    identifier, keyFile);
             }
-            catch
+            catch (Exception deleteEx)
             {
+                Log.Error("[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+                    identifier, keyFile, deleteEx.Message);
             }
 
             return Result<byte[], SecureStorageFailure>.Err(
@@ -385,6 +415,8 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
+            Log.Error("[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+                identifier, keyFile, ex.Message);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Failed to read encrypted file: {ex.Message}"));
         }
@@ -406,9 +438,17 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private byte[] GetMachineKey()
     {
         if (_cachedMachineKey != null)
+        {
+            Log.Debug("[MACHINE-KEY] Using cached machine key");
             return _cachedMachineKey;
+        }
 
         string machineKeyFile = Path.Combine(_keychainPath, MachineKeyFilename);
+        string machineId = BuildMachineIdentifier();
+        string machineIdFingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(machineId)))[..16];
+
+        Log.Information("[MACHINE-KEY] Machine identifier built. Fingerprint: {Fingerprint}, MachineName: {MachineName}, ProcessorCount: {ProcessorCount}",
+            machineIdFingerprint, Environment.MachineName, Environment.ProcessorCount);
 
         if (File.Exists(machineKeyFile))
         {
@@ -416,15 +456,53 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 _cachedMachineKey = File.ReadAllBytes(machineKeyFile);
                 if (_cachedMachineKey.Length == AesKeySize)
+                {
+                    string storedKeyFingerprint = Convert.ToHexString(SHA256.HashData(_cachedMachineKey))[..16];
+                    FileInfo fileInfo = new(machineKeyFile);
+
+                    Log.Information("[MACHINE-KEY] Loaded existing machine key file. StoredKeyFingerprint: {StoredKeyFingerprint}, FileSize: {FileSize}, LastModified: {LastModified}, MachineIdFingerprint: {MachineIdFingerprint}",
+                        storedKeyFingerprint, _cachedMachineKey.Length, fileInfo.LastWriteTimeUtc, machineIdFingerprint);
+
+                    byte[] derivedKey = DeriveKeyFromMachineId(machineId);
+                    string derivedKeyFingerprint = Convert.ToHexString(SHA256.HashData(derivedKey))[..16];
+
+                    if (!derivedKey.AsSpan().SequenceEqual(_cachedMachineKey))
+                    {
+                        Log.Warning("[MACHINE-KEY-MISMATCH] Machine identifier changed! StoredKey: {StoredKey}, DerivedKey: {DerivedKey}. This will cause decryption failures for all encrypted files!",
+                            storedKeyFingerprint, derivedKeyFingerprint);
+                    }
+                    else
+                    {
+                        Log.Information("[MACHINE-KEY-VERIFIED] Machine key matches derived key. System: {StoredKey}",
+                            storedKeyFingerprint);
+                    }
+
+                    CryptographicOperations.ZeroMemory(derivedKey);
                     return _cachedMachineKey;
+                }
+                else
+                {
+                    Log.Warning("[MACHINE-KEY] Existing machine key file has invalid size: {Size} bytes (expected {Expected})",
+                        _cachedMachineKey.Length, AesKeySize);
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Error("[MACHINE-KEY-ERROR] Failed to read existing machine key file: {Error}",
+                    ex.Message);
             }
         }
+        else
+        {
+            Log.Information("[MACHINE-KEY] No existing machine key file found at: {FilePath}",
+                machineKeyFile);
+        }
 
-        string machineId = BuildMachineIdentifier();
         _cachedMachineKey = DeriveKeyFromMachineId(machineId);
+        string newKeyFingerprint = Convert.ToHexString(SHA256.HashData(_cachedMachineKey))[..16];
+
+        Log.Information("[MACHINE-KEY] Derived new machine key. Fingerprint: {Fingerprint}, MachineId: {MachineIdFingerprint}",
+            newKeyFingerprint, machineIdFingerprint);
 
         try
         {
@@ -433,9 +511,14 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
+
+            Log.Information("[MACHINE-KEY] Machine key file created successfully at: {FilePath}",
+                machineKeyFile);
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Error("[MACHINE-KEY-ERROR] Failed to write machine key file: {Error}",
+                ex.Message);
         }
 
         return _cachedMachineKey;
