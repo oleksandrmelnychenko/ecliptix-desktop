@@ -345,8 +345,16 @@ public class OpaqueAuthenticationService(
                 }
 
                 Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
-                await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
-                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Identity stored successfully. MembershipId: {MembershipId}", membershipId);
+                Result<Unit, AuthenticationFailure> storeResult = await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
+
+                if (storeResult.IsErr)
+                {
+                    Serilog.Log.Error("[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
+                        membershipId, storeResult.UnwrapErr().Message);
+                    return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
+                }
+
+                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}", membershipId);
 
                 Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
                 await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);

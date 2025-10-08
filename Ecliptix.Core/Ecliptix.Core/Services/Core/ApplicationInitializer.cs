@@ -395,8 +395,20 @@ public class ApplicationInitializer(
             return null;
         }
 
+        SodiumSecureMemoryHandle loadedHandle = loadResult.Unwrap();
+
+        Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = loadedHandle.ReadBytes(loadedHandle.Length);
+        if (readResult.IsOk)
+        {
+            byte[] masterKeyBytes = readResult.Unwrap();
+            string masterKeyFingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(masterKeyBytes))[..16];
+            Log.Information("[CLIENT-MASTERKEY-STORAGE-LOADED] Master key loaded from storage with fingerprint. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
+                membershipId, masterKeyFingerprint);
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(masterKeyBytes);
+        }
+
         Log.Information("[CLIENT-MASTERKEY-STORAGE] Master key loaded successfully from storage. MembershipId: {MembershipId}", membershipId);
-        return loadResult.Unwrap();
+        return loadedHandle;
     }
 
     private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyAsync(string membershipId)

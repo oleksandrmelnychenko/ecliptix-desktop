@@ -296,9 +296,78 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         }
     }
 
-    public async Task StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
+    public async Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
     {
-        await StoreIdentityInternalAsync(masterKeyHandle, membershipId);
+        try
+        {
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            if (readResult.IsErr)
+            {
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Failed to read master key for storage: {readResult.UnwrapErr().Message}"));
+            }
+
+            byte[] originalMasterKeyBytes = readResult.Unwrap();
+            string originalFingerprint = Convert.ToHexString(SHA256.HashData(originalMasterKeyBytes))[..16];
+
+            Log.Information("[CLIENT-IDENTITY-STORE-PRE] Master key fingerprint before storage. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
+                membershipId, originalFingerprint);
+
+            await StoreIdentityInternalAsync(masterKeyHandle, membershipId);
+
+            Log.Information("[CLIENT-IDENTITY-VERIFY] Verifying stored master key. MembershipId: {MembershipId}",
+                membershipId);
+
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(membershipId);
+
+            if (loadResult.IsErr)
+            {
+                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to load master key for verification. MembershipId: {MembershipId}, Error: {Error}",
+                    membershipId, loadResult.UnwrapErr().Message);
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not load stored master key: {loadResult.UnwrapErr().Message}"));
+            }
+
+            using SodiumSecureMemoryHandle loadedKeyHandle = loadResult.Unwrap();
+            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> loadedReadResult = loadedKeyHandle.ReadBytes(loadedKeyHandle.Length);
+
+            if (loadedReadResult.IsErr)
+            {
+                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to read loaded master key. MembershipId: {MembershipId}, Error: {Error}",
+                    membershipId, loadedReadResult.UnwrapErr().Message);
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not read loaded master key: {loadedReadResult.UnwrapErr().Message}"));
+            }
+
+            byte[] loadedMasterKeyBytes = loadedReadResult.Unwrap();
+            string loadedFingerprint = Convert.ToHexString(SHA256.HashData(loadedMasterKeyBytes))[..16];
+
+            Log.Information("[CLIENT-IDENTITY-VERIFY-POST] Master key fingerprint after load. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
+                membershipId, loadedFingerprint);
+
+            if (!originalMasterKeyBytes.AsSpan().SequenceEqual(loadedMasterKeyBytes))
+            {
+                Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}, Original: {Original}, Loaded: {Loaded}",
+                    membershipId, originalFingerprint, loadedFingerprint);
+
+                CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
+                return Result<Unit, AuthenticationFailure>.Err(
+                    AuthenticationFailure.IdentityStorageFailed($"Master key verification failed - fingerprints don't match! Original: {originalFingerprint}, Loaded: {loadedFingerprint}"));
+            }
+
+            Log.Information("[CLIENT-IDENTITY-VERIFY-SUCCESS] Master key verification passed. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
+                membershipId, originalFingerprint);
+
+            CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
+            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[CLIENT-IDENTITY-STORE-ERROR] Exception during master key storage/verification. MembershipId: {MembershipId}",
+                membershipId);
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityStorageFailed($"Failed to store/verify master key: {ex.Message}", ex));
+        }
     }
 
     public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
