@@ -382,25 +382,64 @@ public sealed class EcliptixProtocolConnection : IDisposable
                         allocResult.UnwrapErr().ToEcliptixProtocolFailure());
                 }
 
-                SodiumSecureMemoryHandle? tempRootHandle = allocResult.Unwrap();
-                Result<Unit, SodiumFailure> writeResult = tempRootHandle.Write(initialRootKey);
-                if (writeResult.IsErr)
+                Result<byte[], SodiumFailure> initialKeyReadResult =
+                    _initialSendingDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize);
+                if (initialKeyReadResult.IsErr)
                 {
-                    tempRootHandle.Dispose();
                     WipeIfNotNull(peerDhPublicCopy);
                     return Result<Unit, EcliptixProtocolFailure>.Err(
-                        writeResult.UnwrapErr().ToEcliptixProtocolFailure());
+                        initialKeyReadResult.UnwrapErr().ToEcliptixProtocolFailure());
                 }
+
+                persistentPrivKeyBytes = initialKeyReadResult.Unwrap();
+                byte[]? dhSecret = null;
+                byte[]? newRootKey = null;
 
                 try
                 {
+                    dhSecret = ScalarMult.Mult(persistentPrivKeyBytes, peerDhPublicCopy);
+                }
+                catch (Exception ex)
+                {
+                    WipeIfNotNull(peerDhPublicCopy);
+                    WipeIfNotNull(dhSecret);
+                    return Result<Unit, EcliptixProtocolFailure>.Err(
+                        EcliptixProtocolFailure.DeriveKey("Failed to compute DH shared secret during initial handshake.", ex));
+                }
+
+                SodiumSecureMemoryHandle? tempRootHandle = allocResult.Unwrap();
+
+                try
+                {
+                    using SecurePooledArray<byte> hkdfOutputBuffer = SecureArrayPool.Rent<byte>(Constants.X25519KeySize * ProtocolSystemConstants.Protocol.HkdfOutputBufferMultiplier);
+                    Span<byte> hkdfOutputSpan = hkdfOutputBuffer.AsSpan();
+
+                    HKDF.DeriveKey(
+                        HashAlgorithmName.SHA256,
+                        ikm: dhSecret!,
+                        output: hkdfOutputSpan,
+                        salt: initialRootKey,
+                        info: DhRatchetInfo
+                    );
+
+                    newRootKey = hkdfOutputSpan[..Constants.X25519KeySize].ToArray();
+                    Result<Unit, SodiumFailure> writeResult = tempRootHandle.Write(newRootKey);
+                    if (writeResult.IsErr)
+                    {
+                        tempRootHandle.Dispose();
+                        WipeIfNotNull(peerDhPublicCopy);
+                        WipeIfNotNull(dhSecret);
+                        WipeIfNotNull(newRootKey);
+                        return Result<Unit, EcliptixProtocolFailure>.Err(
+                            writeResult.UnwrapErr().ToEcliptixProtocolFailure());
+                    }
 
                     Span<byte> sendSpan = stackalloc byte[Constants.X25519KeySize];
                     Span<byte> recvSpan = stackalloc byte[Constants.X25519KeySize];
 
                     HKDF.DeriveKey(
                         HashAlgorithmName.SHA256,
-                        ikm: initialRootKey,
+                        ikm: newRootKey,
                         output: sendSpan,
                         salt: null,
                         info: InitialSenderChainInfo
@@ -408,7 +447,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
                     HKDF.DeriveKey(
                         HashAlgorithmName.SHA256,
-                        ikm: initialRootKey,
+                        ikm: newRootKey,
                         output: recvSpan,
                         salt: null,
                         info: InitialReceiverChainInfo
@@ -429,21 +468,16 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 {
                     tempRootHandle.Dispose();
                     WipeIfNotNull(peerDhPublicCopy);
+                    WipeIfNotNull(dhSecret);
+                    WipeIfNotNull(newRootKey);
                     return Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.DeriveKey(EcliptixProtocolFailureMessages.FailedToDeriveInitialChainKeys, ex));
                 }
-
-                Result<byte[], SodiumFailure> persistentKeyReadResult =
-                    _persistentDhPrivateKeyHandle!.ReadBytes(Constants.X25519PrivateKeySize);
-                if (persistentKeyReadResult.IsErr)
+                finally
                 {
-                    tempRootHandle.Dispose();
-                    WipeIfNotNull(peerDhPublicCopy);
-                    return Result<Unit, EcliptixProtocolFailure>.Err(
-                        persistentKeyReadResult.UnwrapErr().ToEcliptixProtocolFailure());
+                    WipeIfNotNull(dhSecret);
+                    WipeIfNotNull(newRootKey);
                 }
-
-                persistentPrivKeyBytes = persistentKeyReadResult.Unwrap();
 
                 Result<Unit, EcliptixProtocolFailure> updateResult =
                     _sendingStep.UpdateKeysAfterDhRatchet(senderChainKey!);

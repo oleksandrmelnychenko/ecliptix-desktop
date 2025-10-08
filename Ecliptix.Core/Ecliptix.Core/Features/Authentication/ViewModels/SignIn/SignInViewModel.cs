@@ -255,7 +255,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
                     _ =>
                     {
-                        
+
                     },
                     ex =>
                     {

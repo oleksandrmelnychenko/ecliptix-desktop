@@ -2,8 +2,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ecliptix.Core.Views.Core.MainHostWindow"
+        x:DataType="vm:MainViewModel"
         Title="Ecliptix"
         Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png">
     <!-- Styles moved to shared Components/TrafficLights.axaml -->
@@ -17,6 +19,7 @@
             <Grid>
                 <Button Name="LogoutButton"
                         Content="Logout"
+                        Command="{Binding LogoutCommand}"
                         Width="120"
                         Height="36"
                         HorizontalAlignment="Center"

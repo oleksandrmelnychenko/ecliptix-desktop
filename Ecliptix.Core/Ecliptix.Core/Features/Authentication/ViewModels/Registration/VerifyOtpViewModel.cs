@@ -436,10 +436,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 if (!_isDisposed)
                     CleanupAndNavigate(targetView);
             });
-        }    
-        
+        }
+
     }
-    
+
 
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
         VerificationCountdownUpdate.Types.CountdownUpdateStatus status, string? message)

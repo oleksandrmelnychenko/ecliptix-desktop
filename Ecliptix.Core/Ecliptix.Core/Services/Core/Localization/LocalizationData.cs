@@ -82,7 +82,7 @@ public static class LocalizationData
 
         ["ResponseErrors.MobileNumber.AccountAlreadyRegistered"] = "Account on this number already registered. Try sign in or use forgot password.",
         ["ResponseErrors.MobileNumber.UnexpectedMembershipStatus"] = "Unexpected membership status. Please try again.",
-            
+
         ["ValidationErrors.MobileNumber.Required"] = "Mobile number is required",
         ["ValidationErrors.MobileNumberIdentifier.Required"] = "Mobile number identifier is required",
         ["ValidationErrors.DeviceIdentifier.Required"] = "Device identifier is required",

@@ -103,6 +103,7 @@ public class ModuleResourceManager : IDisposable
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.INetworkEventService>());
         moduleServices.AddSingleton(context.GetParentService<Infrastructure.Network.Core.Providers.NetworkProvider>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.ILocalizationService>());
+        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Membership.ILogoutService>());
 
         Log.Debug("Auto-forwarded core services to module service collection");
     }

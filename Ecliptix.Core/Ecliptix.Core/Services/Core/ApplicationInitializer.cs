@@ -120,7 +120,7 @@ public class ApplicationInitializer(
             : null;
 
         //await CleanupForTestingAsync(connectId, membershipId);
-        
+
         if (!isNewInstance)
         {
             Result<bool, NetworkFailure> restoreResult =

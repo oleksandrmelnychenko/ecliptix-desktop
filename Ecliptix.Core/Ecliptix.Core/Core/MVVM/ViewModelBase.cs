@@ -98,7 +98,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 isDismissable: true);
         });
     }
-    
+
     protected void ShowRedirectNotification(MembershipHostWindowModel hostWindow, string message, int seconds, Action onComplete)
     {
         if (_disposedValue)
@@ -109,7 +109,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
         RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
         RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
-        
+
         _ = Task.Run(async () =>
         {
             if (!_disposedValue)
@@ -118,16 +118,16 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 onComplete();
         });
     }
-    
+
     protected void CleanupAndNavigate(MembershipHostWindowModel membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
         membershipHostWindow.ClearNavigationStack();
-        
+
         _ = Task.Run(async () =>
         {
             await membershipHostWindow.HideBottomSheetAsync();
-            
+
         });
     }
 

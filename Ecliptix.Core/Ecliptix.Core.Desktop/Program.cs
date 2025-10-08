@@ -40,8 +40,10 @@ using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.External.IpGeolocation;
@@ -332,6 +334,7 @@ public static class Program
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IWindowService, WindowService>();
+        services.AddTransient<Services.Abstractions.Membership.ILogoutService, Services.Membership.LogoutService>();
     }
 
     private static void ConfigureAuthenticationServices(IServiceCollection services)

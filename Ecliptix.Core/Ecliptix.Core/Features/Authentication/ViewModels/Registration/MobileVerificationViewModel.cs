@@ -21,7 +21,6 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Core.Features.Authentication.Common;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -208,7 +207,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
     private async Task HandleExistingMembershipAsync(Membership membership)
     {
         if (_isDisposed) return;
-        
+
         if (HostScreen is not MembershipHostWindowModel hostWindow) return;
 
         switch (membership.CreationStatus)
@@ -217,18 +216,18 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                 await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
                 await NavigateToSecureKeyConfirmationAsync();
                 break;
-            
+
             case Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet:
                 await ShowAccountExistsRedirectAsync();
                 break;
-            
+
             default:
                 NetworkErrorMessage = LocalizationService[AuthenticationConstants.UnexpectedMembershipStatusKey];
                 ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
                 break;
         }
     }
-    
+
     private Task NavigateToOtpVerificationAsync(ByteString mobileNumberIdentifier)
     {
         if (_isDisposed) return Task.CompletedTask;
@@ -244,7 +243,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
         return Task.CompletedTask;
     }
-    
+
     private Task NavigateToSecureKeyConfirmationAsync()
     {
         if (_isDisposed) return Task.CompletedTask;
@@ -257,7 +256,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
         return Task.CompletedTask;
     }
-    
+
     private Task ShowAccountExistsRedirectAsync()
     {
         if (_isDisposed) return Task.CompletedTask;
@@ -277,7 +276,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
 
         return Task.CompletedTask;
     }
-    
+
     public async void HandleEnterKeyPress()
     {
         if (_isDisposed) return;
