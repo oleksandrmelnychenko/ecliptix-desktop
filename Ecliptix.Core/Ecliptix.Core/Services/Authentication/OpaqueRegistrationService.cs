@@ -521,53 +521,65 @@ public class OpaqueRegistrationService(
         uint streamConnectId,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
-        try
-        {
+        
             VerificationCountdownUpdate verificationCountdownUpdate =
                 Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
 
             string message = verificationCountdownUpdate.Message;
-
-            Guid verificationIdentifier = Helpers.FromByteStringToGuid(verificationCountdownUpdate.SessionIdentifier);
-
-            if (verificationCountdownUpdate.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
-                or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+            
+            if (verificationCountdownUpdate.SessionIdentifier == null ||
+                verificationCountdownUpdate.SessionIdentifier.IsEmpty)
             {
+                RxApp.MainThreadScheduler.Schedule(() =>
+                {
+                    onCountdownUpdate?.Invoke(0, Guid.Empty,
+                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed,
+                        message);
+                });
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }
+            
+            try
+            {
+                Guid verificationIdentifier = Helpers.FromByteStringToGuid(verificationCountdownUpdate.SessionIdentifier);
+                
+                if (verificationCountdownUpdate.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
+                    or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+                {
+                    if (verificationIdentifier != Guid.Empty)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await CleanupStreamAsync(verificationIdentifier);
+                            }
+                            catch (Exception)
+                            {}
+                        }, CancellationToken.None);
+                    }
+                }
+
                 if (verificationIdentifier != Guid.Empty)
                 {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await CleanupStreamAsync(verificationIdentifier);
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }, CancellationToken.None);
+                    _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
                 }
-            }
 
-            if (verificationIdentifier != Guid.Empty)
+                RxApp.MainThreadScheduler.Schedule(() =>
+                    onCountdownUpdate?.Invoke(
+                        verificationCountdownUpdate.SecondsRemaining,
+                        verificationIdentifier,
+                        verificationCountdownUpdate.Status, message));
+
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }
+            catch (Exception ex)
             {
-                _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+                return Task.FromResult(Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding(
+                        $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
             }
-
-            RxApp.MainThreadScheduler.Schedule(() =>
-                onCountdownUpdate?.Invoke(
-                    verificationCountdownUpdate.SecondsRemaining,
-                    verificationIdentifier,
-                    verificationCountdownUpdate.Status, message));
-
-            return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-        }
-        catch (Exception ex)
-        {
-            return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding(
-                    $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
-        }
     }
 
     private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier)

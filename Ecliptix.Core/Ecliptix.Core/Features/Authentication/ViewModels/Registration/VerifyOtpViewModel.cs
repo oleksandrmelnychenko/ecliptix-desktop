@@ -383,12 +383,12 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         if (!string.IsNullOrEmpty(error))
         {
-            ErrorMessage = error;
-            HasError = true;
+            StartAutoRedirect(5, MembershipViewType.Welcome, error);
         }
-
-        StartAutoRedirect(5, MembershipViewType.Welcome, ErrorMessage);
-
+        else 
+            StartAutoRedirect(5, MembershipViewType.Welcome);
+        
+        HasError = true;
         HasValidSession = false;
         return 0;
     }
