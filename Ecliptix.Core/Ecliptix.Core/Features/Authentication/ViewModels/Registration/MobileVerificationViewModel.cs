@@ -152,7 +152,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                     systemDeviceIdentifier,
                     connectId);
 
-                Result<ValidateMobileNumberResponse, string> result = await validationTask.WaitAsync(timeoutCts.Token);
+                Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
                 if (_isDisposed) return Unit.Default;
 

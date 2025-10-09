@@ -137,11 +137,24 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
 
-    public void ClearNavigationStack()
+    public void ClearNavigationStack(bool preserveInitialWelcome = false)
     {
         _navigationStack.Clear();
-        CanNavigateBack = false;
-        Log.Information("Navigation stack cleared");
+        //CurrentView = null;
+        if (preserveInitialWelcome)
+        {
+            try
+            { 
+                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
+                _navigationStack.Push(welcomeView);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to preserve welcome view in navigation stack");
+            }
+        }
+        CanNavigateBack = _navigationStack.Count > 0;
+        Log.Information("Navigation stack cleared{Preserve}", preserveInitialWelcome ? " (preserved welcome)" : "");
     }
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
@@ -161,7 +174,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
     public void StartPasswordRecoveryFlow()
     {
-        ClearNavigationStack();
+        ClearNavigationStack(true);
         MobileVerificationViewModel vm = new(
             _systemEventService,
             _networkProvider,

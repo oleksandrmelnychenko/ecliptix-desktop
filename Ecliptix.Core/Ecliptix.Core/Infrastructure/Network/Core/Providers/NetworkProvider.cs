@@ -1119,8 +1119,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             NetworkFailure.DataCenterNotResponding(""));
                     }
 
-                    return Result<Unit, NetworkFailure>.Err(failure);
-                    ;
+                    return Result<Unit, NetworkFailure>.Err(failure); 
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
