@@ -160,10 +160,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
                 {
                     ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
 
-                    if (validateMobileNumberResponse.Membership != null)
-                        await HandleExistingMembershipAsync(validateMobileNumberResponse.Membership);
-                    else
-                        await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
                 }
                 else if (!_isDisposed)
                 {
@@ -228,30 +225,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         return Unit.Default;
     }
 
-    private async Task HandleExistingMembershipAsync(Membership membership)
-    {
-        if (_isDisposed) return;
-
-        if (HostScreen is not MembershipHostWindowModel hostWindow) return;
-
-        switch (membership.CreationStatus)
-        {
-            case Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified:
-                await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-                await NavigateToSecureKeyConfirmationAsync();
-                break;
-
-            case Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet:
-                await ShowAccountExistsRedirectAsync();
-                break;
-
-            default:
-                NetworkErrorMessage = LocalizationService[AuthenticationConstants.UnexpectedMembershipStatusKey];
-                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
-                break;
-        }
-    }
-
     private Task NavigateToOtpVerificationAsync(ByteString mobileNumberIdentifier)
     {
         if (_isDisposed) return Task.CompletedTask;
@@ -276,26 +249,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task ShowAccountExistsRedirectAsync()
-    {
-        if (_isDisposed) return Task.CompletedTask;
-
-        string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey]; // "Account on this number already registered. Try sign in or use forgot password."
-
-        if (HostScreen is MembershipHostWindowModel hostWindow)
-        {
-            ShowRedirectNotification(hostWindow, message, 8, () =>
-            {
-                if (!_isDisposed)
-                {
-                    CleanupAndNavigate(hostWindow, MembershipViewType.Welcome);
-                }
-            });
+            hostWindow.ClearNavigationStack();
         }
 
         return Task.CompletedTask;

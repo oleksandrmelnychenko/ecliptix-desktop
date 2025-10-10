@@ -270,16 +270,27 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         if (result.IsOk)
         {
             Membership membership = result.Unwrap();
-            await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-
+           
+            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet)
+            { 
+                await ShowAccountExistsRedirectAsync();
+            }
+            else
+            {
+                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                {
+                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+                    NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+                    hostWindow.ClearNavigationStack(true);
+                }
+            }
             if (HasValidSession)
             {
                 await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
                     .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
             }
 
-            if (!_isDisposed)
-                NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+           
         }
         else
         {
@@ -289,6 +300,26 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                 IsSent = false;
             }
         }
+    }
+    
+    private Task ShowAccountExistsRedirectAsync()
+    {
+        if (_isDisposed) return Task.CompletedTask;
+
+        string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey];
+        
+        if (HostScreen is MembershipHostWindowModel hostWindow)
+        {
+            ShowRedirectNotification(hostWindow, message, 8, () =>
+            {
+                if (!_isDisposed)
+                {
+                    CleanupAndNavigate(hostWindow, MembershipViewType.Welcome);
+                }
+            });
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task ReSendVerificationCode()

@@ -140,7 +140,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public void ClearNavigationStack(bool preserveInitialWelcome = false)
     {
         _navigationStack.Clear();
-        //CurrentView = null;
+
         if (preserveInitialWelcome)
         {
             try
