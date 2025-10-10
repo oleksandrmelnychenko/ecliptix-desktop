@@ -271,7 +271,8 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         {
             Membership membership = result.Unwrap();
            
-            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet)
+            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet && 
+                _flowContext == AuthenticationFlowContext.Registration)
             { 
                 await ShowAccountExistsRedirectAsync();
             }
