@@ -12,6 +12,8 @@
         d:DesignWidth="480"
         d:DesignHeight="680"
         SystemDecorations="None"
+        CanMaximize="False"
+        CanResize="False"
         ExtendClientAreaToDecorationsHint="False"
         x:DataType="memberships1:MembershipHostWindowModel"
         Width="480"
