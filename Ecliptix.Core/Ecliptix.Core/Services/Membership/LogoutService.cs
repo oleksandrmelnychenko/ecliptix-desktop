@@ -35,7 +35,7 @@ public class LogoutService(
 {
     public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason, CancellationToken ct = default)
     {
-        string? membershipId = await GetCurrentMembershipIdAsync();
+        string? membershipId = await GetCurrentMembershipIdAsync().ConfigureAwait(false);
         if (string.IsNullOrEmpty(membershipId))
         {
             return Result<Unit, LogoutFailure>.Err(
@@ -77,7 +77,6 @@ public class LogoutService(
                     }
 
                     responseCompletionSource.TrySetResult(Result<LogoutResponse, LogoutFailure>.Ok(logoutResponse));
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
                 catch (Exception ex)
                 {
@@ -85,12 +84,11 @@ public class LogoutService(
                     responseCompletionSource.TrySetResult(
                         Result<LogoutResponse, LogoutFailure>.Err(
                             LogoutFailure.NetworkRequestFailed("Failed to parse logout response", ex)));
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding($"Failed to parse logout response: {ex.Message}")));
                 }
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             },
             allowDuplicates: false,
-            token: ct);
+            token: ct).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
@@ -99,7 +97,7 @@ public class LogoutService(
                     new Exception(networkResult.UnwrapErr().Message)));
         }
 
-        Result<LogoutResponse, LogoutFailure> logoutResult = await responseCompletionSource.Task;
+        Result<LogoutResponse, LogoutFailure> logoutResult = await responseCompletionSource.Task.ConfigureAwait(false);
 
         if (logoutResult.IsErr)
         {
@@ -109,13 +107,13 @@ public class LogoutService(
         Log.Information("[LOGOUT] Logout API call succeeded. Starting cleanup for MembershipId: {MembershipId}",
             membershipId);
 
-        await stateCleanupService.CleanupUserStateAsync(membershipId, connectId);
+        await stateCleanupService.CleanupUserStateAsync(membershipId, connectId).ConfigureAwait(false);
 
-        await stateManager.TransitionToAnonymousAsync();
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
-        await messageBus.PublishAsync(new UserLoggedOutEvent(membershipId, reason.ToString()), ct);
+        await messageBus.PublishAsync(new UserLoggedOutEvent(membershipId, reason.ToString()), ct).ConfigureAwait(false);
 
-        await router.NavigateToAuthenticationAsync();
+        await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
 
         Log.Information("[LOGOUT] Logout completed successfully. MembershipId: {MembershipId}", membershipId);
 
@@ -125,7 +123,7 @@ public class LogoutService(
     private async Task<string?> GetCurrentMembershipIdAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-            await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+            await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
 
         if (settingsResult.IsErr)
             return null;

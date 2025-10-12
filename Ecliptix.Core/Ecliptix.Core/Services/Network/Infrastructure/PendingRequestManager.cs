@@ -73,7 +73,7 @@ public class PendingRequestManager : IPendingRequestManager
 
     public async Task<int> RetryAllPendingRequestsAsync(CancellationToken cancellationToken = default)
     {
-        await _retryAllSemaphore.WaitAsync(cancellationToken);
+        await _retryAllSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             KeyValuePair<string, Func<Task>>[] untypedRequests = _pendingRequests.ToArray();
@@ -130,7 +130,7 @@ public class PendingRequestManager : IPendingRequestManager
 
             if (allTasks.Length > 0)
             {
-                await Task.WhenAll(allTasks);
+                await Task.WhenAll(allTasks).ConfigureAwait(false);
 
                 successCount += allTasks.Count(task => task.IsCompletedSuccessfully);
             }
@@ -150,7 +150,7 @@ public class PendingRequestManager : IPendingRequestManager
     {
         try
         {
-            await retryAction();
+            await retryAction().ConfigureAwait(false);
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried request {RequestId}", requestId);
         }
@@ -170,7 +170,7 @@ public class PendingRequestManager : IPendingRequestManager
     {
         try
         {
-            await typedRequest.ExecuteAsync(cancellationToken);
+            await typedRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried typed request {RequestId}", requestId);
         }
@@ -217,7 +217,7 @@ internal class TypedPendingRequest<T> : ITypedPendingRequest
     {
         try
         {
-            T result = await _retryAction();
+            T result = await _retryAction().ConfigureAwait(false);
             _originalTaskCompletionSource.SetResult(result);
         }
         catch (Exception ex)

@@ -30,7 +30,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         string storageKey = GetMasterKeyStorageKey(membershipId);
         byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
         Result<byte[], SecureStorageFailure> result =
-            await storage.LoadStateAsync(storageKey, membershipIdBytes);
+            await storage.LoadStateAsync(storageKey, membershipIdBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
         Log.Information("[CLIENT-IDENTITY-CHECK] Checking stored identity. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Exists: {Exists}",
@@ -49,10 +49,10 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             Log.Information("[CLIENT-IDENTITY-STORE-START] Starting identity storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
                 membershipId, storageKey);
 
-            (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle);
+            (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
             byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
-            await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes);
+            await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes).ConfigureAwait(false);
 
             Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
                 membershipId, storageKey, platformProvider.IsHardwareSecurityAvailable());
@@ -60,7 +60,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             if (platformProvider.IsHardwareSecurityAvailable() && wrappingKey != null)
             {
                 string keychainKey = GetKeychainWrapKey(membershipId);
-                await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey);
+                await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
 
                 Log.Information("[CLIENT-IDENTITY-KEYCHAIN] Wrapping key stored in keychain. MembershipId: {MembershipId}, KeychainKey: {KeychainKey}",
                     membershipId, keychainKey);
@@ -84,7 +84,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
             Result<byte[], SecureStorageFailure> result =
-                await storage.LoadStateAsync(storageKey, membershipIdBytes);
+                await storage.LoadStateAsync(storageKey, membershipIdBytes).ConfigureAwait(false);
 
             if (result.IsErr)
             {
@@ -96,7 +96,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             }
 
             byte[] protectedKey = result.Unwrap();
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, membershipId);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, membershipId).ConfigureAwait(false);
 
             if (unwrapResult.IsOk)
             {
@@ -147,7 +147,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             {
                 Log.Information("[CLIENT-IDENTITY-WRAP] Using hardware-backed AES encryption");
 
-                wrappingKey = await GenerateWrappingKeyAsync();
+                wrappingKey = await GenerateWrappingKeyAsync().ConfigureAwait(false);
 
                 using Aes aes = Aes.Create();
                 aes.Key = wrappingKey;
@@ -203,7 +203,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             else
             {
                 string keychainKey = GetKeychainWrapKey(membershipId);
-                wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey);
+                wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
 
                 if (wrappingKey == null)
                 {
@@ -268,7 +268,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
-        return await platformProvider.GenerateSecureRandomAsync(AesKeySize);
+        return await platformProvider.GenerateSecureRandomAsync(AesKeySize).ConfigureAwait(false);
     }
 
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
@@ -276,7 +276,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         try
         {
             Result<Unit, SecureStorageFailure> deleteStorageResult =
-                await storage.DeleteStateAsync(GetMasterKeyStorageKey(membershipId));
+                await storage.DeleteStateAsync(GetMasterKeyStorageKey(membershipId)).ConfigureAwait(false);
 
             if (deleteStorageResult.IsErr)
             {
@@ -287,7 +287,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             if (platformProvider.IsHardwareSecurityAvailable())
             {
                 string keychainKey = GetKeychainWrapKey(membershipId);
-                await platformProvider.DeleteKeyFromKeychainAsync(keychainKey);
+                await platformProvider.DeleteKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
             }
 
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
@@ -316,12 +316,12 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             Log.Information("[CLIENT-IDENTITY-STORE-PRE] Master key fingerprint before storage. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
                 membershipId, originalFingerprint);
 
-            await StoreIdentityInternalAsync(masterKeyHandle, membershipId);
+            await StoreIdentityInternalAsync(masterKeyHandle, membershipId).ConfigureAwait(false);
 
             Log.Information("[CLIENT-IDENTITY-VERIFY] Verifying stored master key. MembershipId: {MembershipId}",
                 membershipId);
 
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(membershipId);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(membershipId).ConfigureAwait(false);
 
             if (loadResult.IsErr)
             {
@@ -375,6 +375,6 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
     {
-        return await LoadMasterKeyAsync(membershipId);
+        return await LoadMasterKeyAsync(membershipId).ConfigureAwait(false);
     }
 }

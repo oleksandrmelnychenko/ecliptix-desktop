@@ -90,7 +90,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
         if (DataContext is not SignInViewModel vm) return;
 
-        vm.HandleEnterKeyPress();
+        _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
     }
 }

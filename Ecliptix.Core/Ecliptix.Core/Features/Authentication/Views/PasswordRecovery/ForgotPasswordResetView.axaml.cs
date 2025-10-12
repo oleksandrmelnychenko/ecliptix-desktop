@@ -128,7 +128,7 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
 
         if (DataContext is not ForgotPasswordResetViewModel vm) return;
 
-        vm.HandleEnterKeyPress();
+        _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
     }
 

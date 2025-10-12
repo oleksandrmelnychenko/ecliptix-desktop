@@ -23,8 +23,6 @@ public static class CryptographicConstants
         public const int MaxInfoSize = 128;
         public const int MaxPreviousBlockSize = 64;
         public const int MaxRoundSize = 64;
-        public const int SmallStackSize = 256;
-        public const int MediumStackSize = 512;
     }
 
     public static class KeyDerivation

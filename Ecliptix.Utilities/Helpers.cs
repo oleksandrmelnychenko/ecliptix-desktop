@@ -55,8 +55,6 @@ public static class Helpers
         Array.Reverse(bytes, 4, 2);
         Array.Reverse(bytes, 6, 2);
 
-        Console.WriteLine($"[CLIENT-GUID-TO-BYTES] GUID: {guid}, Bytes: {Convert.ToHexString(bytes)}");
-
         return ByteString.CopyFrom(bytes);
     }
 
@@ -71,14 +69,7 @@ public static class Helpers
 
         Guid result = new Guid(bytes);
 
-        Console.WriteLine($"[CLIENT-BYTES-TO-GUID] Bytes: {Convert.ToHexString(bytesOriginal)}, GUID: {result}");
-
         return result;
-    }
-
-    private static void SwapBytes(Span<byte> bytes, int i, int j)
-    {
-        (bytes[i], bytes[j]) = (bytes[j], bytes[i]);
     }
 
     public static uint GenerateRandomUInt32InRange(uint min, uint max)

@@ -26,7 +26,6 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Infrastructure.Network.Core.State.Configuration;
 using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
@@ -249,10 +248,7 @@ public static class Program
 
         services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
         services.AddSingleton<NetworkProvider>();
-        services.AddSingleton<RequestDeduplicationService>(_ =>
-            new RequestDeduplicationService(ApplicationConstants.Timeouts.RequestDeduplicationTimeout));
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
-        services.AddSingleton<ConnectionStateConfiguration>();
     }
 
     private static void ConfigureSecurityServices(IServiceCollection services, IConfiguration configuration)
@@ -349,7 +345,6 @@ public static class Program
         services.AddSingleton<IIdentityService, IdentityService>();
 
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
-        services.AddSingleton<IKeyDiagnosticsService, KeyDiagnosticsService>();
 
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
@@ -423,7 +418,6 @@ public static class Program
 
     private static void ConfigureModules(IServiceCollection services)
     {
-        services.AddSingleton<ModuleDependencyResolver>();
         services.AddSingleton<ModuleResourceManager>();
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();

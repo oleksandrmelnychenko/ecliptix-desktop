@@ -401,13 +401,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        StartAutoRedirect(5, MembershipViewType.Welcome);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
         return 0;
     }
 
     private uint HandleNotFoundStatus()
     {
-        StartAutoRedirect(5, MembershipViewType.Welcome);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
         return 0;
     }
 
@@ -415,11 +415,11 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
     {
         if (!string.IsNullOrEmpty(error))
         {
-            StartAutoRedirect(5, MembershipViewType.Welcome, error);
+            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
         }
-        else 
-            StartAutoRedirect(5, MembershipViewType.Welcome);
-        
+        else
+            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
+
         HasError = true;
         HasValidSession = false;
         return 0;
@@ -432,44 +432,50 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         return 0;
     }
 
-    private async void StartAutoRedirect(int seconds, MembershipViewType targetView, string localizaedMessage = "")
+    private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizaedMessage = "")
     {
-        if (_isDisposed) return;
-
-        await _uiDispatcher.PostAsync(() =>
+        try
         {
-            _autoRedirectTimer?.Dispose();
-            _autoRedirectTimer = null;
+            if (_isDisposed) return;
 
-            AutoRedirectCountdown = seconds;
-            IsUiLocked = true;
-            return Task.CompletedTask;
-        });
-
-        string message = "";
-
-        if (!string.IsNullOrEmpty(localizaedMessage))
-        {
-            message = localizaedMessage;
-        }
-        else
-        {
-            string key = IsMaxAttemptsReached
-                ? AuthenticationConstants.MaxAttemptsReachedKey
-                : AuthenticationConstants.SessionNotFoundKey;
-
-            message = _localizationService.GetString(key);
-        }
-
-        if (HostScreen is MembershipHostWindowModel hostWindow)
-        {
-            ShowRedirectNotification(hostWindow, message, seconds, () =>
+            await _uiDispatcher.PostAsync(() =>
             {
-                if (!_isDisposed)
-                    CleanupAndNavigate(targetView);
-            });
-        }
+                _autoRedirectTimer?.Dispose();
+                _autoRedirectTimer = null;
 
+                AutoRedirectCountdown = seconds;
+                IsUiLocked = true;
+                return Task.CompletedTask;
+            });
+
+            string message = "";
+
+            if (!string.IsNullOrEmpty(localizaedMessage))
+            {
+                message = localizaedMessage;
+            }
+            else
+            {
+                string key = IsMaxAttemptsReached
+                    ? AuthenticationConstants.MaxAttemptsReachedKey
+                    : AuthenticationConstants.SessionNotFoundKey;
+
+                message = _localizationService.GetString(key);
+            }
+
+            if (HostScreen is MembershipHostWindowModel hostWindow)
+            {
+                ShowRedirectNotification(hostWindow, message, seconds, () =>
+                {
+                    if (!_isDisposed)
+                        _ = CleanupAndNavigateAsync(targetView);
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[OTP-AUTO-REDIRECT] Error during auto-redirect");
+        }
     }
 
 
@@ -512,35 +518,49 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         CurrentStatus = status;
     }
 
-    private async void CleanupAndNavigate(MembershipViewType targetView)
+    private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
     {
-        if (_isDisposed) return;
-
-        _operationCts?.Cancel();
-        _operationCts?.Dispose();
-        _operationCts = null;
-
-        await _uiDispatcher.PostAsync(() =>
+        try
         {
-            if (!_isDisposed && HostScreen is MembershipHostWindowModel membershipHostWindow)
-            {
-                CleanupAndNavigate(membershipHostWindow, targetView);
-            }
+            if (_isDisposed) return;
 
-            return Task.CompletedTask;
-        });
+            _operationCts?.Cancel();
+            _operationCts?.Dispose();
+            _operationCts = null;
+
+            await _uiDispatcher.PostAsync(() =>
+            {
+                if (!_isDisposed && HostScreen is MembershipHostWindowModel membershipHostWindow)
+                {
+                    CleanupAndNavigate(membershipHostWindow, targetView);
+                }
+
+                return Task.CompletedTask;
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[OTP-CLEANUP-NAV] Error during cleanup and navigation");
+        }
     }
 
     private static string FormatRemainingTime(uint seconds) =>
         TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
-    public async void HandleEnterKeyPress()
+    public async Task HandleEnterKeyPressAsync()
     {
-        if (_isDisposed) return;
-
-        if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
+        try
         {
-            SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
+            if (_isDisposed) return;
+
+            if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[OTP-ENTERKEY] Error handling enter key press");
         }
     }
 

@@ -380,11 +380,18 @@ public class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRoutableVi
         }
     }
 
-    public async void HandleEnterKeyPress()
+    public async Task HandleEnterKeyPressAsync()
     {
-        if (await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+        try
         {
-            SubmitCommand.Execute().Subscribe().DisposeWith(_disposables);
+            if (await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SubmitCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[FORGOT-PASSWORD-ENTERKEY] Error handling enter key press");
         }
     }
 

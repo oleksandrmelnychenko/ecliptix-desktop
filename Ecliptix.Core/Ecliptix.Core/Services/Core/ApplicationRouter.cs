@@ -48,10 +48,12 @@ public class ApplicationRouter(
             throw new InvalidOperationException("Cannot navigate: current window is null");
         }
 
+        string currentWindowType = currentWindow.GetType().Name;
+        bool isCurrentWindowVisible = await Dispatcher.UIThread.InvokeAsync(() => currentWindow.IsVisible);
         Log.Information("[ROUTER-NAV] Current window type: {Type}, IsVisible: {IsVisible}",
-            currentWindow.GetType().Name, currentWindow.IsVisible);
+            currentWindowType, isCurrentWindowVisible);
 
-        IModule authModule = await moduleManager.LoadModuleAsync("Authentication");
+        IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
         if (authModule.ServiceScope?.ServiceProvider == null)
         {
@@ -68,23 +70,23 @@ public class ApplicationRouter(
             throw new InvalidOperationException("Failed to create MembershipHostWindowModel");
         }
 
-        MembershipHostWindow authWindow = new()
+        MembershipHostWindow authWindow = await Dispatcher.UIThread.InvokeAsync(() => new MembershipHostWindow
         {
             DataContext = membershipViewModel
-        };
+        });
 
         Log.Information("[ROUTER-NAV] Authentication window created, preparing transition");
-        await PrepareAndShowWindowAsync(authWindow);
+        await PrepareAndShowWindowAsync(authWindow).ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Starting fade transition from {From} to {To}",
             currentWindow.GetType().Name, authWindow.GetType().Name);
-        await PerformFadeTransitionAsync(currentWindow, authWindow);
+        await PerformFadeTransitionAsync(currentWindow, authWindow).ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Fade transition complete, unloading Main module");
-        await moduleManager.UnloadModuleAsync("Main");
+        await moduleManager.UnloadModuleAsync("Main").ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Ensuring anonymous protocol is available");
-        await EnsureAnonymousProtocolAsync();
+        await EnsureAnonymousProtocolAsync().ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Navigation to Authentication completed successfully");
     }
@@ -100,10 +102,12 @@ public class ApplicationRouter(
             throw new InvalidOperationException("Cannot navigate: current window is null");
         }
 
+        string currentWindowType = currentWindow.GetType().Name;
+        bool isCurrentWindowVisible = await Dispatcher.UIThread.InvokeAsync(() => currentWindow.IsVisible);
         Log.Information("[ROUTER-NAV] Current window type: {Type}, IsVisible: {IsVisible}",
-            currentWindow.GetType().Name, currentWindow.IsVisible);
+            currentWindowType, isCurrentWindowVisible);
 
-        IModule mainModule = await moduleManager.LoadModuleAsync("Main");
+        IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
         if (mainModule.ServiceScope?.ServiceProvider == null)
         {
@@ -120,20 +124,20 @@ public class ApplicationRouter(
             throw new InvalidOperationException("Failed to create MainViewModel");
         }
 
-        MainHostWindow mainWindow = new()
+        MainHostWindow mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainHostWindow
         {
             DataContext = mainViewModel
-        };
+        });
 
         Log.Information("[ROUTER-NAV] Main window created, preparing transition");
-        await PrepareAndShowWindowAsync(mainWindow);
+        await PrepareAndShowWindowAsync(mainWindow).ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Starting fade transition from {From} to {To}",
             currentWindow.GetType().Name, mainWindow.GetType().Name);
-        await PerformFadeTransitionAsync(currentWindow, mainWindow);
+        await PerformFadeTransitionAsync(currentWindow, mainWindow).ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Fade transition complete, unloading Authentication module");
-        await moduleManager.UnloadModuleAsync("Authentication");
+        await moduleManager.UnloadModuleAsync("Authentication").ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Navigation to Main completed successfully");
     }
@@ -146,7 +150,7 @@ public class ApplicationRouter(
         if (isAuthenticated)
         {
             Log.Information("[ROUTER] Loading Main module");
-            IModule mainModule = await moduleManager.LoadModuleAsync("Main");
+            IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
             if (mainModule.ServiceScope?.ServiceProvider == null)
             {
@@ -157,16 +161,16 @@ public class ApplicationRouter(
             MainViewModel? mainViewModel =
                 mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
 
-            nextWindow = new MainHostWindow
+            nextWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainHostWindow
             {
                 DataContext = mainViewModel
-            };
+            });
             Log.Information("[ROUTER] Main window created");
         }
         else
         {
             Log.Information("[ROUTER] Loading Authentication module");
-            IModule authModule = await moduleManager.LoadModuleAsync("Authentication");
+            IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
             Log.Information("[ROUTER] Authentication module loaded. ServiceScope null: {IsNull}", authModule.ServiceScope == null);
 
             if (authModule.ServiceScope?.ServiceProvider == null)
@@ -181,28 +185,31 @@ public class ApplicationRouter(
             Log.Information("[ROUTER] MembershipHostWindowModel retrieved. Null: {IsNull}", membershipViewModel == null);
 
             Log.Information("[ROUTER] Creating MembershipHostWindow");
-            nextWindow = new MembershipHostWindow
+            nextWindow = await Dispatcher.UIThread.InvokeAsync(() => new MembershipHostWindow
             {
                 DataContext = membershipViewModel
-            };
+            });
             Log.Information("[ROUTER] Authentication window created");
         }
 
         Log.Information("[ROUTER] Preparing and showing next window");
-        await PrepareAndShowWindowAsync(nextWindow);
+        await PrepareAndShowWindowAsync(nextWindow).ConfigureAwait(false);
         Log.Information("[ROUTER] Setting as main window");
         desktop.MainWindow = nextWindow;
         Log.Information("[ROUTER] Starting fade transition");
-        await PerformFadeTransitionAsync(splashWindow, nextWindow);
+        await PerformFadeTransitionAsync(splashWindow, nextWindow).ConfigureAwait(false);
         Log.Information("[ROUTER] Transition complete");
     }
 
     private async Task PrepareAndShowWindowAsync(Window window)
     {
-        window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        window.Opacity = 0;
-        window.Show();
-        await Task.Delay(WindowShowDelayMs);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            window.Opacity = 0;
+            window.Show();
+        });
+        await Task.Delay(WindowShowDelayMs).ConfigureAwait(false);
     }
 
     private async Task PerformFadeTransitionAsync(Window fromWindow, Window toWindow)
@@ -221,7 +228,7 @@ public class ApplicationRouter(
                 fromWindow.Opacity = 1 - progress;
                 toWindow.Opacity = progress;
             });
-            await Task.Delay(FrameDelayMs);
+            await Task.Delay(FrameDelayMs).ConfigureAwait(false);
         }
 
         Log.Information("[ROUTER-FADE] Fade animation complete, starting window close sequence");
@@ -271,7 +278,7 @@ public class ApplicationRouter(
             }
         });
 
-        await Task.Delay(100);
+        await Task.Delay(100).ConfigureAwait(false);
 
         Log.Information("[ROUTER-CLOSE-VERIFY] Verifying old window closed successfully");
         bool isStillVisible = await Dispatcher.UIThread.InvokeAsync(() => fromWindow.IsVisible);
@@ -306,7 +313,7 @@ public class ApplicationRouter(
         try
         {
             Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-                await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+                await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
 
             if (settingsResult.IsErr)
             {
@@ -339,7 +346,7 @@ public class ApplicationRouter(
             Log.Information("[ROUTER-PROTOCOL] Establishing anonymous protocol handshake. ConnectId: {ConnectId}",
                 connectId);
             Result<EcliptixSessionState, NetworkFailure> establishResult =
-                await networkProvider.EstablishSecrecyChannelAsync(connectId);
+                await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
             if (establishResult.IsErr)
             {
@@ -355,7 +362,7 @@ public class ApplicationRouter(
             Log.Information("[ROUTER-PROTOCOL] Calling RegisterDevice to fetch server public key. ConnectId: {ConnectId}",
                 connectId);
 
-            Result<Unit, NetworkFailure> registerResult = await RegisterDeviceAsync(connectId, settings);
+            Result<Unit, NetworkFailure> registerResult = await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
 
             if (registerResult.IsErr)
             {
@@ -402,6 +409,6 @@ public class ApplicationRouter(
                     appServerInstanceId);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None);
+            }, false, CancellationToken.None).ConfigureAwait(false);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Security.Cryptography;
@@ -116,7 +117,7 @@ public static class MasterKeyDerivation
 
             try
             {
-                stretchedKey = DeriveWithArgon2Id(exportKeySpan.ToArray(), argonSalt);
+                stretchedKey = DeriveWithArgon2Id(exportKeySpan, argonSalt);
 
                 string stretchedKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(stretchedKey);
                 Serilog.Log.Information("[CLIENT-ARGON2ID-HANDLE] Argon2id stretched key derived. StretchedKeyFingerprint: {StretchedKeyFingerprint}", stretchedKeyFingerprint);
@@ -236,6 +237,30 @@ public static class MasterKeyDerivation
         };
 
         return argon2.GetBytes(KEY_SIZE);
+    }
+
+    private static byte[] DeriveWithArgon2Id(ReadOnlySpan<byte> exportKeySpan, byte[] salt)
+    {
+        byte[] exportKeyBuffer = ArrayPool<byte>.Shared.Rent(exportKeySpan.Length);
+        try
+        {
+            exportKeySpan.CopyTo(exportKeyBuffer.AsSpan(0, exportKeySpan.Length));
+
+            using Argon2id argon2 = new(exportKeyBuffer.AsSpan(0, exportKeySpan.Length).ToArray())
+            {
+                Salt = salt,
+                DegreeOfParallelism = CryptographicConstants.Argon2.DefaultParallelism,
+                Iterations = CryptographicConstants.Argon2.DefaultIterations,
+                MemorySize = CryptographicConstants.Argon2.DefaultMemorySize
+            };
+
+            return argon2.GetBytes(KEY_SIZE);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(exportKeyBuffer.AsSpan(0, exportKeySpan.Length));
+            ArrayPool<byte>.Shared.Return(exportKeyBuffer, clearArray: false);
+        }
     }
 
     public static byte[] DeriveEd25519Seed(byte[] masterKey, string membershipId)

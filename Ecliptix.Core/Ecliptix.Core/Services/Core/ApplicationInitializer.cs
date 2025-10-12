@@ -46,14 +46,14 @@ public class ApplicationInitializer(
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
-        await systemEvents.NotifySystemStateAsync(SystemState.Initializing);
+        await systemEvents.NotifySystemStateAsync(SystemState.Initializing).ConfigureAwait(false);
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture);
+            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture).ConfigureAwait(false);
 
         if (settingsResult.IsErr)
         {
-            await systemEvents.NotifySystemStateAsync(SystemState.FatalError);
+            await systemEvents.NotifySystemStateAsync(SystemState.FatalError).ConfigureAwait(false);
             return false;
         }
 
@@ -61,7 +61,7 @@ public class ApplicationInitializer(
 
         _ = Task.Run(async () =>
         {
-            await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance);
+            await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
         });
 
         string culture = string.IsNullOrEmpty(settings.Culture)
@@ -75,7 +75,7 @@ public class ApplicationInitializer(
         }
 
         Result<uint, NetworkFailure> connectIdResult =
-            await EnsureSecrecyChannelAsync(settings, isNewInstance);
+            await EnsureSecrecyChannelAsync(settings, isNewInstance).ConfigureAwait(false);
         if (connectIdResult.IsErr)
         {
             return false;
@@ -86,7 +86,7 @@ public class ApplicationInitializer(
         Log.Information("[CLIENT-REGISTER] Calling RegisterDevice. ConnectId: {ConnectId}",
             connectId);
 
-        Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings);
+        Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
             Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, Error: {Error}",
@@ -97,7 +97,7 @@ public class ApplicationInitializer(
         Log.Information("[CLIENT-REGISTER] RegisterDevice completed successfully. ConnectId: {ConnectId}",
             connectId);
 
-        await systemEvents.NotifySystemStateAsync(SystemState.Running);
+        await systemEvents.NotifySystemStateAsync(SystemState.Running).ConfigureAwait(false);
         return true;
     }
 
@@ -115,16 +115,16 @@ public class ApplicationInitializer(
         if (!isNewInstance)
         {
             Result<bool, NetworkFailure> restoreResult =
-                await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings);
+                await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
 
             if (restoreResult.IsErr)
                 return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
 
             if (restoreResult.Unwrap())
             {
-                if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId))
+                if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false))
                 {
-                    await stateManager.TransitionToAuthenticatedAsync(membershipId);
+                    await stateManager.TransitionToAuthenticatedAsync(membershipId).ConfigureAwait(false);
                     Log.Information("[CLIENT-RESTORE] Session restored successfully. ConnectId: {ConnectId}, IsMembershipConfirmed: {Confirmed}, MembershipId: {MembershipId}",
                         connectId, true, membershipId);
                 }
@@ -146,12 +146,12 @@ public class ApplicationInitializer(
             Log.Information("[CLIENT-INIT-CHECK] Checking prerequisites for authenticated protocol. MembershipId: {MembershipId}",
                 membershipId);
 
-            bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipId);
+            bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
             Log.Information("[CLIENT-INIT-CHECK] HasStoredIdentity: {HasStoredIdentity}", hasStoredIdentity);
 
             if (hasStoredIdentity)
             {
-                masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId, applicationInstanceSettings);
+                masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
 
                 if (masterKeyHandle != null)
                 {
@@ -186,19 +186,19 @@ public class ApplicationInitializer(
 
                 Result<Unit, NetworkFailure> recreateResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                        masterKeyHandle, membershipByteString, connectId);
+                        masterKeyHandle, membershipByteString, connectId).ConfigureAwait(false);
 
                 if (recreateResult.IsErr)
                 {
                     Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
                         connectId, recreateResult.UnwrapErr().Message);
-                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
+                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
                 }
                 else
                 {
                     Log.Information("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol created successfully. ConnectId: {ConnectId}",
                         connectId);
-                    await stateManager.TransitionToAuthenticatedAsync(membershipId!);
+                    await stateManager.TransitionToAuthenticatedAsync(membershipId!).ConfigureAwait(false);
 
                     return Result<uint, NetworkFailure>.Ok(connectId);
                 }
@@ -207,7 +207,7 @@ public class ApplicationInitializer(
             {
                 Log.Information("[CLIENT-ANON-HANDSHAKE] Creating anonymous protocol. ConnectId: {ConnectId}",
                     connectId);
-                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId);
+                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
             }
         }
         finally
@@ -216,13 +216,13 @@ public class ApplicationInitializer(
         }
 
         byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
-        return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes);
+        return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
     }
 
     private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId, byte[]? membershipId)
     {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
-            await networkProvider.EstablishSecrecyChannelAsync(connectId);
+            await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
         if (establishResult.IsErr)
             return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
@@ -249,11 +249,11 @@ public class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId)
     {
-        await stateManager.TransitionToAnonymousAsync();
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
         if (applicationInstanceSettings.Membership != null)
         {
-            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
 
             applicationInstanceSettings.Membership = null;
         }
@@ -266,7 +266,7 @@ public class ApplicationInitializer(
         Log.Information("[CLIENT-MASTERKEY-STORAGE] Attempting to load master key from storage. MembershipId: {MembershipId}", membershipId);
 
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
-            await identityService.LoadMasterKeyHandleAsync(membershipId);
+            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
         {
@@ -297,7 +297,7 @@ public class ApplicationInitializer(
     {
         Log.Information("[CLIENT-MASTERKEY] Starting master key load from storage. MembershipId: {MembershipId}", membershipId);
 
-        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId);
+        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
 
         if (storageHandle != null)
         {
@@ -307,7 +307,7 @@ public class ApplicationInitializer(
 
         Log.Error("[CLIENT-MASTERKEY-RECOVERY] Master key load failed. Triggering automatic data cleanup. MembershipId: {MembershipId}", membershipId);
 
-        await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings);
+        await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
 
         return null;
     }
@@ -325,7 +325,7 @@ public class ApplicationInitializer(
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupUserStateWithKeysAsync(membershipId, connectId);
+                await stateCleanupService.CleanupUserStateWithKeysAsync(membershipId, connectId).ConfigureAwait(false);
 
             if (cleanupResult.IsErr)
             {
@@ -333,7 +333,7 @@ public class ApplicationInitializer(
                 return;
             }
 
-            await stateManager.TransitionToAnonymousAsync();
+            await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
             Log.Information("[CLIENT-RECOVERY] Automatic recovery completed successfully. All corrupted data cleaned. MembershipId: {MembershipId}", membershipId);
             Log.Information("[CLIENT-RECOVERY] User will be redirected to authentication window for fresh login.");
@@ -357,7 +357,7 @@ public class ApplicationInitializer(
         }
 
         Result<byte[], SecureStorageFailure> loadResult =
-            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId);
+            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
             return Result<bool, NetworkFailure>.Ok(false);
@@ -374,17 +374,17 @@ public class ApplicationInitializer(
             Log.Warning("[CLIENT-RESTORE] Failed to parse session state. ConnectId: {ConnectId}, Error: {Error}",
                 connectId, ex.Message);
             networkProvider.ClearConnection(connectId);
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
         Result<bool, NetworkFailure> restoreResult =
-            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings);
+            await networkProvider.RestoreSecrecyChannelAsync(state, applicationInstanceSettings).ConfigureAwait(false);
 
         if (restoreResult.IsErr)
         {
             networkProvider.ClearConnection(connectId);
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -392,7 +392,7 @@ public class ApplicationInitializer(
             return Result<bool, NetworkFailure>.Ok(true);
 
         networkProvider.ClearConnection(connectId);
-        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
         return Result<bool, NetworkFailure>.Ok(false);
     }
@@ -423,7 +423,7 @@ public class ApplicationInitializer(
                     ByteString.CopyFrom);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, CancellationToken.None);
+            }, false, CancellationToken.None).ConfigureAwait(false);
     }
 
     private Task FetchIpGeolocationInBackgroundAsync() =>
@@ -431,13 +431,13 @@ public class ApplicationInitializer(
         {
             using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
             Result<IpCountry, InternalServiceApiFailure> countryResult =
-                await ipGeolocationService.GetIpCountryAsync(cts.Token);
+                await ipGeolocationService.GetIpCountryAsync(cts.Token).ConfigureAwait(false);
 
             if (countryResult.IsOk)
             {
                 IpCountry country = countryResult.Unwrap();
                 networkProvider.SetCountry(country.Country);
-                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country);
+                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country).ConfigureAwait(false);
             }
         });
 

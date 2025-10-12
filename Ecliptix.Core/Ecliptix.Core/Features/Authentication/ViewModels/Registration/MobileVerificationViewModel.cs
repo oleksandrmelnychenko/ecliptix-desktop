@@ -255,13 +255,20 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         return Task.CompletedTask;
     }
 
-    public async void HandleEnterKeyPress()
+    public async Task HandleEnterKeyPressAsync()
     {
-        if (_isDisposed) return;
-
-        if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+        try
         {
-            VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
+            if (_isDisposed) return;
+
+            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
         }
     }
 

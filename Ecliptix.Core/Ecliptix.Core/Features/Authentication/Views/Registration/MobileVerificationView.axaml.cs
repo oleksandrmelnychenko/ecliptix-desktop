@@ -64,7 +64,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
         if (DataContext is not MobileVerificationViewModel vm) return;
 
-        vm.HandleEnterKeyPress();
+        _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
     }
 }

@@ -82,7 +82,7 @@ internal sealed class ChannelSink(ChannelWriter<SecureEnvelope> writer) : IOutbo
     {
         try
         {
-            await writer.WriteAsync(payload);
+            await writer.WriteAsync(payload).ConfigureAwait(false);
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)

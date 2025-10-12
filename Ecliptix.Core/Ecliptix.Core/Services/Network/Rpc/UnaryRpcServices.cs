@@ -62,7 +62,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> ValidateMobileNumberAsync(
@@ -80,7 +80,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
@@ -98,7 +98,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> VerifyCodeAsync(
@@ -116,7 +116,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
@@ -134,7 +134,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInInitRequestAsync(
@@ -152,7 +152,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
@@ -170,7 +170,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryInitRequestAsync(
@@ -188,7 +188,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryCompleteRequestAsync(
@@ -206,7 +206,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                         payload,
                         new CallOptions(cancellationToken: token)
                     )
-            );
+            ).ConfigureAwait(false);
         }
 
     }
@@ -225,7 +225,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 networkEvents,
                 systemEvents,
                 token
-            );
+            ).ConfigureAwait(false);
 
             return Result<RpcFlow, NetworkFailure>.Ok(
                 new RpcFlow.SingleCall(Task.FromResult(logoutResult))
@@ -239,7 +239,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 networkEvents,
                 systemEvents,
                 token
-            );
+            ).ConfigureAwait(false);
             return Result<RpcFlow, NetworkFailure>.Ok(
                 new RpcFlow.SingleCall(Task.FromResult(result))
             );
@@ -259,16 +259,16 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         try
         {
             AsyncUnaryCall<SecureEnvelope> call = grpcCallFactory();
-            SecureEnvelope response = await call.ResponseAsync;
+            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
         catch (RpcException rpcEx)
         {
             NetworkFailure failure = await GrpcErrorHandler.ClassifyRpcExceptionWithEventsAsync(
-                rpcEx, networkEvents, systemEvents);
+                rpcEx, networkEvents, systemEvents).ConfigureAwait(false);
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
         catch (Exception ex)
@@ -291,16 +291,16 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 payload,
                 new CallOptions(cancellationToken: token)
             );
-            SecureEnvelope response = await call.ResponseAsync;
+            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
         catch (RpcException rpcEx)
         {
             NetworkFailure failure = await GrpcErrorHandler.ClassifyRpcExceptionWithEventsAsync(
-                rpcEx, networkEvents, systemEvents);
+                rpcEx, networkEvents, systemEvents).ConfigureAwait(false);
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
         catch (Exception ex)

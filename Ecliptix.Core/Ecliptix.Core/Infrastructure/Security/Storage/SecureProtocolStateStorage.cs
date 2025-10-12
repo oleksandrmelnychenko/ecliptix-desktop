@@ -78,9 +78,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         try
         {
-            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(membershipId);
+            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(membershipId).ConfigureAwait(false);
 
-            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize);
+            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize).ConfigureAwait(false);
 
             byte[] associatedData = CreateAssociatedData(connectId, _deviceId);
 
@@ -88,12 +88,12 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
             byte[] container = CreateSecureContainer(salt, nonce, tag, ciphertext, associatedData);
 
-            byte[] protectedContainer = await AddTamperProtectionAsync(container);
+            byte[] protectedContainer = await AddTamperProtectionAsync(container).ConfigureAwait(false);
 
             string storagePath = GetStorageFilePath(connectId);
-            await WriteSecureFileAsync(protectedContainer, storagePath);
+            await WriteSecureFileAsync(protectedContainer, storagePath).ConfigureAwait(false);
 
-            await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{connectId}", encryptionKey);
+            await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{connectId}", encryptionKey).ConfigureAwait(false);
 
             CryptographicOperations.ZeroMemory(encryptionKey);
             CryptographicOperations.ZeroMemory(protocolState);
@@ -141,14 +141,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         try
         {
             string storagePath = GetStorageFilePath(connectId);
-            byte[]? protectedContainer = await ReadSecureFileAsync(storagePath);
+            byte[]? protectedContainer = await ReadSecureFileAsync(storagePath).ConfigureAwait(false);
             if (protectedContainer == null)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
                     new SecureStorageFailure("State file not found"));
             }
 
-            byte[]? container = await VerifyTamperProtectionAsync(protectedContainer);
+            byte[]? container = await VerifyTamperProtectionAsync(protectedContainer).ConfigureAwait(false);
             if (container == null)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
@@ -165,7 +165,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                     new SecureStorageFailure("Associated data mismatch"));
             }
 
-            byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{connectId}");
+            byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{connectId}").ConfigureAwait(false);
             byte[] encryptionKey;
 
             if (storedKey != null)
@@ -174,7 +174,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
             else
             {
-                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt);
+                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
                 encryptionKey = derivedKey;
             }
 
@@ -194,7 +194,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
                 CryptographicOperations.ZeroMemory(encryptionKey);
 
-                (byte[] legacyKey, byte[] _) = await DeriveKeyWithSaltAsync(Encoding.UTF8.GetBytes(connectId), salt);
+                (byte[] legacyKey, byte[] _) = await DeriveKeyWithSaltAsync(Encoding.UTF8.GetBytes(connectId), salt).ConfigureAwait(false);
 
                 try
                 {
@@ -203,7 +203,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                     Log.Warning("[CLIENT-STATE-LOAD-MIGRATION] Legacy decryption succeeded. Re-saving with membershipId. ConnectId: {ConnectId}",
                         connectId);
 
-                    await SaveStateAsync(plaintext, connectId, membershipId);
+                    await SaveStateAsync(plaintext, connectId, membershipId).ConfigureAwait(false);
 
                     CryptographicOperations.ZeroMemory(legacyKey);
                     return Result<byte[], SecureStorageFailure>.Ok(plaintext);
@@ -235,8 +235,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         try
         {
             string storagePath = GetStorageFilePath(key);
-            await DeleteFileWithRetryAsync(storagePath);
-            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}");
+            await DeleteFileWithRetryAsync(storagePath).ConfigureAwait(false);
+            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}").ConfigureAwait(false);
 
             Log.Information("[CLIENT-STATE-DELETE] Protocol state deleted securely. Key: {Key}, FilePath: {FilePath}",
                 key, storagePath);
@@ -270,11 +270,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
             catch (UnauthorizedAccessException) when (attempt < maxRetries)
             {
-                await Task.Delay(100 * (attempt + 1));
+                await Task.Delay(100 * (attempt + 1)).ConfigureAwait(false);
             }
             catch (IOException) when (attempt < maxRetries)
             {
-                await Task.Delay(100 * (attempt + 1));
+                await Task.Delay(100 * (attempt + 1)).ConfigureAwait(false);
             }
             catch (FileNotFoundException)
             {
@@ -286,8 +286,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(byte[] membershipId)
     {
-        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize);
-        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt);
+        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize).ConfigureAwait(false);
+        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
         return (key, salt);
     }
 
@@ -303,7 +303,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         argon2.AssociatedData = _deviceId;
 
-        byte[] key = await argon2.GetBytesAsync(KeySize);
+        byte[] key = await argon2.GetBytesAsync(KeySize).ConfigureAwait(false);
         return (key, salt);
     }
 
@@ -433,7 +433,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private async Task<byte[]> AddTamperProtectionAsync(byte[] data)
     {
-        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync();
+        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
         using HMACSHA512 hmac = new(hmacKey);
         byte[] mac = hmac.ComputeHash(data);
 
@@ -452,7 +452,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         byte[] data = protectedData[..^HmacSha512Size];
         byte[] mac = protectedData[^HmacSha512Size..];
 
-        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync();
+        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
         using HMACSHA512 hmac = new HMACSHA512(hmacKey);
         byte[] expectedMac = hmac.ComputeHash(data);
 
@@ -480,14 +480,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         try
         {
-            await File.WriteAllBytesAsync(tempPath, data);
+            await File.WriteAllBytesAsync(tempPath, data).ConfigureAwait(false);
 
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
-            await DeleteFileWithRetryAsync(filePath);
+            await DeleteFileWithRetryAsync(filePath).ConfigureAwait(false);
 
             File.Move(tempPath, filePath);
         }
@@ -502,7 +502,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     }
 
     private async Task<byte[]?> ReadSecureFileAsync(string filePath) =>
-        !File.Exists(filePath) ? null : await File.ReadAllBytesAsync(filePath);
+        !File.Exists(filePath) ? null : await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
 
     public void Dispose()
     {

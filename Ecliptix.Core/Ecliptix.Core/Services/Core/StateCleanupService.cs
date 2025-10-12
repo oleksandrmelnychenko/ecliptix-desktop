@@ -25,7 +25,7 @@ public class StateCleanupService(
                 membershipId, connectId);
 
             Log.Information("[STATE-CLEANUP-DELETE] Deleting protocol state file for ConnectId: {ConnectId}", connectId);
-            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
             if (deleteResult.IsOk)
             {
@@ -37,7 +37,7 @@ public class StateCleanupService(
                     connectId, deleteResult.UnwrapErr().Message);
             }
 
-            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
 
             networkProvider.ClearConnection(connectId);
 
@@ -61,7 +61,7 @@ public class StateCleanupService(
                 membershipId, connectId);
 
             Log.Information("[STATE-CLEANUP-FULL-DELETE] Deleting protocol state file for ConnectId: {ConnectId}", connectId);
-            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
             if (deleteResult.IsOk)
             {
@@ -74,7 +74,7 @@ public class StateCleanupService(
             }
 
             Result<Unit, Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure> clearResult =
-                await identityService.ClearAllCacheAsync(membershipId);
+                await identityService.ClearAllCacheAsync(membershipId).ConfigureAwait(false);
 
             if (clearResult.IsErr)
             {
@@ -82,7 +82,7 @@ public class StateCleanupService(
                     clearResult.UnwrapErr().Message);
             }
 
-            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
+            await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
 
             networkProvider.ClearConnection(connectId);
 

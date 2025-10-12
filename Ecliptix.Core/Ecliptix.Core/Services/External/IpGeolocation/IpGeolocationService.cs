@@ -25,18 +25,18 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
 
         try
         {
-            using HttpResponseMessage res = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+            using HttpResponseMessage res = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
 
             if (!res.IsSuccessStatusCode)
             {
-                string error = await SafeReadAsStringAsync(res.Content, ct);
+                string error = await SafeReadAsStringAsync(res.Content, ct).ConfigureAwait(false);
                 return Result<IpCountry, InternalServiceApiFailure>.Err(
                     InternalServiceApiFailure.ApiRequestFailed(
                         $"Geo API failed with {(int)res.StatusCode} {res.ReasonPhrase}: {Trim(error, 1000)}"));
             }
 
-            await using Stream stream = await res.Content.ReadAsStreamAsync(ct);
-            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+            await using Stream stream = await res.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false);
             JsonElement root = doc.RootElement;
 
             string ipParsed = TryGetAnyCaseInsensitive(root, "ip", "ipAddress", "query") ?? "unknown";
@@ -92,7 +92,7 @@ public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServic
     {
         try
         {
-            return await content.ReadAsStringAsync(ct);
+            return await content.ReadAsStringAsync(ct).ConfigureAwait(false);
         }
         catch
         {

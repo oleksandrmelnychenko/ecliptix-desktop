@@ -70,6 +70,8 @@ SKIP_RESTORE=false
 SKIP_TESTS=false
 CLEAN_BUILD=false
 OPTIMIZATION_LEVEL="aggressive"
+CREATE_DMG=false
+CODESIGN_IDENTITY=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -113,6 +115,14 @@ while [[ $# -gt 0 ]]; do
             OPTIMIZATION_LEVEL="$2"
             shift 2
             ;;
+        --create-dmg)
+            CREATE_DMG=true
+            shift
+            ;;
+        --sign)
+            CODESIGN_IDENTITY="$2"
+            shift 2
+            ;;
         -h|--help)
             echo "AOT Build Script for Ecliptix Desktop macOS"
             echo ""
@@ -129,6 +139,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-tests         Skip running tests"
             echo "  --clean              Clean build artifacts before building"
             echo "  --optimization LEVEL Optimization level (size/speed/aggressive, default: aggressive)"
+            echo "  --create-dmg         Create DMG installer after build"
+            echo "  --sign IDENTITY      Code signing identity (for DMG)"
             echo "  -h, --help           Show this help message"
             echo ""
             echo "AOT Features:"
@@ -143,6 +155,8 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 --universal                   # Universal Binary for both architectures"
             echo "  $0 --optimization size            # Size-optimized AOT build"
             echo "  $0 --increment patch              # Increment version and AOT build"
+            echo "  $0 --create-dmg                  # Build and create DMG installer"
+            echo "  $0 --create-dmg --sign 'Dev ID'  # Build, sign, and create DMG"
             exit 0
             ;;
         *)
@@ -376,12 +390,20 @@ mv "$BUILD_OUTPUT_DIR"/*.json "$MACOS_DIR/" 2>/dev/null || true
 mv "$BUILD_OUTPUT_DIR"/*.pdb "$MACOS_DIR/" 2>/dev/null || true
 
 # Copy the icon file
-ICON_SOURCE="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core/Assets/EcliptixLogo.icns"
+ICON_SOURCE="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns"
 if [ -f "$ICON_SOURCE" ]; then
     cp "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
-    print_success "Icon copied to app bundle"
+    chmod 644 "$RESOURCES_DIR/AppIcon.icns"
+    print_success "Icon copied to app bundle: $RESOURCES_DIR/AppIcon.icns"
 else
     print_warning "Icon file not found at $ICON_SOURCE, app bundle will use default icon"
+    # Try alternative location
+    ALT_ICON_SOURCE="$PROJECT_ROOT/Ecliptix.Core/Ecliptix.Core/Assets/EcliptixLogo.icns"
+    if [ -f "$ALT_ICON_SOURCE" ]; then
+        cp "$ALT_ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
+        chmod 644 "$RESOURCES_DIR/AppIcon.icns"
+        print_success "Icon copied from alternative location"
+    fi
 fi
 
 # Create optimized Info.plist for AOT build
@@ -445,6 +467,15 @@ chmod +x "$MACOS_DIR/Ecliptix"
 
 print_success "AOT macOS app bundle created: $APP_BUNDLE"
 
+# Touch the app bundle to update modification time for icon cache
+touch "$APP_BUNDLE"
+
+# Clear macOS icon cache (without sudo to avoid password prompt)
+print_status "Clearing local icon cache..."
+rm -rf ~/Library/Caches/com.apple.iconservices.store 2>/dev/null || true
+killall Dock 2>/dev/null || true
+print_success "Icon cache cleared (Dock will restart)"
+
 # Calculate and display size information
 if command -v du &> /dev/null; then
     BUNDLE_SIZE=$(du -sh "$APP_BUNDLE" | cut -f1)
@@ -492,6 +523,12 @@ echo ""
 echo "🧪 To test the AOT application:"
 echo "   open '$APP_BUNDLE'"
 echo ""
+echo "🎨 If the icon doesn't appear in the Dock/Toolbar:"
+echo "   1. Quit the app completely"
+echo "   2. Clear icon cache: rm -rf ~/Library/Caches/com.apple.iconservices.store"
+echo "   3. Restart Dock: killall Dock"
+echo "   4. Relaunch the app: open '$APP_BUNDLE'"
+echo ""
 echo "📋 Next steps for distribution:"
 echo "   1. Test thoroughly: open '$APP_BUNDLE'"
 echo "   2. Sign for distribution: codesign -s 'Developer ID Application: Your Name' '$APP_BUNDLE'"
@@ -499,3 +536,29 @@ echo "   3. Verify signature: codesign -v -d '$APP_BUNDLE'"
 echo "   4. Notarize: xcrun notarytool submit '$BUILD_OUTPUT_DIR/$ARCHIVE_NAME' --keychain-profile 'notarytool-profile'"
 echo "   5. Staple notarization: xcrun stapler staple '$APP_BUNDLE'"
 echo ""
+
+# Create DMG installer if requested
+if [ "$CREATE_DMG" = true ]; then
+    echo ""
+    print_status "Creating DMG installer..."
+
+    DMG_SCRIPT="$SCRIPT_DIR/create-macos-installer.sh"
+
+    if [ ! -f "$DMG_SCRIPT" ]; then
+        print_error "DMG creation script not found: $DMG_SCRIPT"
+        exit 1
+    fi
+
+    if [ -n "$CODESIGN_IDENTITY" ]; then
+        "$DMG_SCRIPT" -a "$APP_BUNDLE" -s "$CODESIGN_IDENTITY"
+    else
+        "$DMG_SCRIPT" -a "$APP_BUNDLE"
+    fi
+
+    if [ $? -eq 0 ]; then
+        print_success "DMG installer created successfully!"
+    else
+        print_error "Failed to create DMG installer"
+        exit 1
+    fi
+fi

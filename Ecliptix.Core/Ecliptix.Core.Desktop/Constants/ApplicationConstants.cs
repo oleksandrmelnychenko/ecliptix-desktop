@@ -32,7 +32,6 @@ public static class ApplicationConstants
     {
         public const string DataProtectionKeysPath = "%APPDATA%/Storage/DataProtection-Keys";
         public const string DefaultStatePath = "Storage/state";
-        public const string SecureProtocolStateFile = "secure_protocol_state.enc";
         public const string EcliptixDirectoryName = "Ecliptix";
         public const string LocalShareDirectory = ".local/share";
         public const string ApplicationSupportDirectory = "Library/Application Support";
@@ -49,7 +48,6 @@ public static class ApplicationConstants
         public static readonly TimeSpan DefaultPollingInterval = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultInitialRetryDelay = TimeSpan.FromSeconds(5);
         public static readonly TimeSpan DefaultMaxRetryDelay = TimeSpan.FromMinutes(2);
-        public static readonly TimeSpan RequestDeduplicationTimeout = TimeSpan.FromSeconds(10);
     }
 
     public static class Thresholds

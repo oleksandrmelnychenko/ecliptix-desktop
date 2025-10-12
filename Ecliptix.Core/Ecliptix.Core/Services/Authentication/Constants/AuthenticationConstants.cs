@@ -22,11 +22,8 @@ public static class AuthenticationConstants
     public const string PasswordStrengthVeryStrongKey = "ValidationErrors.PasswordStrength.VeryStrong";
 
     public const string NetworkFailurePrefix = "Failed to parse response: ";
-    public const string GetResponseFailurePrefix = "Failed to get response: ";
     public const string VerificationFailurePrefix = "Verification failed: ";
     public const string RegistrationFailurePrefix = "Registration failed: ";
-
-    public const string OpaqueInitializationFailureMessage = "Failed to initialize OPAQUE protocol service";
 
     public const string InvalidOtpCodeKey = "Verification.Error.InvalidOtpCode";
     public const string RegistrationFailedKey = "Registration.Error.Failed";
@@ -38,8 +35,6 @@ public static class AuthenticationConstants
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
 
     public const string AccountAlreadyExistsKey = "ResponseErrors.MobileNumber.AccountAlreadyRegistered";
-    public const string UnexpectedMembershipStatusKey = "ResponseErrors.MobileNumber.UnexpectedMembershipStatus";
-    
     public const string TimeoutExceededKey = "ResponseErrors.Common.TimeoutExceeded";
 
     public const string InitialRemainingTime = "00:30";
@@ -57,6 +52,5 @@ public static class AuthenticationConstants
     public static class Timeouts
     {
         public static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(5);
-        public static readonly TimeSpan SecrecyChannelRetryDelay = TimeSpan.FromSeconds(1);
     }
 }

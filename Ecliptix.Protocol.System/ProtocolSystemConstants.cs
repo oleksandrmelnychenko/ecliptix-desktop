@@ -6,18 +6,9 @@ public static class ProtocolSystemConstants
     {
         public static readonly TimeSpan SessionTimeout = TimeSpan.FromHours(24);
         public static readonly TimeSpan DefaultCircuitBreakerTimeout = TimeSpan.FromSeconds(30);
-        public static readonly TimeSpan DefaultMetricsInterval = TimeSpan.FromSeconds(30);
         public static readonly TimeSpan NonceLifetime = TimeSpan.FromMinutes(5);
         public static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(1);
         public static readonly TimeSpan WindowAdjustmentInterval = TimeSpan.FromMinutes(2);
-        public static readonly TimeSpan AnalysisInterval = TimeSpan.FromSeconds(10);
-        public static readonly TimeSpan MessageWindowSize = TimeSpan.FromMinutes(1);
-        public static readonly TimeSpan ConfigUpdateInterval = TimeSpan.FromMinutes(5);
-
-        public static readonly TimeSpan LightLoadMaxChainAge = TimeSpan.FromMinutes(30);
-        public static readonly TimeSpan ModerateLoadMaxChainAge = TimeSpan.FromMinutes(45);
-        public static readonly TimeSpan HeavyLoadMaxChainAge = TimeSpan.FromHours(1);
-        public static readonly TimeSpan ExtremeLoadMaxChainAge = TimeSpan.FromHours(2);
         public static readonly TimeSpan DefaultMaxChainAge = TimeSpan.FromHours(1);
     }
 
@@ -74,11 +65,8 @@ public static class ProtocolSystemConstants
     {
         public const int PerformanceDecimalPlaces = 3;
         public const int JsonEscapeBufferExtra = 16;
-        public const int WindowMultiplierHeavy = 3;
-        public const int WindowMultiplierModerate = 2;
         public const int DllImportSuccess = 0;
         public const int ZeroValue = 0;
-        public const int NegativeOneValue = -1;
     }
 
     public static class Protocol
@@ -133,8 +121,6 @@ public static class ProtocolSystemConstants
         public const string AesGcmEncryptionFailedMessage = "AES-GCM encryption failed.";
         public const string CiphertextTooSmallMessage = "Received ciphertext length ({0}) is smaller than the GCM tag size ({1}).";
         public const string AesGcmDecryptionFailedMessage = "AES-GCM decryption failed (authentication tag mismatch).";
-        public const string AesGcmUnexpectedErrorMessage = "Unexpected error during AES-GCM decryption.";
-        public const string AdaptiveRatchetNotInitializedMessage = "AdaptiveRatchetManager not initialized";
     }
 
     public static class Libraries
@@ -142,12 +128,5 @@ public static class ProtocolSystemConstants
         public const string LibSodium = "libsodium";
         public const string Kernel32 = "kernel32.dll";
         public const string LibC = "libc";
-    }
-
-    public static class KeyPurposes
-    {
-        public const string FailedToDeriveFormat = "Failed to derive {0} public key.";
-        public const string DerivedKeySizeIncorrectFormat = "Derived {0} public key has incorrect size.";
-        public const string UnexpectedErrorGeneratingFormat = "Unexpected error generating {0} key pair.";
     }
 }

@@ -109,7 +109,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         CancellationToken cancellationToken = default)
     {
         return await ExecuteSecrecyChannelOperationInternalAsync(
-            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false);
+            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false).ConfigureAwait(false);
     }
 
     public async Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryOperationAsync<TResponse>(
@@ -122,7 +122,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         Log.Information("🔄 MANUAL RETRY: Executing operation '{OperationName}' bypassing exhaustion checks",
             operationName);
         return await ExecuteSecrecyChannelOperationInternalAsync(
-            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true);
+            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true).ConfigureAwait(false);
     }
 
     private async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationInternalAsync<TResponse>(
@@ -145,7 +145,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         int actualMaxRetries = maxRetries ?? _configuration.MaxRetries;
 
-        if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync())
+        if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync().ConfigureAwait(false))
         {
             Log.Information(
                 "🚫 OPERATION BLOCKED: Cannot start new operation '{OperationName}' - system is globally exhausted, manual retry required",
@@ -233,7 +233,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         {
             try
             {
-                await _stateLock.WaitAsync();
+                await _stateLock.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     int resetCount = 0;
@@ -355,7 +355,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         if (_activeRetryOperations.IsEmpty)
             return false;
 
-        await _stateLock.WaitAsync();
+        await _stateLock.WaitAsync().ConfigureAwait(false);
         try
         {
             foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
@@ -400,7 +400,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         {
             ClearExhaustedOperations();
 
-            bool anySucceeded = await RetryAllExhaustedOperationsAsync();
+            bool anySucceeded = await RetryAllExhaustedOperationsAsync().ConfigureAwait(false);
 
             if (anySucceeded)
             {
@@ -430,7 +430,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     private async Task<bool> RetryAllExhaustedOperationsAsync()
     {
-        await _stateLock.WaitAsync();
+        await _stateLock.WaitAsync().ConfigureAwait(false);
         List<RetryOperationInfo> exhaustedOperations = new();
         try
         {

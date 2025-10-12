@@ -27,14 +27,6 @@ public static class UtilityConstants
         public const int Sha256OutputSize = 32;
         public const byte MaxByteValue = 255;
         public const byte MinByteValue = 0;
-        public const int ByteSwapIndex0 = 0;
-        public const int ByteSwapIndex1 = 1;
-        public const int ByteSwapIndex2 = 2;
-        public const int ByteSwapIndex3 = 3;
-        public const int ByteSwapIndex4 = 4;
-        public const int ByteSwapIndex5 = 5;
-        public const int ByteSwapIndex6 = 6;
-        public const int ByteSwapIndex7 = 7;
         public const int HashBytesToRead = 4;
     }
 

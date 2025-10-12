@@ -115,7 +115,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
 
         if (DataContext is not SecureKeyVerifierViewModel vm) return;
 
-        vm.HandleEnterKeyPress();
+        _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
     }
 

@@ -581,7 +581,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private static Result<byte[], EcliptixProtocolFailure> Encrypt(RatchetChainKey key, byte[] nonce,
         byte[] plaintext, byte[] ad, EcliptixProtocolConnection? connection)
     {
-        using IDisposable? timer = connection?.GetProfiler().StartOperation(ProtocolSystemConstants.ProtocolSystem.AesGcmEncryptOperationName);
         using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         byte[]? ciphertext = null;
         try
@@ -664,7 +663,6 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     private static Result<byte[], EcliptixProtocolFailure> DecryptFromMaterials(RatchetChainKey key, EnvelopeMetadata metadata,
         byte[] encryptedPayload, byte[] ad, EcliptixProtocolConnection? connection)
     {
-        using IDisposable? timer = connection?.GetProfiler().StartOperation(ProtocolSystemConstants.ProtocolSystem.AesGcmDecryptOperationName);
         ReadOnlySpan<byte> fullCipherSpan = encryptedPayload.AsSpan();
         const int tagSize = Constants.AesGcmTagSize;
         int cipherLength = fullCipherSpan.Length - tagSize;

@@ -19,12 +19,10 @@ public static class HintedTextBoxConstants
     public const double DefaultFontSize = 16.0;
     public const double DefaultWatermarkFontSize = 15.0;
 
-    public const int MaxCachedMaskLength = 100;
     public const int InputDebounceDelayMs = 5;
     public const int InitialCaretIndex = 0;
     public const int TypingAnimationThreshold = 1;
     public const int TypingAnimationDurationMs = 400;
-    public const int CacheArrayOffsetIncrement = 1;
     public const int DefaultWarningDisplayDurationMs = 1500;
 
     public const double FullOpacity = 1.0;
@@ -39,11 +37,6 @@ public static class HintedTextBoxConstants
     public const string FocusBorderName = "FocusBorder";
     public const string MainBorderName = "MainBorder";
     public const string ShadowBorderName = "ShadowBorder";
-    public const string PasswordMaskOverlayName = "PasswordMaskOverlay";
-
-    public const string ClearSecurelyMethodName = "ClearSecurely";
-    public const string CollectMethodName = "Collect";
-    public const string WaitForPendingFinalizersMethodName = "WaitForPendingFinalizers";
 
     public const string ErrorShadowKey = "ErrorShadow";
     public const string FocusShadowKey = "FocusShadow";

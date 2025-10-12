@@ -51,7 +51,7 @@ public class RpcServiceManager : IRpcServiceManager
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
             envelope,
-            exchangeType);
+            exchangeType).ConfigureAwait(false);
     }
 
     public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
@@ -61,7 +61,7 @@ public class RpcServiceManager : IRpcServiceManager
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
-            request);
+            request).ConfigureAwait(false);
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
@@ -71,7 +71,7 @@ public class RpcServiceManager : IRpcServiceManager
     {
         return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(networkEvents,
             systemEvents,
-            request);
+            request).ConfigureAwait(false);
     }
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,
@@ -80,7 +80,7 @@ public class RpcServiceManager : IRpcServiceManager
         if (_serviceInvokers.TryGetValue(request.ActionType,
                 out Func<ServiceRequest, CancellationToken, Task<Result<RpcFlow, NetworkFailure>>>? invoker))
         {
-            Result<RpcFlow, NetworkFailure> result = await invoker(request, token);
+            Result<RpcFlow, NetworkFailure> result = await invoker(request, token).ConfigureAwait(false);
 
             return result;
         }

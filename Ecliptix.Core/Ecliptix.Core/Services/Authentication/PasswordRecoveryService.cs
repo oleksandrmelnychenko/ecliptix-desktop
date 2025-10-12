@@ -55,7 +55,7 @@ public sealed class PasswordRecoveryService(
         uint connectId)
     {
         Result<ValidateMobileNumberResponse, string> result =
-            await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId);
+            await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId).ConfigureAwait(false);
 
         if (result.IsErr)
             return Result<ByteString, string>.Err(result.UnwrapErr());
@@ -139,7 +139,7 @@ public sealed class PasswordRecoveryService(
             }
 
             Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
-                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.Request, connectId);
+                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.Request, connectId).ConfigureAwait(false);
 
             if (initResult.IsErr)
             {
@@ -183,22 +183,21 @@ public sealed class PasswordRecoveryService(
                         OpaqueRecoverySecretKeyCompleteResponse response =
                             Helpers.ParseFromBytes<OpaqueRecoverySecretKeyCompleteResponse>(payload);
                         responseSource.TrySetResult(response);
-                        return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
                     catch (Exception ex)
                     {
+                        Serilog.Log.Error(ex, "[PASSWORD-RECOVERY-COMPLETE] Failed to parse password recovery complete response");
                         responseSource.TrySetException(ex);
-                        return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding($"Failed to parse response: {ex.Message}")));
                     }
-                }, true, CancellationToken.None);
+                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                }, true, CancellationToken.None).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
                 return Result<Unit, string>.Err(networkResult.UnwrapErr().Message);
             }
 
-            OpaqueRecoverySecretKeyCompleteResponse completeResponse = await responseSource.Task;
+            OpaqueRecoverySecretKeyCompleteResponse completeResponse = await responseSource.Task.ConfigureAwait(false);
 
             return Result<Unit, string>.Ok(Unit.Value);
         }
@@ -250,22 +249,21 @@ public sealed class PasswordRecoveryService(
                         OpaqueRecoverySecureKeyInitResponse response =
                             Helpers.ParseFromBytes<OpaqueRecoverySecureKeyInitResponse>(payload);
                         responseSource.TrySetResult(response);
-                        return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                     }
                     catch (Exception ex)
                     {
+                        Serilog.Log.Error(ex, "[PASSWORD-RECOVERY-INIT] Failed to parse password recovery init response");
                         responseSource.TrySetException(ex);
-                        return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding($"Failed to parse response: {ex.Message}")));
                     }
-                }, true, CancellationToken.None);
+                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                }, true, CancellationToken.None).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
                 return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(networkResult.UnwrapErr().Message);
             }
 
-            OpaqueRecoverySecureKeyInitResponse initResponse = await responseSource.Task;
+            OpaqueRecoverySecureKeyInitResponse initResponse = await responseSource.Task.ConfigureAwait(false);
             return Result<OpaqueRecoverySecureKeyInitResponse, string>.Ok(initResponse);
         }
         catch (Exception ex)

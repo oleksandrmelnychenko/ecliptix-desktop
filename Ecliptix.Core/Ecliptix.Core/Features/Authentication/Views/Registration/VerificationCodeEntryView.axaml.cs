@@ -60,7 +60,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
 
         if (DataContext is not VerifyOtpViewModel vm) return;
 
-        vm.HandleEnterKeyPress();
+        _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
     }
 }

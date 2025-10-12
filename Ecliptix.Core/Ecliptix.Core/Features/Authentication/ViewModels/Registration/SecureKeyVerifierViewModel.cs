@@ -373,11 +373,18 @@ public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableView
         }
     }
 
-    public async void HandleEnterKeyPress()
+    public async Task HandleEnterKeyPressAsync()
     {
-        if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+        try
         {
-            SubmitCommand.Execute().Subscribe();
+            if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SubmitCommand.Execute().Subscribe();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[SECURE-KEY-VERIFIER-ENTERKEY] Error handling enter key press");
         }
     }
 

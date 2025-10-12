@@ -296,11 +296,18 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _isDisposed = true;
     }
 
-    public async void HandleEnterKeyPress()
+    public async Task HandleEnterKeyPressAsync()
     {
-        if(await SignInCommand!.CanExecute.FirstOrDefaultAsync())
+        try
         {
-            SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
+            if(await SignInCommand!.CanExecute.FirstOrDefaultAsync())
+            {
+                SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[SIGNIN-ENTERKEY] Error handling enter key press");
         }
     }
 

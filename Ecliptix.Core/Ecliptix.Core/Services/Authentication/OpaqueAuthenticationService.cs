@@ -35,7 +35,7 @@ public sealed class SignInResult(
     : IDisposable
 {
     public SodiumSecureMemoryHandle? MasterKeyHandle { get; private set; } = masterKeyHandle;
-    public Ecliptix.Protobuf.Membership.Membership? Membership { get; } = membership;
+    public Protobuf.Membership.Membership? Membership { get; } = membership;
 
     public void Dispose()
     {
@@ -120,7 +120,7 @@ public class OpaqueAuthenticationService(
 
             if (passwordBytes != null && passwordBytes.Length != 0)
             {
-                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId);
+                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId).ConfigureAwait(false);
             }
 
             string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
@@ -153,7 +153,7 @@ public class OpaqueAuthenticationService(
             PeerOprf = ByteString.CopyFrom(ke1Result.KeyExchangeData),
         };
 
-        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult = await SendInitRequestAsync(initRequest, connectId);
+        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult = await SendInitRequestAsync(initRequest, connectId).ConfigureAwait(false);
         if (initResult.IsErr)
         {
             return Result<Unit, AuthenticationFailure>.Err(initResult.UnwrapErr());
@@ -185,7 +185,6 @@ public class OpaqueAuthenticationService(
         }
 
         byte[] ke3Data = ke3DataResult.Unwrap();
-
         byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
         string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
@@ -214,7 +213,7 @@ public class OpaqueAuthenticationService(
             await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
                 baseKeyHandle,
                 StorageKeyConstants.SessionContext.SignInSession,
-                DefaultKeyDerivationOptions);
+                DefaultKeyDerivationOptions).ConfigureAwait(false);
 
         if (enhancedMasterKeyHandleResult.IsErr)
         {
@@ -231,7 +230,7 @@ public class OpaqueAuthenticationService(
         };
 
         Result<SignInResult, AuthenticationFailure> finalResult =
-            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId);
+            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId).ConfigureAwait(false);
 
         if (finalResult.IsOk)
         {
@@ -253,7 +252,7 @@ public class OpaqueAuthenticationService(
                 if (!ValidateMembershipIdentifier(membershipIdentifier))
                 {
                     Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}", membershipId);
-                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier");
+                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier").ConfigureAwait(false);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.InvalidMembershipIdentifier(localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                 }
@@ -286,7 +285,7 @@ public class OpaqueAuthenticationService(
                 }
 
                 Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
-                Result<Unit, AuthenticationFailure> storeResult = await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString());
+                Result<Unit, AuthenticationFailure> storeResult = await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
 
                 if (storeResult.IsErr)
                 {
@@ -298,7 +297,7 @@ public class OpaqueAuthenticationService(
                 Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}", membershipId);
 
                 Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
-                await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership);
+                await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership).ConfigureAwait(false);
                 Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}", membershipId);
 
                 Serilog.Log.Information("[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
@@ -306,7 +305,7 @@ public class OpaqueAuthenticationService(
 
                 Result<Unit, NetworkFailure> recreateProtocolResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                        masterKeyHandle, membershipIdentifier, connectId);
+                        masterKeyHandle, membershipIdentifier, connectId).ConfigureAwait(false);
 
                 if (recreateProtocolResult.IsErr)
                 {
@@ -348,8 +347,6 @@ public class OpaqueAuthenticationService(
         TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
 
         using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
-        await using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
-            responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -362,40 +359,31 @@ public class OpaqueAuthenticationService(
                     OpaqueSignInInitResponse response =
                         Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
                     responseCompletionSource.TrySetResult(response);
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
                 catch (Exception ex)
                 {
+                    Serilog.Log.Error(ex, "[OPAQUE-SIGNIN-INIT] Failed to parse sign-in initialization response");
                     responseCompletionSource.TrySetException(ex);
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding(
-                            $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
                 }
-            }, false, CancellationToken.None, waitForRecovery: true
-        );
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }, false, timeoutCts.Token, waitForRecovery: false
+        ).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
-            NetworkFailure failure = networkResult.UnwrapErr();
-            responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed(failure.Message));
+                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
         }
 
         try
         {
-            OpaqueSignInInitResponse response = await responseCompletionSource.Task;
+            OpaqueSignInInitResponse response = await responseCompletionSource.Task.ConfigureAwait(false);
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(response);
         }
         catch (OperationCanceledException)
         {
             return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
                 AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
-        }
-        catch (Exception ex)
-        {
-            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}", ex));
         }
     }
 
@@ -406,8 +394,6 @@ public class OpaqueAuthenticationService(
         TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
 
         using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
-        using CancellationTokenRegistration registration = timeoutCts.Token.Register(() =>
-            responseCompletionSource.TrySetCanceled(timeoutCts.Token), useSynchronizationContext: false);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -420,40 +406,31 @@ public class OpaqueAuthenticationService(
                     OpaqueSignInFinalizeResponse response =
                         Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
                     responseCompletionSource.TrySetResult(response);
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
                 catch (Exception ex)
                 {
+                    Serilog.Log.Error(ex, "[OPAQUE-SIGNIN-FINALIZE] Failed to parse sign-in finalization response");
                     responseCompletionSource.TrySetException(ex);
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.DataCenterNotResponding(
-                            $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
                 }
-            }, false, CancellationToken.None, waitForRecovery: true
-        );
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }, false, timeoutCts.Token, waitForRecovery: false
+        ).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
-            NetworkFailure failure = networkResult.UnwrapErr();
-            responseCompletionSource.TrySetException(new InvalidOperationException(failure.Message));
             return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed(failure.Message));
+                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
         }
 
         OpaqueSignInFinalizeResponse capturedResponse;
         try
         {
-            capturedResponse = await responseCompletionSource.Task;
+            capturedResponse = await responseCompletionSource.Task.ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
             return Result<SignInResult, AuthenticationFailure>.Err(
                 AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
-        }
-        catch (Exception ex)
-        {
-            return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"{AuthenticationConstants.GetResponseFailurePrefix}{ex.Message}", ex));
         }
 
         if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)

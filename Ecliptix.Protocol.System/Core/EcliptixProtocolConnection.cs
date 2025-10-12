@@ -25,7 +25,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
     private readonly ReplayProtection _replayProtection = new();
     private readonly RatchetConfig _ratchetConfig;
     private readonly RatchetRecovery _ratchetRecovery = new();
-    private readonly PerformanceProfiler _profiler = new();
 
     private readonly DateTimeOffset _createdAt;
     private readonly uint _id;
@@ -550,7 +549,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     internal Result<(RatchetChainKey RatchetKey, bool IncludeDhKey), EcliptixProtocolFailure> PrepareNextSendMessage()
     {
-        using IDisposable timer = _profiler.StartOperation(EcliptixProtocolFailureMessages.OperationNames.PrepareNextSendMessage);
         lock (_lock)
         {
             Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
@@ -599,7 +597,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     internal Result<RatchetChainKey, EcliptixProtocolFailure> ProcessReceivedMessage(uint receivedIndex)
     {
-        using IDisposable timer = _profiler.StartOperation(EcliptixProtocolFailureMessages.OperationNames.ProcessReceivedMessage);
         bool hasSkippedKeys = false;
 
         lock (_lock)
@@ -722,7 +719,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
     private Result<Unit, EcliptixProtocolFailure> PerformDhRatchet(bool isSender,
         byte[]? receivedDhPublicKeyBytes = null)
     {
-        using IDisposable timer = _profiler.StartOperation(EcliptixProtocolFailureMessages.OperationNames.DhRatchet);
         byte[]? dhSecret = null, newRootKey = null, newChainKeyForTargetStep = null, newEphemeralPublicKey = null;
         byte[]? localPrivateKeyBytes = null, currentRootKey = null, newDhPrivateKeyBytes = null;
         SodiumSecureMemoryHandle? newEphemeralSkHandle = null;
@@ -877,8 +873,6 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     internal Result<byte[], EcliptixProtocolFailure> GenerateNextNonce()
     {
-        using IDisposable timer = _profiler.StartOperation(EcliptixProtocolFailureMessages.OperationNames.GenerateNonce);
-
         if (_disposed)
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolConnection)));
@@ -1061,17 +1055,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
 
     public Dictionary<string, (long Count, double AvgMs, double MaxMs, double MinMs)> GetPerformanceMetrics()
     {
-        return _profiler.GetMetrics();
-    }
-
-    internal PerformanceProfiler GetProfiler()
-    {
-        return _profiler;
+        return new Dictionary<string, (long Count, double AvgMs, double MaxMs, double MinMs)>();
     }
 
     public void ResetPerformanceMetrics()
     {
-        _profiler.Reset();
     }
 
     private void SecureCleanupLogic()
