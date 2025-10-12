@@ -67,7 +67,7 @@ public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider
         {
             string? exchangeTypeHeader = headers.GetValue("exchange-type");
             if (!string.IsNullOrEmpty(exchangeTypeHeader) &&
-                Enum.TryParse<PubKeyExchangeType>(exchangeTypeHeader, true, out PubKeyExchangeType headerExchangeType) &&
+                Enum.TryParse(exchangeTypeHeader, true, out PubKeyExchangeType headerExchangeType) &&
                 Enum.IsDefined(typeof(PubKeyExchangeType), headerExchangeType))
             {
                 return headerExchangeType;

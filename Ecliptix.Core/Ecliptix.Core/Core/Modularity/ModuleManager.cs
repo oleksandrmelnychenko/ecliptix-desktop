@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Serilog;
 using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Modularity;
@@ -14,7 +14,6 @@ public class ModuleManager : IModuleManager
 {
     private readonly IModuleCatalog _catalog;
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<ModuleManager> _logger;
     private readonly ParallelModuleLoader _parallelLoader;
     private readonly IModuleMessageBus _messageBus;
     private readonly ConcurrentDictionary<string, ModuleState> _moduleStates = new();
@@ -24,11 +23,10 @@ public class ModuleManager : IModuleManager
     public event EventHandler<ModuleLoadingEventArgs>? ModuleLoading;
     public event EventHandler<ModuleFailedEventArgs>? ModuleFailed;
 
-    public ModuleManager(IModuleCatalog catalog, IServiceProvider serviceProvider, ILogger<ModuleManager> logger)
+    public ModuleManager(IModuleCatalog catalog, IServiceProvider serviceProvider)
     {
         _catalog = catalog;
         _serviceProvider = serviceProvider;
-        _logger = logger;
         _parallelLoader = new ParallelModuleLoader(serviceProvider);
         _messageBus = serviceProvider.GetService<IModuleMessageBus>() ??
                       throw new InvalidOperationException("IModuleMessageBus not registered");
@@ -83,18 +81,17 @@ public class ModuleManager : IModuleManager
 
             await module.LoadAsync(_serviceProvider);
 
-
             stopwatch.Stop();
             _moduleStates[moduleName] = ModuleState.Loaded;
 
             try
             {
                 await module.SetupMessageHandlersAsync(_messageBus);
-                _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
+                Log.Debug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}", module.Id.ToName());
+                Log.Error(ex, "Failed to setup message handlers for module: {ModuleName}", module.Id.ToName());
             }
 
             ModuleLoaded?.Invoke(this, new ModuleLoadedEventArgs
@@ -103,7 +100,7 @@ public class ModuleManager : IModuleManager
                 LoadTime = stopwatch.Elapsed
             });
 
-            _logger.LogInformation("Module '{ModuleName}' loaded in {LoadTime}ms", module.Id.ToName(),
+            Log.Information("Module '{ModuleName}' loaded in {LoadTime}ms", module.Id.ToName(),
                 stopwatch.ElapsedMilliseconds);
 
             return module;
@@ -124,11 +121,11 @@ public class ModuleManager : IModuleManager
 
         if (modulesToLoad.Length == 0)
         {
-            _logger.LogDebug("No modules to load for strategy: {Strategy}", strategy);
+            Log.Debug("No modules to load for strategy: {Strategy}", strategy);
             return;
         }
 
-        _logger.LogInformation("Loading {Count} modules with strategy: {Strategy}", modulesToLoad.Length, strategy);
+        Log.Information("Loading {Count} modules with strategy: {Strategy}", modulesToLoad.Length, strategy);
 
         try
         {
@@ -141,11 +138,11 @@ public class ModuleManager : IModuleManager
                 try
                 {
                     await module.SetupMessageHandlersAsync(_messageBus);
-                    _logger.LogDebug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
+                    Log.Debug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to setup message handlers for module: {ModuleName}",
+                    Log.Error(ex, "Failed to setup message handlers for module: {ModuleName}",
                         module.Id.ToName());
                 }
 
@@ -156,12 +153,12 @@ public class ModuleManager : IModuleManager
                 });
             }
 
-            _logger.LogInformation("Successfully loaded {Count} modules with strategy: {Strategy}", loadedModules.Count,
+            Log.Information("Successfully loaded {Count} modules with strategy: {Strategy}", loadedModules.Count,
                 strategy);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load modules with strategy: {Strategy}", strategy);
+            Log.Error(ex, "Failed to load modules with strategy: {Strategy}", strategy);
 
             foreach (IModule module in modulesToLoad)
             {
@@ -183,9 +180,9 @@ public class ModuleManager : IModuleManager
 
     public async Task LoadEagerModulesAsync()
     {
-        _logger.LogInformation("Loading eager modules...");
+        Log.Information("Loading eager modules...");
         await LoadModulesAsync(ModuleLoadingStrategy.Eager);
-        _logger.LogInformation("Eager modules loaded successfully");
+        Log.Information("Eager modules loaded successfully");
     }
 
     public async Task<IReadOnlyList<IModule>> LoadAllModulesAsync()
@@ -196,11 +193,11 @@ public class ModuleManager : IModuleManager
 
         if (unloadedModules.Length == 0)
         {
-            _logger.LogDebug("All modules are already loaded");
+            Log.Debug("All modules are already loaded");
             return [];
         }
 
-        _logger.LogInformation("Loading all {Count} modules in dependency order", unloadedModules.Length);
+        Log.Information("Loading all {Count} modules in dependency order", unloadedModules.Length);
 
         IEnumerable<IModule> orderedModules = await _catalog.GetLoadOrderAsync();
         IModule[] modulesToLoad = orderedModules
@@ -219,7 +216,7 @@ public class ModuleManager : IModuleManager
 
         if (backgroundModules.Length > 0)
         {
-            _logger.LogInformation("Starting background preloading for {Count} modules", backgroundModules.Length);
+            Log.Information("Starting background preloading for {Count} modules", backgroundModules.Length);
             _parallelLoader.PreloadModulesAsync(backgroundModules);
         }
     }
@@ -247,19 +244,19 @@ public class ModuleManager : IModuleManager
 
             ModuleUnloaded?.Invoke(this, new ModuleUnloadedEventArgs { ModuleName = moduleName });
 
-            _logger.LogInformation("Module '{ModuleName}' unloaded", moduleName);
+            Log.Information("Module '{ModuleName}' unloaded", moduleName);
         }
         catch (Exception ex)
         {
             _moduleStates[moduleName] = ModuleState.Failed;
-            _logger.LogError(ex, "Failed to unload module '{ModuleName}'", moduleName);
+            Log.Error(ex, "Failed to unload module '{ModuleName}'", moduleName);
             throw;
         }
     }
 
     public Task UnloadInactiveModulesAsync(TimeSpan inactiveThreshold)
     {
-        _logger.LogDebug("UnloadInactiveModulesAsync is deprecated and does nothing");
+        Log.Debug("UnloadInactiveModulesAsync is deprecated and does nothing");
         return Task.CompletedTask;
     }
 
@@ -290,7 +287,7 @@ public class ModuleManager : IModuleManager
         }
         catch (InvalidOperationException)
         {
-            _logger.LogWarning("Falling back to manual dependency resolution for module: {ModuleName}",
+            Log.Warning("Falling back to manual dependency resolution for module: {ModuleName}",
                 module.Id.ToName());
             foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {

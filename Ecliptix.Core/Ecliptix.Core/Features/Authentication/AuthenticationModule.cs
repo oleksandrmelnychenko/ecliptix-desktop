@@ -21,74 +21,17 @@ using Serilog;
 namespace Ecliptix.Core.Features.Authentication;
 
 public record AuthenticationModuleManifest() : ModuleManifest(
-    Id: ModuleIdentifier.Authentication,
-    DisplayName: "Authentication Module",
     Version: new Version(1, 0, 0),
     Priority: 30,
     LoadingStrategy: ModuleLoadingStrategy.Eager,
     Dependencies: [],
-    ResourceConstraints: ModuleResourceConstraints.Default,
-    ViewFactories: new Dictionary<Type, Func<Control>>(),
-    ServiceMappings: new Dictionary<Type, Type>()
+    ResourceConstraints: ModuleResourceConstraints.Default
 );
 
 public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
 {
     public override ModuleIdentifier Id => ModuleIdentifier.Authentication;
     public override AuthenticationModuleManifest Manifest { get; } = new();
-
-    public override void RegisterServices(IServiceCollection services)
-    {
-        services.AddTransient<SignInViewModel>();
-        services.AddTransient<MobileVerificationViewModel>();
-        services.AddTransient<VerifyOtpViewModel>();
-        services.AddTransient<SecureKeyVerifierViewModel>();
-        services.AddTransient<PassPhaseViewModel>();
-        services.AddTransient<WelcomeViewModel>();
-        services.AddTransient<ForgotPasswordResetViewModel>();
-        services.AddTransient<MembershipHostWindowModel>();
-    }
-
-    public override IReadOnlyList<Type> GetViewTypes()
-    {
-        return
-        [
-            typeof(SignInView),
-            typeof(MobileVerificationView),
-            typeof(VerificationCodeEntryView),
-            typeof(SecureKeyConfirmationView),
-            typeof(PassPhaseView),
-            typeof(WelcomeView),
-            typeof(ForgotPasswordResetView)
-        ];
-    }
-
-    public override IReadOnlyList<Type> GetViewModelTypes()
-    {
-        return
-        [
-            typeof(SignInViewModel),
-            typeof(MobileVerificationViewModel),
-            typeof(VerifyOtpViewModel),
-            typeof(SecureKeyVerifierViewModel),
-            typeof(PassPhaseViewModel),
-            typeof(WelcomeViewModel),
-            typeof(ForgotPasswordResetViewModel)
-        ];
-    }
-
-    public override void RegisterViewFactories(IModuleViewFactory viewFactory)
-    {
-        viewFactory.RegisterView<SignInViewModel, SignInView>();
-        viewFactory.RegisterView<MobileVerificationViewModel, MobileVerificationView>();
-        viewFactory.RegisterView<VerifyOtpViewModel, VerificationCodeEntryView>();
-        viewFactory.RegisterView<SecureKeyVerifierViewModel, SecureKeyConfirmationView>();
-        viewFactory.RegisterView<PassPhaseViewModel, PassPhaseView>();
-        viewFactory.RegisterView<WelcomeViewModel, WelcomeView>();
-        viewFactory.RegisterView<ForgotPasswordResetViewModel, ForgotPasswordResetView>();
-
-        Serilog.Log.Information("Registered {Count} view factories for Authentication module", 7);
-    }
 
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
     {

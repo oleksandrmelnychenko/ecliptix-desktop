@@ -39,18 +39,11 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
             ModuleResourceManager? resourceManager = serviceProvider.GetService<ModuleResourceManager>();
             if (resourceManager != null)
             {
-                ServiceScope = resourceManager.CreateModuleScope(Id.ToName(), Manifest.ResourceConstraints, RegisterServices);
+                ServiceScope = resourceManager.CreateModuleScope(Id.ToName(), Manifest.ResourceConstraints);
                 _serviceProvider = ServiceScope.ServiceProvider;
             }
 
             await OnLoadAsync();
-
-            IModuleViewFactory? viewFactory = _serviceProvider.GetService<IModuleViewFactory>();
-            if (viewFactory != null)
-            {
-                RegisterViewFactories(viewFactory);
-                Logger?.LogInformation("View factories registered for module: {ModuleName}", Id.ToName());
-            }
 
             _isLoaded = true;
 
@@ -89,27 +82,6 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
             Logger?.LogError(ex, "Failed to unload module: {ModuleName}", Id.ToName());
             throw;
         }
-    }
-
-    public abstract void RegisterServices(IServiceCollection services);
-
-    public virtual void RegisterViews(IViewLocator viewLocator)
-    {
-    }
-
-    public virtual void RegisterViewFactories(IModuleViewFactory viewFactory)
-    {
-        Logger?.LogDebug("RegisterViewFactories called for module: {ModuleName} - override to implement", Id.ToName());
-    }
-
-    public virtual IReadOnlyList<Type> GetViewTypes()
-    {
-        return [];
-    }
-
-    public virtual IReadOnlyList<Type> GetViewModelTypes()
-    {
-        return [];
     }
 
     public virtual Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)

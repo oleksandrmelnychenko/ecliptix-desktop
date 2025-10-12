@@ -23,21 +23,4 @@ public record ModuleResourceConstraints : IModuleResourceConstraints
     public bool CanUnload { get; init; } = true;
 
     public static ModuleResourceConstraints Default => new();
-
-    public static ModuleResourceConstraints Critical => new()
-    {
-        MaxMemoryMB = 0,
-        MaxThreads = 0,
-        Priority = 100,
-        CanUnload = false
-    };
-
-    public static ModuleResourceConstraints Limited => new()
-    {
-        MaxMemoryMB = 100,
-        MaxThreads = 5,
-        MaxExecutionTime = TimeSpan.FromSeconds(30),
-        Priority = 10,
-        CanUnload = true
-    };
 }

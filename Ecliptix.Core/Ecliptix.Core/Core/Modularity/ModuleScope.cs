@@ -10,7 +10,6 @@ public class ModuleScope : IModuleScope
 {
     private readonly IServiceScope _serviceScope;
     private long _disposed;
-    private readonly DateTime _createdAt = DateTime.UtcNow;
 
     public IServiceProvider ServiceProvider { get; }
     public string ModuleName { get; }
@@ -24,16 +23,6 @@ public class ModuleScope : IModuleScope
 
         Log.Debug("Module scope created for {ModuleName}", ModuleName);
     }
-
-    public bool ValidateResourceUsage() => true;
-
-    public ModuleResourceUsage GetResourceUsage() => new()
-    {
-        MemoryUsageMB = 0,
-        ActiveThreads = 0,
-        ExecutionTime = DateTime.UtcNow - _createdAt,
-        LastAccessed = DateTime.UtcNow
-    };
 
     public void Dispose()
     {

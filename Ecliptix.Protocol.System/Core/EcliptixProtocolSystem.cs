@@ -378,7 +378,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
             Result<byte[], EcliptixProtocolFailure> encryptResult =
-                Encrypt(messageKey!, nonce, plainPayload, ad, connection);
+                Encrypt(messageKey!, nonce, plainPayload, ad);
             if (encryptResult.IsErr)
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(encryptResult.UnwrapErr());
 
@@ -579,7 +579,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     }
 
     private static Result<byte[], EcliptixProtocolFailure> Encrypt(RatchetChainKey key, byte[] nonce,
-        byte[] plaintext, byte[] ad, EcliptixProtocolConnection? connection)
+        byte[] plaintext, byte[] ad)
     {
         using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         byte[]? ciphertext = null;
@@ -650,7 +650,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
                 ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
                 : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
 
-            Result<byte[], EcliptixProtocolFailure> result = DecryptFromMaterials(messageKey, metadata, encryptedPayload, ad, connection);
+            Result<byte[], EcliptixProtocolFailure> result = DecryptFromMaterials(messageKey, metadata, encryptedPayload, ad);
 
             return result;
         }
@@ -661,7 +661,7 @@ public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIde
     }
 
     private static Result<byte[], EcliptixProtocolFailure> DecryptFromMaterials(RatchetChainKey key, EnvelopeMetadata metadata,
-        byte[] encryptedPayload, byte[] ad, EcliptixProtocolConnection? connection)
+        byte[] encryptedPayload, byte[] ad)
     {
         ReadOnlySpan<byte> fullCipherSpan = encryptedPayload.AsSpan();
         const int tagSize = Constants.AesGcmTagSize;

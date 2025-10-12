@@ -23,5 +23,5 @@ public interface IApplicationSecureStorageProvider : IAsyncDisposable
 
     Task<Result<Unit, InternalServiceApiFailure>> StoreAsync(string key, byte[] data);
     Task<Result<Option<byte[]>, InternalServiceApiFailure>> TryGetByKeyAsync(string key);
-    Result<Unit, InternalServiceApiFailure> DeleteAsync(string key);
+    Result<Unit, InternalServiceApiFailure> Delete(string key);
 }

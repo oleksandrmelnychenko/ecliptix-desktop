@@ -37,30 +37,6 @@ public static class ProtocolSystemConstants
         public const string LibSodiumConstantTimeComparisonFailed = "libsodium constant-time comparison failed.";
     }
 
-    public static class JsonFormatting
-    {
-        public const string EscapeQuote = "\\\"";
-        public const string EscapeBackslash = "\\\\";
-        public const string EscapeBackspace = "\\b";
-        public const string EscapeFormFeed = "\\f";
-        public const string EscapeNewLine = "\\n";
-        public const string EscapeCarriageReturn = "\\r";
-        public const string EscapeTab = "\\t";
-        public const string UnicodeEscapeFormat = "\\u{0:X4}";
-        public const string TimestampField = "  \"Timestamp\": \"{0:O}\",";
-        public const string SessionDurationField = "  \"SessionDuration\": \"{0}\",";
-        public const string OperationsArrayStart = "  \"Operations\": [";
-        public const string OperationObjectStart = "    {";
-        public const string NameField = "      \"Name\": \"{0}\",";
-        public const string ExecutionCountField = "      \"ExecutionCount\": {0},";
-        public const string AverageField = "      \"AverageMs\": {0},";
-        public const string MaxField = "      \"MaxMs\": {0},";
-        public const string MinField = "      \"MinMs\": {0},";
-        public const string TotalField = "      \"TotalMs\": {0}";
-        public const string OperationObjectEnd = "    }";
-        public const string ArrayEnd = "  ]";
-    }
-
     public static class Numeric
     {
         public const int PerformanceDecimalPlaces = 3;

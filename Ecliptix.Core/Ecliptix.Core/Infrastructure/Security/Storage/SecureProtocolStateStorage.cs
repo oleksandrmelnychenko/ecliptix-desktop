@@ -20,8 +20,8 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private const int TagSize = 16;
     private const int KeySize = 32;
     private const int Argon2Iterations = 4;
-    private const int Argon2MemorySize = 65536;
-    private const int Argon2Parallelism = 2;
+    private const int Argon2MemorySize = 131072;
+    private const int Argon2Parallelism = 4;
     private const string MagicHeader = "ECLIPTIX_SECURE_V1";
     private const int CurrentVersion = 1;
     private const int HmacSha512Size = 64;
@@ -309,17 +309,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private static (byte[] ciphertext, byte[] tag) EncryptState(
         byte[] plaintext, byte[] key, byte[] nonce, byte[] associatedData)
-    {
-        using AesGcm aesGcm = new(key, TagSize);
-        byte[] ciphertext = new byte[plaintext.Length];
-        byte[] tag = new byte[TagSize];
-
-        aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
-        return (ciphertext, tag);
-    }
-
-    private static (byte[] ciphertext, byte[] tag) EncryptStateFromSpan(
-        ReadOnlySpan<byte> plaintext, byte[] key, byte[] nonce, byte[] associatedData)
     {
         using AesGcm aesGcm = new(key, TagSize);
         byte[] ciphertext = new byte[plaintext.Length];

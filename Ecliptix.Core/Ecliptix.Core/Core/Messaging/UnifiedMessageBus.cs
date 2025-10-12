@@ -6,7 +6,6 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Subscriptions;
 using Ecliptix.Core.Core.Utilities;
@@ -56,7 +55,7 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
 
     public void Publish<TMessage>(TMessage message) where TMessage : class
     {
-        if (_disposed || message == null) return;
+        if (_disposed) return;
 
         if (_reactiveSubjects.TryGetValue(typeof(TMessage), out ReactiveSubjectWrapper? wrapper))
         {
@@ -86,7 +85,7 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
     public async Task PublishAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default)
         where TMessage : class
     {
-        if (_disposed || message == null) return;
+        if (_disposed) return;
 
         if (_reactiveSubjects.TryGetValue(typeof(TMessage), out ReactiveSubjectWrapper? wrapper))
         {
@@ -132,7 +131,7 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
         if (_disposed) throw new ObjectDisposedException(nameof(UnifiedMessageBus));
         if (request == null) throw new ArgumentNullException(nameof(request));
 
-        if (timeout == default)
+        if (timeout == TimeSpan.Zero)
             timeout = request.Timeout;
 
         TaskCompletionSource<IMessageResponse> tcs = new();

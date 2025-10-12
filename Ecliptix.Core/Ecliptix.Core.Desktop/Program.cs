@@ -421,7 +421,6 @@ public static class Program
         services.AddSingleton<ModuleResourceManager>();
 
         services.AddSingleton<IModuleMessageBus, ModuleMessageBus>();
-        services.AddSingleton<IModuleSharedState, ModuleSharedState>();
         services.AddSingleton<IModuleViewFactory, ModuleViewFactory>();
 
         services.AddSingleton<IViewLocator, ViewLocator>();

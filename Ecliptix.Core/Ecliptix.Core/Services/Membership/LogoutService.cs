@@ -111,7 +111,7 @@ public class LogoutService(
 
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
-        await messageBus.PublishAsync(new UserLoggedOutEvent(membershipId, reason.ToString()), ct).ConfigureAwait(false);
+        await messageBus.PublishAsync(new MembershipLoggedOutEvent(membershipId, reason.ToString()), ct).ConfigureAwait(false);
 
         await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
 

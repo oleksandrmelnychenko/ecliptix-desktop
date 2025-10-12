@@ -10,20 +10,6 @@ public abstract record SimpleMessage
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
 }
 
-public abstract record MessageRequest : SimpleMessage, IMessageRequest
-{
-    public string MessageId { get; init; } = Guid.NewGuid().ToString();
-    public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
-}
-
-public abstract record MessageResponse : SimpleMessage, IMessageResponse
-{
-    public string MessageId { get; init; } = Guid.NewGuid().ToString();
-    public string? CorrelationId { get; init; }
-    public bool IsSuccess { get; init; }
-    public string? ErrorMessage { get; init; }
-}
-
 public sealed class MessageEnvelope<T> : IDisposable where T : class
 {
     private static readonly ObjectPool<MessageEnvelope<T>> Pool = new();

@@ -24,10 +24,7 @@ public interface IModuleMessageBus
 
     MessageBusStats GetStats();
 }
-public interface IModuleMessageHandler<in T> where T : IModuleMessage
-{
-    Task HandleAsync(T message, CancellationToken cancellationToken = default);
-}
+
 public record MessageBusStats
 {
     public int ActiveSubscriptions { get; init; }

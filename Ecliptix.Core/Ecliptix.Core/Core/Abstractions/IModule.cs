@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core.Core.Abstractions;
 
@@ -17,16 +16,6 @@ public interface IModule
     Task LoadAsync(IServiceProvider serviceProvider);
     Task UnloadAsync();
 
-    void RegisterServices(IServiceCollection services);
-
-    void RegisterViews(IViewLocator viewLocator);
-
-    void RegisterViewFactories(IModuleViewFactory viewFactory);
-
-    IReadOnlyList<Type> GetViewTypes();
-
-    IReadOnlyList<Type> GetViewModelTypes();
-
     Task SetupMessageHandlersAsync(IModuleMessageBus messageBus);
 }
 
@@ -39,9 +28,7 @@ public enum ModuleLoadingStrategy
 {
     Eager,
     Lazy,
-    OnDemand,
-    Background,
-    Conditional
+    Background
 }
 
 public enum ModuleState

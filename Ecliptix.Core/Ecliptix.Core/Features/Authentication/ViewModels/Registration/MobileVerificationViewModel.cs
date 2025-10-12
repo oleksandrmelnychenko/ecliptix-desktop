@@ -212,7 +212,7 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         catch (OperationCanceledException)
         {
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             if (!_isDisposed)
             {
@@ -236,20 +236,6 @@ public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableVie
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.NavigateToViewModel(vm);
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task NavigateToSecureKeyConfirmationAsync()
-    {
-        if (_isDisposed) return Task.CompletedTask;
-
-        if (HostScreen is MembershipHostWindowModel hostWindow)
-        {
-            hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
-            hostWindow.ClearNavigationStack();
         }
 
         return Task.CompletedTask;

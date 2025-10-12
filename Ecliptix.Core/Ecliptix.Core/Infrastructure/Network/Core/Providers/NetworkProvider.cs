@@ -133,7 +133,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 "EstablishSecrecyChannel",
                 connectId,
                 maxRetries: maxRetries.Value,
-                cancellationToken: finalToken);
+                cancellationToken: finalToken).ConfigureAwait(false);
         }
         else
         {
@@ -142,7 +142,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     exchangeType),
                 "EstablishSecrecyChannel",
                 connectId,
-                cancellationToken: finalToken);
+                cancellationToken: finalToken).ConfigureAwait(false);
         }
 
         if (establishAppDeviceSecrecyChannelResult.IsErr)
@@ -318,24 +318,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
 
-    public void InitiateEcliptixProtocolSystemWithIdentity(
-        ApplicationInstanceSettings applicationInstanceSettings,
-        uint connectId,
-        EcliptixSystemIdentityKeys identityKeys)
-    {
-        _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
-        PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
-        EcliptixProtocolSystem protocolSystem = new(identityKeys);
-        protocolSystem.SetEventHandler(this);
-        _connections.TryAdd(connectId, protocolSystem);
-        Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
-        Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
-        string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? AppCultureSettingsConstants.DefaultCultureCode
-            : applicationInstanceSettings.Culture;
-        _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
-    }
-
     public void ClearConnection(uint connectId)
     {
         if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? system)) return;
@@ -343,9 +325,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     public bool HasConnection(uint connectId) => _connections.ContainsKey(connectId);
-
-    public EcliptixProtocolSystem? GetProtocolSystem(uint connectId) =>
-        _connections.TryGetValue(connectId, out EcliptixProtocolSystem? system) ? system : null;
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteUnaryRequestAsync(
         uint connectId,
@@ -358,7 +337,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await ExecuteServiceRequestInternalAsync(
             connectId, serviceType, plainBuffer, ServiceFlowType.Single,
-            onCompleted, allowDuplicates, token, waitForRecovery);
+            onCompleted, allowDuplicates, token, waitForRecovery).ConfigureAwait(false);
     }
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteReceiveStreamRequestAsync(
@@ -371,7 +350,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await ExecuteServiceRequestInternalAsync(
             connectId, serviceType, plainBuffer, ServiceFlowType.ReceiveStream,
-            onStreamItem, allowDuplicates, token);
+            onStreamItem, allowDuplicates, token).ConfigureAwait(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> ExecuteServiceRequestInternalAsync(
@@ -442,13 +421,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Result<Unit, NetworkFailure> networkResult = flowType switch
                 {
                     ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted,
-                        operationToken),
+                        operationToken).ConfigureAwait(false),
                     ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request,
-                        onCompleted, operationToken),
+                        onCompleted, operationToken).ConfigureAwait(false),
                     ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted,
-                        operationToken),
+                        operationToken).ConfigureAwait(false),
                     ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                        request, onCompleted, operationToken),
+                        request, onCompleted, operationToken).ConfigureAwait(false),
                     _ => Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                 };
@@ -492,7 +471,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
             PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Result<Unit, NetworkFailure> establishResult = await EstablishConnectionOnly(connectId);
+        Result<Unit, NetworkFailure> establishResult = await EstablishConnectionOnly(connectId).ConfigureAwait(false);
 
         if (establishResult.IsErr)
         {
@@ -532,7 +511,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
 
         Result<EcliptixSessionState, NetworkFailure> establishResult =
-            await EstablishSecrecyChannelAsync(connectId);
+            await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
         if (establishResult.IsErr)
         {
@@ -541,7 +520,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
-        await PersistSessionStateAsync(secrecyChannelState, connectId);
+        await PersistSessionStateAsync(secrecyChannelState, connectId).ConfigureAwait(false);
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
@@ -593,7 +572,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             request),
                         "RestoreSecrecyChannel",
                         ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCts.Token);
+                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
                     break;
                 }
             case RestoreRetryMode.ManualRetry:
@@ -607,7 +586,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             request),
                         "RestoreSecrecyChannel",
                         ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCts.Token);
+                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
                     break;
                 }
             case RestoreRetryMode.DirectNoRetry:
@@ -615,7 +594,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     restoreAppDeviceSecrecyChannelResponse =
                         await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                            request);
+                            request).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -666,7 +645,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             await EstablishSecrecyChannelInternalAsync(
                 connectId,
                 PubKeyExchangeType.DataCenterEphemeralConnect,
-                saveState: true);
+                saveState: true).ConfigureAwait(false);
 
         if (result.IsErr)
         {
@@ -704,7 +683,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         InitiateEcliptixProtocolSystemForType(connectId, exchangeType);
 
         Result<Option<EcliptixSessionState>, NetworkFailure> establishOptionResult =
-            await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType);
+            await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType).ConfigureAwait(false);
 
         if (establishOptionResult.IsErr)
         {
@@ -740,7 +719,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? streamCts))
         {
-            await streamCts.CancelAsync();
+            await streamCts.CancelAsync().ConfigureAwait(false);
             streamCts.Dispose();
         }
 
@@ -807,7 +786,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             connectId,
             exchangeType,
             maxRetries: 15,
-            saveState: exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect);
+            saveState: exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect).ConfigureAwait(false);
     }
 
     private Result<Unit, EcliptixProtocolFailure> SyncSecrecyChannel(
@@ -892,7 +871,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     Span<byte> semanticBuffer = stackalloc byte[256];
                     int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
-                    System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     hashLength = Sha256HashSize;
                     break;
                 }
@@ -900,32 +879,32 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     Span<byte> semanticBuffer = stackalloc byte[256];
                     int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
-                    System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     hashLength = Sha256HashSize;
                     break;
                 }
             case "InitiateVerification":
                 {
                     Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
-                    System.Security.Cryptography.SHA256.HashData(plainBuffer, payloadHash);
+                    SHA256.HashData(plainBuffer, payloadHash);
 
                     string semantic =
                         $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
                     Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
                     int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     hashLength = Sha256HashSize;
                     break;
                 }
             default:
                 {
                     Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
-                    System.Security.Cryptography.SHA256.HashData(plainBuffer, payloadHash);
+                    SHA256.HashData(plainBuffer, payloadHash);
 
                     string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
                     Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
                     int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    System.Security.Cryptography.SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
                     hashLength = Sha256HashSize;
                     break;
                 }
@@ -983,7 +962,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -997,7 +976,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType($"Expected SingleCall flow but received {flow.GetType().Name}"));
         }
 
-        Result<SecureEnvelope, NetworkFailure> callResult = await singleCall.Result;
+        Result<SecureEnvelope, NetworkFailure> callResult = await singleCall.Result.ConfigureAwait(false);
         if (callResult.IsErr)
         {
             return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
@@ -1042,7 +1021,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
         }
 
-        await onCompleted(decryptedData.Unwrap());
+        await onCompleted(decryptedData.Unwrap()).ConfigureAwait(false);
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
@@ -1055,14 +1034,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint connectId = _connections.FirstOrDefault(kvp => kvp.Value == protocolSystem).Key;
         if (connectId == 0)
         {
-            return await ProcessStreamDirectly(protocolSystem, request, onStreamItem, token);
+            return await ProcessStreamDirectly(protocolSystem, request, onStreamItem, token).ConfigureAwait(false);
         }
 
         using CancellationTokenSource streamCts = CancellationTokenSource.CreateLinkedTokenSource(token);
         _activeStreams.TryAdd(connectId, streamCts);
 
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1096,7 +1075,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             NetworkFailure.DataCenterNotResponding(""));
                     }
 
-                    return Result<Unit, NetworkFailure>.Err(failure); 
+                    return Result<Unit, NetworkFailure>.Err(failure);
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
@@ -1107,7 +1086,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     continue;
                 }
 
-                await onStreamItem(streamDecryptedData.Unwrap());
+                await onStreamItem(streamDecryptedData.Unwrap()).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (streamCts.Token.IsCancellationRequested)
@@ -1130,7 +1109,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1160,7 +1139,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 continue;
             }
 
-            await onStreamItem(streamDecryptedData.Unwrap());
+            await onStreamItem(streamDecryptedData.Unwrap()).ConfigureAwait(false);
         }
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -1173,7 +1152,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1198,7 +1177,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token);
+            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1359,7 +1338,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             Result<byte[], SecureStorageFailure> stateResult =
-                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId);
+                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
 
             bool restorationSuccessful;
             if (stateResult.IsOk)
@@ -1369,7 +1348,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     EcliptixSessionState state =
                         EcliptixSessionState.Parser.ParseFrom(stateResult.Unwrap());
                     Result<bool, NetworkFailure> restoreResult =
-                        await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!);
+                        await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!).ConfigureAwait(false);
                     restorationSuccessful = restoreResult.IsOk && restoreResult.Unwrap();
                 }
                 catch (Exception)
@@ -1380,7 +1359,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             else
             {
                 Result<EcliptixSessionState, NetworkFailure> newResult =
-                    await EstablishSecrecyChannelAsync(connectId);
+                    await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
                 restorationSuccessful = newResult.IsOk;
             }
 
@@ -1391,7 +1370,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             else
             {
-                await PerformReconnectionLogic();
+                await PerformReconnectionLogic().ConfigureAwait(false);
             }
         }
         catch (Exception)
@@ -1439,7 +1418,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             RatchetState = ratchetStateResult.Unwrap()
                         };
 
-                        await PersistSessionStateAsync(state, connectId);
+                        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
                     }
                 }
             }
@@ -1484,7 +1463,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             RatchetState = ratchetStateResult.Unwrap()
                         };
 
-                        await PersistSessionStateAsync(state, connectId);
+                        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
                     }
                 }
             }
@@ -1588,14 +1567,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         _retryStrategy.ClearExhaustedOperations();
 
-        Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic();
+        Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic().ConfigureAwait(false);
 
         if (immediateResult.IsOk)
         {
             return immediateResult;
         }
 
-        Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync();
+        Result<Unit, NetworkFailure> result = await PerformAdvancedRecoveryWithManualRetryAsync().ConfigureAwait(false);
 
         return result;
     }
@@ -1604,7 +1583,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await PerformRecoveryWithStateRestorationAsync(
             RestoreRetryMode.ManualRetry,
-            "Manual retry restoration failed");
+            "Manual retry restoration failed").ConfigureAwait(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> PerformImmediateRecoveryLogic()
@@ -1612,7 +1591,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return await PerformRecoveryWithStateRestorationAsync(
             RestoreRetryMode.DirectNoRetry,
             NetworkConstants.ErrorMessages.SessionNotFoundOnServer,
-            failOnMissingState: true);
+            failOnMissingState: true).ConfigureAwait(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> PerformRecoveryWithStateRestorationAsync(
@@ -1641,7 +1620,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Result<byte[], SecureStorageFailure> stateResult =
-            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId);
+            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
 
         if (stateResult.IsErr)
         {
@@ -1662,7 +1641,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
 
             Result<bool, NetworkFailure> restoreResult =
-                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!, retryMode);
+                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!, retryMode).ConfigureAwait(false);
 
             restorationSucceeded = restoreResult.IsOk && restoreResult.Unwrap();
 
@@ -1728,11 +1707,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         await SecureByteStringInterop.WithByteStringAsSpan(
             state.ToByteString(),
-            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId));
+            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId)).ConfigureAwait(false);
 
         string timestampKey = $"{connectId}_timestamp";
         await _applicationSecureStorageProvider.StoreAsync(timestampKey,
-            BitConverter.GetBytes(DateTime.UtcNow.ToBinary()));
+            BitConverter.GetBytes(DateTime.UtcNow.ToBinary())).ConfigureAwait(false);
     }
 
     public bool IsConnectionHealthy(uint connectId)
@@ -1852,7 +1831,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (clientExchangeResult.IsErr)
                 {
-                    await CleanupFailedAuthenticationAsync(connectId);
+                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     return Result<Unit, NetworkFailure>.Err(
                         clientExchangeResult.UnwrapErr().ToNetworkFailure());
                 }
@@ -1874,11 +1853,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =
                     await _rpcServiceManager.AuthenticatedEstablishSecureChannelAsync(
-                        _networkEvents, _systemEvents, authenticatedRequest);
+                        _networkEvents, _systemEvents, authenticatedRequest).ConfigureAwait(false);
 
                 if (serverResponseResult.IsErr)
                 {
-                    await CleanupFailedAuthenticationAsync(connectId);
+                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
@@ -1894,7 +1873,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (certificatePinningService == null)
                 {
-                    await CleanupFailedAuthenticationAsync(connectId);
+                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
@@ -1910,7 +1889,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (decryptResult.IsErr)
                 {
-                    await CleanupFailedAuthenticationAsync(connectId);
+                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
@@ -1936,7 +1915,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (completeResult.IsErr)
                 {
-                    await CleanupFailedAuthenticationAsync(connectId);
+                    await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
@@ -1986,7 +1965,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         Log.Information("[CLIENT-AUTH-PROTOCOL-STATE] Protocol state created. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}, SendingChainKeyHash: {SendingChainKeyHash}, ReceivingChainKeyHash: {ReceivingChainKeyHash}",
                             connectId, sessionRootKeyHash, sendingChainKeyHash, receivingChainKeyHash);
 
-                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray());
+                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray()).ConfigureAwait(false);
 
                         Log.Information("[CLIENT-AUTH-SAVED] Authenticated protocol state saved. ConnectId: {ConnectId}, Sending: {Sending}, Receiving: {Receiving}, MembershipId: {MembershipId}",
                             connectId, sessionState.RatchetState.SendingStep.CurrentIndex, sessionState.RatchetState.ReceivingStep.CurrentIndex, membershipIdentifier);
@@ -2023,7 +2002,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         try
         {
-            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
         }
         catch
         {

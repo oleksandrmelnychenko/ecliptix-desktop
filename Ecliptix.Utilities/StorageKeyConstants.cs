@@ -2,11 +2,6 @@ namespace Ecliptix.Utilities;
 
 public static class StorageKeyConstants
 {
-    public static class MasterKey
-    {
-        public const string StoragePrefix = "master_";
-    }
-
     public static class SessionContext
     {
         public const string SignInSession = "ecliptix-signin-session";

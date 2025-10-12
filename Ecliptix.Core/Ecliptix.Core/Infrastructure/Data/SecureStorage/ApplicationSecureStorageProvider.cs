@@ -208,7 +208,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         }
     }
 
-    public Result<Unit, InternalServiceApiFailure> DeleteAsync(string key)
+    public Result<Unit, InternalServiceApiFailure> Delete(string key)
     {
         if (string.IsNullOrEmpty(key))
         {

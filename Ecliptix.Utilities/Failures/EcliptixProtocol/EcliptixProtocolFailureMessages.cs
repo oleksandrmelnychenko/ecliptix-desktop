@@ -82,27 +82,12 @@ public static class EcliptixProtocolFailureMessages
         public const string LocalOpkNotFound = "Local OPK ID {0} not found.";
     }
 
-    public static class AdaptiveRatchet
-    {
-        public const string FailedToSerializeState = "Failed to serialize AdaptiveRatchetManager state";
-        public const string FailedToDeserializeState = "Failed to deserialize AdaptiveRatchetManager state";
-    }
-
     public static class ReplayProtection
     {
         public const string NonceCannotBeNullOrEmpty = "Nonce cannot be null or empty";
         public const string ReplayAttackDetectedNonce = "Replay attack detected: nonce already processed";
         public const string ReplayAttackDetectedMessageIndex = "Replay attack detected: message index {0} already processed for chain {1}";
         public const string MessageIndexTooFarBehind = "Message index {0} is too far behind (gap: {1}, max: {2})";
-    }
-
-    public static class CircuitBreaker
-    {
-        public const string CircuitBreakerDisposed = "Circuit breaker has been disposed";
-        public const string OperationFailedInCircuitBreaker = "Operation failed in circuit breaker";
-        public const string CircuitBreakerIsOpen = "Circuit breaker is OPEN. Blocking requests until {0:HH:mm:ss}";
-        public const string CircuitBreakerHalfOpenTestingLimitReached = "Circuit breaker is HALF-OPEN but testing limit reached";
-        public const string UnknownCircuitBreakerState = "Unknown circuit breaker state: {0}";
     }
 
     public static class PublicKeyBundle
@@ -126,13 +111,5 @@ public static class EcliptixProtocolFailureMessages
         public const string InvalidPublicKeySize = "Invalid public key size: expected {0}, got {1}";
         public const string PublicKeyHasSmallOrder = "Public key has small order";
         public const string PublicKeyNotValidCurve25519Point = "Public key is not a valid Curve25519 point";
-    }
-
-    public static class OperationNames
-    {
-        public const string PrepareNextSendMessage = "PrepareNextSendMessage";
-        public const string ProcessReceivedMessage = "ProcessReceivedMessage";
-        public const string DhRatchet = "DH-Ratchet";
-        public const string GenerateNonce = "GenerateNonce";
     }
 }
