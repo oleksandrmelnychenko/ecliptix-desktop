@@ -225,6 +225,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     return Result<RatchetState, EcliptixProtocolFailure>.Err(
                         rootKeyReadResult.UnwrapErr().ToEcliptixProtocolFailure());
 
+                byte[] rootKeyBytes = rootKeyReadResult.Unwrap();
+                string rootKeyHashLog = Convert.ToHexString(SHA256.HashData(rootKeyBytes))[..16];
+                Serilog.Log.Information("[PROTOCOL-STATE-SAVE] Saving root key to state. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
+                    _id, rootKeyHashLog);
+
                 RatchetState proto = new()
                 {
                     IsInitiator = _isInitiator,
@@ -233,7 +238,7 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     PeerBundle = _peerBundle!.ToProtobufExchange(),
                     PeerDhPublicKey = ByteString.CopyFrom(_peerDhPublicKey ?? []),
                     IsFirstReceivingRatchet = _isFirstReceivingRatchet,
-                    RootKey = ByteString.CopyFrom(rootKeyReadResult.Unwrap()),
+                    RootKey = ByteString.CopyFrom(rootKeyBytes),
                     SendingStep = sendingStepStateResult.Unwrap()
                 };
 
@@ -290,6 +295,10 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(
                     copyResult.UnwrapErr().ToEcliptixProtocolFailure());
             }
+
+            string rootKeyHashLog = Convert.ToHexString(SHA256.HashData(proto.RootKey.ToByteArray()))[..16];
+            Serilog.Log.Information("[PROTOCOL-STATE-RESTORE] Restored root key from state. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
+                connectId, rootKeyHashLog);
 
             EcliptixProtocolConnection connection = new(connectId, proto, sendingStep, receivingStep, rootKeyHandle, ratchetConfig, exchangeType);
 
@@ -372,6 +381,10 @@ public sealed class EcliptixProtocolConnection : IDisposable
                 if (keyValidation.IsErr)
                     return keyValidation;
 
+                string initialRootKeyHashLog = Convert.ToHexString(SHA256.HashData(initialRootKey))[..16];
+                Serilog.Log.Information("[CLIENT-FINALIZE-START] FinalizeChainAndDhKeys started. InitialRootKeyHash: {InitialRootKeyHash}",
+                    initialRootKeyHashLog);
+
                 peerDhPublicCopy = (byte[])initialPeerDhPublicKey.Clone();
                 Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
                     SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
@@ -407,12 +420,21 @@ public sealed class EcliptixProtocolConnection : IDisposable
                         EcliptixProtocolFailure.DeriveKey("Failed to compute DH shared secret during initial handshake.", ex));
                 }
 
+                string dhSecretHash = Convert.ToHexString(SHA256.HashData(dhSecret))[..16];
+                Serilog.Log.Information("[CLIENT-FINALIZE-DH] DH shared secret computed. DhSecretHash: {DhSecretHash}, PeerDhKeyHash: {PeerDhKeyHash}",
+                    dhSecretHash, Convert.ToHexString(SHA256.HashData(peerDhPublicCopy))[..16]);
+
                 SodiumSecureMemoryHandle? tempRootHandle = allocResult.Unwrap();
 
                 try
                 {
                     using SecurePooledArray<byte> hkdfOutputBuffer = SecureArrayPool.Rent<byte>(Constants.X25519KeySize * ProtocolSystemConstants.Protocol.HkdfOutputBufferMultiplier);
                     Span<byte> hkdfOutputSpan = hkdfOutputBuffer.AsSpan();
+
+                    Serilog.Log.Information("[CLIENT-FINALIZE-HKDF-PARAMS] HKDF parameters for final root key. IKM (DH secret hash): {IkmHash}, Salt (initial root key hash): {SaltHash}, Info: '{Info}'",
+                        Convert.ToHexString(SHA256.HashData(dhSecret))[..16],
+                        Convert.ToHexString(SHA256.HashData(initialRootKey))[..16],
+                        Encoding.UTF8.GetString(DhRatchetInfo));
 
                     HKDF.DeriveKey(
                         HashAlgorithmName.SHA256,
@@ -423,6 +445,9 @@ public sealed class EcliptixProtocolConnection : IDisposable
                     );
 
                     newRootKey = hkdfOutputSpan[..Constants.X25519KeySize].ToArray();
+                    string finalRootKeyHash = Convert.ToHexString(SHA256.HashData(newRootKey))[..16];
+                    Serilog.Log.Information("[CLIENT-FINALIZE-ROOTKEY] Final root key derived from HKDF. FinalRootKeyHash: {FinalRootKeyHash}",
+                        finalRootKeyHash);
                     Result<Unit, SodiumFailure> writeResult = tempRootHandle.Write(newRootKey);
                     if (writeResult.IsErr)
                     {
@@ -463,6 +488,11 @@ public sealed class EcliptixProtocolConnection : IDisposable
                         senderChainKey = recvSpan.ToArray();
                         receiverChainKey = sendSpan.ToArray();
                     }
+
+                    string senderChainKeyHashLog = Convert.ToHexString(SHA256.HashData(senderChainKey))[..16];
+                    string receiverChainKeyHashLog = Convert.ToHexString(SHA256.HashData(receiverChainKey))[..16];
+                    Serilog.Log.Information("[CLIENT-FINALIZE-CHAINS] Sender and receiver chain keys derived. IsInitiator: {IsInitiator}, SenderChainKeyHash: {SenderHash}, ReceiverChainKeyHash: {ReceiverHash}",
+                        _isInitiator, senderChainKeyHashLog, receiverChainKeyHashLog);
                 }
                 catch (Exception ex)
                 {

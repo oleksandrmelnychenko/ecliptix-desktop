@@ -1,23 +1,21 @@
-using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Splash.Views;
-using Splat;
 using Serilog;
+using Splat;
 
 namespace Ecliptix.Core;
 
-public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
+public class ApplicationStartup(
+    IClassicDesktopStyleApplicationLifetime desktop,
+    IApplicationInitializer initializer,
+    IApplicationRouter router,
+    IApplicationStateManager stateManager)
 {
-    private readonly IApplicationInitializer _initializer = Locator.Current.GetService<IApplicationInitializer>()!;
-    private readonly IModuleManager _moduleManager = Locator.Current.GetService<IModuleManager>()!;
-    private readonly IWindowService _windowService = Locator.Current.GetService<IWindowService>()!;
-
     private SplashWindowViewModel? _splashViewModel;
     private SplashWindow? _splashScreen;
 
@@ -31,49 +29,34 @@ public class ApplicationStartup(IClassicDesktopStyleApplicationLifetime desktop)
 
         await _splashViewModel.IsSubscribed.Task;
 
-        bool success = await _initializer.InitializeAsync(defaultSystemSettings);
-        if (success)
-        {
-            if (_initializer.IsMembershipConfirmed)
-            {
-                await LoadMainModuleAsync();
-            }
-            else
-            {
-                await LoadAuthenticationModuleAsync();
-            }
+        Log.Information("[STARTUP] Splash screen activated, starting initialization");
 
-            await TransitionToNextWindowAsync();
+        bool success = await initializer.InitializeAsync(defaultSystemSettings);
+
+        Log.Information("[STARTUP] Initialization completed. Success: {Success}", success);
+
+        if (success && _splashScreen != null)
+        {
+            bool isAuthenticated = stateManager.CurrentState == ApplicationState.Authenticated;
+            Log.Information("[STARTUP] Application state: {State}, IsAuthenticated: {IsAuthenticated}",
+                stateManager.CurrentState, isAuthenticated);
+
+            Log.Information("[STARTUP] Starting transition from splash to {Target}",
+                isAuthenticated ? "Main" : "Authentication");
+
+            await router.TransitionFromSplashAsync(_splashScreen, isAuthenticated);
+
+            Log.Information("[STARTUP] Transition completed successfully");
+
+            _splashViewModel?.Dispose();
+            _splashViewModel = null;
+            _splashScreen = null;
         }
         else
         {
+            Log.Warning("[STARTUP] Initialization failed or splash screen is null, shutting down");
             await _splashViewModel.PrepareForShutdownAsync();
             desktop.Shutdown();
         }
-    }
-
-    private async Task LoadAuthenticationModuleAsync()
-    {
-        await _moduleManager.LoadModuleAsync(ModuleIdentifier.Authentication.ToName());
-    }
-
-    private async Task LoadMainModuleAsync()
-    {
-        await _moduleManager.LoadModuleAsync(ModuleIdentifier.Main.ToName());
-    }
-
-    private async Task TransitionToNextWindowAsync()
-    {
-        Window nextWindow =
-            await _windowService.TransitionFromSplashAsync(_splashScreen, _initializer.IsMembershipConfirmed);
-
-        desktop.MainWindow = nextWindow;
-
-        await _windowService.PerformCrossfadeTransitionAsync(_splashScreen, nextWindow);
-
-        _splashScreen.Close();
-        _splashViewModel?.Dispose();
-        _splashScreen = null;
-        _splashViewModel = null;
     }
 }

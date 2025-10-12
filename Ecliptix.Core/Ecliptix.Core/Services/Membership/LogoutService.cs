@@ -1,5 +1,5 @@
 using System;
-using System.Reflection;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging;
@@ -7,13 +7,10 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Models.Membership;
-using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
@@ -23,18 +20,17 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
+using Serilog;
 
 namespace Ecliptix.Core.Services.Membership;
 
 public class LogoutService(
     NetworkProvider networkProvider,
-    IIdentityService identityService,
     IUnifiedMessageBus messageBus,
-    ISecureProtocolStateStorage secureProtocolStateStorage,
-    IDistributedShareStorage distributedShareStorage,
-    IHmacKeyManager hmacKeyManager,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    IApplicationInitializer applicationInitializer)
+    IApplicationStateManager stateManager,
+    IStateCleanupService stateCleanupService,
+    IApplicationRouter router)
     : ILogoutService
 {
     public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason, CancellationToken ct = default)
@@ -46,91 +42,82 @@ public class LogoutService(
                 LogoutFailure.InvalidMembershipIdentifier("No active session found"));
         }
 
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
+
         LogoutRequest logoutRequest = new()
         {
-            MembershipIdentifier = ByteString.CopyFrom(Guid.Parse(membershipId).ToByteArray()),
-            LogoutReason = reason.ToString()
+            MembershipIdentifier = ByteString.CopyFrom(membershipIdBytes),
+            LogoutReason = reason.ToString(),
+            Timestamp = timestamp,
+            Scope = LogoutScope.ThisDevice
         };
 
-        Result<uint, NetworkFailure> protocolResult =
-            await networkProvider.EnsureProtocolForTypeAsync(PubKeyExchangeType.DataCenterEphemeralConnect);
+        uint connectId = NetworkProvider.ComputeUniqueConnectId(
+            networkProvider.ApplicationInstanceSettings,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        if (protocolResult.IsErr)
-        {
-            return Result<Unit, LogoutFailure>.Err(
-                LogoutFailure.NetworkRequestFailed("Failed to establish connection",
-                    new Exception(protocolResult.UnwrapErr().Message)));
-        }
+        Log.Information("[LOGOUT] Using existing authenticated protocol. ConnectId: {ConnectId}", connectId);
 
-        uint connectId = protocolResult.Unwrap();
-
-        TaskCompletionSource<LogoutResponse> responseSource = new();
+        TaskCompletionSource<Result<LogoutResponse, LogoutFailure>> responseCompletionSource = new();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
             RpcServiceType.Logout,
-            SecureByteStringInterop.WithByteStringAsSpan(logoutRequest.ToByteString(), span => span.ToArray()),
-            payload =>
+            logoutRequest.ToByteArray(),
+            responsePayload =>
             {
                 try
                 {
-                    LogoutResponse response = LogoutResponse.Parser.ParseFrom(payload);
-                    responseSource.TrySetResult(response);
+                    LogoutResponse logoutResponse = LogoutResponse.Parser.ParseFrom(responsePayload);
+
+                    if (logoutResponse.Result != LogoutResponse.Types.Result.Succeeded)
+                    {
+                        Log.Warning("[LOGOUT] Server returned non-success status: {Status}", logoutResponse.Result);
+                    }
+
+                    responseCompletionSource.TrySetResult(Result<LogoutResponse, LogoutFailure>.Ok(logoutResponse));
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }
                 catch (Exception ex)
                 {
-                    responseSource.TrySetException(ex);
+                    Log.Error(ex, "[LOGOUT] Failed to parse logout response");
+                    responseCompletionSource.TrySetResult(
+                        Result<LogoutResponse, LogoutFailure>.Err(
+                            LogoutFailure.NetworkRequestFailed("Failed to parse logout response", ex)));
                     return Task.FromResult(Result<Unit, NetworkFailure>.Err(
-                        NetworkFailure.InvalidRequestType("Failed to parse logout response", ex)));
+                        NetworkFailure.DataCenterNotResponding($"Failed to parse logout response: {ex.Message}")));
                 }
-            });
+            },
+            allowDuplicates: false,
+            token: ct);
 
         if (networkResult.IsErr)
         {
             return Result<Unit, LogoutFailure>.Err(
-                LogoutFailure.NetworkRequestFailed("Failed to communicate with server",
+                LogoutFailure.NetworkRequestFailed("Logout network request failed",
                     new Exception(networkResult.UnwrapErr().Message)));
         }
 
-        LogoutResponse logoutResponse = await responseSource.Task;
+        Result<LogoutResponse, LogoutFailure> logoutResult = await responseCompletionSource.Task;
 
-        if (logoutResponse.Result != LogoutResponse.Types.Result.Succeeded)
+        if (logoutResult.IsErr)
         {
-            return Result<Unit, LogoutFailure>.Err(logoutResponse.Result switch
-            {
-                LogoutResponse.Types.Result.AlreadyLoggedOut =>
-                    LogoutFailure.AlreadyLoggedOut(logoutResponse.Message),
-                LogoutResponse.Types.Result.SessionNotFound =>
-                    LogoutFailure.SessionNotFound(logoutResponse.Message),
-                _ => LogoutFailure.UnexpectedError(logoutResponse.Message)
-            });
+            return Result<Unit, LogoutFailure>.Err(logoutResult.UnwrapErr());
         }
 
-        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString());
+        Log.Information("[LOGOUT] Logout API call succeeded. Starting cleanup for MembershipId: {MembershipId}",
+            membershipId);
 
-        Result<Unit, Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure> clearResult =
-            await identityService.ClearAllCacheAsync(membershipId);
+        await stateCleanupService.CleanupUserStateAsync(membershipId, connectId);
 
-        await distributedShareStorage.ClearAllCacheAsync();
-        await hmacKeyManager.RemoveHmacKeyAsync(membershipId);
-
-        Guid membershipGuid = Guid.Parse(membershipId);
-        
-        await distributedShareStorage.RemoveKeySharesAsync(membershipGuid);
-        await applicationSecureStorageProvider.SetApplicationMembershipAsync(null);
-
-        networkProvider.ClearConnection(connectId);
-
-        if (applicationInitializer is ApplicationInitializer concreteInitializer)
-        {
-            PropertyInfo? property =
-                typeof(ApplicationInitializer).GetProperty(nameof(IApplicationInitializer.IsMembershipConfirmed));
-            property?.SetValue(concreteInitializer, false);
-        }
-
+        await stateManager.TransitionToAnonymousAsync();
 
         await messageBus.PublishAsync(new UserLoggedOutEvent(membershipId, reason.ToString()), ct);
+
+        await router.NavigateToAuthenticationAsync();
+
+        Log.Information("[LOGOUT] Logout completed successfully. MembershipId: {MembershipId}", membershipId);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
@@ -145,10 +132,10 @@ public class LogoutService(
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
-        if (settings.MembershipIdentifier == null || settings.MembershipIdentifier.IsEmpty)
+        if (settings.Membership?.UniqueIdentifier == null)
             return null;
 
-        return SecureByteStringInterop.WithByteStringAsSpan(settings.MembershipIdentifier,
+        return SecureByteStringInterop.WithByteStringAsSpan(settings.Membership.UniqueIdentifier,
             span => new Guid(span.ToArray()).ToString());
     }
 }

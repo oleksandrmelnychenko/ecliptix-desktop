@@ -324,7 +324,6 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
             byte[] x25519PublicKey = ScalarMult.Base(x25519Seed);
 
-            // Log identity keys fingerprints
             string ed25519PubKeyHash = Convert.ToHexString(global::System.Security.Cryptography.SHA256.HashData(edKeyPair.PublicKey))[..16];
             string x25519PubKeyHash = Convert.ToHexString(global::System.Security.Cryptography.SHA256.HashData(x25519PublicKey))[..16];
             Serilog.Log.Information("[IDENTITY-KEYS-CREATE] Identity keys created from master key. MembershipId: {MembershipId}, Ed25519PubKeyHash: {Ed25519Hash}, X25519PubKeyHash: {X25519Hash}",

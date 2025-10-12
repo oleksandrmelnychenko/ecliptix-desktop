@@ -236,26 +236,27 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 await _stateLock.WaitAsync();
                 try
                 {
-                    List<RetryOperationInfo> exhaustedOperations = _activeRetryOperations.Values
-                        .Where(op => op.ConnectId == connectId && op.IsExhausted)
-                        .ToList();
-
-                    foreach (RetryOperationInfo operation in exhaustedOperations)
+                    int resetCount = 0;
+                    foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
                     {
-                        operation.IsExhausted = false;
-                        operation.CurrentRetryCount = 0;
-                        Log.Information(
-                            "🔄 CONNECTION HEALTHY: Marking operation {OperationName} as healthy for ConnectId {ConnectId}",
-                            operation.OperationName, connectId);
+                        if (operation.ConnectId == connectId && operation.IsExhausted)
+                        {
+                            operation.IsExhausted = false;
+                            operation.CurrentRetryCount = 0;
+                            Log.Information(
+                                "🔄 CONNECTION HEALTHY: Marking operation {OperationName} as healthy for ConnectId {ConnectId}",
+                                operation.OperationName, connectId);
 
-                        StopTrackingOperation(operation.UniqueKey, "Connection restored");
+                            StopTrackingOperation(operation.UniqueKey, "Connection restored");
+                            resetCount++;
+                        }
                     }
 
-                    if (exhaustedOperations.Any())
+                    if (resetCount > 0)
                     {
                         Log.Information(
                             "🔄 CONNECTION HEALTHY: Reset exhaustion state for ConnectId {ConnectId}, cleaned up {Count} operations",
-                            connectId, exhaustedOperations.Count);
+                            connectId, resetCount);
                     }
                 }
                 finally
@@ -276,7 +277,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         try
         {
-            return _activeRetryOperations.Values.Any(op => op.IsExhausted);
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            {
+                if (operation.IsExhausted)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         catch (Exception ex)
         {
@@ -291,10 +299,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         try
         {
-            List<string> exhaustedKeys = _activeRetryOperations.Values
-                .Where(op => op.IsExhausted)
-                .Select(op => op.UniqueKey)
-                .ToList();
+            List<string> exhaustedKeys = new();
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            {
+                if (operation.IsExhausted)
+                {
+                    exhaustedKeys.Add(operation.UniqueKey);
+                }
+            }
 
             foreach (string key in exhaustedKeys)
             {
@@ -305,7 +317,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 }
             }
 
-            if (exhaustedKeys.Any())
+            if (exhaustedKeys.Count > 0)
             {
                 Log.Information("🔄 CLEARED: Removed {Count} exhausted operations to allow fresh retry",
                     exhaustedKeys.Count);
@@ -346,7 +358,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         await _stateLock.WaitAsync();
         try
         {
-            return _activeRetryOperations.Values.All(op => op.IsExhausted);
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            {
+                if (!operation.IsExhausted)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
         finally
         {
@@ -359,7 +378,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         if (_activeRetryOperations.IsEmpty)
             return false;
 
-        return _activeRetryOperations.Values.All(op => op.IsExhausted);
+        foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+        {
+            if (!operation.IsExhausted)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private async Task HandleManualRetryRequestAsync(ManualRetryRequestedEvent evt)
@@ -405,12 +431,16 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
     private async Task<bool> RetryAllExhaustedOperationsAsync()
     {
         await _stateLock.WaitAsync();
-        List<RetryOperationInfo> exhaustedOperations;
+        List<RetryOperationInfo> exhaustedOperations = new();
         try
         {
-            exhaustedOperations = _activeRetryOperations.Values
-                .Where(op => op.IsExhausted)
-                .ToList();
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            {
+                if (operation.IsExhausted)
+                {
+                    exhaustedOperations.Add(operation);
+                }
+            }
         }
         finally
         {
@@ -503,10 +533,14 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         try
         {
             DateTime cutoff = DateTime.UtcNow.AddMinutes(-OperationTimeoutMinutes);
-            List<string> abandonedKeys = _activeRetryOperations.Values
-                .Where(op => op.StartTime < cutoff)
-                .Select(op => op.UniqueKey)
-                .ToList();
+            List<string> abandonedKeys = new();
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            {
+                if (operation.StartTime < cutoff)
+                {
+                    abandonedKeys.Add(operation.UniqueKey);
+                }
+            }
 
             foreach (string key in abandonedKeys)
             {
@@ -517,7 +551,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 }
             }
 
-            if (abandonedKeys.Any())
+            if (abandonedKeys.Count > 0)
             {
                 Log.Information("🧹 CLEANUP: Removed {Count} abandoned operations from tracking", abandonedKeys.Count);
             }
@@ -600,7 +634,15 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                         }
                         else
                         {
-                            int exhaustedCount = _activeRetryOperations.Values.Count(op => op.IsExhausted);
+                            int exhaustedCount = 0;
+                            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+                            {
+                                if (operation.IsExhausted)
+                                {
+                                    exhaustedCount++;
+                                }
+                            }
+
                             if (exhaustedCount == 1)
                             {
                                 Log.Information(

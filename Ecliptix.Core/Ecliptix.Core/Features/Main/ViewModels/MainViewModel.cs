@@ -1,7 +1,7 @@
 using System;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.Input;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
@@ -9,12 +9,24 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+using Serilog;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public class MainViewModel : Core.MVVM.ViewModelBase
+public class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
 {
     private readonly ILogoutService _logoutService;
+    private readonly CompositeDisposable _disposables = new();
+    private bool _isDisposed;
+
+    [ObservableAsProperty] public bool IsBusy { get; }
+
+    public NetworkStatusNotificationViewModel? NetworkStatusNotification { get; set; }
+
+    public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
     public MainViewModel(
         ISystemEventService systemEventService,
@@ -25,32 +37,47 @@ public class MainViewModel : Core.MVVM.ViewModelBase
     {
         _logoutService = logoutService;
 
-        LogoutCommand = new AsyncRelayCommand(ExecuteLogoutAsync);
+        IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
+
+        LogoutCommand = ReactiveCommand.CreateFromTask(
+            async () =>
+            {
+                Result<Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
+                    LogoutReason.UserInitiated);
+                return result;
+            },
+            canLogout);
+
+        LogoutCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy).DisposeWith(_disposables);
+
+        LogoutCommand
+            .Where(result => result.IsErr)
+            .Select(result => result.UnwrapErr())
+            .Subscribe(error =>
+            {
+                Log.Error("Logout failed: {Message}", error.Message);
+            })
+            .DisposeWith(_disposables);
+
+        LogoutCommand
+            .Where(result => result.IsOk)
+            .Subscribe(_ =>
+            {
+                Log.Information("Logout completed successfully");
+            })
+            .DisposeWith(_disposables);
     }
 
-    public ICommand LogoutCommand { get; }
-
-    private async Task ExecuteLogoutAsync()
+    protected override void Dispose(bool disposing)
     {
-        try
+        if (_isDisposed) return;
+        if (disposing)
         {
-            
-            Result<Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
-                LogoutReason.UserInitiated);
-
-            if (result.IsErr)
-            {
-                LogoutFailure failure = result.UnwrapErr();
-
-               
-                return;
-            }
-
-          
+            LogoutCommand?.Dispose();
+            _disposables.Dispose();
         }
-        catch (Exception)
-        {
-            
-        }
+
+        base.Dispose(disposing);
+        _isDisposed = true;
     }
 }

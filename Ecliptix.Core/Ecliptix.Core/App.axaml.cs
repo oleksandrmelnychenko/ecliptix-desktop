@@ -23,13 +23,16 @@ public class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            Splat.Locator.CurrentMutable.RegisterConstant(desktop, typeof(IClassicDesktopStyleApplicationLifetime));
+
             _ = Task.Run(async () =>
             {
                 await InitializeModulesAsync();
 
                 await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    await new ApplicationStartup(desktop).RunAsync(defaultSystemSettings);
+                    ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
+                    await applicationStartup.RunAsync(defaultSystemSettings);
                 });
             });
         }

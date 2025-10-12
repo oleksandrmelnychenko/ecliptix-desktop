@@ -29,10 +29,6 @@ public sealed record NetworkStatusChangedEvent
     public static NetworkStatusChangedEvent New(NetworkStatus state) => new(state);
 }
 
-/// <summary>
-/// Event fired when manual retry is requested by user
-/// Compatible with existing ManualRetryRequestedEvent from AppEvents
-/// </summary>
 public sealed record ManualRetryRequestedEvent
 {
     public uint? ConnectId { get; }

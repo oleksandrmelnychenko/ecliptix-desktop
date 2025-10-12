@@ -23,13 +23,13 @@
     <None Remove="Views\Authentication\Registration\RegistrationWizardView.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.0" />
-    <PackageReference Include="Avalonia" Version="11.3.6" />
+    <PackageReference Include="AnimatedImage.Avalonia" Version="2.1.2" />
+    <PackageReference Include="Avalonia" Version="11.3.7" />
     <PackageReference Include="Avalonia.Svg.Skia" Version="11.3.0" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.6" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.6" />
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.6" />
-    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.6" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.7" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.7" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.7" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.7" />
     <PackageReference Include="BouncyCastle.NetCore" Version="2.2.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="Google.Protobuf" Version="3.32.1" />

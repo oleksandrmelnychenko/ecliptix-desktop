@@ -62,6 +62,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly IUiDispatcher _uiDispatcher;
+    private readonly IApplicationRouter _router;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly CompositeDisposable _disposables = new();
 
@@ -210,9 +211,11 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         IOpaqueRegistrationService opaqueRegistrationService,
         IPasswordRecoveryService passwordRecoveryService,
         IUiDispatcher uiDispatcher,
-        ILanguageDetectionService languageDetectionService)
+        ILanguageDetectionService languageDetectionService,
+        IApplicationRouter router)
         : base(systemEventService, networkProvider, localizationService)
     {
+        Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor started");
         _rpcMetaDataProvider = rpcMetaDataProvider;
         _localizationService = localizationService;
         _networkEventService = networkEventService;
@@ -225,6 +228,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _passwordRecoveryService = passwordRecoveryService;
         _uiDispatcher = uiDispatcher;
         _languageDetectionService = languageDetectionService;
+        _router = router;
 
         LanguageSelector =
             new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
@@ -300,38 +304,13 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
         {
             IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
-            IWindowService? windowService = Locator.Current.GetService<IWindowService>();
-
-            if (moduleManager == null || windowService == null)
+            if (moduleManager == null)
             {
-                return;
-            }
-
-            Window? currentWindow = null;
-            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                foreach (Window window in desktop.Windows)
-                {
-                    if (window.DataContext == this)
-                    {
-                        currentWindow = window;
-                        break;
-                    }
-                }
-            }
-
-            if (currentWindow == null)
-            {
+                Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
                 return;
             }
 
             IModule mainModule = await moduleManager.LoadModuleAsync("Main");
-
-            await moduleManager.UnloadModuleAsync("Authentication");
-
-            CleanupAuthenticationFlow();
-
-            MainHostWindow mainWindow = new();
 
             if (mainModule.ServiceScope?.ServiceProvider != null)
             {
@@ -339,16 +318,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
                 if (mainViewModel != null)
                 {
-                    mainWindow.DataContext = mainViewModel;
+                    mainViewModel.NetworkStatusNotification = NetworkStatusNotification;
                 }
             }
 
-            await windowService.ShowAndWaitForWindowAsync(mainWindow);
-            windowService.PositionWindowRelativeTo(mainWindow, currentWindow);
-
-            await windowService.PerformCrossfadeTransitionAsync(currentWindow, mainWindow);
-
-            currentWindow.Close();
+            CleanupAuthenticationFlow();
+            await _router.NavigateToMainAsync();
         });
 
         OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/privacy"));
@@ -376,6 +351,8 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
         });
+
+        Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor completed");
     }
 
     private async Task HandleLanguageDetectionEvent(LanguageDetectionDialogEvent evt)

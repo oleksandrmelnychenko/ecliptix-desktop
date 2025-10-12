@@ -31,7 +31,6 @@ using Ecliptix.Core.Infrastructure.Network.Transport;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc;
 using Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
-using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Infrastructure.Security.Platform;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
@@ -52,6 +51,7 @@ using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Core.Services.Security;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Core.Infrastructure.Security.Crypto;
+using Ecliptix.Core.Infrastructure.Security.KeySplitting;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Features.Splash.ViewModels;
@@ -333,8 +333,12 @@ public static class Program
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
-        services.AddSingleton<IWindowService, WindowService>();
-        services.AddTransient<Services.Abstractions.Membership.ILogoutService, Services.Membership.LogoutService>();
+        services.AddTransient<ILogoutService, LogoutService>();
+
+        services.AddSingleton<IApplicationStateManager, ApplicationStateManager>();
+        services.AddSingleton<IStateCleanupService, StateCleanupService>();
+        services.AddSingleton<IApplicationRouter, ApplicationRouter>();
+        services.AddTransient<ApplicationStartup>();
     }
 
     private static void ConfigureAuthenticationServices(IServiceCollection services)
@@ -344,16 +348,8 @@ public static class Program
         services.AddSingleton<IPasswordRecoveryService, PasswordRecoveryService>();
         services.AddSingleton<IIdentityService, IdentityService>();
 
-        services.AddSingleton<ISecretSharingService, ShamirSecretSharing>();
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();
-        services.AddSingleton<IHmacKeyManager, HmacKeyManager>();
         services.AddSingleton<IKeyDiagnosticsService, KeyDiagnosticsService>();
-        services.AddSingleton<IDistributedShareStorage>(sp =>
-            new DistributedShareStorage(
-                sp.GetRequiredService<IPlatformSecurityProvider>(),
-                sp.GetRequiredService<IApplicationSecureStorageProvider>(),
-                sp.GetRequiredService<ISecretSharingService>(),
-                sp.GetRequiredService<IHmacKeyManager>()));
 
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
@@ -454,6 +450,7 @@ public static class Program
         services.AddSingleton<NetworkStatusNotificationViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<MembershipHostWindowModel>();
+        services.AddTransient<Features.Main.ViewModels.MainViewModel>();
     }
 
     private static string GetPlatformAppDataDirectory()

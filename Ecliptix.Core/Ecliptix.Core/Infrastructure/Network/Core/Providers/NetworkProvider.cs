@@ -7,14 +7,12 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Infrastructure;
-using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Device;
@@ -343,6 +341,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? system)) return;
         system.Dispose();
     }
+
+    public bool HasConnection(uint connectId) => _connections.ContainsKey(connectId);
+
+    public EcliptixProtocolSystem? GetProtocolSystem(uint connectId) =>
+        _connections.TryGetValue(connectId, out EcliptixProtocolSystem? system) ? system : null;
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteUnaryRequestAsync(
         uint connectId,
@@ -848,32 +851,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 currentState.ConnectId, state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
         }
 
-        // Validate that the synced session can actually encrypt/decrypt
-        // If auth tag is empty, the session is cryptographically broken
-        byte[] testPayload = [0x01, 0x02, 0x03, 0x04];
-        Result<SecureEnvelope, EcliptixProtocolFailure> testEncrypt = system.ProduceOutboundEnvelope(testPayload);
-        if (testEncrypt.IsErr)
-        {
-            Log.Warning("[CLIENT-SYNC-VALIDATE] Test encryption failed after sync. Session is broken. ConnectId: {ConnectId}, Error: {Error}",
-                currentState.ConnectId, testEncrypt.UnwrapErr().Message);
-            system.Dispose();
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Session validation failed - encryption broken after sync"));
-        }
-
-        SecureEnvelope testEnvelope = testEncrypt.Unwrap();
-        if (testEnvelope.AuthenticationTag == null || testEnvelope.AuthenticationTag.Length == 0)
-        {
-            Log.Warning("[CLIENT-SYNC-VALIDATE] Test encryption produced empty auth tag. Session is cryptographically broken. ConnectId: {ConnectId}",
-                currentState.ConnectId);
-            system.Dispose();
-            return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Session validation failed - empty authentication tag after sync"));
-        }
-
-        Log.Information("[CLIENT-SYNC-VALIDATE] Session validation passed. ConnectId: {ConnectId}, AuthTag: {AuthTag}",
-            currentState.ConnectId, Convert.ToHexString(testEnvelope.AuthenticationTag.ToByteArray())[..Math.Min(16, testEnvelope.AuthenticationTag.Length * 2)]);
-
         _connections.TryAdd(currentState.ConnectId, system);
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
@@ -1373,8 +1350,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RestoreSecrecyChannel);
             });
 
+            byte[]? membershipId = GetMembershipIdBytes();
+            if (membershipId == null)
+            {
+                Log.Warning("[CLIENT-RECOVERY] Cannot load state: membershipId not available. ConnectId: {ConnectId}",
+                    connectId);
+                return;
+            }
+
             Result<byte[], SecureStorageFailure> stateResult =
-                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId);
 
             bool restorationSuccessful;
             if (stateResult.IsOk)
@@ -1646,8 +1631,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         _connections.TryRemove(connectId, out _);
 
+        byte[]? membershipId = GetMembershipIdBytes();
+        if (membershipId == null)
+        {
+            Log.Warning("[CLIENT-RECOVERY-STATE] Cannot load state: membershipId not available. ConnectId: {ConnectId}",
+                connectId);
+            return Result<Unit, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("MembershipId not available for state restoration"));
+        }
+
         Result<byte[], SecureStorageFailure> stateResult =
-            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString());
+            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId);
 
         if (stateResult.IsErr)
         {
@@ -1714,11 +1708,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId)
+    private byte[]? GetMembershipIdBytes()
     {
+        if (!_applicationInstanceSettings.HasValue) return null;
+        ApplicationInstanceSettings settings = _applicationInstanceSettings.Value!;
+        if (settings.Membership == null) return null;
+        return settings.Membership.UniqueIdentifier.ToByteArray();
+    }
+
+    private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId, byte[]? membershipIdOverride = null)
+    {
+        byte[]? membershipId = membershipIdOverride ?? GetMembershipIdBytes();
+        if (membershipId == null)
+        {
+            Log.Warning("[CLIENT-STATE-PERSIST] Cannot persist: membershipId not available. ConnectId: {ConnectId}",
+                connectId);
+            return;
+        }
+
         await SecureByteStringInterop.WithByteStringAsSpan(
             state.ToByteString(),
-            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString()));
+            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId));
 
         string timestampKey = $"{connectId}_timestamp";
         await _applicationSecureStorageProvider.StoreAsync(timestampKey,
@@ -1736,8 +1746,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             try
             {
+                byte[]? membershipId = GetMembershipIdBytes();
+                if (membershipId == null)
+                {
+                    Log.Warning("[CLIENT-TRY-RESTORE] Cannot restore: membershipId not available. ConnectId: {ConnectId}",
+                        connectId);
+                    return Result<bool, NetworkFailure>.Ok(false);
+                }
+
                 Result<byte[], SecureStorageFailure> stateResult =
-                    await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString()).ConfigureAwait(false);
+                    await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
                 if (stateResult.IsErr)
                 {
                     return Result<bool, NetworkFailure>.Ok(false);
@@ -1782,6 +1800,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             Log.Information("[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                 connectId, membershipId, masterKeyFingerprint);
 
+            string masterKeyHashForLog = Convert.ToHexString(SHA256.HashData(masterKeyBytes));
+            Log.Information("[CLIENT-AUTH-HKDF-PARAMS] HKDF parameters for initial root key. ConnectId: {ConnectId}, IKM (master key hash): {IkmHash}, Salt: NULL, Info: 'ecliptix-protocol-root-key'",
+                connectId, masterKeyHashForLog);
+
             rootKeyBytes = new byte[32];
             HKDF.DeriveKey(
                 HashAlgorithmName.SHA256,
@@ -1793,6 +1815,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             string rootKeyHash = Convert.ToHexString(SHA256.HashData(rootKeyBytes))[..16];
             Log.Information("[CLIENT-AUTH-ROOTKEY] Derived root key from master key using HKDF. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
+                connectId, rootKeyHash);
+            Log.Information("[CLIENT-AUTH-ROOTKEY-BEFORE-COMPLETE] Initial root key before CompleteAuthenticatedPubKeyExchange. ConnectId: {ConnectId}, InitialRootKeyHash: {RootKeyHash}",
                 connectId, rootKeyHash);
 
             Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
@@ -1837,6 +1861,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 Log.Information("[CLIENT-AUTH-HANDSHAKE-SEND] Sending client pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
                     connectId, clientExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(clientExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, clientExchange.InitialDhPublicKey.Length * 2)]);
+
+                string clientDhFullHash = Convert.ToHexString(SHA256.HashData(clientExchange.InitialDhPublicKey.ToByteArray()));
+                Log.Information("[CLIENT-AUTH-DH-CLIENT] Client DH public key full hash. ConnectId: {ConnectId}, ClientDhHash: {DhHash}",
+                    connectId, clientDhFullHash);
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
                 {
@@ -1896,6 +1924,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Log.Information("[CLIENT-AUTH-HANDSHAKE-RECV] Received server pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
                     connectId, serverExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(serverExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, serverExchange.InitialDhPublicKey.Length * 2)]);
 
+                string serverDhFullHash = Convert.ToHexString(SHA256.HashData(serverExchange.InitialDhPublicKey.ToByteArray()));
+                Log.Information("[CLIENT-AUTH-DH-SERVER] Server DH public key received full hash. ConnectId: {ConnectId}, ServerDhHash: {DhHash}",
+                    connectId, serverDhFullHash);
+
                 Log.Information("[CLIENT-AUTH-FINALIZE] Finalizing protocol with HKDF root key. ConnectId: {ConnectId}",
                     connectId);
 
@@ -1912,6 +1944,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     });
                     return Result<Unit, NetworkFailure>.Err(
                         completeResult.UnwrapErr().ToNetworkFailure());
+                }
+
+                EcliptixProtocolConnection? tempConn = newProtocol.GetConnection();
+                if (tempConn != null)
+                {
+                    Result<RatchetState, EcliptixProtocolFailure> tempStateResult = tempConn.ToProtoState();
+                    if (tempStateResult.IsOk)
+                    {
+                        string finalRootKeyHash = Convert.ToHexString(SHA256.HashData(tempStateResult.Unwrap().RootKey.ToByteArray()))[..16];
+                        Log.Information("[CLIENT-AUTH-FINAL-ROOTKEY] Final root key after authenticated handshake complete. ConnectId: {ConnectId}, FinalRootKeyHash: {FinalRootKeyHash}",
+                            connectId, finalRootKeyHash);
+                    }
                 }
 
                 _connections.TryAdd(connectId, newProtocol);
@@ -1942,7 +1986,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         Log.Information("[CLIENT-AUTH-PROTOCOL-STATE] Protocol state created. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}, SendingChainKeyHash: {SendingChainKeyHash}, ReceivingChainKeyHash: {ReceivingChainKeyHash}",
                             connectId, sessionRootKeyHash, sendingChainKeyHash, receivingChainKeyHash);
 
-                        await PersistSessionStateAsync(sessionState, connectId);
+                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray());
 
                         Log.Information("[CLIENT-AUTH-SAVED] Authenticated protocol state saved. ConnectId: {ConnectId}, Sending: {Sending}, Receiving: {Receiving}, MembershipId: {MembershipId}",
                             connectId, sessionState.RatchetState.SendingStep.CurrentIndex, sessionState.RatchetState.ReceivingStep.CurrentIndex, membershipIdentifier);

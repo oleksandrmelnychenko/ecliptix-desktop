@@ -71,14 +71,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         return key;
     }
 
-    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId)
+    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId, byte[] membershipId)
     {
         if (_disposed)
             return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
 
         try
         {
-            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(connectId);
+            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(membershipId);
 
             byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize);
 
@@ -110,14 +110,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    public Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(ReadOnlySpan<byte> protocolState, string connectId)
+    public Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(ReadOnlySpan<byte> protocolState, string connectId, byte[] membershipId)
     {
         byte[] buffer = ArrayPool<byte>.Shared.Rent(protocolState.Length);
         int length = protocolState.Length;
         try
         {
             protocolState.CopyTo(buffer.AsSpan(0, length));
-            Task<Result<Unit, SecureStorageFailure>> result = SaveStateAsync(buffer.AsMemory(0, length).ToArray(), connectId);
+            Task<Result<Unit, SecureStorageFailure>> result = SaveStateAsync(buffer.AsMemory(0, length).ToArray(), connectId, membershipId);
             return result.ContinueWith(t =>
             {
                 CryptographicOperations.ZeroMemory(buffer.AsSpan(0, length));
@@ -133,7 +133,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
     }
 
-    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId)
+    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId)
     {
         if (_disposed)
             return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
@@ -174,18 +174,49 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
             else
             {
-                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(connectId, salt);
+                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt);
                 encryptionKey = derivedKey;
             }
 
-            byte[] plaintext = DecryptState(ciphertext, encryptionKey, nonce, tag, associatedData);
+            try
+            {
+                byte[] plaintext = DecryptState(ciphertext, encryptionKey, nonce, tag, associatedData);
 
-            CryptographicOperations.ZeroMemory(encryptionKey);
+                Log.Information("[CLIENT-STATE-LOAD] Protocol state loaded successfully with membershipId. ConnectId: {ConnectId}",
+                    connectId);
 
-            Log.Information("[CLIENT-STATE-LOAD] Protocol state loaded. ConnectId: {ConnectId}, FilePath: {FilePath}",
-                connectId, GetStorageFilePath(connectId));
+                return Result<byte[], SecureStorageFailure>.Ok(plaintext);
+            }
+            catch (CryptographicException) when (storedKey == null)
+            {
+                Log.Warning("[CLIENT-STATE-LOAD-MIGRATION] Attempting legacy decryption with connectId. ConnectId: {ConnectId}",
+                    connectId);
 
-            return Result<byte[], SecureStorageFailure>.Ok(plaintext);
+                CryptographicOperations.ZeroMemory(encryptionKey);
+
+                (byte[] legacyKey, byte[] _) = await DeriveKeyWithSaltAsync(Encoding.UTF8.GetBytes(connectId), salt);
+
+                try
+                {
+                    byte[] plaintext = DecryptState(ciphertext, legacyKey, nonce, tag, associatedData);
+
+                    Log.Warning("[CLIENT-STATE-LOAD-MIGRATION] Legacy decryption succeeded. Re-saving with membershipId. ConnectId: {ConnectId}",
+                        connectId);
+
+                    await SaveStateAsync(plaintext, connectId, membershipId);
+
+                    CryptographicOperations.ZeroMemory(legacyKey);
+                    return Result<byte[], SecureStorageFailure>.Ok(plaintext);
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(legacyKey);
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(encryptionKey);
+            }
         }
         catch (Exception ex)
         {
@@ -253,16 +284,16 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         File.Delete(filePath);
     }
 
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(string connectId)
+    private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(byte[] membershipId)
     {
         byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize);
-        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(connectId, salt);
+        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt);
         return (key, salt);
     }
 
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyWithSaltAsync(string connectId, byte[] salt)
+    private async Task<(byte[] key, byte[] salt)> DeriveKeyWithSaltAsync(byte[] membershipId, byte[] salt)
     {
-        using Argon2id argon2 = new(Encoding.UTF8.GetBytes(connectId))
+        using Argon2id argon2 = new(membershipId)
         {
             Salt = salt,
             DegreeOfParallelism = Argon2Parallelism,

@@ -16,6 +16,7 @@ using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
 using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication;
 

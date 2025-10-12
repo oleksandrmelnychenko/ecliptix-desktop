@@ -6,6 +6,4 @@ namespace Ecliptix.Core.Services.Abstractions.Core;
 public interface IApplicationInitializer
 {
     Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings);
-
-    bool IsMembershipConfirmed { get; }
 }

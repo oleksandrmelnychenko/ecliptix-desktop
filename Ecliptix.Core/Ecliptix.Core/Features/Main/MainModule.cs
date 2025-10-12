@@ -42,11 +42,8 @@ public class MainModule : ModuleBase<MainModuleManifest>
         return [];
     }
 
-    public override IReadOnlyList<Type> GetViewModelTypes()
-    {
-        return
-        [
-            typeof(MainViewModel)
-        ];
-    }
+    public override IReadOnlyList<Type> GetViewModelTypes() =>
+    [
+        typeof(MainViewModel)
+    ];
 }

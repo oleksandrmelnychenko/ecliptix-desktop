@@ -28,8 +28,9 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
         string storageKey = GetMasterKeyStorageKey(membershipId);
+        byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
         Result<byte[], SecureStorageFailure> result =
-            await storage.LoadStateAsync(storageKey);
+            await storage.LoadStateAsync(storageKey, membershipIdBytes);
         bool exists = result.IsOk;
 
         Log.Information("[CLIENT-IDENTITY-CHECK] Checking stored identity. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Exists: {Exists}",
@@ -50,7 +51,8 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle);
             wrappingKey = returnedWrappingKey;
-            await storage.SaveStateAsync(protectedKey, storageKey);
+            byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
+            await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes);
 
             Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
                 membershipId, storageKey, platformProvider.IsHardwareSecurityAvailable());
@@ -80,8 +82,9 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             Log.Information("[CLIENT-IDENTITY-LOAD-START] Starting master key load. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
                 membershipId, storageKey);
 
+            byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
             Result<byte[], SecureStorageFailure> result =
-                await storage.LoadStateAsync(storageKey);
+                await storage.LoadStateAsync(storageKey, membershipIdBytes);
 
             if (result.IsErr)
             {

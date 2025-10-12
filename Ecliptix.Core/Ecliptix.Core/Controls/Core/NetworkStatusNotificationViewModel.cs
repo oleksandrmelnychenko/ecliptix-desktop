@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
@@ -109,13 +110,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus
             .GetEvent<NetworkStatusChangedEvent>()
             .DistinctUntilChanged(e => e.State)
-            .ObserveOn(RxApp.MainThreadScheduler)
             .Publish()
             .RefCount();
 
         IObservable<ManualRetryRequestedEvent> manualRetryEvents = messageBus
-            .GetEvent<ManualRetryRequestedEvent>()
-            .ObserveOn(RxApp.MainThreadScheduler);
+            .GetEvent<ManualRetryRequestedEvent>();
 
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
@@ -183,14 +182,14 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
 
 
-        _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
-        _retryButtonText = retryButtonTextObservable.ToProperty(this, x => x.RetryButtonText, scheduler: RxApp.MainThreadScheduler).DisposeWith(_disposables);
+        _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState).DisposeWith(_disposables);
+        _statusText = statusTextObservable.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
+        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription).DisposeWith(_disposables);
+        _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource).DisposeWith(_disposables);
+        _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton).DisposeWith(_disposables);
+        _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
+        _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating).DisposeWith(_disposables);
+        _retryButtonText = retryButtonTextObservable.ToProperty(this, x => x.RetryButtonText).DisposeWith(_disposables);
 
 
         RetryCommand = ReactiveCommand.CreateFromTask(
@@ -214,7 +213,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         ).DisposeWith(_disposables);
 
         networkStatusEvents
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxApp.TaskpoolScheduler)
             .Subscribe(evt =>
             {
                 LogNetworkEvent(evt.State);
@@ -224,7 +223,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         isVisibleObservable
             .DistinctUntilChanged()
-            .ObserveOn(RxApp.MainThreadScheduler)
+            .ObserveOn(RxApp.TaskpoolScheduler)
             .Subscribe(visible =>
             {
                 HandleVisibilityChangeAsync(visible).ConfigureAwait(false);
@@ -245,43 +244,46 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private async Task HandleVisibilityChangeAsync(bool visible)
     {
-        CancellationTokenSource? previousTokenSource = _visibilityOperationTokenSource;
-        CancellationTokenSource newTokenSource = new();
-        _visibilityOperationTokenSource = newTokenSource;
+        await Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            CancellationTokenSource? previousTokenSource = _visibilityOperationTokenSource;
+            CancellationTokenSource newTokenSource = new();
+            _visibilityOperationTokenSource = newTokenSource;
 
-        try
-        {
-            previousTokenSource?.Cancel();
-            LogVisibilityChange(visible);
-
-            if (visible)
-                await ShowAsync(newTokenSource.Token);
-            else
-                await HideAsync(newTokenSource.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            LogOperationCancelled();
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error changing notification visibility");
-        }
-        finally
-        {
-            if (_visibilityOperationTokenSource == newTokenSource)
+            try
             {
-                _visibilityOperationTokenSource = null;
+                previousTokenSource?.Cancel();
+                LogVisibilityChange(visible);
+
+                if (visible)
+                    await ShowAsync(newTokenSource.Token);
+                else
+                    await HideAsync(newTokenSource.Token);
             }
-            newTokenSource.Dispose();
-            previousTokenSource?.Dispose();
-        }
+            catch (OperationCanceledException)
+            {
+                LogOperationCancelled();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error changing notification visibility");
+            }
+            finally
+            {
+                if (_visibilityOperationTokenSource == newTokenSource)
+                {
+                    _visibilityOperationTokenSource = null;
+                }
+                newTokenSource.Dispose();
+                previousTokenSource?.Dispose();
+            }
+        });
     }
 
     private void HandleNetworkStatusVisualEffects(NetworkStatusChangedEvent evt)
     {
         bool isServerIssue = evt.State is NetworkStatus.RetriesExhausted or NetworkStatus.DataCenterDisconnected or NetworkStatus.ServerShutdown;
-        ApplyClasses(serverIssue: isServerIssue);
+        Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(serverIssue: isServerIssue));
     }
 
     private void ApplyClasses(bool serverIssue)

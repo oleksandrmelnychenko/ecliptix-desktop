@@ -16,14 +16,15 @@
 
     <Application.Styles>
         <SimpleTheme />
-        
+
         <StyleInclude Source="/Styles/Core/Dimensions.axaml" />
         <StyleInclude Source="/Styles/Core/Colors.axaml" />
         <StyleInclude Source="/Styles/Core/Typography.axaml" />
         <StyleInclude Source="/Styles/Core/Animations.axaml" />
-        
+
         <StyleInclude Source="/Styles/Components/TrafficLights.axaml" />
         <StyleInclude Source="/Styles/Components/Buttons.axaml" />
+        <StyleInclude Source="/Styles/Main/MainStyles.axaml" />
         
         <Style Selector="TextElement">
             <Setter Property="FontFamily" Value="{StaticResource Segoe}" />

@@ -179,11 +179,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IObservable<bool> isFormLogicallyValid = isMobileLogicallyValid
             .CombineLatest(isKeyLogicallyValid, (isMobileValid, isKeyValid) => isMobileValid && isKeyValid)
             .DistinctUntilChanged()
-            .Do(valid => Serilog.Log.Debug("✅ Form logically valid: {Valid}", valid));
+            .Do(valid => Log.Debug("✅ Form logically valid: {Valid}", valid));
 
         return isFormLogicallyValid;
     }
-
 
     private static bool IsNetworkInOutage(NetworkStatus status) =>
         status is NetworkStatus.DataCenterDisconnected
@@ -212,7 +211,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid)
             .Do(canExecute => Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));
-        ;
 
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () =>
@@ -300,7 +298,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public async void HandleEnterKeyPress()
     {
-        if (SignInCommand != null && await SignInCommand.CanExecute.FirstOrDefaultAsync())
+        if(await SignInCommand!.CanExecute.FirstOrDefaultAsync())
         {
             SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
         }

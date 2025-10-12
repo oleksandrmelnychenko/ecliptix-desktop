@@ -51,9 +51,6 @@ public class OpaqueAuthenticationService(
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     IHardenedKeyDerivation hardenedKeyDerivation,
-    IDistributedShareStorage distributedShareStorage,
-    ISecretSharingService keySplitter,
-    IHmacKeyManager hmacKeyManager,
     IServerPublicKeyProvider serverPublicKeyProvider)
     : IAuthenticationService, IDisposable
 {
@@ -286,62 +283,6 @@ public class OpaqueAuthenticationService(
                     Serilog.Log.Information("[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                         membershipId, masterKeyFingerprint);
                     CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
-                }
-
-                Serilog.Log.Information("[LOGIN-HMAC-GENERATE] Generating HMAC key. MembershipId: {MembershipId}", membershipId);
-
-                Result<SodiumSecureMemoryHandle, KeySplittingFailure> hmacKeyHandleResult =
-                    await hmacKeyManager.GenerateHmacKeyHandleAsync(membershipId.ToString());
-
-                if (hmacKeyHandleResult.IsErr)
-                {
-                    Serilog.Log.Error("[LOGIN-HMAC-GENERATE] HMAC key generation failed. MembershipId: {MembershipId}, Error: {Error}",
-                        membershipId, hmacKeyHandleResult.UnwrapErr().Message);
-                    return Result<Unit, AuthenticationFailure>.Err(
-                        AuthenticationFailure.HmacKeyGenerationFailed(hmacKeyHandleResult.UnwrapErr().Message));
-                }
-
-                Serilog.Log.Information("[LOGIN-HMAC-GENERATE] HMAC key generated successfully. MembershipId: {MembershipId}", membershipId);
-
-                using SodiumSecureMemoryHandle hmacKeyHandle = hmacKeyHandleResult.Unwrap();
-
-                Serilog.Log.Information("[LOGIN-KEY-SPLIT] Splitting master key into {TotalShares} shares (threshold: {Threshold}). MembershipId: {MembershipId}",
-                    ShareDistributionConstants.DefaultTotalShares, ShareDistributionConstants.DefaultMinimumThreshold, membershipId);
-
-                Result<KeySplitResult, KeySplittingFailure> masterSplitResult = await keySplitter.SplitKeyAsync(
-                    masterKeyHandle,
-                    threshold: ShareDistributionConstants.DefaultMinimumThreshold,
-                    totalShares: ShareDistributionConstants.DefaultTotalShares,
-                    hmacKeyHandle: hmacKeyHandle);
-
-                if (masterSplitResult.IsOk)
-                {
-                    Serilog.Log.Information("[LOGIN-KEY-SPLIT] Master key split successfully. MembershipId: {MembershipId}", membershipId);
-
-                    using KeySplitResult masterSplitKeys = masterSplitResult.Unwrap();
-
-                    Serilog.Log.Information("[LOGIN-SHARES-STORE] Storing {ShareCount} distributed shares. MembershipId: {MembershipId}",
-                        masterSplitKeys.Shares.Length, membershipId);
-
-                    Result<Unit, KeySplittingFailure> masterStoreResult =
-                        await distributedShareStorage.StoreKeySharesAsync(masterSplitKeys, membershipId);
-
-                    if (masterStoreResult.IsErr)
-                    {
-                        Serilog.Log.Error("[LOGIN-SHARES-STORE] Failed to store distributed shares. MembershipId: {MembershipId}, Error: {Error}",
-                            membershipId, masterStoreResult.UnwrapErr().Message);
-                        await systemEvents.NotifySystemStateAsync(SystemState.Busy,
-                            $"Failed to store key shares: {masterStoreResult.UnwrapErr().Message}");
-                    }
-                    else
-                    {
-                        Serilog.Log.Information("[LOGIN-SHARES-STORE] Distributed shares stored successfully. MembershipId: {MembershipId}", membershipId);
-                    }
-                }
-                else
-                {
-                    Serilog.Log.Error("[LOGIN-KEY-SPLIT] Master key splitting failed. MembershipId: {MembershipId}, Error: {Error}",
-                        membershipId, masterSplitResult.UnwrapErr().Message);
                 }
 
                 Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);

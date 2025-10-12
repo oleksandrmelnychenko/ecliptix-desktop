@@ -117,12 +117,12 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
         return Task.CompletedTask;
     }
 
-    protected Task OnLoadAsync()
+    protected virtual Task OnLoadAsync()
     {
         return Task.CompletedTask;
     }
 
-    protected Task OnUnloadAsync()
+    protected virtual Task OnUnloadAsync()
     {
         return Task.CompletedTask;
     }

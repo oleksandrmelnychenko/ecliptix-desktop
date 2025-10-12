@@ -1,0 +1,100 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== SIDEBAR NAVIGATION BUTTON ===== -->
+    <Style Selector="Button.sidebar-nav-button">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="56" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="8,4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button:pressed">
+        <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
+        <Setter Property="RenderTransform" Value="scale(0.95)" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button.selected">
+        <Setter Property="Background" Value="{DynamicResource Primary}" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button.selected Path">
+        <Setter Property="Fill" Value="{DynamicResource OnPrimary}" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button:pointerover.selected">
+        <Setter Property="Background" Value="{DynamicResource PrimaryVariant}" />
+    </Style>
+
+    <!-- ===== LOGOUT BUTTON SPECIFIC ===== -->
+    <Style Selector="Button.sidebar-nav-button.logout">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button.logout:pointerover">
+        <Setter Property="Background" Value="#22FF5F57" />
+    </Style>
+
+    <Style Selector="Button.sidebar-nav-button.logout:pressed">
+        <Setter Property="Background" Value="#33FF5F57" />
+    </Style>
+
+    <!-- ===== CONVERSATION LIST ITEM ===== -->
+    <Style Selector="Button.conversation-item">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button.conversation-item:pointerover">
+        <Setter Property="Background" Value="{DynamicResource SurfaceVariant}" />
+    </Style>
+
+    <Style Selector="Button.conversation-item:pressed">
+        <Setter Property="Background" Value="{DynamicResource Surface}" />
+    </Style>
+
+    <!-- ===== SCROLLBAR STYLING ===== -->
+    <Style Selector="ScrollViewer">
+        <Setter Property="AllowAutoHide" Value="True" />
+    </Style>
+
+    <Style Selector="ScrollBar">
+        <Setter Property="AllowAutoHide" Value="True" />
+    </Style>
+
+    <Style Selector="ScrollBar:vertical">
+        <Setter Property="Width" Value="{StaticResource ScrollBar.ThumbWidth}" />
+    </Style>
+
+    <Style Selector="ScrollBar:vertical /template/ Thumb">
+        <Setter Property="Background" Value="{DynamicResource ScrollBar.ThumbColor}" />
+        <Setter Property="CornerRadius" Value="{StaticResource ScrollBar.ThumbRadius}" />
+    </Style>
+
+    <Style Selector="ScrollBar:vertical /template/ Thumb:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ScrollBar.ThumbHoverColor}" />
+    </Style>
+
+</Styles>

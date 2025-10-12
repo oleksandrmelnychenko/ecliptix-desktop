@@ -7,9 +7,9 @@ namespace Ecliptix.Core.Infrastructure.Security.Abstractions;
 
 public interface ISecureProtocolStateStorage
 {
-    Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId);
+    Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId, byte[] membershipId);
 
-    Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId);
+    Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId);
 
     Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key);
 }
