@@ -300,7 +300,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     {
         try
         {
-            if(await SignInCommand!.CanExecute.FirstOrDefaultAsync())
+            if (await SignInCommand!.CanExecute.FirstOrDefaultAsync())
             {
                 SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
             }

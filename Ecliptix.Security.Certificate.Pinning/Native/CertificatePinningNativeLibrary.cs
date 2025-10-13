@@ -55,9 +55,9 @@ internal static unsafe class CertificatePinningNativeLibrary
                 {
                     return NativeLibrary.Load(libPath);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"Failed to load library at {libPath}: {ex.Message}");
+                    // Continue to next search path if library loading fails
                 }
             }
         }

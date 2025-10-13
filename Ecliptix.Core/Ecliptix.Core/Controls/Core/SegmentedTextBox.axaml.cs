@@ -385,6 +385,7 @@ public partial class SegmentedTextBox : UserControl
         OnSegmentChanged();
     }
 
+    [Obsolete]
     private async void HandlePasteAsync()
     {
         try

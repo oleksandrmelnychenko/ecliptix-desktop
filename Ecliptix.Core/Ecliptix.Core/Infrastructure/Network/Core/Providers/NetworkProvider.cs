@@ -52,11 +52,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
 
-    public const int DefaultOneTimeKeyCount = 5;
-    private const uint OperationIdMinValue = 10;
-    private const uint OperationIdReservedRange = 10;
-    private const int Sha256HashSize = 32;
-    private const int RequestKeyHexPrefixLength = 16;
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
 
@@ -299,7 +294,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
-        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
+        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
 
         PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
 
@@ -370,8 +365,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            int bytesToHash = Math.Min(plainBuffer.Length, RequestKeyHexPrefixLength / 2);
-            Span<char> hexBuffer = stackalloc char[RequestKeyHexPrefixLength];
+            int bytesToHash = Math.Min(plainBuffer.Length, NetworkConstants.Protocol.RequestKeyHexPrefixLength / 2);
+            Span<char> hexBuffer = stackalloc char[NetworkConstants.Protocol.RequestKeyHexPrefixLength];
             bool success = Convert.TryToHexString(plainBuffer.AsSpan(0, bytesToHash), hexBuffer, out int charsWritten);
             requestKey = success
                 ? $"{connectId}_{serviceType}_{hexBuffer[..charsWritten].ToString()}"
@@ -770,7 +765,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void InitiateEcliptixProtocolSystemForType(uint connectId,
         PubKeyExchangeType exchangeType)
     {
-        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(DefaultOneTimeKeyCount).Unwrap();
+        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
 
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
         protocolSystem.SetEventHandler(this);
@@ -862,7 +857,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
     {
-        Span<byte> hashBuffer = stackalloc byte[Sha256HashSize];
+        Span<byte> hashBuffer = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
         int hashLength = 0;
 
         switch (serviceType.ToString())
@@ -872,7 +867,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Span<byte> semanticBuffer = stackalloc byte[256];
                     int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = Sha256HashSize;
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
                     break;
                 }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
@@ -880,12 +875,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Span<byte> semanticBuffer = stackalloc byte[256];
                     int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = Sha256HashSize;
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
                     break;
                 }
             case "InitiateVerification":
                 {
-                    Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
                     SHA256.HashData(plainBuffer, payloadHash);
 
                     string semantic =
@@ -893,25 +888,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
                     int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = Sha256HashSize;
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
                     break;
                 }
             default:
                 {
-                    Span<byte> payloadHash = stackalloc byte[Sha256HashSize];
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
                     SHA256.HashData(plainBuffer, payloadHash);
 
                     string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
                     Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
                     int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
                     SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = Sha256HashSize;
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
                     break;
                 }
         }
 
         uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
-        uint finalId = Math.Max(rawId % (uint.MaxValue - OperationIdReservedRange), OperationIdMinValue);
+        uint finalId = Math.Max(rawId % (uint.MaxValue - NetworkConstants.Protocol.OperationIdReservedRange), NetworkConstants.Protocol.OperationIdMinValue);
 
         return finalId;
     }
@@ -1799,7 +1794,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 connectId, rootKeyHash);
 
             Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
-                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId, DefaultOneTimeKeyCount);
+                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId, NetworkConstants.Protocol.DefaultOneTimeKeyCount);
 
             if (identityKeysResult.IsErr)
             {

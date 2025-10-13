@@ -14,16 +14,12 @@ namespace Ecliptix.Core.Services.Authentication;
 public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
     : IIdentityService
 {
-    private const string MasterKeyStoragePrefix = "master_";
-    private const string KeychainWrapKeyPrefix = "ecliptix_master_wrap_";
-    private const int AesKeySize = 32;
-    private const int AesIvSize = 16;
 
     private static string GetMasterKeyStorageKey(string membershipId) =>
-        string.Concat(MasterKeyStoragePrefix, membershipId);
+        string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
 
     private static string GetKeychainWrapKey(string membershipId) =>
-        string.Concat(KeychainWrapKeyPrefix, membershipId);
+        string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
 
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
@@ -218,8 +214,8 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
                     aes.Key = wrappingKey;
 
                     ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
-                    iv = protectedSpan[..AesIvSize].ToArray();
-                    encryptedKey = protectedSpan[AesIvSize..].ToArray();
+                    iv = protectedSpan[..SecureStorageConstants.Identity.AesIvSize].ToArray();
+                    encryptedKey = protectedSpan[SecureStorageConstants.Identity.AesIvSize..].ToArray();
 
                     aes.IV = iv;
                     masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
@@ -267,7 +263,7 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
 
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
-        return await platformProvider.GenerateSecureRandomAsync(AesKeySize).ConfigureAwait(false);
+        return await platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
     }
 
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)

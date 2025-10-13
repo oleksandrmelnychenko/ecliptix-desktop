@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
@@ -145,7 +145,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         if (preserveInitialWelcome)
         {
             try
-            { 
+            {
                 IRoutableViewModel welcomeView = GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
                 _navigationStack.Push(welcomeView);
             }

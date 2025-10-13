@@ -14,16 +14,6 @@ namespace Ecliptix.Core.Infrastructure.Security.Storage;
 
 public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
-    private const int SaltSize = 32;
-    private const int NonceSize = 12;
-    private const int TagSize = 16;
-    private const int KeySize = 32;
-    private const int Argon2Iterations = 4;
-    private const int Argon2MemorySize = 131072;
-    private const int Argon2Parallelism = 4;
-    private const string MagicHeader = "ECLIPTIX_SECURE_V1";
-    private const int CurrentVersion = 1;
-    private const int HmacSha512Size = 64;
 
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly string _storageDirectory;
@@ -79,7 +69,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         {
             (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(membershipId).ConfigureAwait(false);
 
-            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(NonceSize).ConfigureAwait(false);
+            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.NonceSize).ConfigureAwait(false);
 
             byte[] associatedData = CreateAssociatedData(connectId, _deviceId);
 
@@ -262,7 +252,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(byte[] membershipId)
     {
-        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SaltSize).ConfigureAwait(false);
+        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.SaltSize).ConfigureAwait(false);
         (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
         return (key, salt);
     }
@@ -272,23 +262,23 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         using Argon2id argon2 = new(membershipId)
         {
             Salt = salt,
-            DegreeOfParallelism = Argon2Parallelism,
-            Iterations = Argon2Iterations,
-            MemorySize = Argon2MemorySize
+            DegreeOfParallelism = SecureStorageConstants.Argon2.Parallelism,
+            Iterations = SecureStorageConstants.Argon2.Iterations,
+            MemorySize = SecureStorageConstants.Argon2.MemorySize
         };
 
         argon2.AssociatedData = _deviceId;
 
-        byte[] key = await argon2.GetBytesAsync(KeySize).ConfigureAwait(false);
+        byte[] key = await argon2.GetBytesAsync(SecureStorageConstants.Encryption.KeySize).ConfigureAwait(false);
         return (key, salt);
     }
 
     private static (byte[] ciphertext, byte[] tag) EncryptState(
         byte[] plaintext, byte[] key, byte[] nonce, byte[] associatedData)
     {
-        using AesGcm aesGcm = new(key, TagSize);
+        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TagSize);
         byte[] ciphertext = new byte[plaintext.Length];
-        byte[] tag = new byte[TagSize];
+        byte[] tag = new byte[SecureStorageConstants.Encryption.TagSize];
 
         aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
         return (ciphertext, tag);
@@ -297,7 +287,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private static byte[] DecryptState(
         byte[] ciphertext, byte[] key, byte[] nonce, byte[] tag, byte[] associatedData)
     {
-        using AesGcm aesGcm = new(key, TagSize);
+        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TagSize);
         byte[] plaintext = new byte[ciphertext.Length];
 
         aesGcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
@@ -309,7 +299,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         byte[] connectIdBytes = Encoding.UTF8.GetBytes(connectId);
         byte[] ad = new byte[connectIdBytes.Length + deviceId.Length + 4];
 
-        BitConverter.GetBytes(CurrentVersion).CopyTo(ad, 0);
+        BitConverter.GetBytes(SecureStorageConstants.Header.CurrentVersion).CopyTo(ad, 0);
         connectIdBytes.CopyTo(ad, 4);
         deviceId.CopyTo(ad, 4 + connectIdBytes.Length);
 
@@ -319,7 +309,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private static byte[] CreateSecureContainer(
         byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData)
     {
-        byte[] magicBytes = Encoding.ASCII.GetBytes(MagicHeader);
+        byte[] magicBytes = Encoding.ASCII.GetBytes(SecureStorageConstants.Header.MagicHeader);
 
         int totalSize = magicBytes.Length + 4 +
                        4 + salt.Length +
@@ -334,7 +324,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         magicBytes.CopyTo(container, offset);
         offset += magicBytes.Length;
 
-        BitConverter.GetBytes(CurrentVersion).CopyTo(container, offset);
+        BitConverter.GetBytes(SecureStorageConstants.Header.CurrentVersion).CopyTo(container, offset);
         offset += 4;
 
         BitConverter.GetBytes(salt.Length).CopyTo(container, offset);
@@ -370,12 +360,12 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         using MemoryStream ms = new(container);
         using BinaryReader reader = new(ms);
 
-        string magic = Encoding.ASCII.GetString(reader.ReadBytes(MagicHeader.Length));
-        if (magic != MagicHeader)
+        string magic = Encoding.ASCII.GetString(reader.ReadBytes(SecureStorageConstants.Header.MagicHeader.Length));
+        if (magic != SecureStorageConstants.Header.MagicHeader)
             throw new InvalidOperationException("Invalid container format");
 
         int version = reader.ReadInt32();
-        if (version != CurrentVersion)
+        if (version != SecureStorageConstants.Header.CurrentVersion)
             throw new InvalidOperationException($"Unsupported version: {version}");
 
         int saltLength = reader.ReadInt32();
@@ -411,11 +401,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private async Task<byte[]?> VerifyTamperProtectionAsync(byte[] protectedData)
     {
-        if (protectedData.Length < HmacSha512Size)
+        if (protectedData.Length < SecureStorageConstants.Encryption.HmacSha512Size)
             return null;
 
-        byte[] data = protectedData[..^HmacSha512Size];
-        byte[] mac = protectedData[^HmacSha512Size..];
+        byte[] data = protectedData[..^SecureStorageConstants.Encryption.HmacSha512Size];
+        byte[] mac = protectedData[^SecureStorageConstants.Encryption.HmacSha512Size..];
 
         byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
         using HMACSHA512 hmac = new(hmacKey);

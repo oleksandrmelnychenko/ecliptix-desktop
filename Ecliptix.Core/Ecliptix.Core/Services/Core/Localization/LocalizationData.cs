@@ -246,7 +246,7 @@ public static class LocalizationData
         ["ResponseErrors.MobileNumber.AccountAlreadyRegistered"] = "Акаунт з цим номером вже зареєстровано. Спробуйте увійти або скористайтеся відновленням пароля.",
         ["ResponseErrors.MobileNumber.UnexpectedMembershipStatus"] = "Неочікуваний статус системи. Спробуйте ще раз.",
         ["ResponseErrors.Common.TimeoutExceeded"] = "Операція перевищила час очікування. Спробуйте ще раз.",
-        
+
 
         ["ValidationErrors.SecureKey.Required"] = "Обов'язкове поле",
         ["ValidationErrors.SecureKey.MinLength"] = "Мін. {0} символів",

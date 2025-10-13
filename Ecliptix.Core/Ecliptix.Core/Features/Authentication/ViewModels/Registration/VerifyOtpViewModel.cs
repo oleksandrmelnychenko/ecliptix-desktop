@@ -270,10 +270,10 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         if (result.IsOk)
         {
             Membership membership = result.Unwrap();
-           
-            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet && 
+
+            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet &&
                 _flowContext == AuthenticationFlowContext.Registration)
-            { 
+            {
                 await ShowAccountExistsRedirectAsync();
             }
             else
@@ -291,7 +291,7 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
                     .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
             }
 
-           
+
         }
         else
         {
@@ -302,13 +302,13 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
             }
         }
     }
-    
+
     private Task ShowAccountExistsRedirectAsync()
     {
         if (_isDisposed) return Task.CompletedTask;
 
         string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey];
-        
+
         if (HostScreen is MembershipHostWindowModel hostWindow)
         {
             ShowRedirectNotification(hostWindow, message, 8, () =>
