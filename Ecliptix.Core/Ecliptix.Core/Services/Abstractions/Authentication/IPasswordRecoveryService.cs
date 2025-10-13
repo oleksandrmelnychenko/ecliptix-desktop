@@ -29,4 +29,6 @@ public interface IPasswordRecoveryService
 
     Task<Result<Unit, string>> CompletePasswordResetAsync(ByteString membershipIdentifier, SecureTextBuffer newPassword,
         uint connectId);
+
+    Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier);
 }

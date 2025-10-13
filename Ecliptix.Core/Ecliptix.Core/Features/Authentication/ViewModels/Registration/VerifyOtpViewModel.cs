@@ -312,8 +312,16 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             }
             if (HasValidSession)
             {
-                await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
-                    .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
+                if (_flowContext == AuthenticationFlowContext.Registration)
+                {
+                    await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
+                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
+                }
+                else if (_passwordRecoveryService != null)
+                {
+                    await _passwordRecoveryService.CleanupPasswordResetSessionAsync(VerificationSessionIdentifier!.Value)
+                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
+                }
             }
 
 
@@ -577,7 +585,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         if (HasValidSession)
         {
             Guid sessionId = VerificationSessionIdentifier!.Value;
-            await _registrationService.CleanupVerificationSessionAsync(sessionId);
+
+            if (_flowContext == AuthenticationFlowContext.Registration)
+            {
+                await _registrationService.CleanupVerificationSessionAsync(sessionId);
+            }
+            else if (_passwordRecoveryService != null)
+            {
+                await _passwordRecoveryService.CleanupPasswordResetSessionAsync(sessionId);
+            }
         }
     }
 

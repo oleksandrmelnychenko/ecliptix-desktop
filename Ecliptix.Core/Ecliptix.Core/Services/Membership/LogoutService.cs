@@ -42,6 +42,18 @@ public sealed class LogoutService(
                 LogoutFailure.InvalidMembershipIdentifier("No active session found"));
         }
 
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
+
+        if (settingsResult.IsErr)
+        {
+            return Result<Unit, LogoutFailure>.Err(
+                LogoutFailure.NetworkRequestFailed("Failed to get application settings",
+                    new Exception(settingsResult.UnwrapErr().Message)));
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
 
@@ -54,7 +66,7 @@ public sealed class LogoutService(
         };
 
         uint connectId = NetworkProvider.ComputeUniqueConnectId(
-            networkProvider.ApplicationInstanceSettings,
+            settings,
             PubKeyExchangeType.DataCenterEphemeralConnect);
 
         Log.Information("[LOGOUT] Using existing authenticated protocol. ConnectId: {ConnectId}", connectId);

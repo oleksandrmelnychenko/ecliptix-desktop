@@ -92,8 +92,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _rsaChunkEncryptor = rsaChunkEncryptor;
     }
 
-    public ApplicationInstanceSettings ApplicationInstanceSettings =>
-        _applicationInstanceSettings.Value!;
+    public ApplicationInstanceSettings ApplicationInstanceSettings
+    {
+        get
+        {
+            if (!_applicationInstanceSettings.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "ApplicationInstanceSettings has not been initialized. Call InitiateEcliptixProtocolSystem first.");
+            }
+            return _applicationInstanceSettings.Value!;
+        }
+    }
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelInternalAsync(
         uint connectId,
@@ -1449,9 +1459,24 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
     }
 
-    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
+    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings? applicationInstanceSettings,
         PubKeyExchangeType pubKeyExchangeType)
     {
+        if (applicationInstanceSettings == null)
+        {
+            throw new InvalidOperationException("ApplicationInstanceSettings is null. Cannot compute connect ID.");
+        }
+
+        if (applicationInstanceSettings.AppInstanceId == null || applicationInstanceSettings.AppInstanceId.IsEmpty)
+        {
+            throw new InvalidOperationException("AppInstanceId is null or empty. Cannot compute connect ID.");
+        }
+
+        if (applicationInstanceSettings.DeviceId == null || applicationInstanceSettings.DeviceId.IsEmpty)
+        {
+            throw new InvalidOperationException("DeviceId is null or empty. Cannot compute connect ID.");
+        }
+
         Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
 
