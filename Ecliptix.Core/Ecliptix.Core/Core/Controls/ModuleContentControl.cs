@@ -132,7 +132,10 @@ public sealed class ModuleContentControl : ContentControl
                         typeof(Features.Authentication.ViewModels.Registration.PassPhaseViewModel)),
                 Features.Authentication.ViewModels.Welcome.WelcomeViewModel =>
                     StaticViewMapper.CreateView(
-                        typeof(Features.Authentication.ViewModels.Welcome.WelcomeViewModel)),
+                        typeof(Ecliptix.Core.Features.Authentication.ViewModels.Welcome.WelcomeViewModel)),
+                Features.Authentication.ViewModels.PasswordRecovery.ForgotPasswordResetViewModel =>
+                    StaticViewMapper.CreateView(
+                        typeof(Features.Authentication.ViewModels.PasswordRecovery.ForgotPasswordResetViewModel)),
                 _ => null
             };
             Serilog.Log.Information(
