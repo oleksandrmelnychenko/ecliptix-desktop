@@ -197,7 +197,7 @@ public sealed class PasswordRecoveryService(
                 return Result<Unit, string>.Err(networkResult.UnwrapErr().Message);
             }
 
-            OpaqueRecoverySecretKeyCompleteResponse completeResponse = await responseSource.Task.ConfigureAwait(false);
+            await responseSource.Task.ConfigureAwait(false);
 
             return Result<Unit, string>.Ok(Unit.Value);
         }

@@ -141,13 +141,12 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
                 return (masterKeyBytes.AsSpan().ToArray(), null);
             }
 
-            byte[]? wrappingKey = null;
             byte[]? encryptedKey = null;
             try
             {
                 Log.Information("[CLIENT-IDENTITY-WRAP] Using hardware-backed AES encryption");
 
-                wrappingKey = await GenerateWrappingKeyAsync().ConfigureAwait(false);
+                byte[] wrappingKey = await GenerateWrappingKeyAsync().ConfigureAwait(false);
 
                 using Aes aes = Aes.Create();
                 aes.Key = wrappingKey;

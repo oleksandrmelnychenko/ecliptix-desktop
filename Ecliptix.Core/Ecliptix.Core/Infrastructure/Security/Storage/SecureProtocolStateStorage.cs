@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -107,29 +106,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         {
             return Result<Unit, SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Save failed: {ex.Message}"));
-        }
-    }
-
-    public Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(ReadOnlySpan<byte> protocolState, string connectId, byte[] membershipId)
-    {
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(protocolState.Length);
-        int length = protocolState.Length;
-        try
-        {
-            protocolState.CopyTo(buffer.AsSpan(0, length));
-            Task<Result<Unit, SecureStorageFailure>> result = SaveStateAsync(buffer.AsMemory(0, length).ToArray(), connectId, membershipId);
-            return result.ContinueWith(t =>
-            {
-                CryptographicOperations.ZeroMemory(buffer.AsSpan(0, length));
-                ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
-                return t.Result;
-            });
-        }
-        catch
-        {
-            CryptographicOperations.ZeroMemory(buffer.AsSpan(0, length));
-            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
-            throw;
         }
     }
 
@@ -345,12 +321,12 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     {
         byte[] magicBytes = Encoding.ASCII.GetBytes(MagicHeader);
 
-        int totalSize = magicBytes.Length + 4 + // magic header + version
-                       4 + salt.Length +        // salt length + salt
-                       4 + nonce.Length +       // nonce length + nonce
-                       4 + tag.Length +         // tag length + tag
-                       4 + associatedData.Length + // ad length + ad
-                       4 + ciphertext.Length;   // ciphertext length + ciphertext
+        int totalSize = magicBytes.Length + 4 +
+                       4 + salt.Length +
+                       4 + nonce.Length +
+                       4 + tag.Length +
+                       4 + associatedData.Length +
+                       4 + ciphertext.Length;
 
         byte[] container = new byte[totalSize];
         int offset = 0;
@@ -442,7 +418,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         byte[] mac = protectedData[^HmacSha512Size..];
 
         byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
-        using HMACSHA512 hmac = new HMACSHA512(hmacKey);
+        using HMACSHA512 hmac = new(hmacKey);
         byte[] expectedMac = hmac.ComputeHash(data);
 
         if (!CryptographicOperations.FixedTimeEquals(mac, expectedMac))

@@ -102,6 +102,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\Fonts\" />
+    <Folder Include="Infrastructure\Network\Exceptions\" />
   </ItemGroup>
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-x86'">
     <Content Include="Assets/Branding/Platform/Windows/ecliptix.ico">
