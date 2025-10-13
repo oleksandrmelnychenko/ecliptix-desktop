@@ -46,14 +46,14 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
         NavToCreateAccountCommand = ReactiveCommand.CreateFromObservable(() =>
         {
-            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             MembershipViewType viewType = NavigationCache[CreateAccountKey];
             return hostWindow.Navigate.Execute(viewType);
         });
 
         NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
-            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             MembershipViewType viewType = NavigationCache[SignInKey];
             return hostWindow.Navigate.Execute(viewType);
         });

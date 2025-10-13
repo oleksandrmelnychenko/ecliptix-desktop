@@ -33,6 +33,7 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private readonly string _keychainPath;
     private readonly Lock _lockObject = new();
+
     private byte[]? _cachedMachineKey;
     private byte[]? _cachedHmacKey;
 
@@ -75,27 +76,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 return RandomNumberGenerator.GetBytes(length);
             }
         });
-    }
-
-    private static void TryEnhanceWithHardwareRandom(Span<byte> bytes)
-    {
-        try
-        {
-            using FileStream hwRandom = File.OpenRead("/dev/random");
-            int bytesRead = hwRandom.Read(bytes);
-            if (bytesRead < bytes.Length)
-            {
-                Span<byte> tempBuffer = stackalloc byte[bytes.Length];
-                RandomNumberGenerator.Fill(tempBuffer);
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] ^= tempBuffer[i];
-                }
-            }
-        }
-        catch
-        {
-        }
     }
 
     public async Task StoreKeyInKeychainAsync(string identifier, byte[] key)
@@ -212,9 +192,6 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? CheckWindowsTpm() :
         RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? CheckMacOsSecureEnclave() :
         RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && CheckLinuxTpm();
-
-    private static bool CheckLinuxTpm() =>
-        File.Exists(LinuxTpmPath) || File.Exists(LinuxTpmrmPath);
 
     public async Task<byte[]> HardwareEncryptAsync(byte[] data)
     {
@@ -524,6 +501,27 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return _cachedMachineKey;
     }
 
+    private static void TryEnhanceWithHardwareRandom(Span<byte> bytes)
+    {
+        try
+        {
+            using FileStream hwRandom = File.OpenRead("/dev/random");
+            int bytesRead = hwRandom.Read(bytes);
+            if (bytesRead < bytes.Length)
+            {
+                Span<byte> tempBuffer = stackalloc byte[bytes.Length];
+                RandomNumberGenerator.Fill(tempBuffer);
+                for (int i = 0; i < bytes.Length; i++)
+                {
+                    bytes[i] ^= tempBuffer[i];
+                }
+            }
+        }
+        catch
+        {
+        }
+    }
+
     private static string BuildMachineIdentifier()
     {
         StringBuilder machineId = new(Environment.MachineName);
@@ -595,6 +593,9 @@ public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         return pbkdf2.GetBytes(AesKeySize);
     }
+
+    private static bool CheckLinuxTpm() =>
+        File.Exists(LinuxTpmPath) || File.Exists(LinuxTpmrmPath);
 
     private static bool CheckWindowsTpm()
     {

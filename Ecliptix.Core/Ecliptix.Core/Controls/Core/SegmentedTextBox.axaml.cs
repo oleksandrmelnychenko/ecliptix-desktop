@@ -17,20 +17,6 @@ namespace Ecliptix.Core.Controls.Core;
 
 public partial class SegmentedTextBox : UserControl
 {
-    private readonly List<TextBox> _segments = [];
-    private bool _lastIsComplete;
-    private int _currentActiveIndex;
-    private static readonly string[] DigitStrings = new string[10];
-    private bool _isInternalUpdate = false;
-
-    static SegmentedTextBox()
-    {
-        for (int i = 0; i < 10; i++)
-        {
-            DigitStrings[i] = i.ToString();
-        }
-    }
-
     public static readonly StyledProperty<int> SegmentCountProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(SegmentCount),
             SegmentedTextBoxConstants.DefaultSegmentCount, validate: value => value > 0);
@@ -67,6 +53,27 @@ public partial class SegmentedTextBox : UserControl
 
     public static readonly StyledProperty<int> BaseTabIndexProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(BaseTabIndex), int.MaxValue);
+
+    private static readonly string[] DigitStrings = new string[10];
+
+    private readonly List<TextBox> _segments = [];
+
+    private bool _lastIsComplete;
+    private int _currentActiveIndex;
+    private bool _isInternalUpdate = false;
+
+    static SegmentedTextBox()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            DigitStrings[i] = i.ToString();
+        }
+    }
+
+    public SegmentedTextBox()
+    {
+        InitializeComponent();
+    }
 
     public int BaseTabIndex
     {
@@ -128,9 +135,15 @@ public partial class SegmentedTextBox : UserControl
         private set => SetValue(IsCompleteProperty, value);
     }
 
-    public SegmentedTextBox()
+    public void ClearAllSegments()
     {
-        InitializeComponent();
+        foreach (TextBox segment in _segments)
+        {
+            segment.Text = string.Empty;
+        }
+
+        SetActiveSegment(0);
+        OnSegmentChanged();
     }
 
     protected override void OnAttachedToLogicalTree(LogicalTreeAttachmentEventArgs e)
@@ -163,6 +176,17 @@ public partial class SegmentedTextBox : UserControl
         }
     }
 
+    private static string ValidateNumericInput(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+
+        char firstDigit = input.FirstOrDefault(char.IsDigit);
+        if (firstDigit == 0) return "";
+
+        int digitValue = firstDigit - '0';
+        return digitValue is >= 0 and <= 9 ? DigitStrings[digitValue] : firstDigit.ToString();
+    }
+
     private void UpdateSegmentsFromValue(string newValue)
     {
         _isInternalUpdate = true;
@@ -192,17 +216,6 @@ public partial class SegmentedTextBox : UserControl
     private string GetConcatenatedValue()
     {
         return string.Concat(_segments.Select(tb => tb.Text ?? ""));
-    }
-
-    private static string ValidateNumericInput(string input)
-    {
-        if (string.IsNullOrEmpty(input)) return input;
-
-        char firstDigit = input.FirstOrDefault(char.IsDigit);
-        if (firstDigit == 0) return "";
-
-        int digitValue = firstDigit - '0';
-        return digitValue is >= 0 and <= 9 ? DigitStrings[digitValue] : firstDigit.ToString();
     }
 
     private void ProcessTextInput(TextBox textBox, int index)
@@ -463,17 +476,6 @@ public partial class SegmentedTextBox : UserControl
         }
 
         FocusCurrentSegment();
-    }
-
-    public void ClearAllSegments()
-    {
-        foreach (TextBox segment in _segments)
-        {
-            segment.Text = string.Empty;
-        }
-
-        SetActiveSegment(0);
-        OnSegmentChanged();
     }
 
     private void FocusCurrentSegment()

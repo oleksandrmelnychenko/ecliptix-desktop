@@ -13,15 +13,10 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.Hosts;
 
-public partial class MembershipHostWindow : ReactiveWindow<MembershipHostWindowModel>
+public partial class AuthenticationView : ReactiveUserControl<AuthenticationViewModel>
 {
-    public MembershipHostWindow()
+    public AuthenticationView()
     {
         AvaloniaXamlLoader.Load(this);
-        IconService.SetIconForWindow(this);
-
-#if DEBUG
-        this.AttachDevTools();
-#endif
     }
 }

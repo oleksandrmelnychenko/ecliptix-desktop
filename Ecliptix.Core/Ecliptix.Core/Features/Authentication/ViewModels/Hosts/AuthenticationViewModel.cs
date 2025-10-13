@@ -43,37 +43,17 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisposable
+public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDisposable
 {
-    private bool _canNavigateBack;
-    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly IDisposable _connectivitySubscription;
-    private IDisposable? _languageSubscription;
-    private IDisposable? _bottomSheetHiddenSubscription;
-    private readonly INetworkEventService _networkEventService;
-    private readonly NetworkProvider _networkProvider;
-    private readonly ILanguageDetectionService _languageDetectionService;
-    private readonly ILocalizationService _localizationService;
-    private readonly MainWindowViewModel _mainWindowViewModel;
-
-    private readonly ISystemEventService _systemEventService;
-    private readonly IAuthenticationService _authenticationService;
-    private readonly IOpaqueRegistrationService _opaqueRegistrationService;
-    private readonly IPasswordRecoveryService _passwordRecoveryService;
-    private readonly IUiDispatcher _uiDispatcher;
-    private readonly IApplicationRouter _router;
-    private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
-    private readonly CompositeDisposable _disposables = new();
-
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
     private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService,
         NetworkProvider,
-        ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
+        ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
         IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
             ILocalizationService,
-            IAuthenticationService, IApplicationSecureStorageProvider, MembershipHostWindowModel,
+            IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
             IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>>
         {
             [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
@@ -95,106 +75,29 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     new ForgotPasswordResetViewModel(sys, netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
+    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
+    private readonly IDisposable _connectivitySubscription;
+    private readonly INetworkEventService _networkEventService;
+    private readonly NetworkProvider _networkProvider;
+    private readonly ILanguageDetectionService _languageDetectionService;
+    private readonly ILocalizationService _localizationService;
+    private readonly MainWindowViewModel _mainWindowViewModel;
+    private readonly ISystemEventService _systemEventService;
+    private readonly IAuthenticationService _authenticationService;
+    private readonly IOpaqueRegistrationService _opaqueRegistrationService;
+    private readonly IPasswordRecoveryService _passwordRecoveryService;
+    private readonly IUiDispatcher _uiDispatcher;
+    private readonly IApplicationRouter _router;
+    private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
+    private readonly CompositeDisposable _disposables = new();
 
-    public RoutingState Router { get; } = new();
-
+    private bool _canNavigateBack;
+    private IDisposable? _languageSubscription;
+    private IDisposable? _bottomSheetHiddenSubscription;
     private IRoutableViewModel? _currentView;
 
-    public IRoutableViewModel? CurrentView
-    {
-        get => _currentView;
-        private set
-        {
-            this.RaiseAndSetIfChanged(ref _currentView, value);
-
-            CanNavigateBack = _navigationStack.Count > 0;
-        }
-    }
-
-    public bool CanNavigateBack
-    {
-        get => _canNavigateBack;
-        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
-    }
-
-    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
-
-    public string AppVersion { get; }
-
-    public string BuildInfo { get; }
-
-    public string FullVersionInfo { get; }
-
-    public string? RegistrationMobileNumber { get; set; }
-    public string? RecoveryMobileNumber { get; set; }
-
-    public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
-
-    public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
-
-    public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
-
-    public void ClearNavigationStack(bool preserveInitialWelcome = false)
-    {
-        _navigationStack.Clear();
-
-        if (preserveInitialWelcome)
-        {
-            try
-            {
-                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
-                _navigationStack.Push(welcomeView);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to preserve welcome view in navigation stack");
-            }
-        }
-        CanNavigateBack = _navigationStack.Count > 0;
-        Log.Information("Navigation stack cleared{Preserve}", preserveInitialWelcome ? " (preserved welcome)" : "");
-    }
-
-    public void NavigateToViewModel(IRoutableViewModel viewModel)
-    {
-        if (_currentView != null)
-        {
-            if (_currentView is IResettable currentResettable)
-            {
-                currentResettable.ResetState();
-            }
-
-            _navigationStack.Push(_currentView);
-        }
-
-        CurrentView = viewModel;
-    }
-
-    public void StartPasswordRecoveryFlow()
-    {
-        ClearNavigationStack(true);
-        MobileVerificationViewModel vm = new(
-            _systemEventService,
-            _networkProvider,
-            LocalizationService,
-            this,
-            _applicationSecureStorageProvider,
-            _opaqueRegistrationService,
-            _uiDispatcher,
-            AuthenticationFlowContext.PasswordRecovery,
-            _passwordRecoveryService);
-        NavigateToViewModel(vm);
-    }
-
-    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
-
-    public MembershipHostWindowModel(
+    public AuthenticationViewModel(
         ISystemEventService systemEventService,
         INetworkEventService networkEventService,
         NetworkProvider networkProvider,
@@ -335,6 +238,160 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor completed");
     }
 
+    public IRoutableViewModel? CurrentView
+    {
+        get => _currentView;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _currentView, value);
+
+            CanNavigateBack = _navigationStack.Count > 0;
+        }
+    }
+
+    public bool CanNavigateBack
+    {
+        get => _canNavigateBack;
+        private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
+    }
+
+    public RoutingState Router => throw new NotImplementedException("This host uses custom navigation");
+
+    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
+
+    public string AppVersion { get; }
+
+    public string BuildInfo { get; }
+
+    public string FullVersionInfo { get; }
+
+    public string? RegistrationMobileNumber { get; set; }
+
+    public string? RecoveryMobileNumber { get; set; }
+
+    public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
+
+    public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
+
+    public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
+
+    public void ClearNavigationStack(bool preserveInitialWelcome = false)
+    {
+        _navigationStack.Clear();
+
+        if (preserveInitialWelcome)
+        {
+            try
+            {
+                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
+                _navigationStack.Push(welcomeView);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to preserve welcome view in navigation stack");
+            }
+        }
+        CanNavigateBack = _navigationStack.Count > 0;
+        Log.Information("Navigation stack cleared{Preserve}", preserveInitialWelcome ? " (preserved welcome)" : "");
+    }
+
+    public void NavigateToViewModel(IRoutableViewModel viewModel)
+    {
+        if (_currentView != null)
+        {
+            if (_currentView is IResettable currentResettable)
+            {
+                currentResettable.ResetState();
+            }
+
+            _navigationStack.Push(_currentView);
+        }
+
+        CurrentView = viewModel;
+    }
+
+    public void StartPasswordRecoveryFlow()
+    {
+        ClearNavigationStack(true);
+        MobileVerificationViewModel vm = new(
+            _systemEventService,
+            _networkProvider,
+            LocalizationService,
+            this,
+            _applicationSecureStorageProvider,
+            _opaqueRegistrationService,
+            _uiDispatcher,
+            AuthenticationFlowContext.PasswordRecovery,
+            _passwordRecoveryService);
+        NavigateToViewModel(vm);
+    }
+
+    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
+        bool showScrim = true, bool isDismissable = false)
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            await _uiDispatcher.PostAsync(async () =>
+            {
+                await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
+                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
+                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
+        }
+    }
+
+    public async Task HideBottomSheetAsync()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            await _uiDispatcher.PostAsync(async () =>
+            {
+                await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }
+        else
+        {
+            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
+        }
+    }
+
+    public void CleanupAuthenticationFlow()
+    {
+        ClearNavigationStack();
+
+        List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
+            _viewModelCache.ToList();
+
+        foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
+        {
+            if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
+            if (viewModel is IResettable resettableViewModel)
+            {
+                resettableViewModel.ResetState();
+            }
+
+            if (viewModel is IDisposable disposableViewModel)
+            {
+                disposableViewModel.Dispose();
+            }
+        }
+
+        _viewModelCache.Clear();
+        CurrentView = null;
+    }
+
     private async Task HandleLanguageDetectionEvent(LanguageDetectionDialogEvent evt)
     {
         try
@@ -383,39 +440,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         }
 
         return Task.CompletedTask;
-    }
-
-    public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
-        bool showScrim = true, bool isDismissable = false)
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            await _uiDispatcher.PostAsync(async () =>
-            {
-                await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
-                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
-                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
-        }
-    }
-
-    public async Task HideBottomSheetAsync()
-    {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            await _uiDispatcher.PostAsync(async () =>
-            {
-                await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
-            }).ConfigureAwait(false);
-        }
-        else
-        {
-            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
-        }
     }
 
     private async Task CheckCountryCultureMismatchAsync()
@@ -505,7 +529,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         if (!ViewModelFactories.TryGetValue(viewType,
                 out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
                     IAuthenticationService,
-                    IApplicationSecureStorageProvider, MembershipHostWindowModel, IOpaqueRegistrationService,
+                    IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
                     IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory registered for view type: {viewType}");
@@ -518,31 +542,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;
-    }
-
-    public void CleanupAuthenticationFlow()
-    {
-        ClearNavigationStack();
-
-        List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
-            _viewModelCache.ToList();
-
-        foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
-        {
-            if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
-            if (viewModel is IResettable resettableViewModel)
-            {
-                resettableViewModel.ResetState();
-            }
-
-            if (viewModel is IDisposable disposableViewModel)
-            {
-                disposableViewModel.Dispose();
-            }
-        }
-
-        _viewModelCache.Clear();
-        CurrentView = null;
     }
 
     protected override void Dispose(bool disposing)

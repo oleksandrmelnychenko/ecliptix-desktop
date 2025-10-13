@@ -56,10 +56,6 @@ public sealed class OpaqueAuthenticationService(
 {
     private const int MaxAllowedZeroBytes = 12;
 
-    private readonly Lock _opaqueClientLock = new();
-    private OpaqueClient? _opaqueClient;
-    private byte[]? _cachedServerPublicKey;
-
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
         { OpaqueResult.InvalidInput, AuthenticationConstants.InvalidCredentialsKey },
@@ -79,30 +75,9 @@ public sealed class OpaqueAuthenticationService(
         OutputLength = CryptographicConstants.Argon2.DefaultOutputLength
     };
 
-    private string GetOpaqueErrorMessage(OpaqueResult error)
-    {
-        return OpaqueErrorMessages.TryGetValue(error, out string? key)
-            ? localizationService[key]
-            : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
-    }
-
-    private OpaqueClient GetOrCreateOpaqueClient()
-    {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
-
-        lock (_opaqueClientLock)
-        {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
-            {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
-            }
-
-            return _opaqueClient;
-        }
-    }
+    private readonly Lock _opaqueClientLock = new();
+    private OpaqueClient? _opaqueClient;
+    private byte[]? _cachedServerPublicKey;
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
         uint connectId)
@@ -323,6 +298,31 @@ public sealed class OpaqueAuthenticationService(
         }
 
         return Result<Unit, AuthenticationFailure>.Err(finalResult.UnwrapErr());
+    }
+
+    private string GetOpaqueErrorMessage(OpaqueResult error)
+    {
+        return OpaqueErrorMessages.TryGetValue(error, out string? key)
+            ? localizationService[key]
+            : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+    }
+
+    private OpaqueClient GetOrCreateOpaqueClient()
+    {
+        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
+
+        lock (_opaqueClientLock)
+        {
+            if (_opaqueClient == null || _cachedServerPublicKey == null ||
+                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            {
+                _opaqueClient?.Dispose();
+                _opaqueClient = new OpaqueClient(serverPublicKey);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            }
+
+            return _opaqueClient;
+        }
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)

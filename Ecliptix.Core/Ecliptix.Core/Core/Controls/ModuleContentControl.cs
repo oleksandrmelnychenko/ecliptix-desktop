@@ -110,6 +110,10 @@ public sealed class ModuleContentControl : ContentControl
         {
             Control? result = viewModel switch
             {
+                Features.Authentication.ViewModels.Hosts.AuthenticationViewModel =>
+                    new Features.Authentication.Views.Hosts.AuthenticationView(),
+                Features.Main.ViewModels.MasterViewModel =>
+                    new Features.Main.Views.MasterView(),
                 Features.Authentication.ViewModels.SignIn.SignInViewModel => StaticViewMapper.CreateView(
                     typeof(Features.Authentication.ViewModels.SignIn.SignInViewModel)),
                 Features.Authentication.ViewModels.Registration.MobileVerificationViewModel =>

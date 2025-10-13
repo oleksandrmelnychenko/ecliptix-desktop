@@ -36,34 +36,12 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 {
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly SecureTextBuffer _verifySecureKeyBuffer = new();
-    private bool _hasSecureKeyBeenTouched;
-    private bool _hasVerifySecureKeyBeenTouched;
-
-    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
-    public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
-
-    [Reactive] public string? SecureKeyError { get; set; }
-    [Reactive] public bool HasSecureKeyError { get; set; }
-    [Reactive] public string? VerifySecureKeyError { get; set; }
-    [Reactive] public bool HasVerifySecureKeyError { get; set; }
-    [Reactive] public string? ServerError { get; set; }
-    [Reactive] public bool HasServerError { get; set; }
-
-    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
-    [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
-    [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
-
-    [Reactive] public bool CanSubmit { get; private set; }
-    [ObservableAsProperty] public bool IsBusy { get; }
-
-    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
-    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; }
-
-    private ByteString? VerificationSessionId { get; set; }
-
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
+
+    private bool _hasSecureKeyBeenTouched;
+    private bool _hasVerifySecureKeyBeenTouched;
 
     public SecureKeyVerifierViewModel(
         ISystemEventService systemEventService,
@@ -91,7 +69,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
         NavPassConfToPassPhase = ReactiveCommand.Create(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+            ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
         });
 
         this.WhenActivated(disposables =>
@@ -102,8 +80,8 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Subscribe(result =>
                 {
                     if (!result.IsErr) return;
-                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                 })
                 .DisposeWith(disposables);
 
@@ -113,7 +91,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                     =>
                 {
                     HasServerError = !string.IsNullOrEmpty(err);
-                    if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                    if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
                         ShowServerErrorNotification(hostWindow, err);
                 })
                 .DisposeWith(disposables);
@@ -122,27 +100,36 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
                 {
-                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
                 })
                 .DisposeWith(disposables);
         });
     }
 
-    private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
-            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
+    public IScreen HostScreen { get; }
 
-        if (applicationInstance.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
-        }
+    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
+    public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
 
-        ApplicationInstanceSettings settings = applicationInstance.Unwrap();
-        VerificationSessionId = settings.Membership.UniqueIdentifier;
-        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
-    }
+    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
+    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; }
+
+    [Reactive] public string? SecureKeyError { get; set; }
+    [Reactive] public bool HasSecureKeyError { get; set; }
+    [Reactive] public string? VerifySecureKeyError { get; set; }
+    [Reactive] public bool HasVerifySecureKeyError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
+    [Reactive] public bool CanSubmit { get; private set; }
+
+    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
+    [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
+    [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
+    [ObservableAsProperty] public bool IsBusy { get; }
+
+    private ByteString? VerificationSessionId { get; set; }
 
     public void InsertSecureKeyChars(int index, string chars)
     {
@@ -170,6 +157,52 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         if (!_hasVerifySecureKeyBeenTouched) _hasVerifySecureKeyBeenTouched = true;
         _verifySecureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
+    }
+
+    public async Task HandleEnterKeyPressAsync()
+    {
+        try
+        {
+            if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SubmitCommand.Execute().Subscribe();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[SECURE-KEY-VERIFIER-ENTERKEY] Error handling enter key press");
+        }
+    }
+
+    public void ResetState()
+    {
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
+        _hasSecureKeyBeenTouched = false;
+        _hasVerifySecureKeyBeenTouched = false;
+
+        SecureKeyError = string.Empty;
+        HasSecureKeyError = false;
+        VerifySecureKeyError = string.Empty;
+        HasVerifySecureKeyError = false;
+
+        ServerError = string.Empty;
+        HasServerError = false;
+    }
+
+    private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+
+        if (applicationInstance.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = applicationInstance.Unwrap();
+        VerificationSessionId = settings.Membership.UniqueIdentifier;
+        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 
     private IObservable<bool> SetupValidation()
@@ -343,7 +376,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
         else
         {
-            MembershipHostWindowModel hostViewModel = (MembershipHostWindowModel)HostScreen;
+            AuthenticationViewModel hostViewModel = (AuthenticationViewModel)HostScreen;
             string registrationMobileNumber = hostViewModel.RegistrationMobileNumber!;
 
             Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
@@ -373,21 +406,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    public async Task HandleEnterKeyPressAsync()
-    {
-        try
-        {
-            if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                SubmitCommand.Execute().Subscribe();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[SECURE-KEY-VERIFIER-ENTERKEY] Error handling enter key press");
-        }
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -398,24 +416,4 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
         base.Dispose(disposing);
     }
-
-
-    public void ResetState()
-    {
-        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
-        _verifySecureKeyBuffer.Remove(0, _verifySecureKeyBuffer.Length);
-        _hasSecureKeyBeenTouched = false;
-        _hasVerifySecureKeyBeenTouched = false;
-
-        SecureKeyError = string.Empty;
-        HasSecureKeyError = false;
-        VerifySecureKeyError = string.Empty;
-        HasVerifySecureKeyError = false;
-
-        ServerError = string.Empty;
-        HasServerError = false;
-    }
-
-    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
-    public IScreen HostScreen { get; }
 }

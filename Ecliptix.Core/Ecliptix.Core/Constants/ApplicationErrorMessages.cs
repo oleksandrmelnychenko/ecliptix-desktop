@@ -6,7 +6,7 @@ public static class ApplicationErrorMessages
     {
         public const string CannotNavigateWindowNull = "Cannot navigate: current window is null";
         public const string FailedToLoadAuthModule = "Failed to load Authentication module";
-        public const string FailedToCreateMembershipViewModel = "Failed to create MembershipHostWindowModel";
+        public const string FailedToCreateMembershipViewModel = "Failed to create AuthenticationViewModel";
         public const string FailedToLoadMainModule = "Failed to load Main module";
         public const string FailedToCreateMainViewModel = "Failed to create MainViewModel";
         public const string FailedToLoadMainModuleFromSplash = "Failed to load Main module from splash";

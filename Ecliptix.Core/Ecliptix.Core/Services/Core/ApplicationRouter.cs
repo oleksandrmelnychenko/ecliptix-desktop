@@ -8,7 +8,6 @@ using Avalonia.Threading;
 using Ecliptix.Core.Constants;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Features.Authentication.Views.Hosts;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -16,6 +15,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Views.Core;
+using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.ProtocolState;
@@ -32,27 +32,18 @@ public sealed class ApplicationRouter(
     IClassicDesktopStyleApplicationLifetime desktop,
     IModuleManager moduleManager,
     NetworkProvider networkProvider,
-    IApplicationSecureStorageProvider applicationSecureStorageProvider) : IApplicationRouter
+    IApplicationSecureStorageProvider applicationSecureStorageProvider,
+    MainWindowViewModel mainWindowViewModel) : IApplicationRouter
 {
     private const int FadeDurationMs = 500;
     private const int WindowShowDelayMs = 50;
     private const int FrameDelayMs = 16;
 
+    private MainWindow? _mainWindow;
+
     public async Task NavigateToAuthenticationAsync()
     {
-        Log.Information("[ROUTER-NAV] Starting navigation to Authentication window");
-
-        Window? currentWindow = desktop.MainWindow;
-        if (currentWindow == null)
-        {
-            Log.Warning("[ROUTER-NAV] Unable to navigate to authentication: current window is null");
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.CannotNavigateWindowNull);
-        }
-
-        string currentWindowType = currentWindow.GetType().Name;
-        bool isCurrentWindowVisible = await Dispatcher.UIThread.InvokeAsync(() => currentWindow.IsVisible);
-        Log.Information("[ROUTER-NAV] Current window type: {Type}, IsVisible: {IsVisible}",
-            currentWindowType, isCurrentWindowVisible);
+        Log.Information("[ROUTER-NAV] Starting navigation to Authentication content");
 
         IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
@@ -62,28 +53,19 @@ public sealed class ApplicationRouter(
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
         }
 
-        MembershipHostWindowModel? membershipViewModel =
-            authModule.ServiceScope.ServiceProvider.GetService<MembershipHostWindowModel>();
+        AuthenticationViewModel? membershipViewModel =
+            authModule.ServiceScope.ServiceProvider.GetService<AuthenticationViewModel>();
 
         if (membershipViewModel == null)
         {
-            Log.Error("[ROUTER-NAV] Failed to create MembershipHostWindowModel");
+            Log.Error("[ROUTER-NAV] Failed to create AuthenticationViewModel");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMembershipViewModel);
         }
 
-        MembershipHostWindow authWindow = await Dispatcher.UIThread.InvokeAsync(() => new MembershipHostWindow
-        {
-            DataContext = membershipViewModel
-        });
+        Log.Information("[ROUTER-NAV] Setting authentication content in MainWindow");
+        await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Authentication window created, preparing transition");
-        await PrepareAndShowWindowAsync(authWindow).ConfigureAwait(false);
-
-        Log.Information("[ROUTER-NAV] Starting fade transition from {From} to {To}",
-            currentWindow.GetType().Name, authWindow.GetType().Name);
-        await PerformFadeTransitionAsync(currentWindow, authWindow).ConfigureAwait(false);
-
-        Log.Information("[ROUTER-NAV] Fade transition complete, unloading Main module");
+        Log.Information("[ROUTER-NAV] Unloading Main module");
         await moduleManager.UnloadModuleAsync("Main").ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Ensuring anonymous protocol is available");
@@ -94,19 +76,7 @@ public sealed class ApplicationRouter(
 
     public async Task NavigateToMainAsync()
     {
-        Log.Information("[ROUTER-NAV] Starting navigation to Main window");
-
-        Window? currentWindow = desktop.MainWindow;
-        if (currentWindow == null)
-        {
-            Log.Warning("[ROUTER-NAV] Unable to navigate to main: current window is null");
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.CannotNavigateWindowNull);
-        }
-
-        string currentWindowType = currentWindow.GetType().Name;
-        bool isCurrentWindowVisible = await Dispatcher.UIThread.InvokeAsync(() => currentWindow.IsVisible);
-        Log.Information("[ROUTER-NAV] Current window type: {Type}, IsVisible: {IsVisible}",
-            currentWindowType, isCurrentWindowVisible);
+        Log.Information("[ROUTER-NAV] Starting navigation to Main content");
 
         IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
@@ -116,28 +86,19 @@ public sealed class ApplicationRouter(
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModule);
         }
 
-        MainViewModel? mainViewModel =
-            mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+        MasterViewModel? mainViewModel =
+            mainModule.ServiceScope.ServiceProvider.GetService<MasterViewModel>();
 
         if (mainViewModel == null)
         {
-            Log.Error("[ROUTER-NAV] Failed to create MainViewModel");
+            Log.Error("[ROUTER-NAV] Failed to create MasterViewModel");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
         }
 
-        MainHostWindow mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainHostWindow
-        {
-            DataContext = mainViewModel
-        });
+        Log.Information("[ROUTER-NAV] Setting main content in MainWindow");
+        await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Main window created, preparing transition");
-        await PrepareAndShowWindowAsync(mainWindow).ConfigureAwait(false);
-
-        Log.Information("[ROUTER-NAV] Starting fade transition from {From} to {To}",
-            currentWindow.GetType().Name, mainWindow.GetType().Name);
-        await PerformFadeTransitionAsync(currentWindow, mainWindow).ConfigureAwait(false);
-
-        Log.Information("[ROUTER-NAV] Fade transition complete, unloading Authentication module");
+        Log.Information("[ROUTER-NAV] Unloading Authentication module");
         await moduleManager.UnloadModuleAsync("Authentication").ConfigureAwait(false);
 
         Log.Information("[ROUTER-NAV] Navigation to Main completed successfully");
@@ -146,7 +107,12 @@ public sealed class ApplicationRouter(
     public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)
     {
         Log.Information("[ROUTER] TransitionFromSplash called. IsAuthenticated: {IsAuthenticated}", isAuthenticated);
-        Window nextWindow;
+
+        Log.Information("[ROUTER] Creating MainWindow (single window instance)");
+        _mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainWindow
+        {
+            DataContext = mainWindowViewModel
+        });
 
         if (isAuthenticated)
         {
@@ -159,20 +125,22 @@ public sealed class ApplicationRouter(
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModuleFromSplash);
             }
 
-            MainViewModel? mainViewModel =
-                mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
+            MasterViewModel? mainViewModel =
+                mainModule.ServiceScope.ServiceProvider.GetService<MasterViewModel>();
 
-            nextWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainHostWindow
+            if (mainViewModel == null)
             {
-                DataContext = mainViewModel
-            });
-            Log.Information("[ROUTER] Main window created");
+                Log.Error("[ROUTER] Failed to create MasterViewModel");
+                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
+            }
+
+            Log.Information("[ROUTER] Setting Main content in MainWindow");
+            await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
         }
         else
         {
             Log.Information("[ROUTER] Loading Authentication module");
             IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
-            Log.Information("[ROUTER] Authentication module loaded. ServiceScope null: {IsNull}", authModule.ServiceScope == null);
 
             if (authModule.ServiceScope?.ServiceProvider == null)
             {
@@ -180,26 +148,26 @@ public sealed class ApplicationRouter(
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModuleFromSplash);
             }
 
-            Log.Information("[ROUTER] Getting MembershipHostWindowModel from service provider");
-            MembershipHostWindowModel? membershipViewModel =
-                authModule.ServiceScope.ServiceProvider.GetService<MembershipHostWindowModel>();
-            Log.Information("[ROUTER] MembershipHostWindowModel retrieved. Null: {IsNull}", membershipViewModel == null);
+            AuthenticationViewModel? membershipViewModel =
+                authModule.ServiceScope.ServiceProvider.GetService<AuthenticationViewModel>();
 
-            Log.Information("[ROUTER] Creating MembershipHostWindow");
-            nextWindow = await Dispatcher.UIThread.InvokeAsync(() => new MembershipHostWindow
+            if (membershipViewModel == null)
             {
-                DataContext = membershipViewModel
-            });
-            Log.Information("[ROUTER] Authentication window created");
+                Log.Error("[ROUTER] Failed to create AuthenticationViewModel");
+                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMembershipViewModel);
+            }
+
+            Log.Information("[ROUTER] Setting Authentication content in MainWindow");
+            await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
         }
 
-        Log.Information("[ROUTER] Preparing and showing next window");
-        await PrepareAndShowWindowAsync(nextWindow).ConfigureAwait(false);
-        Log.Information("[ROUTER] Setting as main window");
-        desktop.MainWindow = nextWindow;
-        Log.Information("[ROUTER] Starting fade transition");
-        await PerformFadeTransitionAsync(splashWindow, nextWindow).ConfigureAwait(false);
-        Log.Information("[ROUTER] Transition complete");
+        Log.Information("[ROUTER] Preparing and showing MainWindow");
+        await PrepareAndShowWindowAsync(_mainWindow).ConfigureAwait(false);
+        Log.Information("[ROUTER] Setting MainWindow as desktop.MainWindow");
+        desktop.MainWindow = _mainWindow;
+        Log.Information("[ROUTER] Starting fade transition from splash to MainWindow");
+        await PerformFadeTransitionAsync(splashWindow, _mainWindow).ConfigureAwait(false);
+        Log.Information("[ROUTER] Transition complete - MainWindow is now the single OS window");
     }
 
     private async Task PrepareAndShowWindowAsync(Window window)

@@ -37,57 +37,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private readonly ILocalizationService _localizationService;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly AuthenticationFlowContext _flowContext;
-
-    public string? UrlPathSegment { get; } = "/verification-code-entry";
-    public IScreen HostScreen { get; }
-
     private readonly Lock _sessionLock = new();
+    private readonly CompositeDisposable _disposables = new();
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
-
-    private Guid? VerificationSessionIdentifier
-    {
-        get
-        {
-            lock (_sessionLock)
-            {
-                return _verificationSessionIdentifier == Guid.Empty ? null : _verificationSessionIdentifier;
-            }
-        }
-    }
-
-    public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
-    public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
-
-    public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
-
-    public new ViewModelActivator Activator { get; } = new();
-
-    [Reactive] public string VerificationCode { get; set; } = string.Empty;
-    [Reactive] public bool IsSent { get; private set; }
-    [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
-    [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
-    [Reactive] public uint SecondsRemaining { get; private set; }
-    [Reactive] public bool HasError { get; private set; }
-
-    [Reactive]
-    public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } =
-        VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
-
-    [Reactive] public bool IsMaxAttemptsReached { get; private set; }
-    [Reactive] public int AutoRedirectCountdown { get; private set; }
-    [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
-
-    [Reactive] public bool IsUiLocked { get; private set; }
-    [Reactive] public bool HasValidSession { get; private set; }
-
-    [ObservableAsProperty] public bool IsBusy { get; }
-    [ObservableAsProperty] public bool IsResending { get; }
-
-
     private IDisposable? _autoRedirectTimer;
     private CancellationTokenSource? _operationCts;
-    private readonly CompositeDisposable _disposables = new();
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
@@ -121,7 +76,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
-            MembershipHostWindowModel hostWindow = (MembershipHostWindowModel)HostScreen;
+            AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             MembershipViewType nextView = _flowContext == AuthenticationFlowContext.Registration
                 ? MembershipViewType.ConfirmSecureKey
                 : MembershipViewType.ForgotPasswordReset;
@@ -164,7 +119,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     =>
                 {
                     HasError = !string.IsNullOrEmpty(err);
-                    if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                    if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
                         ShowServerErrorNotification(hostWindow, err);
                 })
                 .DisposeWith(disposables).DisposeWith(_disposables);
@@ -173,6 +128,71 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 .Select(FormatRemainingTime)
                 .Subscribe(rt => RemainingTime = rt)
                 .DisposeWith(disposables).DisposeWith(_disposables);
+        });
+    }
+
+    public string? UrlPathSegment { get; } = "/verification-code-entry";
+    public IScreen HostScreen { get; }
+    public new ViewModelActivator Activator { get; } = new();
+
+    public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
+    public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
+
+    [Reactive] public string VerificationCode { get; set; } = string.Empty;
+    [Reactive] public bool IsSent { get; private set; }
+    [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
+    [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
+    [Reactive] public uint SecondsRemaining { get; private set; }
+    [Reactive] public bool HasError { get; private set; }
+    [Reactive] public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+    [Reactive] public bool IsMaxAttemptsReached { get; private set; }
+    [Reactive] public int AutoRedirectCountdown { get; private set; }
+    [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
+    [Reactive] public bool IsUiLocked { get; private set; }
+    [Reactive] public bool HasValidSession { get; private set; }
+
+    [ObservableAsProperty] public bool IsBusy { get; }
+    [ObservableAsProperty] public bool IsResending { get; }
+
+    private Guid? VerificationSessionIdentifier
+    {
+        get
+        {
+            lock (_sessionLock)
+            {
+                return _verificationSessionIdentifier == Guid.Empty ? null : _verificationSessionIdentifier;
+            }
+        }
+    }
+
+    public async Task HandleEnterKeyPressAsync()
+    {
+        try
+        {
+            if (_isDisposed) return;
+
+            if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[OTP-ENTERKEY] Error handling enter key press");
+        }
+    }
+
+    public void ResetState()
+    {
+        if (_isDisposed) return;
+
+        _operationCts?.Cancel();
+
+        _ = Task.Run(async () =>
+        {
+            await ResetUiState();
+            await CleanupSessionAsync();
         });
     }
 
@@ -283,7 +303,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             }
             else
             {
-                if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
                 {
                     await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
                     NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
@@ -314,7 +334,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey];
 
-        if (HostScreen is MembershipHostWindowModel hostWindow)
+        if (HostScreen is AuthenticationViewModel hostWindow)
         {
             ShowRedirectNotification(hostWindow, message, 8, () =>
             {
@@ -468,7 +488,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 message = _localizationService.GetString(key);
             }
 
-            if (HostScreen is MembershipHostWindowModel hostWindow)
+            if (HostScreen is AuthenticationViewModel hostWindow)
             {
                 ShowRedirectNotification(hostWindow, message, seconds, () =>
                 {
@@ -535,7 +555,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             await _uiDispatcher.PostAsync(() =>
             {
-                if (!_isDisposed && HostScreen is MembershipHostWindowModel membershipHostWindow)
+                if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
                 {
                     CleanupAndNavigate(membershipHostWindow, targetView);
                 }
@@ -551,23 +571,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private static string FormatRemainingTime(uint seconds) =>
         TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
-
-    public async Task HandleEnterKeyPressAsync()
-    {
-        try
-        {
-            if (_isDisposed) return;
-
-            if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[OTP-ENTERKEY] Error handling enter key press");
-        }
-    }
 
     private async Task CleanupSessionAsync()
     {
@@ -589,7 +592,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             IsUiLocked = false;
 
-            if (HostScreen is MembershipHostWindowModel hostWindow)
+            if (HostScreen is AuthenticationViewModel hostWindow)
             {
                 await hostWindow.HideBottomSheetAsync();
             }
@@ -609,19 +612,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 _verificationSessionIdentifier = Guid.Empty;
                 HasValidSession = false;
             }
-        });
-    }
-
-    public void ResetState()
-    {
-        if (_isDisposed) return;
-
-        _operationCts?.Cancel();
-
-        _ = Task.Run(async () =>
-        {
-            await ResetUiState();
-            await CleanupSessionAsync();
         });
     }
 

@@ -1,0 +1,198 @@
+Member Ordering Analysis
+========================
+
+FILE: Constants/ApplicationErrorMessages.cs
+  Const: 24, Static: 4, Fields: 24, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Constants/HintedTextBoxConstants.cs
+  Const: 38, Static: 1, Fields: 38, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Constants/NetworkStatusConstants.cs
+  Const: 6, Static: 1, Fields: 6, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Constants/SegmentedTextBoxConstants.cs
+  Const: 7, Static: 1, Fields: 7, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Core/HintedTextBox.axaml.cs
+  Const: 3, Static: 35, Fields: 31, Ctor: 0, Props: 81, Methods: 1
+
+FILE: Controls/Core/NetworkStatusNotification.axaml.cs
+  Const: 1, Static: 5, Fields: 0, Ctor: 0, Props: 12, Methods: 2
+
+FILE: Controls/Core/SegmentedTextBox.axaml.cs
+  Const: 0, Static: 11, Fields: 6, Ctor: 0, Props: 24, Methods: 3
+
+FILE: Controls/LanguageSelector/LanguageSelectorViewModel.cs
+  Const: 0, Static: 3, Fields: 10, Ctor: 0, Props: 11, Methods: 0
+
+FILE: Controls/Modals/BottomSheetModal/BottomSheetControl.axaml.cs
+  Const: 0, Static: 4, Fields: 11, Ctor: 0, Props: 21, Methods: 1
+
+FILE: Controls/Modals/BottomSheetModal/DefaultBottomSheetVariables.cs
+  Const: 6, Static: 3, Fields: 8, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Modals/DetectLanguageDialog.axaml.cs
+  Const: 4, Static: 1, Fields: 4, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Controls/Modals/DetectLanguageDialogViewModel.cs
+  Const: 0, Static: 1, Fields: 12, Ctor: 0, Props: 8, Methods: 0
+
+FILE: Core/Abstractions/IModuleResourceConstraints.cs
+  Const: 0, Static: 1, Fields: 6, Ctor: 0, Props: 11, Methods: 0
+
+FILE: Core/Communication/ModuleMessageBus.cs
+  Const: 1, Static: 0, Fields: 11, Ctor: 0, Props: 4, Methods: 0
+
+FILE: Core/Controls/ModuleContentControl.cs
+  Const: 0, Static: 1, Fields: 1, Ctor: 0, Props: 4, Methods: 0
+
+FILE: Core/MVVM/ViewModelBase.cs
+  Const: 0, Static: 0, Fields: 6, Ctor: 0, Props: 12, Methods: 5
+
+FILE: Core/Messaging/Events/BottomSheetEvents.cs
+  Const: 0, Static: 3, Fields: 9, Ctor: 0, Props: 9, Methods: 0
+
+FILE: Core/Messaging/Events/LanguageDetectionEvents.cs
+  Const: 0, Static: 2, Fields: 3, Ctor: 0, Props: 3, Methods: 0
+
+FILE: Core/Messaging/Events/NetworkEvents.cs
+  Const: 0, Static: 2, Fields: 5, Ctor: 0, Props: 5, Methods: 0
+
+FILE: Core/Messaging/Events/SystemEvents.cs
+  Const: 0, Static: 1, Fields: 3, Ctor: 0, Props: 3, Methods: 0
+
+FILE: Core/Messaging/MessageTypes.cs
+  Const: 1, Static: 2, Fields: 13, Ctor: 0, Props: 8, Methods: 0
+
+FILE: Core/Messaging/Subscriptions/SubscriptionTypes.cs
+  Const: 0, Static: 2, Fields: 11, Ctor: 0, Props: 12, Methods: 0
+
+FILE: Core/Modularity/ModuleBase.cs
+  Const: 0, Static: 0, Fields: 7, Ctor: 0, Props: 5, Methods: 2
+
+FILE: Core/Modularity/ModulePriorityQueue.cs
+  Const: 1, Static: 0, Fields: 6, Ctor: 0, Props: 5, Methods: 0
+
+FILE: Core/Modularity/ModuleResourceManager.cs
+  Const: 0, Static: 3, Fields: 5, Ctor: 0, Props: 1, Methods: 0
+
+FILE: Features/Authentication/ViewModels/Hosts/MembershipHostWindowModel.cs
+  Const: 0, Static: 1, Fields: 36, Ctor: 0, Props: 23, Methods: 1
+
+FILE: Features/Authentication/ViewModels/PasswordRecovery/ForgotPasswordResetViewModel.cs
+  Const: 0, Static: 0, Fields: 14, Ctor: 0, Props: 52, Methods: 1
+
+FILE: Features/Authentication/ViewModels/Registration/MobileVerificationViewModel.cs
+  Const: 0, Static: 0, Fields: 11, Ctor: 0, Props: 15, Methods: 1
+
+FILE: Features/Authentication/ViewModels/Registration/PassPhaseViewModel.cs
+  Const: 0, Static: 0, Fields: 6, Ctor: 0, Props: 6, Methods: 1
+
+FILE: Features/Authentication/ViewModels/Registration/SecureKeyVerifierViewModel.cs
+  Const: 0, Static: 0, Fields: 14, Ctor: 0, Props: 53, Methods: 1
+
+FILE: Features/Authentication/ViewModels/Registration/VerifyOtpViewModel.cs
+  Const: 0, Static: 1, Fields: 20, Ctor: 0, Props: 41, Methods: 1
+
+FILE: Features/Authentication/ViewModels/SignIn/SignInViewModel.cs
+  Const: 0, Static: 1, Fields: 15, Ctor: 0, Props: 47, Methods: 1
+
+FILE: Features/Authentication/ViewModels/Welcome/WelcomeViewModel.cs
+  Const: 2, Static: 1, Fields: 8, Ctor: 0, Props: 8, Methods: 1
+
+FILE: Features/Authentication/Views/Registration/MobileVerificationView.axaml.cs
+  Const: 1, Static: 0, Fields: 2, Ctor: 0, Props: 0, Methods: 2
+
+FILE: Features/Authentication/Views/SignIn/SignInView.axaml.cs
+  Const: 1, Static: 0, Fields: 2, Ctor: 0, Props: 0, Methods: 2
+
+FILE: Features/Main/ViewModels/MainViewModel.cs
+  Const: 0, Static: 0, Fields: 6, Ctor: 0, Props: 8, Methods: 1
+
+FILE: Features/Splash/Views/SplashWindow.axaml.cs
+  Const: 5, Static: 2, Fields: 6, Ctor: 0, Props: 4, Methods: 1
+
+FILE: Infrastructure/Data/SecureStorage/ApplicationSecureStorageProvider.cs
+  Const: 1, Static: 0, Fields: 4, Ctor: 0, Props: 5, Methods: 0
+
+FILE: Infrastructure/Network/Core/Connectivity/InternetConnectivityObserver.cs
+  Const: 3, Static: 0, Fields: 8, Ctor: 0, Props: 8, Methods: 0
+
+FILE: Infrastructure/Network/Core/Connectivity/InternetConnectivityObserverOptions.cs
+  Const: 0, Static: 1, Fields: 6, Ctor: 0, Props: 6, Methods: 0
+
+FILE: Infrastructure/Network/Core/Constants/NetworkConstants.cs
+  Const: 6, Static: 4, Fields: 6, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Infrastructure/Network/Core/Providers/NetworkProvider.cs
+  Const: 0, Static: 2, Fields: 26, Ctor: 0, Props: 22, Methods: 0
+
+FILE: Infrastructure/Network/Transport/Grpc/Interceptors/GrpcMetadataHandler.cs
+  Const: 12, Static: 2, Fields: 12, Ctor: 0, Props: 4, Methods: 0
+
+FILE: Infrastructure/Security/Platform/CrossPlatformSecurityProvider.cs
+  Const: 14, Static: 1, Fields: 18, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Infrastructure/Security/Storage/SecureProtocolStateStorage.cs
+  Const: 0, Static: 1, Fields: 6, Ctor: 0, Props: 1, Methods: 0
+
+FILE: Services/Authentication/Constants/AuthenticationConstants.cs
+  Const: 33, Static: 5, Fields: 35, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Services/Authentication/OpaqueAuthenticationService.cs
+  Const: 1, Static: 2, Fields: 6, Ctor: 0, Props: 11, Methods: 0
+
+FILE: Services/Common/InternalServiceApiFailure.cs
+  Const: 0, Static: 3, Fields: 3, Ctor: 0, Props: 3, Methods: 0
+
+FILE: Services/Core/ApplicationInitializer.cs
+  Const: 1, Static: 0, Fields: 2, Ctor: 0, Props: 2, Methods: 0
+
+FILE: Services/Core/ApplicationRouter.cs
+  Const: 3, Static: 0, Fields: 3, Ctor: 0, Props: 8, Methods: 0
+
+FILE: Services/External/IpGeolocation/IpGeolocationService.cs
+  Const: 1, Static: 1, Fields: 1, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Services/Membership/Constants/MobileNumberValidatorConstants.cs
+  Const: 7, Static: 3, Fields: 7, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Services/Membership/Constants/SecureKeyValidatorConstants.cs
+  Const: 19, Static: 6, Fields: 19, Ctor: 0, Props: 0, Methods: 0
+
+FILE: Services/Membership/MobileNumberValidator.cs
+  Const: 0, Static: 2, Fields: 1, Ctor: 0, Props: 3, Methods: 0
+
+FILE: Services/Membership/SecureKeyValidator.cs
+  Const: 0, Static: 11, Fields: 11, Ctor: 0, Props: 23, Methods: 0
+
+FILE: Services/Network/Resilience/ImprovedRetryConfiguration.cs
+  Const: 0, Static: 2, Fields: 4, Ctor: 0, Props: 6, Methods: 0
+
+FILE: Services/Network/Resilience/RetryPolicyHelpers.cs
+  Const: 0, Static: 4, Fields: 3, Ctor: 0, Props: 2, Methods: 0
+
+FILE: Services/Network/Resilience/SecrecyChannelRetryStrategy.cs
+  Const: 3, Static: 0, Fields: 19, Ctor: 0, Props: 12, Methods: 0
+
+FILE: Services/Network/Rpc/RpcFlow.cs
+  Const: 0, Static: 3, Fields: 5, Ctor: 0, Props: 6, Methods: 0
+
+FILE: Services/Network/Rpc/SecrecyKeyExchangeServiceRequest.cs
+  Const: 0, Static: 1, Fields: 5, Ctor: 0, Props: 5, Methods: 0
+
+FILE: Services/Network/Rpc/ServiceRequest.cs
+  Const: 0, Static: 2, Fields: 5, Ctor: 0, Props: 5, Methods: 0
+
+FILE: Settings/AppCultureSettings.cs
+  Const: 0, Static: 2, Fields: 6, Ctor: 0, Props: 4, Methods: 0
+
+FILE: Settings/Constants/AppCultureSettingsConstants.cs
+  Const: 9, Static: 2, Fields: 10, Ctor: 0, Props: 0, Methods: 0
+
+FILE: VersionHelper.cs
+  Const: 0, Static: 9, Fields: 9, Ctor: 0, Props: 4, Methods: 0
+
+FILE: Views/Memberships/Components/TitleBar.axaml.cs
+  Const: 0, Static: 3, Fields: 5, Ctor: 0, Props: 17, Methods: 0
+

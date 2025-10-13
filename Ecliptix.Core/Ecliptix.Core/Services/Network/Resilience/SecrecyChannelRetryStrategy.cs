@@ -19,6 +19,10 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 
 public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 {
+    private const int MaxTrackedOperations = 1000;
+    private const int CleanupIntervalMinutes = 5;
+    private const int OperationTimeoutMinutes = 10;
+
     private readonly ImprovedRetryConfiguration _configuration;
     private readonly INetworkEventService _networkEvents;
     private readonly IUiDispatcher _uiDispatcher;
@@ -29,9 +33,6 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     private Lazy<NetworkProvider>? _lazyNetworkProvider;
     private volatile bool _isDisposed;
-    private const int MaxTrackedOperations = 1000;
-    private const int CleanupIntervalMinutes = 5;
-    private const int OperationTimeoutMinutes = 10;
 
     private sealed class RetryOperationInfo
     {
@@ -326,27 +327,6 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to clear exhausted operations");
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed)
-            return;
-
-        _isDisposed = true;
-
-        try
-        {
-            _manualRetrySubscription?.Dispose();
-            _cleanupTimer.Dispose();
-            _stateLock.Dispose();
-
-            Log.Information("SecrecyChannelRetryStrategy disposed successfully");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error during SecrecyChannelRetryStrategy disposal");
         }
     }
 
@@ -728,5 +708,26 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
     private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime)
     {
         return $"{operationName}_{connectId}_{startTime.Ticks}";
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed)
+            return;
+
+        _isDisposed = true;
+
+        try
+        {
+            _manualRetrySubscription?.Dispose();
+            _cleanupTimer.Dispose();
+            _stateLock.Dispose();
+
+            Log.Information("SecrecyChannelRetryStrategy disposed successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error during SecrecyChannelRetryStrategy disposal");
+        }
     }
 }

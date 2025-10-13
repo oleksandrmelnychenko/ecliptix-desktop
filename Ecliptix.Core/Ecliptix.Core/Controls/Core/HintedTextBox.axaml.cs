@@ -124,11 +124,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public static readonly StyledProperty<bool> HasWarningProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(HasWarning));
 
-
     public static readonly StyledProperty<int> WarningDisplayDurationMsProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(WarningDisplayDurationMs),
             HintedTextBoxConstants.DefaultWarningDisplayDurationMs);
-
 
     public static readonly RoutedEvent<CharacterRejectedEventArgs> CharacterRejectedEvent =
         RoutedEvent.Register<HintedTextBox, CharacterRejectedEventArgs>(nameof(CharacterRejected), RoutingStrategies.Bubble);
@@ -141,16 +139,42 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         RoutedEvent.Register<HintedTextBox, SecureKeyCharactersRemovedEventArgs>(nameof(SecureKeyCharactersRemoved),
             RoutingStrategies.Bubble);
 
-    public event EventHandler<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAdded
-    {
-        add => AddHandler(SecureKeyCharactersAddedEvent, value);
-        remove => RemoveHandler(SecureKeyCharactersAddedEvent, value);
-    }
+    private static readonly Dictionary<string, SolidColorBrush> BrushCache = new();
+    private static readonly Dictionary<string, Color> ColorCache = new();
+    private static readonly Dictionary<string, BoxShadows> ResourceCache = new();
+    private static readonly Dictionary<string, int> TextElementCountCache = new(StringComparer.Ordinal);
+    private const int MaxTextElementCacheSize = 1000;
 
-    public event EventHandler<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemoved
+    private const int InputDebounceDelayMs = HintedTextBoxConstants.InputDebounceDelayMs;
+    private const int SecureKeyDebounceDelayMs = 50;
+
+    private readonly CompositeDisposable _disposables = new();
+
+    private TextBox? _mainTextBox;
+    private Border? _focusBorder;
+    private Border? _mainBorder;
+    private Border? _shadowBorder;
+    private bool _isUpdatingFromCode;
+    private bool _isDisposed;
+    private bool _isControlInitialized;
+    private DispatcherTimer? _warningTimer;
+    private DispatcherTimer? _inputDebounceTimer;
+    private DispatcherTimer? _secureKeyDebounceTimer;
+    private bool _lastIsFocused;
+    private bool _lastHasError;
+    private PasswordStrength _lastPasswordStrength = PasswordStrength.Invalid;
+    private bool _lastIsPasswordStrengthMode;
+    private string _lastProcessedText = string.Empty;
+    private IDisposable? _currentTypingAnimation;
+    private int _lastProcessedTextElementCount;
+    private volatile bool _isProcessingSecureKeyChange;
+    private int _intendedCaretPosition;
+    private string _originalErrorText = string.Empty;
+
+    public HintedTextBox()
     {
-        add => AddHandler(SecureKeyCharactersRemovedEvent, value);
-        remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
+        InitializeComponent();
+        AttachedToVisualTree += OnAttachedToVisualTree;
     }
 
     public int WarningDisplayDurationMs
@@ -357,44 +381,16 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         remove => RemoveHandler(CharacterRejectedEvent, value);
     }
 
-    private readonly CompositeDisposable _disposables = new();
-    private TextBox? _mainTextBox;
-    private Border? _focusBorder;
-    private Border? _mainBorder;
-    private Border? _shadowBorder;
-    private bool _isUpdatingFromCode;
-    private bool _isDisposed;
-    private bool _isControlInitialized;
-    private DispatcherTimer? _warningTimer;
-
-
-    private static readonly Dictionary<string, SolidColorBrush> BrushCache = new();
-    private static readonly Dictionary<string, Color> ColorCache = new();
-    private static readonly Dictionary<string, BoxShadows> ResourceCache = new();
-    private static readonly Dictionary<string, int> TextElementCountCache = new(StringComparer.Ordinal);
-    private const int MaxTextElementCacheSize = 1000;
-
-    private DispatcherTimer? _inputDebounceTimer;
-    private DispatcherTimer? _secureKeyDebounceTimer;
-    private const int InputDebounceDelayMs = HintedTextBoxConstants.InputDebounceDelayMs;
-    private const int SecureKeyDebounceDelayMs = 50;
-
-    private bool _lastIsFocused;
-    private bool _lastHasError;
-    private PasswordStrength _lastPasswordStrength = PasswordStrength.Invalid;
-    private bool _lastIsPasswordStrengthMode;
-
-    private string _lastProcessedText = string.Empty;
-    private IDisposable? _currentTypingAnimation;
-    private int _lastProcessedTextElementCount;
-    private volatile bool _isProcessingSecureKeyChange;
-    private int _intendedCaretPosition;
-    private string _originalErrorText = string.Empty;
-
-    public HintedTextBox()
+    public event EventHandler<SecureKeyCharactersAddedEventArgs> SecureKeyCharactersAdded
     {
-        InitializeComponent();
-        AttachedToVisualTree += OnAttachedToVisualTree;
+        add => AddHandler(SecureKeyCharactersAddedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersAddedEvent, value);
+    }
+
+    public event EventHandler<SecureKeyCharactersRemovedEventArgs> SecureKeyCharactersRemoved
+    {
+        add => AddHandler(SecureKeyCharactersRemovedEvent, value);
+        remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
     }
 
     public void SyncSecureKeyState(int newPasswordLength)
@@ -410,6 +406,243 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         int caretPosition = Math.Clamp(_intendedCaretPosition, 0, newPasswordLength);
         UpdateTextBox(maskText, caretPosition);
         UpdateRemainingCharacters();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        Dispose();
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+
+        try
+        {
+            _isDisposed = true;
+
+            if (_inputDebounceTimer != null)
+            {
+                _inputDebounceTimer.Stop();
+                _inputDebounceTimer.Tick -= OnDebounceTimerTick;
+                _inputDebounceTimer = null;
+            }
+
+            if (_secureKeyDebounceTimer != null)
+            {
+                _secureKeyDebounceTimer.Stop();
+                _secureKeyDebounceTimer.Tick -= OnSecureKeyDebounceTimerTick;
+                _secureKeyDebounceTimer = null;
+            }
+
+            if (_warningTimer != null)
+            {
+                _warningTimer.Stop();
+                _warningTimer.Tick -= OnWarningTimerTick;
+                _warningTimer = null;
+            }
+
+            _currentTypingAnimation?.Dispose();
+
+            AttachedToVisualTree -= OnAttachedToVisualTree;
+
+            try
+            {
+                _disposables.Dispose();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
+            }
+
+            _mainTextBox = null;
+            _focusBorder = null;
+            _mainBorder = null;
+            _shadowBorder = null;
+
+            _lastProcessedText = string.Empty;
+            _lastProcessedTextElementCount = 0;
+            _isProcessingSecureKeyChange = false;
+            _intendedCaretPosition = 0;
+
+            ErrorText = string.Empty;
+            HasError = false;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
+        }
+    }
+
+    private static CharacterWarningType GetWarningType(char c)
+    {
+        if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
+            return CharacterWarningType.NonLatinLetter;
+
+        return CharacterWarningType.InvalidCharacter;
+    }
+
+    private static bool IsAllowedCharacter(char c)
+    {
+        if (char.IsDigit(c))
+            return true;
+
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+            return true;
+
+        if (!char.IsLetter(c) && !char.IsDigit(c))
+            return true;
+
+        return false;
+    }
+
+    private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(
+        PasswordStrength strength)
+    {
+        return strength switch
+        {
+            PasswordStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
+                HintedTextBoxConstants.InvalidStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex)),
+            PasswordStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
+                HintedTextBoxConstants.VeryWeakStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex)),
+            PasswordStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
+                HintedTextBoxConstants.WeakStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex)),
+            PasswordStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
+                HintedTextBoxConstants.GoodStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex)),
+            PasswordStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
+                HintedTextBoxConstants.StrongStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex)),
+            PasswordStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
+                HintedTextBoxConstants.VeryStrongStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex)),
+            _ => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
+                HintedTextBoxConstants.InvalidStrengthShadowKey,
+                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex))
+        };
+    }
+
+    private static int GetTextElementCount(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+
+        if (TextElementCountCache.TryGetValue(text, out int cachedCount))
+        {
+            return cachedCount;
+        }
+
+        try
+        {
+            StringInfo stringInfo = new(text);
+            int count = stringInfo.LengthInTextElements;
+
+            switch (TextElementCountCache.Count)
+            {
+                case < MaxTextElementCacheSize:
+                    TextElementCountCache[text] = count;
+                    break;
+                case > MaxTextElementCacheSize:
+                    TextElementCountCache.Clear();
+                    TextElementCountCache[text] = count;
+                    break;
+            }
+
+            return count;
+        }
+        catch (Exception)
+        {
+            int fallbackCount = text.Length;
+            if (TextElementCountCache.Count < MaxTextElementCacheSize)
+            {
+                TextElementCountCache[text] = fallbackCount;
+            }
+
+            return fallbackCount;
+        }
+    }
+
+    private static string SafeSubstring(string text, int startIndex, int length)
+    {
+        if (string.IsNullOrEmpty(text) || startIndex < 0) return string.Empty;
+
+        try
+        {
+            StringInfo stringInfo = new(text);
+            int textElementCount = stringInfo.LengthInTextElements;
+
+            if (startIndex >= textElementCount) return string.Empty;
+
+            int actualLength = Math.Min(length, textElementCount - startIndex);
+            return actualLength <= 0 ? string.Empty : stringInfo.SubstringByTextElements(startIndex, actualLength);
+        }
+        catch (Exception)
+        {
+            try
+            {
+                int safeStart = Math.Min(startIndex, text.Length);
+                int safeLength = Math.Min(length, text.Length - safeStart);
+                return safeLength > 0 ? text.Substring(safeStart, safeLength) : string.Empty;
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+    }
+
+    private static string GetAddedTextElements(string? currentText, string lastText, int caretIndex)
+    {
+        if (string.IsNullOrEmpty(currentText) || string.IsNullOrEmpty(lastText))
+        {
+            return currentText ?? string.Empty;
+        }
+
+        try
+        {
+            StringInfo currentInfo = new(currentText);
+            StringInfo lastInfo = new(lastText);
+
+            int currentCount = currentInfo.LengthInTextElements;
+            int lastCount = lastInfo.LengthInTextElements;
+
+            if (currentCount <= lastCount) return string.Empty;
+
+            int addedCount = currentCount - lastCount;
+            int insertPos = Math.Max(0, Math.Min(caretIndex - addedCount, currentCount - addedCount));
+
+            return SafeSubstring(currentText, insertPos, addedCount);
+        }
+        catch (Exception)
+        {
+            int addedCount = currentText.Length - lastText.Length;
+            if (addedCount <= 0) return string.Empty;
+
+            int insertPos = Math.Max(0, caretIndex - addedCount);
+            return SafeSubstring(currentText, insertPos, addedCount);
+        }
+    }
+
+    private static Color GetCachedColor(string colorHex)
+    {
+        if (ColorCache.TryGetValue(colorHex, out Color color)) return color;
+        color = Color.Parse(colorHex);
+        ColorCache[colorHex] = color;
+
+        return color;
+    }
+
+    private static SolidColorBrush GetCachedBrush(Color color)
+    {
+        string key = color.ToString();
+        if (BrushCache.TryGetValue(key, out SolidColorBrush? brush)) return brush;
+        brush = new SolidColorBrush(color);
+        BrushCache[key] = brush;
+
+        return brush;
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -517,28 +750,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         HasWarning = false;
         _warningTimer?.Stop();
-    }
-
-    private static CharacterWarningType GetWarningType(char c)
-    {
-        if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
-            return CharacterWarningType.NonLatinLetter;
-
-        return CharacterWarningType.InvalidCharacter;
-    }
-
-    private static bool IsAllowedCharacter(char c)
-    {
-        if (char.IsDigit(c))
-            return true;
-
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-            return true;
-
-        if (!char.IsLetter(c) && !char.IsDigit(c))
-            return true;
-
-        return false;
     }
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
@@ -897,35 +1108,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(
-        PasswordStrength strength)
-    {
-        return strength switch
-        {
-            PasswordStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
-                HintedTextBoxConstants.InvalidStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex)),
-            PasswordStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
-                HintedTextBoxConstants.VeryWeakStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex)),
-            PasswordStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
-                HintedTextBoxConstants.WeakStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex)),
-            PasswordStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
-                HintedTextBoxConstants.GoodStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex)),
-            PasswordStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
-                HintedTextBoxConstants.StrongStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex)),
-            PasswordStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
-                HintedTextBoxConstants.VeryStrongStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex)),
-            _ => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
-                HintedTextBoxConstants.InvalidStrengthShadowKey,
-                GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex))
-        };
-    }
-
     private void UnsubscribeTextBoxEvents()
     {
         if (_mainTextBox == null) return;
@@ -1140,126 +1322,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
     }
 
-    private static int GetTextElementCount(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return 0;
-
-        if (TextElementCountCache.TryGetValue(text, out int cachedCount))
-        {
-            return cachedCount;
-        }
-
-        try
-        {
-            StringInfo stringInfo = new(text);
-            int count = stringInfo.LengthInTextElements;
-
-            switch (TextElementCountCache.Count)
-            {
-                case < MaxTextElementCacheSize:
-                    TextElementCountCache[text] = count;
-                    break;
-                case > MaxTextElementCacheSize:
-                    TextElementCountCache.Clear();
-                    TextElementCountCache[text] = count;
-                    break;
-            }
-
-            return count;
-        }
-        catch (Exception)
-        {
-            int fallbackCount = text.Length;
-            if (TextElementCountCache.Count < MaxTextElementCacheSize)
-            {
-                TextElementCountCache[text] = fallbackCount;
-            }
-
-            return fallbackCount;
-        }
-    }
-
-    private static string SafeSubstring(string text, int startIndex, int length)
-    {
-        if (string.IsNullOrEmpty(text) || startIndex < 0) return string.Empty;
-
-        try
-        {
-            StringInfo stringInfo = new(text);
-            int textElementCount = stringInfo.LengthInTextElements;
-
-            if (startIndex >= textElementCount) return string.Empty;
-
-            int actualLength = Math.Min(length, textElementCount - startIndex);
-            return actualLength <= 0 ? string.Empty : stringInfo.SubstringByTextElements(startIndex, actualLength);
-        }
-        catch (Exception)
-        {
-            try
-            {
-                int safeStart = Math.Min(startIndex, text.Length);
-                int safeLength = Math.Min(length, text.Length - safeStart);
-                return safeLength > 0 ? text.Substring(safeStart, safeLength) : string.Empty;
-            }
-            catch (Exception)
-            {
-                return string.Empty;
-            }
-        }
-    }
-
-    private static string GetAddedTextElements(string? currentText, string lastText, int caretIndex)
-    {
-        if (string.IsNullOrEmpty(currentText) || string.IsNullOrEmpty(lastText))
-        {
-            return currentText ?? string.Empty;
-        }
-
-        try
-        {
-            StringInfo currentInfo = new(currentText);
-            StringInfo lastInfo = new(lastText);
-
-            int currentCount = currentInfo.LengthInTextElements;
-            int lastCount = lastInfo.LengthInTextElements;
-
-            if (currentCount <= lastCount) return string.Empty;
-
-            int addedCount = currentCount - lastCount;
-            int insertPos = Math.Max(0, Math.Min(caretIndex - addedCount, currentCount - addedCount));
-
-            return SafeSubstring(currentText, insertPos, addedCount);
-        }
-        catch (Exception)
-        {
-            int addedCount = currentText.Length - lastText.Length;
-            if (addedCount <= 0) return string.Empty;
-
-            int insertPos = Math.Max(0, caretIndex - addedCount);
-            return SafeSubstring(currentText, insertPos, addedCount);
-        }
-    }
-
-
-    private static Color GetCachedColor(string colorHex)
-    {
-        if (ColorCache.TryGetValue(colorHex, out Color color)) return color;
-        color = Color.Parse(colorHex);
-        ColorCache[colorHex] = color;
-
-        return color;
-    }
-
-    private static SolidColorBrush GetCachedBrush(Color color)
-    {
-        string key = color.ToString();
-        if (BrushCache.TryGetValue(key, out SolidColorBrush? brush)) return brush;
-        brush = new SolidColorBrush(color);
-        BrushCache[key] = brush;
-
-        return brush;
-    }
-
     private BoxShadows GetCachedResource(string resourceKey)
     {
         if (ResourceCache.TryGetValue(resourceKey, out BoxShadows shadow)) return shadow;
@@ -1272,72 +1334,5 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        Dispose();
-        base.OnDetachedFromVisualTree(e);
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed) return;
-
-        try
-        {
-            _isDisposed = true;
-
-            if (_inputDebounceTimer != null)
-            {
-                _inputDebounceTimer.Stop();
-                _inputDebounceTimer.Tick -= OnDebounceTimerTick;
-                _inputDebounceTimer = null;
-            }
-
-            if (_secureKeyDebounceTimer != null)
-            {
-                _secureKeyDebounceTimer.Stop();
-                _secureKeyDebounceTimer.Tick -= OnSecureKeyDebounceTimerTick;
-                _secureKeyDebounceTimer = null;
-            }
-
-            if (_warningTimer != null)
-            {
-                _warningTimer.Stop();
-                _warningTimer.Tick -= OnWarningTimerTick;
-                _warningTimer = null;
-            }
-
-            _currentTypingAnimation?.Dispose();
-
-            AttachedToVisualTree -= OnAttachedToVisualTree;
-
-            try
-            {
-                _disposables.Dispose();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
-            }
-
-            _mainTextBox = null;
-            _focusBorder = null;
-            _mainBorder = null;
-            _shadowBorder = null;
-
-            _lastProcessedText = string.Empty;
-            _lastProcessedTextElementCount = 0;
-            _isProcessingSecureKeyChange = false;
-            _intendedCaretPosition = 0;
-
-            ErrorText = string.Empty;
-            HasError = false;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
-        }
     }
 }

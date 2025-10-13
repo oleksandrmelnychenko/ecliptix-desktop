@@ -8,7 +8,7 @@
         xmlns:controls="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         xmlns:vm="clr-namespace:Ecliptix.Core.ViewModels.Core"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-        x:Class="Ecliptix.Core.Views.Core.UnifiedHostWindow"
+        x:Class="Ecliptix.Core.Views.Core.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding WindowTitle}"
         Width="{Binding WindowWidth}"

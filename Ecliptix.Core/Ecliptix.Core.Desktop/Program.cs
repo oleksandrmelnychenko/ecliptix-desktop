@@ -441,9 +441,10 @@ public static class Program
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
         services.AddSingleton<NetworkStatusNotificationViewModel>();
+        services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();
-        services.AddTransient<MembershipHostWindowModel>();
-        services.AddTransient<Features.Main.ViewModels.MainViewModel>();
+        services.AddTransient<AuthenticationViewModel>();
+        services.AddTransient<Features.Main.ViewModels.MasterViewModel>();
     }
 
     private static string GetPlatformAppDataDirectory()

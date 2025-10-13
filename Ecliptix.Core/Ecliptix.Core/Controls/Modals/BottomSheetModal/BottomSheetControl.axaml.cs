@@ -20,20 +20,6 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
 {
-    private bool _disposed;
-    private bool _isAnimating;
-    private double _sheetHeight;
-
-    private Border? _sheetBorder;
-    private Border? _scrimBorder;
-    private Grid? _rootGrid;
-    private ContentControl? _contentControl;
-
-    private Animation? _showAnimation;
-    private Animation? _hideAnimation;
-    private Animation? _scrimShowAnimation;
-    private Animation? _scrimHideAnimation;
-
     public new static readonly StyledProperty<double> MinHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MinHeight);
 
@@ -55,6 +41,26 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     public static readonly StyledProperty<IBrush> UnDismissableScrimColorProperty =
         AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(UnDismissableScrimColor),
             DefaultBottomSheetVariables.ScrimBrush);
+
+    private bool _disposed;
+    private bool _isAnimating;
+    private double _sheetHeight;
+
+    private Border? _sheetBorder;
+    private Border? _scrimBorder;
+    private Grid? _rootGrid;
+    private ContentControl? _contentControl;
+
+    private Animation? _showAnimation;
+    private Animation? _hideAnimation;
+    private Animation? _scrimShowAnimation;
+    private Animation? _scrimHideAnimation;
+
+    public BottomSheetControl()
+    {
+        InitializeComponent();
+        InitializeDefaults();
+    }
 
     public IBrush DismissableScrimColor
     {
@@ -92,10 +98,52 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         set => SetValue(IsDismissableOnScrimClickProperty, value);
     }
 
-    public BottomSheetControl()
+    public void Dispose()
     {
-        InitializeComponent();
-        InitializeDefaults();
+        if (_disposed) return;
+
+        if (ViewModel is IActivatableViewModel activatable)
+            activatable.Activator.Deactivate();
+
+        if (ViewModel is IDisposable disposableViewModel)
+            disposableViewModel.Dispose();
+
+        _disposed = true;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        Dispose();
+    }
+
+    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    {
+        ITransform? existingTransform = visual.RenderTransform;
+        if (existingTransform is TransformGroup existingGroup)
+        {
+            foreach (Transform? child in existingGroup.Children)
+            {
+                if (child is T specificTransform)
+                {
+                    return specificTransform;
+                }
+            }
+            T newTransformFromGroup = new T();
+            existingGroup.Children.Add(newTransformFromGroup);
+            return newTransformFromGroup;
+        }
+
+        TransformGroup group = new TransformGroup();
+        if (existingTransform is Transform singleTransform)
+        {
+            group.Children.Add(singleTransform);
+        }
+
+        T newTransform = new T();
+        group.Children.Add(newTransform);
+        visual.RenderTransform = group;
+        return newTransform;
     }
 
     private void InitializeDefaults()
@@ -382,53 +430,5 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             ViewModel.IsVisible = false;
             ViewModel.BottomSheetDismissed();
         }
-    }
-
-    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
-    {
-        ITransform? existingTransform = visual.RenderTransform;
-        if (existingTransform is TransformGroup existingGroup)
-        {
-            foreach (Transform? child in existingGroup.Children)
-            {
-                if (child is T specificTransform)
-                {
-                    return specificTransform;
-                }
-            }
-            T newTransformFromGroup = new T();
-            existingGroup.Children.Add(newTransformFromGroup);
-            return newTransformFromGroup;
-        }
-
-        TransformGroup group = new TransformGroup();
-        if (existingTransform is Transform singleTransform)
-        {
-            group.Children.Add(singleTransform);
-        }
-
-        T newTransform = new T();
-        group.Children.Add(newTransform);
-        visual.RenderTransform = group;
-        return newTransform;
-    }
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        if (ViewModel is IActivatableViewModel activatable)
-            activatable.Activator.Deactivate();
-
-        if (ViewModel is IDisposable disposableViewModel)
-            disposableViewModel.Dispose();
-
-        _disposed = true;
-    }
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        Dispose();
     }
 }

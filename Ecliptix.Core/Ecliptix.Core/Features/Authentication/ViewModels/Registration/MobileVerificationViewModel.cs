@@ -26,29 +26,15 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
-    private readonly CompositeDisposable _disposables = new();
-    private bool _hasMobileNumberBeenTouched;
-    private bool _isDisposed;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly AuthenticationFlowContext _flowContext;
+    private readonly CompositeDisposable _disposables = new();
 
-    [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
-
-    public string? UrlPathSegment { get; } = "/mobile-verification";
-
-    public IScreen HostScreen { get; }
-
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
-
-    [ObservableAsProperty] public bool IsBusy { get; }
-
-    [Reactive] public string? MobileNumberError { get; set; }
-    [Reactive] public bool HasMobileNumberError { get; set; }
-
-    public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
+    private bool _hasMobileNumberBeenTouched;
+    private bool _isDisposed;
 
     public MobileVerificationViewModel(
         ISystemEventService systemEventService,
@@ -76,6 +62,46 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
+    }
+
+    public string? UrlPathSegment { get; } = "/mobile-verification";
+    public IScreen HostScreen { get; }
+
+    public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
+
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
+    [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
+    [Reactive] public string? MobileNumberError { get; set; }
+    [Reactive] public bool HasMobileNumberError { get; set; }
+
+    [ObservableAsProperty] public bool IsBusy { get; }
+
+    public async Task HandleEnterKeyPressAsync()
+    {
+        try
+        {
+            if (_isDisposed) return;
+
+            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
+        }
+    }
+
+    public void ResetState()
+    {
+        if (_isDisposed) return;
+
+        MobileNumber = string.Empty;
+        _hasMobileNumberBeenTouched = false;
+        NetworkErrorMessage = string.Empty;
+        HasMobileNumberError = false;
+        MobileNumberError = string.Empty;
     }
 
     private IObservable<bool> SetupValidation()
@@ -165,7 +191,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 else if (!_isDisposed)
                 {
                     NetworkErrorMessage = result.UnwrapErr();
-                    if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                    if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
                         ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
                 }
             }
@@ -186,7 +212,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
                         _flowContext, _passwordRecoveryService);
 
-                    if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+                    if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
                     {
                         hostWindow.RecoveryMobileNumber = MobileNumber;
                         hostWindow.NavigateToViewModel(vm);
@@ -195,7 +221,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 else if (!_isDisposed)
                 {
                     NetworkErrorMessage = result.UnwrapErr();
-                    if (HostScreen is MembershipHostWindowModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                    if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
                         ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
                 }
             }
@@ -205,7 +231,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             if (!_isDisposed)
             {
                 NetworkErrorMessage = LocalizationService[AuthenticationConstants.TimeoutExceededKey];
-                if (HostScreen is MembershipHostWindowModel hostWindow)
+                if (HostScreen is AuthenticationViewModel hostWindow)
                     ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
             }
         }
@@ -217,7 +243,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             if (!_isDisposed)
             {
                 NetworkErrorMessage = LocalizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
-                if (HostScreen is MembershipHostWindowModel hostWindow)
+                if (HostScreen is AuthenticationViewModel hostWindow)
                     ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
             }
         }
@@ -232,41 +258,13 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
 
-        if (!_isDisposed && HostScreen is MembershipHostWindowModel hostWindow)
+        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.NavigateToViewModel(vm);
         }
 
         return Task.CompletedTask;
-    }
-
-    public async Task HandleEnterKeyPressAsync()
-    {
-        try
-        {
-            if (_isDisposed) return;
-
-            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
-        }
-        catch (Exception ex)
-        {
-            Serilog.Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
-        }
-    }
-
-    public void ResetState()
-    {
-        if (_isDisposed) return;
-
-        MobileNumber = string.Empty;
-        _hasMobileNumberBeenTouched = false;
-        NetworkErrorMessage = string.Empty;
-        HasMobileNumberError = false;
-        MobileNumberError = string.Empty;
     }
 
     public new void Dispose()

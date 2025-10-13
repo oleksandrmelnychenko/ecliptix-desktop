@@ -13,18 +13,18 @@ namespace Ecliptix.Core.Core.Communication;
 
 public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 {
+    private const int MaxProcessingTimesSamples = 1000;
+
     private readonly ConcurrentDictionary<Type, ConcurrentBag<IMessageSubscription>> _subscriptions = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<IModuleMessage>> _pendingRequests = new();
     private readonly Channel<IModuleMessage> _messageChannel;
     private readonly ChannelWriter<IModuleMessage> _messageWriter;
     private readonly Task _messageProcessingTask;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-
+    private readonly ConcurrentQueue<double> _processingTimes = new();
     private long _totalMessagesSent;
     private long _totalEventsPublished;
     private long _totalRequestsProcessed;
-    private readonly ConcurrentQueue<double> _processingTimes = new();
-    private const int MaxProcessingTimesSamples = 1000;
 
     public ModuleMessageBus()
     {

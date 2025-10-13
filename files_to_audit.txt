@@ -1,0 +1,12 @@
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Constants/ApplicationErrorMessages.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Constants/HintedTextBoxConstants.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Constants/NetworkStatusConstants.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Constants/SegmentedTextBoxConstants.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/NetworkStatusNotification.axaml.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Core/SegmentedTextBox.axaml.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/LanguageSelector/LanguageSelectorViewModel.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Modals/BottomSheetModal/BottomSheetControl.axaml.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Controls/Modals/DetectLanguageDialogViewModel.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Hosts/MembershipHostWindowModel.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Services/Network/Resilience/SecrecyChannelRetryStrategy.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs

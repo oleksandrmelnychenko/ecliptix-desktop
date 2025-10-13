@@ -38,6 +38,9 @@ namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
 public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
 {
+    private static TaskCompletionSource<bool> CreateOutageTcs() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     private readonly IRpcServiceManager _rpcServiceManager;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly ISecureProtocolStateStorage _secureProtocolStateStorage;
@@ -48,12 +51,49 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly IPendingRequestManager _pendingRequestManager;
     private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory;
     private readonly IRsaChunkEncryptor _rsaChunkEncryptor;
-
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
-
-
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
+    private readonly Lock _cancellationLock = new();
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private readonly ConcurrentDictionary<uint, SemaphoreSlim> _channelGates = new();
+    private readonly SemaphoreSlim _retryPendingRequestsGate = new(1, 1);
+    private readonly Lock _outageLock = new();
+    private readonly Lock _disposeLock = new();
+    private readonly Lock _appInstanceSetterLock = new();
+
+    private CancellationTokenSource? _connectionRecoveryCts;
+    private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
+    private int _outageState;
+    private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
+    private volatile bool _disposed;
+
+    public NetworkProvider(
+        IRpcServiceManager rpcServiceManager,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        ISecureProtocolStateStorage secureProtocolStateStorage,
+        IRpcMetaDataProvider rpcMetaDataProvider,
+        INetworkEventService networkEvents,
+        ISystemEventService systemEvents,
+        IRetryStrategy retryStrategy,
+        IPendingRequestManager pendingRequestManager,
+        ICertificatePinningServiceFactory certificatePinningServiceFactory,
+        IRsaChunkEncryptor rsaChunkEncryptor)
+    {
+        _rpcServiceManager = rpcServiceManager;
+        _applicationSecureStorageProvider = applicationSecureStorageProvider;
+        _secureProtocolStateStorage = secureProtocolStateStorage;
+        _rpcMetaDataProvider = rpcMetaDataProvider;
+        _networkEvents = networkEvents;
+        _systemEvents = systemEvents;
+        _retryStrategy = retryStrategy;
+        _pendingRequestManager = pendingRequestManager;
+        _certificatePinningServiceFactory = certificatePinningServiceFactory;
+        _rsaChunkEncryptor = rsaChunkEncryptor;
+    }
+
+    public ApplicationInstanceSettings ApplicationInstanceSettings =>
+        _applicationInstanceSettings.Value!;
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelInternalAsync(
         uint connectId,
@@ -210,53 +250,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return ecliptixSecrecyChannelStateResult.ToNetworkFailure().Map(Option<EcliptixSessionState>.Some);
     }
 
-    private readonly Lock _cancellationLock = new();
-    private CancellationTokenSource? _connectionRecoveryCts;
-
-    private readonly CancellationTokenSource _shutdownCts = new();
-
-    private readonly ConcurrentDictionary<uint, SemaphoreSlim> _channelGates = new();
-
-    private readonly SemaphoreSlim _retryPendingRequestsGate = new(1, 1);
-
-    private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
-
-    private int _outageState;
-    private readonly Lock _outageLock = new();
-    private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
-
-    private static TaskCompletionSource<bool> CreateOutageTcs() =>
-        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private volatile bool _disposed;
-    private readonly Lock _disposeLock = new();
-
-    public NetworkProvider(
-        IRpcServiceManager rpcServiceManager,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        ISecureProtocolStateStorage secureProtocolStateStorage,
-        IRpcMetaDataProvider rpcMetaDataProvider,
-        INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
-        IRetryStrategy retryStrategy,
-        IPendingRequestManager pendingRequestManager,
-        ICertificatePinningServiceFactory certificatePinningServiceFactory,
-        IRsaChunkEncryptor rsaChunkEncryptor)
-    {
-        _rpcServiceManager = rpcServiceManager;
-        _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _secureProtocolStateStorage = secureProtocolStateStorage;
-        _rpcMetaDataProvider = rpcMetaDataProvider;
-        _networkEvents = networkEvents;
-        _systemEvents = systemEvents;
-        _retryStrategy = retryStrategy;
-        _pendingRequestManager = pendingRequestManager;
-        _certificatePinningServiceFactory = certificatePinningServiceFactory;
-        _rsaChunkEncryptor = rsaChunkEncryptor;
-    }
-
-    private readonly Lock _appInstanceSetterLock = new();
-
     public void SetCountry(string country)
     {
         lock (_appInstanceSetterLock)
@@ -266,29 +259,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    public ApplicationInstanceSettings ApplicationInstanceSettings =>
-        _applicationInstanceSettings.Value!;
-
-    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
-        PubKeyExchangeType pubKeyExchangeType)
-    {
-        Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
-        Guid deviceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
-
-        string appInstanceIdString = appInstanceGuid.ToString();
-        string deviceIdString = deviceGuid.ToString();
-
-        uint connectId = Helpers.ComputeUniqueConnectId(
-            appInstanceIdString,
-            deviceIdString, pubKeyExchangeType);
-
-        return connectId;
-    }
-
-    public uint ComputeUniqueConnectId(PubKeyExchangeType pubKeyExchangeType)
-    {
-        return ComputeUniqueConnectId(_applicationInstanceSettings.Value!, pubKeyExchangeType);
-    }
+    public uint ComputeUniqueConnectId(PubKeyExchangeType pubKeyExchangeType) =>
+        ComputeUniqueConnectId(_applicationInstanceSettings.Value!, pubKeyExchangeType);
 
     public void InitiateEcliptixProtocolSystem(ApplicationInstanceSettings applicationInstanceSettings, uint connectId)
     {
@@ -1475,6 +1447,22 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
     {
+    }
+
+    public static uint ComputeUniqueConnectId(ApplicationInstanceSettings applicationInstanceSettings,
+        PubKeyExchangeType pubKeyExchangeType)
+    {
+        Guid appInstanceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
+        Guid deviceGuid = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
+
+        string appInstanceIdString = appInstanceGuid.ToString();
+        string deviceIdString = deviceGuid.ToString();
+
+        uint connectId = Helpers.ComputeUniqueConnectId(
+            appInstanceIdString,
+            deviceIdString, pubKeyExchangeType);
+
+        return connectId;
     }
 
     public void Dispose()

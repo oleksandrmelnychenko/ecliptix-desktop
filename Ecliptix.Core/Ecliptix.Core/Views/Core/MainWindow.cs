@@ -13,13 +13,13 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Views.Core;
 
-public partial class UnifiedHostWindow : ReactiveWindow<MainWindowViewModel>
+public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 {
     private bool _languageSelectorLoaded;
     private readonly Border? _languageSelectorContainer;
     private readonly BottomSheetControl? _bottomSheetControl;
 
-    public UnifiedHostWindow()
+    public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
         IconService.SetIconForWindow(this);

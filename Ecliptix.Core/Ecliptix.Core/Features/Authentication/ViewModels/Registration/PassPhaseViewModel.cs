@@ -13,21 +13,10 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IDisposable, IResettable
 {
-    private string _passPhase = string.Empty;
     private readonly CompositeDisposable _disposables = new();
+
+    private string _passPhase = string.Empty;
     private bool _isDisposed;
-
-    public string PassPhase
-    {
-        get => _passPhase;
-        set => this.RaiseAndSetIfChanged(ref _passPhase, value);
-    }
-
-    public string? UrlPathSegment { get; } = "/pass-phase";
-
-    public IScreen HostScreen { get; }
-
-    public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
 
     public PassPhaseViewModel(
         ISystemEventService systemEventService,
@@ -38,6 +27,17 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         SubmitCommand = ReactiveCommand.Create(() => { });
 
         _disposables.Add(SubmitCommand);
+    }
+
+    public string? UrlPathSegment { get; } = "/pass-phase";
+    public IScreen HostScreen { get; }
+
+    public ReactiveCommand<Unit, Unit> SubmitCommand { get; }
+
+    public string PassPhase
+    {
+        get => _passPhase;
+        set => this.RaiseAndSetIfChanged(ref _passPhase, value);
     }
 
     public void ResetState()

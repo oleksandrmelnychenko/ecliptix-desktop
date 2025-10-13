@@ -11,10 +11,6 @@ public class ModuleScope : IModuleScope
     private readonly IServiceScope _serviceScope;
     private long _disposed;
 
-    public IServiceProvider ServiceProvider { get; }
-    public string ModuleName { get; }
-    public IModuleResourceConstraints Constraints => new DefaultModuleResourceConstraints();
-
     public ModuleScope(string moduleName, IServiceScope serviceScope)
     {
         ModuleName = moduleName ?? throw new ArgumentNullException(nameof(moduleName));
@@ -23,6 +19,10 @@ public class ModuleScope : IModuleScope
 
         Log.Debug("Module scope created for {ModuleName}", ModuleName);
     }
+
+    public IServiceProvider ServiceProvider { get; }
+    public string ModuleName { get; }
+    public IModuleResourceConstraints Constraints => new DefaultModuleResourceConstraints();
 
     public void Dispose()
     {

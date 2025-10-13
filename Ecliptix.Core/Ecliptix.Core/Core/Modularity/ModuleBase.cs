@@ -15,15 +15,11 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
     public abstract ModuleIdentifier Id { get; }
     public abstract TManifest Manifest { get; }
-    public bool IsLoaded => _isLoaded;
-
     IModuleManifest IModule.Manifest => Manifest;
+    public bool IsLoaded => _isLoaded;
     public IModuleScope? ServiceScope { get; private set; }
 
-    public virtual Task<bool> CanLoadAsync()
-    {
-        return Task.FromResult(true);
-    }
+    public virtual Task<bool> CanLoadAsync() => Task.FromResult(true);
 
     public async Task LoadAsync(IServiceProvider serviceProvider)
     {
@@ -84,20 +80,11 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
         }
     }
 
-    public virtual Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
-    {
-        return Task.CompletedTask;
-    }
+    public virtual Task SetupMessageHandlersAsync(IModuleMessageBus messageBus) => Task.CompletedTask;
 
-    protected virtual Task OnLoadAsync()
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual Task OnLoadAsync() => Task.CompletedTask;
 
-    protected virtual Task OnUnloadAsync()
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual Task OnUnloadAsync() => Task.CompletedTask;
 
     protected T GetService<T>() where T : notnull
     {

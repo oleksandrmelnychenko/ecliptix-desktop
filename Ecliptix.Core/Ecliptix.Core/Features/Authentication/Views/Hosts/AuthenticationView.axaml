@@ -1,33 +1,21 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
-        xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
-        xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
-        mc:Ignorable="d"
-        d:DesignWidth="480"
-        d:DesignHeight="680"
-        SystemDecorations="None"
-        CanMaximize="False"
-        CanResize="False"
-        ExtendClientAreaToDecorationsHint="False"
-        x:DataType="memberships1:MembershipHostWindowModel"
-        Width="480"
-        Height="720"
-        WindowStartupLocation="CenterScreen"
-        ShowInTaskbar="True"
-        Background="Transparent"
-        Title=""
-        Icon="avares://Ecliptix.Core/Assets/Branding/Logos/logo_256x256.png"
-        TransparencyLevelHint="Transparent"
-        x:Class="Ecliptix.Core.Features.Authentication.Views.Hosts.MembershipHostWindow">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
+             xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
+             xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
+             mc:Ignorable="d"
+             d:DesignWidth="480"
+             d:DesignHeight="680"
+             x:DataType="memberships1:AuthenticationViewModel"
+             x:Class="Ecliptix.Core.Features.Authentication.Views.Hosts.AuthenticationView">
 
-    <Window.Resources>
+    <UserControl.Resources>
         <sharedConverters:BooleanToOpacityConverter x:Key="BoolToOpacityConverter"
                                                TrueOpacity="1.0"
                                                FalseOpacity="0" />
-    </Window.Resources>
+    </UserControl.Resources>
 
     <!-- Module-Specific Content Only -->
     <Grid RowDefinitions="Auto,*,Auto"
@@ -145,4 +133,4 @@
             </Grid>
         </StackPanel>
     </Grid>
-</Window>
+</UserControl>

@@ -17,7 +17,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public sealed class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
+public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
 {
     private readonly ILogoutService _logoutService;
     private readonly MainWindowViewModel _mainWindowViewModel;
@@ -30,7 +30,7 @@ public sealed class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
-    public MainViewModel(
+    public MasterViewModel(
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,

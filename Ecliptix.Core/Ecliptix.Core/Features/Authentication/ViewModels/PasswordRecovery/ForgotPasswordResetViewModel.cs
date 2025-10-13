@@ -35,34 +35,13 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 {
     private readonly SecureTextBuffer _newPasswordBuffer = new();
     private readonly SecureTextBuffer _confirmPasswordBuffer = new();
-    private bool _hasNewPasswordBeenTouched;
-    private bool _hasConfirmPasswordBeenTouched;
-
-    public int CurrentNewPasswordLength => _newPasswordBuffer.Length;
-    public int CurrentConfirmPasswordLength => _confirmPasswordBuffer.Length;
-
-    [Reactive] public string? NewPasswordError { get; set; }
-    [Reactive] public bool HasNewPasswordError { get; set; }
-    [Reactive] public string? ConfirmPasswordError { get; set; }
-    [Reactive] public bool HasConfirmPasswordError { get; set; }
-    [Reactive] public string? ServerError { get; set; }
-    [Reactive] public bool HasServerError { get; set; }
-
-    [ObservableAsProperty] public PasswordStrength CurrentPasswordStrength { get; private set; }
-    [ObservableAsProperty] public string? PasswordStrengthMessage { get; private set; }
-    [ObservableAsProperty] public bool HasNewPasswordBeenTouched { get; private set; }
-
-    [Reactive] public bool CanSubmit { get; private set; }
-    [ObservableAsProperty] public bool IsBusy { get; }
-
-    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
-
-    private ByteString? MembershipIdentifier { get; set; }
-
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly IAuthenticationService _authenticationService;
     private readonly CompositeDisposable _disposables = new();
+
+    private bool _hasNewPasswordBeenTouched;
+    private bool _hasConfirmPasswordBeenTouched;
 
     public ForgotPasswordResetViewModel(
         ISystemEventService systemEventService,
@@ -96,8 +75,8 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
                 .Subscribe(result =>
                 {
                     if (!result.IsErr) return;
-                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                 })
                 .DisposeWith(disposables);
 
@@ -106,7 +85,7 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
                 .Subscribe(err =>
                 {
                     HasServerError = !string.IsNullOrEmpty(err);
-                    if (!string.IsNullOrEmpty(err) && HostScreen is MembershipHostWindowModel hostWindow)
+                    if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
                         ShowServerErrorNotification(hostWindow, err);
                 })
                 .DisposeWith(disposables);
@@ -118,27 +97,35 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
                     if (HasServerError)
                         return;
 
-                    ((MembershipHostWindowModel)HostScreen).ClearNavigationStack();
-                    ((MembershipHostWindowModel)HostScreen).Navigate.Execute(MembershipViewType.SignIn);
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.SignIn);
                 })
                 .DisposeWith(disposables);
         });
     }
 
-    private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
-    {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
-            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+    public string? UrlPathSegment { get; } = "/forgot-password-reset";
+    public IScreen HostScreen { get; }
 
-        if (applicationInstance.IsErr)
-        {
-            return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
-        }
+    public int CurrentNewPasswordLength => _newPasswordBuffer.Length;
+    public int CurrentConfirmPasswordLength => _confirmPasswordBuffer.Length;
 
-        ApplicationInstanceSettings settings = applicationInstance.Unwrap();
-        MembershipIdentifier = settings.Membership.UniqueIdentifier;
-        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
-    }
+    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
+
+    [Reactive] public string? NewPasswordError { get; set; }
+    [Reactive] public bool HasNewPasswordError { get; set; }
+    [Reactive] public string? ConfirmPasswordError { get; set; }
+    [Reactive] public bool HasConfirmPasswordError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
+    [Reactive] public bool CanSubmit { get; private set; }
+
+    [ObservableAsProperty] public PasswordStrength CurrentPasswordStrength { get; private set; }
+    [ObservableAsProperty] public string? PasswordStrengthMessage { get; private set; }
+    [ObservableAsProperty] public bool HasNewPasswordBeenTouched { get; private set; }
+    [ObservableAsProperty] public bool IsBusy { get; }
+
+    private ByteString? MembershipIdentifier { get; set; }
 
     public void InsertNewPasswordChars(int index, string chars)
     {
@@ -166,6 +153,52 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
         if (!_hasConfirmPasswordBeenTouched) _hasConfirmPasswordBeenTouched = true;
         _confirmPasswordBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentConfirmPasswordLength));
+    }
+
+    public async Task HandleEnterKeyPressAsync()
+    {
+        try
+        {
+            if (await SubmitCommand.CanExecute.FirstOrDefaultAsync())
+            {
+                SubmitCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[FORGOT-PASSWORD-ENTERKEY] Error handling enter key press");
+        }
+    }
+
+    public void ResetState()
+    {
+        _newPasswordBuffer.Remove(0, _newPasswordBuffer.Length);
+        _confirmPasswordBuffer.Remove(0, _confirmPasswordBuffer.Length);
+        _hasNewPasswordBeenTouched = false;
+        _hasConfirmPasswordBeenTouched = false;
+
+        NewPasswordError = string.Empty;
+        HasNewPasswordError = false;
+        ConfirmPasswordError = string.Empty;
+        HasConfirmPasswordError = false;
+
+        ServerError = string.Empty;
+        HasServerError = false;
+    }
+
+    private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+
+        if (applicationInstance.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(applicationInstance.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = applicationInstance.Unwrap();
+        MembershipIdentifier = settings.Membership.UniqueIdentifier;
+        return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 
     private IObservable<bool> SetupValidation()
@@ -343,7 +376,7 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
         }
         else
         {
-            MembershipHostWindowModel hostViewModel = (MembershipHostWindowModel)HostScreen;
+            AuthenticationViewModel hostViewModel = (AuthenticationViewModel)HostScreen;
             string? recoveryMobileNumber = hostViewModel.RecoveryMobileNumber;
 
             if (string.IsNullOrEmpty(recoveryMobileNumber))
@@ -380,21 +413,6 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
         }
     }
 
-    public async Task HandleEnterKeyPressAsync()
-    {
-        try
-        {
-            if (await SubmitCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                SubmitCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[FORGOT-PASSWORD-ENTERKEY] Error handling enter key press");
-        }
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -406,23 +424,4 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
         base.Dispose(disposing);
     }
-
-    public void ResetState()
-    {
-        _newPasswordBuffer.Remove(0, _newPasswordBuffer.Length);
-        _confirmPasswordBuffer.Remove(0, _confirmPasswordBuffer.Length);
-        _hasNewPasswordBeenTouched = false;
-        _hasConfirmPasswordBeenTouched = false;
-
-        NewPasswordError = string.Empty;
-        HasNewPasswordError = false;
-        ConfirmPasswordError = string.Empty;
-        HasConfirmPasswordError = false;
-
-        ServerError = string.Empty;
-        HasServerError = false;
-    }
-
-    public string? UrlPathSegment { get; } = "/forgot-password-reset";
-    public IScreen HostScreen { get; }
 }

@@ -19,16 +19,7 @@ namespace Ecliptix.Core.Core.MVVM;
 
 public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
-    public ILocalizationService LocalizationService { get; }
-
-    protected ISystemEventService SystemEventService { get; }
-    protected NetworkProvider NetworkProvider { get; }
-
     private bool _disposedValue;
-
-    public ViewModelActivator Activator { get; } = new();
-
-    protected IObservable<SystemU> LanguageChanged { get; }
 
     protected ViewModelBase(ISystemEventService systemEventService, NetworkProvider networkProvider,
         ILocalizationService localizationService)
@@ -53,6 +44,12 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 .DisposeWith(disposables);
         });
     }
+
+    public ILocalizationService LocalizationService { get; }
+    public ViewModelActivator Activator { get; } = new();
+    protected ISystemEventService SystemEventService { get; }
+    protected NetworkProvider NetworkProvider { get; }
+    protected IObservable<SystemU> LanguageChanged { get; }
 
     protected uint ComputeConnectId(PubKeyExchangeType pubKeyExchangeType)
     {
@@ -82,7 +79,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         };
     }
 
-    protected void ShowServerErrorNotification(MembershipHostWindowModel hostWindow, string errorMessage)
+    protected void ShowServerErrorNotification(AuthenticationViewModel hostWindow, string errorMessage)
     {
         if (string.IsNullOrEmpty(errorMessage)) return;
 
@@ -99,7 +96,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
-    protected void ShowRedirectNotification(MembershipHostWindowModel hostWindow, string message, int seconds, Action onComplete)
+    protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds, Action onComplete)
     {
         if (_disposedValue)
         {
@@ -119,7 +116,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
-    protected void CleanupAndNavigate(MembershipHostWindowModel membershipHostWindow, MembershipViewType targetView)
+    protected void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
         membershipHostWindow.ClearNavigationStack();

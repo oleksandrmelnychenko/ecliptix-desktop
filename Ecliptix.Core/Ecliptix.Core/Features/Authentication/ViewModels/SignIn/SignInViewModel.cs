@@ -36,29 +36,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
-    private readonly MembershipHostWindowModel _hostWindowModel;
+    private readonly AuthenticationViewModel _hostWindowModel;
+
     private bool _hasMobileNumberBeenTouched;
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
-
-    public string UrlPathSegment => "/sign-in";
-    public IScreen HostScreen { get; }
-
-    [Reactive] public string MobileNumber { get; set; } = string.Empty;
-    [ObservableAsProperty] public bool IsBusy { get; }
-    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
-
-    [Reactive] public string? MobileNumberError { get; set; }
-    [Reactive] public bool HasMobileNumberError { get; set; }
-    [Reactive] public string? SecureKeyError { get; set; }
-    [Reactive] public bool HasSecureKeyError { get; set; }
-    [Reactive] public string? ServerError { get; set; }
-    [Reactive] public bool HasServerError { get; set; }
-
-    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
-
-    public ReactiveCommand<SystemU, Result<Unit, AuthenticationFailure>>? SignInCommand { get; private set; }
-    public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public SignInViewModel(
         ISystemEventService systemEventService,
@@ -72,12 +54,49 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _localizationService = localizationService;
         _authService = authService;
         _networkEventService = networkEventService;
-        _hostWindowModel = (MembershipHostWindowModel)hostScreen;
+        _hostWindowModel = (AuthenticationViewModel)hostScreen;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
         SetupSubscriptions();
     }
+
+    public string UrlPathSegment => "/sign-in";
+
+    public IScreen HostScreen { get; }
+
+    [Reactive]
+    public string MobileNumber { get; set; } = string.Empty;
+
+    [ObservableAsProperty]
+    public bool IsBusy { get; }
+
+    [ObservableAsProperty]
+    public bool IsInNetworkOutage { get; }
+
+    [Reactive]
+    public string? MobileNumberError { get; set; }
+
+    [Reactive]
+    public bool HasMobileNumberError { get; set; }
+
+    [Reactive]
+    public string? SecureKeyError { get; set; }
+
+    [Reactive]
+    public bool HasSecureKeyError { get; set; }
+
+    [Reactive]
+    public string? ServerError { get; set; }
+
+    [Reactive]
+    public bool HasServerError { get; set; }
+
+    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
+
+    public ReactiveCommand<SystemU, Result<Unit, AuthenticationFailure>>? SignInCommand { get; private set; }
+
+    public ReactiveCommand<SystemU, SystemU>? AccountRecoveryCommand { get; private set; }
 
     public void InsertSecureKeyChars(int index, string chars)
     {
@@ -95,6 +114,40 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
+    public async Task HandleEnterKeyPressAsync()
+    {
+        try
+        {
+            if (await SignInCommand!.CanExecute.FirstOrDefaultAsync())
+            {
+                SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[SIGNIN-ENTERKEY] Error handling enter key press");
+        }
+    }
+
+    public void ResetState()
+    {
+        if (_isDisposed) return;
+
+        _hasMobileNumberBeenTouched = false;
+        _hasSecureKeyBeenTouched = false;
+
+        MobileNumber = string.Empty;
+        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
+
+        _signInErrorSubject.OnNext(string.Empty);
+
+        MobileNumberError = string.Empty;
+        HasMobileNumberError = false;
+        SecureKeyError = string.Empty;
+        HasSecureKeyError = false;
+        ServerError = string.Empty;
+        HasServerError = false;
+    }
 
     private IObservable<bool> SetupValidation()
     {
@@ -226,7 +279,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
-            ((MembershipHostWindowModel)HostScreen).StartPasswordRecoveryFlow();
+            ((AuthenticationViewModel)HostScreen).StartPasswordRecoveryFlow();
         });
     }
 
@@ -239,7 +292,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             {
                 _hasSecureKeyBeenTouched = true;
                 _signInErrorSubject.OnNext(error.Message);
-                if (HostScreen is MembershipHostWindowModel hostWindow)
+                if (HostScreen is AuthenticationViewModel hostWindow)
                     ShowServerErrorNotification(hostWindow, error.Message);
             })
             .DisposeWith(_disposables);
@@ -272,9 +325,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             : string.Empty;
     }
 
-    public new void Dispose() =>
-        Dispose(true);
-
     protected override void Dispose(bool disposing)
     {
         if (_isDisposed) return;
@@ -296,38 +346,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _isDisposed = true;
     }
 
-    public async Task HandleEnterKeyPressAsync()
-    {
-        try
-        {
-            if (await SignInCommand!.CanExecute.FirstOrDefaultAsync())
-            {
-                SignInCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[SIGNIN-ENTERKEY] Error handling enter key press");
-        }
-    }
-
-    public void ResetState()
-    {
-        if (_isDisposed) return;
-
-        _hasMobileNumberBeenTouched = false;
-        _hasSecureKeyBeenTouched = false;
-
-        MobileNumber = string.Empty;
-        _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
-
-        _signInErrorSubject.OnNext(string.Empty);
-
-        MobileNumberError = string.Empty;
-        HasMobileNumberError = false;
-        SecureKeyError = string.Empty;
-        HasSecureKeyError = false;
-        ServerError = string.Empty;
-        HasServerError = false;
-    }
+    public new void Dispose() =>
+        Dispose(true);
 }
