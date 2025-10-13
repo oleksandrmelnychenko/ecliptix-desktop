@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Ecliptix.Core.Constants;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
 using Ecliptix.Core.Services.Common;
@@ -101,7 +102,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         Option<byte[]> maybeData = getResult.Unwrap();
         if (!maybeData.HasValue)
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreKeyNotFound("Application instance settings not found."));
+                InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider.ApplicationSettingsNotFound));
 
         try
         {
@@ -111,7 +112,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         catch (InvalidProtocolBufferException ex)
         {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Corrupt settings data in secure storage.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.CorruptSettingsData, ex));
         }
     }
 
@@ -134,7 +135,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
             catch (InvalidProtocolBufferException ex)
             {
                 return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(
-                    InternalServiceApiFailure.SecureStoreAccessDenied("Corrupt settings data in secure storage.", ex));
+                    InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.CorruptSettingsData, ex));
             }
         }
 
@@ -168,12 +169,12 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         catch (CryptographicException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to encrypt data for storage.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToEncryptData, ex));
         }
         catch (IOException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to write to secure storage.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToWriteToStorage, ex));
         }
     }
 
@@ -199,12 +200,12 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         catch (CryptographicException ex)
         {
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to decrypt data.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToDecryptData, ex));
         }
         catch (IOException ex)
         {
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to access secure storage.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToAccessStorage, ex));
         }
     }
 
@@ -227,7 +228,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         catch (IOException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied("Failed to delete from secure storage.", ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToDeleteFromStorage, ex));
         }
     }
 
@@ -255,7 +256,7 @@ public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorage
         }
         catch (IOException ex)
         {
-            throw new InvalidOperationException($"Could not create secure storage directory: {_storagePath}", ex);
+            throw new InvalidOperationException(string.Format(ApplicationErrorMessages.SecureStorageProvider.SecureStorageDirectoryCreationFailed, _storagePath), ex);
         }
     }
 

@@ -4,8 +4,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Ecliptix.Core.Features.Main.ViewModels"
         xmlns:views="clr-namespace:Ecliptix.Core.Features.Main.Views.Components"
-        xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
-        xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         mc:Ignorable="d"
         d:DesignWidth="1200"
         d:DesignHeight="800"
@@ -24,96 +22,41 @@
         TransparencyLevelHint="Transparent"
         x:Class="Ecliptix.Core.Views.Core.MainHostWindow">
 
-    <Grid x:Name="MainContentGrid" ClipToBounds="True">
-        <!-- Blur Background -->
-        <Border Classes="animated-background"
-                Background="{DynamicResource BlurBackgroundBrush}"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="12">
-            <Border.Effect>
-                <BlurEffect Radius="{StaticResource Blur.Radius}" />
-            </Border.Effect>
+    <!-- Module-Specific Content Only: 2-Column Layout (Sidebar + Content) -->
+    <Grid ColumnDefinitions="80,*"
+          ClipToBounds="True"
+          Margin="0,40,0,0">
+
+        <!-- Sidebar with Logout Button -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource Surface}"
+                BorderBrush="{DynamicResource Border}"
+                BorderThickness="0,0,1,0">
+            <Button Command="{Binding LogoutCommand}"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,20"
+                    Width="50"
+                    Height="50"
+                    Background="{DynamicResource Error}"
+                    CornerRadius="8"
+                    ToolTip.Tip="Logout">
+                <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
+                          Foreground="{DynamicResource OnError}"
+                          Width="24"
+                          Height="24" />
+            </Button>
         </Border>
 
-        <!-- Title Bar -->
-        <comp:TitleBar
-            VerticalAlignment="Top"
-            ZIndex="5"
-            DisableMinimizeButton="False"
-            DisableMaximizeButton="False"
-            DisableCloseButton="False"
-            Margin="8" />
-
-        <!-- Network Status Notification -->
-        <Grid
-            x:Name="GeneralControlsGrid"
-            ZIndex="10">
-
-            <coreControls:NetworkStatusNotification
-                x:Name="NetworkNotification"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,50,0,0"
-                FontSize="12"
-                Width="320"
-                Height="70"
-                ZIndex="1001"
-                DataContext="{Binding NetworkStatusNotification}" />
-        </Grid>
-
-        <!-- Main Content Border -->
-        <Border Background="{DynamicResource Window.Background}"
-                BorderBrush="{DynamicResource Window.Border}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="8"
-                x:Name="MainBorder">
-
-            <Border.Effect>
-                <DropShadowEffect Color="{DynamicResource Shadow.Color}"
-                                  BlurRadius="{StaticResource Shadow.Radius}"
-                                  Opacity="0.4"
-                                  OffsetX="0"
-                                  OffsetY="2" />
-            </Border.Effect>
-
-            <!-- 2-Column Layout: Sidebar + Content -->
-            <Grid ColumnDefinitions="80,*"
-                  ClipToBounds="True"
-                  Margin="0,40,0,0">
-
-                <!-- Sidebar with Logout Button -->
-                <Border Grid.Column="0"
-                        Background="{DynamicResource Surface}"
-                        BorderBrush="{DynamicResource Border}"
-                        BorderThickness="0,0,1,0">
-                    <Button Command="{Binding LogoutCommand}"
-                            VerticalAlignment="Bottom"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,0,20"
-                            Width="50"
-                            Height="50"
-                            Background="{DynamicResource Error}"
-                            CornerRadius="8"
-                            ToolTip.Tip="Logout">
-                        <PathIcon Data="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5-5-5m5 5H9"
-                                  Foreground="{DynamicResource OnError}"
-                                  Width="24"
-                                  Height="24" />
-                    </Button>
-                </Border>
-
-                <!-- Main Content Area -->
-                <Border Grid.Column="1"
-                        Background="{DynamicResource Window.Background}">
-                    <TextBlock Text="Ecliptix"
-                               FontSize="32"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource OnSurface}"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center" />
-                </Border>
-            </Grid>
+        <!-- Main Content Area -->
+        <Border Grid.Column="1"
+                Background="{DynamicResource Window.Background}">
+            <TextBlock Text="Ecliptix"
+                       FontSize="32"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource OnSurface}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
         </Border>
     </Grid>
 </Window>

@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using Ecliptix.Core.Constants;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Features.Authentication.Views.Hosts;
@@ -27,7 +28,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
-public class ApplicationRouter(
+public sealed class ApplicationRouter(
     IClassicDesktopStyleApplicationLifetime desktop,
     IModuleManager moduleManager,
     NetworkProvider networkProvider,
@@ -45,7 +46,7 @@ public class ApplicationRouter(
         if (currentWindow == null)
         {
             Log.Warning("[ROUTER-NAV] Unable to navigate to authentication: current window is null");
-            throw new InvalidOperationException("Cannot navigate: current window is null");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.CannotNavigateWindowNull);
         }
 
         string currentWindowType = currentWindow.GetType().Name;
@@ -58,7 +59,7 @@ public class ApplicationRouter(
         if (authModule.ServiceScope?.ServiceProvider == null)
         {
             Log.Error("[ROUTER-NAV] Failed to load Authentication module");
-            throw new InvalidOperationException("Failed to load Authentication module");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
         }
 
         MembershipHostWindowModel? membershipViewModel =
@@ -67,7 +68,7 @@ public class ApplicationRouter(
         if (membershipViewModel == null)
         {
             Log.Error("[ROUTER-NAV] Failed to create MembershipHostWindowModel");
-            throw new InvalidOperationException("Failed to create MembershipHostWindowModel");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMembershipViewModel);
         }
 
         MembershipHostWindow authWindow = await Dispatcher.UIThread.InvokeAsync(() => new MembershipHostWindow
@@ -99,7 +100,7 @@ public class ApplicationRouter(
         if (currentWindow == null)
         {
             Log.Warning("[ROUTER-NAV] Unable to navigate to main: current window is null");
-            throw new InvalidOperationException("Cannot navigate: current window is null");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.CannotNavigateWindowNull);
         }
 
         string currentWindowType = currentWindow.GetType().Name;
@@ -112,7 +113,7 @@ public class ApplicationRouter(
         if (mainModule.ServiceScope?.ServiceProvider == null)
         {
             Log.Error("[ROUTER-NAV] Failed to load Main module");
-            throw new InvalidOperationException("Failed to load Main module");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModule);
         }
 
         MainViewModel? mainViewModel =
@@ -121,7 +122,7 @@ public class ApplicationRouter(
         if (mainViewModel == null)
         {
             Log.Error("[ROUTER-NAV] Failed to create MainViewModel");
-            throw new InvalidOperationException("Failed to create MainViewModel");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
         }
 
         MainHostWindow mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainHostWindow
@@ -155,7 +156,7 @@ public class ApplicationRouter(
             if (mainModule.ServiceScope?.ServiceProvider == null)
             {
                 Log.Error("[ROUTER] Failed to load Main module from splash");
-                throw new InvalidOperationException("Failed to load Main module from splash");
+                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModuleFromSplash);
             }
 
             MainViewModel? mainViewModel =
@@ -176,7 +177,7 @@ public class ApplicationRouter(
             if (authModule.ServiceScope?.ServiceProvider == null)
             {
                 Log.Error("[ROUTER] Failed to load Authentication module from splash");
-                throw new InvalidOperationException("Failed to load Authentication module from splash");
+                throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModuleFromSplash);
             }
 
             Log.Information("[ROUTER] Getting MembershipHostWindowModel from service provider");

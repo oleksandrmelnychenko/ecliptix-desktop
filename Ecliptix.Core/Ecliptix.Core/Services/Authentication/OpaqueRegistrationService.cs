@@ -21,7 +21,7 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public class OpaqueRegistrationService(
+public sealed class OpaqueRegistrationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
     IServerPublicKeyProvider serverPublicKeyProvider)

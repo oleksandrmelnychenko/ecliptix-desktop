@@ -57,7 +57,7 @@ public static class MasterKeyDerivation
 
             if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
             {
-                throw new InvalidOperationException($"Personal parameter (membershipId) must be exactly 16 bytes, got {personal16.Length}");
+                throw new InvalidOperationException(string.Format(ProtocolSystemConstants.ErrorMessages.PersonalParameterInvalidSize, CryptographicConstants.Blake2BPersonalSize, personal16.Length));
             }
 
             string saltHex = Convert.ToHexString(salt16)[..CryptographicConstants.HashFingerprintLength];
@@ -137,7 +137,7 @@ public static class MasterKeyDerivation
                 if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
                 {
                     return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                        SodiumFailure.InvalidOperation($"Personal parameter (membershipId) must be exactly 16 bytes, got {personal16.Length}"));
+                        SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.PersonalParameterInvalidSize, CryptographicConstants.Blake2BPersonalSize, personal16.Length)));
                 }
 
                 string saltHex = Convert.ToHexString(salt16)[..CryptographicConstants.HashFingerprintLength];
@@ -182,7 +182,7 @@ public static class MasterKeyDerivation
             catch (Exception ex)
             {
                 return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                    SodiumFailure.InvalidOperation($"Failed to derive master key: {ex.Message}"));
+                    SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.FailedToDeriveMasterKey, ex.Message)));
             }
             finally
             {

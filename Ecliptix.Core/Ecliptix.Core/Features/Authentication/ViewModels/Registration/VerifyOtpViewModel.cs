@@ -28,7 +28,7 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly ByteString _mobileNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;

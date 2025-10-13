@@ -65,7 +65,7 @@ public sealed class SecureStringHandler : IDisposable
         {
             ptr = Marshal.SecureStringToGlobalAllocUnicode(secureString);
             int byteCount = Encoding.UTF8.GetByteCount(
-                Marshal.PtrToStringUni(ptr) ?? throw new InvalidOperationException());
+                Marshal.PtrToStringUni(ptr) ?? throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.MarshalPtrToStringFailed));
 
             bytes = new byte[byteCount];
             unsafe
@@ -139,7 +139,7 @@ public sealed class SecureStringHandler : IDisposable
     {
         if (_disposed)
             return Result<T, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("SecureStringHandler is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringHandlerDisposed));
 
         byte[]? tempBytes = null;
         try
@@ -212,7 +212,7 @@ public sealed class SecureStringHandler : IDisposable
                 "SHA256" => SHA256.Create(),
                 "SHA384" => SHA384.Create(),
                 "SHA512" => SHA512.Create(),
-                _ => throw new NotSupportedException($"Hash algorithm {algorithm.Name} not supported")
+                _ => throw new NotSupportedException(string.Format(ProtocolSystemConstants.ErrorMessages.HashAlgorithmNotSupported, algorithm.Name))
             };
 
             try
@@ -260,7 +260,7 @@ public sealed class SecureStringBuilder : IDisposable
     {
         if (_disposed)
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Builder is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
 
         Span<byte> bytes = stackalloc byte[4];
         int byteCount = Encoding.UTF8.GetBytes(new[] { c }, bytes);
@@ -272,7 +272,7 @@ public sealed class SecureStringBuilder : IDisposable
     {
         if (_disposed)
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Builder is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
 
         if (string.IsNullOrEmpty(str))
             return Result<Unit, SodiumFailure>.Ok(Unit.Value);
@@ -323,11 +323,11 @@ public sealed class SecureStringBuilder : IDisposable
     {
         if (_disposed)
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.NullPointer("Builder is disposed"));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
 
         if (_totalLength == 0)
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize("No data to build"));
+                SodiumFailure.InvalidBufferSize(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderNoData));
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);
         if (allocResult.IsErr)

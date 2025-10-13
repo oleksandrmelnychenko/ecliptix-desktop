@@ -1,0 +1,42 @@
+Searching for unused code...
+Generated: Sun Oct 12 22:05:08 EEST 2025
+======================================
+
+=== Checking Private Constants ===
+  UNUSED: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/VersionJsonContext.g.cs:19 - private const InstanceMemberBindingFlags
+  UNUSED: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonContext.g.cs:20 - private const InstanceMemberBindingFlags
+  UNUSED: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonSerializerContext.g.cs:21 - private const InstanceMemberBindingFlags
+
+=== Checking Private Readonly Fields ===
+
+=== Checking Private Methods ===
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonSerializerContext.DefaultSystemSettings.g.cs:25 - private method Create_DefaultSystemSettings()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/VersionJsonContext.BuildInfo.g.cs:25 - private method Create_BuildInfo()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonSerializerContext.BuildInfo.g.cs:25 - private method Create_BuildInfo()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonContext.String.g.cs:25 - private method Create_String()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonContext.BuildInfo.g.cs:25 - private method Create_BuildInfo()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/EcliptixJsonSerializerContext.String.g.cs:25 - private method Create_String()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/obj/GeneratedFiles/System.Text.Json.SourceGeneration/System.Text.Json.SourceGeneration.JsonSourceGenerator/VersionJsonContext.String.g.cs:25 - private method Create_String()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Core/Messaging/Subscriptions/SubscriptionTypes.cs:35 - private method new()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Core/Messaging/Services/SystemEventService.cs:11 - private method new()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Core/Messaging/Services/NetworkEventService.cs:11 - private method new()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Features/Main/ViewModels/MainViewModel.cs:22 - private method new()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Features/Authentication/ViewModels/Registration/MobileVerificationViewModel.cs:244 - private method NavigateToSecureKeyConfirmationAsync()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Controls/Core/SegmentedTextBox.axaml.cs:317 - private method OverlayRectangle_PointerPressed()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Controls/Core/SegmentedTextBox.axaml.cs:327 - private method OverlayRectangle_Tapped()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Controls/Modals/BottomSheetModal/BottomSheetControl.axaml.cs:378 - private method OnScrimPointerPressed()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Infrastructure/Security/Storage/SecureProtocolStateStorage.cs:321 - private method EncryptStateFromSpan()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs:1244 - private method EnterOutage()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Infrastructure/Network/Core/Providers/NetworkProvider.cs:1331 - private method InitiateConnectionRecoveryWithCancellation()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Views/Core/MainHostWindow.axaml.cs:19 - private method TitleBarArea_PointerPressed()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Views/Core/MainHostWindow.axaml.cs:30 - private method MinimizeButton_Click()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Views/Core/MainHostWindow.axaml.cs:35 - private method MaximizeButton_Click()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Views/Core/MainHostWindow.axaml.cs:41 - private method CloseButton_Click()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Views/Core/MainHostWindow.axaml.cs:47 - private method Resize_PointerPressed()
+  SUSPICIOUS: Ecliptix.Core/Ecliptix.Core/Services/Security/ServerPublicKeyProvider.cs:10 - private method new()
+  SUSPICIOUS: Ecliptix.Protocol.System/Core/PublicKeyBundle.cs:19 - private method this()
+  SUSPICIOUS: Ecliptix.Protocol.System/Utilities/ScopedSecureMemoryCollection.cs:5 - private method new()
+
+======================================
+Total suspicious items found: 0
+

@@ -32,7 +32,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly SecureTextBuffer _verifySecureKeyBuffer = new();

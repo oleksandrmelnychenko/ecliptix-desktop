@@ -12,18 +12,18 @@ public sealed class OpaqueClient : IDisposable
     public OpaqueClient(byte[] serverPublicKey)
     {
         if (serverPublicKey?.Length != OpaqueConstants.PUBLIC_KEY_LENGTH)
-            throw new ArgumentException($"Server public key must be {OpaqueConstants.PUBLIC_KEY_LENGTH} bytes");
+            throw new ArgumentException(string.Format(OpaqueErrorMessages.ServerPublicKeyInvalidSize, OpaqueConstants.PUBLIC_KEY_LENGTH));
 
         int result =
             OpaqueNative.opaque_client_create(serverPublicKey, (UIntPtr)serverPublicKey.Length, out _clientHandle);
         if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
-            throw new InvalidOperationException($"Failed to create OPAQUE client: {(OpaqueResult)result}");
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateOpaqueClient, (OpaqueResult)result));
     }
 
     public RegistrationResult CreateRegistrationRequest(byte[] password)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0) throw new ArgumentException("Password cannot be null or empty");
+        if (password == null || password.Length == 0) throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
 
         try
         {
@@ -31,7 +31,7 @@ public sealed class OpaqueClient : IDisposable
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
             if (stateResult != (int)OpaqueResult.Success)
-                throw new InvalidOperationException($"Failed to create state: {(OpaqueResult)stateResult}");
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
 
             int result = OpaqueNative.opaque_client_create_registration_request(
                 _clientHandle, password, (UIntPtr)password.Length, state, request, (UIntPtr)request.Length);
@@ -39,7 +39,7 @@ public sealed class OpaqueClient : IDisposable
             if (result != (int)OpaqueResult.Success)
             {
                 OpaqueNative.opaque_client_state_destroy(state);
-                throw new InvalidOperationException($"Failed to create registration request: {(OpaqueResult)result}");
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateRegistrationRequest, (OpaqueResult)result));
             }
 
             return new RegistrationResult(request, state);
@@ -55,7 +55,7 @@ public sealed class OpaqueClient : IDisposable
         ThrowIfDisposed();
         if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
             throw new ArgumentException(
-                $"Server response must be {OpaqueConstants.REGISTRATION_RESPONSE_LENGTH} bytes");
+                string.Format(OpaqueErrorMessages.ServerResponseInvalidSize, OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
 
         byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
 
@@ -64,7 +64,7 @@ public sealed class OpaqueClient : IDisposable
             registrationState.StateHandle, record, (UIntPtr)record.Length);
 
         if (result != (int)OpaqueResult.Success)
-            throw new InvalidOperationException($"Failed to finalize registration: {(OpaqueResult)result}");
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToFinalizeRegistration, (OpaqueResult)result));
 
         return record;
     }
@@ -72,7 +72,7 @@ public sealed class OpaqueClient : IDisposable
     public KeyExchangeResult GenerateKE1(byte[] password)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0) throw new ArgumentException("Password cannot be null or empty");
+        if (password == null || password.Length == 0) throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
 
         try
         {
@@ -80,7 +80,7 @@ public sealed class OpaqueClient : IDisposable
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
             if (stateResult != (int)OpaqueResult.Success)
-                throw new InvalidOperationException($"Failed to create state: {(OpaqueResult)stateResult}");
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
 
             int result = OpaqueNative.opaque_client_generate_ke1(
                 _clientHandle, password, (UIntPtr)password.Length, state, ke1, (UIntPtr)ke1.Length);
@@ -88,7 +88,7 @@ public sealed class OpaqueClient : IDisposable
             if (result != (int)OpaqueResult.Success)
             {
                 OpaqueNative.opaque_client_state_destroy(state);
-                throw new InvalidOperationException($"Failed to generate KE1: {(OpaqueResult)result}");
+                throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToGenerateKE1, (OpaqueResult)result));
             }
 
             return new KeyExchangeResult(ke1, state);
@@ -127,7 +127,7 @@ public sealed class OpaqueClient : IDisposable
             _clientHandle, keyExchangeState.StateHandle, sessionKey, (UIntPtr)sessionKey.Length);
 
         if (result != (int)OpaqueResult.Success)
-            throw new InvalidOperationException($"Failed to derive session key: {(OpaqueResult)result}");
+            throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToDeriveSessionKey, (OpaqueResult)result));
 
         return sessionKey;
     }

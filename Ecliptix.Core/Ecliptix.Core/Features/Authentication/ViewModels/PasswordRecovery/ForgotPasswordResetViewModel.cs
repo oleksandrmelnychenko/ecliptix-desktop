@@ -31,7 +31,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 
-public class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
+public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
     private readonly SecureTextBuffer _newPasswordBuffer = new();
     private readonly SecureTextBuffer _confirmPasswordBuffer = new();

@@ -1,6 +1,6 @@
 namespace Ecliptix.Security.Certificate.Pinning.Services;
 
-public class CertificatePinningServiceFactory : ICertificatePinningServiceFactory
+public sealed class CertificatePinningServiceFactory : ICertificatePinningServiceFactory
 {
     private CertificatePinningService? _service;
 

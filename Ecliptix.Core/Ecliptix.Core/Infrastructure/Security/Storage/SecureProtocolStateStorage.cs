@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Ecliptix.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
@@ -63,7 +64,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId, byte[] membershipId)
     {
         if (_disposed)
-            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
+            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
 
         try
         {
@@ -95,14 +96,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         catch (Exception ex)
         {
             return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure($"Save failed: {ex.Message}"));
+                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.SaveFailed, ex.Message)));
         }
     }
 
     public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId)
     {
         if (_disposed)
-            return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
+            return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
 
         try
         {
@@ -111,14 +112,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             if (protectedContainer == null)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure("State file not found"));
+                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StateFileNotFound));
             }
 
             byte[]? container = await VerifyTamperProtectionAsync(protectedContainer).ConfigureAwait(false);
             if (container == null)
             {
                 return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure("Security violation: tampered state detected"));
+                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.TamperedStateDetected));
             }
 
             (byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData) =
@@ -128,7 +129,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             if (!CryptographicOperations.FixedTimeEquals(associatedData, expectedAd))
             {
                 return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure("Associated data mismatch"));
+                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.AssociatedDataMismatch));
             }
 
             byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{connectId}").ConfigureAwait(false);
@@ -189,14 +190,14 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             Log.Error(ex, "[CLIENT-STATE-LOAD-ERROR] Failed to load secure state. ConnectId: {ConnectId}, FilePath: {FilePath}",
                 connectId, GetStorageFilePath(connectId));
             return Result<byte[], SecureStorageFailure>.Err(
-                new SecureStorageFailure($"Load failed: {ex.Message}"));
+                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.LoadFailed, ex.Message)));
         }
     }
 
     public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key)
     {
         if (_disposed)
-            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure("Storage is disposed"));
+            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
 
         try
         {
@@ -213,7 +214,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             Log.Error(ex, "[CLIENT-STATE-DELETE-ERROR] Failed to delete secure state. Key: {Key}, FilePath: {FilePath}",
                 key, GetStorageFilePath(key));
             return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure($"Delete failed: {ex.Message}"));
+                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.DeleteFailed, ex.Message)));
         }
     }
 
@@ -362,11 +363,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         string magic = Encoding.ASCII.GetString(reader.ReadBytes(SecureStorageConstants.Header.MagicHeader.Length));
         if (magic != SecureStorageConstants.Header.MagicHeader)
-            throw new InvalidOperationException("Invalid container format");
+            throw new InvalidOperationException(ApplicationErrorMessages.SecureProtocolStateStorage.InvalidContainerFormat);
 
         int version = reader.ReadInt32();
         if (version != SecureStorageConstants.Header.CurrentVersion)
-            throw new InvalidOperationException($"Unsupported version: {version}");
+            throw new InvalidOperationException(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.UnsupportedVersion, version));
 
         int saltLength = reader.ReadInt32();
         byte[] salt = reader.ReadBytes(saltLength);

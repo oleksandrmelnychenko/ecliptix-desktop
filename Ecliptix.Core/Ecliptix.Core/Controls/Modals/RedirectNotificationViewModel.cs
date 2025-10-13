@@ -10,7 +10,7 @@ using ReactiveUI.Fody.Helpers;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
 

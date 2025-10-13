@@ -31,7 +31,7 @@ namespace Ecliptix.Core.Services.Core;
 
 public record InstanceSettingsResult(ApplicationInstanceSettings Settings, bool IsNewInstance);
 
-public class ApplicationInitializer(
+public sealed class ApplicationInitializer(
     NetworkProvider networkProvider,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     ISecureProtocolStateStorage secureProtocolStateStorage,

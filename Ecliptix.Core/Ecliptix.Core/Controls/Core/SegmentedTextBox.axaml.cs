@@ -22,6 +22,7 @@ public partial class SegmentedTextBox : UserControl
     private int _currentActiveIndex;
     private static readonly string[] DigitStrings = new string[10];
     private bool _isInternalUpdate = false;
+
     static SegmentedTextBox()
     {
         for (int i = 0; i < 10; i++)
@@ -350,7 +351,7 @@ public partial class SegmentedTextBox : UserControl
 
         int index = _segments.IndexOf(tb);
 
-        if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control)
+        if (e is { Key: Key.V, KeyModifiers: KeyModifiers.Control })
         {
             HandlePasteAsync();
             e.Handled = true;
@@ -365,7 +366,7 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        if (e.Key == Key.Right || e.Key == Key.Left)
+        if (e.Key is Key.Right or Key.Left)
         {
             e.Handled = true;
             return;

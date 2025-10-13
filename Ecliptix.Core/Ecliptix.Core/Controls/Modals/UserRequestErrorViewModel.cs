@@ -9,7 +9,7 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class UserRequestErrorViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed class UserRequestErrorViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
     private bool _disposed = false;

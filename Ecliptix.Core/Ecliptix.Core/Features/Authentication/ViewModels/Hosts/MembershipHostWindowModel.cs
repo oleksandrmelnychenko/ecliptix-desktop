@@ -12,8 +12,6 @@ using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
@@ -28,10 +26,12 @@ using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
+using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Features.Main.ViewModels;
 using Ecliptix.Core.Views.Core;
+using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -46,7 +46,6 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisposable
 {
     private bool _canNavigateBack;
-    private readonly IBottomSheetService _bottomSheetService;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IDisposable _connectivitySubscription;
     private IDisposable? _languageSubscription;
@@ -55,7 +54,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     private readonly NetworkProvider _networkProvider;
     private readonly ILanguageDetectionService _languageDetectionService;
     private readonly ILocalizationService _localizationService;
-    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
+    private readonly MainWindowViewModel _mainWindowViewModel;
 
     private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
@@ -118,8 +117,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         get => _canNavigateBack;
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
     }
-
-    public LanguageSelectorViewModel LanguageSelector { get; }
 
     public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
 
@@ -198,28 +195,24 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
 
     public MembershipHostWindowModel(
-        IBottomSheetService bottomSheetService,
         ISystemEventService systemEventService,
         INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IInternetConnectivityObserver connectivityObserver,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IRpcMetaDataProvider rpcMetaDataProvider,
         IAuthenticationService authenticationService,
-        NetworkStatusNotificationViewModel networkStatusNotification,
         IOpaqueRegistrationService opaqueRegistrationService,
         IPasswordRecoveryService passwordRecoveryService,
         IUiDispatcher uiDispatcher,
         ILanguageDetectionService languageDetectionService,
-        IApplicationRouter router)
+        IApplicationRouter router,
+        MainWindowViewModel mainWindowViewModel)
         : base(systemEventService, networkProvider, localizationService)
     {
         Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor started");
-        _rpcMetaDataProvider = rpcMetaDataProvider;
         _localizationService = localizationService;
         _networkEventService = networkEventService;
-        _bottomSheetService = bottomSheetService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _systemEventService = systemEventService;
         _networkProvider = networkProvider;
@@ -229,12 +222,9 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         _uiDispatcher = uiDispatcher;
         _languageDetectionService = languageDetectionService;
         _router = router;
+        _mainWindowViewModel = mainWindowViewModel;
 
-        LanguageSelector =
-            new LanguageSelectorViewModel(localizationService, applicationSecureStorageProvider, rpcMetaDataProvider);
-        NetworkStatusNotification = networkStatusNotification;
-
-        _disposables.Add(NetworkStatusNotification);
+        NetworkStatusNotification = mainWindowViewModel.NetworkStatusNotification;
 
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
@@ -312,16 +302,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
             IModule mainModule = await moduleManager.LoadModuleAsync("Main");
 
-            if (mainModule.ServiceScope?.ServiceProvider != null)
-            {
-                MainViewModel? mainViewModel =
-                    mainModule.ServiceScope.ServiceProvider.GetService<MainViewModel>();
-                if (mainViewModel != null)
-                {
-                    mainViewModel.NetworkStatusNotification = NetworkStatusNotification;
-                }
-            }
-
             CleanupAuthenticationFlow();
             await _router.NavigateToMainAsync();
         });
@@ -369,13 +349,22 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     break;
             }
 
-            await _bottomSheetService.HideAsync();
+            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
         }
         finally
         {
             _languageSubscription?.Dispose();
             _bottomSheetHiddenSubscription?.Dispose();
         }
+    }
+
+    private void ChangeApplicationLanguage(string targetCulture)
+    {
+        _localizationService.SetCulture(targetCulture,
+            () =>
+            {
+                _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture).ConfigureAwait(false);
+            });
     }
 
     private Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
@@ -396,16 +385,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         return Task.CompletedTask;
     }
 
-    private void ChangeApplicationLanguage(string targetCulture)
-    {
-        _localizationService.SetCulture(targetCulture,
-            () =>
-            {
-                _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture);
-                _rpcMetaDataProvider.SetCulture(targetCulture);
-            });
-    }
-
     public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
         bool showScrim = true, bool isDismissable = false)
     {
@@ -413,14 +392,14 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
         {
             await _uiDispatcher.PostAsync(async () =>
             {
-                await _bottomSheetService.ShowAsync(componentType, redirectView,
-                    showScrim: showScrim, isDismissable: isDismissable);
-            });
+                await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
+                    showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
         else
         {
-            await _bottomSheetService.ShowAsync(componentType, redirectView,
-                showScrim: showScrim, isDismissable: isDismissable);
+            await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
+                showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
         }
     }
 
@@ -428,11 +407,14 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            await _uiDispatcher.PostAsync(async () => { await _bottomSheetService.HideAsync(); });
+            await _uiDispatcher.PostAsync(async () =>
+            {
+                await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
         else
         {
-            await _bottomSheetService.HideAsync();
+            await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
         }
     }
 
@@ -450,7 +432,7 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                     _languageDetectionService.OnLanguageDetectionRequested(HandleLanguageDetectionEvent,
                         SubscriptionLifetime.Scoped);
                 _bottomSheetHiddenSubscription =
-                    _bottomSheetService.OnBottomSheetHidden(HandleBottomSheetDismissedEvent,
+                    _mainWindowViewModel.OnBottomSheetHidden(HandleBottomSheetDismissedEvent,
                         SubscriptionLifetime.Scoped);
 
                 string currentCulture = System.Globalization.CultureInfo.CurrentUICulture.Name;
@@ -470,12 +452,12 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
                         DataContext = detectLanguageViewModel
                     };
 
-                    await _bottomSheetService.ShowAsync(
+                    await _mainWindowViewModel.ShowBottomSheetAsync(
                         BottomSheetComponentType.DetectedLocalization,
                         detectLanguageView,
                         showScrim: true,
                         isDismissable: true
-                    );
+                    ).ConfigureAwait(false);
                 }
             }
         }
@@ -571,8 +553,6 @@ public class MembershipHostWindowModel : Core.MVVM.ViewModelBase, IScreen, IDisp
 
             _connectivitySubscription.Dispose();
             _disposables.Dispose();
-            LanguageSelector.Dispose();
-            NetworkStatusNotification.Dispose();
         }
 
         base.Dispose(disposing);

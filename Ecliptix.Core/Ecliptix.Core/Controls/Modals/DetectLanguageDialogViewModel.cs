@@ -12,7 +12,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private readonly ILanguageDetectionService _languageDetectionService;
 

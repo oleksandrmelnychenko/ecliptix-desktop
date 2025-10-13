@@ -28,7 +28,7 @@ public class AddConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("Reverse conversion is not supported for math operations");
     }
 }
 
@@ -44,7 +44,7 @@ public class SubtractConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("Reverse conversion is not supported for math operations");
     }
 }
 
@@ -60,7 +60,7 @@ public class MultiplyConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("Reverse conversion is not supported for math operations");
     }
 }
 
@@ -76,6 +76,6 @@ public class DivideConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("Reverse conversion is not supported for math operations");
     }
 }

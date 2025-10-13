@@ -24,7 +24,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Membership;
 
-public class LogoutService(
+public sealed class LogoutService(
     NetworkProvider networkProvider,
     IUnifiedMessageBus messageBus,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,

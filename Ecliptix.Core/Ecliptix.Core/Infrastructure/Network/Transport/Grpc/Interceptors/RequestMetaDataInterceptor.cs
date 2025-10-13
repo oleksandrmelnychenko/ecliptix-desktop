@@ -6,7 +6,7 @@ using Grpc.Core.Interceptors;
 
 namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 
-public class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
+public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataProvider) : Interceptor
 {
     public override AsyncServerStreamingCall<TResponse> AsyncServerStreamingCall<TRequest, TResponse>(
         TRequest request,

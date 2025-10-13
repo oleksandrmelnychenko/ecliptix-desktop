@@ -11,7 +11,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IDisposable, IResettable
+public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IDisposable, IResettable
 {
     private string _passPhase = string.Empty;
     private readonly CompositeDisposable _disposables = new();

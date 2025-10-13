@@ -2,12 +2,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:comp="clr-namespace:Ecliptix.Core.Views.Memberships.Components"
         xmlns:sharedConverters="clr-namespace:Ecliptix.Core.Shared.Converters"
-        xmlns:coreControls="clr-namespace:Ecliptix.Core.Controls.Core"
         xmlns:core="clr-namespace:Ecliptix.Core.Core.Controls"
         xmlns:memberships1="clr-namespace:Ecliptix.Core.Features.Authentication.ViewModels.Hosts"
-        xmlns:bottomSheetModal="clr-namespace:Ecliptix.Core.Controls.Modals.BottomSheetModal"
         mc:Ignorable="d"
         d:DesignWidth="480"
         d:DesignHeight="680"
@@ -32,198 +29,120 @@
                                                FalseOpacity="0" />
     </Window.Resources>
 
-    <Grid x:Name="MainContentGrid" ClipToBounds="True">
-        <Border Classes="animated-background"
-                Background="{DynamicResource BlurBackgroundBrush}"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="12">
-            <Border.Effect>
-                <BlurEffect Radius="{StaticResource Blur.Radius}" />
-            </Border.Effect>
-        </Border>
-        
-        <comp:TitleBar
-            VerticalAlignment="Top"
-            ZIndex="5"
-            DisableMinimizeButton="False"
-            DisableCloseButton="False"
-            Margin="8" />
-        
-        <Grid 
-            x:Name="GeneralConrolsGrid"
-            ZIndex="10">
-            
-            <Button HorizontalAlignment="Left"
-                    VerticalAlignment="Top"
-                    Command="{Binding NavigateBack}"
-                    Margin="24,64,0,0"
-                    ZIndex="2"
-                    Classes="back-button"
-                    Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+    <!-- Module-Specific Content Only -->
+    <Grid RowDefinitions="Auto,*,Auto"
+          RowSpacing="2"
+          ClipToBounds="True"
+          Margin="0,40,0,0">
 
-                <Image Source="avares://Ecliptix.Core/Assets/Icons/UI/back-icon.png"
-                       Stretch="Uniform"
-                       Width="18"
-                       Height="18" />
-            </Button>
-
-            <Border Name="LanguageSelectorContainer"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,16,16,0"
-                    ZIndex="2"
-                    Background="Transparent"
-                    Padding="0">
-            </Border>
-
-            <coreControls:NetworkStatusNotification
-                x:Name="NetworkNotification"
-                HorizontalAlignment="Center"
+        <!-- Back Button (Module Navigation) -->
+        <Button HorizontalAlignment="Left"
                 VerticalAlignment="Top"
-                Margin="0,50,0,0"
-                FontSize="12"
-                Width="320"
-                Height="70"
-                ZIndex="1001"
-                DataContext="{Binding NetworkStatusNotification}" />
+                Command="{Binding NavigateBack}"
+                Margin="24,24,0,0"
+                Grid.Row="0"
+                Classes="back-button"
+                Opacity="{Binding CanNavigateBack, Converter={StaticResource BoolToOpacityConverter}}">
+            <Image Source="avares://Ecliptix.Core/Assets/Icons/UI/back-icon.png"
+                   Stretch="Uniform"
+                   Width="18"
+                   Height="18" />
+        </Button>
 
-        </Grid>
-        
-        <Border
-            Margin="8"
-            CornerRadius="12"
-            ClipToBounds="True"
-            ZIndex="15"
-            x:Name="BottomSheetContainer">
-            <bottomSheetModal:BottomSheetControl
-                x:Name="BottomSheetControl"
-                ZIndex="111"
-                VerticalAlignment="Stretch"
-                HorizontalAlignment="Stretch"
-                DismissableScrimColor="DarkGray"
-                UnDismissableScrimColor="Black"
-                IsDismissableOnScrimClick="True"
-            />
+        <!-- Logo Section -->
+        <Border Grid.Row="0"
+                HorizontalAlignment="Center"
+                Padding="20,10"
+                Margin="0 23 0 0">
+            <Svg Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
+                 Width="{StaticResource Logo.Size}"
+                 Height="{StaticResource Logo.Size}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Top" />
         </Border>
-      
-        
-        <!-- Main Content Border -->
-        <Border Background="{DynamicResource Window.Background}"
-                BorderBrush="{DynamicResource Window.Border}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource WindowBorderRadius}"
-                Margin="8"
-                x:Name="MainBorder">
 
-            <Border.Effect>
-                <DropShadowEffect Color="{DynamicResource Shadow.Color}"
-                                  BlurRadius="{StaticResource Shadow.Radius}"
-                                  Opacity="0.4"
-                                  OffsetX="0"
-                                  OffsetY="2" />
-            </Border.Effect>
+        <!-- Content Area -->
+        <Border Grid.Row="1">
+            <Border Padding="{StaticResource ContentPadding}">
+                <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
+                                           Background="Transparent"
+                                           Width="{StaticResource Content.MaxWidth}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Stretch"
+                                           ClipToBounds="False" />
+            </Border>
+        </Border>
 
-            <!-- Main Content Grid -->
-            <Grid RowDefinitions="Auto,*,Auto"
-                  RowSpacing="2"
-                  ClipToBounds="True">
+        <!-- Footer Section -->
+        <StackPanel Grid.Row="2"
+                    Classes="footer-section">
 
-                <!-- Logo Section -->
-                <Border Grid.Row="0"
+            <!-- Legal Links -->
+            <StackPanel Orientation="Horizontal"
                         HorizontalAlignment="Center"
-                        Padding="20,10"
-                        Margin="0 63 0 0">
-                    <Svg Path="../../../../Assets/Branding/Logos/ecliptix_logo.svg"
-                         Width="{StaticResource Logo.Size}"
-                         Height="{StaticResource Logo.Size}"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Top" />
-                </Border>
+                        Spacing="8"
+                        Margin="0,0,0,2">
 
-                <!-- Content Area -->
-                <Border Grid.Row="1">
-                    <Border Padding="{StaticResource ContentPadding}">
-                        <core:ModuleContentControl ViewModelContent="{Binding CurrentView}"
-                                                   Background="Transparent"
-                                                   Width="{StaticResource Content.MaxWidth}"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Stretch"
-                                                   ClipToBounds="False" />
-                    </Border>
-                </Border>
+                <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
+                        Command="{Binding OpenPrivacyPolicyCommand}"
+                        Classes="footer-link"
+                        Margin="1,0" />
 
-                <!-- Footer Section -->
-                <StackPanel Grid.Row="2"
-                            Classes="footer-section">
+                <TextBlock Text="•"
+                           Classes="footer"
+                           VerticalAlignment="Center"
+                           Opacity="0.5"
+                           FontSize="10" />
 
-                    <!-- Legal Links -->
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center"
-                                Spacing="8"
-                                Margin="0,0,0,2">
+                <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
+                        Command="{Binding OpenTermsOfServiceCommand}"
+                        Classes="footer-link"
+                        Margin="1,0" />
 
-                        <Button Content="{Binding LocalizationService[Footer.PrivacyPolicy]}"
-                                Command="{Binding OpenPrivacyPolicyCommand}"
-                                Classes="footer-link"
-                                Margin="1,0" />
+                <TextBlock Text="•"
+                           Classes="footer"
+                           VerticalAlignment="Center"
+                           Opacity="0.5"
+                           FontSize="10" />
 
-                        <TextBlock Text="•"
-                                   Classes="footer"
-                                   VerticalAlignment="Center"
-                                   Opacity="0.5"
-                                   FontSize="10" />
+                <Button Content="{Binding LocalizationService[Footer.Support]}"
+                        Command="{Binding OpenSupportCommand}"
+                        Classes="footer-link"
+                        Margin="1,0" />
+            </StackPanel>
 
-                        <Button Content="{Binding LocalizationService[Footer.TermsOfService]}"
-                                Command="{Binding OpenTermsOfServiceCommand}"
-                                Classes="footer-link"
-                                Margin="1,0" />
+            <!-- Copyright Text -->
+            <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
+                       Classes="footer"
+                       TextWrapping="Wrap"
+                       MaxWidth="300"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       LineHeight="15"
+                       Margin="1,1,1,4" />
 
-                        <TextBlock Text="•"
-                                   Classes="footer"
-                                   VerticalAlignment="Center"
-                                   Opacity="0.5"
-                                   FontSize="10" />
+            <!-- Version and Copyright Layout -->
+            <Grid HorizontalAlignment="Stretch"
+                  Margin="0,2,0,0">
 
-                        <Button Content="{Binding LocalizationService[Footer.Support]}"
-                                Command="{Binding OpenSupportCommand}"
-                                Classes="footer-link"
-                                Margin="1,0" />
-                    </StackPanel>
+                <!-- App Version - Aligned with Header Buttons -->
+                <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
+                           Classes="version"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="{Binding FullVersionInfo}"
+                           Margin="10,0,0,0"
+                           Opacity="1.0"
+                           FontWeight="Medium" />
 
-                    <!-- Copyright Text -->
-                    <TextBlock Text="{Binding LocalizationService[Footer.AgreementText]}"
-                               Classes="footer"
-                               TextWrapping="Wrap"
-                               MaxWidth="300"
-                               HorizontalAlignment="Center"
-                               TextAlignment="Center"
-                               LineHeight="15"
-                               Margin="1,1,1,4" />
-
-                    <!-- Version and Copyright Layout -->
-                    <Grid HorizontalAlignment="Stretch"
-                          Margin="0,2,0,0">
-                        
-                        <!-- App Version - Aligned with Header Buttons -->
-                        <TextBlock Text="{Binding AppVersion, StringFormat='v{0}'}"
-                                   Classes="version"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   ToolTip.Tip="{Binding FullVersionInfo}"
-                                   Margin="10,0,0,0"
-                                   Opacity="1.0"
-                                   FontWeight="Medium" />
-                        
-                        <!-- Copyright Text - Window Center -->
-                        <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
-                                   Classes="footer"
-                                   Opacity="0.6"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   TextAlignment="Center" />
-                    </Grid>
-                </StackPanel>
+                <!-- Copyright Text - Window Center -->
+                <TextBlock Text="{Binding LocalizationService[Footer.Copyright]}"
+                           Classes="footer"
+                           Opacity="0.6"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           TextAlignment="Center" />
             </Grid>
-        </Border>
+        </StackPanel>
     </Grid>
 </Window>

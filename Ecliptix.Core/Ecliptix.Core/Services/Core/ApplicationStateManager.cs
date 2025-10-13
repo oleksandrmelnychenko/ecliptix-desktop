@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
-public class ApplicationStateManager : IApplicationStateManager, IDisposable
+public sealed class ApplicationStateManager : IApplicationStateManager, IDisposable
 {
     private readonly BehaviorSubject<ApplicationState> _stateSubject;
     private string? _currentMembershipId;

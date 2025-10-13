@@ -44,7 +44,7 @@ public sealed class SignInResult(
     }
 }
 
-public class OpaqueAuthenticationService(
+public sealed class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
     ISystemEventService systemEvents,

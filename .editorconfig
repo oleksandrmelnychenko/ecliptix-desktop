@@ -1,0 +1,22 @@
+root = true
+
+# All files
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# files
+[*.cs]
+
+# Unused code detection
+dotnet_diagnostic.IDE0051.severity = warning  # Remove unused private members
+dotnet_diagnostic.IDE0052.severity = warning  # Remove unread private members
+dotnet_diagnostic.CS0169.severity = warning   # Field is never used
+dotnet_diagnostic.CS0414.severity = warning   # Field is assigned but its value is never used
+dotnet_diagnostic.IDE0059.severity = warning  # Unnecessary assignment of a value
+dotnet_diagnostic.IDE0060.severity = warning  # Remove unused parameter
+
+# Additional unused member detection
+dotnet_diagnostic.CA1823.severity = warning   # Avoid unused private fields
+dotnet_diagnostic.CA1812.severity = suggestion # Avoid uninstantiated internal classes (suggestion to avoid false positives with DI)

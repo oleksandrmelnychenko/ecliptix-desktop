@@ -11,7 +11,7 @@ using Ecliptix.Core.Core.Utilities;
 
 namespace Ecliptix.Core.Core.Communication;
 
-public class ModuleMessageBus : IModuleMessageBus, IDisposable
+public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 {
     private readonly ConcurrentDictionary<Type, ConcurrentBag<IMessageSubscription>> _subscriptions = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<IModuleMessage>> _pendingRequests = new();
@@ -233,7 +233,7 @@ internal interface IMessageSubscription
     Task HandleAsync(IModuleMessage message);
 }
 
-internal class MessageSubscription<T>(Func<T, bool> filter, Func<T, Task> handler) : IMessageSubscription
+internal sealed class MessageSubscription<T>(Func<T, bool> filter, Func<T, Task> handler) : IMessageSubscription
     where T : IModuleMessage
 {
     public async Task HandleAsync(IModuleMessage message)

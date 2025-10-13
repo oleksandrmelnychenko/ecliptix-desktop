@@ -35,6 +35,14 @@ public static class ProtocolSystemConstants
         public const string SizePositive = "Size must be positive";
         public const string ChunkSizePositive = "Chunk size must be positive";
         public const string LibSodiumConstantTimeComparisonFailed = "libsodium constant-time comparison failed.";
+
+        public const string PersonalParameterInvalidSize = "Personal parameter (membershipId) must be exactly {0} bytes, got {1}";
+        public const string FailedToDeriveMasterKey = "Failed to derive master key: {0}";
+        public const string MarshalPtrToStringFailed = "Failed to marshal pointer to string";
+        public const string HashAlgorithmNotSupported = "Hash algorithm {0} not supported";
+        public const string SecureStringHandlerDisposed = "SecureStringHandler is disposed";
+        public const string SecureStringBuilderDisposed = "Builder is disposed";
+        public const string SecureStringBuilderNoData = "No data to build";
     }
 
     public static class Numeric

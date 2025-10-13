@@ -7,6 +7,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Membership;
+using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using ReactiveUI;
@@ -16,15 +17,16 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
+public sealed class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
 {
     private readonly ILogoutService _logoutService;
+    private readonly MainWindowViewModel _mainWindowViewModel;
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    public NetworkStatusNotificationViewModel? NetworkStatusNotification { get; set; }
+    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -32,10 +34,13 @@ public class MainViewModel : Core.MVVM.ViewModelBase, IDisposable
         ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        ILogoutService logoutService)
+        ILogoutService logoutService,
+        MainWindowViewModel mainWindowViewModel)
         : base(systemEventService, networkProvider, localizationService)
     {
         _logoutService = logoutService;
+        _mainWindowViewModel = mainWindowViewModel;
+        NetworkStatusNotification = mainWindowViewModel.NetworkStatusNotification;
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 

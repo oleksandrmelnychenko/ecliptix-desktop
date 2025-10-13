@@ -24,7 +24,7 @@ using Ecliptix.Protobuf.Protocol;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
-public class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
+public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly CompositeDisposable _disposables = new();
     private bool _hasMobileNumberBeenTouched;

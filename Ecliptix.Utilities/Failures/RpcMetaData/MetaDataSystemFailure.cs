@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace Ecliptix.Utilities.Failures.RpcMetaData;
 
-public class MetaDataSystemFailure
+public sealed class MetaDataSystemFailure
 {
     private MetaDataSystemFailure(MetaDataSystemFailureType type, string? message, Exception? innerException = null)
     {

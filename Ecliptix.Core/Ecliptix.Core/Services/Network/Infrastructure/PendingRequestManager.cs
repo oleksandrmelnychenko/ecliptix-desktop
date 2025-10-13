@@ -29,7 +29,7 @@ public interface IPendingRequestManager
     event EventHandler<int>? PendingCountChanged;
 }
 
-public class PendingRequestManager : IPendingRequestManager
+public sealed class PendingRequestManager : IPendingRequestManager
 {
     private readonly ConcurrentDictionary<string, Func<Task>> _pendingRequests = new();
     private readonly ConcurrentDictionary<string, ITypedPendingRequest> _typedPendingRequests = new();
@@ -202,7 +202,7 @@ public class PendingRequestManager : IPendingRequestManager
     }
 }
 
-internal class TypedPendingRequest<T> : ITypedPendingRequest
+internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
 {
     private readonly Func<Task<T>> _retryAction;
     private readonly TaskCompletionSource<T> _originalTaskCompletionSource;

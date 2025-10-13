@@ -13,7 +13,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
+public sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
     : IDisposable
 {
     private readonly Lock _lock = new();
