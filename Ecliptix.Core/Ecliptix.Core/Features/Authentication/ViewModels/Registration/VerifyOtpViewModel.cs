@@ -136,9 +136,14 @@ public class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, I
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
-        IObservable<bool> canResend = this.WhenAnyValue(x => x.SecondsRemaining, x => x.HasValidSession)
-            .Select(tuple => tuple is { Item1: 0, Item2: true })
-            .Catch<bool, Exception>(ex => Observable.Return(false));
+        IObservable<bool> canResend = this.WhenAnyValue(
+                    x => x.SecondsRemaining, 
+                    x => x.HasValidSession,
+                    x => x.CurrentStatus)
+                .Select(tuple => tuple is { Item2: true, Item1: 0 } && 
+                                 tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
+                .DistinctUntilChanged()
+                .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         SendVerificationCodeCommand.IsExecuting
