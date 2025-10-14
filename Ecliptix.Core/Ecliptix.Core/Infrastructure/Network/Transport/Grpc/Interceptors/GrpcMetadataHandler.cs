@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using Ecliptix.Protobuf.Protocol;
 using Grpc.Core;
 
@@ -18,6 +19,7 @@ public static class GrpcMetadataHandler
     private const string LinkIdKey = "fetch-link";
     private const string ApplicationInstanceIdKey = "application-identifier";
     private const string AppDeviceId = "d-identifier";
+    private const string PlatformKey = "platform";
     private const string KeyExchangeContextTypeKey = "oiwfT6c5kOQsZozxhTBg";
     private const string KeyExchangeContextTypeValue = "JmTGdGilMka07zyg5hz6Q";
     private const string ConnectionContextId = "c-context-id";
@@ -37,6 +39,7 @@ public static class GrpcMetadataHandler
             { LinkIdKey, GenerateLinkId() },
             { ApplicationInstanceIdKey, appInstanceId },
             { AppDeviceId, appDeviceId },
+            { PlatformKey, GetPlatform() },
             { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
             { ConnectionContextId, exchangeType.ToString() },
             { OperationContextId, string.Empty }
@@ -82,5 +85,12 @@ public static class GrpcMetadataHandler
     private static string GenerateLinkId()
     {
         return $"link-{Guid.NewGuid():N}"[..16];
+    }
+
+    private static string GetPlatform()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" :
+               RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS" :
+               RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux" : "Unknown";
     }
 }
