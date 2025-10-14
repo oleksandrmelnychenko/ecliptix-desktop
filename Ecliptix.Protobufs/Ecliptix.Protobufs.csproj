@@ -7,10 +7,13 @@
     </PropertyGroup>
 
   <ItemGroup>
+    <!-- Account proto files -->
+    <Protobuf Include="Sources\account\account_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
+
     <!-- Authentication proto files -->
     <Protobuf Include="Sources\authentication\auth_services.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\authentication\verification_models.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    
+
     <!-- Common proto files -->
     <Protobuf Include="Sources\common\secure_envelope.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\encryption.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
