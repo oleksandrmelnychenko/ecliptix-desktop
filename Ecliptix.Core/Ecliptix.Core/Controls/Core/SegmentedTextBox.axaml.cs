@@ -399,7 +399,6 @@ public partial class SegmentedTextBox : UserControl
         OnSegmentChanged();
     }
 
-    [Obsolete]
     private async void HandlePasteAsync()
     {
         try
@@ -407,7 +406,7 @@ public partial class SegmentedTextBox : UserControl
             IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard == null) return;
 
-            string? clipboardText = await clipboard.GetTextAsync();
+            string? clipboardText = await clipboard.TryGetTextAsync();
             if (string.IsNullOrEmpty(clipboardText)) return;
 
             ProcessPastedText(clipboardText);
