@@ -19,7 +19,6 @@
     <Protobuf Include="Sources\common\encryption.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\health_check.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
     <Protobuf Include="Sources\common\types.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
-    <Protobuf Include="Sources\common\cipher_payload.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
 
     <!-- Device proto files -->
     <Protobuf Include="Sources\device\application_settings.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
