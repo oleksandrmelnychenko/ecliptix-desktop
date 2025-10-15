@@ -1,0 +1,77 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+package ecliptix.proto.security;
+option csharp_namespace = "Ecliptix.Protobuf.Security";
+option swift_prefix = "Security";
+
+// Secure request wrapper for first request encryption
+message SecureRequest {
+  // Encrypted payload containing the original request
+  bytes encrypted_payload = 1;
+  
+  // Digital signature of the encrypted payload
+  bytes signature = 2;
+  
+  // Client's ephemeral public key for signature verification
+  bytes client_public_key = 3;
+  
+  // Request timestamp for replay protection
+  google.protobuf.Timestamp timestamp = 4;
+  
+  // Random nonce for additional security
+  bytes nonce = 5;
+  
+  // Signature algorithm used
+  SignatureAlgorithm signature_algorithm = 6;
+  
+  // Encryption algorithm used
+  EncryptionAlgorithm encryption_algorithm = 7;
+  
+  // Protocol version for future compatibility
+  uint32 version = 8;
+
+  // Supported signature algorithms
+  enum SignatureAlgorithm {
+    ECDSA_WITH_SHA256 = 0;
+    ECDSA_WITH_SHA384 = 1;
+    ECDSA_WITH_SHA512 = 2;
+    RSA_PSS_WITH_SHA256 = 3;
+    RSA_PSS_WITH_SHA384 = 4;
+  }
+
+  // Supported encryption algorithms
+  enum EncryptionAlgorithm {
+    RSA_OAEP_WITH_SHA256 = 0;
+    RSA_OAEP_WITH_SHA384 = 1;
+    AES256_GCM_WITH_ECDH = 2;
+  }
+}
+
+// Secure response wrapper
+message SecureResponse {
+  // Encrypted response payload
+  bytes encrypted_payload = 1;
+  
+  // Server signature of the response
+  bytes signature = 2;
+  
+  // Response timestamp
+  google.protobuf.Timestamp timestamp = 3;
+  
+  // Status indicating success or failure
+  SecureStatus status = 4;
+  
+  // Protocol version
+  uint32 version = 5;
+}
+
+// Secure operation status
+enum SecureStatus {
+  SUCCESS = 0;
+  INVALID_SIGNATURE = 1;
+  DECRYPTION_FAILED = 2;
+  REPLAY_ATTACK = 3;
+  UNSUPPORTED_ALGORITHM = 4;
+  INTERNAL_ERROR = 5;
+}

@@ -53,12 +53,12 @@ message OpaqueSignInInitResponse {
   bytes server_ephemeral_public_key = 2;
   bytes registration_record = 3;
   bytes server_state_token = 4;
-  
+
   optional string message = 5;
   optional int32 minutes_until_retry = 6;
   SignInResult result = 7;
   bytes server_mac = 8;
-  
+
   enum SignInResult {
     SUCCEEDED = 0;
     INVALID_CREDENTIALS = 1;
@@ -89,7 +89,7 @@ message OpaqueSignInFinalizeResponse {
   }
 }
 
-// OPAQUE Recovery Messages  
+// OPAQUE Recovery Messages
 message OpaqueRecoverySecureKeyInitRequest {
   bytes peer_oprf = 1;
   bytes membership_identifier = 2;

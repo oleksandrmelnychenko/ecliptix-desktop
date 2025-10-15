@@ -28,8 +28,8 @@ message EnvelopeMetadata{
 message EnvelopeError {
   string error_code = 1;                    // Machine-readable error code
   string error_message = 2;                 // Human-readable message
-  optional uint32 retry_after_seconds = 3; 
-  google.protobuf.Timestamp occurred_at = 4; 
+  optional uint32 retry_after_seconds = 3;
+  google.protobuf.Timestamp occurred_at = 4;
 }
 
 enum EnvelopeResultCode {
