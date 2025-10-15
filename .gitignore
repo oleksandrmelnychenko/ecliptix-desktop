@@ -44,6 +44,9 @@ claude_desktop_config.json
 appsettings.*.local.json
 secrets.json
 
+# Claude Code configuration
+CLAUDE.md
+
 # Runtime files
 *.tmp
 *.temp
