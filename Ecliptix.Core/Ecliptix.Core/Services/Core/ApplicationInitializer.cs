@@ -190,9 +190,23 @@ public sealed class ApplicationInitializer(
 
                 if (recreateResult.IsErr)
                 {
-                    Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
-                        connectId, recreateResult.UnwrapErr().Message);
-                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
+                    NetworkFailure failure = recreateResult.UnwrapErr();
+
+                    if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+                    {
+                        Log.Error(
+                            "[CLIENT-AUTH-CRITICAL] Critical authentication failure detected. Server cannot derive identity keys. Performing full cleanup. MembershipId: {MembershipId}, Error: {Error}",
+                            membershipId, failure.Message);
+
+                        await CleanupCorruptedIdentityDataAsync(membershipId!, applicationInstanceSettings).ConfigureAwait(false);
+                        await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
+                            connectId, failure.Message);
+                        await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
+                    }
                 }
                 else
                 {

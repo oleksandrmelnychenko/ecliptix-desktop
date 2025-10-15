@@ -308,12 +308,24 @@ internal sealed class OpaqueAuthenticationService(
 
                 if (recreateProtocolResult.IsErr)
                 {
+                    NetworkFailure networkFailure = recreateProtocolResult.UnwrapErr();
+
+                    if (networkFailure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+                    {
+                        Serilog.Log.Error(
+                            "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, Error: {Error}",
+                            membershipId, networkFailure.Message);
+                        return Result<Unit, AuthenticationFailure>.Err(
+                            AuthenticationFailure.CriticalAuthenticationError(
+                                $"Critical server error: {networkFailure.Message}"));
+                    }
+
                     Serilog.Log.Error(
                         "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
-                        membershipId, recreateProtocolResult.UnwrapErr().Message);
+                        membershipId, networkFailure.Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.NetworkRequestFailed(
-                            $"Failed to establish authenticated protocol: {recreateProtocolResult.UnwrapErr().Message}"));
+                            $"Failed to establish authenticated protocol: {networkFailure.Message}"));
                 }
 
                 Serilog.Log.Information(

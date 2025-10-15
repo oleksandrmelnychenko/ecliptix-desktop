@@ -34,4 +34,7 @@ public record NetworkFailure(
 
     public static NetworkFailure OperationCancelled(string? details = null, Exception? inner = null) =>
         new(NetworkFailureType.OperationCancelled, details ?? "Operation was cancelled", inner);
+
+    public static NetworkFailure CriticalAuthenticationFailure(string details, Exception? inner = null) =>
+        new(NetworkFailureType.CriticalAuthenticationFailure, details, inner);
 }

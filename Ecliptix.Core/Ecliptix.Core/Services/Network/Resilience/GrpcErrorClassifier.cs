@@ -57,4 +57,8 @@ public static class GrpcErrorClassifier
 
     public static bool IsCancelled(RpcException ex) =>
         ex.StatusCode == StatusCode.Cancelled;
+
+    public static bool IsIdentityKeyDerivationFailure(RpcException ex) =>
+        ex.StatusCode == StatusCode.Unauthenticated &&
+        (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", System.StringComparison.Ordinal) == true);
 }

@@ -87,6 +87,12 @@ public sealed class SecrecyChannelRpcServices(
         }
         catch (RpcException rpcEx)
         {
+            if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcEx))
+            {
+                return Result<SecureEnvelope, NetworkFailure>.Err(
+                    NetworkFailure.CriticalAuthenticationFailure(rpcEx.Status.Detail));
+            }
+
             if (GrpcErrorClassifier.IsBusinessError(rpcEx))
             {
                 return Result<SecureEnvelope, NetworkFailure>.Err(

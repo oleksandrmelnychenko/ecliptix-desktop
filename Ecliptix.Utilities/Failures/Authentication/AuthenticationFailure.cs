@@ -67,4 +67,7 @@ public record AuthenticationFailure(
 
     public static AuthenticationFailure IdentityLoadFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.IdentityLoadFailed, details, inner);
+
+    public static AuthenticationFailure CriticalAuthenticationError(string details, Exception? inner = null) =>
+        new(AuthenticationFailureType.CriticalAuthenticationError, details, inner);
 }

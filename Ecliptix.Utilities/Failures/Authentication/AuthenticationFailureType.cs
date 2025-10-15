@@ -18,5 +18,6 @@ public enum AuthenticationFailureType
     KeyStorageFailed,
     IdentityStorageFailed,
     IdentityNotFound,
-    IdentityLoadFailed
+    IdentityLoadFailed,
+    CriticalAuthenticationError
 }

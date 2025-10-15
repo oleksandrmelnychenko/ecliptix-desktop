@@ -1932,13 +1932,26 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (serverResponseResult.IsErr)
                 {
+                    NetworkFailure failure = serverResponseResult.UnwrapErr();
+
+                    if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+                    {
+                        Log.Error(
+                            "[CLIENT-AUTH-CRITICAL-FAILURE] Critical authentication failure - server cannot derive identity keys. ConnectId: {ConnectId}, Error: {Error}",
+                            connectId, failure.Message);
+
+                        await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
+
+                        return Result<Unit, NetworkFailure>.Err(failure);
+                    }
+
                     await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
-                            $"Failed to establish authenticated channel: {serverResponseResult.UnwrapErr().Message}");
+                            $"Failed to establish authenticated channel: {failure.Message}");
                     });
-                    return Result<Unit, NetworkFailure>.Err(serverResponseResult.UnwrapErr());
+                    return Result<Unit, NetworkFailure>.Err(failure);
                 }
 
                 SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();

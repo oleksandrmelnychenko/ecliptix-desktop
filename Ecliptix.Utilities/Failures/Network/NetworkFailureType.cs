@@ -9,4 +9,5 @@ public enum NetworkFailureType
     RsaEncryptionFailure,
     ProtocolStateMismatch,
     OperationCancelled,
+    CriticalAuthenticationFailure,
 }
