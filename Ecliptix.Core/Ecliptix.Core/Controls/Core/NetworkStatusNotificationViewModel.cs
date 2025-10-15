@@ -15,6 +15,7 @@ using Avalonia.Threading;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
@@ -92,10 +93,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
-        IMessageBus messageBus,
+        INetworkEventService networkEventService,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
+
 
         IObservable<Unit> languageTrigger = Observable.FromEvent(
                 handler => LocalizationService.LanguageChanged += handler,
@@ -108,14 +110,32 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Subscribe(_ => ClearStringCache())
             .DisposeWith(_disposables);
 
-        IObservable<NetworkStatusChangedEvent> networkStatusEvents = messageBus
-            .GetEvent<NetworkStatusChangedEvent>()
+        IObservable<NetworkStatusChangedEvent> networkStatusEvents =
+            Observable.Create<NetworkStatusChangedEvent>(observer =>
+            {
+                return networkEventService.OnNetworkStatusChanged(
+                    evt =>
+                    {
+                        observer.OnNext(evt);
+                        return Task.CompletedTask;
+                    },
+                    SubscriptionLifetime.Scoped);
+            })
             .DistinctUntilChanged(e => e.State)
             .Publish()
             .RefCount();
 
-        IObservable<ManualRetryRequestedEvent> manualRetryEvents = messageBus
-            .GetEvent<ManualRetryRequestedEvent>();
+        IObservable<ManualRetryRequestedEvent> manualRetryEvents =
+            Observable.Create<ManualRetryRequestedEvent>(observer =>
+        {
+            return networkEventService.OnManualRetryRequested(
+                evt =>
+                {
+                    observer.OnNext(evt);
+                    return Task.CompletedTask;
+                },
+                SubscriptionLifetime.Scoped);
+        });
 
         IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
             .Select(evt => evt.State switch
@@ -200,7 +220,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
 
-                    await messageBus.PublishAsync(ManualRetryRequestedEvent.New());
+                    await networkEventService.RequestManualRetryAsync();
 
                     int retriedCount = await pendingRequestManager.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
