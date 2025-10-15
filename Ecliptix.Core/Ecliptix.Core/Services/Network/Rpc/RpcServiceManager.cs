@@ -42,7 +42,7 @@ internal class RpcServiceManager : IRpcServiceManager
             };
     }
 
-    public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
+    public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         SecureEnvelope envelope,
@@ -56,7 +56,7 @@ internal class RpcServiceManager : IRpcServiceManager
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
+    public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         RestoreChannelRequest request,
@@ -68,7 +68,7 @@ internal class RpcServiceManager : IRpcServiceManager
             cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
+    public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecureChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         AuthenticatedEstablishRequest request,

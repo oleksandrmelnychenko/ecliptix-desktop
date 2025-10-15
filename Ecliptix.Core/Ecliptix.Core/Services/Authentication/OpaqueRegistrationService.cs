@@ -255,25 +255,17 @@ internal sealed class OpaqueRegistrationService(
             RpcServiceType.VerifyOtp,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                try
-                {
-                    VerifyCodeResponse response = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
+                VerifyCodeResponse response = Helpers.ParseFromBytes<VerifyCodeResponse>(payload);
 
-                    if (response.Result == VerificationResult.Succeeded)
-                    {
-                        responseSource.TrySetResult(response.Membership);
-                    }
-                    else
-                    {
-                        responseSource.TrySetException(
-                            new InvalidOperationException(
-                                localizationService[AuthenticationConstants.InvalidOtpCodeKey]));
-                    }
-                }
-                catch (Exception ex)
+                if (response.Result == VerificationResult.Succeeded)
                 {
-                    Serilog.Log.Error(ex, "[VERIFY-OTP] Failed to parse OTP verification response");
-                    responseSource.TrySetException(ex);
+                    responseSource.TrySetResult(response.Membership);
+                }
+                else
+                {
+                    responseSource.TrySetException(
+                        new InvalidOperationException(
+                            localizationService[AuthenticationConstants.InvalidOtpCodeKey]));
                 }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -318,7 +310,8 @@ internal sealed class OpaqueRegistrationService(
             }
 
             Result<OpaqueRegistrationInitResponse, string> initResult =
-                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.GetRequestCopy(), connectId,
+                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
+                    connectId,
                     cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)

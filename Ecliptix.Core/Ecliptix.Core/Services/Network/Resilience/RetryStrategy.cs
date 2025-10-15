@@ -96,7 +96,7 @@ public sealed class RetryStrategy : IRetryStrategy
         _lazyNetworkProvider = lazyNetworkProvider;
     }
 
-    public async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
+    public async Task<Result<TResponse, NetworkFailure>> ExecuteRpcOperationAsync<TResponse>(
         Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint connectId,
@@ -108,7 +108,7 @@ public sealed class RetryStrategy : IRetryStrategy
             .ConfigureAwait(false);
     }
 
-    public async Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryOperationAsync<TResponse>(
+    public async Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryRpcOperationAsync<TResponse>(
         Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint connectId,

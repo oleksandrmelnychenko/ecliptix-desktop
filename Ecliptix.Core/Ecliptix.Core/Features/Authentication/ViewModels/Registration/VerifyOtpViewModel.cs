@@ -42,7 +42,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
     private IDisposable? _autoRedirectTimer;
-    private CancellationTokenSource? _operationCts;
+    private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
@@ -187,7 +187,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         if (_isDisposed) return;
 
-        _operationCts?.Cancel();
+        _cancellationTokenSource?.Cancel();
 
         _ = Task.Run(async () =>
         {
@@ -202,10 +202,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             if (_isDisposed) return;
 
-            _operationCts?.Cancel();
-            _operationCts?.Dispose();
-            _operationCts = new CancellationTokenSource();
-            _disposables.Add(_operationCts);
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = new CancellationTokenSource();
+            _disposables.Add(_cancellationTokenSource);
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
@@ -225,7 +225,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                             {
                             }
                         }),
-                    cancellationToken: _operationCts.Token)
+                    cancellationToken: _cancellationTokenSource.Token)
                 : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
                     _mobileNumberIdentifier,
                     deviceIdentifier,
@@ -241,7 +241,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                             {
                             }
                         }),
-                    cancellationToken: _operationCts.Token);
+                    cancellationToken: _cancellationTokenSource.Token);
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
@@ -271,7 +271,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        CancellationToken operationToken = _operationCts?.Token ?? CancellationToken.None;
+        CancellationToken operationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
 
         Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
             ? _registrationService.VerifyOtpAsync(
@@ -366,18 +366,18 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-            CancellationTokenSource? oldCts = _operationCts;
-            _operationCts = new CancellationTokenSource();
-            _disposables.Add(_operationCts);
+            CancellationTokenSource? oldCts = _cancellationTokenSource;
+            _cancellationTokenSource = new CancellationTokenSource();
+            _disposables.Add(_cancellationTokenSource);
 
             oldCts?.Dispose();
 
             Task.Run(async () =>
             {
-                if (_isDisposed || _operationCts.Token.IsCancellationRequested)
+                if (_isDisposed || _cancellationTokenSource.Token.IsCancellationRequested)
                     return;
 
-                _operationCts.Token.ThrowIfCancellationRequested();
+                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
                 Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = _flowContext == AuthenticationFlowContext.Registration
                     ? _registrationService.ResendOtpVerificationAsync(
@@ -390,7 +390,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 if (!_isDisposed)
                                     HandleCountdownUpdate(seconds, identifier, status, message);
                             }),
-                        cancellationToken: _operationCts.Token)
+                        cancellationToken: _cancellationTokenSource.Token)
                     : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
                         VerificationSessionIdentifier!.Value,
                         _mobileNumberIdentifier,
@@ -401,7 +401,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 if (!_isDisposed)
                                     HandleCountdownUpdate(seconds, identifier, status, message);
                             }),
-                        cancellationToken: _operationCts.Token);
+                        cancellationToken: _cancellationTokenSource.Token);
 
                 Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
@@ -417,7 +417,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         }
                     });
                 }
-            }, _operationCts.Token);
+            }, _cancellationTokenSource.Token);
         }
         else
         {
@@ -556,9 +556,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             if (_isDisposed) return;
 
-            _operationCts?.Cancel();
-            _operationCts?.Dispose();
-            _operationCts = null;
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
 
             await _uiDispatcher.PostAsync(() =>
             {
@@ -635,8 +635,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         if (disposing && !_isDisposed)
         {
             _isDisposed = true;
-            _operationCts?.Cancel();
-            _operationCts?.Dispose();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
             _autoRedirectTimer?.Dispose();
             _disposables?.Dispose();
         }

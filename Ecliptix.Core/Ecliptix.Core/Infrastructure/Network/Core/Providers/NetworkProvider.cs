@@ -170,13 +170,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ByteString.CopyFrom(combinedEncryptedPayload)
         );
 
-        CancellationToken finalToken = cancellationToken == default ? GetConnectionRecoveryToken() : cancellationToken;
+        CancellationToken finalToken = cancellationToken == CancellationToken.None
+            ? GetConnectionRecoveryToken()
+            : cancellationToken;
 
         Result<SecureEnvelope, NetworkFailure> establishAppDeviceSecrecyChannelResult;
         if (maxRetries.HasValue)
         {
-            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                ct => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
+                ct => _rpcServiceManager.EstablishSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -186,8 +188,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                ct => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
+                ct => _rpcServiceManager.EstablishSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -460,7 +462,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             catch (OperationCanceledException)
             {
                 return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding("Request cancelled due to network timeout or connection failure"));
+                    NetworkFailure.DataCenterNotResponding(
+                        "Request cancelled due to network timeout or connection failure"));
             }
             catch (Exception ex)
             {
@@ -471,7 +474,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             tokenRegistration.Dispose();
 
-            if (!shouldAllowDuplicates && _pendingRequests.TryRemove(requestKey, out CancellationTokenSource? pendingCancellation))
+            if (!shouldAllowDuplicates &&
+                _pendingRequests.TryRemove(requestKey, out CancellationTokenSource? pendingCancellation))
             {
                 pendingCancellation.Dispose();
             }
@@ -536,8 +540,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                         : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                    ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
+                    ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents, _systemEvents,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -554,8 +558,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                         : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryOperationAsync(
-                    ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
+                    ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents, _systemEvents,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -567,7 +571,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 try
                 {
                     restoreAppDeviceSecrecyChannelResponse =
-                        await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                        await _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents, _systemEvents,
                             request,
                             cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
@@ -964,7 +968,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint connectId,
         CancellationToken token)
     {
-        Result<RpcFlow, NetworkFailure> invokeResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+        Result<RpcFlow, NetworkFailure> invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
             ct => _rpcServiceManager.InvokeServiceRequestAsync(request, ct),
             $"UnaryRequest_{request.RpcServiceMethod}",
             connectId,
@@ -1218,7 +1222,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             waitTask = _outageCompletionSource.Task;
         }
 
-        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _shutdownCancellationToken.Token);
+        using CancellationTokenSource cts =
+            CancellationTokenSource.CreateLinkedTokenSource(token, _shutdownCancellationToken.Token);
         cts.CancelAfter(NetworkConstants.Timeouts.OutageRecoveryTimeout);
 
         try
@@ -1235,7 +1240,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (OperationCanceledException)
         {
-            throw new TimeoutException("Outage recovery timeout expired - secrecy channel not restored within timeout period");
+            throw new TimeoutException(
+                "Outage recovery timeout expired - secrecy channel not restored within timeout period");
         }
     }
 
@@ -1273,7 +1279,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     return _shutdownCancellationToken.Token;
                 }
 
-                _connectionRecoveryCts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownCancellationToken.Token);
+                _connectionRecoveryCts =
+                    CancellationTokenSource.CreateLinkedTokenSource(_shutdownCancellationToken.Token);
             }
 
             return _connectionRecoveryCts.Token;
@@ -1920,7 +1927,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 };
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =
-                    await _rpcServiceManager.AuthenticatedEstablishSecureChannelAsync(
+                    await _rpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
                         _networkEvents, _systemEvents, authenticatedRequest).ConfigureAwait(false);
 
                 if (serverResponseResult.IsErr)
