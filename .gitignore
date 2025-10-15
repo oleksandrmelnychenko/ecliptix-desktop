@@ -47,6 +47,9 @@ secrets.json
 # Claude Code configuration
 CLAUDE.md
 
+# Internal documentation (security-sensitive)
+ECLIPTIX_PROTOCOL_DOCUMENTATION.md
+
 # Runtime files
 *.tmp
 *.temp
