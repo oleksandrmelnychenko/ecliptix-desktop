@@ -45,5 +45,4 @@ public sealed record BottomSheetHiddenEvent
     }
 
     public static BottomSheetHiddenEvent UserDismissed() => new(true);
-    public static BottomSheetHiddenEvent ProgrammaticallyHidden() => new(false);
 }

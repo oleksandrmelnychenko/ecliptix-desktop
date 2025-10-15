@@ -6,7 +6,7 @@ using Google.Protobuf;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public record LocalPublicKeyBundle(
+internal record LocalPublicKeyBundle(
     byte[] IdentityEd25519,
     byte[] IdentityX25519,
     uint SignedPreKeyId,

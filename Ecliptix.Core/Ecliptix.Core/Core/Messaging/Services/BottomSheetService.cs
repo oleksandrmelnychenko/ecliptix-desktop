@@ -5,7 +5,7 @@ using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
 
-public sealed class BottomSheetService(IUnifiedMessageBus messageBus) : IBottomSheetService, IDisposable
+internal sealed class BottomSheetService(IMessageBus messageBus) : IBottomSheetService, IDisposable
 {
     private bool _disposed;
 

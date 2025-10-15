@@ -9,7 +9,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public sealed class SecureStringHandler : IDisposable
+internal sealed class SecureStringHandler : IDisposable
 {
     private readonly SodiumSecureMemoryHandle _handle;
     private readonly int _length;
@@ -236,7 +236,7 @@ public sealed class SecureStringHandler : IDisposable
     }
 }
 
-public sealed class SecureStringBuilder : IDisposable
+internal sealed class SecureStringBuilder : IDisposable
 {
     private readonly List<SodiumSecureMemoryHandle> _chunks;
     private readonly int _chunkSize;

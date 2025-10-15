@@ -1,6 +1,6 @@
 namespace Ecliptix.Protocol.System;
 
-public static class ProtocolSystemConstants
+internal static class ProtocolSystemConstants
 {
     public static class Timeouts
     {

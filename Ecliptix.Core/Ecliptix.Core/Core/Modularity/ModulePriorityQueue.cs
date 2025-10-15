@@ -5,7 +5,7 @@ using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public class ModulePriorityQueue
+internal class ModulePriorityQueue
 {
     private const int MaxRetryAttempts = 100;
 

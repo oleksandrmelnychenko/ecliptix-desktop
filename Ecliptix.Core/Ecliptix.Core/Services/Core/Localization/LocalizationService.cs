@@ -10,7 +10,7 @@ using Ecliptix.Core.Settings;
 
 namespace Ecliptix.Core.Services.Core.Localization;
 
-public sealed class LocalizationService : ILocalizationService
+internal sealed class LocalizationService : ILocalizationService
 {
     private FrozenDictionary<string, string> _currentLanguageStrings;
     private CultureInfo _currentCultureInfo;

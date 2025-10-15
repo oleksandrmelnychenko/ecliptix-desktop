@@ -6,7 +6,7 @@ using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
 
-public sealed class NetworkEventService(IUnifiedMessageBus messageBus) : INetworkEventService, IDisposable
+internal sealed class NetworkEventService(IMessageBus messageBus) : INetworkEventService, IDisposable
 {
     private readonly ReaderWriterLockSlim _statusLock = new();
 

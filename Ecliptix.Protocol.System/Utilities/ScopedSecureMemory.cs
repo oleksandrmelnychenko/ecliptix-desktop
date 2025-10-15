@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public sealed class ScopedSecureMemory : IDisposable
+internal sealed class ScopedSecureMemory : IDisposable
 {
     private byte[]? _data;
     private readonly bool _clearOnDispose;

@@ -7,7 +7,7 @@ using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public class ModuleLoadingContext
+internal class ModuleLoadingContext
 {
     private readonly record struct ModuleState(IModule Module, DateTime LoadTime);
 

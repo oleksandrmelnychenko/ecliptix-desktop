@@ -6,7 +6,7 @@ using Avalonia.Platform;
 using Serilog;
 using System;
 
-public static class IconService
+internal static class IconService
 {
     private static WindowIcon? _cachedIcon;
 

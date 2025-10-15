@@ -5,7 +5,7 @@ using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;
 
-public sealed class LanguageDetectionService(IUnifiedMessageBus messageBus) : ILanguageDetectionService, IDisposable
+internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILanguageDetectionService, IDisposable
 {
     private bool _disposed;
 

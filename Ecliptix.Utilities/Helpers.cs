@@ -6,7 +6,7 @@ using Google.Protobuf;
 
 namespace Ecliptix.Utilities;
 
-public static class Helpers
+internal static class Helpers
 {
     private static readonly RandomNumberGenerator Rng = RandomNumberGenerator.Create();
 

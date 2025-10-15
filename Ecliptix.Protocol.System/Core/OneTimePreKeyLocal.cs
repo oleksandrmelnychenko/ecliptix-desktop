@@ -8,15 +8,20 @@ namespace Ecliptix.Protocol.System.Core;
 
 public readonly struct OneTimePreKeyLocal : IDisposable
 {
+    private readonly byte[] _publicKey;
+
     public uint PreKeyId { get; }
-    public SodiumSecureMemoryHandle PrivateKeyHandle { get; }
-    public byte[] PublicKey { get; }
+    internal SodiumSecureMemoryHandle PrivateKeyHandle { get; }
+
+    public ReadOnlySpan<byte> PublicKeySpan => _publicKey;
+
+    public byte[] GetPublicKeyCopy() => (byte[])_publicKey.Clone();
 
     private OneTimePreKeyLocal(uint preKeyId, SodiumSecureMemoryHandle privateKeyHandle, byte[] publicKey)
     {
         PreKeyId = preKeyId;
         PrivateKeyHandle = privateKeyHandle;
-        PublicKey = publicKey;
+        _publicKey = publicKey;
     }
 
     public static OneTimePreKeyLocal CreateFromParts(uint preKeyId, SodiumSecureMemoryHandle privateKeyHandle,

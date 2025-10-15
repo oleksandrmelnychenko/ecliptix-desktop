@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public class CompositeServiceScope : IServiceScope
+internal class CompositeServiceScope : IServiceScope
 {
     private readonly ServiceProvider _moduleServiceProvider;
     private readonly IServiceScope _parentScope;
@@ -30,7 +30,7 @@ public class CompositeServiceScope : IServiceScope
     }
 }
 
-public class CompositeServiceProvider : IServiceProvider, IDisposable
+internal class CompositeServiceProvider : IServiceProvider, IDisposable
 {
     private readonly IServiceProvider _moduleProvider;
     private readonly IServiceProvider _mainProvider;

@@ -44,7 +44,7 @@ public sealed class SignInResult(
     }
 }
 
-public sealed class OpaqueAuthenticationService(
+internal sealed class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
     ISystemEventService systemEvents,
@@ -124,7 +124,7 @@ public sealed class OpaqueAuthenticationService(
         OpaqueSignInInitRequest initRequest = new()
         {
             MobileNumber = mobileNumber,
-            PeerOprf = ByteString.CopyFrom(ke1Result.KeyExchangeData),
+            PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
         };
 
         Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =

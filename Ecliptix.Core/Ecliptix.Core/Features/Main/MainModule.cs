@@ -12,11 +12,9 @@ using Ecliptix.Core.Services.Abstractions.Core;
 namespace Ecliptix.Core.Features.Main;
 
 public record MainModuleManifest() : ModuleManifest(
-    Version: new Version(1, 0, 0),
     Priority: 20,
     LoadingStrategy: ModuleLoadingStrategy.Lazy,
-    Dependencies: [],
-    ResourceConstraints: ModuleResourceConstraints.Default
+    Dependencies: []
 );
 
 public class MainModule : ModuleBase<MainModuleManifest>

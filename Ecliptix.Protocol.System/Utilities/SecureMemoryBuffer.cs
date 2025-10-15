@@ -4,7 +4,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public sealed class SecureMemoryBuffer : IDisposable
+internal sealed class SecureMemoryBuffer : IDisposable
 {
     private readonly SecureMemoryPool? _pool;
     private readonly SodiumSecureMemoryHandle _handle;

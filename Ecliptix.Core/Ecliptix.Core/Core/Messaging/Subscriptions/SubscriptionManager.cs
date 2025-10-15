@@ -103,30 +103,6 @@ internal sealed class SubscriptionManager : IDisposable
         }
     }
 
-    public MessageBusStatistics GetStatistics()
-    {
-        long totalSubscriptions = Interlocked.Read(ref _totalSubscriptions);
-        long deadReferencesCleanedUp = Interlocked.Read(ref _deadReferencesCleanedUp);
-
-        int weakCount = 0;
-        int strongCount = 0;
-
-        foreach (SubscriptionList list in _subscriptions.Values)
-        {
-            (int weak, int strong) = list.GetSubscriptionCounts();
-            weakCount += weak;
-            strongCount += strong;
-        }
-
-        return new MessageBusStatistics
-        {
-            ActiveSubscriptions = (int)totalSubscriptions,
-            WeakSubscriptions = weakCount,
-            StrongSubscriptions = strongCount,
-            DeadReferencesCleanedUp = (int)deadReferencesCleanedUp
-        };
-    }
-
     private void CleanupDeadReferences(object? state)
     {
         if (_disposed) return;

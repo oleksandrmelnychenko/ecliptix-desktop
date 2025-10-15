@@ -4,7 +4,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class ReplayProtection : IDisposable
+internal sealed class ReplayProtection : IDisposable
 {
     private readonly ConcurrentDictionary<string, DateTime> _processedNonces;
     private readonly ConcurrentDictionary<ulong, MessageWindow> _messageWindows;

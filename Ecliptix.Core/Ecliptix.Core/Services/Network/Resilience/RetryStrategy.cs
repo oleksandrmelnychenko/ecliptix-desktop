@@ -151,7 +151,12 @@ public sealed class RetryStrategy : IRetryStrategy
         try
         {
             IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy =
-                CreateTypedRetryPolicy<TResponse>(actualMaxRetries, operationKey, operationName, actualConnectId);
+                CreateTypedRetryPolicy<TResponse>(
+                    actualMaxRetries,
+                    operationKey,
+                    operationName,
+                    actualConnectId,
+                    cancellationToken);
 
             Context context = new(operationName);
 
@@ -539,7 +544,8 @@ public sealed class RetryStrategy : IRetryStrategy
         int maxRetries,
         string operationKey,
         string operationName,
-        uint connectId)
+        uint connectId,
+        CancellationToken cancellationToken)
     {
         IEnumerable<TimeSpan> rawDelays = _strategyConfiguration.UseAdaptiveRetry
             ? Backoff.DecorrelatedJitterBackoffV2(
@@ -600,6 +606,9 @@ public sealed class RetryStrategy : IRetryStrategy
                             operationName, connectId, retryCount, retryDelays.Length);
 
                         MarkOperationAsExhausted(operationKey);
+
+                        NetworkProvider? networkProvider = GetNetworkProvider();
+                        networkProvider?.BeginSecrecyChannelEstablishRecovery();
 
                         bool allExhausted = IsGloballyExhausted();
                         if (allExhausted)
@@ -667,11 +676,12 @@ public sealed class RetryStrategy : IRetryStrategy
 
                     if (requiresRecovery)
                     {
-                        await Task.Run(async () =>
+                        if (_isDisposed || cancellationToken.IsCancellationRequested)
                         {
-                            if (_isDisposed) return;
-                            await EnsureSecrecyChannelAsync(connectId);
-                        }).ConfigureAwait(false);
+                            return;
+                        }
+
+                        await EnsureSecrecyChannelAsync(connectId, cancellationToken).ConfigureAwait(false);
                     }
                 });
 
@@ -693,8 +703,13 @@ public sealed class RetryStrategy : IRetryStrategy
         return combinedPolicy;
     }
 
-    private async Task EnsureSecrecyChannelAsync(uint connectId)
+    private async Task EnsureSecrecyChannelAsync(uint connectId, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         NetworkProvider? networkProvider = GetNetworkProvider();
         if (networkProvider == null)
         {
@@ -704,6 +719,13 @@ public sealed class RetryStrategy : IRetryStrategy
 
         try
         {
+            networkProvider.BeginSecrecyChannelEstablishRecovery();
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (networkProvider.IsConnectionHealthy(connectId))
             {
                 return;
@@ -712,6 +734,13 @@ public sealed class RetryStrategy : IRetryStrategy
             Log.Debug("Attempting to restore connection for ConnectId {ConnectId}", connectId);
             Result<bool, NetworkFailure> restoreResult =
                 await networkProvider.TryRestoreConnectionAsync(connectId).ConfigureAwait(false);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {

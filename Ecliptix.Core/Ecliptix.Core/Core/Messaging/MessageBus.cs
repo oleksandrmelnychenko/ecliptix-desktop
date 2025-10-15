@@ -12,7 +12,7 @@ using Ecliptix.Core.Core.Utilities;
 
 namespace Ecliptix.Core.Core.Messaging;
 
-public sealed class UnifiedMessageBus : IUnifiedMessageBus
+public sealed class MessageBus : IMessageBus
 {
     private readonly SubscriptionManager _subscriptionManager;
     private readonly ConcurrentDictionary<string, IMessageRequest> _pendingRequests = new();
@@ -24,10 +24,9 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
     private long _totalRequestsProcessed;
 
     private bool _disposed;
-
     public bool IsDisposed => _disposed;
 
-    public UnifiedMessageBus()
+    public MessageBus()
     {
         _subscriptionManager = new SubscriptionManager();
 
@@ -36,7 +35,7 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
 
     public IObservable<TMessage> GetEvent<TMessage>() where TMessage : class
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(UnifiedMessageBus));
+        if (_disposed) throw new ObjectDisposedException(nameof(MessageBus));
 
         ReactiveSubjectWrapper wrapper = _reactiveSubjects.GetOrAdd(
             typeof(TMessage),
@@ -59,25 +58,10 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
 
         if (_reactiveSubjects.TryGetValue(typeof(TMessage), out ReactiveSubjectWrapper? wrapper))
         {
-            try
-            {
-                ((Subject<TMessage>)wrapper.Subject).OnNext(message);
-            }
-            catch (Exception)
-            {
-            }
+            ((Subject<TMessage>)wrapper.Subject).OnNext(message);
         }
 
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _subscriptionManager.PublishAsync(message, CancellationToken.None);
-            }
-            catch (Exception)
-            {
-            }
-        });
+        _ = Task.Run(async () => { await _subscriptionManager.PublishAsync(message, CancellationToken.None); });
 
         Interlocked.Increment(ref _totalMessagesPublished);
     }
@@ -85,17 +69,9 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
     public async Task PublishAsync<TMessage>(TMessage message, CancellationToken cancellationToken = default)
         where TMessage : class
     {
-        if (_disposed) return;
-
         if (_reactiveSubjects.TryGetValue(typeof(TMessage), out ReactiveSubjectWrapper? wrapper))
         {
-            try
-            {
-                ((Subject<TMessage>)wrapper.Subject).OnNext(message);
-            }
-            catch (Exception)
-            {
-            }
+            ((Subject<TMessage>)wrapper.Subject).OnNext(message);
         }
 
         await _subscriptionManager.PublishAsync(message, cancellationToken);
@@ -110,14 +86,12 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
         return Subscribe<TMessage>(_ => true, handler, lifetime, 0);
     }
 
-    public IDisposable Subscribe<TMessage>(
+    private IDisposable Subscribe<TMessage>(
         Func<TMessage, bool> filter,
         Func<TMessage, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Strong,
         int priority = 0) where TMessage : class
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(UnifiedMessageBus));
-
         return _subscriptionManager.Subscribe(filter, handler, lifetime, priority);
     }
 
@@ -128,9 +102,6 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
         where TRequest : class, IMessageRequest
         where TResponse : class, IMessageResponse
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(UnifiedMessageBus));
-        if (request == null) throw new ArgumentNullException(nameof(request));
-
         if (timeout == TimeSpan.Zero)
             timeout = request.Timeout;
 
@@ -175,22 +146,6 @@ public sealed class UnifiedMessageBus : IUnifiedMessageBus
         {
             _pendingRequests.TryRemove(request.MessageId, out _);
         }
-    }
-
-    public MessageBusStatistics GetStatistics()
-    {
-        if (_disposed) return new MessageBusStatistics();
-
-        MessageBusStatistics baseStats = _subscriptionManager.GetStatistics();
-
-        int activeSubjects = _reactiveSubjects.Count(kvp => kvp.Value.ReferenceCount > 0);
-
-        return baseStats with
-        {
-            TotalMessagesPublished = Interlocked.Read(ref _totalMessagesPublished),
-            TotalRequestsProcessed = Interlocked.Read(ref _totalRequestsProcessed),
-            PooledObjectsInUse = activeSubjects
-        };
     }
 
     private void CleanupUnusedSubjects(object? state)

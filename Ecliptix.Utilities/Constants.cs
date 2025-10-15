@@ -1,6 +1,6 @@
 namespace Ecliptix.Utilities;
 
-public static class Constants
+internal static class Constants
 {
     public const int X25519KeySize = 32;
     public const int Ed25519KeySize = 32;

@@ -1,6 +1,6 @@
 namespace Ecliptix.Protocol.System.Utilities;
 
-public static class SecureArrayPool
+internal static class SecureArrayPool
 {
     public static SecurePooledArray<T> Rent<T>(int minimumLength) where T : struct
     {

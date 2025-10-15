@@ -12,7 +12,7 @@ using Ecliptix.Utilities.Failures.Network;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
-public class RpcServiceManager : IRpcServiceManager
+internal class RpcServiceManager : IRpcServiceManager
 {
     private readonly ISecrecyChannelRpcServices _secrecyChannelRpcServices;
 

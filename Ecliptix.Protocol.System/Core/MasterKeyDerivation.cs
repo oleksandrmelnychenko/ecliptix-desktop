@@ -12,7 +12,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public static class MasterKeyDerivation
+internal static class MasterKeyDerivation
 {
     private const int KEY_SIZE = 32;
     private const int CURRENT_VERSION = 1;

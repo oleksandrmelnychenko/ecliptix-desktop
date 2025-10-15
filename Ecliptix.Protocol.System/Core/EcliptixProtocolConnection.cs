@@ -14,7 +14,7 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class EcliptixProtocolConnection : IDisposable
+internal sealed class EcliptixProtocolConnection : IDisposable
 {
     private static readonly TimeSpan SessionTimeout = ProtocolSystemConstants.Timeouts.SessionTimeout;
     private static ReadOnlySpan<byte> InitialSenderChainInfo => Encoding.UTF8.GetBytes(ProtocolSystemConstants.Protocol.InitialSenderChainInfo);

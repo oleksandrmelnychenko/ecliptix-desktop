@@ -13,7 +13,7 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 
-public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
+internal sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 {
     public const string HttpClientName = "InternetConnectivityProbeClient";
     private const int NetworkChangeThrottleMs = 500;
@@ -22,6 +22,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
     private readonly HttpClient _httpClient;
     private readonly IObservable<bool> _connectivityObservable;
     private readonly CompositeDisposable _disposables = new();
+    private readonly CancellationTokenSource _probeCancellationCts = new();
     private readonly Subject<Unit> _manualProbeTrigger = new();
     private readonly InternetConnectivityObserverOptions _options;
 
@@ -55,7 +56,7 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
             .Select(_ => Unit.Default)
             .Merge(_manualProbeTrigger)
             .Merge(networkChangeObservable)
-            .SelectMany(_ => ProbeConnectivityAsync(_options, CancellationToken.None));
+            .SelectMany(_ => ProbeConnectivityAsync(_options, _probeCancellationCts.Token));
 
         _connectivityObservable = probeObservable
             .Scan(
@@ -120,6 +121,21 @@ public sealed class InternetConnectivityObserver : IInternetConnectivityObserver
     public IDisposable Subscribe(IObserver<bool> observer) =>
         _connectivityObservable.Subscribe(observer);
 
-    public void Dispose() =>
+    public void Dispose()
+    {
+        if (!_probeCancellationCts.IsCancellationRequested)
+        {
+            try
+            {
+                _probeCancellationCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        _probeCancellationCts.Dispose();
+        _manualProbeTrigger.Dispose();
         _disposables.Dispose();
+    }
 }

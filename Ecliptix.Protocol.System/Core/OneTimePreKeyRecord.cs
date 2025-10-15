@@ -3,7 +3,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public record OneTimePreKeyRecord(uint PreKeyId, byte[] PublicKey)
+internal record OneTimePreKeyRecord(uint PreKeyId, byte[] PublicKey)
 {
     public static Result<OneTimePreKeyRecord, EcliptixProtocolFailure> Create(uint preKeyId, byte[] publicKey)
     {

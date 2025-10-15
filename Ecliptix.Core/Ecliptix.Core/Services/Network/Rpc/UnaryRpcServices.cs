@@ -45,7 +45,26 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.OpaqueRecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
             [RpcServiceType.OpaqueSignInInitRequest] = OpaqueSignInInitRequestAsync,
             [RpcServiceType.OpaqueSignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
+            [RpcServiceType.Logout] = LogoutAsync
         };
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
+            SecureEnvelope payload,
+            INetworkEventService networkEvents,
+            ISystemEventService systemEvents,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    _membershipServicesClient.LogoutAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            ).ConfigureAwait(false);
+        }
 
         async Task<Result<SecureEnvelope, NetworkFailure>> RegisterDeviceAsync(
             SecureEnvelope payload,
@@ -208,7 +227,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                     )
             ).ConfigureAwait(false);
         }
-
     }
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(
@@ -218,20 +236,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         CancellationToken token
     )
     {
-        if (request.RpcServiceMethod == RpcServiceType.Logout)
-        {
-            Result<SecureEnvelope, NetworkFailure> logoutResult = await ExecuteLogoutAsync(
-                request.Payload,
-                networkEvents,
-                systemEvents,
-                token
-            ).ConfigureAwait(false);
-
-            return Result<RpcFlow, NetworkFailure>.Ok(
-                new RpcFlow.SingleCall(Task.FromResult(logoutResult))
-            );
-        }
-
         if (_serviceMethods.TryGetValue(request.RpcServiceMethod, out GrpcMethodDelegate? method))
         {
             Result<SecureEnvelope, NetworkFailure> result = await method(
@@ -240,9 +244,15 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 systemEvents,
                 token
             ).ConfigureAwait(false);
-            return Result<RpcFlow, NetworkFailure>.Ok(
-                new RpcFlow.SingleCall(Task.FromResult(result))
-            );
+
+            if (result.IsOk)
+            {
+                return Result<RpcFlow, NetworkFailure>.Ok(
+                    new RpcFlow.SingleCall(Task.FromResult(result))
+                );
+            }
+
+            return Result<RpcFlow, NetworkFailure>.Err(result.UnwrapErr());
         }
 
         return Result<RpcFlow, NetworkFailure>.Err(
@@ -259,38 +269,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         try
         {
             AsyncUnaryCall<SecureEnvelope> call = grpcCallFactory();
-            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
-
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
-
-            return Result<SecureEnvelope, NetworkFailure>.Ok(response);
-        }
-        catch (RpcException rpcEx)
-        {
-            NetworkFailure failure = await GrpcErrorHandler.ClassifyRpcExceptionWithEventsAsync(
-                rpcEx, networkEvents, systemEvents).ConfigureAwait(false);
-            return Result<SecureEnvelope, NetworkFailure>.Err(failure);
-        }
-        catch (Exception ex)
-        {
-            return Result<SecureEnvelope, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding(ex.Message));
-        }
-    }
-
-    private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteLogoutAsync(
-        SecureEnvelope payload,
-        INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
-        CancellationToken token
-    )
-    {
-        try
-        {
-            AsyncUnaryCall<SecureEnvelope> call = _membershipServicesClient.LogoutAsync(
-                payload,
-                new CallOptions(cancellationToken: token)
-            );
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
             await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);

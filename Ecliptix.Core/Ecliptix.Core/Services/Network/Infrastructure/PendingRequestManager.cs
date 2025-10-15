@@ -17,23 +17,17 @@ internal interface ITypedPendingRequest
 
 public interface IPendingRequestManager
 {
-    void RegisterPendingRequest(string requestId, Func<Task> retryAction);
-
-    void RegisterPendingRequest<T>(string requestId, Func<Task<T>> retryAction,
-        TaskCompletionSource<T> originalTaskCompletionSource);
-
+    void RegisterPendingRequest(string requestId, Func<CancellationToken, Task> retryAction);
     void RemovePendingRequest(string requestId);
     Task<int> RetryAllPendingRequestsAsync(CancellationToken cancellationToken = default);
-    void CancelAllPendingRequests();
-    int PendingRequestCount { get; }
-    event EventHandler<int>? PendingCountChanged;
 }
 
 public sealed class PendingRequestManager : IPendingRequestManager
 {
-    private readonly ConcurrentDictionary<string, Func<Task>> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, Func<CancellationToken, Task>> _pendingRequests = new();
     private readonly ConcurrentDictionary<string, ITypedPendingRequest> _typedPendingRequests = new();
     private readonly ConcurrentDictionary<string, bool> _retryingRequests = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _requestCancellationSources = new();
     private readonly SemaphoreSlim _retryAllSemaphore = new(1, 1);
     private int _pendingCount;
 
@@ -41,20 +35,46 @@ public sealed class PendingRequestManager : IPendingRequestManager
 
     public int PendingRequestCount => _pendingCount;
 
-    public void RegisterPendingRequest(string requestId, Func<Task> retryAction)
+    public void RegisterPendingRequest(string requestId, Func<CancellationToken, Task> retryAction)
     {
-        if (_pendingRequests.TryAdd(requestId, retryAction))
+        CancellationTokenSource requestCts = new();
+
+        if (!_pendingRequests.TryAdd(requestId, retryAction))
         {
-            int newCount = Interlocked.Increment(ref _pendingCount);
-            PendingCountChanged?.Invoke(this, newCount);
+            requestCts.Dispose();
+            return;
         }
+
+        if (!_requestCancellationSources.TryAdd(requestId, requestCts))
+        {
+            _pendingRequests.TryRemove(requestId, out _);
+            requestCts.Dispose();
+            return;
+        }
+
+        int newCount = Interlocked.Increment(ref _pendingCount);
+        PendingCountChanged?.Invoke(this, newCount);
     }
 
-    public void RegisterPendingRequest<T>(string requestId, Func<Task<T>> retryAction,
+    public void RegisterPendingRequest<T>(string requestId, Func<CancellationToken, Task<T>> retryAction,
         TaskCompletionSource<T> originalTaskCompletionSource)
     {
+        CancellationTokenSource requestCts = new();
         TypedPendingRequest<T> typedRequest = new(retryAction, originalTaskCompletionSource);
-        if (!_typedPendingRequests.TryAdd(requestId, typedRequest)) return;
+
+        if (!_typedPendingRequests.TryAdd(requestId, typedRequest))
+        {
+            requestCts.Dispose();
+            return;
+        }
+
+        if (!_requestCancellationSources.TryAdd(requestId, requestCts))
+        {
+            _typedPendingRequests.TryRemove(requestId, out _);
+            requestCts.Dispose();
+            return;
+        }
+
         int newCount = Interlocked.Increment(ref _pendingCount);
         PendingCountChanged?.Invoke(this, newCount);
     }
@@ -63,6 +83,11 @@ public sealed class PendingRequestManager : IPendingRequestManager
     {
         bool removed = _pendingRequests.TryRemove(requestId, out _) ||
                        _typedPendingRequests.TryRemove(requestId, out _);
+
+        if (_requestCancellationSources.TryRemove(requestId, out CancellationTokenSource? requestCts))
+        {
+            requestCts.Dispose();
+        }
 
         if (removed)
         {
@@ -76,17 +101,17 @@ public sealed class PendingRequestManager : IPendingRequestManager
         await _retryAllSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            KeyValuePair<string, Func<Task>>[] untypedRequests = _pendingRequests.ToArray();
+            KeyValuePair<string, Func<CancellationToken, Task>>[] untypedRequests = _pendingRequests.ToArray();
             KeyValuePair<string, ITypedPendingRequest>[] typedRequests = _typedPendingRequests.ToArray();
             int successCount = 0;
 
             Log.Information("Starting retry for {UntypedCount} untyped and {TypedCount} typed pending requests",
                 untypedRequests.Length, typedRequests.Length);
 
-            List<KeyValuePair<string, Func<Task>>> filteredUntypedRequests = [];
+            List<KeyValuePair<string, Func<CancellationToken, Task>>> filteredUntypedRequests = [];
             List<KeyValuePair<string, ITypedPendingRequest>> filteredTypedRequests = [];
 
-            foreach (KeyValuePair<string, Func<Task>> request in untypedRequests)
+            foreach (KeyValuePair<string, Func<CancellationToken, Task>> request in untypedRequests)
             {
                 if (_retryingRequests.TryAdd(request.Key, true))
                 {
@@ -113,7 +138,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
             Task[] untypedTasks = new Task[filteredUntypedRequests.Count];
             for (int i = 0; i < filteredUntypedRequests.Count; i++)
             {
-                KeyValuePair<string, Func<Task>> request = filteredUntypedRequests[i];
+                KeyValuePair<string, Func<CancellationToken, Task>> request = filteredUntypedRequests[i];
                 untypedTasks[i] = RetryRequestAsync(request.Key, request.Value, cancellationToken);
             }
 
@@ -146,16 +171,25 @@ public sealed class PendingRequestManager : IPendingRequestManager
         }
     }
 
-    private async Task RetryRequestAsync(string requestId, Func<Task> retryAction, CancellationToken cancellationToken)
+    private async Task RetryRequestAsync(string requestId, Func<CancellationToken, Task> retryAction,
+        CancellationToken cancellationToken)
     {
+        CancellationTokenSource? linkedCts = null;
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            CancellationToken tokenToUse = cancellationToken;
+            if (_requestCancellationSources.TryGetValue(requestId, out CancellationTokenSource? requestCts))
+            {
+                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, requestCts.Token);
+                tokenToUse = linkedCts.Token;
+            }
 
-            Task retryTask = retryAction();
+            tokenToUse.ThrowIfCancellationRequested();
+
+            Task retryTask = retryAction(tokenToUse);
             if (!retryTask.IsCompleted)
             {
-                await retryTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                await retryTask.WaitAsync(tokenToUse).ConfigureAwait(false);
             }
             else
             {
@@ -176,6 +210,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
         }
         finally
         {
+            linkedCts?.Dispose();
             _retryingRequests.TryRemove(requestId, out _);
         }
     }
@@ -183,9 +218,17 @@ public sealed class PendingRequestManager : IPendingRequestManager
     private async Task RetryTypedRequestAsync(string requestId, ITypedPendingRequest typedRequest,
         CancellationToken cancellationToken)
     {
+        CancellationTokenSource? linkedCts = null;
         try
         {
-            await typedRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+            CancellationToken tokenToUse = cancellationToken;
+            if (_requestCancellationSources.TryGetValue(requestId, out CancellationTokenSource? requestCts))
+            {
+                linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, requestCts.Token);
+                tokenToUse = linkedCts.Token;
+            }
+
+            await typedRequest.ExecuteAsync(tokenToUse).ConfigureAwait(false);
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried typed request {RequestId}", requestId);
         }
@@ -199,22 +242,42 @@ public sealed class PendingRequestManager : IPendingRequestManager
         }
         finally
         {
+            linkedCts?.Dispose();
             _retryingRequests.TryRemove(requestId, out _);
         }
     }
 
     public void CancelAllPendingRequests()
     {
-        int count = _pendingRequests.Count + _typedPendingRequests.Count;
-        _pendingRequests.Clear();
+        foreach (KeyValuePair<string, CancellationTokenSource> entry in _requestCancellationSources.ToArray())
+        {
+            if (!_requestCancellationSources.TryRemove(entry.Key, out CancellationTokenSource? requestCts))
+            {
+                continue;
+            }
+
+            try
+            {
+                requestCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                requestCts.Dispose();
+            }
+        }
 
         foreach (ITypedPendingRequest typedRequest in _typedPendingRequests.Values)
         {
             typedRequest.Cancel();
         }
 
+        _pendingRequests.Clear();
         _typedPendingRequests.Clear();
         _retryingRequests.Clear();
+        _requestCancellationSources.Clear();
 
         Interlocked.Exchange(ref _pendingCount, 0);
         PendingCountChanged?.Invoke(this, 0);
@@ -223,10 +286,11 @@ public sealed class PendingRequestManager : IPendingRequestManager
 
 internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
 {
-    private readonly Func<Task<T>> _retryAction;
+    private readonly Func<CancellationToken, Task<T>> _retryAction;
     private readonly TaskCompletionSource<T> _originalTaskCompletionSource;
 
-    public TypedPendingRequest(Func<Task<T>> retryAction, TaskCompletionSource<T> originalTaskCompletionSource)
+    public TypedPendingRequest(Func<CancellationToken, Task<T>> retryAction,
+        TaskCompletionSource<T> originalTaskCompletionSource)
     {
         _retryAction = retryAction;
         _originalTaskCompletionSource = originalTaskCompletionSource;
@@ -238,7 +302,7 @@ internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            Task<T> retryTask = _retryAction();
+            Task<T> retryTask = _retryAction(cancellationToken);
             T result = await (retryTask.IsCompleted
                     ? retryTask
                     : retryTask.WaitAsync(cancellationToken))

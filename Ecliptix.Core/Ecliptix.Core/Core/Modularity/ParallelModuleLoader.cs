@@ -9,7 +9,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public class ParallelModuleLoader : IDisposable
+internal class ParallelModuleLoader : IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ModuleLoadingContext _loadingContext;

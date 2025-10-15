@@ -9,7 +9,7 @@ internal interface IKeyProvider
     Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation);
 }
 
-public sealed class RatchetChainKey : IEquatable<RatchetChainKey>
+internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 {
     private readonly IKeyProvider _keyProvider;
 

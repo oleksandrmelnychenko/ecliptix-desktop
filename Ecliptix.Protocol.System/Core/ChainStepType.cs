@@ -1,6 +1,6 @@
 namespace Ecliptix.Protocol.System.Core;
 
-public enum ChainStepType
+internal enum ChainStepType
 {
     Sender,
     Receiver

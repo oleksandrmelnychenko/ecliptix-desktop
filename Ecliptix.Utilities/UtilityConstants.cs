@@ -1,14 +1,14 @@
 namespace Ecliptix.Utilities;
 
-public static class UtilityConstants
+internal static class UtilityConstants
 {
-    public static class Hash
+    internal static class Hash
     {
         public const int InitialHashSeed = 17;
         public const int HashMultiplier = 31;
     }
 
-    public static class ErrorMessages
+    internal static class ErrorMessages
     {
         public const string CannotUnwrapErr = "Cannot unwrap an Err result";
         public const string CannotUnwrapOk = "Cannot unwrap an Ok result";
@@ -18,7 +18,7 @@ public static class UtilityConstants
         public const string InvalidAppDeviceIdFormat = "Invalid AppDeviceId format: ";
     }
 
-    public static class Cryptography
+    internal static class Cryptography
     {
         public const int MaxEntropyCheckAttempts = 10;
         public const int GuidSizeBytes = 16;
@@ -30,30 +30,30 @@ public static class UtilityConstants
         public const int HashBytesToRead = 4;
     }
 
-    public static class UnitType
+    internal static class UnitType
     {
         public const int HashCode = 0;
         public const string StringRepresentation = "()";
     }
 
-    public static class ResultType
+    internal static class ResultType
     {
         public const string OkString = "Ok";
         public const string ErrString = "Err";
     }
 
-    public static class ProtocolNames
+    internal static class ProtocolNames
     {
         public const string X3dhInfo = "Ecliptix_X3DH";
     }
 
-    public static class ProtocolBytes
+    internal static class ProtocolBytes
     {
         public const byte MsgInfoValue = 0x01;
         public const byte ChainInfoValue = 0x02;
     }
 
-    public static class NetworkConstants
+    internal static class NetworkConstants
     {
         public const uint MinRequestId = 10;
     }

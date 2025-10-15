@@ -19,7 +19,7 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public sealed class PasswordRecoveryService(
+internal sealed class PasswordRecoveryService(
     NetworkProvider networkProvider,
     IOpaqueRegistrationService registrationService,
     ILocalizationService localizationService,
@@ -124,7 +124,7 @@ public sealed class PasswordRecoveryService(
             }
 
             Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
-                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.Request, connectId, cancellationToken).ConfigureAwait(false);
+                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(), connectId, cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)
             {

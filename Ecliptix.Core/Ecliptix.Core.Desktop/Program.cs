@@ -323,7 +323,7 @@ public static class Program
 
     private static void ConfigureMessagingServices(IServiceCollection services)
     {
-        services.AddSingleton<IUnifiedMessageBus, UnifiedMessageBus>();
+        services.AddSingleton<IMessageBus, MessageBus>();
         services.AddSingleton<ISystemEventService, SystemEventService>();
         services.AddSingleton<INetworkEventService, NetworkEventService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
@@ -387,6 +387,10 @@ public static class Program
             MaxRetries = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetries], out int maxRetries)
                 ? maxRetries
                 : ApplicationConstants.Thresholds.DefaultMaxRetries,
+            PerAttemptTimeout = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PerAttemptTimeout],
+                out TimeSpan perAttemptTimeout)
+                ? perAttemptTimeout
+                : TimeSpan.FromSeconds(30),
             UseAdaptiveRetry =
                 !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) ||
                 adaptive

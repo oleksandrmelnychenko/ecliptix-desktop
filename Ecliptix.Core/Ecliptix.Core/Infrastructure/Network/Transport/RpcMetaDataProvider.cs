@@ -8,7 +8,7 @@ using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 
 namespace Ecliptix.Core.Infrastructure.Network.Transport;
 
-public sealed class RpcMetaDataProvider : IRpcMetaDataProvider
+internal sealed class RpcMetaDataProvider : IRpcMetaDataProvider
 {
     public Guid AppInstanceId { get; private set; }
     public Guid DeviceId { get; private set; }

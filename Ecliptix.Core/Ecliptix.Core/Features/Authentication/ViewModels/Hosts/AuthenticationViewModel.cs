@@ -56,22 +56,22 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
             IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, _, host, _, _, _) =>
                 new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                (sys, _, netProvider, loc, _, _, host, _, _, _) =>
                     new WelcomeViewModel(host, sys, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, _, storage, host, reg, _, uiDispatcher) =>
                     new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
             [MembershipViewType.ConfirmSecureKey] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, reg, _, _) =>
                     new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, _, _, host, _, _, _) =>
                     new PassPhaseViewModel(sys, loc, host, netProvider),
             [MembershipViewType.ForgotPasswordReset] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, uiDispatcher) =>
+                (sys, netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery, _) =>
                     new ForgotPasswordResetViewModel(sys, netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
@@ -203,7 +203,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 return;
             }
 
-            IModule mainModule = await moduleManager.LoadModuleAsync("Main");
+            await moduleManager.LoadModuleAsync("Main");
 
             CleanupAuthenticationFlow();
             await _router.NavigateToMainAsync();
@@ -367,7 +367,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
     }
 
-    public void CleanupAuthenticationFlow()
+    private void CleanupAuthenticationFlow()
     {
         ClearNavigationStack();
 

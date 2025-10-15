@@ -18,12 +18,4 @@ public static class ModuleIdentifierExtensions
         ModuleIdentifier.Settings => "Settings",
         _ => throw new ArgumentOutOfRangeException(nameof(identifier), identifier, "Unknown module identifier")
     };
-
-    public static ModuleIdentifier FromName(string name) => name switch
-    {
-        "Authentication" => ModuleIdentifier.Authentication,
-        "Main" => ModuleIdentifier.Main,
-        "Settings" => ModuleIdentifier.Settings,
-        _ => throw new ArgumentException($"Unknown module name: {name}", nameof(name))
-    };
 }

@@ -15,6 +15,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
     private readonly byte[] _ed25519PublicKey;
     private readonly SodiumSecureMemoryHandle _ed25519SecretKeyHandle;
     private readonly SodiumSecureMemoryHandle _identityX25519SecretKeyHandle;
+    private readonly byte[] _identityX25519PublicKey;
     private readonly uint _signedPreKeyId;
     private readonly byte[] _signedPreKeyPublic;
     private readonly SodiumSecureMemoryHandle _signedPreKeySecretKeyHandle;
@@ -33,7 +34,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         _ed25519SecretKeyHandle = edSk;
         _ed25519PublicKey = edPk;
         _identityX25519SecretKeyHandle = idSk;
-        IdentityX25519PublicKey = idPk;
+        _identityX25519PublicKey = idPk;
         _signedPreKeyId = spkId;
         _signedPreKeySecretKeyHandle = spkSk;
         _signedPreKeyPublic = spkPk;
@@ -42,7 +43,9 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         _disposed = false;
     }
 
-    public byte[] IdentityX25519PublicKey { get; }
+    public ReadOnlySpan<byte> IdentityX25519PublicKeySpan => _identityX25519PublicKey;
+
+    public byte[] GetIdentityX25519PublicKeyCopy() => (byte[])_identityX25519PublicKey.Clone();
 
     public void Dispose()
     {
@@ -72,7 +75,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 {
                     PreKeyId = opk.PreKeyId,
                     PrivateKey = privateKeyResult.Unwrap(),
-                    PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(opk.PublicKey)
+                    PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(opk.PublicKeySpan)
                 });
             }
 
@@ -106,7 +109,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                 IdentityX25519SecretKey = identityX25519SecretResult.Unwrap(),
                 SignedPreKeySecret = signedPreKeySecretResult.Unwrap(),
                 Ed25519PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(_ed25519PublicKey),
-                IdentityX25519PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(IdentityX25519PublicKey),
+                IdentityX25519PublicKey = SecureByteStringInterop.CreateByteStringFromSpan(IdentityX25519PublicKeySpan),
                 SignedPreKeyId = _signedPreKeyId,
                 SignedPreKeyPublic = SecureByteStringInterop.CreateByteStringFromSpan(_signedPreKeyPublic),
                 SignedPreKeySignature = SecureByteStringInterop.CreateByteStringFromSpan(_signedPreKeySignature)
@@ -498,7 +501,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
     }
 
 
-    public Result<LocalPublicKeyBundle, EcliptixProtocolFailure> CreatePublicBundle()
+    internal Result<LocalPublicKeyBundle, EcliptixProtocolFailure> CreatePublicBundle()
     {
         if (_disposed)
             return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Err(
@@ -508,11 +511,11 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         {
             List<OneTimePreKeyRecord> opkRecords = [];
             opkRecords.AddRange(_oneTimePreKeysInternal.Select(opkLocal =>
-                new OneTimePreKeyRecord(opkLocal.PreKeyId, opkLocal.PublicKey)));
+                new OneTimePreKeyRecord(opkLocal.PreKeyId, opkLocal.GetPublicKeyCopy())));
 
             LocalPublicKeyBundle bundle = new(
                 _ed25519PublicKey,
-                IdentityX25519PublicKey,
+                GetIdentityX25519PublicKeyCopy(),
                 _signedPreKeyId,
                 _signedPreKeyPublic,
                 _signedPreKeySignature,
@@ -556,7 +559,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         }
     }
 
-    public Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> X3dhDeriveSharedSecret(
+    internal Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> X3dhDeriveSharedSecret(
         LocalPublicKeyBundle remoteBundle, ReadOnlySpan<byte> info)
     {
         SodiumSecureMemoryHandle? ephemeralHandleUsed = null;

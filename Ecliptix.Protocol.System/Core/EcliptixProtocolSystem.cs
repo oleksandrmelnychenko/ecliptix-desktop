@@ -13,7 +13,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
+internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSystemIdentityKeys)
     : IDisposable
 {
     private readonly Lock _lock = new();
@@ -374,8 +374,8 @@ public sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSy
 
             bool connectionIsInitiator = connection.IsInitiator();
             ad = connectionIsInitiator
-                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy(), peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy());
 
             Result<byte[], EcliptixProtocolFailure> encryptResult =
                 Encrypt(messageKey!, nonce, plainPayload, ad);
@@ -481,8 +481,8 @@ public sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSy
 
             bool connectionIsInitiator = connection.IsInitiator();
             ad = connectionIsInitiator
-                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy(), peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy());
 
             encryptedMetadata = secureEnvelope.MetaData.ToByteArray();
             Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
@@ -647,8 +647,8 @@ public sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptixSy
 
             bool isInitiator = connection.IsInitiator();
             ad = isInitiator
-                ? CreateAssociatedData(ecliptixSystemIdentityKeys.IdentityX25519PublicKey, peerBundle.IdentityX25519)
-                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.IdentityX25519PublicKey);
+                ? CreateAssociatedData(ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy(), peerBundle.IdentityX25519)
+                : CreateAssociatedData(peerBundle.IdentityX25519, ecliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy());
 
             Result<byte[], EcliptixProtocolFailure> result = DecryptFromMaterials(messageKey, metadata, encryptedPayload, ad);
 

@@ -54,9 +54,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly IRsaChunkEncryptor _rsaChunkEncryptor;
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
-    private readonly ConcurrentDictionary<string, CancellationTokenSource> _inFlightRequests = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRequests = new();
     private readonly Lock _cancellationLock = new();
-    private readonly CancellationTokenSource _shutdownCts = new();
+    private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private readonly ConcurrentDictionary<uint, SemaphoreSlim> _channelGates = new();
     private readonly SemaphoreSlim _retryPendingRequestsGate = new(1, 1);
     private readonly Lock _outageLock = new();
@@ -66,7 +66,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private CancellationTokenSource? _connectionRecoveryCts;
     private Option<ApplicationInstanceSettings> _applicationInstanceSettings = Option<ApplicationInstanceSettings>.None;
     private int _outageState;
-    private TaskCompletionSource<bool> _outageRecoveredTcs = CreateOutageTcs();
+    private TaskCompletionSource<bool> _outageCompletionSource = CreateOutageTcs();
     private volatile bool _disposed;
 
     public NetworkProvider(
@@ -355,7 +355,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        bool allowDuplicates = false,
+        bool allowDuplicateRequests = false,
         CancellationToken cancellationToken = default,
         bool waitForRecovery = true)
     {
@@ -374,11 +374,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 : $"{connectId}_{serviceType}_fallback";
         }
 
-        bool shouldAllowDuplicates = allowDuplicates || ShouldAllowDuplicateRequests(serviceType);
-        CancellationTokenSource perRequestCts = new();
-        if (!shouldAllowDuplicates && !_inFlightRequests.TryAdd(requestKey, perRequestCts))
+        bool shouldAllowDuplicates = allowDuplicateRequests || CanServiceTypeBeDuplicated(serviceType);
+        CancellationTokenSource cancellationTokenSource = new();
+        if (!shouldAllowDuplicates && !_pendingRequests.TryAdd(requestKey, cancellationTokenSource))
         {
-            perRequestCts.Dispose();
+            cancellationTokenSource.Dispose();
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Duplicate request rejected"));
         }
@@ -388,21 +388,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             tokenRegistration = cancellationToken.Register(() =>
             {
-                try
+                if (!cancellationTokenSource.IsCancellationRequested)
                 {
-                    if (!perRequestCts.IsCancellationRequested)
-                    {
-                        perRequestCts.Cancel();
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
+                    cancellationTokenSource.Cancel();
                 }
             });
         }
 
-        using CancellationTokenSource linkedCancellationTokenSource =
-            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, perRequestCts.Token);
+        CancellationTokenSource linkedCancellationTokenSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cancellationTokenSource.Token);
         CancellationToken operationToken = linkedCancellationTokenSource.Token;
 
         try
@@ -438,7 +432,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         connectId, operationToken).ConfigureAwait(false),
                     ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, serviceRequest,
                         onCompleted, operationToken).ConfigureAwait(false),
-                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, serviceRequest, onCompleted,
+                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, serviceRequest,
+                        onCompleted,
                         operationToken).ConfigureAwait(false),
                     ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
                         serviceRequest, onCompleted, operationToken).ConfigureAwait(false),
@@ -446,18 +441,26 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                 };
 
-                if (!networkResult.IsOk || Volatile.Read(ref _outageState) == 0) return networkResult;
-                ExitOutage();
+                if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
+                {
+                    ExitOutage();
+                }
 
                 return networkResult;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.OperationCancelled("Request cancelled by caller"));
             }
             catch (OperationCanceledException) when (flowType == ServiceFlowType.ReceiveStream)
             {
                 return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            }
+            catch (OperationCanceledException)
+            {
+                return Result<Unit, NetworkFailure>.Err(
+                    NetworkFailure.DataCenterNotResponding("Request cancelled due to network timeout or connection failure"));
             }
             catch (Exception ex)
             {
@@ -468,10 +471,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             tokenRegistration.Dispose();
 
-            if (!shouldAllowDuplicates && _inFlightRequests.TryRemove(requestKey, out CancellationTokenSource? cts))
+            if (!shouldAllowDuplicates && _pendingRequests.TryRemove(requestKey, out CancellationTokenSource? pendingCancellation))
             {
-                cts.Dispose();
+                pendingCancellation.Dispose();
             }
+
+            linkedCancellationTokenSource.Dispose();
         }
     }
 
@@ -499,7 +504,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixSessionState ecliptixSecrecyChannelState,
         ApplicationInstanceSettings applicationInstanceSettings,
         RestoreRetryMode retryMode = RestoreRetryMode.AutoRetry,
-        bool enablePendingRegistration = true)
+        bool enablePendingRegistration = true,
+        CancellationToken cancellationToken = default)
     {
         if (!_applicationInstanceSettings.HasValue)
         {
@@ -523,9 +529,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             case RestoreRetryMode.AutoRetry:
             {
+                BeginSecrecyChannelEstablishRecovery();
                 CancellationToken recoveryToken = GetConnectionRecoveryToken();
                 using CancellationTokenSource combinedCancellationTokenSource =
-                    CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                    cancellationToken.CanBeCanceled
+                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
                     ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
@@ -538,9 +547,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             case RestoreRetryMode.ManualRetry:
             {
+                BeginSecrecyChannelEstablishRecovery();
                 CancellationToken recoveryToken = GetConnectionRecoveryToken();
                 using CancellationTokenSource combinedCts =
-                    CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                    cancellationToken.CanBeCanceled
+                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryOperationAsync(
                     ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
@@ -556,7 +568,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     restoreAppDeviceSecrecyChannelResponse =
                         await _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                            request).ConfigureAwait(false);
+                            request,
+                            cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -585,7 +598,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (response.Status == RestoreChannelResponse.Types.Status.SessionRestored)
         {
-            Result<Unit, EcliptixProtocolFailure> syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+            Result<Unit, EcliptixProtocolFailure>
+                syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
 
             if (syncResult.IsErr)
             {
@@ -606,6 +620,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 _pendingRequestManager.RemovePendingRequest(
                     BuildSecrecyChannelRestoreKey(ecliptixSecrecyChannelState.ConnectId));
             }
+
+            ExitOutage();
 
             return Result<bool, NetworkFailure>.Ok(true);
         }
@@ -673,10 +689,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         string connectIdPrefix = $"{connectId}_";
 
-        foreach (KeyValuePair<string, CancellationTokenSource> kvp in _inFlightRequests)
+        foreach (KeyValuePair<string, CancellationTokenSource> kvp in _pendingRequests)
         {
             if (!kvp.Key.StartsWith(connectIdPrefix)) continue;
-            if (!_inFlightRequests.TryRemove(kvp.Key, out CancellationTokenSource? operationCts)) continue;
+            if (!_pendingRequests.TryRemove(kvp.Key, out CancellationTokenSource? operationCts)) continue;
             try
             {
                 operationCts.Cancel();
@@ -1199,17 +1215,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Task waitTask;
         lock (_outageLock)
         {
-            waitTask = _outageRecoveredTcs.Task;
+            waitTask = _outageCompletionSource.Task;
         }
 
-        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _shutdownCts.Token);
-        cts.CancelAfter(TimeSpan.FromSeconds(30));
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token, _shutdownCancellationToken.Token);
+        cts.CancelAfter(NetworkConstants.Timeouts.OutageRecoveryTimeout);
 
         try
         {
             await waitTask.WaitAsync(cts.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (_shutdownCts.Token.IsCancellationRequested)
+        catch (OperationCanceledException) when (_shutdownCancellationToken.Token.IsCancellationRequested)
         {
             throw new ObjectDisposedException(nameof(NetworkProvider), "Provider is shutting down");
         }
@@ -1219,6 +1235,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (OperationCanceledException)
         {
+            throw new TimeoutException("Outage recovery timeout expired - secrecy channel not restored within timeout period");
         }
     }
 
@@ -1226,10 +1243,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (Interlocked.Exchange(ref _outageState, 0) == 0) return;
 
+        CancelConnectionRecoveryToken();
+
         lock (_outageLock)
         {
-            if (!_outageRecoveredTcs.Task.IsCompleted)
-                _outageRecoveredTcs.TrySetResult(true);
+            if (!_outageCompletionSource.Task.IsCompleted)
+                _outageCompletionSource.TrySetResult(true);
         }
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1239,11 +1258,74 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         });
     }
 
-    private CancellationToken GetConnectionRecoveryToken()
+    private CancellationToken GetConnectionRecoveryToken() => EnsureConnectionRecoveryToken();
+
+    private CancellationToken EnsureConnectionRecoveryToken()
     {
         lock (_cancellationLock)
         {
-            return _connectionRecoveryCts?.Token ?? CancellationToken.None;
+            if (_connectionRecoveryCts == null || _connectionRecoveryCts.IsCancellationRequested)
+            {
+                _connectionRecoveryCts?.Dispose();
+
+                if (_shutdownCancellationToken.IsCancellationRequested)
+                {
+                    return _shutdownCancellationToken.Token;
+                }
+
+                _connectionRecoveryCts = CancellationTokenSource.CreateLinkedTokenSource(_shutdownCancellationToken.Token);
+            }
+
+            return _connectionRecoveryCts.Token;
+        }
+    }
+
+    internal void BeginSecrecyChannelEstablishRecovery()
+    {
+        if (_disposed || _shutdownCancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        bool enteredOutage = Interlocked.CompareExchange(ref _outageState, 1, 0) == 0;
+        if (enteredOutage)
+        {
+            lock (_outageLock)
+            {
+                if (_outageCompletionSource.Task.IsCompleted)
+                {
+                    _outageCompletionSource = CreateOutageTcs();
+                }
+            }
+        }
+
+        EnsureConnectionRecoveryToken();
+    }
+
+    private void CancelConnectionRecoveryToken()
+    {
+        lock (_cancellationLock)
+        {
+            if (_connectionRecoveryCts == null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!_connectionRecoveryCts.IsCancellationRequested)
+                {
+                    _connectionRecoveryCts.Cancel();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                _connectionRecoveryCts.Dispose();
+                _connectionRecoveryCts = null;
+            }
         }
     }
 
@@ -1261,7 +1343,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private static bool ShouldAllowDuplicateRequests(RpcServiceType serviceType)
+    private static bool CanServiceTypeBeDuplicated(RpcServiceType serviceType)
     {
         return serviceType switch
         {
@@ -1277,7 +1359,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             try
             {
-                if (_disposed || _shutdownCts.IsCancellationRequested) return;
+                if (_disposed || _shutdownCancellationToken.IsCancellationRequested) return;
 
                 if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
@@ -1316,7 +1398,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         $"Failed to persist {stateContext} state for connection {connectId}: {ex.Message}");
                 });
             }
-        }, _shutdownCts.Token);
+        }, _shutdownCancellationToken.Token);
     }
 
     public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex) =>
@@ -1371,11 +1453,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             try
             {
-                _shutdownCts.Cancel();
+                _shutdownCancellationToken.Cancel();
 
-                foreach (KeyValuePair<string, CancellationTokenSource> kv in _inFlightRequests.ToArray())
+                foreach (KeyValuePair<string, CancellationTokenSource> kv in _pendingRequests.ToArray())
                 {
-                    if (!_inFlightRequests.TryRemove(kv.Key, out CancellationTokenSource? cts)) continue;
+                    if (!_pendingRequests.TryRemove(kv.Key, out CancellationTokenSource? cts)) continue;
                     try
                     {
                         cts.Cancel();
@@ -1401,7 +1483,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 lock (_outageLock)
                 {
-                    _outageRecoveredTcs.TrySetException(new OperationCanceledException("Provider shutting down"));
+                    _outageCompletionSource.TrySetException(new OperationCanceledException("Provider shutting down"));
                 }
 
                 List<KeyValuePair<uint, EcliptixProtocolSystem>> connectionsToDispose = new(_connections);
@@ -1433,7 +1515,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 _retryPendingRequestsGate.Dispose();
 
-                _shutdownCts.Dispose();
+                _shutdownCancellationToken.Dispose();
             }
             catch (Exception)
             {
@@ -1581,18 +1663,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType exchangeType, int? maxRetries,
         bool saveState)
     {
+        if (_disposed) return;
+
+        BeginSecrecyChannelEstablishRecovery();
+
         string pendingKey = BuildSecrecyChannelPendingKey(connectId, exchangeType);
 
-        _pendingRequestManager.RegisterPendingRequest(pendingKey, async () =>
+        _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
-            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel establish retry. ConnectId: {ConnectId}", connectId);
+            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel establish retry. ConnectId: {ConnectId}",
+                connectId);
+
+            CancellationToken recoveryToken = GetConnectionRecoveryToken();
+            using CancellationTokenSource linkedCts =
+                CancellationTokenSource.CreateLinkedTokenSource(ct, recoveryToken);
 
             await EstablishSecrecyChannelInternalAsync(
                     connectId,
                     exchangeType,
                     maxRetries,
                     saveState,
-                    cancellationToken: CancellationToken.None,
+                    cancellationToken: linkedCts.Token,
                     enablePendingRegistration: false)
                 .ConfigureAwait(false);
         });
@@ -1603,17 +1694,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ApplicationInstanceSettings applicationInstanceSettings,
         RestoreRetryMode retryMode)
     {
+        if (_disposed) return;
+
+        BeginSecrecyChannelEstablishRecovery();
+
         string pendingKey = BuildSecrecyChannelRestoreKey(sessionState.ConnectId);
 
-        _pendingRequestManager.RegisterPendingRequest(pendingKey, async () =>
+        _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
-            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel restore retry. ConnectId: {ConnectId}", sessionState.ConnectId);
+            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel restore retry. ConnectId: {ConnectId}",
+                sessionState.ConnectId);
+
+            CancellationToken recoveryToken = GetConnectionRecoveryToken();
+            using CancellationTokenSource linkedCts =
+                CancellationTokenSource.CreateLinkedTokenSource(ct, recoveryToken);
 
             await RestoreSecrecyChannelAsync(
                     sessionState,
                     applicationInstanceSettings,
                     retryMode,
-                    enablePendingRegistration: false)
+                    enablePendingRegistration: false,
+                    cancellationToken: linkedCts.Token)
                 .ConfigureAwait(false);
         });
     }
@@ -1768,7 +1869,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
 
             string identityX25519Hash =
-                Convert.ToHexString(SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
+                Convert.ToHexString(SHA256.HashData(identityKeys.GetIdentityX25519PublicKeyCopy()))[..16];
             Log.Information(
                 "[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
                 connectId, identityX25519Hash);

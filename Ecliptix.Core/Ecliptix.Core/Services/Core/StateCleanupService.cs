@@ -11,7 +11,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
-public sealed class StateCleanupService(
+internal sealed class StateCleanupService(
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     ISecureProtocolStateStorage secureProtocolStateStorage,

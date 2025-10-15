@@ -5,7 +5,7 @@ using Ecliptix.Protocol.System.Utilities;
 
 namespace Ecliptix.Core.Services.Security;
 
-public sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) : IServerPublicKeyProvider
+internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) : IServerPublicKeyProvider
 {
     private readonly Lock _lock = new();
     private byte[]? _cachedKey;

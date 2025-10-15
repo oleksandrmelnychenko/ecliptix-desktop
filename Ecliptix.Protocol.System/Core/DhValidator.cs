@@ -3,7 +3,7 @@ using Ecliptix.Utilities.Failures.EcliptixProtocol;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public static class DhValidator
+internal static class DhValidator
 {
     public static Result<Unit, EcliptixProtocolFailure> ValidateX25519PublicKey(byte[] publicKey)
     {

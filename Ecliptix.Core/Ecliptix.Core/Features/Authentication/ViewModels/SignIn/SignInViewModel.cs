@@ -130,8 +130,14 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         MobileNumber = string.Empty;
         _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
 
-        _signInCancellationTokenSource?.Cancel();
-        _signInCancellationTokenSource?.Dispose();
+        try
+        {
+            _signInCancellationTokenSource?.Cancel();
+            _signInCancellationTokenSource?.Dispose();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
 
         _signInErrorSubject.OnNext(string.Empty);
 
@@ -318,8 +324,14 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         if (_isDisposed) return;
         if (disposing)
         {
-            _signInCancellationTokenSource?.Cancel();
-            _signInCancellationTokenSource?.Dispose();
+            try
+            {
+                _signInCancellationTokenSource?.Cancel();
+                _signInCancellationTokenSource?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
             _signInCancellationTokenSource = null;
 
             SignInCommand?.Dispose();

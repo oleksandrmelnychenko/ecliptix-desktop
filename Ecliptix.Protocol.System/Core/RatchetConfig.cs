@@ -1,6 +1,6 @@
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class RatchetConfig
+internal sealed class RatchetConfig
 {
     public static readonly RatchetConfig Default = new();
 

@@ -21,7 +21,7 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public sealed class OpaqueRegistrationService(
+internal sealed class OpaqueRegistrationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
     IServerPublicKeyProvider serverPublicKeyProvider)
@@ -318,7 +318,7 @@ public sealed class OpaqueRegistrationService(
             }
 
             Result<OpaqueRegistrationInitResponse, string> initResult =
-                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.Request, connectId,
+                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.GetRequestCopy(), connectId,
                     cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)

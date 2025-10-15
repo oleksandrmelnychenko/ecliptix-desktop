@@ -35,14 +35,18 @@ public enum OpaqueResult : int
 
 public sealed class RegistrationResult : IDisposable
 {
-    public byte[] Request { get; }
-    public IntPtr StateHandle { get; }
+    private readonly byte[] _request;
+    private readonly IntPtr _stateHandle;
     private bool _disposed;
+
+    public byte[] GetRequestCopy() => (byte[])_request.Clone();
+
+    internal IntPtr StateHandle => _stateHandle;
 
     internal RegistrationResult(byte[] request, IntPtr stateHandle)
     {
-        Request = request;
-        StateHandle = stateHandle;
+        _request = request;
+        _stateHandle = stateHandle;
     }
 
     public void Dispose()
@@ -57,14 +61,18 @@ public sealed class RegistrationResult : IDisposable
 
 public sealed class KeyExchangeResult : IDisposable
 {
-    public byte[] KeyExchangeData { get; }
-    public IntPtr StateHandle { get; }
+    private readonly byte[] _keyExchangeData;
+    private readonly IntPtr _stateHandle;
     private bool _disposed;
+
+    public byte[] GetKeyExchangeDataCopy() => (byte[])_keyExchangeData.Clone();
+
+    internal IntPtr StateHandle => _stateHandle;
 
     internal KeyExchangeResult(byte[] keyExchangeData, IntPtr stateHandle)
     {
-        KeyExchangeData = keyExchangeData;
-        StateHandle = stateHandle;
+        _keyExchangeData = keyExchangeData;
+        _stateHandle = stateHandle;
     }
 
     public void Dispose()

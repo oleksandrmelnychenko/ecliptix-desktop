@@ -16,6 +16,7 @@ public interface IModuleMessage
 
     string? CorrelationId { get; }
 }
+
 public abstract record ModuleMessage : IModuleMessage
 {
     public string MessageId { get; init; } = Guid.NewGuid().ToString();

@@ -19,6 +19,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
 using Serilog;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
@@ -91,7 +92,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
-        IUnifiedMessageBus messageBus,
+        IMessageBus messageBus,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;

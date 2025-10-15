@@ -1,3 +1,5 @@
+using System;
+
 namespace Ecliptix.Core.Infrastructure.Network.Core.Constants;
 
 public static class NetworkConstants
@@ -13,6 +15,11 @@ public static class NetworkConstants
     public static class Cryptography
     {
         public const int Sha256HashSize = 32;
+    }
+
+    public static class Timeouts
+    {
+        public static readonly TimeSpan OutageRecoveryTimeout = TimeSpan.FromSeconds(5);
     }
 
     public static class ErrorMessages

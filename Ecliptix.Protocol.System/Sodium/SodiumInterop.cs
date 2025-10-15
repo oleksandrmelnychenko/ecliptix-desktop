@@ -7,7 +7,7 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Sodium;
 
-public static partial class SodiumInterop
+internal static partial class SodiumInterop
 {
     private const string LibSodium = ProtocolSystemConstants.Libraries.LibSodium;
 

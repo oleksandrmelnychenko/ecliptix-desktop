@@ -12,7 +12,7 @@ using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.External.IpGeolocation;
 
-public sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
+internal sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
 {
     private const string BaseUrl = "https://api.country.is";
 

@@ -5,7 +5,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public static class SecureMemoryUtils
+internal static class SecureMemoryUtils
 {
     private static readonly SecureMemoryPool DefaultPool = new(ProtocolSystemConstants.MemoryPool.DefaultBufferSize, ProtocolSystemConstants.MemoryPool.MaxPoolSize);
 

@@ -11,7 +11,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
+internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
     : IIdentityService
 {
     public async Task<bool> HasStoredIdentityAsync(string membershipId)

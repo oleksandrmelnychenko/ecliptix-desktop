@@ -5,7 +5,6 @@ public record ModuleInitializedEvent : ModuleEvent
 {
     public override string MessageType => "module.initialized";
     public string ModuleName { get; init; } = string.Empty;
-    public string ModuleVersion { get; init; } = string.Empty;
 }
 
 public record UserAuthenticatedEvent : ModuleEvent
@@ -20,6 +19,7 @@ public record UserSignedOutEvent : ModuleEvent
     public override string MessageType => "user.signed_out";
     public string UserId { get; init; } = string.Empty;
 }
+
 public record NavigationRequestedEvent : ModuleEvent
 {
     public override string MessageType => "navigation.requested";

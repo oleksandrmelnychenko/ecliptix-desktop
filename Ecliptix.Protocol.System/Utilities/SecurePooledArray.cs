@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public readonly struct SecurePooledArray<T> : IDisposable where T : struct
+internal readonly struct SecurePooledArray<T> : IDisposable where T : struct
 {
     private readonly T[] _array;
     private readonly int _requestedLength;

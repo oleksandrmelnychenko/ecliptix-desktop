@@ -14,7 +14,7 @@ using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
 
 namespace Ecliptix.Core.Core.MVVM;
 
-public static class StaticViewMapper
+internal static class StaticViewMapper
 {
     private static readonly FrozenDictionary<Type, Lazy<Func<Control>>> ViewFactories =
         CreateViewFactories().ToFrozenDictionary();

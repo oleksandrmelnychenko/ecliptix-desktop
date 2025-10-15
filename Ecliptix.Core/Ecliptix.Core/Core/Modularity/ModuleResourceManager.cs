@@ -7,66 +7,23 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public sealed class ModuleServiceContext
+internal sealed class ModuleServiceContext(IServiceProvider parentProvider)
 {
-    private readonly IServiceProvider _parentProvider;
-
-    public ModuleServiceContext(IServiceProvider parentProvider)
-    {
-        _parentProvider = parentProvider ?? throw new ArgumentNullException(nameof(parentProvider));
-    }
-
-    public T GetParentService<T>() where T : notnull => _parentProvider.GetRequiredService<T>();
+    public T GetParentService<T>() where T : notnull => parentProvider.GetRequiredService<T>();
 }
 
-public static class ModuleServiceExtensions
-{
-    public static IServiceCollection ForwardParentService<T>(this IServiceCollection services) where T : class
-    {
-        services.AddSingleton(sp =>
-        {
-            ModuleServiceContext context = sp.GetRequiredService<ModuleServiceContext>();
-            return context.GetParentService<T>();
-        });
-        return services;
-    }
-
-    public static IServiceCollection ForwardParentService<TService, TImplementation>(this IServiceCollection services)
-        where TService : class
-        where TImplementation : class, TService
-    {
-        services.AddSingleton<TService>(sp =>
-        {
-            ModuleServiceContext context = sp.GetRequiredService<ModuleServiceContext>();
-            return context.GetParentService<TImplementation>();
-        });
-        return services;
-    }
-}
-
-public class ModuleResourceManager : IDisposable
+internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDisposable
 {
     private readonly ConcurrentDictionary<string, IModuleScope> _moduleScopes = new();
-    private readonly IServiceProvider _rootServiceProvider;
     private bool _disposed;
 
-    public ModuleResourceManager(IServiceProvider serviceProvider)
+    public IModuleScope CreateModuleScope(string moduleName, Action<IServiceCollection>? configureServices = null)
     {
-        _rootServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-    }
-
-    public IModuleScope CreateModuleScope(string moduleName, IModuleResourceConstraints constraints, Action<IServiceCollection>? configureServices = null)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (string.IsNullOrWhiteSpace(moduleName))
-            throw new ArgumentException("Module name cannot be null or empty", nameof(moduleName));
-
         IServiceScope serviceScope;
 
         if (configureServices != null)
         {
-            IServiceScope parentScope = _rootServiceProvider.CreateScope();
+            IServiceScope parentScope = serviceProvider.CreateScope();
             ServiceCollection moduleServices = new();
 
             ModuleServiceContext context = new(parentScope.ServiceProvider);
@@ -81,7 +38,7 @@ public class ModuleResourceManager : IDisposable
         }
         else
         {
-            serviceScope = _rootServiceProvider.CreateScope();
+            serviceScope = serviceProvider.CreateScope();
         }
 
         ModuleScope moduleScope = new(moduleName, serviceScope);

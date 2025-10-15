@@ -10,17 +10,13 @@ public interface IModuleManifest
 
     IReadOnlyList<ModuleIdentifier> Dependencies { get; }
 
-    IModuleResourceConstraints ResourceConstraints { get; }
-
     bool CanLoad();
 }
 
 public record ModuleManifest(
-    Version Version,
     int Priority,
     ModuleLoadingStrategy LoadingStrategy,
-    IReadOnlyList<ModuleIdentifier> Dependencies,
-    IModuleResourceConstraints ResourceConstraints
+    IReadOnlyList<ModuleIdentifier> Dependencies
 ) : IModuleManifest
 {
     public virtual bool CanLoad() => true;

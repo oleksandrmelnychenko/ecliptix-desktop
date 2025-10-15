@@ -7,7 +7,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public static class EnvelopeBuilder
+internal static class EnvelopeBuilder
 {
     public static EnvelopeMetadata CreateEnvelopeMetadata(
         uint requestId,

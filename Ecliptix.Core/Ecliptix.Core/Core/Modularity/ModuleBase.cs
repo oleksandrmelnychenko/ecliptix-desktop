@@ -35,7 +35,7 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
             ModuleResourceManager? resourceManager = serviceProvider.GetService<ModuleResourceManager>();
             if (resourceManager != null)
             {
-                ServiceScope = resourceManager.CreateModuleScope(Id.ToName(), Manifest.ResourceConstraints);
+                ServiceScope = resourceManager.CreateModuleScope(Id.ToName());
                 _serviceProvider = ServiceScope.ServiceProvider;
             }
 

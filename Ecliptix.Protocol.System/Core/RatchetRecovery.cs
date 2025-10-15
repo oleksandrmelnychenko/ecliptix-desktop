@@ -7,7 +7,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvider, IDisposable
+internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProvider, IDisposable
 {
     private readonly Dictionary<uint, SodiumSecureMemoryHandle> _skippedMessageKeys = new();
     private readonly Lock _lock = new();

@@ -36,7 +36,6 @@ internal sealed class WeakSubscription<T>(Func<T, bool> filter, Func<T, Task> ha
 
     public int Priority { get; } = priority;
     public bool IsWeak => true;
-
     public bool IsAlive => _handlerRef.TryGetTarget(out _);
 
     public Task? HandleAsync(object message)

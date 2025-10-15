@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace Ecliptix.Protocol.System.Utilities;
 
-public sealed class SecureMemoryPool : IDisposable
+internal sealed class SecureMemoryPool : IDisposable
 {
     private readonly ConcurrentBag<SecureMemoryBuffer> _pool = new();
     private readonly int _defaultBufferSize;

@@ -14,7 +14,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Security.Platform;
 
-public sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
+internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 {
     private const int AesKeySize = 32;
     private const int AesIvSize = 16;

@@ -9,7 +9,7 @@ using Google.Protobuf;
 
 namespace Ecliptix.Protocol.System.Core;
 
-public sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
+internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 {
     private const uint DefaultCacheWindowSize = ProtocolSystemConstants.ChainStep.DefaultCacheWindowSize;
 

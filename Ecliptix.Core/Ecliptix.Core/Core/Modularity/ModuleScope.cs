@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-public class ModuleScope : IModuleScope
+internal class ModuleScope : IModuleScope
 {
     private readonly IServiceScope _serviceScope;
     private long _disposed;
@@ -22,7 +22,6 @@ public class ModuleScope : IModuleScope
 
     public IServiceProvider ServiceProvider { get; }
     public string ModuleName { get; }
-    public IModuleResourceConstraints Constraints => new DefaultModuleResourceConstraints();
 
     public void Dispose()
     {
@@ -32,21 +31,12 @@ public class ModuleScope : IModuleScope
         try
         {
             Log.Debug("Disposing module scope for {ModuleName}", ModuleName);
-            _serviceScope?.Dispose();
+            _serviceScope.Dispose();
             Log.Debug("Module scope disposed for {ModuleName}", ModuleName);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error disposing module scope for {ModuleName}", ModuleName);
         }
-    }
-
-    private sealed class DefaultModuleResourceConstraints : IModuleResourceConstraints
-    {
-        public long MaxMemoryMB => long.MaxValue;
-        public int MaxThreads => int.MaxValue;
-        public TimeSpan MaxExecutionTime => TimeSpan.MaxValue;
-        public int Priority => 0;
-        public bool CanUnload => true;
     }
 }

@@ -21,7 +21,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Data.SecureStorage;
 
-public sealed class ApplicationSecureStorageProvider : IApplicationSecureStorageProvider
+internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStorageProvider
 {
     private const string SettingsKey = "ApplicationInstanceSettings";
 
