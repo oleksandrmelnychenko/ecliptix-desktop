@@ -38,6 +38,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         {
             [RpcServiceType.RegisterAppDevice] = RegisterDeviceAsync,
             [RpcServiceType.ValidateMobileNumber] = ValidateMobileNumberAsync,
+            [RpcServiceType.CheckMobileNumberAvailability] = CheckMobileNumberAvailabilityAsync,
             [RpcServiceType.OpaqueRegistrationInit] = OpaqueRegistrationRecordRequestAsync,
             [RpcServiceType.VerifyOtp] = VerifyCodeAsync,
             [RpcServiceType.OpaqueRegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
@@ -96,6 +97,24 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 systemEvents,
                 () =>
                     authenticationServicesClient.ValidateMobileNumberAsync(
+                        payload,
+                        new CallOptions(cancellationToken: token)
+                    )
+            ).ConfigureAwait(false);
+        }
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> CheckMobileNumberAvailabilityAsync(
+            SecureEnvelope payload,
+            INetworkEventService networkEvents,
+            ISystemEventService systemEvents,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                networkEvents,
+                systemEvents,
+                () =>
+                    authenticationServicesClient.CheckMobileNumberAvailabilityAsync(
                         payload,
                         new CallOptions(cancellationToken: token)
                     )

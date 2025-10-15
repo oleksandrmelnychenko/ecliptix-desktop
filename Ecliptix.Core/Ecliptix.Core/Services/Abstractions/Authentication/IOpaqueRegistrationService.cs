@@ -14,6 +14,10 @@ public interface IOpaqueRegistrationService
     Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(string mobileNumber, string deviceIdentifier,
         uint connectId, CancellationToken cancellationToken = default);
 
+    Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
+        ByteString mobileNumberIdentifier,
+        uint connectId, CancellationToken cancellationToken = default);
+
     Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
         string deviceIdentifier,

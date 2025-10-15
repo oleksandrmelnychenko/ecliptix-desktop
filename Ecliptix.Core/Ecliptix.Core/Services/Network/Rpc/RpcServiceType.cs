@@ -6,6 +6,7 @@ public enum RpcServiceType : short
     RestoreSecrecyChannel,
     RegisterAppDevice,
     ValidateMobileNumber,
+    CheckMobileNumberAvailability,
     VerifyOtp,
     InitiateVerification,
     OpaqueRegistrationInit,

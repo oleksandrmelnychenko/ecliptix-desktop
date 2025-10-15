@@ -83,6 +83,42 @@ internal sealed class OpaqueRegistrationService(
         return Result<ValidateMobileNumberResponse, string>.Ok(identifier);
     }
 
+    public async Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
+        ByteString mobileNumberIdentifier, uint connectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (mobileNumberIdentifier.IsEmpty)
+        {
+            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(
+                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
+        }
+
+        CheckMobileNumberAvailabilityRequest request = new()
+        {
+            MobileNumberIdentifier = mobileNumberIdentifier
+        };
+
+        TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource = new();
+
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
+            connectId,
+            RpcServiceType.CheckMobileNumberAvailability,
+            SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
+            {
+                CheckMobileNumberAvailabilityResponse response = Helpers.ParseFromBytes<CheckMobileNumberAvailabilityResponse>(payload);
+                responseSource.TrySetResult(response);
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }, true, cancellationToken).ConfigureAwait(false);
+
+        if (networkResult.IsErr)
+        {
+            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(networkResult.UnwrapErr().Message);
+        }
+
+        CheckMobileNumberAvailabilityResponse statusResponse = await responseSource.Task.ConfigureAwait(false);
+        return Result<CheckMobileNumberAvailabilityResponse, string>.Ok(statusResponse);
+    }
+
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
         string deviceIdentifier,

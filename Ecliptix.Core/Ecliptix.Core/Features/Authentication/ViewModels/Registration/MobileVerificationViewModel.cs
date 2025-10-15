@@ -191,7 +191,35 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 {
                     ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
 
-                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                    Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
+                        await _registrationService.CheckMobileNumberAvailabilityAsync(
+                            validateMobileNumberResponse.MobileNumberIdentifier,
+                            connectId,
+                            operationToken);
+
+                    if (_isDisposed) return Unit.Default;
+
+                    if (statusResult.IsOk)
+                    {
+                        CheckMobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
+
+                        if (statusResponse.Status == "available")
+                        {
+                            await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                        }
+                        else
+                        {
+                            NetworkErrorMessage = LocalizationService["mobile_already_registered"];
+                            if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                        }
+                    }
+                    else
+                    {
+                        NetworkErrorMessage = statusResult.UnwrapErr();
+                        if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
+                            ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                    }
                 }
                 else if (!_isDisposed)
                 {
