@@ -231,10 +231,16 @@ public sealed class ApplicationInitializer(
 
         if (membershipId != null)
         {
-            await SecureByteStringInterop.WithByteStringAsSpan(
+            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
                 secrecyChannelState.ToByteString(),
                 span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId))
                 .ConfigureAwait(false);
+
+            if (saveResult.IsErr)
+            {
+                Log.Warning("[CLIENT-STATE-SAVE] Failed to save secrecy channel state. ConnectId: {ConnectId}, Error: {Error}",
+                    connectId, saveResult.UnwrapErr().Message);
+            }
         }
         else
         {
@@ -374,7 +380,13 @@ public sealed class ApplicationInitializer(
             Log.Warning("[CLIENT-RESTORE] Failed to parse session state. ConnectId: {ConnectId}, Error: {Error}",
                 connectId, ex.Message);
             networkProvider.ClearConnection(connectId);
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            var deleteSecureStateResult =
+                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            if (deleteSecureStateResult.IsErr)
+            {
+                Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
+                    connectId, deleteSecureStateResult.UnwrapErr().Message);
+            }
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -384,7 +396,13 @@ public sealed class ApplicationInitializer(
         if (restoreResult.IsErr)
         {
             networkProvider.ClearConnection(connectId);
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            Result<Unit, SecureStorageFailure> deleteStateResult =
+                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            if (deleteStateResult.IsErr)
+            {
+                Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete state after restore failure. ConnectId: {ConnectId}, Error: {Error}",
+                    connectId, deleteStateResult.UnwrapErr().Message);
+            }
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -392,7 +410,13 @@ public sealed class ApplicationInitializer(
             return Result<bool, NetworkFailure>.Ok(true);
 
         networkProvider.ClearConnection(connectId);
-        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+        Result<Unit, SecureStorageFailure> deleteResult =
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+        if (deleteResult.IsErr)
+        {
+            Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete state after unsuccessful restore. ConnectId: {ConnectId}, Error: {Error}",
+                connectId, deleteResult.UnwrapErr().Message);
+        }
 
         return Result<bool, NetworkFailure>.Ok(false);
     }

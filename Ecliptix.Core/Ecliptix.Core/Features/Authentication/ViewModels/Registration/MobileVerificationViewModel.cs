@@ -33,6 +33,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly AuthenticationFlowContext _flowContext;
     private readonly CompositeDisposable _disposables = new();
 
+    private CancellationTokenSource? _currentOperationCts;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
 
@@ -164,19 +165,23 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         NetworkErrorMessage = string.Empty;
 
-        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
-
         try
         {
+            _currentOperationCts?.Cancel();
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = new CancellationTokenSource();
+
             string systemDeviceIdentifier = SystemDeviceIdentifier();
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+            CancellationToken operationToken = _currentOperationCts.Token;
 
             if (_flowContext == AuthenticationFlowContext.Registration)
             {
                 Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
                     MobileNumber,
                     systemDeviceIdentifier,
-                    connectId);
+                    connectId,
+                    operationToken);
 
                 Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
@@ -198,9 +203,9 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             else
             {
                 Task<Result<ByteString, string>> recoveryValidationTask =
-                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId);
+                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId, operationToken);
 
-                Result<ByteString, string> result = await recoveryValidationTask.WaitAsync(timeoutCts.Token);
+                Result<ByteString, string> result = await recoveryValidationTask;
 
                 if (_isDisposed) return Unit.Default;
 
@@ -224,15 +229,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                     if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
                         ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
                 }
-            }
-        }
-        catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
-        {
-            if (!_isDisposed)
-            {
-                NetworkErrorMessage = LocalizationService[AuthenticationConstants.TimeoutExceededKey];
-                if (HostScreen is AuthenticationViewModel hostWindow)
-                    ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
             }
         }
         catch (OperationCanceledException)
@@ -277,6 +273,9 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         if (_isDisposed) return;
         if (disposing)
         {
+            _currentOperationCts?.Cancel();
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
             _disposables.Dispose();
         }
 

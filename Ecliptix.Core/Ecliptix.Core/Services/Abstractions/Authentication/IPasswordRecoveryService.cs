@@ -11,7 +11,7 @@ namespace Ecliptix.Core.Services.Abstractions.Authentication;
 public interface IPasswordRecoveryService
 {
     Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(string mobileNumber, string deviceIdentifier,
-        uint connectId);
+        uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> InitiatePasswordResetOtpAsync(ByteString mobileNumberIdentifier,
         string deviceIdentifier,
@@ -25,10 +25,10 @@ public interface IPasswordRecoveryService
 
     Task<Result<Protobuf.Membership.Membership, string>> VerifyPasswordResetOtpAsync(Guid sessionIdentifier, string otpCode,
         string deviceIdentifier,
-        uint connectId);
+        uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> CompletePasswordResetAsync(ByteString membershipIdentifier, SecureTextBuffer newPassword,
-        uint connectId);
+        uint connectId, CancellationToken cancellationToken = default);
 
     Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier);
 }

@@ -31,31 +31,14 @@ public sealed class PasswordRecoveryService(
     private byte[]? _cachedServerPublicKey;
     private bool _disposed;
 
-    private OpaqueClient GetOrCreateOpaqueClient()
-    {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
-
-        lock (_opaqueClientLock)
-        {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
-            {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
-            }
-
-            return _opaqueClient;
-        }
-    }
-
     public async Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(
         string mobileNumber,
         string deviceIdentifier,
-        uint connectId)
+        uint connectId,
+        CancellationToken cancellationToken = default)
     {
         Result<ValidateMobileNumberResponse, string> result =
-            await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId).ConfigureAwait(false);
+            await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId, cancellationToken).ConfigureAwait(false);
 
         if (result.IsErr)
             return Result<ByteString, string>.Err(result.UnwrapErr());
@@ -97,15 +80,17 @@ public sealed class PasswordRecoveryService(
         Guid sessionIdentifier,
         string otpCode,
         string deviceIdentifier,
-        uint connectId)
+        uint connectId,
+        CancellationToken cancellationToken = default)
     {
-        return registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, deviceIdentifier, connectId);
+        return registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, deviceIdentifier, connectId, cancellationToken);
     }
 
     public async Task<Result<Unit, string>> CompletePasswordResetAsync(
         ByteString membershipIdentifier,
         SecureTextBuffer newPassword,
-        uint connectId)
+        uint connectId,
+        CancellationToken cancellationToken = default)
     {
         if (membershipIdentifier.IsEmpty)
         {
@@ -139,7 +124,7 @@ public sealed class PasswordRecoveryService(
             }
 
             Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
-                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.Request, connectId).ConfigureAwait(false);
+                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.Request, connectId, cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)
             {
@@ -190,7 +175,7 @@ public sealed class PasswordRecoveryService(
                         responseSource.TrySetException(ex);
                     }
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, CancellationToken.None).ConfigureAwait(false);
+                }, true, cancellationToken).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
@@ -221,7 +206,8 @@ public sealed class PasswordRecoveryService(
     private async Task<Result<OpaqueRecoverySecureKeyInitResponse, string>> InitiatePasswordRecoveryAsync(
         ByteString membershipIdentifier,
         byte[] recoveryRequest,
-        uint connectId)
+        uint connectId,
+        CancellationToken cancellationToken)
     {
         if (membershipIdentifier.IsEmpty)
         {
@@ -256,7 +242,7 @@ public sealed class PasswordRecoveryService(
                         responseSource.TrySetException(ex);
                     }
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, CancellationToken.None).ConfigureAwait(false);
+                }, true, cancellationToken).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
@@ -275,6 +261,24 @@ public sealed class PasswordRecoveryService(
     public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier)
     {
         return registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
+    }
+
+    private OpaqueClient GetOrCreateOpaqueClient()
+    {
+        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
+
+        lock (_opaqueClientLock)
+        {
+            if (_opaqueClient == null || _cachedServerPublicKey == null ||
+                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            {
+                _opaqueClient?.Dispose();
+                _opaqueClient = new OpaqueClient(serverPublicKey);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            }
+
+            return _opaqueClient;
+        }
     }
 
     public void Dispose()

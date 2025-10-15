@@ -8,4 +8,5 @@ public enum NetworkFailureType
     EcliptixProtocolFailure,
     RsaEncryptionFailure,
     ProtocolStateMismatch,
+    OperationCancelled,
 }

@@ -46,32 +46,38 @@ public class RpcServiceManager : IRpcServiceManager
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         SecureEnvelope envelope,
-        PubKeyExchangeType? exchangeType = null)
+        PubKeyExchangeType? exchangeType = null,
+        CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
             envelope,
-            exchangeType).ConfigureAwait(false);
+            exchangeType,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        RestoreChannelRequest request)
+        RestoreChannelRequest request,
+        CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
             systemEvents,
-            request).ConfigureAwait(false);
+            request,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        AuthenticatedEstablishRequest request)
+        AuthenticatedEstablishRequest request,
+        CancellationToken cancellationToken = default)
     {
         return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(networkEvents,
             systemEvents,
-            request).ConfigureAwait(false);
+            request,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeServiceRequestAsync(ServiceRequest request,

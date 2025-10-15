@@ -22,7 +22,7 @@ public static class ApplicationConstants
         public const string DefaultAppSettingsSection = "DefaultAppSettings";
         public const string SecureStoreOptionsSection = "SecureStoreOptions";
         public const string SecureStorageSection = "SecureStorage";
-        public const string ImprovedRetryPolicySection = "ImprovedRetryPolicy";
+        public const string SecrecyChannelRetryPolicySection = "SecrecyChannelRetryPolicy";
         public const string SerilogSection = "Serilog";
         public const string MinimumLevelDefaultKey = "MinimumLevel:Default";
         public const string PathSeparator = ":";

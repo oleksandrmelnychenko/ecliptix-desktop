@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
+using Polly.Timeout;
 using Polly.Wrap;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -17,13 +18,13 @@ using Serilog;
 
 namespace Ecliptix.Core.Services.Network.Resilience;
 
-public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
+public sealed class RetryStrategy : IRetryStrategy
 {
     private const int MaxTrackedOperations = 1000;
     private const int CleanupIntervalMinutes = 5;
     private const int OperationTimeoutMinutes = 10;
 
-    private readonly ImprovedRetryConfiguration _configuration;
+    private readonly RetryStrategyConfiguration _strategyConfiguration;
     private readonly INetworkEventService _networkEvents;
     private readonly IUiDispatcher _uiDispatcher;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
@@ -58,18 +59,12 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         }
     }
 
-    public SecrecyChannelRetryStrategy(
-        ImprovedRetryConfiguration configuration,
+    public RetryStrategy(
+        RetryStrategyConfiguration strategyConfiguration,
         INetworkEventService networkEvents,
         IUiDispatcher uiDispatcher)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(networkEvents);
-        ArgumentNullException.ThrowIfNull(uiDispatcher);
-
-        configuration.ValidateAndThrow();
-
-        _configuration = configuration;
+        _strategyConfiguration = strategyConfiguration;
         _networkEvents = networkEvents;
         _uiDispatcher = uiDispatcher;
 
@@ -81,8 +76,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         try
         {
-            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(
-                evt => HandleManualRetryRequestAsync(evt));
+            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(evt => HandleManualRetryRequestAsync(evt));
         }
         catch (Exception ex)
         {
@@ -93,58 +87,51 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
         Log.Information(
             "SecrecyChannelRetryStrategy initialized with configuration: MaxRetries={MaxRetries}, InitialDelay={InitialDelay}",
-            _configuration.MaxRetries, _configuration.InitialRetryDelay);
+            _strategyConfiguration.MaxRetries, _strategyConfiguration.InitialRetryDelay);
     }
 
     public void SetLazyNetworkProvider(Lazy<NetworkProvider> lazyNetworkProvider)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
         _lazyNetworkProvider = lazyNetworkProvider;
     }
 
     public async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
-        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
-        uint? connectId = null,
+        uint connectId,
         int? maxRetries = null,
         CancellationToken cancellationToken = default)
     {
         return await ExecuteSecrecyChannelOperationInternalAsync(
-            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false).ConfigureAwait(false);
+                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false)
+            .ConfigureAwait(false);
     }
 
     public async Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryOperationAsync<TResponse>(
-        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
-        uint? connectId = null,
+        uint connectId,
         int? maxRetries = null,
         CancellationToken cancellationToken = default)
     {
         Log.Information("🔄 MANUAL RETRY: Executing operation '{OperationName}' bypassing exhaustion checks",
             operationName);
         return await ExecuteSecrecyChannelOperationInternalAsync(
-            operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true).ConfigureAwait(false);
+                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true)
+            .ConfigureAwait(false);
     }
 
     private async Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationInternalAsync<TResponse>(
-        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
         uint? connectId,
         int? maxRetries,
         CancellationToken cancellationToken,
         bool bypassExhaustionCheck)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
-        ArgumentNullException.ThrowIfNull(operation);
-        ArgumentException.ThrowIfNullOrWhiteSpace(operationName);
-
-        if (!connectId.HasValue)
-        {
-            return Result<TResponse, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Connection ID is required"));
-        }
-
-        int actualMaxRetries = maxRetries ?? _configuration.MaxRetries;
+        uint actualConnectId = connectId ?? 0;
+        int actualMaxRetries = maxRetries ?? _strategyConfiguration.MaxRetries;
 
         if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync().ConfigureAwait(false))
         {
@@ -156,15 +143,15 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         }
 
         Log.Information("🚀 EXECUTE OPERATION: Starting operation '{OperationName}' on ConnectId {ConnectId}",
-            operationName, connectId.Value);
+            operationName, actualConnectId);
 
         DateTime operationStartTime = DateTime.UtcNow;
-        string operationKey = CreateOperationKey(operationName, connectId.Value, operationStartTime);
+        string operationKey = CreateOperationKey(operationName, actualConnectId, operationStartTime);
 
         try
         {
             IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy =
-                CreateTypedRetryPolicy<TResponse>(actualMaxRetries, operationKey, operationName, connectId.Value);
+                CreateTypedRetryPolicy<TResponse>(actualMaxRetries, operationKey, operationName, actualConnectId);
 
             Context context = new(operationName);
 
@@ -172,7 +159,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 async (_, ct) =>
                 {
                     ct.ThrowIfCancellationRequested();
-                    Result<TResponse, NetworkFailure> opResult = await operation().ConfigureAwait(false);
+                    Result<TResponse, NetworkFailure> opResult = await operation(ct).ConfigureAwait(false);
                     Log.Debug("🔧 RETRY POLICY: Operation '{OperationName}' returned IsOk: {IsOk}",
                         operationName, opResult.IsOk);
                     return opResult;
@@ -199,7 +186,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         {
             StopTrackingOperation(operationKey, "Operation cancelled");
             return Result<TResponse, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("Operation cancelled"));
+                NetworkFailure.OperationCancelled("Operation cancelled by user"));
         }
         catch (Exception ex)
         {
@@ -210,9 +197,10 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 NetworkFailure.DataCenterNotResponding($"Unexpected error: {ex.Message}"));
         }
     }
+
     public void ResetConnectionState(uint? connectId = null)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
 
         try
         {
@@ -228,10 +216,12 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     public void MarkConnectionHealthy(uint connectId)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
 
         _ = Task.Run(async () =>
         {
+            if (_isDisposed) return;
+
             try
             {
                 await _stateLock.WaitAsync().ConfigureAwait(false);
@@ -274,7 +264,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     public bool HasExhaustedOperations()
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
 
         try
         {
@@ -285,6 +275,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                     return true;
                 }
             }
+
             return false;
         }
         catch (Exception ex)
@@ -296,7 +287,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
 
     public void ClearExhaustedOperations()
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecrecyChannelRetryStrategy));
+        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
 
         try
         {
@@ -345,6 +336,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                     return false;
                 }
             }
+
             return true;
         }
         finally
@@ -365,6 +357,7 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                 return false;
             }
         }
+
         return true;
     }
 
@@ -548,34 +541,48 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
         string operationName,
         uint connectId)
     {
-        IEnumerable<TimeSpan> rawDelays = _configuration.UseAdaptiveRetry
+        IEnumerable<TimeSpan> rawDelays = _strategyConfiguration.UseAdaptiveRetry
             ? Backoff.DecorrelatedJitterBackoffV2(
-                medianFirstRetryDelay: _configuration.InitialRetryDelay,
+                medianFirstRetryDelay: _strategyConfiguration.InitialRetryDelay,
                 retryCount: maxRetries,
                 fastFirst: true)
             : Backoff.ExponentialBackoff(
-                initialDelay: _configuration.InitialRetryDelay,
+                initialDelay: _strategyConfiguration.InitialRetryDelay,
                 retryCount: maxRetries,
                 factor: 2.0,
                 fastFirst: true);
 
         TimeSpan[] retryDelays = rawDelays.Select(delay =>
-            delay > _configuration.MaxRetryDelay ? _configuration.MaxRetryDelay : delay).ToArray();
+            delay > _strategyConfiguration.MaxRetryDelay ? _strategyConfiguration.MaxRetryDelay : delay).ToArray();
 
         ShouldRetryDelegate<TResponse>
             shouldRetryDelegate = RetryDecisionFactory.CreateShouldRetryDelegate<TResponse>();
         RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate =
             RetryDecisionFactory.CreateConnectionRecoveryDelegate<TResponse>();
 
-        IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy = Policy
-            .HandleResult<Result<TResponse, NetworkFailure>>(result => shouldRetryDelegate(result))
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy = Policy<Result<TResponse, NetworkFailure>>
+            .Handle<TimeoutRejectedException>()
+            .OrResult(result => shouldRetryDelegate(result))
             .WaitAndRetryAsync(
                 retryDelays,
-                onRetry: (outcome, delay, retryCount, context) =>
+                async (outcome, delay, retryCount, context) =>
                 {
-                    Log.Information(
-                        "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries}, delay: {DelayMs}ms",
-                        operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
+                    bool isTimeout = outcome.Exception is TimeoutRejectedException;
+                    bool hasResult = outcome.Exception is null;
+                    Result<TResponse, NetworkFailure> result = hasResult ? outcome.Result : default;
+
+                    if (isTimeout)
+                    {
+                        Log.Warning(
+                            "⏳ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out - attempt {RetryCount}/{MaxRetries}, retrying after {DelayMs}ms",
+                            operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
+                    }
+                    else
+                    {
+                        Log.Information(
+                            "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries}, delay: {DelayMs}ms",
+                            operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
+                    }
 
                     if (retryCount == 1)
                     {
@@ -632,7 +639,8 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                                 {
                                     try
                                     {
-                                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterDisconnected);
+                                        _ = _networkEvents.NotifyNetworkStatusAsync(
+                                            NetworkStatus.DataCenterDisconnected);
                                     }
                                     catch (Exception ex)
                                     {
@@ -647,13 +655,42 @@ public sealed class SecrecyChannelRetryStrategy : IRetryStrategy
                         }
                     }
 
-                    if (connectionRecoveryDelegate(outcome.Result))
+                    bool requiresRecovery = false;
+                    if (isTimeout)
                     {
-                        _ = Task.Run(() => EnsureSecrecyChannelAsync(connectId));
+                        requiresRecovery = true;
+                    }
+                    else if (hasResult)
+                    {
+                        requiresRecovery = connectionRecoveryDelegate(result);
+                    }
+
+                    if (requiresRecovery)
+                    {
+                        await Task.Run(async () =>
+                        {
+                            if (_isDisposed) return;
+                            await EnsureSecrecyChannelAsync(connectId);
+                        }).ConfigureAwait(false);
                     }
                 });
 
-        return retryPolicy;
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy = Policy
+            .TimeoutAsync<Result<TResponse, NetworkFailure>>(
+                _strategyConfiguration.PerAttemptTimeout,
+                TimeoutStrategy.Pessimistic,
+                onTimeoutAsync: (context, timespan, _, _) =>
+                {
+                    Log.Warning(
+                        "⏰ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out after {TimeoutSeconds}s",
+                        operationName, connectId, timespan.TotalSeconds);
+                    return Task.CompletedTask;
+                });
+
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> combinedPolicy =
+            Policy.WrapAsync(retryPolicy, timeoutPolicy);
+
+        return combinedPolicy;
     }
 
     private async Task EnsureSecrecyChannelAsync(uint connectId)

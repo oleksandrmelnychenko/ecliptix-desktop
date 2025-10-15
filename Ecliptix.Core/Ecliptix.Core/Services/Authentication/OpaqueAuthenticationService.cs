@@ -61,7 +61,7 @@ public sealed class OpaqueAuthenticationService(
         { OpaqueResult.InvalidInput, AuthenticationConstants.InvalidCredentialsKey },
         { OpaqueResult.CryptoError, AuthenticationConstants.CommonUnexpectedErrorKey },
         { OpaqueResult.MemoryError, AuthenticationConstants.CommonUnexpectedErrorKey },
-        { OpaqueResult.ValidationError, AuthenticationConstants.InvalidCredentialsKey},
+        { OpaqueResult.ValidationError, AuthenticationConstants.InvalidCredentialsKey },
         { OpaqueResult.AuthenticationError, AuthenticationConstants.InvalidCredentialsKey },
         { OpaqueResult.InvalidPublicKey, AuthenticationConstants.CommonUnexpectedErrorKey },
     };
@@ -79,13 +79,15 @@ public sealed class OpaqueAuthenticationService(
     private OpaqueClient? _opaqueClient;
     private byte[]? _cachedServerPublicKey;
 
-    public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber, SecureTextBuffer securePassword,
-        uint connectId)
+    public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
+        SecureTextBuffer securePassword,
+        uint connectId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
             string mobileRequiredError = localizationService[AuthenticationConstants.MobileNumberRequiredKey];
-            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
 
         byte[]? passwordBytes = null;
@@ -95,16 +97,12 @@ public sealed class OpaqueAuthenticationService(
 
             if (passwordBytes != null && passwordBytes.Length != 0)
             {
-                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId).ConfigureAwait(false);
+                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
             string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
             return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
-        }
-        catch (Exception ex)
-        {
-            return Result<Unit, AuthenticationFailure>.Err(
-                AuthenticationFailure.UnexpectedError(localizationService[AuthenticationConstants.CommonUnexpectedErrorKey], ex));
         }
         finally
         {
@@ -115,8 +113,9 @@ public sealed class OpaqueAuthenticationService(
         }
     }
 
-    private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber, byte[] passwordBytes,
-        uint connectId)
+    private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber,
+        byte[] passwordBytes,
+        uint connectId, CancellationToken cancellationToken)
     {
         OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
@@ -128,7 +127,8 @@ public sealed class OpaqueAuthenticationService(
             PeerOprf = ByteString.CopyFrom(ke1Result.KeyExchangeData),
         };
 
-        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult = await SendInitRequestAsync(initRequest, connectId).ConfigureAwait(false);
+        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
+            await SendInitRequestAsync(initRequest, connectId, cancellationToken).ConfigureAwait(false);
         if (initResult.IsErr)
         {
             return Result<Unit, AuthenticationFailure>.Err(initResult.UnwrapErr());
@@ -143,7 +143,8 @@ public sealed class OpaqueAuthenticationService(
             AuthenticationFailure authFailure = validation.FailureType switch
             {
                 ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation.Message),
-                ValidationFailureType.LoginAttemptExceeded => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+                ValidationFailureType.LoginAttemptExceeded => AuthenticationFailure.LoginAttemptExceeded(validation
+                    .Message),
                 _ => AuthenticationFailure.UnexpectedError(validation.Message)
             };
             return Result<Unit, AuthenticationFailure>.Err(authFailure);
@@ -163,7 +164,9 @@ public sealed class OpaqueAuthenticationService(
         byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
         string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
-        Serilog.Log.Information("[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}", baseKeyFingerprint);
+        Serilog.Log.Information(
+            "[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}",
+            baseKeyFingerprint);
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
             SodiumSecureMemoryHandle.Allocate(baseSessionKeyBytes.Length);
@@ -205,7 +208,8 @@ public sealed class OpaqueAuthenticationService(
         };
 
         Result<SignInResult, AuthenticationFailure> finalResult =
-            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId).ConfigureAwait(false);
+            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId,
+                cancellationToken).ConfigureAwait(false);
 
         if (finalResult.IsOk)
         {
@@ -222,30 +226,39 @@ public sealed class OpaqueAuthenticationService(
                 ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
                 Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
 
-                Serilog.Log.Information("[LOGIN-START] Starting login flow for MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information("[LOGIN-START] Starting login flow for MembershipId: {MembershipId}",
+                    membershipId);
 
                 if (!ValidateMembershipIdentifier(membershipIdentifier))
                 {
-                    Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}", membershipId);
-                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier").ConfigureAwait(false);
+                    Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}",
+                        membershipId);
+                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier")
+                        .ConfigureAwait(false);
                     return Result<Unit, AuthenticationFailure>.Err(
-                        AuthenticationFailure.InvalidMembershipIdentifier(localizationService[AuthenticationConstants.InvalidCredentialsKey]));
+                        AuthenticationFailure.InvalidMembershipIdentifier(
+                            localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                 }
 
-                Serilog.Log.Information("[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information(
+                    "[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}",
+                    membershipId);
 
                 Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
                     MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle, membershipIdentifier);
 
                 if (masterKeyHandleResult.IsErr)
                 {
-                    Serilog.Log.Error("[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
+                    Serilog.Log.Error(
+                        "[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
                         membershipId, masterKeyHandleResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr().Message));
                 }
 
-                Serilog.Log.Information("[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information(
+                    "[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}",
+                    membershipId);
 
                 using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
 
@@ -254,28 +267,39 @@ public sealed class OpaqueAuthenticationService(
                 {
                     byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
                     string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
-                    Serilog.Log.Information("[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
+                    Serilog.Log.Information(
+                        "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                         membershipId, masterKeyFingerprint);
                     CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
                 }
 
-                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
-                Result<Unit, AuthenticationFailure> storeResult = await identityService.StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
+                Serilog.Log.Information(
+                    "[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
+                Result<Unit, AuthenticationFailure> storeResult = await identityService
+                    .StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
 
                 if (storeResult.IsErr)
                 {
-                    Serilog.Log.Error("[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
+                    Serilog.Log.Error(
+                        "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
                         membershipId, storeResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
                 }
 
-                Serilog.Log.Information("[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information(
+                    "[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}",
+                    membershipId);
 
-                Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
-                await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership).ConfigureAwait(false);
-                Serilog.Log.Information("[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information(
+                    "[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
+                await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership)
+                    .ConfigureAwait(false);
+                Serilog.Log.Information(
+                    "[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}",
+                    membershipId);
 
-                Serilog.Log.Information("[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
+                Serilog.Log.Information(
+                    "[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
                     membershipId, connectId);
 
                 Result<Unit, NetworkFailure> recreateProtocolResult =
@@ -284,14 +308,16 @@ public sealed class OpaqueAuthenticationService(
 
                 if (recreateProtocolResult.IsErr)
                 {
-                    Serilog.Log.Error("[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
+                    Serilog.Log.Error(
+                        "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
                         membershipId, recreateProtocolResult.UnwrapErr().Message);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.NetworkRequestFailed(
                             $"Failed to establish authenticated protocol: {recreateProtocolResult.UnwrapErr().Message}"));
                 }
 
-                Serilog.Log.Information("[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}", membershipId);
+                Serilog.Log.Information(
+                    "[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}", membershipId);
             }
 
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
@@ -325,6 +351,74 @@ public sealed class OpaqueAuthenticationService(
         }
     }
 
+    private async Task<Result<OpaqueSignInInitResponse, AuthenticationFailure>> SendInitRequestAsync(
+        OpaqueSignInInitRequest initRequest, uint connectId, CancellationToken cancellationToken)
+    {
+        TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
+
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
+            connectId,
+            RpcServiceType.OpaqueSignInInitRequest,
+            SecureByteStringInterop.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
+            initResponsePayload =>
+            {
+                OpaqueSignInInitResponse response =
+                    Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
+                responseCompletionSource.TrySetResult(response);
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }, false, cancellationToken, waitForRecovery: false
+        ).ConfigureAwait(false);
+
+        if (networkResult.IsErr)
+        {
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
+        }
+
+        OpaqueSignInInitResponse response = await responseCompletionSource.Task.ConfigureAwait(false);
+        return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(response);
+    }
+
+    private async Task<Result<SignInResult, AuthenticationFailure>> SendFinalizeRequestAndVerifyAsync(
+        OpaqueSignInFinalizeRequest finalizeRequest,
+        SodiumSecureMemoryHandle sessionKeyHandle, uint connectId, CancellationToken cancellationToken)
+    {
+        TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
+
+        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
+            connectId,
+            RpcServiceType.OpaqueSignInCompleteRequest,
+            SecureByteStringInterop.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
+            finalizeResponsePayload =>
+            {
+                OpaqueSignInFinalizeResponse response =
+                    Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
+                responseCompletionSource.TrySetResult(response);
+
+                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+            }, false, cancellationToken, waitForRecovery: false
+        ).ConfigureAwait(false);
+
+        if (networkResult.IsErr)
+        {
+            return Result<SignInResult, AuthenticationFailure>.Err(
+                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
+        }
+
+        OpaqueSignInFinalizeResponse capturedResponse = await responseCompletionSource.Task.ConfigureAwait(false);
+
+        if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
+        {
+            string message = capturedResponse.HasMessage
+                ? capturedResponse.Message
+                : localizationService[AuthenticationConstants.InvalidCredentialsKey];
+            return Result<SignInResult, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(message));
+        }
+
+        SignInResult result = new(sessionKeyHandle, capturedResponse.Membership);
+        return Result<SignInResult, AuthenticationFailure>.Ok(result);
+    }
+
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
     {
         return initResponse.Result switch
@@ -339,110 +433,6 @@ public sealed class OpaqueAuthenticationService(
 
             _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
         };
-    }
-
-    private async Task<Result<OpaqueSignInInitResponse, AuthenticationFailure>> SendInitRequestAsync(
-        OpaqueSignInInitRequest initRequest, uint connectId)
-    {
-        TaskCompletionSource<OpaqueSignInInitResponse> responseCompletionSource = new();
-
-        using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
-
-        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
-            connectId,
-            RpcServiceType.OpaqueSignInInitRequest,
-            SecureByteStringInterop.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
-            initResponsePayload =>
-            {
-                try
-                {
-                    OpaqueSignInInitResponse response =
-                        Helpers.ParseFromBytes<OpaqueSignInInitResponse>(initResponsePayload);
-                    responseCompletionSource.TrySetResult(response);
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error(ex, "[OPAQUE-SIGNIN-INIT] Failed to parse sign-in initialization response");
-                    responseCompletionSource.TrySetException(ex);
-                }
-                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, timeoutCts.Token, waitForRecovery: false
-        ).ConfigureAwait(false);
-
-        if (networkResult.IsErr)
-        {
-            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
-        }
-
-        try
-        {
-            OpaqueSignInInitResponse response = await responseCompletionSource.Task.ConfigureAwait(false);
-            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(response);
-        }
-        catch (OperationCanceledException)
-        {
-            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in initialization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
-        }
-    }
-
-    private async Task<Result<SignInResult, AuthenticationFailure>> SendFinalizeRequestAndVerifyAsync(
-        OpaqueSignInFinalizeRequest finalizeRequest,
-        SodiumSecureMemoryHandle sessionKeyHandle, uint connectId)
-    {
-        TaskCompletionSource<OpaqueSignInFinalizeResponse> responseCompletionSource = new();
-
-        using CancellationTokenSource timeoutCts = new(NetworkTimeoutConstants.DefaultRequestTimeoutMs);
-
-        Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
-            connectId,
-            RpcServiceType.OpaqueSignInCompleteRequest,
-            SecureByteStringInterop.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
-            finalizeResponsePayload =>
-            {
-                try
-                {
-                    OpaqueSignInFinalizeResponse response =
-                        Helpers.ParseFromBytes<OpaqueSignInFinalizeResponse>(finalizeResponsePayload);
-                    responseCompletionSource.TrySetResult(response);
-                }
-                catch (Exception ex)
-                {
-                    Serilog.Log.Error(ex, "[OPAQUE-SIGNIN-FINALIZE] Failed to parse sign-in finalization response");
-                    responseCompletionSource.TrySetException(ex);
-                }
-                return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-            }, false, timeoutCts.Token, waitForRecovery: false
-        ).ConfigureAwait(false);
-
-        if (networkResult.IsErr)
-        {
-            return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed(networkResult.UnwrapErr().Message));
-        }
-
-        OpaqueSignInFinalizeResponse capturedResponse;
-        try
-        {
-            capturedResponse = await responseCompletionSource.Task.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            return Result<SignInResult, AuthenticationFailure>.Err(
-                AuthenticationFailure.NetworkRequestFailed($"Sign-in finalization request timed out after {NetworkTimeoutConstants.DefaultRequestTimeoutMs / 1000} seconds"));
-        }
-
-        if (capturedResponse.Result == OpaqueSignInFinalizeResponse.Types.SignInResult.InvalidCredentials)
-        {
-            string message = capturedResponse.HasMessage
-                ? capturedResponse.Message
-                : localizationService[AuthenticationConstants.InvalidCredentialsKey];
-            return Result<SignInResult, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(message));
-        }
-
-        SignInResult result = new(sessionKeyHandle, capturedResponse.Membership);
-        return Result<SignInResult, AuthenticationFailure>.Ok(result);
     }
 
     private static bool ValidateMembershipIdentifier(ByteString identifier)

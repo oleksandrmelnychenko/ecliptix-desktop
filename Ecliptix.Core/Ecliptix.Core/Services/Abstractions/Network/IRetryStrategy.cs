@@ -9,16 +9,16 @@ namespace Ecliptix.Core.Services.Abstractions.Network;
 public interface IRetryStrategy : IDisposable
 {
     Task<Result<TResponse, NetworkFailure>> ExecuteSecrecyChannelOperationAsync<TResponse>(
-        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
-        uint? connectId = null,
+        uint connectId,
         int? maxRetries = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<TResponse, NetworkFailure>> ExecuteManualRetryOperationAsync<TResponse>(
-        Func<Task<Result<TResponse, NetworkFailure>>> operation,
+        Func<CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
         string operationName,
-        uint? connectId = null,
+        uint connectId,
         int? maxRetries = null,
         CancellationToken cancellationToken = default);
 

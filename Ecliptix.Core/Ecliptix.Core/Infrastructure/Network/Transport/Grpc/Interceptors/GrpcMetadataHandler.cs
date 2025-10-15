@@ -25,21 +25,27 @@ public static class GrpcMetadataHandler
     private const string ConnectionContextId = "c-context-id";
     private const string OperationContextId = "o-context-id";
 
-    public static Metadata GenerateMetadata(string appInstanceId, string appDeviceId, string? culture,
+    public static Metadata GenerateMetadata(
+        string appInstanceId,
+        string appDeviceId,
+        string? culture,
         PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect,
+        string? localIpAddress = null,
+        string? publicIpAddress = null,
+        string? platform = null,
         Guid operationId = default)
     {
         Metadata metadata = new()
         {
             { RequestIdKey, Guid.NewGuid().ToString() },
             { DateTimeKey, DateTimeOffset.UtcNow.ToString("O") },
-            { LocalIpAddressKey, GetLocalIpAddress() },
-            { PublicIpAddressKey, GetPublicIpAddress() },
+            { LocalIpAddressKey, localIpAddress ?? GetLocalIpAddress() },
+            { PublicIpAddressKey, publicIpAddress ?? GetPublicIpAddress() },
             { LocaleKey, culture ?? "en-US" },
             { LinkIdKey, GenerateLinkId() },
             { ApplicationInstanceIdKey, appInstanceId },
             { AppDeviceId, appDeviceId },
-            { PlatformKey, GetPlatform() },
+            { PlatformKey, platform ?? GetPlatform() },
             { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
             { ConnectionContextId, exchangeType.ToString() },
             { OperationContextId, string.Empty }
@@ -89,8 +95,44 @@ public static class GrpcMetadataHandler
 
     private static string GetPlatform()
     {
-        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" :
-               RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "macOS" :
-               RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Linux" : "Unknown";
+        string os = GetOperatingSystem();
+        string arch = GetArchitecture();
+        string runtime = GetRuntimeVersion();
+        return $"{os}-{arch} (.NET {runtime})";
+    }
+
+    private static string GetOperatingSystem()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return "macOS";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return "Windows";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return "Linux";
+        return "Unknown";
+    }
+
+    private static string GetArchitecture()
+    {
+        Architecture processArch = RuntimeInformation.ProcessArchitecture;
+        return processArch switch
+        {
+            Architecture.Arm64 => "ARM64",
+            Architecture.X64 => "x64",
+            Architecture.X86 => "x86",
+            Architecture.Arm => "ARM32",
+            _ => processArch.ToString()
+        };
+    }
+
+    private static string GetRuntimeVersion()
+    {
+        string frameworkDescription = RuntimeInformation.FrameworkDescription;
+        int startIndex = frameworkDescription.IndexOf(' ');
+        if (startIndex >= 0 && startIndex < frameworkDescription.Length - 1)
+        {
+            return frameworkDescription[(startIndex + 1)..];
+        }
+        return frameworkDescription;
     }
 }

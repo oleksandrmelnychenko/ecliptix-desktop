@@ -6,7 +6,6 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 
 public delegate bool ShouldRetryDelegate<TResponse>(Result<TResponse, NetworkFailure> result);
 public delegate bool RequiresConnectionRecoveryDelegate<TResponse>(Result<TResponse, NetworkFailure> result);
-public delegate bool IsCircuitBreakerFailureDelegate<TResponse>(Result<TResponse, NetworkFailure> result);
 
 public static class RetryDecisionFactory
 {
@@ -25,10 +24,5 @@ public static class RetryDecisionFactory
             return FailureClassification.IsProtocolStateMismatch(failure) ||
                    FailureClassification.IsCryptoDesync(failure);
         };
-    }
-
-    public static IsCircuitBreakerFailureDelegate<TResponse> CreateCircuitBreakerDelegate<TResponse>()
-    {
-        return static result => result.IsErr && FailureClassification.IsServerShutdown(result.UnwrapErr());
     }
 }

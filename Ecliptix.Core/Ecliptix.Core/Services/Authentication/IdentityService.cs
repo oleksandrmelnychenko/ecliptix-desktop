@@ -14,13 +14,6 @@ namespace Ecliptix.Core.Services.Authentication;
 public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
     : IIdentityService
 {
-
-    private static string GetMasterKeyStorageKey(string membershipId) =>
-        string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
-
-    private static string GetKeychainWrapKey(string membershipId) =>
-        string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
-
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
         string storageKey = GetMasterKeyStorageKey(membershipId);
@@ -48,7 +41,15 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
             byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
-            await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes).ConfigureAwait(false);
+            Result<Unit, SecureStorageFailure> saveResult =
+                await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes).ConfigureAwait(false);
+
+            if (saveResult.IsErr)
+            {
+                Log.Error("[CLIENT-IDENTITY-STORE-ERROR] Failed to save master key to storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
+                    membershipId, storageKey, saveResult.UnwrapErr().Message);
+                throw new InvalidOperationException($"Failed to save master key to storage: {saveResult.UnwrapErr().Message}");
+            }
 
             Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
                 membershipId, storageKey, platformProvider.IsHardwareSecurityAvailable());
@@ -261,11 +262,6 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
         }
     }
 
-    private async Task<byte[]> GenerateWrappingKeyAsync()
-    {
-        return await platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
-    }
-
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
     {
         try
@@ -371,5 +367,16 @@ public sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatfo
     public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
     {
         return await LoadMasterKeyAsync(membershipId).ConfigureAwait(false);
+    }
+
+    private static string GetMasterKeyStorageKey(string membershipId) =>
+        string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
+
+    private static string GetKeychainWrapKey(string membershipId) =>
+        string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
+
+    private async Task<byte[]> GenerateWrappingKeyAsync()
+    {
+        return await platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
     }
 }

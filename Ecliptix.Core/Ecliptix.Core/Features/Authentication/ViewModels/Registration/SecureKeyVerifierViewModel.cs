@@ -6,6 +6,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -40,6 +41,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
 
+    private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
 
@@ -362,12 +364,18 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             return;
         }
 
+        _currentOperationCts?.Cancel();
+        _currentOperationCts?.Dispose();
+        _currentOperationCts = new CancellationTokenSource();
+
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        CancellationToken operationToken = _currentOperationCts.Token;
 
         Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
             VerificationSessionId,
             _secureKeyBuffer,
-            connectId);
+            connectId,
+            operationToken);
 
         if (registrationResult.IsErr)
         {
@@ -382,7 +390,8 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
                 registrationMobileNumber,
                 _secureKeyBuffer,
-                connectId);
+                connectId,
+                operationToken);
 
             if (signInResult.IsOk)
             {
@@ -410,6 +419,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     {
         if (disposing)
         {
+            _currentOperationCts?.Cancel();
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
             _secureKeyBuffer.Dispose();
             _verifySecureKeyBuffer.Dispose();
         }

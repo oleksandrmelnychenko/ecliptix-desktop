@@ -150,9 +150,24 @@ public sealed class PendingRequestManager : IPendingRequestManager
     {
         try
         {
-            await retryAction().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Task retryTask = retryAction();
+            if (!retryTask.IsCompleted)
+            {
+                await retryTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await retryTask.ConfigureAwait(false);
+            }
+
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried request {RequestId}", requestId);
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Debug("Retry for pending request {RequestId} cancelled", requestId);
         }
         catch (Exception ex)
         {
@@ -173,6 +188,10 @@ public sealed class PendingRequestManager : IPendingRequestManager
             await typedRequest.ExecuteAsync(cancellationToken).ConfigureAwait(false);
             RemovePendingRequest(requestId);
             Log.Debug("Successfully retried typed request {RequestId}", requestId);
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Debug("Retry for typed pending request {RequestId} cancelled", requestId);
         }
         catch (Exception ex)
         {
@@ -217,8 +236,20 @@ internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
     {
         try
         {
-            T result = await _retryAction().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Task<T> retryTask = _retryAction();
+            T result = await (retryTask.IsCompleted
+                    ? retryTask
+                    : retryTask.WaitAsync(cancellationToken))
+                .ConfigureAwait(false);
+
             _originalTaskCompletionSource.SetResult(result);
+        }
+        catch (OperationCanceledException)
+        {
+            _originalTaskCompletionSource.TrySetCanceled(cancellationToken);
+            throw;
         }
         catch (Exception ex)
         {
@@ -229,6 +260,6 @@ internal sealed class TypedPendingRequest<T> : ITypedPendingRequest
 
     public void Cancel()
     {
-        _originalTaskCompletionSource.SetCanceled();
+        _originalTaskCompletionSource.TrySetCanceled();
     }
 }

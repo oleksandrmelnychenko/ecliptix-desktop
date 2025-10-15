@@ -1,14 +1,16 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Utilities;
 using ReactiveUI;
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.LanguageSelector;
 
@@ -44,7 +46,8 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
 
-        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ?? LanguageConfig.SupportedLanguages.First();
+        _selectedLanguage = GetLanguageByCode(_localizationService.CurrentCultureName) ??
+                            LanguageConfig.SupportedLanguages.First();
 
         IObservable<string> languageChanges = CreateLanguageObservable();
 
@@ -96,7 +99,18 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                     _localizationService.SetCulture(item.Code,
                         () =>
                         {
-                            _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(item.Code);
+                            _ = System.Threading.Tasks.Task.Run(async () =>
+                            {
+                                Result<Utilities.Unit, InternalServiceApiFailure> result =
+                                    await _applicationSecureStorageProvider
+                                        .SetApplicationSettingsCultureAsync(item.Code).ConfigureAwait(false);
+                                if (result.IsErr)
+                                {
+                                    Serilog.Log.Warning(
+                                        "[LANGUAGE-SELECTOR] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                                        item.Code, result.UnwrapErr().Message);
+                                }
+                            });
                             _rpcMetaDataProvider.SetCulture(item.Code);
                         });
                 })

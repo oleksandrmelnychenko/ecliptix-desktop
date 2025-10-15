@@ -420,7 +420,16 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         _localizationService.SetCulture(targetCulture,
             () =>
             {
-                _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture).ConfigureAwait(false);
+                _ = Task.Run(async () =>
+                {
+                    Result<Utilities.Unit, InternalServiceApiFailure> result =
+                        await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture).ConfigureAwait(false);
+                    if (result.IsErr)
+                    {
+                        Log.Warning("[LANGUAGE-CHANGE] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                            targetCulture, result.UnwrapErr().Message);
+                    }
+                });
             });
     }
 

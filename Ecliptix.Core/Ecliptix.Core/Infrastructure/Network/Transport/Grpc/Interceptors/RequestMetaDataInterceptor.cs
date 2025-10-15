@@ -21,8 +21,14 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (streaming)",
             exchangeType, context.Method.Name);
 
-        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-            rpcMetaDataProvider.DeviceId.ToString(), culture, exchangeType);
+        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
+            rpcMetaDataProvider.AppInstanceId.ToString(),
+            rpcMetaDataProvider.DeviceId.ToString(),
+            culture,
+            exchangeType,
+            rpcMetaDataProvider.LocalIpAddress,
+            rpcMetaDataProvider.PublicIpAddress,
+            rpcMetaDataProvider.Platform);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
@@ -47,9 +53,14 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (unary)",
             exchangeType, context.Method.Name);
 
-        Metadata newMetadata =
-            GrpcMetadataHandler.GenerateMetadata(rpcMetaDataProvider.AppInstanceId.ToString(),
-                rpcMetaDataProvider.DeviceId.ToString(), culture, exchangeType);
+        Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
+            rpcMetaDataProvider.AppInstanceId.ToString(),
+            rpcMetaDataProvider.DeviceId.ToString(),
+            culture,
+            exchangeType,
+            rpcMetaDataProvider.LocalIpAddress,
+            rpcMetaDataProvider.PublicIpAddress,
+            rpcMetaDataProvider.Platform);
         foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
 
         CallOptions newOptions = context.Options.WithHeaders(headers);

@@ -356,10 +356,10 @@ public static class Program
             IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
 
             IConfigurationSection section =
-                config.GetSection(ApplicationConstants.Configuration.ImprovedRetryPolicySection);
-            ImprovedRetryConfiguration retryConfig = CreateRetryConfiguration(section);
+                config.GetSection(ApplicationConstants.Configuration.SecrecyChannelRetryPolicySection);
+            RetryStrategyConfiguration retryStrategyConfig = CreateRetryConfiguration(section);
 
-            SecrecyChannelRetryStrategy retryStrategy = new(retryConfig, networkEvents, uiDispatcher);
+            RetryStrategy retryStrategy = new(retryStrategyConfig, networkEvents, uiDispatcher);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;
@@ -372,9 +372,9 @@ public static class Program
         services.AddSingleton<RequestMetaDataInterceptor>();
     }
 
-    private static ImprovedRetryConfiguration CreateRetryConfiguration(IConfigurationSection section)
+    private static RetryStrategyConfiguration CreateRetryConfiguration(IConfigurationSection section)
     {
-        return new ImprovedRetryConfiguration
+        return new RetryStrategyConfiguration
         {
             InitialRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.InitialRetryDelay],
                 out TimeSpan initialDelay)

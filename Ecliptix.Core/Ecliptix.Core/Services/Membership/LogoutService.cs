@@ -119,7 +119,12 @@ public sealed class LogoutService(
         Log.Information("[LOGOUT] Logout API call succeeded. Starting cleanup for MembershipId: {MembershipId}",
             membershipId);
 
-        await stateCleanupService.CleanupUserStateAsync(membershipId, connectId).ConfigureAwait(false);
+        Result<Unit, Exception> cleanupResult = await stateCleanupService.CleanupUserStateAsync(membershipId, connectId).ConfigureAwait(false);
+        if (cleanupResult.IsErr)
+        {
+            Log.Warning("[LOGOUT-CLEANUP] Failed to cleanup user state during logout. MembershipId: {MembershipId}, Error: {Error}",
+                membershipId, cleanupResult.UnwrapErr().Message);
+        }
 
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 

@@ -6,6 +6,9 @@ public static class FailureClassification
 {
     public static bool IsTransient(NetworkFailure failure)
     {
+        if (failure.FailureType == NetworkFailureType.OperationCancelled)
+            return false;
+
         return failure.FailureType == NetworkFailureType.DataCenterNotResponding;
     }
 
@@ -27,5 +30,10 @@ public static class FailureClassification
     public static bool IsChainRotationMismatch(NetworkFailure failure)
     {
         return failure.FailureType == NetworkFailureType.ProtocolStateMismatch;
+    }
+
+    public static bool IsCancellation(NetworkFailure failure)
+    {
+        return failure.FailureType == NetworkFailureType.OperationCancelled;
     }
 }

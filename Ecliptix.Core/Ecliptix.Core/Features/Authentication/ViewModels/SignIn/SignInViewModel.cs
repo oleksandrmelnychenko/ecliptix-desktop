@@ -2,6 +2,7 @@ using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
@@ -30,7 +31,6 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
 public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
-    private readonly ILocalizationService _localizationService;
     private readonly IAuthenticationService _authService;
     private readonly INetworkEventService _networkEventService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
@@ -38,6 +38,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private readonly Subject<string> _signInErrorSubject = new();
     private readonly AuthenticationViewModel _hostWindowModel;
 
+    private CancellationTokenSource? _signInCancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
@@ -51,7 +52,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IScreen hostScreen) : base(systemEventService, networkProvider, localizationService)
     {
         HostScreen = hostScreen;
-        _localizationService = localizationService;
         _authService = authService;
         _networkEventService = networkEventService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
@@ -65,32 +65,23 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public IScreen HostScreen { get; }
 
-    [Reactive]
-    public string MobileNumber { get; set; } = string.Empty;
+    [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
-    [ObservableAsProperty]
-    public bool IsBusy { get; }
+    [ObservableAsProperty] public bool IsBusy { get; }
 
-    [ObservableAsProperty]
-    public bool IsInNetworkOutage { get; }
+    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
 
-    [Reactive]
-    public string? MobileNumberError { get; set; }
+    [Reactive] public string? MobileNumberError { get; set; }
 
-    [Reactive]
-    public bool HasMobileNumberError { get; set; }
+    [Reactive] public bool HasMobileNumberError { get; set; }
 
-    [Reactive]
-    public string? SecureKeyError { get; set; }
+    [Reactive] public string? SecureKeyError { get; set; }
 
-    [Reactive]
-    public bool HasSecureKeyError { get; set; }
+    [Reactive] public bool HasSecureKeyError { get; set; }
 
-    [Reactive]
-    public string? ServerError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
 
-    [Reactive]
-    public bool HasServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
 
@@ -139,6 +130,9 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         MobileNumber = string.Empty;
         _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
 
+        _signInCancellationTokenSource?.Cancel();
+        _signInCancellationTokenSource?.Dispose();
+
         _signInErrorSubject.OnNext(string.Empty);
 
         MobileNumberError = string.Empty;
@@ -165,7 +159,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             mobileTrigger
                 .Merge(secureKeyTrigger)
                 .Merge(languageTrigger);
-
 
         IObservable<string> mobileValidation = validationTrigger
             .Select(_ => MobileNumberValidator.Validate(MobileNumber, LocalizationService))
@@ -245,32 +238,35 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> networkStatusStream = Observable.Create<bool>(observer =>
-            {
-                bool isInOutage = IsNetworkInOutage(_networkEventService.CurrentStatus);
-                observer.OnNext(isInOutage);
+        {
+            bool isInOutage = IsNetworkInOutage(_networkEventService.CurrentStatus);
+            observer.OnNext(isInOutage);
 
-                return _networkEventService.OnNetworkStatusChanged(evt =>
-                {
-                    bool outage = IsNetworkInOutage(evt.State);
-                    observer.OnNext(outage);
-                    return Task.CompletedTask;
-                });
-            }).DistinctUntilChanged()
-            .Do(outage => Log.Debug("🌐 Network outage status changed: {Outage}", outage));
+            return _networkEventService.OnNetworkStatusChanged(evt =>
+            {
+                bool outage = IsNetworkInOutage(evt.State);
+                observer.OnNext(outage);
+                return Task.CompletedTask;
+            });
+        }).DistinctUntilChanged();
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 
         IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
-            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid)
-            .Do(canExecute => Log.Debug("🔑 SignInCommand can execute: {CanExecute}", canExecute));
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
+                _signInCancellationTokenSource?.Cancel();
+                _signInCancellationTokenSource?.Dispose();
+                _signInCancellationTokenSource = new CancellationTokenSource();
+
                 uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+                CancellationToken cancellationToken = _signInCancellationTokenSource.Token;
                 Result<Unit, AuthenticationFailure> result =
-                    await _authService.SignInAsync(MobileNumber!, _secureKeyBuffer, connectId);
+                    await _authService.SignInAsync(MobileNumber, _secureKeyBuffer, connectId, cancellationToken);
                 return result;
             },
             canSignIn);
@@ -304,32 +300,28 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 _signInErrorSubject.OnNext(string.Empty);
 
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
-                    _ =>
-                    {
-
-                    },
-                    ex =>
-                    {
-                        Log.Error(ex, "Failed to transition to main window");
-                    },
+                    _ => { },
+                    ex => { Log.Error(ex, "Failed to transition to main window"); },
                     () => Log.Information("Main window transition completed")
                 );
             })
             .DisposeWith(_disposables);
     }
 
-    private string ValidateSecureKey()
-    {
-        return _secureKeyBuffer.Length == 0
+    private string ValidateSecureKey() =>
+        _secureKeyBuffer.Length == 0
             ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.Required]
             : string.Empty;
-    }
 
     protected override void Dispose(bool disposing)
     {
         if (_isDisposed) return;
         if (disposing)
         {
+            _signInCancellationTokenSource?.Cancel();
+            _signInCancellationTokenSource?.Dispose();
+            _signInCancellationTokenSource = null;
+
             SignInCommand?.Dispose();
             AccountRecoveryCommand?.Dispose();
 

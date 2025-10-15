@@ -92,10 +92,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         IObservable<bool> canResend = this.WhenAnyValue(
-                    x => x.SecondsRemaining, 
+                    x => x.SecondsRemaining,
                     x => x.HasValidSession,
                     x => x.CurrentStatus)
-                .Select(tuple => tuple is { Item2: true, Item1: 0 } && 
+                .Select(tuple => tuple is { Item2: true, Item1: 0 } &&
                                  tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
                 .DistinctUntilChanged()
                 .Catch<bool, Exception>(ex => Observable.Return(false));
@@ -271,22 +271,21 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(30));
-        using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
-            timeoutCts.Token,
-            _operationCts?.Token ?? CancellationToken.None);
+        CancellationToken operationToken = _operationCts?.Token ?? CancellationToken.None;
 
         Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
             ? _registrationService.VerifyOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
                 systemDeviceIdentifier,
-                connectId)
+                connectId,
+                operationToken)
             : _passwordRecoveryService!.VerifyPasswordResetOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
                 systemDeviceIdentifier,
-                connectId);
+                connectId,
+                operationToken);
 
         Result<Membership, string> result = await verifyTask;
 
@@ -315,12 +314,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 if (_flowContext == AuthenticationFlowContext.Registration)
                 {
                     await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
-                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
+                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
                 }
                 else if (_passwordRecoveryService != null)
                 {
                     await _passwordRecoveryService.CleanupPasswordResetSessionAsync(VerificationSessionIdentifier!.Value)
-                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, combinedCts.Token);
+                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
                 }
             }
 

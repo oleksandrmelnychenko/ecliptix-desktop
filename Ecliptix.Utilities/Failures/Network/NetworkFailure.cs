@@ -31,4 +31,7 @@ public record NetworkFailure(
 
     public static NetworkFailure ProtocolStateMismatch(string details, Exception? inner = null) =>
         new(NetworkFailureType.ProtocolStateMismatch, details, inner);
+
+    public static NetworkFailure OperationCancelled(string? details = null, Exception? inner = null) =>
+        new(NetworkFailureType.OperationCancelled, details ?? "Operation was cancelled", inner);
 }

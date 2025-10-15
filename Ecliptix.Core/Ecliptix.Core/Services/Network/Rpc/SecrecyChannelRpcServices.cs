@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
@@ -24,7 +25,8 @@ public sealed class SecrecyChannelRpcServices(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         SecureEnvelope request,
-        PubKeyExchangeType? exchangeType = null
+        PubKeyExchangeType? exchangeType = null,
+        CancellationToken cancellationToken = default
     )
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -39,8 +41,9 @@ public sealed class SecrecyChannelRpcServices(
             networkEvents,
             systemEvents,
             request,
-            headers
-        );
+            headers,
+            cancellationToken
+        ).ConfigureAwait(false);
     }
 
     public async Task<
@@ -48,31 +51,37 @@ public sealed class SecrecyChannelRpcServices(
     > RestoreAppDeviceSecrecyChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        RestoreChannelRequest request
+        RestoreChannelRequest request,
+        CancellationToken cancellationToken = default
     )
     {
         ArgumentNullException.ThrowIfNull(request);
         return await ExecuteAsync<RestoreChannelResponse>(
             networkEvents,
             systemEvents,
-            () => deviceServiceClient.RestoreSecureChannelAsync(request)
-        );
+            () => deviceServiceClient.RestoreSecureChannelAsync(
+                request,
+                cancellationToken: cancellationToken)
+        ).ConfigureAwait(false);
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
-        AuthenticatedEstablishRequest request
+        AuthenticatedEstablishRequest request,
+        CancellationToken cancellationToken = default
     )
     {
         ArgumentNullException.ThrowIfNull(request);
 
         try
         {
-            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.AuthenticatedEstablishSecureChannelAsync(request);
-            SecureEnvelope response = await call.ResponseAsync;
+            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.AuthenticatedEstablishSecureChannelAsync(
+                request,
+                cancellationToken: cancellationToken);
+            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
@@ -103,14 +112,14 @@ public sealed class SecrecyChannelRpcServices(
 
             if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown).ConfigureAwait(false);
                 return Result<SecureEnvelope, NetworkFailure>.Err(
                     NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail));
             }
 
             if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
+                await systemEvents.NotifySystemStateAsync(SystemState.Recovering).ConfigureAwait(false);
                 return Result<SecureEnvelope, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail));
             }
@@ -135,15 +144,19 @@ public sealed class SecrecyChannelRpcServices(
         INetworkEventService networkEvents,
         ISystemEventService systemEvents,
         SecureEnvelope request,
-        Metadata headers
+        Metadata headers,
+        CancellationToken cancellationToken
     )
     {
         try
         {
-            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.EstablishSecureChannelAsync(request, headers);
-            SecureEnvelope response = await call.ResponseAsync;
+            AsyncUnaryCall<SecureEnvelope> call = deviceServiceClient.EstablishSecureChannelAsync(
+                request,
+                headers,
+                cancellationToken: cancellationToken);
+            SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
@@ -174,14 +187,14 @@ public sealed class SecrecyChannelRpcServices(
 
             if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown).ConfigureAwait(false);
                 return Result<SecureEnvelope, NetworkFailure>.Err(
                     NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail));
             }
 
             if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
+                await systemEvents.NotifySystemStateAsync(SystemState.Recovering).ConfigureAwait(false);
                 return Result<SecureEnvelope, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail));
             }
@@ -211,9 +224,9 @@ public sealed class SecrecyChannelRpcServices(
         try
         {
             AsyncUnaryCall<TResponse> call = grpcCallFactory();
-            TResponse response = await call.ResponseAsync;
+            TResponse response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+            await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected).ConfigureAwait(false);
 
             return Result<TResponse, NetworkFailure>.Ok(response);
         }
@@ -244,14 +257,14 @@ public sealed class SecrecyChannelRpcServices(
 
             if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
+                await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown).ConfigureAwait(false);
                 return Result<TResponse, NetworkFailure>.Err(
                     NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail));
             }
 
             if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
             {
-                await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
+                await systemEvents.NotifySystemStateAsync(SystemState.Recovering).ConfigureAwait(false);
                 return Result<TResponse, NetworkFailure>.Err(
                     NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail));
             }

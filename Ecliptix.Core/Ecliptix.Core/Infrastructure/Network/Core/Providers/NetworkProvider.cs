@@ -14,6 +14,7 @@ using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Settings.Constants;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Common;
@@ -101,6 +102,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 throw new InvalidOperationException(
                     "ApplicationInstanceSettings has not been initialized. Call InitiateEcliptixProtocolSystem first.");
             }
+
             return _applicationInstanceSettings.Value!;
         }
     }
@@ -110,7 +112,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         PubKeyExchangeType exchangeType,
         int? maxRetries = null,
         bool saveState = true,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool enablePendingRegistration = true)
     {
         if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
         {
@@ -173,8 +176,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (maxRetries.HasValue)
         {
             establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
-                    exchangeType),
+                ct => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+                    exchangeType,
+                    cancellationToken: ct),
                 "EstablishSecrecyChannel",
                 connectId,
                 maxRetries: maxRetries.Value,
@@ -183,8 +187,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         else
         {
             establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                () => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
-                    exchangeType),
+                ct => _rpcServiceManager.EstablishAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents, envelope,
+                    exchangeType,
+                    cancellationToken: ct),
                 "EstablishSecrecyChannel",
                 connectId,
                 cancellationToken: finalToken).ConfigureAwait(false);
@@ -192,8 +197,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (establishAppDeviceSecrecyChannelResult.IsErr)
         {
-            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(establishAppDeviceSecrecyChannelResult
-                .UnwrapErr());
+            NetworkFailure failure = establishAppDeviceSecrecyChannelResult.UnwrapErr();
+            if (enablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
+            {
+                QueueSecrecyChannelEstablishRetry(connectId, exchangeType, maxRetries, saveState);
+            }
+
+            return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(failure);
         }
 
         SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
@@ -257,7 +267,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     })
                 );
 
-        return ecliptixSecrecyChannelStateResult.ToNetworkFailure().Map(Option<EcliptixSessionState>.Some);
+        Result<Option<EcliptixSessionState>, NetworkFailure> mappedResult =
+            ecliptixSecrecyChannelStateResult.ToNetworkFailure().Map(Option<EcliptixSessionState>.Some);
+
+        if (enablePendingRegistration && mappedResult.IsOk)
+        {
+            _pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, exchangeType));
+        }
+
+        return mappedResult;
     }
 
     public void SetCountry(string country)
@@ -276,9 +294,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
-        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
+        EcliptixSystemIdentityKeys identityKeys =
+            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
 
-        PubKeyExchangeType exchangeType = DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
+        DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
 
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
 
@@ -337,7 +356,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceFlowType flowType,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
-        CancellationToken token = default,
+        CancellationToken cancellationToken = default,
         bool waitForRecovery = true)
     {
         string requestKey;
@@ -364,9 +383,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 NetworkFailure.InvalidRequestType("Duplicate request rejected"));
         }
 
-        using CancellationTokenSource linkedCts =
-            CancellationTokenSource.CreateLinkedTokenSource(token, perRequestCts.Token);
-        CancellationToken operationToken = linkedCts.Token;
+        CancellationTokenRegistration tokenRegistration = default;
+        if (cancellationToken.CanBeCanceled)
+        {
+            tokenRegistration = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    if (!perRequestCts.IsCancellationRequested)
+                    {
+                        perRequestCts.Cancel();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            });
+        }
+
+        using CancellationTokenSource linkedCancellationTokenSource =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, perRequestCts.Token);
+        CancellationToken operationToken = linkedCancellationTokenSource.Token;
 
         try
         {
@@ -383,28 +420,28 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
-            Result<ServiceRequest, NetworkFailure> requestResult =
+            Result<ServiceRequest, NetworkFailure> serviceRequestResult =
                 BuildRequestWithId(protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType);
 
-            if (requestResult.IsErr)
+            if (serviceRequestResult.IsErr)
             {
-                return Result<Unit, NetworkFailure>.Err(requestResult.UnwrapErr());
+                return Result<Unit, NetworkFailure>.Err(serviceRequestResult.UnwrapErr());
             }
 
-            ServiceRequest request = requestResult.Unwrap();
+            ServiceRequest serviceRequest = serviceRequestResult.Unwrap();
 
             try
             {
                 Result<Unit, NetworkFailure> networkResult = flowType switch
                 {
-                    ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, request, onCompleted,
-                        operationToken).ConfigureAwait(false),
-                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, request,
+                    ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, serviceRequest, onCompleted,
+                        connectId, operationToken).ConfigureAwait(false),
+                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, serviceRequest,
                         onCompleted, operationToken).ConfigureAwait(false),
-                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, request, onCompleted,
+                    ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, serviceRequest, onCompleted,
                         operationToken).ConfigureAwait(false),
                     ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                        request, onCompleted, operationToken).ConfigureAwait(false),
+                        serviceRequest, onCompleted, operationToken).ConfigureAwait(false),
                     _ => Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                 };
@@ -414,7 +451,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 return networkResult;
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 return Result<Unit, NetworkFailure>.Ok(Unit.Value);
             }
@@ -429,37 +466,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         finally
         {
+            tokenRegistration.Dispose();
+
             if (!shouldAllowDuplicates && _inFlightRequests.TryRemove(requestKey, out CancellationTokenSource? cts))
             {
                 cts.Dispose();
             }
         }
-    }
-
-    private async Task PerformReconnectionLogic()
-    {
-        if (!_applicationInstanceSettings.HasValue)
-        {
-            Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Application instance settings not available"));
-            return;
-        }
-
-        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-            PubKeyExchangeType.DataCenterEphemeralConnect);
-
-        Result<Unit, NetworkFailure> establishResult = await EstablishConnectionOnly(connectId).ConfigureAwait(false);
-
-        if (establishResult.IsErr)
-        {
-            return;
-        }
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
-        });
-        Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
     private async Task RetryPendingRequestsAfterRecovery()
@@ -475,37 +488,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private async Task<Result<Unit, NetworkFailure>> EstablishConnectionOnly(uint connectId)
-    {
-        if (!_applicationInstanceSettings.HasValue)
-        {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Application instance settings not available"));
-        }
-
-        _connections.TryRemove(connectId, out _);
-
-        InitiateEcliptixProtocolSystem(_applicationInstanceSettings.Value!, connectId);
-
-        Result<EcliptixSessionState, NetworkFailure> establishResult =
-            await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
-
-        if (establishResult.IsErr)
-        {
-            return Result<Unit, NetworkFailure>.Err(establishResult.UnwrapErr());
-        }
-
-        EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
-
-        await PersistSessionStateAsync(secrecyChannelState, connectId).ConfigureAwait(false);
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
-        });
-        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
-    }
-
     public enum RestoreRetryMode
     {
         AutoRetry,
@@ -516,7 +498,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public async Task<Result<bool, NetworkFailure>> RestoreSecrecyChannelAsync(
         EcliptixSessionState ecliptixSecrecyChannelState,
         ApplicationInstanceSettings applicationInstanceSettings,
-        RestoreRetryMode retryMode = RestoreRetryMode.AutoRetry)
+        RestoreRetryMode retryMode = RestoreRetryMode.AutoRetry,
+        bool enablePendingRegistration = true)
     {
         if (!_applicationInstanceSettings.HasValue)
         {
@@ -539,33 +522,35 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (retryMode)
         {
             case RestoreRetryMode.AutoRetry:
-                {
-                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                    using CancellationTokenSource combinedCts =
-                        CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+            {
+                CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                using CancellationTokenSource combinedCancellationTokenSource =
+                    CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
-                        () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                            request),
-                        "RestoreSecrecyChannel",
-                        ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
-                    break;
-                }
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+                    ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                        request,
+                        cancellationToken: ct),
+                    "RestoreSecrecyChannel",
+                    ecliptixSecrecyChannelState.ConnectId,
+                    cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
+                break;
+            }
             case RestoreRetryMode.ManualRetry:
-                {
-                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                    using CancellationTokenSource combinedCts =
-                        CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+            {
+                CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                using CancellationTokenSource combinedCts =
+                    CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryOperationAsync(
-                        () => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
-                            request),
-                        "RestoreSecrecyChannel",
-                        ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
-                    break;
-                }
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryOperationAsync(
+                    ct => _rpcServiceManager.RestoreAppDeviceSecrecyChannelAsync(_networkEvents, _systemEvents,
+                        request,
+                        cancellationToken: ct),
+                    "RestoreSecrecyChannel",
+                    ecliptixSecrecyChannelState.ConnectId,
+                    cancellationToken: combinedCts.Token).ConfigureAwait(false);
+                break;
+            }
             case RestoreRetryMode.DirectNoRetry:
                 try
                 {
@@ -586,27 +571,40 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (restoreAppDeviceSecrecyChannelResponse.IsErr)
         {
-            return Result<bool, NetworkFailure>.Err(restoreAppDeviceSecrecyChannelResponse.UnwrapErr());
+            NetworkFailure failure = restoreAppDeviceSecrecyChannelResponse.UnwrapErr();
+
+            if (enablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
+            {
+                QueueSecrecyChannelRestoreRetry(ecliptixSecrecyChannelState, applicationInstanceSettings, retryMode);
+            }
+
+            return Result<bool, NetworkFailure>.Err(failure);
         }
 
         RestoreChannelResponse response = restoreAppDeviceSecrecyChannelResponse.Unwrap();
 
         if (response.Status == RestoreChannelResponse.Types.Status.SessionRestored)
         {
-            Result<Unit, EcliptixProtocolFailure>
-                syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+            Result<Unit, EcliptixProtocolFailure> syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
 
             if (syncResult.IsErr)
             {
                 EcliptixProtocolFailure error = syncResult.UnwrapErr();
                 if (error.Message.Contains("Session validation failed"))
                 {
-                    Log.Information("[CLIENT-RESTORE] Session validation failed, will attempt fresh handshake. ConnectId: {ConnectId}",
+                    Log.Information(
+                        "[CLIENT-RESTORE] Session validation failed, will attempt fresh handshake. ConnectId: {ConnectId}",
                         ecliptixSecrecyChannelState.ConnectId);
                     return Result<bool, NetworkFailure>.Ok(false);
                 }
 
                 return Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
+            }
+
+            if (enablePendingRegistration)
+            {
+                _pendingRequestManager.RemovePendingRequest(
+                    BuildSecrecyChannelRestoreKey(ecliptixSecrecyChannelState.ConnectId));
             }
 
             return Result<bool, NetworkFailure>.Ok(true);
@@ -694,10 +692,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         CancelOperationsForConnection(connectId);
 
-        if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? streamCts))
+        if (_activeStreams.TryRemove(connectId, out CancellationTokenSource? cancellationTokenSource))
         {
-            await streamCts.CancelAsync().ConfigureAwait(false);
-            streamCts.Dispose();
+            await cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+            cancellationTokenSource.Dispose();
         }
 
         if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
@@ -747,7 +745,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void InitiateEcliptixProtocolSystemForType(uint connectId,
         PubKeyExchangeType exchangeType)
     {
-        EcliptixSystemIdentityKeys identityKeys = EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
+        EcliptixSystemIdentityKeys identityKeys =
+            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
 
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
         protocolSystem.SetEventHandler(this);
@@ -785,8 +784,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Connection not established"));
 
-        Log.Information("[CLIENT-SYNC] Syncing with server. ConnectId: {ConnectId}, ServerSending: {ServerSending}, ServerReceiving: {ServerReceiving}",
-            currentState.ConnectId, peerSecrecyChannelState.SendingChainLength, peerSecrecyChannelState.ReceivingChainLength);
+        Log.Information(
+            "[CLIENT-SYNC] Syncing with server. ConnectId: {ConnectId}, ServerSending: {ServerSending}, ServerReceiving: {ServerReceiving}",
+            currentState.ConnectId, peerSecrecyChannelState.SendingChainLength,
+            peerSecrecyChannelState.ReceivingChainLength);
 
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
             peerSecrecyChannelState.SendingChainLength,
@@ -803,7 +804,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (ratchetState.IsOk)
         {
             RatchetState state = ratchetState.Unwrap();
-            Log.Information("[CLIENT-SYNC] Sync complete. ConnectId: {ConnectId}, ClientSending: {Sending}, ClientReceiving: {Receiving}",
+            Log.Information(
+                "[CLIENT-SYNC] Sync complete. ConnectId: {ConnectId}, ClientSending: {Sending}, ClientReceiving: {Receiving}",
                 currentState.ConnectId, state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
         }
 
@@ -845,50 +847,51 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (serviceType.ToString())
         {
             case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
-                {
-                    Span<byte> semanticBuffer = stackalloc byte[256];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
-                {
-                    Span<byte> semanticBuffer = stackalloc byte[256];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             case "InitiateVerification":
-                {
-                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                    SHA256.HashData(plainBuffer, payloadHash);
+            {
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                SHA256.HashData(plainBuffer, payloadHash);
 
-                    string semantic =
-                        $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+                string semantic =
+                    $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             default:
-                {
-                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                    SHA256.HashData(plainBuffer, payloadHash);
+            {
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                SHA256.HashData(plainBuffer, payloadHash);
 
-                    string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+                string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
         }
 
         uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
-        uint finalId = Math.Max(rawId % (uint.MaxValue - NetworkConstants.Protocol.OperationIdReservedRange), NetworkConstants.Protocol.OperationIdMinValue);
+        uint finalId = Math.Max(rawId % (uint.MaxValue - NetworkConstants.Protocol.OperationIdReservedRange),
+            NetworkConstants.Protocol.OperationIdMinValue);
 
         return finalId;
     }
@@ -907,7 +910,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (stateResult.IsOk)
             {
                 RatchetState state = stateResult.Unwrap();
-                Log.Information("[CLIENT-ENCRYPT-BEFORE] About to encrypt {ServiceType}. Sending: {Sending}, Receiving: {Receiving}",
+                Log.Information(
+                    "[CLIENT-ENCRYPT-BEFORE] About to encrypt {ServiceType}. Sending: {Sending}, Receiving: {Receiving}",
                     serviceType, state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
             }
         }
@@ -923,10 +927,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         SecureEnvelope cipherPayload = outboundPayload.Unwrap();
 
-        Log.Information("[CLIENT-ENCRYPT-ENVELOPE] Outgoing envelope for {ServiceType}. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
+        Log.Information(
+            "[CLIENT-ENCRYPT-ENVELOPE] Outgoing envelope for {ServiceType}. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
             serviceType,
-            Convert.ToHexString(cipherPayload.HeaderNonce.ToByteArray())[..Math.Min(16, cipherPayload.HeaderNonce.Length * 2)],
-            cipherPayload.AuthenticationTag != null ? Convert.ToHexString(cipherPayload.AuthenticationTag.ToByteArray())[..Math.Min(16, cipherPayload.AuthenticationTag.Length * 2)] : "NULL");
+            Convert.ToHexString(cipherPayload.HeaderNonce.ToByteArray())[
+                ..Math.Min(16, cipherPayload.HeaderNonce.Length * 2)],
+            cipherPayload.AuthenticationTag != null
+                ? Convert.ToHexString(cipherPayload.AuthenticationTag.ToByteArray())[
+                    ..Math.Min(16, cipherPayload.AuthenticationTag.Length * 2)]
+                : "NULL");
 
         return Result<ServiceRequest, NetworkFailure>.Ok(
             ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, []));
@@ -936,10 +945,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         EcliptixProtocolSystem protocolSystem,
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        uint connectId,
         CancellationToken token)
     {
-        Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+        Result<RpcFlow, NetworkFailure> invokeResult = await _retryStrategy.ExecuteSecrecyChannelOperationAsync(
+            ct => _rpcServiceManager.InvokeServiceRequestAsync(request, ct),
+            $"UnaryRequest_{request.RpcServiceMethod}",
+            connectId,
+            cancellationToken: token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -961,9 +974,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         SecureEnvelope inboundPayload = callResult.Unwrap();
 
-        Log.Information("[CLIENT-DECRYPT-ENVELOPE] Incoming response envelope. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
-            Convert.ToHexString(inboundPayload.HeaderNonce.ToByteArray())[..Math.Min(16, inboundPayload.HeaderNonce.Length * 2)],
-            inboundPayload.AuthenticationTag != null ? Convert.ToHexString(inboundPayload.AuthenticationTag.ToByteArray())[..Math.Min(16, inboundPayload.AuthenticationTag.Length * 2)] : "NULL");
+        Log.Information(
+            "[CLIENT-DECRYPT-ENVELOPE] Incoming response envelope. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
+            Convert.ToHexString(inboundPayload.HeaderNonce.ToByteArray())[
+                ..Math.Min(16, inboundPayload.HeaderNonce.Length * 2)],
+            inboundPayload.AuthenticationTag != null
+                ? Convert.ToHexString(inboundPayload.AuthenticationTag.ToByteArray())[
+                    ..Math.Min(16, inboundPayload.AuthenticationTag.Length * 2)]
+                : "NULL");
 
         EcliptixProtocolConnection? conn = protocolSystem.GetConnection();
         if (conn != null)
@@ -1195,22 +1213,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             throw new ObjectDisposedException(nameof(NetworkProvider), "Provider is shutting down");
         }
-    }
-
-    private void EnterOutage()
-    {
-        if (Interlocked.Exchange(ref _outageState, 1) == 1) return;
-
-        lock (_outageLock)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
-            _outageRecoveredTcs = CreateOutageTcs();
+            throw;
         }
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        catch (OperationCanceledException)
         {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterDisconnected);
-            _ = _systemEvents.NotifySystemStateAsync(SystemState.Recovering);
-        });
+        }
     }
 
     private void ExitOutage()
@@ -1238,38 +1247,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private void CancelActiveRecoveryOperations()
-    {
-        lock (_cancellationLock)
-        {
-            if (_connectionRecoveryCts != null)
-            {
-                _connectionRecoveryCts.Cancel();
-                _connectionRecoveryCts.Dispose();
-            }
-
-            _connectionRecoveryCts = new CancellationTokenSource();
-        }
-    }
-
-    private void CancelActiveRequestsDuringRecovery()
-    {
-        if (_inFlightRequests.IsEmpty) return;
-
-        foreach (KeyValuePair<string, CancellationTokenSource> kv in _inFlightRequests.ToArray())
-        {
-            if (!_inFlightRequests.TryRemove(kv.Key, out CancellationTokenSource? cts)) continue;
-            try
-            {
-                cts.Cancel();
-                cts.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-        }
-    }
-
     private async Task<T> WithChannelGate<T>(uint connectId, Func<Task<T>> action)
     {
         SemaphoreSlim gate = _channelGates.GetOrAdd(connectId, _ => new SemaphoreSlim(1, 1));
@@ -1284,77 +1261,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private async Task InitiateConnectionRecoveryWithCancellation(uint connectId)
-    {
-        try
-        {
-            CancelActiveRecoveryOperations();
-            CancelActiveRequestsDuringRecovery();
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRecovering);
-            });
-
-            if (!_applicationInstanceSettings.HasValue)
-            {
-                return;
-            }
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RestoreSecrecyChannel);
-            });
-
-            byte[]? membershipId = GetMembershipIdBytes();
-            if (membershipId == null)
-            {
-                Log.Warning("[CLIENT-RECOVERY] Cannot load state: membershipId not available. ConnectId: {ConnectId}",
-                    connectId);
-                return;
-            }
-
-            Result<byte[], SecureStorageFailure> stateResult =
-                await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
-
-            bool restorationSuccessful;
-            if (stateResult.IsOk)
-            {
-                try
-                {
-                    EcliptixSessionState state =
-                        EcliptixSessionState.Parser.ParseFrom(stateResult.Unwrap());
-                    Result<bool, NetworkFailure> restoreResult =
-                        await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!).ConfigureAwait(false);
-                    restorationSuccessful = restoreResult.IsOk && restoreResult.Unwrap();
-                }
-                catch (Exception)
-                {
-                    restorationSuccessful = false;
-                }
-            }
-            else
-            {
-                Result<EcliptixSessionState, NetworkFailure> newResult =
-                    await EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
-                restorationSuccessful = newResult.IsOk;
-            }
-
-            if (restorationSuccessful)
-            {
-                ExitOutage();
-                ResetRetryStrategyAfterOutage();
-            }
-            else
-            {
-                await PerformReconnectionLogic().ConfigureAwait(false);
-            }
-        }
-        catch (Exception)
-        {
-        }
-    }
-
     private static bool ShouldAllowDuplicateRequests(RpcServiceType serviceType)
     {
         return serviceType switch
@@ -1365,12 +1271,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         };
     }
 
-    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex)
+    private void PersistProtocolStateInBackground(uint connectId, string stateContext)
     {
         _ = Task.Run(async () =>
         {
             try
             {
+                if (_disposed || _shutdownCts.IsCancellationRequested) return;
+
                 if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
                     EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
@@ -1401,59 +1309,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             catch (Exception ex)
             {
+                if (_disposed) return;
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
-                        $"Failed to persist ratchet state for connection {connectId}: {ex.Message}");
+                        $"Failed to persist {stateContext} state for connection {connectId}: {ex.Message}");
                 });
             }
-        });
+        }, _shutdownCts.Token);
     }
 
-    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength)
-    {
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-                {
-                    EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                    EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-                    if (connection == null)
-                        return;
+    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex) =>
+        PersistProtocolStateInBackground(connectId, "ratchet");
 
-                    if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
-                    {
-                        return;
-                    }
-
-                    Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-                    Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-                    if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
-                    {
-                        EcliptixSessionState state = new()
-                        {
-                            ConnectId = connectId,
-                            IdentityKeys = idKeysStateResult.Unwrap(),
-                            RatchetState = ratchetStateResult.Unwrap()
-                        };
-
-                        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    _ = _systemEvents.NotifySystemStateAsync(SystemState.Busy,
-                        $"Failed to persist chain state for connection {connectId}: {ex.Message}");
-                });
-            }
-        });
-    }
+    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength) =>
+        PersistProtocolStateInBackground(connectId, "chain");
 
     public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
     {
@@ -1649,7 +1519,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
 
             Result<bool, NetworkFailure> restoreResult =
-                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!, retryMode).ConfigureAwait(false);
+                await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!, retryMode)
+                    .ConfigureAwait(false);
 
             restorationSucceeded = restoreResult.IsOk && restoreResult.Unwrap();
 
@@ -1687,12 +1558,64 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private void ResetRetryStrategyAfterOutage()
     {
-        _retryStrategy.ResetConnectionState();
-
         foreach (KeyValuePair<uint, EcliptixProtocolSystem> connection in _connections)
         {
             _retryStrategy.MarkConnectionHealthy(connection.Key);
         }
+    }
+
+    private static string BuildSecrecyChannelPendingKey(uint connectId, PubKeyExchangeType exchangeType) =>
+        $"secrecy-channel:{connectId}:{exchangeType}";
+
+    private static string BuildSecrecyChannelRestoreKey(uint connectId) =>
+        $"secrecy-channel-restore:{connectId}";
+
+    private static bool ShouldQueueSecrecyChannelRetry(NetworkFailure failure)
+    {
+        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
+            or NetworkFailureType.DataCenterShutdown
+            or NetworkFailureType.ProtocolStateMismatch
+            or NetworkFailureType.RsaEncryptionFailure;
+    }
+
+    private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType exchangeType, int? maxRetries,
+        bool saveState)
+    {
+        string pendingKey = BuildSecrecyChannelPendingKey(connectId, exchangeType);
+
+        _pendingRequestManager.RegisterPendingRequest(pendingKey, async () =>
+        {
+            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel establish retry. ConnectId: {ConnectId}", connectId);
+
+            await EstablishSecrecyChannelInternalAsync(
+                    connectId,
+                    exchangeType,
+                    maxRetries,
+                    saveState,
+                    cancellationToken: CancellationToken.None,
+                    enablePendingRegistration: false)
+                .ConfigureAwait(false);
+        });
+    }
+
+    private void QueueSecrecyChannelRestoreRetry(
+        EcliptixSessionState sessionState,
+        ApplicationInstanceSettings applicationInstanceSettings,
+        RestoreRetryMode retryMode)
+    {
+        string pendingKey = BuildSecrecyChannelRestoreKey(sessionState.ConnectId);
+
+        _pendingRequestManager.RegisterPendingRequest(pendingKey, async () =>
+        {
+            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel restore retry. ConnectId: {ConnectId}", sessionState.ConnectId);
+
+            await RestoreSecrecyChannelAsync(
+                    sessionState,
+                    applicationInstanceSettings,
+                    retryMode,
+                    enablePendingRegistration: false)
+                .ConfigureAwait(false);
+        });
     }
 
     private byte[]? GetMembershipIdBytes()
@@ -1703,7 +1626,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return settings.Membership.UniqueIdentifier.ToByteArray();
     }
 
-    private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId, byte[]? membershipIdOverride = null)
+    private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId,
+        byte[]? membershipIdOverride = null)
     {
         byte[]? membershipId = membershipIdOverride ?? GetMembershipIdBytes();
         if (membershipId == null)
@@ -1713,9 +1637,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return;
         }
 
-        await SecureByteStringInterop.WithByteStringAsSpan(
-            state.ToByteString(),
-            span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId)).ConfigureAwait(false);
+        Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
+                state.ToByteString(),
+                span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId))
+            .ConfigureAwait(false);
+
+        if (saveResult.IsErr)
+        {
+            Log.Warning("[CLIENT-STATE-PERSIST] Failed to save session state. ConnectId: {ConnectId}, Error: {Error}",
+                connectId, saveResult.UnwrapErr().Message);
+        }
 
         string timestampKey = $"{connectId}_timestamp";
         await _applicationSecureStorageProvider.StoreAsync(timestampKey,
@@ -1724,7 +1655,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public bool IsConnectionHealthy(uint connectId)
     {
-        return _connections.ContainsKey(connectId);
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            return false;
+        }
+
+        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+        if (connection == null)
+        {
+            return false;
+        }
+
+        Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
+        return peerBundleResult.IsOk;
     }
 
     public async Task<Result<bool, NetworkFailure>> TryRestoreConnectionAsync(uint connectId)
@@ -1736,13 +1679,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 byte[]? membershipId = GetMembershipIdBytes();
                 if (membershipId == null)
                 {
-                    Log.Warning("[CLIENT-TRY-RESTORE] Cannot restore: membershipId not available. ConnectId: {ConnectId}",
+                    Log.Warning(
+                        "[CLIENT-TRY-RESTORE] Cannot restore: membershipId not available. ConnectId: {ConnectId}",
                         connectId);
                     return Result<bool, NetworkFailure>.Ok(false);
                 }
 
                 Result<byte[], SecureStorageFailure> stateResult =
-                    await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
+                    await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+                        .ConfigureAwait(false);
                 if (stateResult.IsErr)
                 {
                     return Result<bool, NetworkFailure>.Ok(false);
@@ -1784,11 +1729,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
             string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytes))[..16];
-            Log.Information("[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
+            Log.Information(
+                "[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
                 connectId, membershipId, masterKeyFingerprint);
 
             string masterKeyHashForLog = Convert.ToHexString(SHA256.HashData(masterKeyBytes));
-            Log.Information("[CLIENT-AUTH-HKDF-PARAMS] HKDF parameters for initial root key. ConnectId: {ConnectId}, IKM (master key hash): {IkmHash}, Salt: NULL, Info: 'ecliptix-protocol-root-key'",
+            Log.Information(
+                "[CLIENT-AUTH-HKDF-PARAMS] HKDF parameters for initial root key. ConnectId: {ConnectId}, IKM (master key hash): {IkmHash}, Salt: NULL, Info: 'ecliptix-protocol-root-key'",
                 connectId, masterKeyHashForLog);
 
             rootKeyBytes = new byte[32];
@@ -1801,13 +1748,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             );
 
             string rootKeyHash = Convert.ToHexString(SHA256.HashData(rootKeyBytes))[..16];
-            Log.Information("[CLIENT-AUTH-ROOTKEY] Derived root key from master key using HKDF. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
+            Log.Information(
+                "[CLIENT-AUTH-ROOTKEY] Derived root key from master key using HKDF. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
                 connectId, rootKeyHash);
-            Log.Information("[CLIENT-AUTH-ROOTKEY-BEFORE-COMPLETE] Initial root key before CompleteAuthenticatedPubKeyExchange. ConnectId: {ConnectId}, InitialRootKeyHash: {RootKeyHash}",
+            Log.Information(
+                "[CLIENT-AUTH-ROOTKEY-BEFORE-COMPLETE] Initial root key before CompleteAuthenticatedPubKeyExchange. ConnectId: {ConnectId}, InitialRootKeyHash: {RootKeyHash}",
                 connectId, rootKeyHash);
 
             Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
-                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId, NetworkConstants.Protocol.DefaultOneTimeKeyCount);
+                EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId,
+                    NetworkConstants.Protocol.DefaultOneTimeKeyCount);
 
             if (identityKeysResult.IsErr)
             {
@@ -1817,8 +1767,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
 
-            string identityX25519Hash = Convert.ToHexString(SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
-            Log.Information("[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
+            string identityX25519Hash =
+                Convert.ToHexString(SHA256.HashData(identityKeys.IdentityX25519PublicKey))[..16];
+            Log.Information(
+                "[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
                 connectId, identityX25519Hash);
 
             if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldProtocol))
@@ -1846,11 +1798,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 PubKeyExchange clientExchange = clientExchangeResult.Unwrap();
 
-                Log.Information("[CLIENT-AUTH-HANDSHAKE-SEND] Sending client pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
-                    connectId, clientExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(clientExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, clientExchange.InitialDhPublicKey.Length * 2)]);
+                Log.Information(
+                    "[CLIENT-AUTH-HANDSHAKE-SEND] Sending client pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
+                    connectId,
+                    clientExchange.InitialDhPublicKey.IsEmpty
+                        ? "NONE"
+                        : Convert.ToHexString(clientExchange.InitialDhPublicKey.ToByteArray())[
+                            ..Math.Min(16, clientExchange.InitialDhPublicKey.Length * 2)]);
 
-                string clientDhFullHash = Convert.ToHexString(SHA256.HashData(clientExchange.InitialDhPublicKey.ToByteArray()));
-                Log.Information("[CLIENT-AUTH-DH-CLIENT] Client DH public key full hash. ConnectId: {ConnectId}, ClientDhHash: {DhHash}",
+                string clientDhFullHash =
+                    Convert.ToHexString(SHA256.HashData(clientExchange.InitialDhPublicKey.ToByteArray()));
+                Log.Information(
+                    "[CLIENT-AUTH-DH-CLIENT] Client DH public key full hash. ConnectId: {ConnectId}, ClientDhHash: {DhHash}",
                     connectId, clientDhFullHash);
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
@@ -1908,11 +1867,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 PubKeyExchange serverExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
 
-                Log.Information("[CLIENT-AUTH-HANDSHAKE-RECV] Received server pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
-                    connectId, serverExchange.InitialDhPublicKey.IsEmpty ? "NONE" : Convert.ToHexString(serverExchange.InitialDhPublicKey.ToByteArray())[..Math.Min(16, serverExchange.InitialDhPublicKey.Length * 2)]);
+                Log.Information(
+                    "[CLIENT-AUTH-HANDSHAKE-RECV] Received server pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
+                    connectId,
+                    serverExchange.InitialDhPublicKey.IsEmpty
+                        ? "NONE"
+                        : Convert.ToHexString(serverExchange.InitialDhPublicKey.ToByteArray())[
+                            ..Math.Min(16, serverExchange.InitialDhPublicKey.Length * 2)]);
 
-                string serverDhFullHash = Convert.ToHexString(SHA256.HashData(serverExchange.InitialDhPublicKey.ToByteArray()));
-                Log.Information("[CLIENT-AUTH-DH-SERVER] Server DH public key received full hash. ConnectId: {ConnectId}, ServerDhHash: {DhHash}",
+                string serverDhFullHash =
+                    Convert.ToHexString(SHA256.HashData(serverExchange.InitialDhPublicKey.ToByteArray()));
+                Log.Information(
+                    "[CLIENT-AUTH-DH-SERVER] Server DH public key received full hash. ConnectId: {ConnectId}, ServerDhHash: {DhHash}",
                     connectId, serverDhFullHash);
 
                 Log.Information("[CLIENT-AUTH-FINALIZE] Finalizing protocol with HKDF root key. ConnectId: {ConnectId}",
@@ -1939,8 +1905,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Result<RatchetState, EcliptixProtocolFailure> tempStateResult = tempConn.ToProtoState();
                     if (tempStateResult.IsOk)
                     {
-                        string finalRootKeyHash = Convert.ToHexString(SHA256.HashData(tempStateResult.Unwrap().RootKey.ToByteArray()))[..16];
-                        Log.Information("[CLIENT-AUTH-FINAL-ROOTKEY] Final root key after authenticated handshake complete. ConnectId: {ConnectId}, FinalRootKeyHash: {FinalRootKeyHash}",
+                        string finalRootKeyHash =
+                            Convert.ToHexString(SHA256.HashData(tempStateResult.Unwrap().RootKey.ToByteArray()))[..16];
+                        Log.Information(
+                            "[CLIENT-AUTH-FINAL-ROOTKEY] Final root key after authenticated handshake complete. ConnectId: {ConnectId}, FinalRootKeyHash: {FinalRootKeyHash}",
                             connectId, finalRootKeyHash);
                     }
                 }
@@ -1966,17 +1934,30 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         EcliptixSessionState sessionState = sessionStateResult.Unwrap();
 
-                        string sessionRootKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.RootKey.ToByteArray()))[..16];
-                        string sendingChainKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.SendingStep.ChainKey.ToByteArray()))[..16];
-                        string receivingChainKeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(sessionState.RatchetState.ReceivingStep.ChainKey.ToByteArray()))[..16];
+                        string sessionRootKeyHash =
+                            Convert.ToHexString(
+                                SHA256.HashData(sessionState.RatchetState.RootKey
+                                    .ToByteArray()))[..16];
+                        string sendingChainKeyHash =
+                            Convert.ToHexString(
+                                SHA256.HashData(sessionState.RatchetState.SendingStep
+                                    .ChainKey.ToByteArray()))[..16];
+                        string receivingChainKeyHash =
+                            Convert.ToHexString(
+                                SHA256.HashData(sessionState.RatchetState.ReceivingStep
+                                    .ChainKey.ToByteArray()))[..16];
 
-                        Log.Information("[CLIENT-AUTH-PROTOCOL-STATE] Protocol state created. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}, SendingChainKeyHash: {SendingChainKeyHash}, ReceivingChainKeyHash: {ReceivingChainKeyHash}",
+                        Log.Information(
+                            "[CLIENT-AUTH-PROTOCOL-STATE] Protocol state created. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}, SendingChainKeyHash: {SendingChainKeyHash}, ReceivingChainKeyHash: {ReceivingChainKeyHash}",
                             connectId, sessionRootKeyHash, sendingChainKeyHash, receivingChainKeyHash);
 
-                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray()).ConfigureAwait(false);
+                        await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray())
+                            .ConfigureAwait(false);
 
-                        Log.Information("[CLIENT-AUTH-SAVED] Authenticated protocol state saved. ConnectId: {ConnectId}, Sending: {Sending}, Receiving: {Receiving}, MembershipId: {MembershipId}",
-                            connectId, sessionState.RatchetState.SendingStep.CurrentIndex, sessionState.RatchetState.ReceivingStep.CurrentIndex, membershipIdentifier);
+                        Log.Information(
+                            "[CLIENT-AUTH-SAVED] Authenticated protocol state saved. ConnectId: {ConnectId}, Sending: {Sending}, Receiving: {Receiving}, MembershipId: {MembershipId}",
+                            connectId, sessionState.RatchetState.SendingStep.CurrentIndex,
+                            sessionState.RatchetState.ReceivingStep.CurrentIndex, membershipIdentifier);
                     }
                 }
 
@@ -1999,6 +1980,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
             }
+
             if (rootKeyBytes != null)
             {
                 CryptographicOperations.ZeroMemory(rootKeyBytes);
@@ -2008,12 +1990,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task CleanupFailedAuthenticationAsync(uint connectId)
     {
-        try
-        {
+        Result<Unit, SecureStorageFailure> deleteResult =
             await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
-        }
-        catch
+
+        if (deleteResult.IsErr)
         {
+            Log.Warning(
+                "[CLIENT-AUTH-CLEANUP] Failed to delete protocol state during authentication cleanup. ConnectId: {ConnectId}, Error: {Error}",
+                connectId, deleteResult.UnwrapErr().Message);
         }
     }
 }
