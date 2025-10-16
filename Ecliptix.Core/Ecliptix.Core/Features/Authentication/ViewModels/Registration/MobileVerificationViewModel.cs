@@ -209,7 +209,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         }
                         else
                         {
-                            NetworkErrorMessage = LocalizationService["mobile_already_registered"];
+                            NetworkErrorMessage = LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
                             if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
                                 ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
                         }

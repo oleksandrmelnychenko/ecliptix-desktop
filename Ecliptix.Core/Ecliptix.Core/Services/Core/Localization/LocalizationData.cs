@@ -61,6 +61,9 @@ public static class LocalizationData
         ["Authentication.SignIn.Continue"] = "Continue",
 
 
+        ["MobileVerification.Error.MobileAlreadyRegistered"] = "This mobile number is already registered. Please sign in or use password recovery.",
+
+
         ["Verification.Error.InvalidOtpCode"] = "Invalid verification code",
         ["Registration.Error.Failed"] = "Registration failed",
         ["Verification.Error.NoSession"] = "Verification session not found",
@@ -215,6 +218,9 @@ public static class LocalizationData
         ["Authentication.SignIn.PasswordHint"] = "Зберігається лише на цьому пристрої",
         ["Authentication.SignIn.AccountRecovery"] = "Забули ключ?",
         ["Authentication.SignIn.Continue"] = "Продовжити",
+
+
+        ["MobileVerification.Error.MobileAlreadyRegistered"] = "Цей номер телефону вже зареєстровано. Будь ласка, увійдіть або скористайтеся відновленням пароля.",
 
 
         ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",

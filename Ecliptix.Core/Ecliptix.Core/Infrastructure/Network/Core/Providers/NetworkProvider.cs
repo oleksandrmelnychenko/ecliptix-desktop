@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -68,6 +69,22 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private int _outageState;
     private TaskCompletionSource<bool> _outageCompletionSource = CreateOutageTcs();
     private volatile bool _disposed;
+
+    private static readonly FrozenDictionary<RpcServiceType, bool> RetryableServiceTypes =
+        new Dictionary<RpcServiceType, bool>()
+    {
+        [RpcServiceType.RegisterAppDevice] = true,
+
+        [RpcServiceType.CheckMobileNumberAvailability] = true,
+        [RpcServiceType.ValidateMobileNumber] = true,
+        [RpcServiceType.InitiateVerification] = false,
+        [RpcServiceType.VerifyOtp] = false,
+        [RpcServiceType.OpaqueRegistrationInit] = true,
+        [RpcServiceType.OpaqueRegistrationComplete] = true,
+
+        [RpcServiceType.OpaqueSignInInitRequest] = true,
+        [RpcServiceType.OpaqueSignInCompleteRequest] = true,
+    }.ToFrozenDictionary();
 
     public NetworkProvider(
         IRpcServiceManager rpcServiceManager,
@@ -968,11 +985,22 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint connectId,
         CancellationToken token)
     {
-        Result<RpcFlow, NetworkFailure> invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
-            ct => _rpcServiceManager.InvokeServiceRequestAsync(request, ct),
-            $"UnaryRequest_{request.RpcServiceMethod}",
-            connectId,
-            cancellationToken: token).ConfigureAwait(false);
+        bool shouldUseRetry = RetryableServiceTypes.GetValueOrDefault(request.RpcServiceMethod, false);
+
+        Result<RpcFlow, NetworkFailure> invokeResult;
+
+        if (shouldUseRetry)
+        {
+            invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
+                ct => _rpcServiceManager.InvokeServiceRequestAsync(request, ct),
+                $"UnaryRequest_{request.RpcServiceMethod}",
+                connectId,
+                cancellationToken: token).ConfigureAwait(false);
+        }
+        else
+        {
+            invokeResult = await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+        }
 
         if (invokeResult.IsErr)
         {
