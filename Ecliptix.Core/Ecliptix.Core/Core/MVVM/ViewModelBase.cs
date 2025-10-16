@@ -21,10 +21,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 {
     private bool _disposedValue;
 
-    protected ViewModelBase(ISystemEventService systemEventService, NetworkProvider networkProvider,
+    protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService)
     {
-        SystemEventService = systemEventService;
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
 
@@ -47,7 +46,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     public ILocalizationService LocalizationService { get; }
     public ViewModelActivator Activator { get; } = new();
-    protected ISystemEventService SystemEventService { get; }
+
     protected NetworkProvider NetworkProvider { get; }
     protected IObservable<SystemU> LanguageChanged { get; }
 

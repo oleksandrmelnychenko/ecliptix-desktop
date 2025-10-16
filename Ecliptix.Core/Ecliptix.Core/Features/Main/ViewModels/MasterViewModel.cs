@@ -31,12 +31,11 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
     public MasterViewModel(
-        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         ILogoutService logoutService,
         MainWindowViewModel mainWindowViewModel)
-        : base(systemEventService, networkProvider, localizationService)
+        : base(networkProvider, localizationService)
     {
         _logoutService = logoutService;
         _mainWindowViewModel = mainWindowViewModel;

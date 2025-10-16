@@ -44,12 +44,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private bool _isDisposed;
 
     public SignInViewModel(
-        ISystemEventService systemEventService,
         INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
-        IScreen hostScreen) : base(systemEventService, networkProvider, localizationService)
+        IScreen hostScreen) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _authService = authService;

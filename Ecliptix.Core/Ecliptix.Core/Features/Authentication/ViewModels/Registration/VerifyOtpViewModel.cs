@@ -46,7 +46,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
-        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
@@ -55,7 +54,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         IOpaqueRegistrationService registrationService,
         IUiDispatcher uiDispatcher,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
-        IPasswordRecoveryService? passwordRecoveryService = null) : base(systemEventService, networkProvider,
+        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider,
         localizationService)
     {
         _mobileNumberIdentifier = mobileNumberIdentifier;

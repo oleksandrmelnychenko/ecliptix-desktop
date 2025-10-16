@@ -47,32 +47,32 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService,
+    private static readonly FrozenDictionary<MembershipViewType, Func<INetworkEventService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
         IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<ISystemEventService, INetworkEventService, NetworkProvider,
+        new Dictionary<MembershipViewType, Func<INetworkEventService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
             IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (sys, netEvents, netProvider, loc, auth, _, host, _, _, _) =>
-                new SignInViewModel(sys, netEvents, netProvider, loc, auth, host),
+            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _, _) =>
+                new SignInViewModel(netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (sys, _, netProvider, loc, _, _, host, _, _, _) =>
-                    new WelcomeViewModel(host, sys, loc, netProvider),
+                (_, netProvider, loc, _, _, host, _, _, _) =>
+                    new WelcomeViewModel(host, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (sys, netEvents, netProvider, loc, _, storage, host, reg, _, uiDispatcher) =>
-                    new MobileVerificationViewModel(sys, netProvider, loc, host, storage, reg, uiDispatcher),
+                (netEvents, netProvider, loc, _, storage, host, reg, _, uiDispatcher) =>
+                    new MobileVerificationViewModel(netProvider, loc, host, storage, reg, uiDispatcher),
             [MembershipViewType.ConfirmSecureKey] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, reg, _, _) =>
-                    new SecureKeyVerifierViewModel(sys, netProvider, loc, host, storage, reg, auth),
+                (netEvents, netProvider, loc, auth, storage, host, reg, _, _) =>
+                    new SecureKeyVerifierViewModel(netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] =
-                (sys, netEvents, netProvider, loc, _, _, host, _, _, _) =>
-                    new PassPhaseViewModel(sys, loc, host, netProvider),
+                (netEvents, netProvider, loc, _, _, host, _, _, _) =>
+                    new PassPhaseViewModel(loc, host, netProvider),
             [MembershipViewType.ForgotPasswordReset] =
-                (sys, netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery, _) =>
-                    new ForgotPasswordResetViewModel(sys, netProvider, loc, host, storage, pwdRecovery, auth)
+                (netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery, _) =>
+                    new ForgotPasswordResetViewModel(netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -82,7 +82,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private readonly ILanguageDetectionService _languageDetectionService;
     private readonly ILocalizationService _localizationService;
     private readonly MainWindowViewModel _mainWindowViewModel;
-    private readonly ISystemEventService _systemEventService;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly IPasswordRecoveryService _passwordRecoveryService;
@@ -98,7 +97,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private IRoutableViewModel? _currentView;
 
     public AuthenticationViewModel(
-        ISystemEventService systemEventService,
         INetworkEventService networkEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -111,13 +109,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         ILanguageDetectionService languageDetectionService,
         IApplicationRouter router,
         MainWindowViewModel mainWindowViewModel)
-        : base(systemEventService, networkProvider, localizationService)
+        : base(networkProvider, localizationService)
     {
         Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor started");
         _localizationService = localizationService;
         _networkEventService = networkEventService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _systemEventService = systemEventService;
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
@@ -322,7 +319,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         ClearNavigationStack(true);
         MobileVerificationViewModel vm = new(
-            _systemEventService,
             _networkProvider,
             LocalizationService,
             this,
@@ -536,7 +532,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
 
         if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<ISystemEventService, INetworkEventService, NetworkProvider, ILocalizationService,
+                out Func<INetworkEventService, NetworkProvider, ILocalizationService,
                     IAuthenticationService,
                     IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
                     IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>? factory))
@@ -544,7 +540,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             throw new InvalidOperationException($"No factory registered for view type: {viewType}");
         }
 
-        IRoutableViewModel newViewModel = factory(_systemEventService, _networkEventService, _networkProvider,
+        IRoutableViewModel newViewModel = factory(_networkEventService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
             _passwordRecoveryService, _uiDispatcher);

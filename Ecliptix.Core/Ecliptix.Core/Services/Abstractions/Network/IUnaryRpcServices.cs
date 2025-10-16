@@ -12,6 +12,5 @@ public interface IUnaryRpcServices
     Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(
         ServiceRequest request,
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         CancellationToken token);
 }

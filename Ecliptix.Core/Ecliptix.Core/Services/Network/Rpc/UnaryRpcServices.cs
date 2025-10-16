@@ -22,7 +22,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     private delegate Task<Result<SecureEnvelope, NetworkFailure>> GrpcMethodDelegate(
         SecureEnvelope payload,
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         CancellationToken token
     );
 
@@ -52,13 +51,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     _membershipServicesClient.LogoutAsync(
                         payload,
@@ -70,13 +67,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> RegisterDeviceAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     deviceServiceClient.RegisterDeviceAsync(
                         payload,
@@ -88,13 +83,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> ValidateMobileNumberAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     authenticationServicesClient.ValidateMobileNumberAsync(
                         payload,
@@ -106,13 +99,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> CheckMobileNumberAvailabilityAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     authenticationServicesClient.CheckMobileNumberAvailabilityAsync(
                         payload,
@@ -124,13 +115,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationRecordRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueRegistrationInitRequestAsync(
                         payload,
@@ -142,13 +131,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> VerifyCodeAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     authenticationServicesClient.VerifyOtpAsync(
                         payload,
@@ -160,13 +147,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRegistrationCompleteRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueRegistrationCompleteRequestAsync(
                         payload,
@@ -178,13 +163,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInInitRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueSignInInitRequestAsync(
                         payload,
@@ -196,13 +179,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueSignInCompleteRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueSignInCompleteRequestAsync(
                         payload,
@@ -214,13 +195,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryInitRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueRecoverySecretKeyInitRequestAsync(
                         payload,
@@ -232,13 +211,11 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         async Task<Result<SecureEnvelope, NetworkFailure>> OpaqueRecoveryCompleteRequestAsync(
             SecureEnvelope payload,
             INetworkEventService networkEvents,
-            ISystemEventService systemEvents,
             CancellationToken token
         )
         {
             return await ExecuteGrpcCallAsync(
                 networkEvents,
-                systemEvents,
                 () =>
                     membershipServicesClient.OpaqueRecoverySecretKeyCompleteRequestAsync(
                         payload,
@@ -251,7 +228,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     public async Task<Result<RpcFlow, NetworkFailure>> InvokeRequestAsync(
         ServiceRequest request,
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         CancellationToken token
     )
     {
@@ -260,7 +236,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             Result<SecureEnvelope, NetworkFailure> result = await method(
                 request.Payload,
                 networkEvents,
-                systemEvents,
                 token
             ).ConfigureAwait(false);
 
@@ -281,7 +256,6 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
 
     private static async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteGrpcCallAsync(
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         Func<AsyncUnaryCall<SecureEnvelope>> grpcCallFactory
     )
     {
@@ -297,7 +271,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         catch (RpcException rpcEx)
         {
             NetworkFailure failure = await GrpcErrorHandler.ClassifyRpcExceptionWithEventsAsync(
-                rpcEx, networkEvents, systemEvents).ConfigureAwait(false);
+                rpcEx, networkEvents).ConfigureAwait(false);
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
         catch (Exception ex)

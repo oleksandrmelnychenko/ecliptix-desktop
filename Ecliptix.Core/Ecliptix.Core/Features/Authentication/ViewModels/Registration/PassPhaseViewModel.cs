@@ -19,9 +19,8 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private bool _isDisposed;
 
     public PassPhaseViewModel(
-        ISystemEventService systemEventService,
         ILocalizationService localizationService,
-        IScreen hostScreen, NetworkProvider networkProvider) : base(systemEventService, networkProvider, localizationService)
+        IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         SubmitCommand = ReactiveCommand.Create(() => { });

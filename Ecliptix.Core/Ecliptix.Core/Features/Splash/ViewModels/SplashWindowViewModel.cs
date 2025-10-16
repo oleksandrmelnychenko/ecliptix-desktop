@@ -22,9 +22,9 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 
     public TaskCompletionSource IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(ISystemEventService systemEventService, INetworkEventService networkEventService,
+    public SplashWindowViewModel(INetworkEventService networkEventService,
         ILocalizationService localizationService, NetworkProvider networkProvider)
-        : base(systemEventService, networkProvider, localizationService)
+        : base(networkProvider, localizationService)
     {
         SetupPrecompiledNetworkBinding(networkEventService);
     }

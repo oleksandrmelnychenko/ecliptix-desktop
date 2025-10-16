@@ -324,7 +324,6 @@ public static class Program
     private static void ConfigureMessagingServices(IServiceCollection services)
     {
         services.AddSingleton<IMessageBus, MessageBus>();
-        services.AddSingleton<ISystemEventService, SystemEventService>();
         services.AddSingleton<INetworkEventService, NetworkEventService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();

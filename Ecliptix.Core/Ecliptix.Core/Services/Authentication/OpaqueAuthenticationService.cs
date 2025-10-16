@@ -47,7 +47,6 @@ public sealed class SignInResult(
 internal sealed class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
-    ISystemEventService systemEvents,
     IIdentityService identityService,
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     IHardenedKeyDerivation hardenedKeyDerivation,
@@ -233,8 +232,6 @@ internal sealed class OpaqueAuthenticationService(
                 {
                     Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}",
                         membershipId);
-                    await systemEvents.NotifySystemStateAsync(SystemState.FatalError, "Invalid membership identifier")
-                        .ConfigureAwait(false);
                     return Result<Unit, AuthenticationFailure>.Err(
                         AuthenticationFailure.InvalidMembershipIdentifier(
                             localizationService[AuthenticationConstants.InvalidCredentialsKey]));
