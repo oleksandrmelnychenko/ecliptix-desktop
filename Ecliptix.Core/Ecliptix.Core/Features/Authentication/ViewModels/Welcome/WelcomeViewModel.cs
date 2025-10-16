@@ -39,8 +39,8 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
     [ObservableAsProperty] public bool IsSignInBusy { get; }
 
 
-    public WelcomeViewModel(IScreen hostScreen, ISystemEventService systemEventService, ILocalizationService localizationService,
-        NetworkProvider networkProvider) : base(systemEventService, networkProvider, localizationService)
+    public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
+        NetworkProvider networkProvider) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
 

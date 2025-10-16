@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
-using Avalonia.Controls;
-using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Modularity;
-using Ecliptix.Core.Features.Main.ViewModels;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Ecliptix.Core.Features.Main;
 
@@ -21,4 +16,17 @@ public class MainModule : ModuleBase<MainModuleManifest>
 {
     public override ModuleIdentifier Id => ModuleIdentifier.Main;
     public override MainModuleManifest Manifest { get; } = new();
+
+    public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
+    {
+
+        await messageBus.PublishAsync(new ModuleInitializedEvent
+        {
+            ModuleName = Id.ToName()
+        });
+
+        Logger?.LogInformation("Main module message handlers setup completed");
+    }
+
+
 }

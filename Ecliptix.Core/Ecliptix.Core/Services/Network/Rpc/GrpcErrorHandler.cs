@@ -28,8 +28,7 @@ public static class GrpcErrorHandler
 
     public static async Task<NetworkFailure> ClassifyRpcExceptionWithEventsAsync(
         RpcException rpcEx,
-        INetworkEventService networkEvents,
-        ISystemEventService systemEvents)
+        INetworkEventService networkEvents)
     {
         if (GrpcErrorClassifier.IsBusinessError(rpcEx) || GrpcErrorClassifier.IsAuthenticationError(rpcEx))
             return NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}");
@@ -42,13 +41,11 @@ public static class GrpcErrorHandler
 
         if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
         {
-            await systemEvents.NotifySystemStateAsync(SystemState.DataCenterShutdown);
             return NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable");
         }
 
         if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
         {
-            await systemEvents.NotifySystemStateAsync(SystemState.Recovering);
             return NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed");
         }
 

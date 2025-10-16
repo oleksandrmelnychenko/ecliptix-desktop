@@ -14,20 +14,17 @@ public interface IRpcServiceManager
 {
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishSecrecyChannelAsync(
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         SecureEnvelope envelope,
         PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         RestoreChannelRequest request,
         CancellationToken cancellationToken = default);
 
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecureChannelAsync(
         INetworkEventService networkEvents,
-        ISystemEventService systemEvents,
         AuthenticatedEstablishRequest request,
         CancellationToken cancellationToken = default);
 

@@ -36,7 +36,6 @@ public sealed class ApplicationInitializer(
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     ISecureProtocolStateStorage secureProtocolStateStorage,
     ILocalizationService localizationService,
-    ISystemEventService systemEvents,
     IIpGeolocationService ipGeolocationService,
     IIdentityService identityService,
     IApplicationStateManager stateManager,
@@ -46,14 +45,12 @@ public sealed class ApplicationInitializer(
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
-        await systemEvents.NotifySystemStateAsync(SystemState.Initializing).ConfigureAwait(false);
 
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture).ConfigureAwait(false);
 
         if (settingsResult.IsErr)
         {
-            await systemEvents.NotifySystemStateAsync(SystemState.FatalError).ConfigureAwait(false);
             return false;
         }
 
@@ -97,7 +94,6 @@ public sealed class ApplicationInitializer(
         Log.Information("[CLIENT-REGISTER] RegisterDevice completed successfully. ConnectId: {ConnectId}",
             connectId);
 
-        await systemEvents.NotifySystemStateAsync(SystemState.Running).ConfigureAwait(false);
         return true;
     }
 

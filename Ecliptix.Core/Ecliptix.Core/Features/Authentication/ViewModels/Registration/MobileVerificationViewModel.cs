@@ -3,7 +3,6 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -38,7 +37,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private bool _isDisposed;
 
     public MobileVerificationViewModel(
-        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
@@ -46,7 +44,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IOpaqueRegistrationService registrationService,
         IUiDispatcher uiDispatcher,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
-        IPasswordRecoveryService? passwordRecoveryService = null) : base(systemEventService, networkProvider, localizationService)
+        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider, localizationService)
     {
         _registrationService = registrationService;
         _passwordRecoveryService = passwordRecoveryService;
@@ -241,7 +239,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 {
                     ByteString mobileNumberIdentifier = result.Unwrap();
 
-                    VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+                    VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
                         _flowContext, _passwordRecoveryService);
 
@@ -279,7 +277,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         if (_isDisposed) return Task.CompletedTask;
 
-        VerifyOtpViewModel vm = new(SystemEventService, NetworkProvider, LocalizationService, HostScreen,
+        VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
 
         if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)

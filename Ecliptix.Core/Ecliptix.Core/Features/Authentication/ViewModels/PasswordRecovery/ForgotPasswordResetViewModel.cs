@@ -44,14 +44,13 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
     private bool _hasConfirmPasswordBeenTouched;
 
     public ForgotPasswordResetViewModel(
-        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IPasswordRecoveryService passwordRecoveryService,
         IAuthenticationService authenticationService
-    ) : base(systemEventService, networkProvider, localizationService)
+    ) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;

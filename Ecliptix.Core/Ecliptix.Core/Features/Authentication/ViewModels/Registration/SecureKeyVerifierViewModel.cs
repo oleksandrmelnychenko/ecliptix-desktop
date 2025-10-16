@@ -46,14 +46,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private bool _hasVerifySecureKeyBeenTouched;
 
     public SecureKeyVerifierViewModel(
-        ISystemEventService systemEventService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService
-    ) : base(systemEventService, networkProvider, localizationService)
+    ) : base(networkProvider, localizationService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
