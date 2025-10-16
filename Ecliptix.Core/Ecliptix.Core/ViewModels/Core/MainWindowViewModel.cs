@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Controls.Modals;
+using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -18,6 +19,7 @@ using Ecliptix.Core.Services.Abstractions.Network;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.ViewModels.Core;
 
@@ -27,6 +29,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     private readonly ILocalizationService _localizationService;
     private readonly IApplicationSecureStorageProvider _storageProvider;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
+    private readonly IMessageBus _messageBus;
     private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
@@ -51,12 +54,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        NetworkStatusNotificationViewModel networkStatusNotification)
+        NetworkStatusNotificationViewModel networkStatusNotification,
+        IMessageBus messageBus)
     {
         _bottomSheetService = bottomSheetService;
         _localizationService = localizationService;
         _storageProvider = storageProvider;
         _rpcMetaDataProvider = rpcMetaDataProvider;
+        _messageBus = messageBus;
 
         WindowWidth = 480;
         WindowHeight = 720;
@@ -72,6 +77,24 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         NetworkStatusNotification = networkStatusNotification;
 
         Log.Information("[MainWindowViewModel] Initialized with dimensions: {Width}x{Height}", WindowWidth, WindowHeight);
+        _ = SetupHandlersAsync();
+    }
+
+    private async Task SetupHandlersAsync()
+    {
+        try
+        {
+            //_messageBus.Subscribe<>().DisposeWith(_disposables);
+
+            Log.Information("[MainWindowViewModel] Message handlers setup completed");
+
+            await Task.CompletedTask;
+
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MainWindowViewModel] Error setting up message handlers: {Message}", ex.Message);
+        }
     }
 
     public async Task SetAuthenticationContentAsync(object content)

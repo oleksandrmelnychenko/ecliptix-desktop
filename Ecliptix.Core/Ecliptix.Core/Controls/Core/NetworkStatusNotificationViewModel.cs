@@ -20,7 +20,6 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using ReactiveUI;
 using Serilog;
-using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
