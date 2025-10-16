@@ -84,8 +84,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     {
         try
         {
-            //_messageBus.Subscribe<>().DisposeWith(_disposables);
-
             Log.Information("[MainWindowViewModel] Message handlers setup completed");
 
             await Task.CompletedTask;

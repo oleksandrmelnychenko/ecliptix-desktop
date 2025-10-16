@@ -450,12 +450,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private uint HandleFailedStatus(string? error)
     {
-        if (!string.IsNullOrEmpty(error))
-        {
-            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
-        }
-        else
-            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
+        _ = !string.IsNullOrEmpty(error)
+            ? StartAutoRedirectAsync(5, MembershipViewType.Welcome, error)
+            : StartAutoRedirectAsync(5, MembershipViewType.Welcome);
 
         HasError = true;
         HasValidSession = false;
@@ -464,7 +461,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private uint HandleUnavailable()
     {
-        ErrorMessage = "";
+        ErrorMessage = string.Empty;
         SecondsRemaining = 0;
         return 0;
     }
