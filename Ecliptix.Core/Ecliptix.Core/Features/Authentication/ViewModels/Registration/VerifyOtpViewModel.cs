@@ -92,13 +92,13 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         IObservable<bool> canResend = this.WhenAnyValue(
-                    x => x.SecondsRemaining,
-                    x => x.HasValidSession,
-                    x => x.CurrentStatus)
-                .Select(tuple => tuple is { Item2: true, Item1: 0 } &&
-                                 tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
-                .DistinctUntilChanged()
-                .Catch<bool, Exception>(ex => Observable.Return(false));
+                x => x.SecondsRemaining,
+                x => x.HasValidSession,
+                x => x.CurrentStatus)
+            .Select(tuple => tuple is { Item2: true, Item1: 0 } &&
+                             tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
+            .DistinctUntilChanged()
+            .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         SendVerificationCodeCommand.IsExecuting
@@ -145,7 +145,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
     [Reactive] public uint SecondsRemaining { get; private set; }
     [Reactive] public bool HasError { get; private set; }
-    [Reactive] public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+
+    [Reactive]
+    public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } =
+        VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
+
     [Reactive] public bool IsMaxAttemptsReached { get; private set; }
     [Reactive] public int AutoRedirectCountdown { get; private set; }
     [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
@@ -209,39 +213,40 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-            Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask = _flowContext == AuthenticationFlowContext.Registration
-                ? _registrationService.InitiateOtpVerificationAsync(
-                    _mobileNumberIdentifier,
-                    deviceIdentifier,
-                    onCountdownUpdate: (seconds, identifier, status, message) =>
-                        RxApp.MainThreadScheduler.Schedule(() =>
-                        {
-                            if (_isDisposed) return;
-                            try
+            Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask =
+                _flowContext == AuthenticationFlowContext.Registration
+                    ? _registrationService.InitiateOtpVerificationAsync(
+                        _mobileNumberIdentifier,
+                        deviceIdentifier,
+                        onCountdownUpdate: (seconds, identifier, status, message) =>
+                            RxApp.MainThreadScheduler.Schedule(() =>
                             {
-                                HandleCountdownUpdate(seconds, identifier, status, message);
-                            }
-                            catch (ObjectDisposedException)
+                                if (_isDisposed) return;
+                                try
+                                {
+                                    HandleCountdownUpdate(seconds, identifier, status, message);
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                }
+                            }),
+                        cancellationToken: _cancellationTokenSource.Token)
+                    : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
+                        _mobileNumberIdentifier,
+                        deviceIdentifier,
+                        onCountdownUpdate: (seconds, identifier, status, message) =>
+                            RxApp.MainThreadScheduler.Schedule(() =>
                             {
-                            }
-                        }),
-                    cancellationToken: _cancellationTokenSource.Token)
-                : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
-                    _mobileNumberIdentifier,
-                    deviceIdentifier,
-                    onCountdownUpdate: (seconds, identifier, status, message) =>
-                        RxApp.MainThreadScheduler.Schedule(() =>
-                        {
-                            if (_isDisposed) return;
-                            try
-                            {
-                                HandleCountdownUpdate(seconds, identifier, status, message);
-                            }
-                            catch (ObjectDisposedException)
-                            {
-                            }
-                        }),
-                    cancellationToken: _cancellationTokenSource.Token);
+                                if (_isDisposed) return;
+                                try
+                                {
+                                    HandleCountdownUpdate(seconds, identifier, status, message);
+                                }
+                                catch (ObjectDisposedException)
+                                {
+                                }
+                            }),
+                        cancellationToken: _cancellationTokenSource.Token);
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
@@ -309,6 +314,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     hostWindow.ClearNavigationStack(true);
                 }
             }
+
             if (HasValidSession)
             {
                 if (_flowContext == AuthenticationFlowContext.Registration)
@@ -318,12 +324,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 }
                 else if (_passwordRecoveryService != null)
                 {
-                    await _passwordRecoveryService.CleanupPasswordResetSessionAsync(VerificationSessionIdentifier!.Value)
+                    await _passwordRecoveryService
+                        .CleanupPasswordResetSessionAsync(VerificationSessionIdentifier!.Value)
                         .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
                 }
             }
-
-
         }
         else
         {
@@ -379,29 +384,30 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
                 _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
-                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = _flowContext == AuthenticationFlowContext.Registration
-                    ? _registrationService.ResendOtpVerificationAsync(
-                        VerificationSessionIdentifier!.Value,
-                        _mobileNumberIdentifier,
-                        deviceIdentifier,
-                        onCountdownUpdate: (seconds, identifier, status, message) =>
-                            RxApp.MainThreadScheduler.Schedule(() =>
-                            {
-                                if (!_isDisposed)
-                                    HandleCountdownUpdate(seconds, identifier, status, message);
-                            }),
-                        cancellationToken: _cancellationTokenSource.Token)
-                    : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
-                        VerificationSessionIdentifier!.Value,
-                        _mobileNumberIdentifier,
-                        deviceIdentifier,
-                        onCountdownUpdate: (seconds, identifier, status, message) =>
-                            RxApp.MainThreadScheduler.Schedule(() =>
-                            {
-                                if (!_isDisposed)
-                                    HandleCountdownUpdate(seconds, identifier, status, message);
-                            }),
-                        cancellationToken: _cancellationTokenSource.Token);
+                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask =
+                    _flowContext == AuthenticationFlowContext.Registration
+                        ? _registrationService.ResendOtpVerificationAsync(
+                            VerificationSessionIdentifier!.Value,
+                            _mobileNumberIdentifier,
+                            deviceIdentifier,
+                            onCountdownUpdate: (seconds, identifier, status, message) =>
+                                RxApp.MainThreadScheduler.Schedule(() =>
+                                {
+                                    if (!_isDisposed)
+                                        HandleCountdownUpdate(seconds, identifier, status, message);
+                                }),
+                            cancellationToken: _cancellationTokenSource.Token)
+                        : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
+                            VerificationSessionIdentifier!.Value,
+                            _mobileNumberIdentifier,
+                            deviceIdentifier,
+                            onCountdownUpdate: (seconds, identifier, status, message) =>
+                                RxApp.MainThreadScheduler.Schedule(() =>
+                                {
+                                    if (!_isDisposed)
+                                        HandleCountdownUpdate(seconds, identifier, status, message);
+                                }),
+                            cancellationToken: _cancellationTokenSource.Token);
 
                 Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
@@ -480,7 +486,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 return Task.CompletedTask;
             });
 
-            string message = "";
+            string message;
 
             if (!string.IsNullOrEmpty(localizaedMessage))
             {
