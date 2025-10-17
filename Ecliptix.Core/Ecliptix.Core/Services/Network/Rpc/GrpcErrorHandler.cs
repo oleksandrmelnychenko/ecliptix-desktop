@@ -26,32 +26,32 @@ public static class GrpcErrorHandler
                                 ? NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure")
                                 : NetworkFailure.DataCenterNotResponding(rpcEx.Message);
 
-    public static async Task<NetworkFailure> ClassifyRpcExceptionWithEventsAsync(
+    public static Task<NetworkFailure> ClassifyRpcExceptionWithEventsAsync(
         RpcException rpcEx,
         INetworkEventService networkEvents)
     {
         if (GrpcErrorClassifier.IsBusinessError(rpcEx) || GrpcErrorClassifier.IsAuthenticationError(rpcEx))
-            return NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}");
+            return Task.FromResult(NetworkFailure.InvalidRequestType($"{rpcEx.StatusCode}: {rpcEx.Status.Detail}"));
 
         if (GrpcErrorClassifier.IsCancelled(rpcEx))
             throw rpcEx;
 
         if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcEx))
-            return NetworkFailure.ProtocolStateMismatch(rpcEx.Status.Detail ?? "Protocol state mismatch");
+            return Task.FromResult(NetworkFailure.ProtocolStateMismatch(rpcEx.Status.Detail ?? "Protocol state mismatch"));
 
         if (GrpcErrorClassifier.IsServerShutdown(rpcEx))
         {
-            return NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable");
+            return Task.FromResult(NetworkFailure.DataCenterShutdown(rpcEx.Status.Detail ?? "Server unavailable"));
         }
 
         if (GrpcErrorClassifier.RequiresHandshakeRecovery(rpcEx))
         {
-            return NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed");
+            return Task.FromResult(NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Connection recovery needed"));
         }
 
         if (GrpcErrorClassifier.IsTransientInfrastructure(rpcEx))
-            return NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure");
+            return Task.FromResult(NetworkFailure.DataCenterNotResponding(rpcEx.Status.Detail ?? "Temporary failure"));
 
-        return NetworkFailure.DataCenterNotResponding(rpcEx.Message);
+        return Task.FromResult(NetworkFailure.DataCenterNotResponding(rpcEx.Message));
     }
 }
