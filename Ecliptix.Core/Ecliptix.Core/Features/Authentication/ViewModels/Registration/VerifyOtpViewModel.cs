@@ -88,23 +88,21 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             (code, time) => code.Length == 6 && code.All(char.IsDigit) &&
                             time != AuthenticationConstants.ExpiredRemainingTime
         );
-        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(
-            async () =>
-            {
-                try
-                {
-                    await SendVerificationCode();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "[OTP-VERIFICATION] Error during OTP verification");
-                    if (!_isDisposed)
-                    {
-                        ErrorMessage = ex.Message;
-                        IsSent = false;
-                    }
-                }
-            }, canVerify);
+        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
+
+        SendVerificationCodeCommand.ThrownExceptions
+    .Subscribe(ex =>
+    {
+        Log.Error(ex, "[OTP-VERIFICATION] Unhandled exception in SendVerificationCodeCommand");
+        if (!_isDisposed)
+        {
+            ErrorMessage = ex.Message;
+            IsSent = false;
+            HasError = true;
+        }
+    })
+    .DisposeWith(_disposables);
+
 
         IObservable<bool> canResend = this.WhenAnyValue(
                 x => x.SecondsRemaining,
@@ -115,6 +113,18 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             .DistinctUntilChanged()
             .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
+
+        ResendSendVerificationCodeCommand.ThrownExceptions
+            .Subscribe(ex =>
+            {
+                Log.Error(ex, "[OTP-RESEND] Unhandled exception in ResendSendVerificationCodeCommand");
+                if (!_isDisposed)
+                {
+                    ErrorMessage = ex.Message;
+                    HasError = true;
+                }
+            })
+            .DisposeWith(_disposables);
 
         SendVerificationCodeCommand.IsExecuting
             .ToPropertyEx(this, x => x.IsBusy)
