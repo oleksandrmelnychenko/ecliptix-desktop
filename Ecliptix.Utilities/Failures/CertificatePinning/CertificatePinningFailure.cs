@@ -1,3 +1,5 @@
+using Grpc.Core;
+
 namespace Ecliptix.Utilities.Failures.CertificatePinning;
 
 public record CertificatePinningFailure(
@@ -130,4 +132,7 @@ public record CertificatePinningFailure(
 
     public static CertificatePinningFailure ServiceInvalidState() =>
         new(CertificatePinningFailureType.ServiceInvalidState, CertificatePinningFailureMessages.ServiceInvalidState);
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
 }

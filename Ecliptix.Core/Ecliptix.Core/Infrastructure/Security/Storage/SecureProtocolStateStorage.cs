@@ -8,6 +8,7 @@ using Ecliptix.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
+using Grpc.Core;
 using Konscious.Security.Cryptography;
 using Serilog;
 
@@ -477,4 +478,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 public record SecureStorageFailure(string Message) : FailureBase(Message)
 {
     public override object ToStructuredLog() => new { Message, Type = "SecureStorageFailure" };
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
 }

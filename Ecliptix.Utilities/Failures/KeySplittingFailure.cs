@@ -1,4 +1,5 @@
 using System;
+using Grpc.Core;
 
 namespace Ecliptix.Utilities.Failures;
 
@@ -146,6 +147,9 @@ public sealed record KeySplittingFailure : FailureBase
 
     public static KeySplittingFailure FromSodiumFailure(Sodium.SodiumFailure failure) =>
         new(ErrorCode.AllocationFailed, $"Sodium operation failed: {failure.Message}", failure.InnerException);
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        new(Utilities.ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
 
     public override string ToString() => $"[KeySplittingFailure.{Code}] {Message}";
 }

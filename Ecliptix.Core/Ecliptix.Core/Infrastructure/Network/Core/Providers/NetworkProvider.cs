@@ -69,21 +69,22 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private TaskCompletionSource<bool> _outageCompletionSource = CreateOutageTcs();
     private volatile bool _disposed;
 
-    private static readonly FrozenDictionary<RpcServiceType, bool> RetryableServiceTypes =
-        new Dictionary<RpcServiceType, bool>()
+    private static readonly FrozenDictionary<RpcServiceType, RetryPolicy> RetryPolicies =
+        new Dictionary<RpcServiceType, RetryPolicy>
         {
-            [RpcServiceType.RegisterAppDevice] = true,
-
-            [RpcServiceType.CheckMobileNumberAvailability] = true,
-            [RpcServiceType.ValidateMobileNumber] = true,
-            [RpcServiceType.InitiateVerification] = false,
-            [RpcServiceType.VerifyOtp] = false,
-            [RpcServiceType.OpaqueRegistrationInit] = true,
-            [RpcServiceType.OpaqueRegistrationComplete] = true,
-
-            [RpcServiceType.OpaqueSignInInitRequest] = true,
-            [RpcServiceType.OpaqueSignInCompleteRequest] = true,
+            [RpcServiceType.RegisterAppDevice] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true),
+            [RpcServiceType.CheckMobileNumberAvailability] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true),
+            [RpcServiceType.ValidateMobileNumber] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true),
+            [RpcServiceType.InitiateVerification] = RetryPolicy.NoRetry,
+            [RpcServiceType.VerifyOtp] = RetryPolicy.NoRetry,
+            [RpcServiceType.OpaqueRegistrationInit] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true),
+            [RpcServiceType.OpaqueRegistrationComplete] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true, reinitOnCompleteFailure: true),
+            [RpcServiceType.OpaqueSignInInitRequest] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true),
+            [RpcServiceType.OpaqueSignInCompleteRequest] = RetryPolicy.CreateTransientPolicy(3, 200, 2000, true, reinitOnCompleteFailure: true),
         }.ToFrozenDictionary();
+
+    private static RetryPolicy ResolveRetryPolicy(RpcServiceType serviceType) =>
+        RetryPolicies.TryGetValue(serviceType, out RetryPolicy? policy) ? policy : RetryPolicy.NoRetry;
 
     public NetworkProvider(
         IRpcServiceManager rpcServiceManager,
@@ -345,11 +346,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicates = false,
         CancellationToken token = default,
-        bool waitForRecovery = true)
+        bool waitForRecovery = true,
+        RpcRequestContext? requestContext = null)
     {
         return await ExecuteServiceRequestInternalAsync(
             connectId, serviceType, plainBuffer, ServiceFlowType.Single,
-            onCompleted, allowDuplicates, token, waitForRecovery).ConfigureAwait(false);
+            onCompleted, allowDuplicates, token, waitForRecovery, requestContext).ConfigureAwait(false);
     }
 
     public async Task<Result<Unit, NetworkFailure>> ExecuteReceiveStreamRequestAsync(
@@ -373,8 +375,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         bool allowDuplicateRequests = false,
         CancellationToken cancellationToken = default,
-        bool waitForRecovery = true)
+        bool waitForRecovery = true,
+        RpcRequestContext? requestContext = null)
     {
+        RpcRequestContext effectiveContext = requestContext ?? RpcRequestContext.CreateNew();
+        RetryPolicy retryPolicy = ResolveRetryPolicy(serviceType);
+
         string requestKey;
         if (serviceType is RpcServiceType.OpaqueSignInInitRequest or RpcServiceType.OpaqueSignInCompleteRequest)
         {
@@ -431,7 +437,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
             Result<ServiceRequest, NetworkFailure> serviceRequestResult =
-                BuildRequestWithId(protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType);
+                BuildRequestWithId(protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType,
+                    effectiveContext);
 
             if (serviceRequestResult.IsErr)
             {
@@ -445,7 +452,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Result<Unit, NetworkFailure> networkResult = flowType switch
                 {
                     ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, serviceRequest, onCompleted,
-                        connectId, operationToken).ConfigureAwait(false),
+                        connectId, retryPolicy, operationToken).ConfigureAwait(false),
                     ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, serviceRequest,
                         onCompleted, operationToken).ConfigureAwait(false),
                     ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, serviceRequest,
@@ -935,7 +942,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint logicalOperationId,
         RpcServiceType serviceType,
         byte[] plainBuffer,
-        ServiceFlowType flowType)
+        ServiceFlowType flowType,
+        RpcRequestContext requestContext)
     {
         EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
         if (connection != null)
@@ -972,7 +980,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 : "NULL");
 
         return Result<ServiceRequest, NetworkFailure>.Ok(
-            ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, []));
+            ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, [], requestContext));
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendUnaryRequestAsync(
@@ -980,9 +988,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceRequest request,
         Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
         uint connectId,
+        RetryPolicy retryPolicy,
         CancellationToken token)
     {
-        bool shouldUseRetry = RetryableServiceTypes.GetValueOrDefault(request.RpcServiceMethod, false);
+        bool shouldUseRetry = retryPolicy.RetryTransient;
 
         Result<RpcFlow, NetworkFailure> invokeResult;
 
@@ -992,6 +1001,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 ct => _rpcServiceManager.InvokeServiceRequestAsync(request, ct),
                 $"UnaryRequest_{request.RpcServiceMethod}",
                 connectId,
+                maxRetries: Math.Max(0, retryPolicy.MaxAttempts - 1),
                 cancellationToken: token).ConfigureAwait(false);
         }
         else
@@ -1001,7 +1011,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (invokeResult.IsErr)
         {
-            return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
+            NetworkFailure failure = AttachCorrelation(invokeResult.UnwrapErr(), request.RequestContext);
+            return Result<Unit, NetworkFailure>.Err(failure);
         }
 
         RpcFlow flow = invokeResult.Unwrap();
@@ -1014,7 +1025,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Result<SecureEnvelope, NetworkFailure> callResult = await singleCall.Result.ConfigureAwait(false);
         if (callResult.IsErr)
         {
-            return Result<Unit, NetworkFailure>.Err(callResult.UnwrapErr());
+            NetworkFailure failure = AttachCorrelation(callResult.UnwrapErr(), request.RequestContext);
+            return Result<Unit, NetworkFailure>.Err(failure);
         }
 
         SecureEnvelope inboundPayload = callResult.Unwrap();
@@ -1063,6 +1075,21 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         await onCompleted(decryptedData.Unwrap()).ConfigureAwait(false);
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private static NetworkFailure AttachCorrelation(NetworkFailure failure, RpcRequestContext? context)
+    {
+        if (context == null)
+        {
+            return failure;
+        }
+
+        if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CorrelationId))
+        {
+            return failure with { UserError = userError with { CorrelationId = context.CorrelationId } };
+        }
+
+        return failure;
     }
 
     private async Task<Result<Unit, NetworkFailure>> SendReceiveStreamRequestAsync(

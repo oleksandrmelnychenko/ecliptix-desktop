@@ -17,11 +17,14 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
 {
     private readonly Dictionary<RpcServiceType, Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>> _serviceHandlers;
     private readonly AuthVerificationServices.AuthVerificationServicesClient _authenticationServicesClient;
+    private readonly IGrpcErrorProcessor _errorProcessor;
 
     public ReceiveStreamRpcServices(
-        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient)
+        AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
+        IGrpcErrorProcessor errorProcessor)
     {
         _authenticationServicesClient = authenticationServicesClient;
+        _errorProcessor = errorProcessor;
         _serviceHandlers = new Dictionary<RpcServiceType, Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>>
         {
             { RpcServiceType.InitiateVerification, InitiateVerification }
@@ -31,13 +34,18 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
     public Task<Result<RpcFlow, NetworkFailure>> ProcessRequest(ServiceRequest request,
         CancellationToken token)
     {
-        if (_serviceHandlers.TryGetValue(request.RpcServiceMethod,
+        if (_serviceHandlers.TryGetValue(
+                request.RpcServiceMethod,
                 out Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>? handler))
         {
             try
             {
                 Result<RpcFlow, NetworkFailure> result = handler(request.Payload, token);
                 return Task.FromResult(result);
+            }
+            catch (RpcException rpcEx)
+            {
+                return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(_errorProcessor.Process(rpcEx)));
             }
             catch (Exception ex)
             {
@@ -69,7 +77,7 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                             NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream)))
                     .Catch<Result<SecureEnvelope, NetworkFailure>, RpcException>(rpcEx =>
                         Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
-                            GrpcErrorHandler.ClassifyRpcException(rpcEx))))
+                            _errorProcessor.Process(rpcEx))))
                     .Catch<Result<SecureEnvelope, NetworkFailure>, Exception>(ex =>
                         Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding(ex.Message, ex))))
@@ -79,7 +87,7 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         }
         catch (RpcException rpcEx)
         {
-            return Result<RpcFlow, NetworkFailure>.Err(GrpcErrorHandler.ClassifyRpcException(rpcEx));
+            return Result<RpcFlow, NetworkFailure>.Err(_errorProcessor.Process(rpcEx));
         }
         catch (Exception ex)
         {

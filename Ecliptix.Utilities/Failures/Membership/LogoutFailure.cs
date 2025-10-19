@@ -1,3 +1,5 @@
+using Grpc.Core;
+
 namespace Ecliptix.Utilities.Failures.Membership;
 
 public record LogoutFailure(
@@ -31,4 +33,19 @@ public record LogoutFailure(
 
     public static LogoutFailure UnexpectedError(string details, Exception? inner = null) =>
         new(LogoutFailureType.UnexpectedError, details, inner);
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        FailureType switch
+        {
+            LogoutFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
+                ErrorCode.ServiceUnavailable, StatusCode.Unavailable, ErrorI18nKeys.ServiceUnavailable, Retryable: true),
+            LogoutFailureType.AlreadyLoggedOut => new GrpcErrorDescriptor(
+                ErrorCode.PreconditionFailed, StatusCode.FailedPrecondition, ErrorI18nKeys.PreconditionFailed),
+            LogoutFailureType.SessionNotFound => new GrpcErrorDescriptor(
+                ErrorCode.NotFound, StatusCode.NotFound, ErrorI18nKeys.NotFound),
+            LogoutFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
+                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal)
+        };
 }

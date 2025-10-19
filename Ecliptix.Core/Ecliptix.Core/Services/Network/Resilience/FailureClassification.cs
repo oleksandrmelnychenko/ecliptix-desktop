@@ -9,6 +9,11 @@ public static class FailureClassification
         if (failure.FailureType == NetworkFailureType.OperationCancelled)
             return false;
 
+        if (failure.UserError?.Retryable is bool retryable)
+        {
+            return retryable;
+        }
+
         return failure.FailureType == NetworkFailureType.DataCenterNotResponding;
     }
 

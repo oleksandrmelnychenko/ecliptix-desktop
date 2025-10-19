@@ -6,14 +6,20 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 public class ServiceRequest
 {
-    private ServiceRequest(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
+    private ServiceRequest(
+        uint reqId,
+        ServiceFlowType actionType,
+        RpcServiceType rpcServiceMethod,
+        SecureEnvelope payload,
+        List<SecureEnvelope> encryptedChunks,
+        RpcRequestContext? requestContext)
     {
         ReqId = reqId;
         ActionType = actionType;
         RpcServiceMethod = rpcServiceMethod;
         Payload = payload;
         EncryptedChunks = encryptedChunks;
+        RequestContext = requestContext;
     }
 
     public uint ReqId { get; }
@@ -26,16 +32,18 @@ public class ServiceRequest
 
     public List<SecureEnvelope> EncryptedChunks { get; }
 
+    public RpcRequestContext? RequestContext { get; }
+
     public static ServiceRequest New(ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null)
     {
         uint reqId = Helpers.GenerateRandomUInt32InRange(UtilityConstants.NetworkConstants.MinRequestId, uint.MaxValue);
-        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
+        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks, requestContext);
     }
 
     public static ServiceRequest New(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks)
+        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null)
     {
-        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks);
+        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks, requestContext);
     }
 }

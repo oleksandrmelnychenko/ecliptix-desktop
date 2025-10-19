@@ -1,8 +1,12 @@
+using Grpc.Core;
+
 namespace Ecliptix.Utilities.Failures;
 
 public interface IFailureBase
 {
     object ToStructuredLog();
+    Status ToGrpcStatus();
+    GrpcErrorDescriptor ToGrpcDescriptor();
 }
 
 public abstract record FailureBase(string Message, Exception? InnerException = null) : IFailureBase
@@ -10,4 +14,12 @@ public abstract record FailureBase(string Message, Exception? InnerException = n
     protected DateTime Timestamp { get; } = DateTime.UtcNow;
 
     public abstract object ToStructuredLog();
+
+    public virtual Status ToGrpcStatus()
+    {
+        GrpcErrorDescriptor descriptor = ToGrpcDescriptor();
+        return descriptor.CreateStatus(Message);
+    }
+
+    public abstract GrpcErrorDescriptor ToGrpcDescriptor();
 }

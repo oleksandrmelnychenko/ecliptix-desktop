@@ -104,7 +104,8 @@ public sealed class RetryStrategy : IRetryStrategy
         CancellationToken cancellationToken = default)
     {
         return await ExecuteSecrecyChannelOperationInternalAsync(
-                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false)
+                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: false,
+                executionOptions: null)
             .ConfigureAwait(false);
     }
 
@@ -118,7 +119,8 @@ public sealed class RetryStrategy : IRetryStrategy
         Log.Information("🔄 MANUAL RETRY: Executing operation '{OperationName}' bypassing exhaustion checks",
             operationName);
         return await ExecuteSecrecyChannelOperationInternalAsync(
-                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true)
+                operation, operationName, connectId, maxRetries, cancellationToken, bypassExhaustionCheck: true,
+                executionOptions: null)
             .ConfigureAwait(false);
     }
 
@@ -128,7 +130,8 @@ public sealed class RetryStrategy : IRetryStrategy
         uint? connectId,
         int? maxRetries,
         CancellationToken cancellationToken,
-        bool bypassExhaustionCheck)
+        bool bypassExhaustionCheck,
+        RetryExecutionOptions? executionOptions)
     {
         uint actualConnectId = connectId ?? 0;
         int actualMaxRetries = maxRetries ?? _strategyConfiguration.MaxRetries;
@@ -156,7 +159,8 @@ public sealed class RetryStrategy : IRetryStrategy
                     operationKey,
                     operationName,
                     actualConnectId,
-                    cancellationToken);
+                    cancellationToken,
+                    executionOptions);
 
             Context context = new(operationName);
 
@@ -545,21 +549,26 @@ public sealed class RetryStrategy : IRetryStrategy
         string operationKey,
         string operationName,
         uint connectId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        RetryExecutionOptions? executionOptions)
     {
-        IEnumerable<TimeSpan> rawDelays = _strategyConfiguration.UseAdaptiveRetry
+        TimeSpan baseDelay = executionOptions?.BaseDelay ?? _strategyConfiguration.InitialRetryDelay;
+        TimeSpan maxDelay = executionOptions?.MaxDelay ?? _strategyConfiguration.MaxRetryDelay;
+        bool useJitter = executionOptions?.UseJitter ?? _strategyConfiguration.UseAdaptiveRetry;
+
+        IEnumerable<TimeSpan> rawDelays = useJitter
             ? Backoff.DecorrelatedJitterBackoffV2(
-                medianFirstRetryDelay: _strategyConfiguration.InitialRetryDelay,
+                medianFirstRetryDelay: baseDelay,
                 retryCount: maxRetries,
                 fastFirst: true)
             : Backoff.ExponentialBackoff(
-                initialDelay: _strategyConfiguration.InitialRetryDelay,
+                initialDelay: baseDelay,
                 retryCount: maxRetries,
                 factor: 2.0,
                 fastFirst: true);
 
         TimeSpan[] retryDelays = rawDelays.Select(delay =>
-            delay > _strategyConfiguration.MaxRetryDelay ? _strategyConfiguration.MaxRetryDelay : delay).ToArray();
+            delay > maxDelay ? maxDelay : delay).ToArray();
 
         ShouldRetryDelegate<TResponse>
             shouldRetryDelegate = RetryDecisionFactory.CreateShouldRetryDelegate<TResponse>();

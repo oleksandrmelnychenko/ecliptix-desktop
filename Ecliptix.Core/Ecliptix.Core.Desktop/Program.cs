@@ -364,6 +364,7 @@ public static class Program
             return retryStrategy;
         });
 
+        services.AddSingleton<IGrpcErrorProcessor, GrpcErrorProcessor>();
         services.AddSingleton<IUnaryRpcServices, UnaryRpcServices>();
         services.AddSingleton<ISecrecyChannelRpcServices, SecrecyChannelRpcServices>();
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();

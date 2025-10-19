@@ -10,4 +10,5 @@ public enum NetworkFailureType
     ProtocolStateMismatch,
     OperationCancelled,
     CriticalAuthenticationFailure,
+    ConnectionFailed
 }

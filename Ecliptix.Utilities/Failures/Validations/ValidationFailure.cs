@@ -1,3 +1,5 @@
+using Grpc.Core;
+
 namespace Ecliptix.Utilities.Failures.Validations;
 
 public enum ValidationFailureType
@@ -28,4 +30,13 @@ public record ValidationFailure(
 
     public static ValidationFailure LoginAttemptExceeded(string details, Exception? inner = null) =>
         new(ValidationFailureType.LoginAttemptExceeded, details, inner);
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        FailureType switch
+        {
+            ValidationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
+                ErrorCode.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MaxAttempts),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation)
+        };
 }

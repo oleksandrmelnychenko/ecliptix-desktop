@@ -6,6 +6,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
@@ -18,6 +19,7 @@ using System.Reactive.Concurrency;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
 using Unit = Ecliptix.Utilities.Unit;
+using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Authentication;
 
@@ -105,7 +107,8 @@ internal sealed class OpaqueRegistrationService(
             RpcServiceType.CheckMobileNumberAvailability,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
-                CheckMobileNumberAvailabilityResponse response = Helpers.ParseFromBytes<CheckMobileNumberAvailabilityResponse>(payload);
+                CheckMobileNumberAvailabilityResponse response =
+                    Helpers.ParseFromBytes<CheckMobileNumberAvailabilityResponse>(payload);
                 responseSource.TrySetResult(response);
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, true, cancellationToken).ConfigureAwait(false);
@@ -330,126 +333,217 @@ internal sealed class OpaqueRegistrationService(
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
         }
 
-        try
+        const int maxFlowAttempts = 3;
+        string? lastError = null;
+
+        for (int attempt = 1; attempt <= maxFlowAttempts; attempt++)
         {
-            OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
+            lastError = null;
+            RpcRequestContext requestContext = RpcRequestContext.CreateNew();
+            bool allowReinit = true;
+            bool shouldRetryAttempt = false;
 
-            RegistrationResult? registrationResult = null;
-            secureKey.WithSecureBytes(passwordBytes =>
+            while (true)
             {
-                registrationResult = opaqueClient.CreateRegistrationRequest(passwordBytes.ToArray());
-            });
-
-            if (registrationResult == null)
-            {
-                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
-            }
-
-            Result<OpaqueRegistrationInitResponse, string> initResult =
-                await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
-                    connectId,
-                    cancellationToken).ConfigureAwait(false);
-
-            if (initResult.IsErr)
-            {
-                return Result<Unit, string>.Err(initResult.UnwrapErr());
-            }
-
-            OpaqueRegistrationInitResponse initResponse = initResult.Unwrap();
-
-            if (initResponse.Result != OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
-            {
-                string errorMessage = initResponse.Result switch
+                try
                 {
-                    OpaqueRegistrationInitResponse.Types.UpdateResult.InvalidCredentials =>
-                        localizationService[AuthenticationConstants.InvalidCredentialsKey],
-                    _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
+                    using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
+
+                RegistrationResult? registrationResult = null;
+                secureKey.WithSecureBytes(passwordBytes =>
+                {
+                    registrationResult = opaqueClient.CreateRegistrationRequest(passwordBytes.ToArray());
+                });
+
+                if (registrationResult == null)
+                {
+                    return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
+                }
+
+                    Result<OpaqueRegistrationInitResponse, NetworkFailure> initResult =
+                        await InitiateOpaqueRegistrationAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
+                            connectId,
+                            requestContext,
+                            cancellationToken).ConfigureAwait(false);
+
+                    if (initResult.IsErr)
+                    {
+                        NetworkFailure failure = initResult.UnwrapErr();
+                        lastError = FormatNetworkFailure(failure);
+                        shouldRetryAttempt = IsTransientRegistrationFailure(failure);
+                        registrationResult?.Dispose();
+                        break;
+                    }
+
+                    OpaqueRegistrationInitResponse initResponse = initResult.Unwrap();
+
+                if (initResponse.Result != OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
+                {
+                    string errorMessage = initResponse.Result switch
+                    {
+                        OpaqueRegistrationInitResponse.Types.UpdateResult.InvalidCredentials =>
+                            localizationService[AuthenticationConstants.InvalidCredentialsKey],
+                        _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
+                    };
+                    return Result<Unit, string>.Err(errorMessage);
+                }
+
+                _opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult);
+
+                byte[] serverRegistrationResponse =
+                    SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
+
+                byte[] registrationRecord =
+                    opaqueClient.FinalizeRegistration(serverRegistrationResponse, registrationResult);
+
+                OpaqueRegistrationCompleteRequest completeRequest = new()
+                {
+                    PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord),
+                    MembershipIdentifier = membershipIdentifier
                 };
-                return Result<Unit, string>.Err(errorMessage);
-            }
 
-            _opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult);
+                TaskCompletionSource<OpaqueRegistrationCompleteResponse> responseSource = new();
 
-            byte[] serverRegistrationResponse =
-                SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
-
-            byte[] registrationRecord =
-                opaqueClient.FinalizeRegistration(serverRegistrationResponse, registrationResult);
-
-            OpaqueRegistrationCompleteRequest completeRequest = new()
-            {
-                PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord),
-                MembershipIdentifier = membershipIdentifier
-            };
-
-            TaskCompletionSource<OpaqueRegistrationCompleteResponse> responseSource = new();
-
-            Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
-                connectId,
-                RpcServiceType.OpaqueRegistrationComplete,
-                SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(), span => span.ToArray()),
-                payload =>
-                {
-                    try
+                    Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
+                    connectId,
+                    RpcServiceType.OpaqueRegistrationComplete,
+                    SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(),
+                        span => span.ToArray()),
+                    payload =>
                     {
                         OpaqueRegistrationCompleteResponse response =
                             Helpers.ParseFromBytes<OpaqueRegistrationCompleteResponse>(payload);
                         responseSource.TrySetResult(response);
-                    }
-                    catch (Exception ex)
+
+                        return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
+                    }, true, cancellationToken, requestContext: requestContext).ConfigureAwait(false);
+
+                    if (networkResult.IsErr)
                     {
-                        Serilog.Log.Error(ex,
-                            "[OPAQUE-REGISTRATION-COMPLETE] Failed to parse OPAQUE registration complete response");
-                        responseSource.TrySetException(ex);
+                        NetworkFailure failure = networkResult.UnwrapErr();
+
+                        if (_opaqueRegistrationState.TryRemove(membershipIdentifier,
+                                out RegistrationResult? failedResult))
+                        {
+                            failedResult?.Dispose();
+                        }
+
+                        if (allowReinit && ShouldReinit(failure))
+                        {
+                            allowReinit = false;
+                            requestContext.MarkReinitAttempted();
+                            Serilog.Log.Information(
+                                "[REGISTRATION-FLOW-REINIT] Registration complete failed due to missing flow, rerunning init.");
+                            registrationResult?.Dispose();
+                            continue;
+                        }
+
+                        lastError = FormatNetworkFailure(failure);
+                        shouldRetryAttempt = IsTransientRegistrationFailure(failure);
+                        break;
                     }
 
-                    return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, cancellationToken).ConfigureAwait(false);
+                    OpaqueRegistrationCompleteResponse completeResponse = await responseSource.Task.ConfigureAwait(false);
 
-            if (networkResult.IsErr)
-            {
-                if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? failedResult))
+                    if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
+                    {
+                        completedResult?.Dispose();
+                    }
+
+                    if (completeResponse.Result != OpaqueRegistrationCompleteResponse.Types.RegistrationResult.Succeeded)
+                    {
+                        return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
+                    }
+
+                    return Result<Unit, string>.Ok(Unit.Value);
+                }
+                catch (Exception ex)
                 {
-                    failedResult?.Dispose();
+                    if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? exceptionResult))
+                    {
+                        exceptionResult?.Dispose();
+                    }
+
+                    lastError =
+                        $"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}";
+                    shouldRetryAttempt = attempt < maxFlowAttempts;
+
+                    if (shouldRetryAttempt)
+                    {
+                        Serilog.Log.Warning(ex,
+                            "[REGISTRATION-FLOW-RETRY] Exception during registration, retrying. Attempt {Attempt}/{MaxAttempts}",
+                            attempt + 1, maxFlowAttempts);
+                        break;
+                    }
+
+                    return Result<Unit, string>.Err(lastError);
+                }
+            }
+
+            if (lastError != null)
+            {
+                if (shouldRetryAttempt && attempt < maxFlowAttempts)
+                {
+                    Serilog.Log.Warning(
+                        "[REGISTRATION-FLOW-RETRY] Server state lost, restarting registration flow. Attempt {Attempt}/{MaxAttempts}",
+                        attempt + 1, maxFlowAttempts);
+                    continue;
                 }
 
-                return Result<Unit, string>.Err(
-                    $"{AuthenticationConstants.RegistrationFailurePrefix}{networkResult.UnwrapErr().Message}");
+                return Result<Unit, string>.Err(lastError);
             }
-
-            OpaqueRegistrationCompleteResponse completeResponse = await responseSource.Task.ConfigureAwait(false);
-
-            if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
-            {
-                completedResult?.Dispose();
-            }
-
-            if (completeResponse.Result != OpaqueRegistrationCompleteResponse.Types.RegistrationResult.Succeeded)
-            {
-                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
-            }
-
-            return Result<Unit, string>.Ok(Unit.Value);
         }
-        catch (Exception ex)
-        {
-            if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? exceptionResult))
-            {
-                exceptionResult?.Dispose();
-            }
 
-            return Result<Unit, string>.Err($"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}");
-        }
+        return Result<Unit, string>.Err(lastError ??
+                                        $"{AuthenticationConstants.RegistrationFailurePrefix}Registration flow failed");
     }
 
     public async Task<Result<Unit, string>> CleanupVerificationSessionAsync(Guid sessionIdentifier)
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
+        return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
         }
 
         return await CleanupStreamAsync(sessionIdentifier).ConfigureAwait(false);
+    }
+
+    private string FormatNetworkFailure(NetworkFailure failure)
+    {
+        string message = failure.UserError?.Message ?? failure.Message;
+        return $"{AuthenticationConstants.RegistrationFailurePrefix}{message}";
+    }
+
+    private static bool IsTransientRegistrationFailure(NetworkFailure failure)
+    {
+        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
+            or NetworkFailureType.DataCenterShutdown
+            or NetworkFailureType.OperationCancelled;
+    }
+
+    private static bool ShouldReinit(NetworkFailure failure)
+    {
+        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
+        {
+            return true;
+        }
+
+        if (failure.UserError is { } userError)
+        {
+            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
+                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
+                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private OpaqueClient GetOrCreateOpaqueClient()
@@ -470,16 +564,18 @@ internal sealed class OpaqueRegistrationService(
         }
     }
 
-    private async Task<Result<OpaqueRegistrationInitResponse, string>> InitiateOpaqueRegistrationAsync(
+    private async Task<Result<OpaqueRegistrationInitResponse, NetworkFailure>> InitiateOpaqueRegistrationAsync(
         ByteString membershipIdentifier,
         byte[] registrationRequest,
         uint connectId,
+        RpcRequestContext requestContext,
         CancellationToken cancellationToken)
     {
         if (membershipIdentifier.IsEmpty)
         {
-            return Result<OpaqueRegistrationInitResponse, string>.Err(
-                localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+            return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType(
+                    localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]));
         }
 
         try
@@ -511,21 +607,20 @@ internal sealed class OpaqueRegistrationService(
                     }
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
-                }, true, cancellationToken).ConfigureAwait(false);
+                }, true, cancellationToken, requestContext: requestContext).ConfigureAwait(false);
 
             if (networkResult.IsErr)
             {
-                return Result<OpaqueRegistrationInitResponse, string>.Err(
-                    $"{AuthenticationConstants.RegistrationFailurePrefix}{networkResult.UnwrapErr().Message}");
+                return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Err(networkResult.UnwrapErr());
             }
 
             OpaqueRegistrationInitResponse initResponse = await responseSource.Task.ConfigureAwait(false);
-            return Result<OpaqueRegistrationInitResponse, string>.Ok(initResponse);
+            return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Ok(initResponse);
         }
         catch (Exception ex)
         {
-            return Result<OpaqueRegistrationInitResponse, string>.Err(
-                $"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}");
+            return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding(ex.Message));
         }
     }
 

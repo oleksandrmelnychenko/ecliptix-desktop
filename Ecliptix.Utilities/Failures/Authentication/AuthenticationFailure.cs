@@ -1,3 +1,5 @@
+using Grpc.Core;
+
 namespace Ecliptix.Utilities.Failures.Authentication;
 
 public record AuthenticationFailure(
@@ -70,4 +72,25 @@ public record AuthenticationFailure(
 
     public static AuthenticationFailure CriticalAuthenticationError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.CriticalAuthenticationError, details, inner);
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        FailureType switch
+        {
+            AuthenticationFailureType.InvalidCredentials => new GrpcErrorDescriptor(
+                ErrorCode.Unauthenticated, StatusCode.Unauthenticated, ErrorI18nKeys.Unauthenticated),
+            AuthenticationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
+                ErrorCode.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MaxAttempts),
+            AuthenticationFailureType.MobileNumberRequired => new GrpcErrorDescriptor(
+                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+            AuthenticationFailureType.PasswordRequired => new GrpcErrorDescriptor(
+                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+            AuthenticationFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
+                ErrorCode.ServiceUnavailable, StatusCode.Unavailable, ErrorI18nKeys.ServiceUnavailable, Retryable: true),
+            AuthenticationFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
+                ErrorCode.NotFound, StatusCode.NotFound, ErrorI18nKeys.NotFound),
+            AuthenticationFailureType.CriticalAuthenticationError => new GrpcErrorDescriptor(
+                ErrorCode.Unauthenticated, StatusCode.Unauthenticated, ErrorI18nKeys.Unauthenticated),
+            _ => new GrpcErrorDescriptor(
+                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal)
+        };
 }

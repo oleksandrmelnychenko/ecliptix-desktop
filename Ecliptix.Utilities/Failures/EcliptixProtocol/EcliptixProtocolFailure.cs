@@ -100,4 +100,7 @@ public record EcliptixProtocolFailure(
 
         return new NetworkFailure(networkFailureType, Message, InnerException);
     }
+
+    public override GrpcErrorDescriptor ToGrpcDescriptor() =>
+        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
 }
