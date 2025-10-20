@@ -88,23 +88,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             (code, time) => code.Length == 6 && code.All(char.IsDigit) &&
                             time != AuthenticationConstants.ExpiredRemainingTime
         );
-        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(
-            async () =>
-            {
-                try
-                {
-                    await SendVerificationCode();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "[OTP-VERIFICATION] Error during OTP verification");
-                    if (!_isDisposed)
-                    {
-                        ErrorMessage = ex.Message;
-                        IsSent = false;
-                    }
-                }
-            }, canVerify);
+        SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
         IObservable<bool> canResend = this.WhenAnyValue(
                 x => x.SecondsRemaining,

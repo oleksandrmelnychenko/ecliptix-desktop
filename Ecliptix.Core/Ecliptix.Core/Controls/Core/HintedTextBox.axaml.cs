@@ -680,105 +680,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         _mainTextBox.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
-
-        _mainTextBox.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
-        _mainTextBox.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel);
-
-        _mainTextBox.AddHandler(DragDrop.DragEnterEvent, OnDragEnter, RoutingStrategies.Tunnel);
-        _mainTextBox.AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Tunnel);
-        _mainTextBox.AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Tunnel);
-
-        _mainTextBox.AddHandler(Gestures.TappedEvent, OnTapped, RoutingStrategies.Tunnel);
-        _mainTextBox.AddHandler(Gestures.DoubleTappedEvent, OnDoubleTapped, RoutingStrategies.Tunnel);
-        _mainTextBox.AddHandler(Gestures.HoldingEvent, OnHolding, RoutingStrategies.Tunnel);
-
-        _mainTextBox.SelectionStart = 0;
-        _mainTextBox.SelectionEnd = 0;
-
         _mainTextBox.IsReadOnly = false;
-    }
-
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-        if (_mainTextBox != null)
-        {
-            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-            _intendedCaretPosition = _mainTextBox.Text?.Length ?? 0;
-        }
-    }
-
-    private void OnTapped(object? sender, TappedEventArgs e)
-    {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
-        e.Handled = true;
-
-        _mainTextBox.SelectionStart = 0;
-        _mainTextBox.SelectionEnd = 0;
-        _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-
-        if (!_mainTextBox.IsFocused)
-        {
-            _mainTextBox.Focus();
-        }
-    }
-
-
-    private void OnDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-        if (_mainTextBox != null)
-        {
-            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-        }
-    }
-
-    private void OnHolding(object? sender, HoldingRoutedEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-    }
-
-    private void OnPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
-        e.Handled = true;
-    }
-
-    private void OnDragEnter(object? sender, DragEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-    }
-
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-    }
-
-    private void OnDrop(object? sender, DragEventArgs e)
-    {
-        if (!IsSecureKeyMode) return;
-        e.Handled = true;
-    }
-
-    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
-
-        e.Handled = true;
-
-        if (!_mainTextBox.IsFocused)
-        {
-            _mainTextBox.Focus();
-        }
-
-        _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-        _intendedCaretPosition = _mainTextBox.Text?.Length ?? 0;
     }
 
     private void OnTextInput(object? sender, TextInputEventArgs e)
@@ -797,11 +700,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 };
             RaiseEvent(multiCharArgs);
             StartWarningTimer();
-
-            if (_mainTextBox != null)
-            {
-                _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-            }
             return;
         }
 
@@ -816,17 +714,16 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             };
             RaiseEvent(args);
             StartWarningTimer();
-
-            if (_mainTextBox != null)
-            {
-                _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-            }
         }
 
         if (_mainTextBox != null)
         {
             int currentLength = _mainTextBox.Text?.Length ?? 0;
-            _mainTextBox.CaretIndex = currentLength;
+            if (_mainTextBox.CaretIndex < currentLength)
+            {
+                e.Handled = true;
+                _mainTextBox.CaretIndex = currentLength;
+            }
         }
     }
 
@@ -895,47 +792,33 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     return;
             }
         }
+    }
 
-        if (e.Key == Key.Back)
-        {
-            e.Handled = true;
-            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
-            {
-                string currentText = _mainTextBox.Text;
-                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
-
-                _isUpdatingFromCode = true;
-                _mainTextBox.Text = newText;
-                _mainTextBox.CaretIndex = newText.Length;
-                _isUpdatingFromCode = false;
-
-                _intendedCaretPosition = newText.Length;
-            }
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!IsSecureKeyMode || _mainTextBox is null || _isUpdatingFromCode)
             return;
-        }
 
-        if (e.Key == Key.Delete)
+        Dispatcher.UIThread.Post(() =>
         {
-            e.Handled = true;
-            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
+            if (_mainTextBox is null || _isUpdatingFromCode)
+                return;
+
+            _isUpdatingFromCode = true;
+
+            int textLength = _mainTextBox.Text?.Length ?? 0;
+            int selLength = Math.Abs(_mainTextBox.SelectionEnd - _mainTextBox.SelectionStart);
+
+            bool isFullSelection = selLength == textLength;
+            if (!isFullSelection)
             {
-                string currentText = _mainTextBox.Text;
-                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
-
-                _isUpdatingFromCode = true;
-                _mainTextBox.Text = newText;
-                _mainTextBox.CaretIndex = newText.Length;
-                _isUpdatingFromCode = false;
-
-                _intendedCaretPosition = newText.Length;
+                _mainTextBox.ClearSelection();
+                _mainTextBox.CaretIndex = textLength - selLength;
+                _mainTextBox.CaretIndex = textLength;
             }
-            return;
-        }
 
-        if (_mainTextBox != null)
-        {
-            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
-        }
+            _isUpdatingFromCode = false;
+        }, DispatcherPriority.Render);
     }
 
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
@@ -1059,7 +942,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 else if (currentElementCount < lastElementCount)
                 {
                     int removedCount = lastElementCount - currentElementCount;
-                    int removePos = currentElementCount;
+                    int removePos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex);
 
                     _intendedCaretPosition = removePos;
 
@@ -1233,15 +1116,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.LostFocus -= OnLostFocus;
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
-        _mainTextBox.RemoveHandler(PointerPressedEvent, OnPointerPressed);
-        _mainTextBox.RemoveHandler(PointerMovedEvent, OnPointerMoved);
         _mainTextBox.RemoveHandler(PointerReleasedEvent, OnPointerReleased);
-        _mainTextBox.RemoveHandler(DragDrop.DragEnterEvent, OnDragEnter);
-        _mainTextBox.RemoveHandler(DragDrop.DragOverEvent, OnDragOver);
-        _mainTextBox.RemoveHandler(DragDrop.DropEvent, OnDrop);
-        _mainTextBox.RemoveHandler(Gestures.TappedEvent, OnTapped);
-        _mainTextBox.RemoveHandler(Gestures.DoubleTappedEvent, OnDoubleTapped);
-        _mainTextBox.RemoveHandler(Gestures.HoldingEvent, OnHolding);
     }
 
     private void FindControls()
@@ -1390,15 +1265,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
-        _mainTextBox.RemoveHandler(PointerPressedEvent, OnPointerPressed);
-        _mainTextBox.RemoveHandler(PointerMovedEvent, OnPointerMoved);
         _mainTextBox.RemoveHandler(PointerReleasedEvent, OnPointerReleased);
-        _mainTextBox.RemoveHandler(DragDrop.DragEnterEvent, OnDragEnter);
-        _mainTextBox.RemoveHandler(DragDrop.DragOverEvent, OnDragOver);
-        _mainTextBox.RemoveHandler(DragDrop.DropEvent, OnDrop);
-        _mainTextBox.RemoveHandler(Gestures.TappedEvent, OnTapped);
-        _mainTextBox.RemoveHandler(Gestures.DoubleTappedEvent, OnDoubleTapped);
-        _mainTextBox.RemoveHandler(Gestures.HoldingEvent, OnHolding);
     }
 
     private void TriggerTypingAnimation()
