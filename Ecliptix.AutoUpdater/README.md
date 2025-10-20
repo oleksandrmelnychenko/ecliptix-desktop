@@ -19,7 +19,7 @@
 - ✅ **UpdateManager** - High-level service with automatic checking
 - ✅ **UpdateViewModel** - Ready-to-use ViewModel with ReactiveUI
 - ✅ **UI Components** - Pre-built notification banner and dialog
-- ✅ **Logging integration** - Microsoft.Extensions.Logging support
+- ✅ **Logging integration** - Serilog support with structured logging
 - ✅ **Configuration** - JSON configuration with sensible defaults
 - ✅ **Error handling** - Comprehensive error handling and recovery
 - ✅ **Event system** - Observable events for update lifecycle
@@ -38,21 +38,37 @@ Add to `Ecliptix.Core.Desktop.csproj`:
 </ItemGroup>
 ```
 
-### 2. Initialize Update Service
+### 2. Initialize Update Manager with Serilog
 
 ```csharp
 using Ecliptix.AutoUpdater;
+using Serilog;
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/ecliptix-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 // In your application startup
-var updateService = new UpdateService(
-    updateServerUrl: "https://updates.ecliptix.com",
-    currentVersion: "1.0.0"
-);
-
-// Subscribe to download progress
-updateService.DownloadProgressChanged += (sender, progress) =>
+var updateConfig = new UpdateConfiguration
 {
-    Console.WriteLine($"Download: {progress.Percentage}% - {progress.StatusMessage}");
+    UpdateServerUrl = "https://updates.ecliptix.com",
+    EnableAutoCheck = true,
+    CheckInterval = TimeSpan.FromHours(6)
+};
+
+var updateManager = new UpdateManager(updateConfig, Log.Logger);
+
+// Subscribe to events
+updateManager.UpdateAvailable += (sender, result) =>
+{
+    Log.Information("Update available: {Version}", result.LatestVersion);
+};
+
+updateManager.DownloadProgressChanged += (sender, progress) =>
+{
+    Log.Debug("Download progress: {Percentage}%", progress.Percentage);
 };
 ```
 
