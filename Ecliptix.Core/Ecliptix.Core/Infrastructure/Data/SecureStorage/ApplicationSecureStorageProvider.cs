@@ -121,7 +121,12 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)
-            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
+        {
+            InternalServiceApiFailure failure = getResult.UnwrapErr();
+            Log.Warning("[SETTINGS-INIT-RECOVERY] Storage access failed, creating fresh settings. Error: {Error}",
+                failure.Message);
+            return await CreateAndStoreNewSettingsAsync(defaultCulture);
+        }
 
         Option<byte[]> maybeData = getResult.Unwrap();
         if (maybeData.HasValue)
@@ -134,11 +139,18 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             }
             catch (InvalidProtocolBufferException ex)
             {
-                return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(
-                    InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.CorruptSettingsData, ex));
+                Log.Warning("[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. Error: {Error}",
+                    ex.Message);
+                return await CreateAndStoreNewSettingsAsync(defaultCulture);
             }
         }
 
+        return await CreateAndStoreNewSettingsAsync(defaultCulture);
+    }
+
+    private async Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> CreateAndStoreNewSettingsAsync(
+        string? defaultCulture)
+    {
         ApplicationInstanceSettings newSettings = new()
         {
             AppInstanceId = Helpers.GuidToByteString(Guid.NewGuid()),
@@ -149,8 +161,12 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         Result<Unit, InternalServiceApiFailure> storeResult = await SecureByteStringInterop.WithByteStringAsSpan(
             newSettings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
+
         if (storeResult.IsErr)
-            return Result<InstanceSettingsResult, InternalServiceApiFailure>.Err(storeResult.UnwrapErr());
+        {
+            Log.Warning("[SETTINGS-INIT-RECOVERY] Failed to persist fresh settings, continuing in-memory. Error: {Error}",
+                storeResult.UnwrapErr().Message);
+        }
 
         return Result<InstanceSettingsResult, InternalServiceApiFailure>.Ok(
             new InstanceSettingsResult(newSettings, true));
