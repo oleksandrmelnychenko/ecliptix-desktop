@@ -83,8 +83,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             [RpcServiceType.OpaqueSignInInitRequest] = true,
             [RpcServiceType.OpaqueSignInCompleteRequest] = true,
-
-            [RpcServiceType.Logout] = true,
         }.ToFrozenDictionary();
 
     public NetworkProvider(
@@ -556,15 +554,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                             : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
-                        ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
-                            request,
-                            cancellationToken: ct),
-                        "RestoreSecrecyChannel",
-                        ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
-                    break;
-                }
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
+                    ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
+                        request,
+                        cancellationToken: ct),
+                    "RestoreSecrecyChannel",
+                    ecliptixSecrecyChannelState.ConnectId,
+                    cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
+                break;
+            }
             case RestoreRetryMode.ManualRetry:
                 {
                     BeginSecrecyChannelEstablishRecovery();
@@ -574,15 +572,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                             : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
-                        ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
-                            request,
-                            cancellationToken: ct),
-                        "RestoreSecrecyChannel",
-                        ecliptixSecrecyChannelState.ConnectId,
-                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
-                    break;
-                }
+                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
+                    ct => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
+                        request,
+                        cancellationToken: ct),
+                    "RestoreSecrecyChannel",
+                    ecliptixSecrecyChannelState.ConnectId,
+                    cancellationToken: combinedCts.Token).ConfigureAwait(false);
+                break;
+            }
             case RestoreRetryMode.DirectNoRetry:
                 try
                 {
