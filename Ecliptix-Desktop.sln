@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Utilities", "Eclip
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.Security.Certificate.Pinning", "Ecliptix.Security.Certificate.Pinning\Ecliptix.Security.Certificate.Pinning.csproj", "{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecliptix.AutoUpdater", "Ecliptix.AutoUpdater\Ecliptix.AutoUpdater.csproj", "{A8B9C0D1-E2F3-4A5B-9C8D-7E6F5A4B3C2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,5 +51,9 @@ Global
 		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E47446A5-06B8-443F-BA8E-E4CA0BD1BC85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8B9C0D1-E2F3-4A5B-9C8D-7E6F5A4B3C2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8B9C0D1-E2F3-4A5B-9C8D-7E6F5A4B3C2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8B9C0D1-E2F3-4A5B-9C8D-7E6F5A4B3C2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8B9C0D1-E2F3-4A5B-9C8D-7E6F5A4B3C2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
