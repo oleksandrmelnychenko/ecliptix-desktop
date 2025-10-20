@@ -7,60 +7,71 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
+using Ecliptix.Utilities.Failures.Sodium;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
-    : IIdentityService
+internal sealed class IdentityService : IIdentityService
 {
+    private readonly ISecureProtocolStateStorage _storage;
+    private readonly IPlatformSecurityProvider _platformProvider;
+    private readonly Lazy<bool> _hardwareSecurityAvailable;
+
+    public IdentityService(ISecureProtocolStateStorage storage, IPlatformSecurityProvider platformProvider)
+    {
+        _storage = storage;
+        _platformProvider = platformProvider;
+        _hardwareSecurityAvailable = new Lazy<bool>(() => _platformProvider.IsHardwareSecurityAvailable());
+    }
+
     public async Task<bool> HasStoredIdentityAsync(string membershipId)
     {
-        string storageKey = GetMasterKeyStorageKey(membershipId);
-        byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
+        IdentityContext context = new(membershipId);
+
         Result<byte[], SecureStorageFailure> result =
-            await storage.LoadStateAsync(storageKey, membershipIdBytes).ConfigureAwait(false);
+            await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
         Log.Information("[CLIENT-IDENTITY-CHECK] Checking stored identity. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Exists: {Exists}",
-            membershipId, storageKey, exists);
+            context.MembershipId, context.StorageKey, exists);
 
         return exists;
     }
 
-    private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
+    private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)
     {
         byte[]? wrappingKey = null;
-        string storageKey = GetMasterKeyStorageKey(membershipId);
+        string storageKey = context.StorageKey;
+        bool hardwareAvailable = IsHardwareSecurityAvailable();
 
         try
         {
             Log.Information("[CLIENT-IDENTITY-STORE-START] Starting identity storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                membershipId, storageKey);
+                context.MembershipId, storageKey);
 
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
-            byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
             Result<Unit, SecureStorageFailure> saveResult =
-                await storage.SaveStateAsync(protectedKey, storageKey, membershipIdBytes).ConfigureAwait(false);
+                await _storage.SaveStateAsync(protectedKey, storageKey, context.MembershipBytes).ConfigureAwait(false);
 
             if (saveResult.IsErr)
             {
                 Log.Error("[CLIENT-IDENTITY-STORE-ERROR] Failed to save master key to storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
-                    membershipId, storageKey, saveResult.UnwrapErr().Message);
+                    context.MembershipId, storageKey, saveResult.UnwrapErr().Message);
                 throw new InvalidOperationException($"Failed to save master key to storage: {saveResult.UnwrapErr().Message}");
             }
 
             Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
-                membershipId, storageKey, platformProvider.IsHardwareSecurityAvailable());
+                context.MembershipId, storageKey, hardwareAvailable);
 
-            if (platformProvider.IsHardwareSecurityAvailable() && wrappingKey != null)
+            if (hardwareAvailable && wrappingKey != null)
             {
-                string keychainKey = GetKeychainWrapKey(membershipId);
-                await platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
+                string keychainKey = context.KeychainKey;
+                await _platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
 
                 Log.Information("[CLIENT-IDENTITY-KEYCHAIN] Wrapping key stored in keychain. MembershipId: {MembershipId}, KeychainKey: {KeychainKey}",
-                    membershipId, keychainKey);
+                    context.MembershipId, keychainKey);
             }
         }
         finally
@@ -70,35 +81,34 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
         }
     }
 
-    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(string membershipId)
+    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(IdentityContext context)
     {
-        string storageKey = GetMasterKeyStorageKey(membershipId);
+        string storageKey = context.StorageKey;
 
         try
         {
             Log.Information("[CLIENT-IDENTITY-LOAD-START] Starting master key load. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                membershipId, storageKey);
+                context.MembershipId, storageKey);
 
-            byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
             Result<byte[], SecureStorageFailure> result =
-                await storage.LoadStateAsync(storageKey, membershipIdBytes).ConfigureAwait(false);
+                await _storage.LoadStateAsync(storageKey, context.MembershipBytes).ConfigureAwait(false);
 
             if (result.IsErr)
             {
                 Log.Error("[CLIENT-IDENTITY-LOAD-ERROR] Failed to load protected key. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
-                    membershipId, storageKey, result.UnwrapErr().Message);
+                    context.MembershipId, storageKey, result.UnwrapErr().Message);
 
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Failed to load protected key: {result.UnwrapErr().Message}"));
             }
 
             byte[] protectedKey = result.Unwrap();
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, membershipId).ConfigureAwait(false);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, context).ConfigureAwait(false);
 
             if (unwrapResult.IsOk)
             {
                 Log.Information("[CLIENT-IDENTITY-LOAD] Master key loaded successfully. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                    membershipId, storageKey);
+                    context.MembershipId, storageKey);
             }
 
             return unwrapResult;
@@ -106,7 +116,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
         catch (Exception ex)
         {
             Log.Error(ex, "[CLIENT-IDENTITY-LOAD-EXCEPTION] Exception loading master key. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                membershipId, storageKey);
+                context.MembershipId, storageKey);
 
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to load master key: {ex.Message}", ex));
@@ -116,11 +126,11 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
     private async Task<(byte[] wrappedData, byte[]? wrappingKey)> WrapMasterKeyAsync(SodiumSecureMemoryHandle masterKeyHandle)
     {
         byte[]? masterKeyBytes = null;
-        bool hardwareSecurityAvailable = platformProvider.IsHardwareSecurityAvailable();
+        bool hardwareSecurityAvailable = IsHardwareSecurityAvailable();
 
         try
         {
-            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+            Result<byte[], SodiumFailure> readResult =
                 masterKeyHandle.ReadBytes(masterKeyHandle.Length);
             if (readResult.IsErr)
             {
@@ -178,18 +188,18 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
         }
     }
 
-    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> UnwrapMasterKeyAsync(byte[] protectedKey, string membershipId)
+    private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> UnwrapMasterKeyAsync(byte[] protectedKey, IdentityContext context)
     {
         byte[]? masterKeyBytes = null;
         byte[]? wrappingKey = null;
         byte[]? encryptedKey = null;
         byte[]? iv = null;
-        bool hardwareSecurityAvailable = platformProvider.IsHardwareSecurityAvailable();
+        bool hardwareSecurityAvailable = IsHardwareSecurityAvailable();
 
         try
         {
             Log.Information("[CLIENT-IDENTITY-UNWRAP] Unwrapping master key. MembershipId: {MembershipId}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
-                membershipId, hardwareSecurityAvailable);
+                context.MembershipId, hardwareSecurityAvailable);
 
             if (!hardwareSecurityAvailable)
             {
@@ -198,8 +208,8 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
             }
             else
             {
-                string keychainKey = GetKeychainWrapKey(membershipId);
-                wrappingKey = await platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+                string keychainKey = context.KeychainKey;
+                wrappingKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
 
                 if (wrappingKey == null)
                 {
@@ -225,7 +235,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
                 }
             }
 
-            Result<SodiumSecureMemoryHandle, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> allocResult =
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
                 SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
             if (allocResult.IsErr)
             {
@@ -234,7 +244,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
             }
 
             SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-            Result<Unit, Ecliptix.Utilities.Failures.Sodium.SodiumFailure> writeResult = handle.Write(masterKeyBytes);
+            Result<Unit, SodiumFailure> writeResult = handle.Write(masterKeyBytes);
             if (writeResult.IsErr)
             {
                 handle.Dispose();
@@ -264,10 +274,12 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
 
     public async Task<Result<Unit, AuthenticationFailure>> ClearAllCacheAsync(string membershipId)
     {
+        IdentityContext context = new(membershipId);
+
         try
         {
             Result<Unit, SecureStorageFailure> deleteStorageResult =
-                await storage.DeleteStateAsync(GetMasterKeyStorageKey(membershipId)).ConfigureAwait(false);
+                await _storage.DeleteStateAsync(context.StorageKey).ConfigureAwait(false);
 
             if (deleteStorageResult.IsErr)
             {
@@ -275,10 +287,9 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
                     AuthenticationFailure.IdentityStorageFailed($"Failed to delete master key from storage: {deleteStorageResult.UnwrapErr().Message}"));
             }
 
-            if (platformProvider.IsHardwareSecurityAvailable())
+            if (IsHardwareSecurityAvailable())
             {
-                string keychainKey = GetKeychainWrapKey(membershipId);
-                await platformProvider.DeleteKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+                await _platformProvider.DeleteKeyFromKeychainAsync(context.KeychainKey).ConfigureAwait(false);
             }
 
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
@@ -292,9 +303,11 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
 
     public async Task<Result<Unit, AuthenticationFailure>> StoreIdentityAsync(SodiumSecureMemoryHandle masterKeyHandle, string membershipId)
     {
+        IdentityContext context = new(membershipId);
+
         try
         {
-            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+            Result<byte[], SodiumFailure> readResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
             if (readResult.IsErr)
             {
                 return Result<Unit, AuthenticationFailure>.Err(
@@ -305,30 +318,30 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
             string originalFingerprint = Convert.ToHexString(SHA256.HashData(originalMasterKeyBytes))[..16];
 
             Log.Information("[CLIENT-IDENTITY-STORE-PRE] Master key fingerprint before storage. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                membershipId, originalFingerprint);
+                context.MembershipId, originalFingerprint);
 
-            await StoreIdentityInternalAsync(masterKeyHandle, membershipId).ConfigureAwait(false);
+            await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
 
             Log.Information("[CLIENT-IDENTITY-VERIFY] Verifying stored master key. MembershipId: {MembershipId}",
-                membershipId);
+                context.MembershipId);
 
-            Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(membershipId).ConfigureAwait(false);
+            Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(context).ConfigureAwait(false);
 
             if (loadResult.IsErr)
             {
                 Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to load master key for verification. MembershipId: {MembershipId}, Error: {Error}",
-                    membershipId, loadResult.UnwrapErr().Message);
+                    context.MembershipId, loadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not load stored master key: {loadResult.UnwrapErr().Message}"));
             }
 
             using SodiumSecureMemoryHandle loadedKeyHandle = loadResult.Unwrap();
-            Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> loadedReadResult = loadedKeyHandle.ReadBytes(loadedKeyHandle.Length);
+            Result<byte[], SodiumFailure> loadedReadResult = loadedKeyHandle.ReadBytes(loadedKeyHandle.Length);
 
             if (loadedReadResult.IsErr)
             {
                 Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to read loaded master key. MembershipId: {MembershipId}, Error: {Error}",
-                    membershipId, loadedReadResult.UnwrapErr().Message);
+                    context.MembershipId, loadedReadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not read loaded master key: {loadedReadResult.UnwrapErr().Message}"));
             }
@@ -337,12 +350,12 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
             string loadedFingerprint = Convert.ToHexString(SHA256.HashData(loadedMasterKeyBytes))[..16];
 
             Log.Information("[CLIENT-IDENTITY-VERIFY-POST] Master key fingerprint after load. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                membershipId, loadedFingerprint);
+                context.MembershipId, loadedFingerprint);
 
             if (!originalMasterKeyBytes.AsSpan().SequenceEqual(loadedMasterKeyBytes))
             {
                 Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}, Original: {Original}, Loaded: {Loaded}",
-                    membershipId, originalFingerprint, loadedFingerprint);
+                    context.MembershipId, originalFingerprint, loadedFingerprint);
 
                 CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
                 return Result<Unit, AuthenticationFailure>.Err(
@@ -350,7 +363,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
             }
 
             Log.Information("[CLIENT-IDENTITY-VERIFY-SUCCESS] Master key verification passed. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                membershipId, originalFingerprint);
+                context.MembershipId, originalFingerprint);
 
             CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
@@ -358,7 +371,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
         catch (Exception ex)
         {
             Log.Error(ex, "[CLIENT-IDENTITY-STORE-ERROR] Exception during master key storage/verification. MembershipId: {MembershipId}",
-                membershipId);
+                context.MembershipId);
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.IdentityStorageFailed($"Failed to store/verify master key: {ex.Message}", ex));
         }
@@ -366,7 +379,7 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
 
     public async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyHandleAsync(string membershipId)
     {
-        return await LoadMasterKeyAsync(membershipId).ConfigureAwait(false);
+        return await LoadMasterKeyAsync(new IdentityContext(membershipId)).ConfigureAwait(false);
     }
 
     private static string GetMasterKeyStorageKey(string membershipId) =>
@@ -377,6 +390,19 @@ internal sealed class IdentityService(ISecureProtocolStateStorage storage, IPlat
 
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
-        return await platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
+        return await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
+    }
+
+    private bool IsHardwareSecurityAvailable() => _hardwareSecurityAvailable.Value;
+
+    private sealed class IdentityContext(string membershipId)
+    {
+        private byte[]? _membershipBytes;
+
+        public string MembershipId { get; } = membershipId;
+        public string StorageKey { get; } = GetMasterKeyStorageKey(membershipId);
+        public string KeychainKey { get; } = GetKeychainWrapKey(membershipId);
+
+        public byte[] MembershipBytes => _membershipBytes ??= Guid.Parse(MembershipId).ToByteArray();
     }
 }

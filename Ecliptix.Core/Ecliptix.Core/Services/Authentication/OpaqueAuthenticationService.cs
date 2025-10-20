@@ -96,10 +96,7 @@ internal sealed class OpaqueAuthenticationService(
 
         try
         {
-            securePassword.WithSecureBytes(passwordSpan =>
-            {
-                createResult = SensitiveBytes.From(passwordSpan);
-            });
+            securePassword.WithSecureBytes(passwordSpan => { createResult = SensitiveBytes.From(passwordSpan); });
 
             if (createResult == null || createResult.Value.IsErr)
             {
@@ -172,249 +169,263 @@ internal sealed class OpaqueAuthenticationService(
 
                     using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordCopy);
 
-                OpaqueSignInInitRequest initRequest = new()
-                {
-                    MobileNumber = mobileNumber,
-                    PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
-                };
-
-                Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
-                    await SendInitRequestAsync(initRequest, connectId, requestContext, cancellationToken)
-                        .ConfigureAwait(false);
-                if (initResult.IsErr)
-                {
-                    lastError = MapNetworkFailure(initResult.UnwrapErr());
-                    break;
-                }
-
-                OpaqueSignInInitResponse initResponse = initResult.Unwrap();
-
-                Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
-                if (validationResult.IsErr)
-                {
-                    ValidationFailure validation = validationResult.UnwrapErr();
-                    AuthenticationFailure authFailure = validation.FailureType switch
+                    OpaqueSignInInitRequest initRequest = new()
                     {
-                        ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation.Message),
-                        ValidationFailureType.LoginAttemptExceeded =>
-                            AuthenticationFailure.LoginAttemptExceeded(validation.Message),
-                        _ => AuthenticationFailure.UnexpectedError(validation.Message)
+                        MobileNumber = mobileNumber,
+                        PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
                     };
-                    return Result<Unit, AuthenticationFailure>.Err(authFailure);
-                }
 
-                ke2Data = initResponse.ServerStateToken.ToByteArray();
+                    Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
+                        await SendInitRequestAsync(initRequest, connectId, requestContext, cancellationToken)
+                            .ConfigureAwait(false);
+                    if (initResult.IsErr)
+                    {
+                        lastError = MapNetworkFailure(initResult.UnwrapErr());
+                        break;
+                    }
 
-                Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+                    OpaqueSignInInitResponse initResponse = initResult.Unwrap();
 
-                if (ke3DataResult.IsErr)
-                {
-                    string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
-                    return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(errorMessage));
-                }
+                    Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
+                    if (validationResult.IsErr)
+                    {
+                        ValidationFailure validation = validationResult.UnwrapErr();
+                        AuthenticationFailure authFailure = validation.FailureType switch
+                        {
+                            ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation
+                                .Message),
+                            ValidationFailureType.LoginAttemptExceeded =>
+                                AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+                            _ => AuthenticationFailure.UnexpectedError(validation.Message)
+                        };
+                        return Result<Unit, AuthenticationFailure>.Err(authFailure);
+                    }
 
-                ke3Data = ke3DataResult.Unwrap();
-            byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
+                    ke2Data = initResponse.ServerStateToken.ToByteArray();
 
-            string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
-            Serilog.Log.Information(
-                "[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}",
-                baseKeyFingerprint);
+                    Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
-            Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
-                SodiumSecureMemoryHandle.Allocate(baseSessionKeyBytes.Length);
-            if (baseHandleResult.IsErr)
-            {
-                CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
-                return Result<Unit, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryAllocationFailed(baseHandleResult.UnwrapErr().Message));
-            }
+                    if (ke3DataResult.IsErr)
+                    {
+                        string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
+                        return Result<Unit, AuthenticationFailure>.Err(
+                            AuthenticationFailure.InvalidCredentials(errorMessage));
+                    }
 
-            using SodiumSecureMemoryHandle baseKeyHandle = baseHandleResult.Unwrap();
-            Result<Unit, SodiumFailure> writeResult = baseKeyHandle.Write(baseSessionKeyBytes);
-            CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
+                    ke3Data = ke3DataResult.Unwrap();
+                    byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
-            if (writeResult.IsErr)
-            {
-                return Result<Unit, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
-            }
+                    string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
+                    Serilog.Log.Information(
+                        "[CLIENT-OPAQUE-EXPORTKEY] OPAQUE export_key (base session key) derived. BaseKeyFingerprint: {BaseKeyFingerprint}",
+                        baseKeyFingerprint);
 
-            Result<SodiumSecureMemoryHandle, KeySplittingFailure> enhancedMasterKeyHandleResult =
-                await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
-                    baseKeyHandle,
-                    StorageKeyConstants.SessionContext.SignInSession,
-                    DefaultKeyDerivationOptions).ConfigureAwait(false);
+                    Result<SodiumSecureMemoryHandle, SodiumFailure> baseHandleResult =
+                        SodiumSecureMemoryHandle.Allocate(baseSessionKeyBytes.Length);
+                    if (baseHandleResult.IsErr)
+                    {
+                        CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
+                        return Result<Unit, AuthenticationFailure>.Err(
+                            AuthenticationFailure.SecureMemoryAllocationFailed(baseHandleResult.UnwrapErr().Message));
+                    }
 
-            if (enhancedMasterKeyHandleResult.IsErr)
-            {
-                return Result<Unit, AuthenticationFailure>.Err(
-                    AuthenticationFailure.KeyDerivationFailed(enhancedMasterKeyHandleResult.UnwrapErr().Message));
-            }
+                    using SodiumSecureMemoryHandle baseKeyHandle = baseHandleResult.Unwrap();
+                    Result<Unit, SodiumFailure> writeResult = baseKeyHandle.Write(baseSessionKeyBytes);
+                    CryptographicOperations.ZeroMemory(baseSessionKeyBytes);
 
-            using SodiumSecureMemoryHandle enhancedMasterKeyHandle = enhancedMasterKeyHandleResult.Unwrap();
-
-            OpaqueSignInFinalizeRequest finalizeRequest = new()
-            {
-                MobileNumber = mobileNumber,
-                ClientMac = ByteString.CopyFrom(ke3Data),
-            };
-
-                Result<SignInResult, NetworkFailure> finalResult =
-                    await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId,
-                        requestContext, cancellationToken).ConfigureAwait(false);
-
-                if (finalResult.IsOk)
-                {
-                    using SignInResult signInResult = finalResult.Unwrap();
-
-                    if (signInResult.MasterKeyHandle == null)
+                    if (writeResult.IsErr)
                     {
                         return Result<Unit, AuthenticationFailure>.Err(
-                            AuthenticationFailure.SecureMemoryAllocationFailed("Failed to create master key handle"));
+                            AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
                     }
 
-                    if (signInResult.Membership != null)
+                    Result<SodiumSecureMemoryHandle, KeySplittingFailure> enhancedMasterKeyHandleResult =
+                        await hardenedKeyDerivation.DeriveEnhancedMasterKeyHandleAsync(
+                            baseKeyHandle,
+                            StorageKeyConstants.SessionContext.SignInSession,
+                            DefaultKeyDerivationOptions).ConfigureAwait(false);
+
+                    if (enhancedMasterKeyHandleResult.IsErr)
                     {
-                        ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
-                        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+                        return Result<Unit, AuthenticationFailure>.Err(
+                            AuthenticationFailure.KeyDerivationFailed(enhancedMasterKeyHandleResult.UnwrapErr()
+                                .Message));
+                    }
 
-                        Serilog.Log.Information("[LOGIN-START] Starting login flow for MembershipId: {MembershipId}",
-                            membershipId);
+                    using SodiumSecureMemoryHandle enhancedMasterKeyHandle = enhancedMasterKeyHandleResult.Unwrap();
 
-                        if (!ValidateMembershipIdentifier(membershipIdentifier))
+                    OpaqueSignInFinalizeRequest finalizeRequest = new()
+                    {
+                        MobileNumber = mobileNumber,
+                        ClientMac = ByteString.CopyFrom(ke3Data),
+                    };
+
+                    Result<SignInResult, NetworkFailure> finalResult =
+                        await SendFinalizeRequestAndVerifyAsync(finalizeRequest, enhancedMasterKeyHandle, connectId,
+                            requestContext, cancellationToken).ConfigureAwait(false);
+
+                    if (finalResult.IsOk)
+                    {
+                        using SignInResult signInResult = finalResult.Unwrap();
+
+                        if (signInResult.MasterKeyHandle == null)
                         {
-                            Serilog.Log.Error("[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}",
-                                membershipId);
                             return Result<Unit, AuthenticationFailure>.Err(
-                                AuthenticationFailure.InvalidMembershipIdentifier(
-                                    localizationService[AuthenticationConstants.InvalidCredentialsKey]));
+                                AuthenticationFailure.SecureMemoryAllocationFailed(
+                                    "Failed to create master key handle"));
                         }
 
-                        Serilog.Log.Information(
-                            "[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}",
-                            membershipId);
-
-                        Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
-                            MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle, membershipIdentifier);
-
-                        if (masterKeyHandleResult.IsErr)
+                        if (signInResult.Membership != null)
                         {
-                            Serilog.Log.Error(
-                                "[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
-                                membershipId, masterKeyHandleResult.UnwrapErr().Message);
-                            return Result<Unit, AuthenticationFailure>.Err(
-                                AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr().Message));
-                        }
+                            ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+                            Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
 
-                        Serilog.Log.Information(
-                            "[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}",
-                            membershipId);
-
-                        using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
-
-                        Result<byte[], SodiumFailure> masterKeyBytesResult = masterKeyHandle.ReadBytes(masterKeyHandle.Length);
-                        if (masterKeyBytesResult.IsOk)
-                        {
-                            byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
-                            string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
                             Serilog.Log.Information(
-                                "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
-                                membershipId, masterKeyFingerprint);
-                            CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
-                        }
+                                "[LOGIN-START] Starting login flow for MembershipId: {MembershipId}",
+                                membershipId);
 
-                        Serilog.Log.Information(
-                            "[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}", membershipId);
-                        Result<Unit, AuthenticationFailure> storeResult = await identityService
-                            .StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
-
-                        if (storeResult.IsErr)
-                        {
-                            Serilog.Log.Error(
-                                "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
-                                membershipId, storeResult.UnwrapErr().Message);
-                            return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
-                        }
-
-                        Serilog.Log.Information(
-                            "[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}",
-                            membershipId);
-
-                        Serilog.Log.Information(
-                            "[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}", membershipId);
-                        await applicationSecureStorageProvider.SetApplicationMembershipAsync(signInResult.Membership)
-                            .ConfigureAwait(false);
-                        Serilog.Log.Information(
-                            "[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}",
-                            membershipId);
-
-                        Serilog.Log.Information(
-                            "[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
-                            membershipId, connectId);
-
-                        Result<Unit, NetworkFailure> recreateProtocolResult =
-                            await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                                masterKeyHandle, membershipIdentifier, connectId).ConfigureAwait(false);
-
-                        if (recreateProtocolResult.IsErr)
-                        {
-                            NetworkFailure networkFailure = recreateProtocolResult.UnwrapErr();
-
-                            if (networkFailure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+                            if (!ValidateMembershipIdentifier(membershipIdentifier))
                             {
                                 Serilog.Log.Error(
-                                    "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, Error: {Error}",
-                                    membershipId, networkFailure.Message);
+                                    "[LOGIN-VALIDATION] Invalid membership identifier. MembershipId: {MembershipId}",
+                                    membershipId);
                                 return Result<Unit, AuthenticationFailure>.Err(
-                                    AuthenticationFailure.CriticalAuthenticationError(
-                                        $"Critical server error: {networkFailure.Message}"));
+                                    AuthenticationFailure.InvalidMembershipIdentifier(
+                                        localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                             }
 
-                            Serilog.Log.Error(
-                                "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
-                                membershipId, networkFailure.Message);
-                            return Result<Unit, AuthenticationFailure>.Err(
-                                AuthenticationFailure.NetworkRequestFailed(
-                                    $"Failed to establish authenticated protocol: {networkFailure.Message}"));
+                            Serilog.Log.Information(
+                                "[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}",
+                                membershipId);
+
+                            Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
+                                MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle,
+                                    membershipIdentifier);
+
+                            if (masterKeyHandleResult.IsErr)
+                            {
+                                Serilog.Log.Error(
+                                    "[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
+                                    membershipId, masterKeyHandleResult.UnwrapErr().Message);
+                                return Result<Unit, AuthenticationFailure>.Err(
+                                    AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr()
+                                        .Message));
+                            }
+
+                            Serilog.Log.Information(
+                                "[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}",
+                                membershipId);
+
+                            using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
+
+                            Result<byte[], SodiumFailure> masterKeyBytesResult =
+                                masterKeyHandle.ReadBytes(masterKeyHandle.Length);
+                            if (masterKeyBytesResult.IsOk)
+                            {
+                                byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
+                                string masterKeyFingerprint =
+                                    CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
+                                Serilog.Log.Information(
+                                    "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
+                                    membershipId, masterKeyFingerprint);
+                                CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
+                            }
+
+                            Serilog.Log.Information(
+                                "[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}",
+                                membershipId);
+                            Result<Unit, AuthenticationFailure> storeResult = await identityService
+                                .StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
+
+                            if (storeResult.IsErr)
+                            {
+                                Serilog.Log.Error(
+                                    "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
+                                    membershipId, storeResult.UnwrapErr().Message);
+                                return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
+                            }
+
+                            Serilog.Log.Information(
+                                "[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}",
+                                membershipId);
+
+                            Serilog.Log.Information(
+                                "[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}",
+                                membershipId);
+                            await applicationSecureStorageProvider
+                                .SetApplicationMembershipAsync(signInResult.Membership)
+                                .ConfigureAwait(false);
+                            Serilog.Log.Information(
+                                "[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}",
+                                membershipId);
+
+                            Serilog.Log.Information(
+                                "[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
+                                membershipId, connectId);
+
+                            Result<Unit, NetworkFailure> recreateProtocolResult =
+                                await networkProvider.RecreateProtocolWithMasterKeyAsync(
+                                    masterKeyHandle, membershipIdentifier, connectId).ConfigureAwait(false);
+
+                            if (recreateProtocolResult.IsErr)
+                            {
+                                NetworkFailure networkFailure = recreateProtocolResult.UnwrapErr();
+
+                                if (networkFailure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+                                {
+                                    Serilog.Log.Error(
+                                        "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, Error: {Error}",
+                                        membershipId, networkFailure.Message);
+                                    return Result<Unit, AuthenticationFailure>.Err(
+                                        AuthenticationFailure.CriticalAuthenticationError(
+                                            $"Critical server error: {networkFailure.Message}"));
+                                }
+
+                                Serilog.Log.Error(
+                                    "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
+                                    membershipId, networkFailure.Message);
+                                return Result<Unit, AuthenticationFailure>.Err(
+                                    AuthenticationFailure.NetworkRequestFailed(
+                                        $"Failed to establish authenticated protocol: {networkFailure.Message}"));
+                            }
+
+                            Serilog.Log.Information(
+                                "[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}",
+                                membershipId);
                         }
 
-                        Serilog.Log.Information(
-                            "[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}", membershipId);
+                        return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
                     }
 
-                    return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+                    NetworkFailure finalizeFailure = finalResult.UnwrapErr();
+
+                    if (allowReinit && ShouldReinit(finalizeFailure))
+                    {
+                        allowReinit = false;
+                        requestContext.MarkReinitAttempted();
+                        continue;
+                    }
+
+                    lastError = MapNetworkFailure(finalizeFailure);
+                    break;
                 }
-
-                NetworkFailure finalizeFailure = finalResult.UnwrapErr();
-
-                if (allowReinit && ShouldReinit(finalizeFailure))
+                finally
                 {
-                    allowReinit = false;
-                    requestContext.MarkReinitAttempted();
-                    continue;
-                }
+                    if (passwordCopy is { Length: > 0 })
+                    {
+                        CryptographicOperations.ZeroMemory(passwordCopy);
+                    }
 
-                lastError = MapNetworkFailure(finalizeFailure);
-                break;
-            }
-            finally
-            {
-                if (passwordCopy is { Length: > 0 })
-                {
-                    CryptographicOperations.ZeroMemory(passwordCopy);
-                }
+                    if (ke2Data is { Length: > 0 })
+                    {
+                        CryptographicOperations.ZeroMemory(ke2Data);
+                    }
 
-                if (ke2Data is { Length: > 0 })
-                {
-                    CryptographicOperations.ZeroMemory(ke2Data);
+                    if (ke3Data is { Length: > 0 })
+                    {
+                        CryptographicOperations.ZeroMemory(ke3Data);
+                    }
                 }
-
-                if (ke3Data is { Length: > 0 })
-                {
-                    CryptographicOperations.ZeroMemory(ke3Data);
-                }
-            }
             }
 
             bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
@@ -433,7 +444,8 @@ internal sealed class OpaqueAuthenticationService(
             return Result<Unit, AuthenticationFailure>.Err(lastError);
         }
 
-        return Result<Unit, AuthenticationFailure>.Err(lastError ?? AuthenticationFailure.UnexpectedError("Sign-in flow failed"));
+        return Result<Unit, AuthenticationFailure>.Err(lastError ??
+                                                       AuthenticationFailure.UnexpectedError("Sign-in flow failed"));
     }
 
     private string GetOpaqueErrorMessage(OpaqueResult error)

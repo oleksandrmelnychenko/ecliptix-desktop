@@ -40,14 +40,17 @@ internal sealed class LogoutService(
     IIdentityService identityService)
     : ILogoutService
 {
-    public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason, CancellationToken cancellationToken = default)
+    public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason,
+        CancellationToken cancellationToken = default)
     {
-        string? membershipId = await GetCurrentMembershipIdAsync().ConfigureAwait(false);
-        if (string.IsNullOrEmpty(membershipId))
+        Option<string> membershipIdOption = await GetCurrentMembershipIdAsync().ConfigureAwait(false);
+        if (!membershipIdOption.HasValue)
         {
             return Result<Unit, LogoutFailure>.Err(
                 LogoutFailure.InvalidMembershipIdentifier("No active session found"));
         }
+
+        string membershipId = membershipIdOption.Value!;
 
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
@@ -62,11 +65,11 @@ internal sealed class LogoutService(
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        byte[] membershipIdBytes = Guid.Parse(membershipId).ToByteArray();
+        ByteString membershipIdBytes = Helpers.GuidToByteString(Guid.Parse(membershipId));
 
         LogoutRequest logoutRequest = new()
         {
-            MembershipIdentifier = ByteString.CopyFrom(membershipIdBytes),
+            MembershipIdentifier = membershipIdBytes,
             LogoutReason = reason.ToString(),
             Timestamp = timestamp,
             Scope = LogoutScope.ThisDevice
@@ -124,7 +127,8 @@ internal sealed class LogoutService(
             return Result<Unit, LogoutFailure>.Err(MapNetworkFailure(failure));
         }
 
-        Result<LogoutResponse, LogoutFailure> responseResult = await responseCompletionSource.Task.ConfigureAwait(false);
+        Result<LogoutResponse, LogoutFailure>
+            responseResult = await responseCompletionSource.Task.ConfigureAwait(false);
 
         if (responseResult.IsErr)
         {
@@ -196,21 +200,19 @@ internal sealed class LogoutService(
         return LogoutFailure.NetworkRequestFailed(message, failure.InnerException);
     }
 
-    private async Task<string?> GetCurrentMembershipIdAsync()
+    private async Task<Option<string>> GetCurrentMembershipIdAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
             await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
 
         if (settingsResult.IsErr)
-            return null;
+            return Option<string>.None;
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
-        if (settings.Membership?.UniqueIdentifier == null)
-            return null;
-
-        return SecureByteStringInterop.WithByteStringAsSpan(settings.Membership.UniqueIdentifier,
-            span => new Guid(span.ToArray()).ToString());
+        return settings.Membership?.UniqueIdentifier == null
+            ? Option<string>.None
+            : Option<string>.Some(Helpers.FromByteStringToGuid(settings.Membership.UniqueIdentifier).ToString());
     }
 
     private async Task<Result<Unit, LogoutFailure>> GenerateLogoutHmacProofAsync(
@@ -251,7 +253,7 @@ internal sealed class LogoutService(
             hmacKey = hmacKeyResult.Unwrap();
 
             string canonical = $"logout:v1:{request.MembershipIdentifier.ToBase64()}:" +
-                             $"{request.Timestamp}:{request.Scope}:{request.LogoutReason}";
+                               $"{request.Timestamp}:{request.Scope}:{request.LogoutReason}";
             byte[] canonicalBytes = Encoding.UTF8.GetBytes(canonical);
 
             byte[] hmacProof = LogoutKeyDerivation.ComputeHmac(hmacKey, canonicalBytes);
@@ -315,7 +317,8 @@ internal sealed class LogoutService(
             int nonceLength = reader.ReadInt32();
             if (nonceLength != nonceSize)
             {
-                Log.Warning("[LOGOUT-PROOF] Invalid nonce length: {Length} (expected {Expected})", nonceLength, nonceSize);
+                Log.Warning("[LOGOUT-PROOF] Invalid nonce length: {Length} (expected {Expected})", nonceLength,
+                    nonceSize);
                 return Result<Unit, LogoutFailure>.Err(
                     LogoutFailure.InvalidRevocationProof($"Invalid nonce length {nonceLength}"));
             }
@@ -424,25 +427,6 @@ internal sealed class LogoutService(
                     LogoutFailure.InvalidRevocationProof("Server revocation proof HMAC verification failed"));
             }
 
-            Result<byte[], NetworkFailure> fingerprintResult = networkProvider.ComputeRatchetFingerprint(connectId);
-            if (fingerprintResult.IsErr)
-            {
-                NetworkFailure failure = fingerprintResult.UnwrapErr();
-                Log.Warning("[LOGOUT-PROOF] Failed to compute local ratchet fingerprint: {Error}", failure.Message);
-                return Result<Unit, LogoutFailure>.Err(MapNetworkFailure(failure));
-            }
-
-            byte[] localFingerprint = fingerprintResult.Unwrap();
-            bool fingerprintsMatch = localFingerprint.Length == fingerprint.Length &&
-                                     (fingerprint.Length == 0 ||
-                                      CryptographicOperations.FixedTimeEquals(localFingerprint, fingerprint));
-            if (!fingerprintsMatch)
-            {
-                Log.Warning("[LOGOUT-PROOF] Ratchet fingerprint mismatch for MembershipId: {MembershipId}", membershipId);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.InvalidRevocationProof("Ratchet fingerprint mismatch between client and server"));
-            }
-
             Log.Information("[LOGOUT-PROOF] Revocation proof verified successfully for MembershipId: {MembershipId}",
                 membershipId);
 
@@ -521,7 +505,8 @@ internal sealed class LogoutService(
 
             if (proofOption.HasValue)
             {
-                Log.Information("[LOGOUT-PROOF-CHECK] Revocation proof found for MembershipId: {MembershipId} - session was logged out",
+                Log.Information(
+                    "[LOGOUT-PROOF-CHECK] Revocation proof found for MembershipId: {MembershipId} - session was logged out",
                     membershipId);
                 return true;
             }

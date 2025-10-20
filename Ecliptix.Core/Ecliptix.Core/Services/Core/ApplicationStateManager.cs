@@ -2,31 +2,27 @@ using System;
 using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Utilities;
 using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 
 public sealed class ApplicationStateManager : IApplicationStateManager, IDisposable
 {
-    private readonly BehaviorSubject<ApplicationState> _stateSubject;
-    private string? _currentMembershipId;
+    private readonly BehaviorSubject<ApplicationState> _stateSubject = new(ApplicationState.Initializing);
+    private Option<string> _currentMembershipId = Option<string>.None;
     private bool _disposed;
-
-    public ApplicationStateManager()
-    {
-        _stateSubject = new BehaviorSubject<ApplicationState>(ApplicationState.Initializing);
-    }
 
     public ApplicationState CurrentState => _stateSubject.Value;
 
     public IObservable<ApplicationState> StateChanges => _stateSubject;
 
-    public string? CurrentMembershipId => _currentMembershipId;
+    public Option<string> CurrentMembershipId => _currentMembershipId;
 
     public Task TransitionToAnonymousAsync()
     {
         Log.Information("[APPLICATION-STATE] Transitioning to Anonymous state");
-        _currentMembershipId = null;
+        _currentMembershipId = Option<string>.None;
         _stateSubject.OnNext(ApplicationState.Anonymous);
         return Task.CompletedTask;
     }
@@ -38,7 +34,7 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
 
         Log.Information("[APPLICATION-STATE] Transitioning to Authenticated state. MembershipId: {MembershipId}",
             membershipId);
-        _currentMembershipId = membershipId;
+        _currentMembershipId = Option<string>.Some(membershipId);
         _stateSubject.OnNext(ApplicationState.Authenticated);
         return Task.CompletedTask;
     }

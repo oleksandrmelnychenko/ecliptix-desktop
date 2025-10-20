@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Abstractions.Core;
 
@@ -16,7 +17,7 @@ public interface IApplicationStateManager
 
     IObservable<ApplicationState> StateChanges { get; }
 
-    string? CurrentMembershipId { get; }
+    Option<string> CurrentMembershipId { get; }
 
     Task TransitionToAnonymousAsync();
 
