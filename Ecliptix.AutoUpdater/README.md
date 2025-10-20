@@ -1,19 +1,32 @@
 # Ecliptix.AutoUpdater
 
-Auto-update library for Ecliptix Desktop application.
+**Production-ready** auto-update library for Ecliptix Desktop application with full ViewModel integration, UI components, and background update checking.
 
 ## Features
 
+### Core Features
 - ✅ Cross-platform support (Windows, macOS, Linux)
-- ✅ Background update checking
+- ✅ Background update checking with configurable intervals
 - ✅ Progress tracking for downloads
 - ✅ SHA-256 checksum verification
 - ✅ Critical/mandatory updates
 - ✅ Minimum version enforcement
-- ✅ Release notes display
+- ✅ Release notes display (Markdown support)
 - ✅ Silent updates option
+- ✅ Auto-restart after update
 
-## Integration
+### Production Features
+- ✅ **UpdateManager** - High-level service with automatic checking
+- ✅ **UpdateViewModel** - Ready-to-use ViewModel with ReactiveUI
+- ✅ **UI Components** - Pre-built notification banner and dialog
+- ✅ **Logging integration** - Microsoft.Extensions.Logging support
+- ✅ **Configuration** - JSON configuration with sensible defaults
+- ✅ **Error handling** - Comprehensive error handling and recovery
+- ✅ **Event system** - Observable events for update lifecycle
+
+## Quick Start
+
+For detailed integration instructions, see [Integration/INTEGRATION_GUIDE.md](Integration/INTEGRATION_GUIDE.md).
 
 ### 1. Add Project Reference
 
