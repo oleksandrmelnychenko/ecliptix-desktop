@@ -11,15 +11,8 @@ using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
-internal sealed class GrpcErrorProcessor : IGrpcErrorProcessor
+internal sealed class GrpcErrorProcessor(ILocalizationService localizationService) : IGrpcErrorProcessor
 {
-    private readonly ILocalizationService _localizationService;
-
-    public GrpcErrorProcessor(ILocalizationService localizationService)
-    {
-        _localizationService = localizationService;
-    }
-
     public NetworkFailure Process(RpcException rpcException)
     {
         return CreateFailure(rpcException);
@@ -140,7 +133,7 @@ internal sealed class GrpcErrorProcessor : IGrpcErrorProcessor
     {
         try
         {
-            return _localizationService[key];
+            return localizationService[key];
         }
         catch
         {

@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -22,6 +23,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
     private readonly ILogoutService _logoutService;
     private readonly MainWindowViewModel _mainWindowViewModel;
     private readonly CompositeDisposable _disposables = new();
+    private CancellationTokenSource? _logoutCancellationTokenSource;
     private bool _isDisposed;
 
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -46,9 +48,39 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
         LogoutCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
-                Result<Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
-                    LogoutReason.UserInitiated);
-                return result;
+                try
+                {
+                    _logoutCancellationTokenSource?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+
+                _logoutCancellationTokenSource?.Dispose();
+                CancellationTokenSource operationCts = new();
+                _logoutCancellationTokenSource = operationCts;
+
+                try
+                {
+                    Result<Unit, LogoutFailure> result = await _logoutService.LogoutAsync(
+                        LogoutReason.UserInitiated,
+                        operationCts.Token).ConfigureAwait(false);
+                    return result;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    return Result<Unit, LogoutFailure>.Err(
+                        LogoutFailure.NetworkRequestFailed("Logout cancelled.", ex));
+                }
+                finally
+                {
+                    if (ReferenceEquals(_logoutCancellationTokenSource, operationCts))
+                    {
+                        _logoutCancellationTokenSource = null;
+                    }
+
+                    operationCts.Dispose();
+                }
             },
             canLogout);
 
@@ -77,6 +109,19 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
         if (_isDisposed) return;
         if (disposing)
         {
+            try
+            {
+                _logoutCancellationTokenSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                _logoutCancellationTokenSource?.Dispose();
+                _logoutCancellationTokenSource = null;
+            }
+
             LogoutCommand?.Dispose();
             _disposables.Dispose();
         }

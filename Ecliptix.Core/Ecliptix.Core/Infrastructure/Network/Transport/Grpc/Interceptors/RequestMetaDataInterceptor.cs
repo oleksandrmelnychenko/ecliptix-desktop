@@ -18,8 +18,11 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{Culture}' for gRPC metadata", culture);
 
         PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
-        Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (streaming)",
-            exchangeType, context.Method.Name);
+        if (Serilog.Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
+            Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (streaming)",
+                exchangeType, context.Method.Name);
+        }
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
             rpcMetaDataProvider.AppInstanceId.ToString(),
@@ -50,8 +53,11 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
         Serilog.Log.Information("RequestMetaDataInterceptor: Using culture '{Culture}' for gRPC metadata", culture);
 
         PubKeyExchangeType exchangeType = GetExchangeTypeForMethod(context.Method, headers);
-        Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (unary)",
-            exchangeType, context.Method.Name);
+        if (Serilog.Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
+            Serilog.Log.Debug("RequestMetaDataInterceptor: Using exchange type '{ExchangeType}' for method '{Method}' (unary)",
+                exchangeType, context.Method.Name);
+        }
 
         Metadata newMetadata = GrpcMetadataHandler.GenerateMetadata(
             rpcMetaDataProvider.AppInstanceId.ToString(),

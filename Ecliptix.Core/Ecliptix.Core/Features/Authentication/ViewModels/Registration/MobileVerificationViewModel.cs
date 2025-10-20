@@ -28,7 +28,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IPasswordRecoveryService? _passwordRecoveryService;
-    private readonly IUiDispatcher _uiDispatcher;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly CompositeDisposable _disposables = new();
 
@@ -42,7 +41,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IUiDispatcher uiDispatcher,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
         IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider, localizationService)
     {
@@ -51,7 +49,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _uiDispatcher = uiDispatcher;
 
         if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
         {
@@ -240,7 +237,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                     ByteString mobileNumberIdentifier = result.Unwrap();
 
                     VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
-                        mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher,
+                        mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
                         _flowContext, _passwordRecoveryService);
 
                     if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
@@ -278,7 +275,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         if (_isDisposed) return Task.CompletedTask;
 
         VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
-            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService, _uiDispatcher);
+            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
 
         if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
         {

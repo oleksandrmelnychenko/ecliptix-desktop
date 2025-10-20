@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Serilog.Events;
 using Ecliptix.Core.Core.Abstractions;
 
 namespace Ecliptix.Core.Core.Modularity;
@@ -138,7 +139,10 @@ public class ModuleManager : IModuleManager
                 try
                 {
                     await module.SetupMessageHandlersAsync(_messageBus);
-                    Log.Debug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
+                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                    {
+                        Log.Debug("Message handlers setup completed for module: {ModuleName}", module.Id.ToName());
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -65,7 +65,6 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         moduleServices.AddSingleton(context.GetParentService<Infrastructure.Data.Abstractions.IApplicationSecureStorageProvider>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.ILocalizationService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Core.IApplicationRouter>());
-        moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Network.IUiDispatcher>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Membership.ILogoutService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IAuthenticationService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IOpaqueRegistrationService>());

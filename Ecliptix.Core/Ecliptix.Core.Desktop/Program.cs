@@ -61,6 +61,7 @@ using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Features.Authentication;
 using Ecliptix.Core.Features.Main;
+using Ecliptix.Core.Services.Network;
 using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
 using Grpc.Net.ClientFactory;
 using Microsoft.AspNetCore.DataProtection;
@@ -215,7 +216,6 @@ public static class Program
 
         services.AddSingleton(configuration);
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
-        services.AddSingleton<IUiDispatcher, AvaloniaUiDispatcher>();
     }
 
     private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration)
@@ -348,23 +348,37 @@ public static class Program
         services.AddSingleton<IApplicationInitializer, ApplicationInitializer>();
         services.AddSingleton<IRpcServiceManager, RpcServiceManager>();
 
-        services.AddSingleton<IRetryStrategy>(sp =>
+        services.AddSingleton<RetryStrategyConfiguration>(sp =>
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
-            INetworkEventService networkEvents = sp.GetRequiredService<INetworkEventService>();
-            IUiDispatcher uiDispatcher = sp.GetRequiredService<IUiDispatcher>();
-
             IConfigurationSection section =
                 config.GetSection(ApplicationConstants.Configuration.SecrecyChannelRetryPolicySection);
-            RetryStrategyConfiguration retryStrategyConfig = CreateRetryConfiguration(section);
+            return CreateRetryConfiguration(section);
+        });
 
-            RetryStrategy retryStrategy = new(retryStrategyConfig, networkEvents, uiDispatcher);
+        services.AddSingleton<IOperationTimeoutProvider, OperationTimeoutProvider>();
+
+        services.AddSingleton<IRetryPolicyProvider>(sp =>
+        {
+            RetryStrategyConfiguration retryStrategyConfig = sp.GetRequiredService<RetryStrategyConfiguration>();
+            return new RetryPolicyProvider(retryStrategyConfig);
+        });
+
+        services.AddSingleton<IRetryStrategy>(sp =>
+        {
+            RetryStrategyConfiguration retryStrategyConfig = sp.GetRequiredService<RetryStrategyConfiguration>();
+            INetworkEventService networkEvents = sp.GetRequiredService<INetworkEventService>();
+            IOperationTimeoutProvider timeoutProvider = sp.GetRequiredService<IOperationTimeoutProvider>();
+
+            RetryStrategy retryStrategy = new(retryStrategyConfig, networkEvents, timeoutProvider);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;
         });
 
         services.AddSingleton<IGrpcErrorProcessor, GrpcErrorProcessor>();
+        services.AddSingleton<IGrpcDeadlineProvider, GrpcDeadlineProvider>();
+        services.AddSingleton<IGrpcCallOptionsFactory, GrpcCallOptionsFactory>();
         services.AddSingleton<IUnaryRpcServices, UnaryRpcServices>();
         services.AddSingleton<ISecrecyChannelRpcServices, SecrecyChannelRpcServices>();
         services.AddSingleton<IReceiveStreamRpcServices, ReceiveStreamRpcServices>();

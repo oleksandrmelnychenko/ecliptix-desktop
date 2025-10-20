@@ -26,6 +26,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Protocol;
 using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
@@ -230,7 +231,13 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         IObservable<bool> isFormLogicallyValid = isMobileLogicallyValid
             .CombineLatest(isKeyLogicallyValid, (isMobileValid, isKeyValid) => isMobileValid && isKeyValid)
             .DistinctUntilChanged()
-            .Do(valid => Log.Debug("✅ Form logically valid: {Valid}", valid));
+            .Do(valid =>
+            {
+                if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                {
+                    Log.Debug("✅ Form logically valid: {Valid}", valid);
+                }
+            });
 
         return isFormLogicallyValid;
     }

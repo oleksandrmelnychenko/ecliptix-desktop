@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Threading;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
@@ -50,28 +51,28 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private static readonly FrozenDictionary<MembershipViewType, Func<INetworkEventService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-        IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>> ViewModelFactories =
+        IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<INetworkEventService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-            IOpaqueRegistrationService, IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>>
+            IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _, _) =>
+            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _) =>
                 new SignInViewModel(netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (_, netProvider, loc, _, _, host, _, _, _) =>
+                (_, netProvider, loc, _, _, host, _, _) =>
                     new WelcomeViewModel(host, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (netEvents, netProvider, loc, _, storage, host, reg, _, uiDispatcher) =>
-                    new MobileVerificationViewModel(netProvider, loc, host, storage, reg, uiDispatcher),
+                (netEvents, netProvider, loc, _, storage, host, reg, _) =>
+                    new MobileVerificationViewModel(netProvider, loc, host, storage, reg),
             [MembershipViewType.ConfirmSecureKey] =
-                (netEvents, netProvider, loc, auth, storage, host, reg, _, _) =>
+                (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
                     new SecureKeyVerifierViewModel(netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] =
-                (netEvents, netProvider, loc, _, _, host, _, _, _) =>
+                (netEvents, netProvider, loc, _, _, host, _, _) =>
                     new PassPhaseViewModel(loc, host, netProvider),
             [MembershipViewType.ForgotPasswordReset] =
-                (netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery, _) =>
+                (netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery) =>
                     new ForgotPasswordResetViewModel(netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
@@ -85,7 +86,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly IPasswordRecoveryService _passwordRecoveryService;
-    private readonly IUiDispatcher _uiDispatcher;
     private readonly IApplicationRouter _router;
     private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
@@ -105,13 +105,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         IAuthenticationService authenticationService,
         IOpaqueRegistrationService opaqueRegistrationService,
         IPasswordRecoveryService passwordRecoveryService,
-        IUiDispatcher uiDispatcher,
         ILanguageDetectionService languageDetectionService,
         IApplicationRouter router,
         MainWindowViewModel mainWindowViewModel)
         : base(networkProvider, localizationService)
     {
-        Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor started");
         _localizationService = localizationService;
         _networkEventService = networkEventService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -119,7 +117,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
         _passwordRecoveryService = passwordRecoveryService;
-        _uiDispatcher = uiDispatcher;
         _languageDetectionService = languageDetectionService;
         _router = router;
         _mainWindowViewModel = mainWindowViewModel;
@@ -324,7 +321,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             this,
             _applicationSecureStorageProvider,
             _opaqueRegistrationService,
-            _uiDispatcher,
             AuthenticationFlowContext.PasswordRecovery,
             _passwordRecoveryService);
         NavigateToViewModel(vm);
@@ -335,7 +331,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            await _uiDispatcher.PostAsync(async () =>
+            await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 await _mainWindowViewModel.ShowBottomSheetAsync(componentType, redirectView,
                     showScrim: showScrim, isDismissable: isDismissable).ConfigureAwait(false);
@@ -352,7 +348,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            await _uiDispatcher.PostAsync(async () =>
+            await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 await _mainWindowViewModel.HideBottomSheetAsync().ConfigureAwait(false);
             }).ConfigureAwait(false);
@@ -535,7 +531,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 out Func<INetworkEventService, NetworkProvider, ILocalizationService,
                     IAuthenticationService,
                     IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
-                    IPasswordRecoveryService, IUiDispatcher, IRoutableViewModel>? factory))
+                    IPasswordRecoveryService, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory registered for view type: {viewType}");
         }
@@ -543,7 +539,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         IRoutableViewModel newViewModel = factory(_networkEventService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
-            _passwordRecoveryService, _uiDispatcher);
+            _passwordRecoveryService);
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;

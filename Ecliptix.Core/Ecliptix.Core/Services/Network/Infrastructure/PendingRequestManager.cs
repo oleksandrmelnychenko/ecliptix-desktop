@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Core.Services.Network.Infrastructure;
 
@@ -117,7 +118,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
                 {
                     filteredUntypedRequests.Add(request);
                 }
-                else
+                else if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("Skipping retry for request {RequestId} - already being retried", request.Key);
                 }
@@ -129,7 +130,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
                 {
                     filteredTypedRequests.Add(request);
                 }
-                else
+                else if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("Skipping retry for typed request {RequestId} - already being retried", request.Key);
                 }

@@ -3,6 +3,7 @@ using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Modularity;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Main;
 
@@ -19,14 +20,11 @@ public class MainModule : ModuleBase<MainModuleManifest>
 
     public override async Task SetupMessageHandlersAsync(IModuleMessageBus messageBus)
     {
-
         await messageBus.PublishAsync(new ModuleInitializedEvent
         {
             ModuleName = Id.ToName()
         });
 
-        Logger?.LogInformation("Main module message handlers setup completed");
+        Log.Information("Main module message handlers setup completed");
     }
-
-
 }

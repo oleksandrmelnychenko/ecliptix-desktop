@@ -16,22 +16,14 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
         {
             if (_cachedKey != null)
             {
-                return _cachedKey;
+                return (byte[])_cachedKey.Clone();
             }
 
             _cachedKey = SecureByteStringInterop.WithByteStringAsSpan(
                 networkProvider.ApplicationInstanceSettings.ServerPublicKey,
                 span => span.ToArray());
 
-            return _cachedKey;
-        }
-    }
-
-    public void ClearCache()
-    {
-        lock (_lock)
-        {
-            _cachedKey = null;
+            return (byte[])_cachedKey.Clone();
         }
     }
 }

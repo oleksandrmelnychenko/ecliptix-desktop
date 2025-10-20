@@ -8,5 +8,5 @@ namespace Ecliptix.Core.Services.Abstractions.Membership;
 
 public interface ILogoutService
 {
-    Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason, CancellationToken ct = default);
+    Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason, CancellationToken cancellationToken = default);
 }

@@ -93,7 +93,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[MainWindowViewModel] Error setting up message handlers: {Message}", ex.Message);
+            Log.Error(ex, "[MainWindowViewModel] Error setting up message handlers");
         }
     }
 

@@ -31,6 +31,12 @@ public record LogoutFailure(
     public static LogoutFailure InvalidMembershipIdentifier(string details, Exception? inner = null) =>
         new(LogoutFailureType.InvalidMembershipIdentifier, details, inner);
 
+    public static LogoutFailure CryptographicOperationFailed(string details, Exception? inner = null) =>
+        new(LogoutFailureType.CryptographicOperationFailed, details, inner);
+
+    public static LogoutFailure InvalidRevocationProof(string details, Exception? inner = null) =>
+        new(LogoutFailureType.InvalidRevocationProof, details, inner);
+
     public static LogoutFailure UnexpectedError(string details, Exception? inner = null) =>
         new(LogoutFailureType.UnexpectedError, details, inner);
 
@@ -44,6 +50,10 @@ public record LogoutFailure(
             LogoutFailureType.SessionNotFound => new GrpcErrorDescriptor(
                 ErrorCode.NotFound, StatusCode.NotFound, ErrorI18nKeys.NotFound),
             LogoutFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
+                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+            LogoutFailureType.CryptographicOperationFailed => new GrpcErrorDescriptor(
+                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal),
+            LogoutFailureType.InvalidRevocationProof => new GrpcErrorDescriptor(
                 ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
             _ => new GrpcErrorDescriptor(
                 ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal)

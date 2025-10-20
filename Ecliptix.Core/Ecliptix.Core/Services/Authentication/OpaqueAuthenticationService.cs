@@ -91,31 +91,43 @@ internal sealed class OpaqueAuthenticationService(
                 AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
 
-        byte[]? passwordBytes = null;
+        SensitiveBytes? passwordBytes = null;
+        Result<SensitiveBytes, SodiumFailure>? createResult = null;
+
         try
         {
-            securePassword.WithSecureBytes(bytes => passwordBytes = bytes.ToArray());
-
-            if (passwordBytes != null && passwordBytes.Length != 0)
+            securePassword.WithSecureBytes(passwordSpan =>
             {
-                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
-                    .ConfigureAwait(false);
+                createResult = SensitiveBytes.From(passwordSpan);
+            });
+
+            if (createResult == null || createResult.Value.IsErr)
+            {
+                string errorMessage = createResult?.IsErr == true
+                    ? $"Failed to create secure password buffer: {createResult.Value.UnwrapErr().Message}"
+                    : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(errorMessage));
             }
 
-            string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
+            passwordBytes = createResult.Value.Unwrap();
+
+            if (passwordBytes.Length == 0)
+            {
+                string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
+            }
+
+            return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
-            if (passwordBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(passwordBytes);
-            }
+            passwordBytes?.Dispose();
         }
     }
 
     private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber,
-        byte[] passwordBytes,
+        SensitiveBytes password,
         uint connectId, CancellationToken cancellationToken)
     {
         const int maxFlowAttempts = 3;
@@ -128,9 +140,37 @@ internal sealed class OpaqueAuthenticationService(
 
             while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
-                using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordBytes);
+                byte[]? passwordCopy = null;
+                byte[]? ke2Data = null;
+                byte[]? ke3Data = null;
+
+                try
+                {
+                    Result<Unit, SodiumFailure> readPasswordResult = password.WithReadAccess(span =>
+                    {
+                        passwordCopy = span.ToArray();
+                        return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+                    });
+
+                    if (readPasswordResult.IsErr)
+                    {
+                        lastError = AuthenticationFailure.UnexpectedError(
+                            $"Failed to read password: {readPasswordResult.UnwrapErr().Message}");
+                        break;
+                    }
+
+                    if (passwordCopy == null || passwordCopy.Length == 0)
+                    {
+                        string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+                        lastError = AuthenticationFailure.PasswordRequired(requiredError);
+                        break;
+                    }
+
+                    using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordCopy);
 
                 OpaqueSignInInitRequest initRequest = new()
                 {
@@ -163,17 +203,17 @@ internal sealed class OpaqueAuthenticationService(
                     return Result<Unit, AuthenticationFailure>.Err(authFailure);
                 }
 
-            byte[] ke2Data = initResponse.ServerStateToken.ToByteArray();
+                ke2Data = initResponse.ServerStateToken.ToByteArray();
 
-            Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
+                Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
-            if (ke3DataResult.IsErr)
-            {
-                string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
-                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(errorMessage));
-            }
+                if (ke3DataResult.IsErr)
+                {
+                    string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
+                    return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.InvalidCredentials(errorMessage));
+                }
 
-            byte[] ke3Data = ke3DataResult.Unwrap();
+                ke3Data = ke3DataResult.Unwrap();
             byte[] baseSessionKeyBytes = opaqueClient.DeriveBaseMasterKey(ke1Result);
 
             string baseKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(baseSessionKeyBytes);
@@ -358,6 +398,24 @@ internal sealed class OpaqueAuthenticationService(
                 lastError = MapNetworkFailure(finalizeFailure);
                 break;
             }
+            finally
+            {
+                if (passwordCopy is { Length: > 0 })
+                {
+                    CryptographicOperations.ZeroMemory(passwordCopy);
+                }
+
+                if (ke2Data is { Length: > 0 })
+                {
+                    CryptographicOperations.ZeroMemory(ke2Data);
+                }
+
+                if (ke3Data is { Length: > 0 })
+                {
+                    CryptographicOperations.ZeroMemory(ke3Data);
+                }
+            }
+            }
 
             bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
 
@@ -366,6 +424,9 @@ internal sealed class OpaqueAuthenticationService(
                 Serilog.Log.Warning(
                     "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MaxAttempts}",
                     attempt + 1, maxFlowAttempts);
+
+                networkProvider.ClearExhaustedOperations();
+                Serilog.Log.Information("[SIGNIN-FLOW-RETRY] Cleared exhaustion state to allow retry");
                 continue;
             }
 
@@ -410,7 +471,7 @@ internal sealed class OpaqueAuthenticationService(
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
-            RpcServiceType.OpaqueSignInInitRequest,
+            RpcServiceType.SignInInitRequest,
             SecureByteStringInterop.WithByteStringAsSpan(initRequest.ToByteString(), span => span.ToArray()),
             initResponsePayload =>
             {
@@ -441,7 +502,7 @@ internal sealed class OpaqueAuthenticationService(
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
-            RpcServiceType.OpaqueSignInCompleteRequest,
+            RpcServiceType.SignInCompleteRequest,
             SecureByteStringInterop.WithByteStringAsSpan(finalizeRequest.ToByteString(), span => span.ToArray()),
             finalizeResponsePayload =>
             {
@@ -508,6 +569,11 @@ internal sealed class OpaqueAuthenticationService(
 
     private static bool ShouldReinit(NetworkFailure failure)
     {
+        if (failure.RequiresReinit)
+        {
+            return true;
+        }
+
         if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
         {
             return true;

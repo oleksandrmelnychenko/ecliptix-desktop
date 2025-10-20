@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Modularity;
 using Ecliptix.Core.Core.Communication;
+using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication;
 
@@ -28,19 +29,19 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
             ModuleName = Id.ToName()
         });
 
-        Logger?.LogInformation("Authentication module message handlers setup completed");
+        Log.Information("Authentication module message handlers setup completed");
     }
 
     private Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
     {
-        Logger?.LogInformation("User authenticated: {UserId} - {Username}",
+        Log.Information("User authenticated: {UserId} - {Username}",
             authEvent.UserId, authEvent.Username);
         return Task.CompletedTask;
     }
 
     private Task OnUserSignedOut(UserSignedOutEvent signOutEvent)
     {
-        Logger?.LogInformation("User signed out: {UserId}", signOutEvent.UserId);
+        Log.Information("User signed out: {UserId}", signOutEvent.UserId);
         return Task.CompletedTask;
     }
 
@@ -48,7 +49,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
     {
         if (navEvent.TargetView == "Authentication")
         {
-            Logger?.LogDebug("Navigation to authentication view requested from: {SourceModule}",
+            Log.Debug("Navigation to authentication view requested from: {SourceModule}",
                 navEvent.SourceModule);
         }
         return Task.CompletedTask;

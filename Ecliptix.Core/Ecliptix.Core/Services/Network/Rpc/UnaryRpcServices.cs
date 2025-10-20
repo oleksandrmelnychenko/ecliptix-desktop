@@ -19,6 +19,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     private readonly Dictionary<RpcServiceType, GrpcMethodDelegate> _serviceMethods;
     private readonly MembershipServices.MembershipServicesClient _membershipServicesClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
+    private readonly IGrpcCallOptionsFactory _callOptionsFactory;
 
     private delegate Task<Result<SecureEnvelope, NetworkFailure>> GrpcMethodDelegate(
         SecureEnvelope payload,
@@ -31,26 +32,29 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         MembershipServices.MembershipServicesClient membershipServicesClient,
         DeviceService.DeviceServiceClient deviceServiceClient,
         AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
-        IGrpcErrorProcessor errorProcessor
+        IGrpcErrorProcessor errorProcessor,
+        IGrpcCallOptionsFactory callOptionsFactory
     )
     {
         _membershipServicesClient = membershipServicesClient;
         _errorProcessor = errorProcessor;
+        _callOptionsFactory = callOptionsFactory;
 
         _serviceMethods = new Dictionary<RpcServiceType, GrpcMethodDelegate>
         {
             [RpcServiceType.RegisterAppDevice] = RegisterDeviceAsync,
             [RpcServiceType.ValidateMobileNumber] = ValidateMobileNumberAsync,
             [RpcServiceType.CheckMobileNumberAvailability] = CheckMobileNumberAvailabilityAsync,
-            [RpcServiceType.OpaqueRegistrationInit] = OpaqueRegistrationRecordRequestAsync,
+            [RpcServiceType.RegistrationInit] = OpaqueRegistrationRecordRequestAsync,
             [RpcServiceType.VerifyOtp] = VerifyCodeAsync,
-            [RpcServiceType.OpaqueRegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
-            [RpcServiceType.OpaqueRecoverySecretKeyInit] = OpaqueRecoveryInitRequestAsync,
-            [RpcServiceType.OpaqueRecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
-            [RpcServiceType.OpaqueSignInInitRequest] = OpaqueSignInInitRequestAsync,
-            [RpcServiceType.OpaqueSignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
+            [RpcServiceType.RegistrationComplete] = OpaqueRegistrationCompleteRequestAsync,
+            [RpcServiceType.RecoverySecretKeyInit] = OpaqueRecoveryInitRequestAsync,
+            [RpcServiceType.RecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
+            [RpcServiceType.SignInInitRequest] = OpaqueSignInInitRequestAsync,
+            [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
             [RpcServiceType.Logout] = LogoutAsync
         };
+        return;
 
         async Task<Result<SecureEnvelope, NetworkFailure>> LogoutAsync(
             SecureEnvelope payload,
@@ -60,6 +64,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.Logout,
                 networkEvents,
                 requestContext,
                 token,
@@ -79,6 +84,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.RegisterAppDevice,
                 networkEvents,
                 requestContext,
                 token,
@@ -98,6 +104,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.ValidateMobileNumber,
                 networkEvents,
                 requestContext,
                 token,
@@ -117,6 +124,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.CheckMobileNumberAvailability,
                 networkEvents,
                 requestContext,
                 token,
@@ -136,6 +144,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.RegistrationInit,
                 networkEvents,
                 requestContext,
                 token,
@@ -155,6 +164,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.VerifyOtp,
                 networkEvents,
                 requestContext,
                 token,
@@ -174,6 +184,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.RegistrationComplete,
                 networkEvents,
                 requestContext,
                 token,
@@ -193,6 +204,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.SignInInitRequest,
                 networkEvents,
                 requestContext,
                 token,
@@ -212,6 +224,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.SignInCompleteRequest,
                 networkEvents,
                 requestContext,
                 token,
@@ -231,6 +244,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.RecoverySecretKeyInit,
                 networkEvents,
                 requestContext,
                 token,
@@ -250,6 +264,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         )
         {
             return await ExecuteGrpcCallAsync(
+                RpcServiceType.RecoverySecretKeyComplete,
                 networkEvents,
                 requestContext,
                 token,
@@ -293,6 +308,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     }
 
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteGrpcCallAsync(
+        RpcServiceType serviceType,
         INetworkEventService networkEvents,
         RpcRequestContext? requestContext,
         CancellationToken token,
@@ -301,17 +317,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
     {
         try
         {
-            Metadata? headers = null;
-            if (requestContext != null)
-            {
-                headers = new Metadata
-                {
-                    { "x-correlation-id", requestContext.CorrelationId },
-                    { "x-idempotency-key", requestContext.IdempotencyKey }
-                };
-            }
-
-            CallOptions callOptions = new(headers, cancellationToken: token);
+            CallOptions callOptions = _callOptionsFactory.Create(serviceType, requestContext, token);
             AsyncUnaryCall<SecureEnvelope> call = grpcCallFactory(callOptions);
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 

@@ -9,6 +9,7 @@ public record NetworkFailure(
     : FailureBase(Message, InnerException)
 {
     public UserFacingError? UserError { get; init; }
+    public bool RequiresReinit { get; init; }
 
     public override object ToStructuredLog()
     {
@@ -18,6 +19,7 @@ public record NetworkFailure(
             Message,
             InnerException,
             Timestamp,
+            RequiresReinit,
             UserError = UserError is null
                 ? null
                 : new

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Ecliptix.Core.Core.Abstractions;
 using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -69,8 +70,11 @@ internal class ParallelModuleLoader : IDisposable
                 Task<IModule> loadTask = LoadModuleWithContextAsync(nextModule, cancellationToken);
                 currentBatch.Add(loadTask);
 
-                Log.Debug("Queued module {ModuleName} for loading (Priority: {Priority})",
-                    nextModule.Id.ToName(), nextModule.Manifest.Priority);
+                if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                {
+                    Log.Debug("Queued module {ModuleName} for loading (Priority: {Priority})",
+                        nextModule.Id.ToName(), nextModule.Manifest.Priority);
+                }
             }
 
             if (currentBatch.Count == 0)
@@ -86,7 +90,10 @@ internal class ParallelModuleLoader : IDisposable
                 IModule completedModule = await completedTask;
                 loadedModules.Add(completedModule);
 
-                Log.Debug("Successfully loaded module {ModuleName}", completedModule.Id.ToName());
+                if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                {
+                    Log.Debug("Successfully loaded module {ModuleName}", completedModule.Id.ToName());
+                }
             }
             catch (Exception ex)
             {
@@ -145,7 +152,13 @@ internal class ParallelModuleLoader : IDisposable
             {
                 Log.Error(ex, "Background preloading failed");
             }
-        });
+        }).ContinueWith(task =>
+        {
+            if (task.IsFaulted && task.Exception != null)
+            {
+                Log.Error(task.Exception.GetBaseException(), "Unhandled exception in background module preloading");
+            }
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     public void Dispose()

@@ -242,7 +242,7 @@ public sealed class ApplicationRouter(
                 }
                 catch (Exception hideEx)
                 {
-                    Log.Error(hideEx, "[ROUTER-CLOSE-ERROR] Even Hide() failed: {Message}", hideEx.Message);
+                    Log.Error(hideEx, "[ROUTER-CLOSE-ERROR] Even Hide() failed");
                 }
             }
         });
@@ -266,7 +266,7 @@ public sealed class ApplicationRouter(
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[ROUTER-CLOSE-VERIFY] Second close attempt failed: {Message}", ex.Message);
+                Log.Error(ex, "[ROUTER-CLOSE-VERIFY] Second close attempt failed");
             }
         }
         else

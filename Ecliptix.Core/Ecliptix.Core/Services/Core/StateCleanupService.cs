@@ -17,7 +17,7 @@ internal sealed class StateCleanupService(
     ISecureProtocolStateStorage secureProtocolStateStorage,
     NetworkProvider networkProvider) : IStateCleanupService
 {
-    public async Task<Result<Unit, Exception>> CleanupUserStateAsync(string membershipId, uint connectId)
+    public async Task<Result<Unit, Exception>> CleanupMembershipStateAsync(string membershipId, uint connectId)
     {
         try
         {
@@ -53,7 +53,7 @@ internal sealed class StateCleanupService(
         }
     }
 
-    public async Task<Result<Unit, Exception>> CleanupUserStateWithKeysAsync(string membershipId, uint connectId)
+    public async Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId)
     {
         try
         {

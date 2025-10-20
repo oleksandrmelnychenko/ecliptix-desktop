@@ -159,7 +159,7 @@ internal sealed class PasswordRecoveryService(
 
             Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.OpaqueRecoverySecretKeyComplete,
+                RpcServiceType.RecoverySecretKeyComplete,
                 SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
@@ -227,7 +227,7 @@ internal sealed class PasswordRecoveryService(
 
             Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.OpaqueRecoverySecretKeyInit,
+                RpcServiceType.RecoverySecretKeyInit,
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
                 {
                     try

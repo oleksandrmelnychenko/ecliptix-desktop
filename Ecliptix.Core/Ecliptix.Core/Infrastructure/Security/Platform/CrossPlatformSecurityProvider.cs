@@ -11,6 +11,7 @@ using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Utilities;
 using Serilog;
+using Serilog.Events;
 
 namespace Ecliptix.Core.Infrastructure.Security.Platform;
 
@@ -348,7 +349,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
 
             byte[] machineKey = GetMachineKey();
-            string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
 
             using Aes aes = Aes.Create();
             aes.Key = machineKey;
@@ -356,8 +356,12 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             Span<byte> iv = encrypted.AsSpan(0, AesIvSize);
             aes.IV = iv.ToArray();
 
-            Log.Debug("[KEYCHAIN-FILE] Decrypting with machine key. Identifier: {Identifier}, MachineKeyFingerprint: {MachineKeyFingerprint}, EncryptedSize: {Size}",
-                identifier, machineKeyFingerprint, encrypted.Length);
+            if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+            {
+                string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
+                Log.Debug("[KEYCHAIN-FILE] Decrypting with machine key. Identifier: {Identifier}, MachineKeyFingerprint: {MachineKeyFingerprint}, EncryptedSize: {Size}",
+                    identifier, machineKeyFingerprint, encrypted.Length);
+            }
 
             using ICryptoTransform decryptor = aes.CreateDecryptor();
             byte[] decrypted = decryptor.TransformFinalBlock(encrypted, AesIvSize, encrypted.Length - AesIvSize);

@@ -6,5 +6,7 @@ public enum LogoutFailureType
     AlreadyLoggedOut,
     SessionNotFound,
     InvalidMembershipIdentifier,
+    CryptographicOperationFailed,
+    InvalidRevocationProof,
     UnexpectedError
 }

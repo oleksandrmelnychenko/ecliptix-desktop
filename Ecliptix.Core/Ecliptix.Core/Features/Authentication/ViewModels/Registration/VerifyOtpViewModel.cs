@@ -5,6 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -35,7 +36,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly ILocalizationService _localizationService;
-    private readonly IUiDispatcher _uiDispatcher;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly Lock _sessionLock = new();
     private readonly CompositeDisposable _disposables = new();
@@ -52,7 +52,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         ByteString mobileNumberIdentifier,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IUiDispatcher uiDispatcher,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
         IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider,
         localizationService)
@@ -63,7 +62,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         _passwordRecoveryService = passwordRecoveryService;
         _flowContext = flowContext;
         _localizationService = localizationService;
-        _uiDispatcher = uiDispatcher;
 
         if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
         {
@@ -190,7 +188,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         if (_isDisposed) return;
 
-        _cancellationTokenSource?.Cancel();
+        CancellationTokenSource? cts = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        cts?.Cancel();
+        cts?.Dispose();
 
         _ = Task.Run(async () =>
         {
@@ -475,7 +475,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             if (_isDisposed) return;
 
-            await _uiDispatcher.PostAsync(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _autoRedirectTimer?.Dispose();
                 _autoRedirectTimer = null;
@@ -565,7 +565,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
 
-            await _uiDispatcher.PostAsync(() =>
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
                 {
@@ -605,7 +605,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         if (_isDisposed) return;
 
-        await _uiDispatcher.PostAsync(async () =>
+        await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             _autoRedirectTimer?.Dispose();
             _autoRedirectTimer = null;

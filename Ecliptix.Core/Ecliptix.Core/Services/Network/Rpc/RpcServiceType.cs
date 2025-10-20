@@ -4,17 +4,24 @@ public enum RpcServiceType : short
 {
     EstablishSecrecyChannel,
     RestoreSecrecyChannel,
+    EstablishAuthenticatedSecureChannel,
+
     RegisterAppDevice,
+
     ValidateMobileNumber,
     CheckMobileNumberAvailability,
-    VerifyOtp,
+
     InitiateVerification,
-    OpaqueRegistrationInit,
-    OpaqueRegistrationComplete,
-    OpaqueRecoverySecretKeyInit,
-    OpaqueRecoverySecretKeyComplete,
-    OpaqueSignInInitRequest,
-    OpaqueSignInCompleteRequest,
-    AuthenticatedEstablishSecureChannel,
+    VerifyOtp,
+
+    RegistrationInit,
+    RegistrationComplete,
+
+    RecoverySecretKeyInit,
+    RecoverySecretKeyComplete,
+
+    SignInInitRequest,
+    SignInCompleteRequest,
+
     Logout,
 }

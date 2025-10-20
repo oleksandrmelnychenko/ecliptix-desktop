@@ -17,6 +17,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings;
@@ -340,7 +341,7 @@ public sealed class ApplicationInitializer(
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupUserStateWithKeysAsync(membershipId, connectId).ConfigureAwait(false);
+                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId).ConfigureAwait(false);
 
             if (cleanupResult.IsErr)
             {
@@ -396,6 +397,34 @@ public sealed class ApplicationInitializer(
                 Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }
+            return Result<bool, NetworkFailure>.Ok(false);
+        }
+
+        // SECURITY: Check if session was explicitly logged out (revocation proof exists)
+        string membershipIdString = SecureByteStringInterop.WithByteStringAsSpan(
+            applicationInstanceSettings.Membership!.UniqueIdentifier!,
+            span => new Guid(span.ToArray()).ToString());
+
+        bool hasRevocationProof = await LogoutService.HasRevocationProofAsync(
+            applicationSecureStorageProvider,
+            membershipIdString).ConfigureAwait(false);
+
+        if (hasRevocationProof)
+        {
+            Log.Warning("[CLIENT-RESTORE-GUARD] Session restoration blocked - revocation proof exists. " +
+                       "Session was explicitly logged out. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
+                membershipIdString, connectId);
+
+            networkProvider.ClearConnection(connectId);
+            Result<Unit, SecureStorageFailure> deleteStateResult =
+                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+
+            if (deleteStateResult.IsErr)
+            {
+                Log.Warning("[CLIENT-RESTORE-GUARD] Failed to delete state after revocation block. ConnectId: {ConnectId}, Error: {Error}",
+                    connectId, deleteStateResult.UnwrapErr().Message);
+            }
+
             return Result<bool, NetworkFailure>.Ok(false);
         }
 

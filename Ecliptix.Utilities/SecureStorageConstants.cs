@@ -28,6 +28,7 @@ internal static class SecureStorageConstants
     {
         public const string MasterKeyStoragePrefix = "master_";
         public const string KeychainWrapKeyPrefix = "ecliptix_master_wrap_";
+        public const string RevocationProofPrefix = "revocation_proof_";
         public const int AesKeySize = 32;
         public const int AesIvSize = 16;
     }

@@ -19,13 +19,16 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 {
     private readonly DeviceService.DeviceServiceClient _deviceServiceClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
+    private readonly IGrpcCallOptionsFactory _callOptionsFactory;
 
     public SecrecyChannelRpcServices(
         DeviceService.DeviceServiceClient deviceServiceClient,
-        IGrpcErrorProcessor errorProcessor)
+        IGrpcErrorProcessor errorProcessor,
+        IGrpcCallOptionsFactory callOptionsFactory)
     {
         _deviceServiceClient = deviceServiceClient;
         _errorProcessor = errorProcessor;
+        _callOptionsFactory = callOptionsFactory ?? throw new ArgumentNullException(nameof(callOptionsFactory));
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
@@ -42,7 +45,12 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             headers.Add("exchange-type", exchangeType.Value.ToString());
         }
 
-        return await ExecuteSecureEnvelopeAsync(networkEvents, request, headers, cancellationToken)
+        return await ExecuteSecureEnvelopeAsync(
+                RpcServiceType.EstablishSecrecyChannel,
+                networkEvents,
+                request,
+                headers,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -54,8 +62,10 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
         ArgumentNullException.ThrowIfNull(request);
 
         return await ExecuteAsync(
+                RpcServiceType.RestoreSecrecyChannel,
                 networkEvents,
-                () => _deviceServiceClient.RestoreSecureChannelAsync(request, cancellationToken: cancellationToken))
+                options => _deviceServiceClient.RestoreSecureChannelAsync(request, options),
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -68,9 +78,13 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
         try
         {
+            CallOptions callOptions = _callOptionsFactory.Create(
+                RpcServiceType.EstablishAuthenticatedSecureChannel,
+                requestContext: null,
+                cancellationToken);
             AsyncUnaryCall<SecureEnvelope> call = _deviceServiceClient.AuthenticatedEstablishSecureChannelAsync(
                 request,
-                cancellationToken: cancellationToken);
+                callOptions);
 
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
@@ -107,6 +121,10 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return Result<SecureEnvelope, NetworkFailure>.Err(
@@ -115,6 +133,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     }
 
     private async Task<Result<SecureEnvelope, NetworkFailure>> ExecuteSecureEnvelopeAsync(
+        RpcServiceType serviceType,
         INetworkEventService networkEvents,
         SecureEnvelope request,
         Metadata headers,
@@ -122,10 +141,10 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     {
         try
         {
+            CallOptions callOptions = _callOptionsFactory.Create(serviceType, null, cancellationToken, headers);
             AsyncUnaryCall<SecureEnvelope> call = _deviceServiceClient.EstablishSecureChannelAsync(
                 request,
-                headers,
-                cancellationToken: cancellationToken);
+                callOptions);
 
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
@@ -144,6 +163,10 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx, networkEvents).ConfigureAwait(false);
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             return Result<SecureEnvelope, NetworkFailure>.Err(
@@ -152,12 +175,15 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     }
 
     private async Task<Result<TResponse, NetworkFailure>> ExecuteAsync<TResponse>(
+        RpcServiceType serviceType,
         INetworkEventService networkEvents,
-        Func<AsyncUnaryCall<TResponse>> grpcCallFactory)
+        Func<CallOptions, AsyncUnaryCall<TResponse>> grpcCallFactory,
+        CancellationToken cancellationToken)
     {
         try
         {
-            AsyncUnaryCall<TResponse> call = grpcCallFactory();
+            CallOptions callOptions = _callOptionsFactory.Create(serviceType, null, cancellationToken);
+            AsyncUnaryCall<TResponse> call = grpcCallFactory(callOptions);
             TResponse response = await call.ResponseAsync.ConfigureAwait(false);
 
             await networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected)
@@ -174,6 +200,10 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
             NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx, networkEvents).ConfigureAwait(false);
             return Result<TResponse, NetworkFailure>.Err(failure);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

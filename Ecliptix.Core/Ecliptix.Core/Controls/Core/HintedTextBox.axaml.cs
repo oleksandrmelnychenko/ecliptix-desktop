@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
@@ -19,6 +20,7 @@ using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Services.Membership;
 using ReactiveUI;
+using Serilog;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -167,7 +169,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private string _lastProcessedText = string.Empty;
     private IDisposable? _currentTypingAnimation;
     private int _lastProcessedTextElementCount;
-    private volatile bool _isProcessingSecureKeyChange;
+    private int _isProcessingSecureKeyChange;
     private int _intendedCaretPosition;
     private string _originalErrorText = string.Empty;
 
@@ -453,7 +455,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
+                Log.Warning(ex, "Error disposing subscriptions in HintedTextBox");
             }
 
             _mainTextBox = null;
@@ -463,7 +465,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             _lastProcessedText = string.Empty;
             _lastProcessedTextElementCount = 0;
-            _isProcessingSecureKeyChange = false;
+            _isProcessingSecureKeyChange = 0;
             _intendedCaretPosition = 0;
 
             ErrorText = string.Empty;
@@ -471,7 +473,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
+            Log.Warning(ex, "Error during HintedTextBox.Dispose");
         }
     }
 
@@ -883,7 +885,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnSecureKeyDebounceTimerTick: {ex.Message}");
+            Log.Warning(ex, "Error in OnSecureKeyDebounceTimerTick");
         }
     }
 
@@ -900,15 +902,18 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnDebounceTimerTick: {ex.Message}");
+            Log.Warning(ex, "Error in OnDebounceTimerTick");
         }
     }
 
     private void ProcessSecureKeyChange()
     {
-        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed || _isProcessingSecureKeyChange) return;
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed)
+            return;
 
-        _isProcessingSecureKeyChange = true;
+        if (Interlocked.CompareExchange(ref _isProcessingSecureKeyChange, 1, 0) != 0)
+            return;
+
         try
         {
             string currentText = _mainTextBox.Text ?? string.Empty;
@@ -953,7 +958,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in ProcessSecureKeyChange: {ex.Message}");
+                Log.Warning(ex, "Error in ProcessSecureKeyChange");
 
                 if (currentText.Length > lastText.Length)
                 {
@@ -989,7 +994,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         finally
         {
-            _isProcessingSecureKeyChange = false;
+            Interlocked.Exchange(ref _isProcessingSecureKeyChange, 0);
         }
     }
 
@@ -1136,7 +1141,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnGotFocus: {ex.Message}");
+            Log.Warning(ex, "Error in OnGotFocus");
         }
     }
 
@@ -1149,7 +1154,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
+            Log.Warning(ex, "Error in OnLostFocus");
         }
     }
 
@@ -1170,7 +1175,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error in UpdateBorderState subscription: {ex.Message}");
+                    Log.Warning(ex, "Error in UpdateBorderState subscription");
                 }
             })
             .DisposeWith(_disposables);
@@ -1191,7 +1196,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
+                    Log.Warning(ex, "Error in ErrorText subscription");
                 }
             })
             .DisposeWith(_disposables);
@@ -1207,7 +1212,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error in Text subscription: {ex.Message}");
+                    Log.Warning(ex, "Error in Text subscription");
                 }
             })
             .DisposeWith(_disposables);
@@ -1225,7 +1230,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error in HasError subscription: {ex.Message}");
+                    Log.Warning(ex, "Error in HasError subscription");
                 }
             })
             .DisposeWith(_disposables);
@@ -1318,7 +1323,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error in TriggerTypingAnimation: {ex.Message}");
+            Log.Warning(ex, "Error in TriggerTypingAnimation");
         }
     }
 

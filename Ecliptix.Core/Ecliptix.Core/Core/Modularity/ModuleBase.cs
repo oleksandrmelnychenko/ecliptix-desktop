@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
+using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -11,7 +12,6 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 {
     private bool _isLoaded;
     private IServiceProvider? _serviceProvider;
-    protected ILogger? Logger;
 
     public abstract ModuleIdentifier Id { get; }
     public abstract TManifest Manifest { get; }
@@ -29,8 +29,6 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
         try
         {
             _serviceProvider = serviceProvider;
-            Logger = serviceProvider.GetService<ILogger<ModuleBase<TManifest>>>();
-            Logger?.LogInformation("Loading module: {ModuleName}", Id.ToName());
 
             ModuleResourceManager? resourceManager = serviceProvider.GetService<ModuleResourceManager>();
             if (resourceManager != null)
@@ -43,13 +41,13 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
             _isLoaded = true;
 
-            Logger?.LogInformation("Module loaded successfully: {ModuleName}", Id.ToName());
+            Log.Information("Module loaded successfully: {ModuleName}", Id.ToName());
         }
         catch (Exception ex)
         {
             ServiceScope?.Dispose();
             ServiceScope = null;
-            Logger?.LogError(ex, "Failed to load module: {ModuleName}", Id.ToName());
+            Log.Error(ex, "Failed to load module: {ModuleName}", Id.ToName());
             throw;
         }
     }
@@ -61,7 +59,7 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
         try
         {
-            Logger?.LogInformation("Unloading module: {ModuleName}", Id.ToName());
+            Log.Information("Unloading module: {ModuleName}", Id.ToName());
 
             await OnUnloadAsync();
 
@@ -71,11 +69,11 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
             _isLoaded = false;
             _serviceProvider = null;
 
-            Logger?.LogInformation("Module unloaded successfully: {ModuleName}", Id.ToName());
+            Log.Information("Module unloaded successfully: {ModuleName}", Id.ToName());
         }
         catch (Exception ex)
         {
-            Logger?.LogError(ex, "Failed to unload module: {ModuleName}", Id.ToName());
+            Log.Error(ex, "Failed to unload module: {ModuleName}", Id.ToName());
             throw;
         }
     }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Ecliptix.Protobuf.Common;
-using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
@@ -33,13 +32,6 @@ public class ServiceRequest
     public List<SecureEnvelope> EncryptedChunks { get; }
 
     public RpcRequestContext? RequestContext { get; }
-
-    public static ServiceRequest New(ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
-        SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null)
-    {
-        uint reqId = Helpers.GenerateRandomUInt32InRange(UtilityConstants.NetworkConstants.MinRequestId, uint.MaxValue);
-        return new ServiceRequest(reqId, actionType, rpcServiceMethod, payload, encryptedChunks, requestContext);
-    }
 
     public static ServiceRequest New(uint reqId, ServiceFlowType actionType, RpcServiceType rpcServiceMethod,
         SecureEnvelope payload, List<SecureEnvelope> encryptedChunks, RpcRequestContext? requestContext = null)

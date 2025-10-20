@@ -15,17 +15,20 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
 {
-    private readonly Dictionary<RpcServiceType, Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>> _serviceHandlers;
+    private readonly Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>> _serviceHandlers;
     private readonly AuthVerificationServices.AuthVerificationServicesClient _authenticationServicesClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
+    private readonly IGrpcCallOptionsFactory _callOptionsFactory;
 
     public ReceiveStreamRpcServices(
         AuthVerificationServices.AuthVerificationServicesClient authenticationServicesClient,
-        IGrpcErrorProcessor errorProcessor)
+        IGrpcErrorProcessor errorProcessor,
+        IGrpcCallOptionsFactory callOptionsFactory)
     {
         _authenticationServicesClient = authenticationServicesClient;
         _errorProcessor = errorProcessor;
-        _serviceHandlers = new Dictionary<RpcServiceType, Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>>
+        _callOptionsFactory = callOptionsFactory ?? throw new ArgumentNullException(nameof(callOptionsFactory));
+        _serviceHandlers = new Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
         {
             { RpcServiceType.InitiateVerification, InitiateVerification }
         };
@@ -36,11 +39,11 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
     {
         if (_serviceHandlers.TryGetValue(
                 request.RpcServiceMethod,
-                out Func<SecureEnvelope, CancellationToken, Result<RpcFlow, NetworkFailure>>? handler))
+                out Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>? handler))
         {
             try
             {
-                Result<RpcFlow, NetworkFailure> result = handler(request.Payload, token);
+                Result<RpcFlow, NetworkFailure> result = handler(request, token);
                 return Task.FromResult(result);
             }
             catch (RpcException rpcEx)
@@ -60,13 +63,18 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         ));
     }
 
-    private Result<RpcFlow, NetworkFailure> InitiateVerification(SecureEnvelope payload,
+    private Result<RpcFlow, NetworkFailure> InitiateVerification(ServiceRequest request,
         CancellationToken token)
     {
         try
         {
+            CallOptions callOptions = _callOptionsFactory.Create(
+                RpcServiceType.InitiateVerification,
+                request.RequestContext,
+                token);
+
             AsyncServerStreamingCall<SecureEnvelope> streamingCall =
-                _authenticationServicesClient.InitiateVerification(payload, cancellationToken: token);
+                _authenticationServicesClient.InitiateVerification(request.Payload, callOptions);
 
             IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream =
                 streamingCall.ResponseStream.ReadAllAsync(token)

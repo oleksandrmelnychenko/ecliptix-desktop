@@ -2,20 +2,13 @@ using System;
 
 namespace Ecliptix.Core.Services.Network.Rpc;
 
-public sealed class RpcRequestContext
+public sealed class RpcRequestContext(string correlationId, string idempotencyKey, int attempt = 1)
 {
-    public RpcRequestContext(string correlationId, string idempotencyKey, int attempt = 1)
-    {
-        CorrelationId = correlationId ?? throw new ArgumentNullException(nameof(correlationId));
-        IdempotencyKey = idempotencyKey ?? throw new ArgumentNullException(nameof(idempotencyKey));
-        Attempt = attempt;
-    }
+    public string CorrelationId { get; } = correlationId ?? throw new ArgumentNullException(nameof(correlationId));
 
-    public string CorrelationId { get; }
+    public string IdempotencyKey { get; } = idempotencyKey ?? throw new ArgumentNullException(nameof(idempotencyKey));
 
-    public string IdempotencyKey { get; }
-
-    public int Attempt { get; }
+    public int Attempt { get; } = attempt;
 
     public bool ReinitAttempted { get; private set; }
 
@@ -25,11 +18,6 @@ public sealed class RpcRequestContext
             Guid.NewGuid().ToString("N"),
             Guid.NewGuid().ToString("N"),
             attempt);
-    }
-
-    public RpcRequestContext CreateNextAttempt()
-    {
-        return CreateNew(Attempt + 1);
     }
 
     public void MarkReinitAttempted()

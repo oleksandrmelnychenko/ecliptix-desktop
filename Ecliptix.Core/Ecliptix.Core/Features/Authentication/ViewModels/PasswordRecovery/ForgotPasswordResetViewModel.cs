@@ -4,6 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Core.Abstractions;
@@ -42,6 +43,7 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
     private bool _hasNewPasswordBeenTouched;
     private bool _hasConfirmPasswordBeenTouched;
+    private CancellationTokenSource? _currentOperationCts;
 
     public ForgotPasswordResetViewModel(
         NetworkProvider networkProvider,
@@ -171,6 +173,19 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
     public void ResetState()
     {
+        try
+        {
+            _currentOperationCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            _currentOperationCts?.Dispose();
+            _currentOperationCts = null;
+        }
+
         _newPasswordBuffer.Remove(0, _newPasswordBuffer.Length);
         _confirmPasswordBuffer.Remove(0, _confirmPasswordBuffer.Length);
         _hasNewPasswordBeenTouched = false;
@@ -350,65 +365,106 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
         return string.IsNullOrEmpty(message) ? strengthText : string.Concat(strengthText, ": ", message);
     }
 
-    private async Task SubmitPasswordResetAsync()
+    private async Task<SystemU> SubmitPasswordResetAsync()
     {
-        if (IsBusy || !CanSubmit) return;
+        if (IsBusy || !CanSubmit)
+        {
+            return SystemU.Default;
+        }
 
         if (MembershipIdentifier == null)
         {
             ServerError = LocalizationService[AuthenticationConstants.NoVerificationSessionKey];
             HasServerError = true;
-            return;
+            return SystemU.Default;
         }
 
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+        ServerError = string.Empty;
+        HasServerError = false;
 
-        Result<Unit, string> resetResult = await _passwordRecoveryService.CompletePasswordResetAsync(
-            MembershipIdentifier,
-            _newPasswordBuffer,
-            connectId);
-
-        if (resetResult.IsErr)
+        try
         {
-            ServerError = resetResult.UnwrapErr();
-            HasServerError = true;
-        }
-        else
-        {
-            AuthenticationViewModel hostViewModel = (AuthenticationViewModel)HostScreen;
-            string? recoveryMobileNumber = hostViewModel.RecoveryMobileNumber;
-
-            if (string.IsNullOrEmpty(recoveryMobileNumber))
+            try
             {
-                ServerError = "Recovery mobile number not found. Please try again.";
-                HasServerError = true;
-                return;
+                _currentOperationCts?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
             }
 
-            Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
-                recoveryMobileNumber,
-                _newPasswordBuffer,
-                connectId);
+            _currentOperationCts?.Dispose();
+            CancellationTokenSource operationCts = new();
+            _currentOperationCts = operationCts;
+            CancellationToken operationToken = operationCts.Token;
 
-            if (signInResult.IsOk)
+            try
             {
-                try
+                uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+
+                Result<Unit, string> resetResult = await _passwordRecoveryService.CompletePasswordResetAsync(
+                    MembershipIdentifier,
+                    _newPasswordBuffer,
+                    connectId,
+                    operationToken);
+
+                if (resetResult.IsErr)
                 {
-                    await hostViewModel.SwitchToMainWindowCommand.Execute();
+                    ServerError = resetResult.UnwrapErr();
+                    HasServerError = true;
+                    return SystemU.Default;
                 }
-                catch (Exception ex)
+
+                AuthenticationViewModel hostViewModel = (AuthenticationViewModel)HostScreen;
+                string? recoveryMobileNumber = hostViewModel.RecoveryMobileNumber;
+
+                if (string.IsNullOrEmpty(recoveryMobileNumber))
                 {
-                    Log.Error(ex, "Failed to switch to main window after successful password reset");
-                    ServerError = $"Failed to navigate to main window: {ex.Message}";
+                    ServerError = "Recovery mobile number not found. Please try again.";
+                    HasServerError = true;
+                    return SystemU.Default;
+                }
+
+                Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
+                    recoveryMobileNumber,
+                    _newPasswordBuffer,
+                    connectId,
+                    operationToken);
+
+                if (signInResult.IsOk)
+                {
+                    try
+                    {
+                        await hostViewModel.SwitchToMainWindowCommand.Execute();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Failed to switch to main window after successful password reset");
+                        ServerError = $"Failed to navigate to main window: {ex.Message}";
+                        HasServerError = true;
+                    }
+                }
+                else
+                {
+                    AuthenticationFailure failure = signInResult.UnwrapErr();
+                    ServerError = string.Concat("Auto-login failed: ", failure.Message);
                     HasServerError = true;
                 }
+
+                return SystemU.Default;
             }
-            else
+            finally
             {
-                AuthenticationFailure failure = signInResult.UnwrapErr();
-                ServerError = string.Concat("Auto-login failed: ", failure.Message);
-                HasServerError = true;
+                if (ReferenceEquals(_currentOperationCts, operationCts))
+                {
+                    _currentOperationCts = null;
+                }
+
+                operationCts.Dispose();
             }
+        }
+        catch (OperationCanceledException)
+        {
+            return SystemU.Default;
         }
     }
 
@@ -416,6 +472,19 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
     {
         if (disposing)
         {
+            try
+            {
+                _currentOperationCts?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                _currentOperationCts?.Dispose();
+                _currentOperationCts = null;
+            }
+
             _newPasswordBuffer.Dispose();
             _confirmPasswordBuffer.Dispose();
             _disposables.Dispose();
