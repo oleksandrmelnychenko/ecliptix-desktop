@@ -1,0 +1,430 @@
+name: Automated Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-and-package-windows:
+    name: Windows Build & Installer
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        runtime: [win-x64, win-arm64]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get Version
+      id: version
+      shell: pwsh
+      run: |
+        if ("${{ github.event.inputs.version }}" -ne "") {
+          $version = "${{ github.event.inputs.version }}".TrimStart('v')
+        } elseif ("${{ github.ref_name }}" -match "^v") {
+          $version = "${{ github.ref_name }}".TrimStart('v')
+        } else {
+          $version = "0.0.1"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+
+    - name: Build AOT Windows
+      shell: pwsh
+      run: |
+        .\Scripts\build-aot-windows.ps1 -Runtime ${{ matrix.runtime }} -Optimization aggressive
+
+    - name: Install Inno Setup
+      shell: pwsh
+      run: |
+        choco install innosetup -y
+
+    - name: Create Windows Installer
+      shell: pwsh
+      run: |
+        $env:VERSION = "${{ steps.version.outputs.VERSION }}"
+        .\Scripts\create-windows-installer.ps1 -Runtime ${{ matrix.runtime }}
+
+    - name: Sign Windows Installer (Optional)
+      if: secrets.WIN_SIGN_CERT != ''
+      shell: pwsh
+      run: |
+        $cert = [System.Convert]::FromBase64String("${{ secrets.WIN_SIGN_CERT }}")
+        [System.IO.File]::WriteAllBytes("cert.pfx", $cert)
+
+        $installers = Get-ChildItem -Path "installers" -Filter "*.exe"
+        foreach ($installer in $installers) {
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+            /f cert.pfx `
+            /p "${{ secrets.WIN_SIGN_PASSWORD }}" `
+            /tr http://timestamp.digicert.com `
+            /td sha256 `
+            /fd sha256 `
+            $installer.FullName
+        }
+        Remove-Item cert.pfx
+
+    - name: Calculate Checksums
+      shell: pwsh
+      run: |
+        Get-ChildItem -Path "installers" -Filter "*.exe" | ForEach-Object {
+          $hash = Get-FileHash -Algorithm SHA256 -Path $_.FullName
+          $hash.Hash | Out-File -FilePath "$($_.FullName).sha256" -NoNewline
+          echo "$($_.Name): $($hash.Hash)"
+        }
+
+    - name: Upload Windows Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: installer-${{ matrix.runtime }}
+        path: |
+          installers/*.exe
+          installers/*.sha256
+        retention-days: 90
+
+  build-and-package-macos:
+    name: macOS Build & Installer
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runtime: osx-x64
+            arch: intel
+          - runtime: osx-arm64
+            arch: arm64
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get Version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ "${{ github.ref_name }}" =~ ^v ]]; then
+          VERSION="${{ github.ref_name }}"
+        else
+          VERSION="v0.0.1"
+        fi
+        VERSION="${VERSION#v}"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Build AOT macOS
+      run: |
+        chmod +x Scripts/build-aot-macos.sh
+        ./Scripts/build-aot-macos.sh -r ${{ matrix.runtime }} --optimization aggressive
+
+    - name: Create macOS DMG Installer
+      run: |
+        chmod +x Scripts/create-macos-installer.sh
+        export VERSION="${{ steps.version.outputs.VERSION }}"
+        ./Scripts/create-macos-installer.sh ${{ matrix.runtime }}
+
+    - name: Sign macOS App (Optional)
+      if: secrets.MACOS_CERT != ''
+      run: |
+        echo "${{ secrets.MACOS_CERT }}" | base64 --decode > certificate.p12
+        security create-keychain -p actions build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p actions build.keychain
+        security import certificate.p12 -k build.keychain -P "${{ secrets.MACOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+        security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+
+        /usr/bin/codesign --force --deep --sign "${{ secrets.MACOS_SIGN_IDENTITY }}" \
+          --options runtime \
+          --entitlements Scripts/entitlements.plist \
+          "installers/Ecliptix-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.dmg"
+
+    - name: Notarize macOS DMG (Optional)
+      if: secrets.MACOS_NOTARIZE_KEY != ''
+      run: |
+        xcrun notarytool submit \
+          "installers/Ecliptix-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.dmg" \
+          --apple-id "${{ secrets.MACOS_APPLE_ID }}" \
+          --team-id "${{ secrets.MACOS_TEAM_ID }}" \
+          --password "${{ secrets.MACOS_NOTARIZE_KEY }}" \
+          --wait
+
+        xcrun stapler staple "installers/Ecliptix-${{ steps.version.outputs.VERSION }}-${{ matrix.runtime }}.dmg"
+
+    - name: Calculate Checksums
+      run: |
+        cd installers
+        for file in *.dmg; do
+          shasum -a 256 "$file" | awk '{print $1}' > "$file.sha256"
+          echo "$file: $(cat $file.sha256)"
+        done
+
+    - name: Upload macOS Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: installer-macos-${{ matrix.arch }}
+        path: |
+          installers/*.dmg
+          installers/*.sha256
+        retention-days: 90
+
+  build-and-package-linux:
+    name: Linux Build & Packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runtime: [linux-x64, linux-arm64]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get Version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ "${{ github.ref_name }}" =~ ^v ]]; then
+          VERSION="${{ github.ref_name }}"
+        else
+          VERSION="v0.0.1"
+        fi
+        VERSION="${VERSION#v}"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Install Packaging Tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm dpkg-dev alien
+
+    - name: Build AOT Linux
+      run: |
+        chmod +x Scripts/build-aot-linux.sh
+        ./Scripts/build-aot-linux.sh -r ${{ matrix.runtime }} --optimization aggressive
+
+    - name: Create Linux Packages
+      run: |
+        chmod +x Scripts/create-linux-installer.sh
+        export VERSION="${{ steps.version.outputs.VERSION }}"
+        ./Scripts/create-linux-installer.sh ${{ matrix.runtime }}
+
+    - name: Sign Linux Packages (Optional)
+      if: secrets.GPG_PRIVATE_KEY != ''
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
+
+        cd installers
+        for file in *.deb *.rpm; do
+          if [ -f "$file" ]; then
+            gpg --armor --detach-sign "$file"
+          fi
+        done
+
+    - name: Calculate Checksums
+      run: |
+        cd installers
+        for file in *.deb *.rpm *.tar.gz; do
+          if [ -f "$file" ]; then
+            sha256sum "$file" | awk '{print $1}' > "$file.sha256"
+            echo "$file: $(cat $file.sha256)"
+          fi
+        done
+
+    - name: Upload Linux Packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: installer-${{ matrix.runtime }}
+        path: |
+          installers/*.deb
+          installers/*.rpm
+          installers/*.tar.gz
+          installers/*.sha256
+          installers/*.asc
+        retention-days: 90
+
+  generate-update-manifest:
+    name: Generate Update Manifest
+    needs: [build-and-package-windows, build-and-package-macos, build-and-package-linux]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Get Version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ "${{ github.ref_name }}" =~ ^v ]]; then
+          VERSION="${{ github.ref_name }}"
+        else
+          VERSION="v0.0.1"
+        fi
+        VERSION="${VERSION#v}"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Generate Update Manifest
+      run: |
+        chmod +x Scripts/generate-manifest.sh
+        ./Scripts/generate-manifest.sh \
+          --version "${{ steps.version.outputs.VERSION }}" \
+          --artifacts-dir ./artifacts \
+          --base-url "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}" \
+          --output UpdateServer/manifest.json
+
+    - name: Upload Manifest
+      uses: actions/upload-artifact@v4
+      with:
+        name: update-manifest
+        path: UpdateServer/manifest.json
+        retention-days: 90
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [generate-update-manifest]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: Organize Files
+      run: |
+        mkdir -p release-files
+        find ./artifacts -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.deb" -o -name "*.rpm" -o -name "*.tar.gz" -o -name "*.sha256" -o -name "*.asc" \) -exec cp {} release-files/ \;
+        cp ./artifacts/update-manifest/manifest.json release-files/ || true
+
+        ls -lh release-files/
+
+    - name: Get Version
+      id: version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ "${{ github.ref_name }}" =~ ^v ]]; then
+          VERSION="${{ github.ref_name }}"
+        else
+          VERSION="v0.0.1"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create Release Notes
+      run: |
+        cat > release-notes.md << 'EOF'
+        ## Ecliptix Desktop ${{ steps.version.outputs.VERSION }}
+
+        ### Installation
+
+        **Windows:**
+        - Download `Ecliptix-*-win-x64.exe` for Intel/AMD processors
+        - Download `Ecliptix-*-win-arm64.exe` for ARM64 processors
+        - Run the installer and follow the prompts
+
+        **macOS:**
+        - Download `Ecliptix-*-osx-x64.dmg` for Intel Macs
+        - Download `Ecliptix-*-osx-arm64.dmg` for Apple Silicon (M1/M2/M3)
+        - Open the DMG and drag Ecliptix to Applications
+
+        **Linux:**
+        - **Debian/Ubuntu:** Download `.deb` package and run `sudo dpkg -i ecliptix_*.deb`
+        - **Fedora/RHEL:** Download `.rpm` package and run `sudo rpm -i ecliptix-*.rpm`
+        - **Other:** Download `.tar.gz` and extract
+
+        ### Verification
+
+        All binaries include SHA256 checksums (`.sha256` files). Verify integrity:
+
+        ```bash
+        # Windows (PowerShell)
+        (Get-FileHash -Algorithm SHA256 .\Ecliptix-*.exe).Hash -eq (Get-Content .\Ecliptix-*.exe.sha256)
+
+        # macOS/Linux
+        sha256sum -c Ecliptix-*.dmg.sha256
+        ```
+
+        ### Auto-Updates
+
+        This release includes automatic update checking. The application will notify you when new versions are available.
+
+        ---
+
+        🤖 Generated with [Claude Code](https://claude.com/claude-code)
+        EOF
+
+    - name: Create or Update Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: Ecliptix Desktop ${{ steps.version.outputs.VERSION }}
+        body_path: release-notes.md
+        files: release-files/*
+        draft: false
+        prerelease: ${{ github.event.inputs.prerelease || false }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-update-server:
+    name: Deploy Update Manifest
+    needs: [create-github-release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    steps:
+    - name: Download Manifest
+      uses: actions/download-artifact@v4
+      with:
+        name: update-manifest
+        path: ./
+
+    - name: Deploy to Update Server (GitHub Pages)
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        publish_branch: gh-pages
+        destination_dir: updates
+        commit_message: "Update manifest for ${{ github.ref_name }}"
