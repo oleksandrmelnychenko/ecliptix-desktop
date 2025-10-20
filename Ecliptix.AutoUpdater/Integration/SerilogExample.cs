@@ -8,22 +8,17 @@ using System;
 
 namespace Ecliptix.Desktop.Integration;
 
-/// <summary>
-/// Example Program.cs showing Serilog integration with UpdateManager
-/// </summary>
 public class Program
 {
     [STAThread]
     public static void Main(string[] args)
     {
-        // Build configuration first
-        var configuration = new ConfigurationBuilder()
+        IConfiguration configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
-        // Configure Serilog from configuration
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(configuration)
             .Enrich.FromLogContext()
@@ -62,24 +57,18 @@ public class Program
 
     public static AppBuilder BuildAvaloniaApp()
     {
-        // Build configuration
-        var configuration = new ConfigurationBuilder()
+        IConfiguration configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
-        // Setup DI container
-        var services = new ServiceCollection();
+        ServiceCollection services = new ServiceCollection();
 
-        // Register configuration
         services.AddSingleton<IConfiguration>(configuration);
-
-        // Register Serilog logger
         services.AddSingleton(Log.Logger);
 
-        // Register update configuration
-        var updateConfig = configuration.GetSection("UpdateService").Get<UpdateConfiguration>()
+        UpdateConfiguration updateConfig = configuration.GetSection("UpdateService").Get<UpdateConfiguration>()
             ?? new UpdateConfiguration
             {
                 UpdateServerUrl = "https://updates.ecliptix.com",
@@ -96,22 +85,19 @@ public class Program
             updateConfig.CheckInterval
         });
 
-        // Register update manager with Serilog logger
         services.AddSingleton<UpdateManager>(sp =>
         {
-            var config = sp.GetRequiredService<UpdateConfiguration>();
-            var logger = sp.GetRequiredService<ILogger>();
+            UpdateConfiguration config = sp.GetRequiredService<UpdateConfiguration>();
+            ILogger logger = sp.GetRequiredService<ILogger>();
 
             Log.Information("Initializing UpdateManager");
             return new UpdateManager(config, logger);
         });
 
-        // Register ViewModels
         services.AddTransient<UpdateViewModel>();
         services.AddTransient<MainWindowViewModel>();
 
-        // Build service provider
-        var serviceProvider = services.BuildServiceProvider();
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
 
         // Configure Avalonia
         return AppBuilder.Configure<App>()
@@ -135,9 +121,6 @@ public class Program
     }
 }
 
-/// <summary>
-/// Example App.axaml.cs with UpdateManager initialization
-/// </summary>
 public partial class App : Application
 {
     public IServiceProvider? ServiceProvider { get; set; }
@@ -155,8 +138,7 @@ public partial class App : Application
 
             try
             {
-                // Get services
-                var updateManager = ServiceProvider?.GetService<UpdateManager>();
+                UpdateManager? updateManager = ServiceProvider?.GetService<UpdateManager>();
                 if (updateManager == null)
                 {
                     Log.Warning("UpdateManager not available");
@@ -165,13 +147,11 @@ public partial class App : Application
                 {
                     Log.Information("UpdateManager initialized successfully");
 
-                    // Subscribe to update events for logging
                     updateManager.UpdateAvailable += OnUpdateAvailable;
                     updateManager.ErrorOccurred += OnUpdateError;
                 }
 
-                // Create main window with view model
-                var mainViewModel = ServiceProvider?.GetService<MainWindowViewModel>()
+                MainWindowViewModel mainViewModel = ServiceProvider?.GetService<MainWindowViewModel>()
                     ?? new MainWindowViewModel(updateManager!);
 
                 desktop.MainWindow = new MainWindow
@@ -212,9 +192,6 @@ public partial class App : Application
     }
 }
 
-/// <summary>
-/// Example MainWindowViewModel with UpdateViewModel
-/// </summary>
 public class MainWindowViewModel : ViewModelBase
 {
     private readonly ILogger _logger;
@@ -225,10 +202,8 @@ public class MainWindowViewModel : ViewModelBase
         _logger = Log.ForContext<MainWindowViewModel>();
         _logger.Information("MainWindowViewModel initializing");
 
-        // Create update view model
         UpdateViewModel = new UpdateViewModel(updateManager);
 
-        // Check for updates on startup (delayed)
         _ = CheckForUpdatesOnStartupAsync();
     }
 

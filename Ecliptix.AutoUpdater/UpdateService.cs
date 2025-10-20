@@ -6,9 +6,6 @@ using Ecliptix.AutoUpdater.Models;
 
 namespace Ecliptix.AutoUpdater;
 
-/// <summary>
-/// Service for checking and applying application updates
-/// </summary>
 public class UpdateService
 {
     private readonly HttpClient _httpClient;
@@ -16,9 +13,6 @@ public class UpdateService
     private readonly string _currentVersion;
     private readonly string _appDataPath;
 
-    /// <summary>
-    /// Event raised when download progress changes
-    /// </summary>
     public event EventHandler<UpdateProgress>? DownloadProgressChanged;
 
     public UpdateService(string updateServerUrl, string currentVersion)
@@ -38,15 +32,12 @@ public class UpdateService
         Directory.CreateDirectory(_appDataPath);
     }
 
-    /// <summary>
-    /// Check if an update is available
-    /// </summary>
     public async Task<UpdateCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var manifestUrl = $"{_updateServerUrl}/manifest.json";
-            var response = await _httpClient.GetAsync(manifestUrl, cancellationToken);
+            string manifestUrl = $"{_updateServerUrl}/manifest.json";
+            HttpResponseMessage response = await _httpClient.GetAsync(manifestUrl, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -58,8 +49,8 @@ public class UpdateService
                 };
             }
 
-            var manifestJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            var manifest = JsonSerializer.Deserialize<UpdateManifest>(manifestJson);
+            string manifestJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            UpdateManifest? manifest = JsonSerializer.Deserialize<UpdateManifest>(manifestJson);
 
             if (manifest == null)
             {
@@ -71,9 +62,8 @@ public class UpdateService
                 };
             }
 
-            // Compare versions
-            var isUpdateAvailable = CompareVersions(_currentVersion, manifest.Version) < 0;
-            var isCritical = manifest.IsCritical ||
+            bool isUpdateAvailable = CompareVersions(_currentVersion, manifest.Version) < 0;
+            bool isCritical = manifest.IsCritical ||
                            (manifest.MinimumVersion != null &&
                             CompareVersions(_currentVersion, manifest.MinimumVersion) < 0);
 
@@ -97,32 +87,26 @@ public class UpdateService
         }
     }
 
-    /// <summary>
-    /// Download and install an update
-    /// </summary>
     public async Task<bool> DownloadAndInstallUpdateAsync(
         UpdateManifest manifest,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var platform = GetCurrentPlatform();
-            if (!manifest.Platforms.TryGetValue(platform, out var platformUpdate))
+            string platform = GetCurrentPlatform();
+            if (!manifest.Platforms.TryGetValue(platform, out PlatformUpdate? platformUpdate))
             {
                 throw new InvalidOperationException($"No update available for platform: {platform}");
             }
 
-            // Download the update
-            var downloadPath = await DownloadUpdateAsync(platformUpdate, cancellationToken);
+            string downloadPath = await DownloadUpdateAsync(platformUpdate, cancellationToken);
 
-            // Verify checksum
             if (!await VerifyChecksumAsync(downloadPath, platformUpdate.Sha256))
             {
                 File.Delete(downloadPath);
                 throw new InvalidOperationException("Update file checksum verification failed");
             }
 
-            // Install the update
             await InstallUpdateAsync(downloadPath, platformUpdate.InstallerType);
 
             return true;
@@ -138,29 +122,28 @@ public class UpdateService
         PlatformUpdate platformUpdate,
         CancellationToken cancellationToken)
     {
-        var fileName = Path.GetFileName(new Uri(platformUpdate.DownloadUrl).AbsolutePath);
-        var downloadPath = Path.Combine(_appDataPath, fileName);
+        string fileName = Path.GetFileName(new Uri(platformUpdate.DownloadUrl).AbsolutePath);
+        string downloadPath = Path.Combine(_appDataPath, fileName);
 
-        // Delete existing file if present
         if (File.Exists(downloadPath))
         {
             File.Delete(downloadPath);
         }
 
-        using var response = await _httpClient.GetAsync(
+        using HttpResponseMessage response = await _httpClient.GetAsync(
             platformUpdate.DownloadUrl,
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
-        var totalBytes = response.Content.Headers.ContentLength ?? platformUpdate.FileSize;
-        var bytesDownloaded = 0L;
+        long totalBytes = response.Content.Headers.ContentLength ?? platformUpdate.FileSize;
+        long bytesDownloaded = 0L;
 
-        using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+        using Stream contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using FileStream fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
-        var buffer = new byte[8192];
+        byte[] buffer = new byte[8192];
         int bytesRead;
 
         while ((bytesRead = await contentStream.ReadAsync(buffer, cancellationToken)) > 0)
@@ -168,7 +151,6 @@ public class UpdateService
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
             bytesDownloaded += bytesRead;
 
-            // Report progress
             DownloadProgressChanged?.Invoke(this, new UpdateProgress
             {
                 BytesDownloaded = bytesDownloaded,
@@ -182,10 +164,10 @@ public class UpdateService
 
     private async Task<bool> VerifyChecksumAsync(string filePath, string expectedSha256)
     {
-        using var sha256 = SHA256.Create();
-        using var stream = File.OpenRead(filePath);
-        var hashBytes = await sha256.ComputeHashAsync(stream);
-        var actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        using SHA256 sha256 = SHA256.Create();
+        using FileStream stream = File.OpenRead(filePath);
+        byte[] hashBytes = await sha256.ComputeHashAsync(stream);
+        string actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         return actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -193,7 +175,6 @@ public class UpdateService
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            // Launch installer and exit application
             Process.Start(new ProcessStartInfo
             {
                 FileName = installerPath,
@@ -203,7 +184,6 @@ public class UpdateService
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            // Open DMG for user to drag and drop
             Process.Start(new ProcessStartInfo
             {
                 FileName = "open",
@@ -215,7 +195,6 @@ public class UpdateService
         {
             if (installerType == "appimage")
             {
-                // Make AppImage executable and show in file manager
                 File.SetUnixFileMode(installerPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                 Process.Start(new ProcessStartInfo
                 {
@@ -226,7 +205,6 @@ public class UpdateService
             }
             else if (installerType == "deb" || installerType == "rpm")
             {
-                // Show installer in file manager for manual installation
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "xdg-open",
@@ -259,17 +237,16 @@ public class UpdateService
 
     private static int CompareVersions(string version1, string version2)
     {
-        // Remove 'v' prefix if present and any build metadata
         version1 = version1.TrimStart('v').Split('-')[0];
         version2 = version2.TrimStart('v').Split('-')[0];
 
-        var v1Parts = version1.Split('.').Select(int.Parse).ToArray();
-        var v2Parts = version2.Split('.').Select(int.Parse).ToArray();
+        int[] v1Parts = version1.Split('.').Select(int.Parse).ToArray();
+        int[] v2Parts = version2.Split('.').Select(int.Parse).ToArray();
 
         for (int i = 0; i < Math.Max(v1Parts.Length, v2Parts.Length); i++)
         {
-            var v1Part = i < v1Parts.Length ? v1Parts[i] : 0;
-            var v2Part = i < v2Parts.Length ? v2Parts[i] : 0;
+            int v1Part = i < v1Parts.Length ? v1Parts[i] : 0;
+            int v2Part = i < v2Parts.Length ? v2Parts[i] : 0;
 
             if (v1Part < v2Part) return -1;
             if (v1Part > v2Part) return 1;

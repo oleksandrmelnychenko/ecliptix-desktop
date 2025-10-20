@@ -5,9 +5,6 @@ using Serilog;
 
 namespace Ecliptix.AutoUpdater;
 
-/// <summary>
-/// Production-ready update manager with background checking and error handling
-/// </summary>
 public class UpdateManager : IDisposable
 {
     private readonly UpdateService _updateService;
@@ -18,34 +15,12 @@ public class UpdateManager : IDisposable
     private bool _isChecking;
     private bool _isDownloading;
 
-    /// <summary>
-    /// Raised when update availability changes
-    /// </summary>
     public event EventHandler<UpdateCheckResult>? UpdateAvailable;
-
-    /// <summary>
-    /// Raised when download progress changes
-    /// </summary>
     public event EventHandler<UpdateProgress>? DownloadProgressChanged;
-
-    /// <summary>
-    /// Raised when an error occurs
-    /// </summary>
     public event EventHandler<string>? ErrorOccurred;
 
-    /// <summary>
-    /// Gets whether an update is currently being checked
-    /// </summary>
     public bool IsCheckingForUpdates => _isChecking;
-
-    /// <summary>
-    /// Gets whether an update is currently downloading
-    /// </summary>
     public bool IsDownloading => _isDownloading;
-
-    /// <summary>
-    /// Gets the last check result
-    /// </summary>
     public UpdateCheckResult? LastCheckResult => _lastCheckResult;
 
     public UpdateManager(
@@ -55,8 +30,7 @@ public class UpdateManager : IDisposable
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger;
 
-        // Get current version
-        var version = Assembly.GetEntryAssembly()?
+        string version = Assembly.GetEntryAssembly()?
             .GetName()
             .Version?
             .ToString() ?? "1.0.0";
@@ -64,13 +38,12 @@ public class UpdateManager : IDisposable
         _updateService = new UpdateService(config.UpdateServerUrl, version);
         _updateService.DownloadProgressChanged += OnDownloadProgressChanged;
 
-        // Set up automatic checking if enabled
         if (config.EnableAutoCheck && config.CheckInterval > TimeSpan.Zero)
         {
             _checkTimer = new Timer(
                 async _ => await CheckForUpdatesInternalAsync(),
                 null,
-                TimeSpan.FromSeconds(30), // Check 30 seconds after startup
+                TimeSpan.FromSeconds(30),
                 config.CheckInterval
             );
 
@@ -84,9 +57,6 @@ public class UpdateManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Check for updates manually
-    /// </summary>
     public async Task<UpdateCheckResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
     {
         return await CheckForUpdatesInternalAsync(cancellationToken);
@@ -110,7 +80,7 @@ public class UpdateManager : IDisposable
             _isChecking = true;
             _logger?.LogInformation("Checking for updates...");
 
-            var result = await _updateService.CheckForUpdatesAsync(cancellationToken);
+            UpdateCheckResult result = await _updateService.CheckForUpdatesAsync(cancellationToken);
 
             _lastCheckResult = result;
 
@@ -123,13 +93,12 @@ public class UpdateManager : IDisposable
 
                 UpdateAvailable?.Invoke(this, result);
 
-                // Auto-download if enabled and not critical (critical updates should prompt user)
                 if (_config.EnableAutoDownload && !result.IsCritical)
                 {
                     _logger?.LogInformation("Auto-download enabled, starting download...");
                     _ = Task.Run(async () =>
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(5)); // Small delay
+                        await Task.Delay(TimeSpan.FromSeconds(5));
                         await DownloadAndInstallUpdateAsync(cancellationToken);
                     });
                 }
@@ -145,7 +114,7 @@ public class UpdateManager : IDisposable
         {
             _logger?.LogError(ex, "Error checking for updates");
 
-            var errorResult = new UpdateCheckResult
+            UpdateCheckResult errorResult = new UpdateCheckResult
             {
                 CurrentVersion = _updateService._currentVersion,
                 IsUpdateAvailable = false,
@@ -162,9 +131,6 @@ public class UpdateManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Download and install the latest update
-    /// </summary>
     public async Task<bool> DownloadAndInstallUpdateAsync(CancellationToken cancellationToken = default)
     {
         if (_isDownloading)
@@ -184,7 +150,7 @@ public class UpdateManager : IDisposable
             _isDownloading = true;
             _logger?.LogInformation("Starting update download and installation...");
 
-            var success = await _updateService.DownloadAndInstallUpdateAsync(
+            bool success = await _updateService.DownloadAndInstallUpdateAsync(
                 _lastCheckResult.Manifest,
                 cancellationToken);
 
@@ -192,7 +158,6 @@ public class UpdateManager : IDisposable
             {
                 _logger?.LogInformation("Update downloaded and ready to install");
 
-                // Notify user that app will restart
                 if (_config.AutoRestartAfterUpdate)
                 {
                     _logger?.LogInformation("Auto-restart enabled, application will restart in 3 seconds...");
@@ -225,9 +190,6 @@ public class UpdateManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Get update information without checking server (uses cached result)
-    /// </summary>
     public UpdateCheckResult? GetCachedUpdateInfo()
     {
         return _lastCheckResult;
@@ -248,7 +210,7 @@ public class UpdateManager : IDisposable
     {
         try
         {
-            var exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
             if (exePath != null)
             {
                 Process.Start(exePath);
@@ -269,43 +231,13 @@ public class UpdateManager : IDisposable
     }
 }
 
-/// <summary>
-/// Configuration for update manager
-/// </summary>
 public class UpdateConfiguration
 {
-    /// <summary>
-    /// URL of the update server
-    /// </summary>
     public string UpdateServerUrl { get; set; } = string.Empty;
-
-    /// <summary>
-    /// How often to check for updates
-    /// </summary>
     public TimeSpan CheckInterval { get; set; } = TimeSpan.FromHours(6);
-
-    /// <summary>
-    /// Enable automatic update checking
-    /// </summary>
     public bool EnableAutoCheck { get; set; } = true;
-
-    /// <summary>
-    /// Automatically download updates when available
-    /// </summary>
     public bool EnableAutoDownload { get; set; } = false;
-
-    /// <summary>
-    /// Show notification when update is available
-    /// </summary>
     public bool NotifyOnUpdateAvailable { get; set; } = true;
-
-    /// <summary>
-    /// Automatically restart application after update installation
-    /// </summary>
     public bool AutoRestartAfterUpdate { get; set; } = false;
-
-    /// <summary>
-    /// Update channel (stable, beta, canary)
-    /// </summary>
     public string UpdateChannel { get; set; } = "stable";
 }

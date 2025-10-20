@@ -5,9 +5,6 @@ using ReactiveUI;
 
 namespace Ecliptix.AutoUpdater.ViewModels;
 
-/// <summary>
-/// ViewModel for update management UI
-/// </summary>
 public class UpdateViewModel : ReactiveObject, IDisposable
 {
     private readonly UpdateManager _updateManager;
@@ -27,22 +24,18 @@ public class UpdateViewModel : ReactiveObject, IDisposable
     {
         _updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
 
-        // Subscribe to update manager events
         _updateManager.UpdateAvailable += OnUpdateAvailable;
         _updateManager.DownloadProgressChanged += OnDownloadProgressChanged;
         _updateManager.ErrorOccurred += OnErrorOccurred;
 
-        // Get cached update info if available
-        var cachedInfo = _updateManager.GetCachedUpdateInfo();
+        UpdateCheckResult? cachedInfo = _updateManager.GetCachedUpdateInfo();
         if (cachedInfo != null)
         {
             UpdateFromCheckResult(cachedInfo);
         }
 
-        // Set current version
         CurrentVersion = _updateManager.LastCheckResult?.CurrentVersion ?? "Unknown";
 
-        // Commands
         CheckForUpdatesCommand = ReactiveCommand.CreateFromTask(CheckForUpdatesAsync);
         InstallUpdateCommand = ReactiveCommand.CreateFromTask(
             InstallUpdateAsync,
@@ -51,8 +44,6 @@ public class UpdateViewModel : ReactiveObject, IDisposable
         DismissUpdateCommand = ReactiveCommand.Create(DismissUpdate);
         ViewReleaseNotesCommand = ReactiveCommand.Create(ViewReleaseNotes);
     }
-
-    #region Properties
 
     public bool IsUpdateAvailable
     {
@@ -120,18 +111,10 @@ public class UpdateViewModel : ReactiveObject, IDisposable
         set => this.RaiseAndSetIfChanged(ref _showUpdateDialog, value);
     }
 
-    #endregion
-
-    #region Commands
-
     public ICommand CheckForUpdatesCommand { get; }
     public ICommand InstallUpdateCommand { get; }
     public ICommand DismissUpdateCommand { get; }
     public ICommand ViewReleaseNotesCommand { get; }
-
-    #endregion
-
-    #region Command Implementations
 
     private async Task CheckForUpdatesAsync()
     {
@@ -141,7 +124,7 @@ public class UpdateViewModel : ReactiveObject, IDisposable
             StatusMessage = "Checking for updates...";
             ErrorMessage = string.Empty;
 
-            var result = await _updateManager.CheckForUpdatesAsync();
+            UpdateCheckResult result = await _updateManager.CheckForUpdatesAsync();
 
             UpdateFromCheckResult(result);
 
@@ -164,7 +147,7 @@ public class UpdateViewModel : ReactiveObject, IDisposable
             StatusMessage = "Downloading update...";
             ErrorMessage = string.Empty;
 
-            var success = await _updateManager.DownloadAndInstallUpdateAsync();
+            bool success = await _updateManager.DownloadAndInstallUpdateAsync();
 
             if (success)
             {
@@ -189,17 +172,10 @@ public class UpdateViewModel : ReactiveObject, IDisposable
 
     private void ViewReleaseNotes()
     {
-        // Open release notes in browser or show in dialog
         if (!string.IsNullOrEmpty(ReleaseNotes))
         {
-            // This would open a release notes dialog or window
-            // Implementation depends on your UI framework
         }
     }
-
-    #endregion
-
-    #region Event Handlers
 
     private void OnUpdateAvailable(object? sender, UpdateCheckResult result)
     {
@@ -232,10 +208,6 @@ public class UpdateViewModel : ReactiveObject, IDisposable
         StatusMessage = "An error occurred";
     }
 
-    #endregion
-
-    #region Helper Methods
-
     private void UpdateFromCheckResult(UpdateCheckResult result)
     {
         IsUpdateAvailable = result.IsUpdateAvailable;
@@ -249,8 +221,6 @@ public class UpdateViewModel : ReactiveObject, IDisposable
             ErrorMessage = result.ErrorMessage;
         }
     }
-
-    #endregion
 
     public void Dispose()
     {
