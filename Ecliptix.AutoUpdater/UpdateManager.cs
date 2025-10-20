@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Ecliptix.AutoUpdater.Models;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Ecliptix.AutoUpdater;
 
@@ -11,7 +11,7 @@ namespace Ecliptix.AutoUpdater;
 public class UpdateManager : IDisposable
 {
     private readonly UpdateService _updateService;
-    private readonly ILogger<UpdateManager>? _logger;
+    private readonly ILogger? _logger;
     private readonly Timer _checkTimer;
     private readonly UpdateConfiguration _config;
     private UpdateCheckResult? _lastCheckResult;
@@ -50,7 +50,7 @@ public class UpdateManager : IDisposable
 
     public UpdateManager(
         UpdateConfiguration config,
-        ILogger<UpdateManager>? logger = null)
+        ILogger? logger = null)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _logger = logger;

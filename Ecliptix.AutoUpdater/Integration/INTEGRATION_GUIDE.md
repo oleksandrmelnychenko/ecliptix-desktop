@@ -8,8 +8,30 @@ This guide shows how to integrate the production-ready auto-updater system into 
 
 Edit `appsettings.json`:
 
+**Note:** This example includes Serilog configuration.
+
 ```json
 {
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Ecliptix.AutoUpdater": "Debug"
+      }
+    },
+    "WriteTo": [
+      { "Name": "Console" },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "logs/ecliptix-.log",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 7
+        }
+      }
+    ],
+    "Enrich": ["FromLogContext"]
+  },
   "UpdateService": {
     "UpdateServerUrl": "https://updates.ecliptix.com",
     "CheckInterval": "06:00:00",
@@ -28,16 +50,35 @@ Edit `appsettings.json`:
 using Ecliptix.AutoUpdater;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Serilog;
 
 public class Program
 {
     public static void Main(string[] args)
     {
-        var builder = BuildAvaloniaApp();
+        // Configure Serilog
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.File("logs/ecliptix-.log", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
 
-        // Build and start the app
-        builder.StartWithClassicDesktopLifetime(args);
+        try
+        {
+            Log.Information("Starting Ecliptix Desktop");
+
+            var builder = BuildAvaloniaApp();
+            builder.StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Application terminated unexpectedly");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
 
     public static AppBuilder BuildAvaloniaApp()
@@ -49,25 +90,21 @@ public class Program
             .AddEnvironmentVariables()
             .Build();
 
-        // Setup DI container
-        var services = new ServiceCollection();
-
-        // Add logging
-        services.AddLogging(builder =>
-        {
-            builder.AddConsole();
-            builder.AddDebug();
-            // Add Serilog if you're using it
-            // builder.AddSerilog();
-        });
-
         // Register update configuration
         var updateConfig = configuration.GetSection("UpdateService").Get<UpdateConfiguration>()
             ?? new UpdateConfiguration();
         services.AddSingleton(updateConfig);
 
-        // Register update manager as singleton
-        services.AddSingleton<UpdateManager>();
+        // Register Serilog logger
+        services.AddSingleton(Log.Logger);
+
+        // Register update manager as singleton (with Serilog)
+        services.AddSingleton<UpdateManager>(sp =>
+        {
+            var config = sp.GetRequiredService<UpdateConfiguration>();
+            var logger = sp.GetRequiredService<ILogger>();
+            return new UpdateManager(config, logger);
+        });
 
         // Register update view model
         services.AddTransient<UpdateViewModel>();
@@ -398,14 +435,39 @@ Monitor these metrics:
 - Time to update (from check to install)
 - Error rates by version
 
-Use your logging infrastructure to track:
+Use Serilog to track update metrics:
 
 ```csharp
-_logger.LogInformation(
+Log.Information(
     "Update check completed. Available: {IsAvailable}, Version: {Version}",
     result.IsUpdateAvailable,
     result.LatestVersion
 );
+
+// With structured logging
+Log.Information(
+    "Update {Event} for version {Version} on platform {Platform}",
+    "Downloaded",
+    "1.0.1",
+    "win-x64"
+);
+```
+
+**Configure Serilog sinks** for centralized logging:
+
+```json
+{
+  "Serilog": {
+    "WriteTo": [
+      { "Name": "Console" },
+      { "Name": "File", "Args": { "path": "logs/updates-.log" } },
+      {
+        "Name": "Seq",
+        "Args": { "serverUrl": "http://seq-server:5341" }
+      }
+    ]
+  }
+}
 ```
 
 ---
