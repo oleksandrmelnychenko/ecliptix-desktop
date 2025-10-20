@@ -1106,17 +1106,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         finally
         {
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (_mainTextBox != null && !_isDisposed)
-                {
-                    int textLength = _mainTextBox.Text?.Length ?? 0;
-                    if (_mainTextBox.CaretIndex != textLength)
-                    {
-                        _mainTextBox.CaretIndex = textLength;
-                    }
-                }
-            });
             _isProcessingSecureKeyChange = false;
         }
     }
