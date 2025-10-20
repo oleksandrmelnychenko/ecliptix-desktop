@@ -118,7 +118,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
                 {
                     filteredUntypedRequests.Add(request);
                 }
-                else if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                else if (Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("Skipping retry for request {RequestId} - already being retried", request.Key);
                 }
@@ -130,7 +130,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
                 {
                     filteredTypedRequests.Add(request);
                 }
-                else if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                else if (Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("Skipping retry for typed request {RequestId} - already being retried", request.Key);
                 }

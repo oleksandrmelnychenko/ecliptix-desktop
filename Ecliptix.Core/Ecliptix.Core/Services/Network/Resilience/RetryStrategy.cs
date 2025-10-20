@@ -8,9 +8,6 @@ using Avalonia.Threading;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Timeout;
-using Polly.Wrap;
-using Polly.Retry;
-using Polly.CircuitBreaker;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -26,7 +23,9 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 public sealed class RetryStrategy : IRetryStrategy
 {
     private const int MaxTrackedOperations = 1000;
+
     private const int CleanupIntervalMinutes = 5;
+
     private const int OperationTimeoutMinutes = 10;
 
     private readonly RetryStrategyConfiguration _strategyConfiguration;
@@ -83,7 +82,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
         try
         {
-            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(evt => HandleManualRetryRequestAsync(evt));
+            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(HandleManualRetryRequestAsync);
         }
         catch (Exception ex)
         {
@@ -112,7 +111,8 @@ public sealed class RetryStrategy : IRetryStrategy
         CancellationToken cancellationToken = default)
     {
         return await ExecuteSecrecyChannelOperationInternalAsync(
-                operation, operationName, connectId, serviceType, maxRetries, cancellationToken, bypassExhaustionCheck: false)
+                operation, operationName, connectId, serviceType, maxRetries, cancellationToken,
+                bypassExhaustionCheck: false)
             .ConfigureAwait(false);
     }
 
@@ -127,7 +127,8 @@ public sealed class RetryStrategy : IRetryStrategy
         Log.Information("🔄 MANUAL RETRY: Executing operation '{OperationName}' bypassing exhaustion checks",
             operationName);
         return await ExecuteSecrecyChannelOperationInternalAsync(
-                operation, operationName, connectId, serviceType, maxRetries, cancellationToken, bypassExhaustionCheck: true)
+                operation, operationName, connectId, serviceType, maxRetries, cancellationToken,
+                bypassExhaustionCheck: true)
             .ConfigureAwait(false);
     }
 
@@ -176,13 +177,18 @@ public sealed class RetryStrategy : IRetryStrategy
                 async (ctx, ct) =>
                 {
                     ct.ThrowIfCancellationRequested();
-                    int currentAttempt = ctx.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a ? a : 1;
-                    Result<TResponse, NetworkFailure> opResult = await operation(currentAttempt, ct).ConfigureAwait(false);
+                    int currentAttempt = ctx.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
+                        ? a
+                        : 1;
+                    Result<TResponse, NetworkFailure> opResult =
+                        await operation(currentAttempt, ct).ConfigureAwait(false);
                     if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
                     {
-                        Log.Debug("🔧 RETRY POLICY: Operation '{OperationName}' attempt {Attempt} returned IsOk: {IsOk}",
+                        Log.Debug(
+                            "🔧 RETRY POLICY: Operation '{OperationName}' attempt {Attempt} returned IsOk: {IsOk}",
                             operationName, currentAttempt, opResult.IsOk);
                     }
+
                     return opResult;
                 },
                 context,
@@ -291,52 +297,22 @@ public sealed class RetryStrategy : IRetryStrategy
         }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
-    public bool HasExhaustedOperations(RpcServiceType? serviceType = null)
-    {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
-
-        try
-        {
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
-            {
-                if (serviceType.HasValue && operation.ServiceType != serviceType.Value)
-                    continue;
-
-                if (operation.IsExhausted)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to check for exhausted operations");
-            return false;
-        }
-    }
-
     public void ClearExhaustedOperations()
     {
         if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
 
         try
         {
-            List<string> exhaustedKeys = new();
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
-            {
-                if (operation.IsExhausted)
-                {
-                    exhaustedKeys.Add(operation.UniqueKey);
-                }
-            }
+            List<string> exhaustedKeys = [];
+            exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
+                where operation.IsExhausted
+                select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {
                 if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
                 {
-                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                    if (Log.IsEnabled(LogEventLevel.Debug))
                     {
                         Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
                             operation.OperationName);
@@ -465,7 +441,8 @@ public sealed class RetryStrategy : IRetryStrategy
         return true;
     }
 
-    private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey, RpcServiceType? serviceType)
+    private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey,
+        RpcServiceType? serviceType)
     {
         if (_activeRetryOperations.Count >= MaxTrackedOperations)
         {
@@ -576,16 +553,17 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             if (cachedDelays is TimeSpan[] delays)
             {
-                if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                if (Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
                         maxRetries);
                 }
+
                 return delays;
             }
         }
 
-        if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+        if (Log.IsEnabled(LogEventLevel.Debug))
         {
             Log.Debug("🏗️ RETRY DELAYS CACHE MISS: Calculating new delays for maxRetries={MaxRetries}",
                 maxRetries);
@@ -757,7 +735,9 @@ public sealed class RetryStrategy : IRetryStrategy
             .TimeoutAsync<Result<TResponse, NetworkFailure>>(
                 (context) =>
                 {
-                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a ? a : 1;
+                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
+                        ? a
+                        : 1;
 
                     TimeSpan timeout;
                     if (serviceType.HasValue)
@@ -770,7 +750,7 @@ public sealed class RetryStrategy : IRetryStrategy
                         timeout = _strategyConfiguration.PerAttemptTimeout;
                     }
 
-                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                    if (Log.IsEnabled(LogEventLevel.Debug))
                     {
                         Log.Debug(
                             "⏱️ TIMEOUT CALCULATED: Operation {OperationName} attempt {Attempt} timeout set to {TimeoutSeconds}s",
@@ -782,7 +762,9 @@ public sealed class RetryStrategy : IRetryStrategy
                 TimeoutStrategy.Pessimistic,
                 onTimeoutAsync: (context, timespan, _, _) =>
                 {
-                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a ? a : 1;
+                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
+                        ? a
+                        : 1;
                     Log.Warning(
                         "⏰ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} attempt {Attempt} timed out after {TimeoutSeconds}s",
                         operationName, connectId, currentAttempt, timespan.TotalSeconds);

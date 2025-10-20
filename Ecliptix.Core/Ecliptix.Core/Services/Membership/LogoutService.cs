@@ -72,7 +72,6 @@ internal sealed class LogoutService(
             Scope = LogoutScope.ThisDevice
         };
 
-        // SECURITY: Generate HMAC proof for mutual authentication
         Result<Unit, LogoutFailure> hmacResult = await GenerateLogoutHmacProofAsync(logoutRequest, membershipId);
         if (hmacResult.IsErr)
         {
@@ -137,7 +136,7 @@ internal sealed class LogoutService(
         if (response.Result == LogoutResponse.Types.Result.Succeeded)
         {
             Result<Unit, LogoutFailure> proofVerification =
-                await VerifyRevocationProofAsync(response, membershipId, connectId, timestamp);
+                await VerifyRevocationProofAsync(response, membershipId, connectId);
 
             if (proofVerification.IsErr)
             {
@@ -214,10 +213,6 @@ internal sealed class LogoutService(
             span => new Guid(span.ToArray()).ToString());
     }
 
-    /// <summary>
-    /// Generates HMAC proof for logout request to enable server-side validation.
-    /// Implements mutual authentication protocol using HKDF-derived keys.
-    /// </summary>
     private async Task<Result<Unit, LogoutFailure>> GenerateLogoutHmacProofAsync(
         LogoutRequest request,
         string membershipId)
@@ -227,7 +222,6 @@ internal sealed class LogoutService(
 
         try
         {
-            // Load master key handle
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
                 await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
 
@@ -242,7 +236,6 @@ internal sealed class LogoutService(
 
             masterKeyHandle = handleResult.Unwrap();
 
-            // Derive logout HMAC key using HKDF
             Result<byte[], SodiumFailure> hmacKeyResult =
                 LogoutKeyDerivation.DeriveLogoutHmacKey(masterKeyHandle);
 
@@ -257,15 +250,11 @@ internal sealed class LogoutService(
 
             hmacKey = hmacKeyResult.Unwrap();
 
-            // Build canonical request representation (must match server)
             string canonical = $"logout:v1:{request.MembershipIdentifier.ToBase64()}:" +
                              $"{request.Timestamp}:{request.Scope}:{request.LogoutReason}";
             byte[] canonicalBytes = Encoding.UTF8.GetBytes(canonical);
 
-            // Compute HMAC
             byte[] hmacProof = LogoutKeyDerivation.ComputeHmac(hmacKey, canonicalBytes);
-
-            // Attach HMAC proof to request
             request.HmacProof = ByteString.CopyFrom(hmacProof);
 
             Log.Information("[LOGOUT-HMAC] HMAC proof generated for MembershipId: {MembershipId}", membershipId);
@@ -280,15 +269,10 @@ internal sealed class LogoutService(
         }
     }
 
-    /// <summary>
-    /// Verifies the HMAC-based revocation proof from the server.
-    /// Ensures the server actually performed the logout and didn't just pretend.
-    /// </summary>
     private async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofAsync(
         LogoutResponse response,
         string membershipId,
-        uint connectId,
-        long clientTimestamp)
+        uint connectId)
     {
         if (response.RevocationProof == null || response.RevocationProof.IsEmpty)
         {
@@ -310,8 +294,6 @@ internal sealed class LogoutService(
                 LogoutFailure.InvalidRevocationProof($"Revocation proof too small: {revocationProof.Length} bytes"));
         }
 
-        byte version;
-        int nonceLength;
         byte[] nonce;
         int fingerprintLength;
         byte[] fingerprint;
@@ -319,10 +301,10 @@ internal sealed class LogoutService(
 
         try
         {
-            using var proofStream = new MemoryStream(revocationProof, writable: false);
-            using var reader = new BinaryReader(proofStream);
+            using MemoryStream proofStream = new(revocationProof, writable: false);
+            using BinaryReader reader = new(proofStream);
 
-            version = reader.ReadByte();
+            byte version = reader.ReadByte();
             if (version != proofVersionHmac)
             {
                 Log.Warning("[LOGOUT-PROOF] Unsupported revocation proof version: {Version}", version);
@@ -330,7 +312,7 @@ internal sealed class LogoutService(
                     LogoutFailure.InvalidRevocationProof($"Unsupported revocation proof version: {version}"));
             }
 
-            nonceLength = reader.ReadInt32();
+            int nonceLength = reader.ReadInt32();
             if (nonceLength != nonceSize)
             {
                 Log.Warning("[LOGOUT-PROOF] Invalid nonce length: {Length} (expected {Expected})", nonceLength, nonceSize);
@@ -393,7 +375,6 @@ internal sealed class LogoutService(
 
         try
         {
-            // Load master key handle
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
                 await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
 
@@ -407,7 +388,6 @@ internal sealed class LogoutService(
 
             masterKeyHandle = handleResult.Unwrap();
 
-            // Derive logout proof key
             Result<byte[], SodiumFailure> proofKeyResult =
                 LogoutKeyDerivation.DeriveLogoutProofKey(masterKeyHandle);
 
@@ -421,9 +401,8 @@ internal sealed class LogoutService(
 
             proofKey = proofKeyResult.Unwrap();
 
-            // Reconstruct canonical proof data (must match server)
-            using var ms = new MemoryStream();
-            using var writer = new BinaryWriter(ms);
+            using MemoryStream ms = new();
+            await using BinaryWriter writer = new(ms);
 
             writer.Write(Guid.Parse(membershipId).ToByteArray());
             writer.Write(connectId);
@@ -436,7 +415,6 @@ internal sealed class LogoutService(
             writer.Flush();
             byte[] canonicalData = ms.ToArray();
 
-            // Verify HMAC
             bool isValid = LogoutKeyDerivation.VerifyHmac(proofKey, canonicalData, hmacProof);
 
             if (!isValid)
@@ -468,7 +446,6 @@ internal sealed class LogoutService(
             Log.Information("[LOGOUT-PROOF] Revocation proof verified successfully for MembershipId: {MembershipId}",
                 membershipId);
 
-            // Store the verified revocation proof for session restoration guard
             Result<Unit, LogoutFailure> storeResult =
                 await StoreRevocationProofAsync(membershipId, revocationProof);
 
@@ -476,7 +453,6 @@ internal sealed class LogoutService(
             {
                 Log.Warning("[LOGOUT-PROOF] Failed to store revocation proof: {Error}",
                     storeResult.UnwrapErr().Message);
-                // Don't fail the logout if storage fails - log it but continue
             }
 
             return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -489,9 +465,6 @@ internal sealed class LogoutService(
         }
     }
 
-    /// <summary>
-    /// Stores the verified revocation proof to prevent session restoration.
-    /// </summary>
     private async Task<Result<Unit, LogoutFailure>> StoreRevocationProofAsync(
         string membershipId,
         byte[] revocationProof)
@@ -526,10 +499,6 @@ internal sealed class LogoutService(
         }
     }
 
-    /// <summary>
-    /// Checks if a revocation proof exists for the given membership.
-    /// Returns true if the session was logged out and should not be restored.
-    /// </summary>
     public static async Task<bool> HasRevocationProofAsync(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
@@ -566,10 +535,6 @@ internal sealed class LogoutService(
         }
     }
 
-    /// <summary>
-    /// Deletes the revocation proof for a membership.
-    /// Should be called after successful new login to allow session restoration.
-    /// </summary>
     public static void ClearRevocationProof(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
