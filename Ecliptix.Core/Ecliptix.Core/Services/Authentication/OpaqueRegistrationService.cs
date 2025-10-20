@@ -144,7 +144,6 @@ internal sealed class OpaqueRegistrationService(
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
         }
 
-        //TODO: FIX second param.
         Result<uint, NetworkFailure> protocolResult =
             await networkProvider.EnsureProtocolForTypeAsync(
                 PubKeyExchangeType.ServerStreaming).ConfigureAwait(false);
