@@ -966,13 +966,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return finalId;
     }
 
-    private static Result<ServiceRequest, NetworkFailure> BuildRequestWithId(
+    private static Result<SecureEnvelope, NetworkFailure> EncryptPayload(
         EcliptixProtocolSystem protocolSystem,
-        uint logicalOperationId,
         RpcServiceType serviceType,
-        byte[] plainBuffer,
-        ServiceFlowType flowType,
-        RpcRequestContext requestContext)
+        byte[] plainBuffer)
     {
         EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
         if (connection != null)
@@ -992,7 +989,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (outboundPayload.IsErr)
         {
-            return Result<ServiceRequest, NetworkFailure>.Err(
+            return Result<SecureEnvelope, NetworkFailure>.Err(
                 outboundPayload.UnwrapErr().ToNetworkFailure());
         }
 
@@ -1007,6 +1004,26 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 ? Convert.ToHexString(cipherPayload.AuthenticationTag.ToByteArray())[
                     ..Math.Min(16, cipherPayload.AuthenticationTag.Length * 2)]
                 : "NULL");
+
+        return Result<SecureEnvelope, NetworkFailure>.Ok(cipherPayload);
+    }
+
+    private static Result<ServiceRequest, NetworkFailure> BuildRequestWithId(
+        EcliptixProtocolSystem protocolSystem,
+        uint logicalOperationId,
+        RpcServiceType serviceType,
+        byte[] plainBuffer,
+        ServiceFlowType flowType,
+        RpcRequestContext requestContext)
+    {
+        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, serviceType, plainBuffer);
+
+        if (encryptResult.IsErr)
+        {
+            return Result<ServiceRequest, NetworkFailure>.Err(encryptResult.UnwrapErr());
+        }
+
+        SecureEnvelope cipherPayload = encryptResult.Unwrap();
 
         return Result<ServiceRequest, NetworkFailure>.Ok(
             ServiceRequest.New(logicalOperationId, flowType, serviceType, cipherPayload, [], requestContext));
@@ -1030,22 +1047,30 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (shouldUseRetry)
         {
+            Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, serviceType, plainBuffer);
+
+            if (encryptResult.IsErr)
+            {
+                return Result<Unit, NetworkFailure>.Err(encryptResult.UnwrapErr());
+            }
+
+            SecureEnvelope encryptedPayload = encryptResult.Unwrap();
+
             invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
                 (attempt, ct) =>
                 {
                     RpcRequestContext attemptContext = RpcRequestContext.CreateNew(attempt);
                     lastRequestContext = attemptContext;
 
-                    Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-                        protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, attemptContext);
+                    ServiceRequest request = ServiceRequest.New(
+                        logicalOperationId,
+                        flowType,
+                        serviceType,
+                        encryptedPayload,
+                        [],
+                        attemptContext);
 
-                    if (serviceRequestResult.IsErr)
-                    {
-                        return Task.FromResult(Result<RpcFlow, NetworkFailure>.Err(serviceRequestResult.UnwrapErr()));
-                    }
-
-                    ServiceRequest freshRequest = serviceRequestResult.Unwrap();
-                    return _rpcServiceManager.InvokeServiceRequestAsync(freshRequest, ct);
+                    return _rpcServiceManager.InvokeServiceRequestAsync(request, ct);
                 },
                 $"UnaryRequest_{serviceType}",
                 connectId,
@@ -1988,10 +2013,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 byte[]? membershipId = GetMembershipIdBytes();
                 if (membershipId == null)
                 {
-                    Log.Warning(
-                        "[CLIENT-TRY-RESTORE] Cannot restore: membershipId not available. ConnectId: {ConnectId}",
+                    Log.Information(
+                        "[CLIENT-TRY-RESTORE] Anonymous connection - removing stale protocol and re-establishing. ConnectId: {ConnectId}",
                         connectId);
-                    return Result<bool, NetworkFailure>.Ok(false);
+
+                    if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
+                    {
+                        oldSystem?.Dispose();
+                    }
+
+                    Result<Option<EcliptixSessionState>, NetworkFailure> reEstablishResult =
+                        await EstablishSecrecyChannelInternalAsync(
+                            connectId,
+                            PubKeyExchangeType.DataCenterEphemeralConnect,
+                            saveState: false,
+                            enablePendingRegistration: false).ConfigureAwait(false);
+
+                    return reEstablishResult.IsOk
+                        ? Result<bool, NetworkFailure>.Ok(true)
+                        : Result<bool, NetworkFailure>.Ok(false);
                 }
 
                 Result<byte[], SecureStorageFailure> stateResult =

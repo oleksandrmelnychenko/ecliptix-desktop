@@ -80,6 +80,11 @@ public record EcliptixProtocolFailure(
         return new EcliptixProtocolFailure(EcliptixProtocolFailureType.MemoryBufferError, details, inner);
     }
 
+    public static EcliptixProtocolFailure StateMismatch(string details, Exception? inner = null)
+    {
+        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.StateMismatch, details, inner);
+    }
+
     public override object ToStructuredLog()
     {
         return new
@@ -95,6 +100,7 @@ public record EcliptixProtocolFailure(
     {
         NetworkFailureType networkFailureType = FailureType switch
         {
+            EcliptixProtocolFailureType.StateMismatch => NetworkFailureType.ProtocolStateMismatch,
             _ => NetworkFailureType.EcliptixProtocolFailure
         };
 

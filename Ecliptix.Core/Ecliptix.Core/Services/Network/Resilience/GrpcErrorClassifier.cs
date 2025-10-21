@@ -35,15 +35,17 @@ public static class GrpcErrorClassifier
 
     public static bool IsProtocolStateMismatch(RpcException ex)
     {
-        if (ex.StatusCode != StatusCode.Internal)
+        if (ex.StatusCode != StatusCode.Internal && ex.StatusCode != StatusCode.FailedPrecondition)
             return false;
 
         string detail = ex.Status.Detail?.ToLowerInvariant() ?? string.Empty;
 
-        return detail.Contains("requested index") && detail.Contains("not future") ||
+        return detail.Contains("header authentication failed") ||
+               detail.Contains("requested index") && detail.Contains("not future") ||
                detail.Contains("chain rotation") ||
                detail.Contains("sequence mismatch") ||
                detail.Contains("protocol state") && detail.Contains("mismatch") ||
+               detail.Contains("protocol state") && detail.Contains("desynchronized") ||
                detail.Contains("dhpublic") && detail.Contains("unknown") ||
                detail.Contains("sender chain") && detail.Contains("invalid") ||
                detail.Contains("receiver chain") && detail.Contains("invalid") ||

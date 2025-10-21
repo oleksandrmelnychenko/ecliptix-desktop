@@ -83,7 +83,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
         try
         {
-        _manualRetrySubscription = _connectivityService.OnManualRetryRequested(HandleManualRetryRequestAsync);
+            _manualRetrySubscription = _connectivityService.OnManualRetryRequested(HandleManualRetryRequestAsync);
         }
         catch (Exception ex)
         {
@@ -171,8 +171,10 @@ public sealed class RetryStrategy : IRetryStrategy
                     serviceType,
                     cancellationToken);
 
-            Context context = new(operationName);
-            context["attempt"] = 1;
+            Context context = new(operationName)
+            {
+                ["attempt"] = 1
+            };
 
             Result<TResponse, NetworkFailure> result = await retryPolicy.ExecuteAsync(
                 async (ctx, ct) =>
@@ -658,10 +660,10 @@ public sealed class RetryStrategy : IRetryStrategy
                     }
 
                     NetworkFailure recoveringFailure = currentFailure ??
-                        NetworkFailure.DataCenterNotResponding("Retrying operation");
+                                                       NetworkFailure.DataCenterNotResponding("Retrying operation");
 
                     await _connectivityService.PublishAsync(
-                        ConnectivityIntent.Recovering(recoveringFailure, connectId, retryCount + 1, delay))
+                            ConnectivityIntent.Recovering(recoveringFailure, connectId, retryCount + 1, delay))
                         .ConfigureAwait(false);
 
                     if (retryCount >= retryDelays.Length)
@@ -687,7 +689,8 @@ public sealed class RetryStrategy : IRetryStrategy
                                 {
                                     _ = _connectivityService.PublishAsync(
                                         ConnectivityIntent.RetriesExhausted(
-                                            currentFailure ?? NetworkFailure.DataCenterNotResponding("Retries exhausted"),
+                                            currentFailure ??
+                                            NetworkFailure.DataCenterNotResponding("Retries exhausted"),
                                             connectId,
                                             retryCount));
                                 }
@@ -719,7 +722,8 @@ public sealed class RetryStrategy : IRetryStrategy
                                     {
                                         _ = _connectivityService.PublishAsync(
                                             ConnectivityIntent.Disconnected(
-                                                currentFailure ?? NetworkFailure.DataCenterNotResponding("Connection lost"),
+                                                currentFailure ??
+                                                NetworkFailure.DataCenterNotResponding("Connection lost"),
                                                 connectId,
                                                 ConnectivityReason.RpcFailure));
                                     }
@@ -730,7 +734,7 @@ public sealed class RetryStrategy : IRetryStrategy
                                 });
                             }
 
-                            if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                            if (Log.IsEnabled(LogEventLevel.Debug))
                             {
                                 Log.Debug(
                                     "⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}",

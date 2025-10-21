@@ -16,4 +16,5 @@ public enum EcliptixProtocolFailureType
     KeyGenerationFailed,
     PrepareLocalFailed,
     MemoryBufferError,
+    StateMismatch,
 }

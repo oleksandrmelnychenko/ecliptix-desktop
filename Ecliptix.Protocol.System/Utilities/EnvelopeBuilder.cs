@@ -207,7 +207,7 @@ internal static class EnvelopeBuilder
         catch (global::System.Security.Cryptography.CryptographicException cryptoEx)
         {
             return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.Generic("Header authentication failed", cryptoEx));
+                EcliptixProtocolFailure.StateMismatch("Header authentication failed", cryptoEx));
         }
         catch (Exception ex)
         {
