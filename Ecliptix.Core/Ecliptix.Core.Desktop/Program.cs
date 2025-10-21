@@ -464,7 +464,7 @@ public static class Program
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<AuthenticationViewModel>();
-        services.AddTransient<Features.Main.ViewModels.MasterViewModel>();
+        services.AddTransient<MasterViewModel>();
     }
 
     private static string GetPlatformAppDataDirectory()

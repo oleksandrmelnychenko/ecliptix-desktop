@@ -56,8 +56,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private TranslateTransform? _sharedTranslateTransform;
 
-    public TimeSpan AppearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
-    public TimeSpan DisappearDuration { get; set; } = TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
+    public TimeSpan AppearDuration { get; set; } =
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
+
+    public TimeSpan DisappearDuration { get; set; } =
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
 
     private readonly ObservableAsPropertyHelper<string> _retryButtonText;
     public string RetryButtonText => _retryButtonText.Value;
@@ -119,15 +122,15 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
         IObservable<ManualRetryRequestedEvent> manualRetryEvents =
             Observable.Create<ManualRetryRequestedEvent>(observer =>
-        {
-            return connectivityService.OnManualRetryRequested(
-                evt =>
-                {
-                    observer.OnNext(evt);
-                    return Task.CompletedTask;
-                },
-                SubscriptionLifetime.Scoped);
-        });
+            {
+                return connectivityService.OnManualRetryRequested(
+                    evt =>
+                    {
+                        observer.OnNext(evt);
+                        return Task.CompletedTask;
+                    },
+                    SubscriptionLifetime.Scoped);
+            });
 
         IObservable<NetworkConnectionState> connectionStateObservable = connectivitySnapshots
             .Select(MapConnectionState)
@@ -173,14 +176,20 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         IObservable<bool> isVisibleObservable = connectivitySnapshots
             .Select(snapshot => snapshot.Status switch
             {
+                ConnectivityStatus.Connected when snapshot.Source == ConnectivitySource.InternetProbe => Observable
+                    .Return(false),
                 ConnectivityStatus.Connected => Observable.Return(true)
                     .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AutoHideDelayMs))
                     .Select(_ => false),
                 ConnectivityStatus.RetriesExhausted or
-                ConnectivityStatus.Disconnected or
-                ConnectivityStatus.ShuttingDown => Observable.Return(true),
+                    ConnectivityStatus.Disconnected or
+                    ConnectivityStatus.ShuttingDown or
+                    ConnectivityStatus.Recovering => Observable.Return(true),
                 ConnectivityStatus.Unavailable => Observable.Return(true),
-                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => Observable.Return(true),
+                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe
+                    && snapshot.Reason == ConnectivityReason.InternetRecovered => Observable.Return(false),
+                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => Observable
+                    .Return(true),
                 ConnectivityStatus.Connecting => Observable.Empty<bool>(),
                 _ => Observable.Return(false)
             })
@@ -188,10 +197,10 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .StartWith(false);
 
 
-
         _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState).DisposeWith(_disposables);
         _statusText = statusTextObservable.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
-        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription).DisposeWith(_disposables);
+        _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription)
+            .DisposeWith(_disposables);
         _statusIconSource = statusIconObservable.ToProperty(this, x => x.StatusIconSource).DisposeWith(_disposables);
         _showRetryButton = showRetryButtonObservable.ToProperty(this, x => x.ShowRetryButton).DisposeWith(_disposables);
         _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
@@ -231,10 +240,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         isVisibleObservable
             .DistinctUntilChanged()
             .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(visible =>
-            {
-                HandleVisibilityChangeAsync(visible).ConfigureAwait(false);
-            })
+            .Subscribe(visible => { HandleVisibilityChangeAsync(visible).ConfigureAwait(false); })
             .DisposeWith(_disposables);
     }
 
@@ -281,6 +287,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 {
                     _visibilityOperationTokenSource = null;
                 }
+
                 newTokenSource.Dispose();
                 previousTokenSource?.Dispose();
             }
@@ -363,7 +370,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             if (_sharedAppearAnimation == null) CreateAnimations();
             await _sharedAppearAnimation!.RunAsync(_view, token);
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error showing notification popup");
@@ -380,7 +389,9 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             await _sharedDisappearAnimation!.RunAsync(_view, token);
             _view.IsVisible = false;
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException)
+        {
+        }
         catch (Exception ex)
         {
             Log.Warning(ex, "Error hiding notification popup");
@@ -393,7 +404,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         {
             return state switch
             {
-                NetworkConnectionState.ServerNotResponding => _cachedServerNotRespondingIcon ??= LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
+                NetworkConnectionState.ServerNotResponding => _cachedServerNotRespondingIcon ??=
+                    LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
                 _ => _cachedNoInternetIcon ??= LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
             };
         }
@@ -410,15 +422,20 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         return new Bitmap(AssetLoader.Open(uri));
     }
 
-    private string GetCachedServerNotRespondingTitle() => _cachedServerNotRespondingTitle ??= LocalizationService["NetworkNotification.ServerNotResponding.Title"];
+    private string GetCachedServerNotRespondingTitle() => _cachedServerNotRespondingTitle ??=
+        LocalizationService["NetworkNotification.ServerNotResponding.Title"];
 
-    private string GetCachedNoInternetTitle() => _cachedNoInternetTitle ??= LocalizationService["NetworkNotification.NoInternet.Title"];
+    private string GetCachedNoInternetTitle() =>
+        _cachedNoInternetTitle ??= LocalizationService["NetworkNotification.NoInternet.Title"];
 
-    private string GetCachedServerNotRespondingDescription() => _cachedServerNotRespondingDescription ??= LocalizationService["NetworkNotification.ServerNotResponding.Description"];
+    private string GetCachedServerNotRespondingDescription() => _cachedServerNotRespondingDescription ??=
+        LocalizationService["NetworkNotification.ServerNotResponding.Description"];
 
-    private string GetCachedNoInternetDescription() => _cachedNoInternetDescription ??= LocalizationService["NetworkNotification.NoInternet.Description"];
+    private string GetCachedNoInternetDescription() => _cachedNoInternetDescription ??=
+        LocalizationService["NetworkNotification.NoInternet.Description"];
 
-    private string GetCachedRetryButtonText() => _cachedRetryButtonText ??= LocalizationService["NetworkNotification.Button.Retry"];
+    private string GetCachedRetryButtonText() =>
+        _cachedRetryButtonText ??= LocalizationService["NetworkNotification.Button.Retry"];
 
     private static NetworkConnectionState MapConnectionState(ConnectivitySnapshot snapshot)
     {
@@ -429,7 +446,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             ConnectivityStatus.Disconnected => NetworkConnectionState.ServerNotResponding,
             ConnectivityStatus.ShuttingDown => NetworkConnectionState.ServerNotResponding,
             ConnectivityStatus.Recovering => NetworkConnectionState.ServerNotResponding,
-            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => NetworkConnectionState.NoInternet,
+            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe =>
+                NetworkConnectionState.NoInternet,
             ConnectivityStatus.Connecting => NetworkConnectionState.ServerNotResponding,
             _ => NetworkConnectionState.NoInternet
         };

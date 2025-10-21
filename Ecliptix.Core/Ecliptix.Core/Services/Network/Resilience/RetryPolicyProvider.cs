@@ -6,10 +6,8 @@ using Ecliptix.Core.Services.Network.Rpc;
 
 namespace Ecliptix.Core.Services.Network.Resilience;
 
-public sealed class RetryPolicyProvider(RetryStrategyConfiguration config) : IRetryPolicyProvider
+public sealed class RetryPolicyProvider(RetryStrategyConfiguration retryStrategyConfiguration) : IRetryPolicyProvider
 {
-    private readonly RetryStrategyConfiguration _config = config ?? throw new ArgumentNullException(nameof(config));
-
     private static readonly FrozenDictionary<RpcServiceType, ServiceRetryConfig> ServiceConfigs =
         new Dictionary<RpcServiceType, ServiceRetryConfig>
         {
@@ -22,7 +20,7 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration config) : IRe
             [RpcServiceType.RegistrationComplete] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
             [RpcServiceType.SignInInitRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.SignInCompleteRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
-            [RpcServiceType.Logout] = new(ShouldRetry: true, ReinitOnCompleteFailure: true), //TODO do we need to renitin on complete failure here?
+            [RpcServiceType.Logout] = new(ShouldRetry: false, ReinitOnCompleteFailure: false),
         }.ToFrozenDictionary();
 
     private sealed record ServiceRetryConfig(bool ShouldRetry, bool ReinitOnCompleteFailure);
@@ -37,7 +35,7 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration config) : IRe
         return new RetryBehavior
         {
             ShouldRetry = config.ShouldRetry,
-            MaxAttempts = _config.MaxRetries,
+            MaxAttempts = retryStrategyConfiguration.MaxRetries,
             ReinitOnCompleteFailure = config.ReinitOnCompleteFailure
         };
     }

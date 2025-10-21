@@ -184,8 +184,8 @@ internal sealed class OpaqueRegistrationService(
                         AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
             }
 
-            if (failure.FailureType == NetworkFailureType.DataCenterNotResponding ||
-                failure.FailureType == NetworkFailureType.DataCenterShutdown)
+            if (failure.FailureType is NetworkFailureType.DataCenterNotResponding
+                or NetworkFailureType.DataCenterShutdown)
             {
                 RxApp.MainThreadScheduler.Schedule(() =>
                     onCountdownUpdate?.Invoke(0, Guid.Empty,
@@ -262,7 +262,7 @@ internal sealed class OpaqueRegistrationService(
         return Result<Unit, string>.Ok(Unit.Value);
     }
 
-      public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
+    public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
         string deviceIdentifier,
@@ -339,10 +339,7 @@ internal sealed class OpaqueRegistrationService(
 
         try
         {
-            secureKey.WithSecureBytes(passwordSpan =>
-            {
-                createResult = SensitiveBytes.From(passwordSpan);
-            });
+            secureKey.WithSecureBytes(passwordSpan => { createResult = SensitiveBytes.From(passwordSpan); });
 
             if (createResult == null || createResult.Value.IsErr)
             {
@@ -816,8 +813,10 @@ internal sealed class OpaqueRegistrationService(
         }
 
         if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-            (string.Equals(userError.I18nKey, AuthenticationConstants.SessionNotFoundKey, StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(userError.I18nKey, AuthenticationConstants.VerificationSessionExpiredKey, StringComparison.OrdinalIgnoreCase)))
+            (string.Equals(userError.I18nKey, AuthenticationConstants.SessionNotFoundKey,
+                 StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(userError.I18nKey, AuthenticationConstants.VerificationSessionExpiredKey,
+                 StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
