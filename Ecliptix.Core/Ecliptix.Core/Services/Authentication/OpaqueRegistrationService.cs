@@ -262,7 +262,7 @@ internal sealed class OpaqueRegistrationService(
         return Result<Unit, string>.Ok(Unit.Value);
     }
 
-    public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
+      public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
         string deviceIdentifier,
@@ -289,7 +289,7 @@ internal sealed class OpaqueRegistrationService(
             StreamConnectId = activeStreamId,
         };
 
-        TaskCompletionSource<Protobuf.Membership.Membership> responseSource = new();
+        TaskCompletionSource<Result<Protobuf.Membership.Membership, string>> responseSource = new();
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -300,13 +300,12 @@ internal sealed class OpaqueRegistrationService(
 
                 if (response.Result == VerificationResult.Succeeded)
                 {
-                    responseSource.TrySetResult(response.Membership);
+                    responseSource.TrySetResult(Result<Protobuf.Membership.Membership, string>.Ok(response.Membership));
                 }
                 else
                 {
-                    responseSource.TrySetException(
-                        new InvalidOperationException(
-                            localizationService[AuthenticationConstants.InvalidOtpCodeKey]));
+                    responseSource.TrySetResult(Result<Protobuf.Membership.Membership, string>.Err(
+                        localizationService[AuthenticationConstants.InvalidOtpCodeKey]));
                 }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -317,8 +316,7 @@ internal sealed class OpaqueRegistrationService(
             return Result<Protobuf.Membership.Membership, string>.Err(networkResult.UnwrapErr().Message);
         }
 
-        Protobuf.Membership.Membership membership = await responseSource.Task.ConfigureAwait(false);
-        return Result<Protobuf.Membership.Membership, string>.Ok(membership);
+        return await responseSource.Task.ConfigureAwait(false);
     }
 
     // README: Manual retry keeps the password in SensitiveBytes for the entire flow, recreates OPAQUE state per attempt, and zeroizes buffers when SensitiveBytes and attempt-scoped arrays are disposed.
