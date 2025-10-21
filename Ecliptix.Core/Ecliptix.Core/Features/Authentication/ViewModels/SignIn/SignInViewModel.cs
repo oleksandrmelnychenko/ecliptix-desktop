@@ -6,8 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -33,7 +33,7 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly IAuthenticationService _authService;
-    private readonly INetworkEventService _networkEventService;
+    private readonly IConnectivityService _connectivityService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
@@ -45,7 +45,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private bool _isDisposed;
 
     public SignInViewModel(
-        INetworkEventService networkEventService,
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
@@ -53,7 +53,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     {
         HostScreen = hostScreen;
         _authService = authService;
-        _networkEventService = networkEventService;
+        _connectivityService = connectivityService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
@@ -242,25 +242,19 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         return isFormLogicallyValid;
     }
 
-    private static bool IsNetworkInOutage(NetworkStatus status) =>
-        status is NetworkStatus.DataCenterDisconnected
-            or NetworkStatus.ServerShutdown
-            or NetworkStatus.ConnectionRecovering;
+    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
+        snapshot.Status is ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown
+            or ConnectivityStatus.Recovering
+            or ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Unavailable;
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> networkStatusStream = Observable.Create<bool>(observer =>
-        {
-            bool isInOutage = IsNetworkInOutage(_networkEventService.CurrentStatus);
-            observer.OnNext(isInOutage);
-
-            return _networkEventService.OnNetworkStatusChanged(evt =>
-            {
-                bool outage = IsNetworkInOutage(evt.State);
-                observer.OnNext(outage);
-                return Task.CompletedTask;
-            });
-        }).DistinctUntilChanged();
+        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
+            .Select(IsNetworkInOutage)
+            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
+            .DistinctUntilChanged();
 
         networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
 

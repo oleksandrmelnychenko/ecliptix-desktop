@@ -5,7 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using Avalonia.Interactivity;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using ReactiveUI;
 
@@ -19,16 +19,19 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
     private const string RestoreClass = "restore";
     private const string DefaultClass = "default";
 
-    private static readonly FrozenDictionary<NetworkStatus, string> StatusClassMap =
-        new Dictionary<NetworkStatus, string>
+    private static readonly FrozenDictionary<ConnectivityStatus, string> StatusClassMap =
+        new Dictionary<ConnectivityStatus, string>
         {
-            [NetworkStatus.DataCenterConnected] = ConnectedClass,
-            [NetworkStatus.DataCenterConnecting] = ConnectingClass,
-            [NetworkStatus.DataCenterDisconnected] = DisconnectedClass,
-            [NetworkStatus.RestoreSecrecyChannel] = RestoreClass
+            [ConnectivityStatus.Connected] = ConnectedClass,
+            [ConnectivityStatus.Connecting] = ConnectingClass,
+            [ConnectivityStatus.Recovering] = RestoreClass,
+            [ConnectivityStatus.Disconnected] = DisconnectedClass,
+            [ConnectivityStatus.Unavailable] = DisconnectedClass,
+            [ConnectivityStatus.RetriesExhausted] = DisconnectedClass,
+            [ConnectivityStatus.ShuttingDown] = DisconnectedClass
         }.ToFrozenDictionary();
 
-    private NetworkStatus _currentNetworkStatus = NetworkStatus.DataCenterDisconnected;
+    private ConnectivityStatus _currentConnectivityStatus = ConnectivityStatus.Disconnected;
 
     public SplashWindow()
     {
@@ -44,7 +47,7 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
                 .Where(dc => dc != null)
                 .Select(dc => dc!)
                 .OfType<SplashWindowViewModel>()
-                .SelectMany(vm => vm.WhenAnyValue(x => x.NetworkStatus))
+                .SelectMany(vm => vm.WhenAnyValue(x => x.ConnectivityStatus))
                 .DistinctUntilChanged()
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(UpdateWindowClass)
@@ -52,27 +55,27 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
         });
     }
 
-    private void UpdateWindowClass(NetworkStatus status)
+    private void UpdateWindowClass(ConnectivityStatus status)
     {
-        if (_currentNetworkStatus == status) return;
+        if (_currentConnectivityStatus == status) return;
 
-        if (_currentNetworkStatus != NetworkStatus.DataCenterDisconnected)
+        if (_currentConnectivityStatus != ConnectivityStatus.Disconnected)
         {
-            string oldClass = GetClassForStatusFast(_currentNetworkStatus);
+            string oldClass = GetClassForStatusFast(_currentConnectivityStatus);
             Classes.Remove(oldClass);
         }
 
         string newClass = GetClassForStatusFast(status);
         Classes.Add(newClass);
-        _currentNetworkStatus = status;
+        _currentConnectivityStatus = status;
     }
 
-    private static string GetClassForStatusFast(NetworkStatus status) =>
+    private static string GetClassForStatusFast(ConnectivityStatus status) =>
         StatusClassMap.GetValueOrDefault(status, DefaultClass);
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
-        _currentNetworkStatus = NetworkStatus.DataCenterDisconnected;
+        _currentConnectivityStatus = ConnectivityStatus.Disconnected;
         base.OnUnloaded(e);
     }
 }

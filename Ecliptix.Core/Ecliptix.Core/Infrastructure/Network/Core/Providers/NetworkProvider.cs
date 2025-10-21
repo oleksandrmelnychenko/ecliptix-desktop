@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
@@ -47,7 +48,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly ISecureProtocolStateStorage _secureProtocolStateStorage;
     private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
-    private readonly INetworkEventService _networkEvents;
+    private readonly IConnectivityService _connectivityService;
     private readonly IRetryStrategy _retryStrategy;
     private readonly IPendingRequestManager _pendingRequestManager;
     private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory;
@@ -75,7 +76,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         ISecureProtocolStateStorage secureProtocolStateStorage,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         IRetryStrategy retryStrategy,
         IPendingRequestManager pendingRequestManager,
         ICertificatePinningServiceFactory certificatePinningServiceFactory,
@@ -86,7 +87,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _secureProtocolStateStorage = secureProtocolStateStorage;
         _rpcMetaDataProvider = rpcMetaDataProvider;
-        _networkEvents = networkEvents;
+        _connectivityService = connectivityService;
         _retryStrategy = retryStrategy;
         _pendingRequestManager = pendingRequestManager;
         _certificatePinningServiceFactory = certificatePinningServiceFactory;
@@ -120,7 +121,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnecting);
+                _ = _connectivityService.PublishAsync(
+                    ConnectivityIntent.Connecting(connectId,
+                        ConnectivityReason.HandshakeStarted));
             });
         }
 
@@ -179,7 +182,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (maxRetries.HasValue)
         {
             establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
-                (attempt, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_networkEvents, envelope,
+                (attempt, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_connectivityService, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -191,7 +194,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         else
         {
             establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
-                (attempt, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_networkEvents, envelope,
+                (attempt, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_connectivityService, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -451,7 +454,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                     "Connection unavailable - server may be recovering");
-                _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ServerShutdown);
+                _ = _connectivityService.PublishAsync(
+                    ConnectivityIntent.ServerShutdown(noConnectionFailure));
                 return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
             }
 
@@ -586,7 +590,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
-                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
+                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -605,7 +609,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                             : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
-                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
+                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -617,7 +621,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 try
                 {
                     restoreAppDeviceSecrecyChannelResponse =
-                        await _rpcServiceManager.RestoreSecrecyChannelAsync(_networkEvents,
+                        await _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
                             request,
                             cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
@@ -1242,7 +1246,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                         {
-                            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterDisconnected);
+                            _ = _connectivityService.PublishAsync(
+                                ConnectivityIntent.Disconnected(failure, connectId));
                         });
                         return Result<Unit, NetworkFailure>.Err(
                             NetworkFailure.DataCenterNotResponding(""));
@@ -1445,7 +1450,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRestored);
+            _ = _connectivityService.PublishAsync(
+                ConnectivityIntent.Connected(null, ConnectivityReason.HandshakeSucceeded));
         });
     }
 
@@ -1489,6 +1495,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     _outageCompletionSource = CreateOutageTcs();
                 }
             }
+
+            _ = _connectivityService.PublishAsync(
+                ConnectivityIntent.Recovering(
+                    NetworkFailure.DataCenterNotResponding("Recovering secrecy channel")));
         }
 
         EnsureConnectionRecoveryToken();
@@ -1593,6 +1603,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             catch (Exception ex)
             {
                 if (_disposed) return;
+                Log.Error(ex, "[CLIENT-PROTOCOL-PERSIST] Failed to persist session state in background");
             }
         }, _shutdownCancellationToken.Token);
     }
@@ -1806,7 +1817,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+                    _ = _connectivityService.PublishAsync(
+                        ConnectivityIntent.Connected(connectId));
                 });
             }
         }
@@ -2117,7 +2129,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =
                     await _rpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
-                        _networkEvents, authenticatedRequest).ConfigureAwait(false);
+                        _connectivityService, authenticatedRequest).ConfigureAwait(false);
 
                 if (serverResponseResult.IsErr)
                 {

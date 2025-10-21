@@ -24,7 +24,7 @@ internal class RpcServiceManager : IRpcServiceManager
         IUnaryRpcServices unaryRpcServices,
         IReceiveStreamRpcServices receiveStreamRpcServices,
         ISecrecyChannelRpcServices secrecyChannelRpcServices,
-        INetworkEventService networkEvents)
+        IConnectivityService connectivityService)
     {
         _secrecyChannelRpcServices = secrecyChannelRpcServices;
 
@@ -34,7 +34,7 @@ internal class RpcServiceManager : IRpcServiceManager
             {
                 {
                     ServiceFlowType.Single,
-                    (req, token) => unaryRpcServices.InvokeRequestAsync(req, networkEvents, token)
+                    (req, token) => unaryRpcServices.InvokeRequestAsync(req, connectivityService, token)
                 },
                 {
                     ServiceFlowType.ReceiveStream, receiveStreamRpcServices.ProcessRequest
@@ -43,33 +43,33 @@ internal class RpcServiceManager : IRpcServiceManager
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishSecrecyChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         SecureEnvelope envelope,
         PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default)
     {
-        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(networkEvents,
+        return await _secrecyChannelRpcServices.EstablishAppDeviceSecrecyChannelAsync(connectivityService,
             envelope,
             exchangeType,
             cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreSecrecyChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         RestoreChannelRequest request,
         CancellationToken cancellationToken = default)
     {
-        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(networkEvents,
+        return await _secrecyChannelRpcServices.RestoreAppDeviceSecrecyChannelAsync(connectivityService,
             request,
             cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAuthenticatedSecureChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
         CancellationToken cancellationToken = default)
     {
-        return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(networkEvents,
+        return await _secrecyChannelRpcServices.AuthenticatedEstablishSecureChannelAsync(connectivityService,
             request,
             cancellationToken).ConfigureAwait(false);
     }

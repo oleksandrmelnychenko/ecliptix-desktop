@@ -1,7 +1,6 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Network.Resilience;
@@ -13,15 +12,10 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 internal sealed class GrpcErrorProcessor(ILocalizationService localizationService) : IGrpcErrorProcessor
 {
-    public NetworkFailure Process(RpcException rpcException)
-    {
-        return CreateFailure(rpcException);
-    }
+    public NetworkFailure Process(RpcException rpcException) => CreateFailure(rpcException);
 
-    public Task<NetworkFailure> ProcessAsync(RpcException rpcException, INetworkEventService networkEvents)
-    {
-        return Task.FromResult(CreateFailure(rpcException));
-    }
+    public Task<NetworkFailure> ProcessAsync(RpcException rpcException) =>
+        Task.FromResult(CreateFailure(rpcException));
 
     private NetworkFailure CreateFailure(RpcException rpcException)
     {

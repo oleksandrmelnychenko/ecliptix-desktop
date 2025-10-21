@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -14,6 +15,7 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -92,7 +94,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     public NetworkStatusNotificationViewModel(
         ILocalizationService localizationService,
-        INetworkEventService networkEventService,
+        IConnectivityService connectivityService,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
@@ -109,25 +111,16 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Subscribe(_ => ClearStringCache())
             .DisposeWith(_disposables);
 
-        IObservable<NetworkStatusChangedEvent> networkStatusEvents =
-            Observable.Create<NetworkStatusChangedEvent>(observer =>
-            {
-                return networkEventService.OnNetworkStatusChanged(
-                    evt =>
-                    {
-                        observer.OnNext(evt);
-                        return Task.CompletedTask;
-                    },
-                    SubscriptionLifetime.Scoped);
-            })
-            .DistinctUntilChanged(e => e.State)
+        ConnectivitySnapshot initialSnapshot = connectivityService.CurrentSnapshot;
+
+        IObservable<ConnectivitySnapshot> connectivitySnapshots = connectivityService.ConnectivityStream
             .Publish()
             .RefCount();
 
         IObservable<ManualRetryRequestedEvent> manualRetryEvents =
             Observable.Create<ManualRetryRequestedEvent>(observer =>
         {
-            return networkEventService.OnManualRetryRequested(
+            return connectivityService.OnManualRetryRequested(
                 evt =>
                 {
                     observer.OnNext(evt);
@@ -136,17 +129,10 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 SubscriptionLifetime.Scoped);
         });
 
-        IObservable<NetworkConnectionState> connectionStateObservable = networkStatusEvents
-            .Select(evt => evt.State switch
-            {
-                NetworkStatus.NoInternet => NetworkConnectionState.NoInternet,
-                NetworkStatus.RetriesExhausted or
-                NetworkStatus.DataCenterDisconnected or
-                NetworkStatus.DataCenterConnecting or
-                NetworkStatus.ServerShutdown => NetworkConnectionState.ServerNotResponding,
-                _ => NetworkConnectionState.NoInternet
-            })
-            .StartWith(NetworkConnectionState.NoInternet);
+        IObservable<NetworkConnectionState> connectionStateObservable = connectivitySnapshots
+            .Select(MapConnectionState)
+            .StartWith(MapConnectionState(initialSnapshot))
+            .DistinctUntilChanged();
 
         IObservable<string> retryButtonTextObservable = languageTrigger
             .Select(_ => GetCachedRetryButtonText());
@@ -170,31 +156,32 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Select(LoadCachedBitmap);
 
         IObservable<bool> showRetryButtonObservable = Observable.Merge(
-                networkStatusEvents
-                    .Where(evt => evt.State == NetworkStatus.RetriesExhausted)
+                connectivitySnapshots
+                    .Where(snapshot => snapshot.Status == ConnectivityStatus.RetriesExhausted)
                     .Do(_ => LogRetryButtonShow())
                     .Select(_ => true),
                 manualRetryEvents
                     .Do(_ => LogRetryButtonManualHide())
                     .Select(_ => false),
-                networkStatusEvents
-                    .Where(evt => evt.State is NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored)
-                    .Do(evt => LogRetryButtonConnectionHide(evt.State))
+                connectivitySnapshots
+                    .Where(snapshot => snapshot.Status == ConnectivityStatus.Connected)
+                    .Do(snapshot => LogRetryButtonConnectionHide(snapshot))
                     .Select(_ => false)
             )
             .StartWith(false);
 
-        IObservable<bool> isVisibleObservable = networkStatusEvents
-            .Select(evt => evt.State switch
+        IObservable<bool> isVisibleObservable = connectivitySnapshots
+            .Select(snapshot => snapshot.Status switch
             {
-                NetworkStatus.DataCenterConnected or NetworkStatus.ConnectionRestored => Observable.Return(true)
+                ConnectivityStatus.Connected => Observable.Return(true)
                     .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AutoHideDelayMs))
                     .Select(_ => false),
-                NetworkStatus.RetriesExhausted or
-                NetworkStatus.DataCenterDisconnected or
-                NetworkStatus.ServerShutdown => Observable.Return(true),
-                NetworkStatus.NoInternet => Observable.Return(true),
-                NetworkStatus.DataCenterConnecting => Observable.Empty<bool>(),
+                ConnectivityStatus.RetriesExhausted or
+                ConnectivityStatus.Disconnected or
+                ConnectivityStatus.ShuttingDown => Observable.Return(true),
+                ConnectivityStatus.Unavailable => Observable.Return(true),
+                ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => Observable.Return(true),
+                ConnectivityStatus.Connecting => Observable.Empty<bool>(),
                 _ => Observable.Return(false)
             })
             .Switch()
@@ -219,7 +206,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 {
                     Log.Information("Manual retry requested - attempting to retry all pending requests");
 
-                    await networkEventService.RequestManualRetryAsync();
+                    await connectivityService.RequestManualRetryAsync();
 
                     int retriedCount = await pendingRequestManager.RetryAllPendingRequestsAsync(ct);
                     Log.Information("Manual retry completed - retried {RetriedCount} pending requests", retriedCount);
@@ -232,12 +219,12 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             showRetryButtonObservable
         ).DisposeWith(_disposables);
 
-        networkStatusEvents
+        connectivitySnapshots
             .ObserveOn(RxApp.TaskpoolScheduler)
-            .Subscribe(evt =>
+            .Subscribe(snapshot =>
             {
-                LogNetworkEvent(evt.State);
-                HandleNetworkStatusVisualEffects(evt);
+                LogNetworkEvent(snapshot);
+                HandleConnectivityVisualEffects(snapshot);
             })
             .DisposeWith(_disposables);
 
@@ -300,9 +287,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         });
     }
 
-    private void HandleNetworkStatusVisualEffects(NetworkStatusChangedEvent evt)
+    private void HandleConnectivityVisualEffects(ConnectivitySnapshot snapshot)
     {
-        bool isServerIssue = evt.State is NetworkStatus.RetriesExhausted or NetworkStatus.DataCenterDisconnected or NetworkStatus.ServerShutdown;
+        bool isServerIssue = snapshot.Status is ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown;
         Dispatcher.UIThread.InvokeAsync(() => ApplyClasses(serverIssue: isServerIssue));
     }
 
@@ -431,6 +420,21 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private string GetCachedRetryButtonText() => _cachedRetryButtonText ??= LocalizationService["NetworkNotification.Button.Retry"];
 
+    private static NetworkConnectionState MapConnectionState(ConnectivitySnapshot snapshot)
+    {
+        return snapshot.Status switch
+        {
+            ConnectivityStatus.Unavailable => NetworkConnectionState.NoInternet,
+            ConnectivityStatus.RetriesExhausted => NetworkConnectionState.ServerNotResponding,
+            ConnectivityStatus.Disconnected => NetworkConnectionState.ServerNotResponding,
+            ConnectivityStatus.ShuttingDown => NetworkConnectionState.ServerNotResponding,
+            ConnectivityStatus.Recovering => NetworkConnectionState.ServerNotResponding,
+            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => NetworkConnectionState.NoInternet,
+            ConnectivityStatus.Connecting => NetworkConnectionState.ServerNotResponding,
+            _ => NetworkConnectionState.NoInternet
+        };
+    }
+
     private static void LogRetryButtonShow()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
@@ -443,16 +447,21 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)");
     }
 
-    private static void LogRetryButtonConnectionHide(NetworkStatus status)
+    private static void LogRetryButtonConnectionHide(ConnectivitySnapshot snapshot)
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-            Log.Debug("🔘 RETRY BUTTON: Hiding retry button (connection {Status})", status);
+            Log.Debug("🔘 RETRY BUTTON: Hiding retry button (status {Status}, reason {Reason})",
+                snapshot.Status, snapshot.Reason);
     }
 
-    private static void LogNetworkEvent(NetworkStatus status)
+    private static void LogNetworkEvent(ConnectivitySnapshot snapshot)
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-            Log.Debug("🔔 NETWORK EVENT: Received {NetworkStatus}", status);
+            Log.Debug("🔔 CONNECTIVITY EVENT: Status={Status}, Reason={Reason}, Source={Source}, Retry={Retry}",
+                snapshot.Status,
+                snapshot.Reason,
+                snapshot.Source,
+                snapshot.RetryAttempt);
     }
 
     private static void LogVisibilityChange(bool visible)

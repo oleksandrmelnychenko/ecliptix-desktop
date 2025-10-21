@@ -5,6 +5,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Splash.Views;
+using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Serilog;
 using Splat;
 
@@ -21,6 +22,8 @@ public class ApplicationStartup(
 
     public async Task RunAsync(DefaultSystemSettings defaultSystemSettings)
     {
+        _ = Locator.Current.GetService<InternetConnectivityBridge>();
+
         _splashViewModel = Locator.Current.GetService<SplashWindowViewModel>()!;
         _splashScreen = new SplashWindow { DataContext = _splashViewModel };
 

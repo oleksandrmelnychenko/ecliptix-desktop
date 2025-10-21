@@ -9,6 +9,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Settings;
@@ -16,7 +17,6 @@ using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -48,11 +48,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<INetworkEventService,
+    private static readonly FrozenDictionary<MembershipViewType, Func<IConnectivityService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
         IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<INetworkEventService, NetworkProvider,
+        new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
             IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>>
@@ -77,8 +77,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly IDisposable _connectivitySubscription;
-    private readonly INetworkEventService _networkEventService;
+    private readonly IConnectivityService _connectivityService;
     private readonly NetworkProvider _networkProvider;
     private readonly ILanguageDetectionService _languageDetectionService;
     private readonly ILocalizationService _localizationService;
@@ -97,10 +96,9 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private IRoutableViewModel? _currentView;
 
     public AuthenticationViewModel(
-        INetworkEventService networkEventService,
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
-        IInternetConnectivityObserver connectivityObserver,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IAuthenticationService authenticationService,
         IOpaqueRegistrationService opaqueRegistrationService,
@@ -111,7 +109,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         : base(networkProvider, localizationService)
     {
         _localizationService = localizationService;
-        _networkEventService = networkEventService;
+        _connectivityService = connectivityService;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
@@ -139,13 +137,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         {
             FullVersionInfo = VersionHelper.GetDisplayVersion();
         }
-
-        _connectivitySubscription = connectivityObserver.Subscribe(status =>
-        {
-            _ = _networkEventService.NotifyNetworkStatusAsync(status
-                ? NetworkStatus.DataCenterConnected
-                : NetworkStatus.NoInternet);
-        });
 
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
         {
@@ -209,14 +200,16 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
         this.WhenActivated(disposables =>
         {
-            _networkEventService.OnManualRetryRequested(async e =>
+            _connectivityService.OnManualRetryRequested(async e =>
                 {
                     Result<Utilities.Unit, NetworkFailure> recoveryResult =
                         await _networkProvider.ForceFreshConnectionAsync();
 
                     if (recoveryResult.IsOk)
                     {
-                        await _networkEventService.NotifyNetworkStatusAsync(NetworkStatus.DataCenterConnected);
+                        ConnectivityIntent intent = ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
+                            with { Source = ConnectivitySource.ManualAction };
+                        await _connectivityService.PublishAsync(intent);
                     }
                 })
                 .DisposeWith(disposables);
@@ -528,7 +521,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
 
         if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<INetworkEventService, NetworkProvider, ILocalizationService,
+                out Func<IConnectivityService, NetworkProvider, ILocalizationService,
                     IAuthenticationService,
                     IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
                     IPasswordRecoveryService, IRoutableViewModel>? factory))
@@ -536,7 +529,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             throw new InvalidOperationException($"No factory registered for view type: {viewType}");
         }
 
-        IRoutableViewModel newViewModel = factory(_networkEventService, _networkProvider,
+        IRoutableViewModel newViewModel = factory(_connectivityService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
             _passwordRecoveryService);
@@ -551,7 +544,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         {
             CleanupAuthenticationFlow();
 
-            _connectivitySubscription.Dispose();
             _disposables.Dispose();
         }
 

@@ -12,18 +12,18 @@ namespace Ecliptix.Core.Services.Abstractions.Network;
 public interface ISecrecyChannelRpcServices
 {
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         SecureEnvelope request,
         PubKeyExchangeType? exchangeType = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         RestoreChannelRequest request,
         CancellationToken cancellationToken = default);
 
     Task<Result<SecureEnvelope, NetworkFailure>> AuthenticatedEstablishSecureChannelAsync(
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         AuthenticatedEstablishRequest request,
         CancellationToken cancellationToken = default);
 }

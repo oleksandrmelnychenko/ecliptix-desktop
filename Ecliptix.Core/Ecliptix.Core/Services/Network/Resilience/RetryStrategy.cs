@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Timeout;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -29,7 +30,7 @@ public sealed class RetryStrategy : IRetryStrategy
     private const int OperationTimeoutMinutes = 10;
 
     private readonly RetryStrategyConfiguration _strategyConfiguration;
-    private readonly INetworkEventService _networkEvents;
+    private readonly IConnectivityService _connectivityService;
     private readonly IOperationTimeoutProvider _timeoutProvider;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
     private readonly ConcurrentDictionary<string, object> _pipelineCache = new();
@@ -67,11 +68,11 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public RetryStrategy(
         RetryStrategyConfiguration strategyConfiguration,
-        INetworkEventService networkEvents,
+        IConnectivityService connectivityService,
         IOperationTimeoutProvider timeoutProvider)
     {
         _strategyConfiguration = strategyConfiguration;
-        _networkEvents = networkEvents;
+        _connectivityService = connectivityService;
         _timeoutProvider = timeoutProvider ?? throw new ArgumentNullException(nameof(timeoutProvider));
 
         _cleanupTimer = new Timer(
@@ -82,7 +83,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
         try
         {
-            _manualRetrySubscription = _networkEvents.OnManualRetryRequested(HandleManualRetryRequestAsync);
+        _manualRetrySubscription = _connectivityService.OnManualRetryRequested(HandleManualRetryRequestAsync);
         }
         catch (Exception ex)
         {
@@ -382,7 +383,10 @@ public sealed class RetryStrategy : IRetryStrategy
                 {
                     try
                     {
-                        _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.ConnectionRestored);
+                        _ = _connectivityService.PublishAsync(
+                            ConnectivityIntent.Connected(
+                                evt.ConnectId,
+                                ConnectivityReason.ManualRetry));
                     }
                     catch (Exception ex)
                     {
@@ -642,6 +646,24 @@ public sealed class RetryStrategy : IRetryStrategy
                         UpdateOperationRetryCount(operationKey, retryCount);
                     }
 
+                    NetworkFailure? currentFailure = null;
+                    if (hasResult && result.IsErr)
+                    {
+                        currentFailure = result.UnwrapErr();
+                    }
+
+                    if (isTimeout && currentFailure == null)
+                    {
+                        currentFailure = NetworkFailure.DataCenterNotResponding("Operation timeout");
+                    }
+
+                    NetworkFailure recoveringFailure = currentFailure ??
+                        NetworkFailure.DataCenterNotResponding("Retrying operation");
+
+                    await _connectivityService.PublishAsync(
+                        ConnectivityIntent.Recovering(recoveringFailure, connectId, retryCount + 1, delay))
+                        .ConfigureAwait(false);
+
                     if (retryCount >= retryDelays.Length)
                     {
                         Log.Warning(
@@ -663,7 +685,11 @@ public sealed class RetryStrategy : IRetryStrategy
                             {
                                 try
                                 {
-                                    _ = _networkEvents.NotifyNetworkStatusAsync(NetworkStatus.RetriesExhausted);
+                                    _ = _connectivityService.PublishAsync(
+                                        ConnectivityIntent.RetriesExhausted(
+                                            currentFailure ?? NetworkFailure.DataCenterNotResponding("Retries exhausted"),
+                                            connectId,
+                                            retryCount));
                                 }
                                 catch (Exception ex)
                                 {
@@ -691,8 +717,11 @@ public sealed class RetryStrategy : IRetryStrategy
                                 {
                                     try
                                     {
-                                        _ = _networkEvents.NotifyNetworkStatusAsync(
-                                            NetworkStatus.DataCenterDisconnected);
+                                        _ = _connectivityService.PublishAsync(
+                                            ConnectivityIntent.Disconnected(
+                                                currentFailure ?? NetworkFailure.DataCenterNotResponding("Connection lost"),
+                                                connectId,
+                                                ConnectivityReason.RpcFailure));
                                     }
                                     catch (Exception ex)
                                     {

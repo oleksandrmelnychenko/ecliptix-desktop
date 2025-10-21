@@ -1,8 +1,8 @@
 using System;
 using System.Reactive.Disposables;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
@@ -11,31 +11,35 @@ namespace Ecliptix.Core.Features.Splash.ViewModels;
 
 public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 {
-    private NetworkStatus _networkStatus = NetworkStatus.DataCenterConnecting;
+    private ConnectivitySnapshot _connectivity = ConnectivitySnapshot.Initial with { Status = ConnectivityStatus.Connecting };
     private bool _isShuttingDown;
 
-    public NetworkStatus NetworkStatus
+    public ConnectivitySnapshot Connectivity
     {
-        get => _networkStatus;
-        private set => this.RaiseAndSetIfChanged(ref _networkStatus, value);
+        get => _connectivity;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _connectivity, value);
+            this.RaisePropertyChanged(nameof(ConnectivityStatus));
+        }
     }
+
+    public ConnectivityStatus ConnectivityStatus => Connectivity.Status;
 
     public TaskCompletionSource IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(INetworkEventService networkEventService,
+    public SplashWindowViewModel(IConnectivityService connectivityService,
         ILocalizationService localizationService, NetworkProvider networkProvider)
         : base(networkProvider, localizationService)
     {
-        SetupPrecompiledNetworkBinding(networkEventService);
+        SetupPrecompiledNetworkBinding(connectivityService);
     }
 
-    private void SetupPrecompiledNetworkBinding(INetworkEventService networkEventService)
+    private void SetupPrecompiledNetworkBinding(IConnectivityService connectivityService)
     {
-        IDisposable subscription = networkEventService.OnNetworkStatusChanged(evt =>
-        {
-            ProcessNetworkStatusChange(evt.State);
-            return Task.CompletedTask;
-        });
+        ProcessConnectivityChange(connectivityService.CurrentSnapshot);
+
+        IDisposable subscription = connectivityService.ConnectivityStream.Subscribe(ProcessConnectivityChange);
 
         this.WhenActivated(disposables =>
         {
@@ -44,10 +48,10 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         });
     }
 
-    private void ProcessNetworkStatusChange(NetworkStatus status)
+    private void ProcessConnectivityChange(ConnectivitySnapshot snapshot)
     {
         if (_isShuttingDown) return;
-        NetworkStatus = status;
+        Connectivity = snapshot;
     }
 
     public Task PrepareForShutdownAsync()

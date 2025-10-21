@@ -13,6 +13,7 @@ using Avalonia;
 using Avalonia.ReactiveUI;
 using DotNetEnv;
 using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Controls;
 using Ecliptix.Core.Controls.Core;
@@ -238,7 +239,7 @@ public static class Program
                             attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
 
-        services.AddTransient<IInternetConnectivityObserver, InternetConnectivityObserver>();
+        services.AddSingleton<IInternetConnectivityObserver, InternetConnectivityObserver>();
         services.AddSingleton(new InternetConnectivityObserverOptions
         {
             PollingInterval = ApplicationConstants.Timeouts.DefaultPollingInterval,
@@ -249,6 +250,7 @@ public static class Program
         services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
         services.AddSingleton<NetworkProvider>();
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
+        services.AddSingleton<InternetConnectivityBridge>();
     }
 
     private static void ConfigureSecurityServices(IServiceCollection services, IConfiguration configuration)
@@ -324,7 +326,7 @@ public static class Program
     private static void ConfigureMessagingServices(IServiceCollection services)
     {
         services.AddSingleton<IMessageBus, MessageBus>();
-        services.AddSingleton<INetworkEventService, NetworkEventService>();
+        services.AddSingleton<IConnectivityService, ConnectivityService>();
         services.AddSingleton<IBottomSheetService, BottomSheetService>();
         services.AddSingleton<ILanguageDetectionService, LanguageDetectionService>();
         services.AddSingleton<ILocalizationService, LocalizationService>();
@@ -367,10 +369,10 @@ public static class Program
         services.AddSingleton<IRetryStrategy>(sp =>
         {
             RetryStrategyConfiguration retryStrategyConfig = sp.GetRequiredService<RetryStrategyConfiguration>();
-            INetworkEventService networkEvents = sp.GetRequiredService<INetworkEventService>();
+            IConnectivityService connectivityService = sp.GetRequiredService<IConnectivityService>();
             IOperationTimeoutProvider timeoutProvider = sp.GetRequiredService<IOperationTimeoutProvider>();
 
-            RetryStrategy retryStrategy = new(retryStrategyConfig, networkEvents, timeoutProvider);
+            RetryStrategy retryStrategy = new(retryStrategyConfig, connectivityService, timeoutProvider);
             Lazy<NetworkProvider> lazyProvider = new(sp.GetRequiredService<NetworkProvider>);
             retryStrategy.SetLazyNetworkProvider(lazyProvider);
             return retryStrategy;
