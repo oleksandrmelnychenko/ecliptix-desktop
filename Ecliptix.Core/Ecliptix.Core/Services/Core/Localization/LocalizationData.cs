@@ -78,7 +78,7 @@ public static class LocalizationData
         ["Authentication.SignIn.Continue"] = "Continue",
 
 
-        ["MobileVerification.Error.MobileAlreadyRegistered"] = "This mobile number is already registered. Please sign in or use password recovery.",
+        ["MobileVerification.Error.MobileAlreadyRegistered"] = "A problem occurred with your registration. If you already have an account, please try logging in or use the account recovery option.",
 
 
         ["Verification.Error.InvalidOtpCode"] = "Invalid verification code",
@@ -253,7 +253,7 @@ public static class LocalizationData
         ["Authentication.SignIn.Continue"] = "Продовжити",
 
 
-        ["MobileVerification.Error.MobileAlreadyRegistered"] = "Цей номер телефону вже зареєстровано. Будь ласка, увійдіть або скористайтеся відновленням пароля.",
+        ["MobileVerification.Error.MobileAlreadyRegistered"] = "Під час реєстрації сталася помилка. Якщо у вас вже є акаунт, будь ласка, спробуйте увійти або скористайтеся опцією відновлення доступу.",
 
 
         ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",

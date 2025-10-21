@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Threading;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
@@ -20,7 +19,6 @@ using Ecliptix.Core.Controls.Constants;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Services.Membership;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Controls.Core;
 
@@ -169,7 +167,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private string _lastProcessedText = string.Empty;
     private IDisposable? _currentTypingAnimation;
     private int _lastProcessedTextElementCount;
-    private int _isProcessingSecureKeyChange;
+    private volatile bool _isProcessingSecureKeyChange;
     private int _intendedCaretPosition;
     private string _originalErrorText = string.Empty;
 
@@ -455,7 +453,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Error disposing subscriptions in HintedTextBox");
+                System.Diagnostics.Debug.WriteLine($"Error disposing subscriptions: {ex.Message}");
             }
 
             _mainTextBox = null;
@@ -465,7 +463,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             _lastProcessedText = string.Empty;
             _lastProcessedTextElementCount = 0;
-            _isProcessingSecureKeyChange = 0;
+            _isProcessingSecureKeyChange = false;
             _intendedCaretPosition = 0;
 
             ErrorText = string.Empty;
@@ -473,7 +471,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error during HintedTextBox.Dispose");
+            System.Diagnostics.Debug.WriteLine($"Error in Dispose: {ex.Message}");
         }
     }
 
@@ -682,8 +680,105 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         _mainTextBox.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+
+        _mainTextBox.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel);
+
+        _mainTextBox.AddHandler(DragDrop.DragEnterEvent, OnDragEnter, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Tunnel);
+
+        _mainTextBox.AddHandler(Gestures.TappedEvent, OnTapped, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(Gestures.DoubleTappedEvent, OnDoubleTapped, RoutingStrategies.Tunnel);
+        _mainTextBox.AddHandler(Gestures.HoldingEvent, OnHolding, RoutingStrategies.Tunnel);
+
+        _mainTextBox.SelectionStart = 0;
+        _mainTextBox.SelectionEnd = 0;
+
         _mainTextBox.IsReadOnly = false;
+    }
+
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+        if (_mainTextBox != null)
+        {
+            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+            _intendedCaretPosition = _mainTextBox.Text?.Length ?? 0;
+        }
+    }
+
+    private void OnTapped(object? sender, TappedEventArgs e)
+    {
+        if (!IsSecureKeyMode || _mainTextBox == null) return;
+        e.Handled = true;
+
+        _mainTextBox.SelectionStart = 0;
+        _mainTextBox.SelectionEnd = 0;
+        _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+
+        if (!_mainTextBox.IsFocused)
+        {
+            _mainTextBox.Focus();
+        }
+    }
+
+
+    private void OnDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+        if (_mainTextBox != null)
+        {
+            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+        }
+    }
+
+    private void OnHolding(object? sender, HoldingRoutedEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+    }
+
+    private void OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (!IsSecureKeyMode || _mainTextBox == null) return;
+        e.Handled = true;
+    }
+
+    private void OnDragEnter(object? sender, DragEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (!IsSecureKeyMode) return;
+        e.Handled = true;
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!IsSecureKeyMode || _mainTextBox == null) return;
+
+        e.Handled = true;
+
+        if (!_mainTextBox.IsFocused)
+        {
+            _mainTextBox.Focus();
+        }
+
+        _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+        _intendedCaretPosition = _mainTextBox.Text?.Length ?? 0;
     }
 
     private void OnTextInput(object? sender, TextInputEventArgs e)
@@ -702,6 +797,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 };
             RaiseEvent(multiCharArgs);
             StartWarningTimer();
+
+            if (_mainTextBox != null)
+            {
+                _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+            }
             return;
         }
 
@@ -716,16 +816,17 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             };
             RaiseEvent(args);
             StartWarningTimer();
+
+            if (_mainTextBox != null)
+            {
+                _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+            }
         }
 
         if (_mainTextBox != null)
         {
             int currentLength = _mainTextBox.Text?.Length ?? 0;
-            if (_mainTextBox.CaretIndex < currentLength)
-            {
-                e.Handled = true;
-                _mainTextBox.CaretIndex = currentLength;
-            }
+            _mainTextBox.CaretIndex = currentLength;
         }
     }
 
@@ -794,33 +895,47 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                     return;
             }
         }
-    }
 
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (!IsSecureKeyMode || _mainTextBox is null || _isUpdatingFromCode)
-            return;
-
-        Dispatcher.UIThread.Post(() =>
+        if (e.Key == Key.Back)
         {
-            if (_mainTextBox is null || _isUpdatingFromCode)
-                return;
-
-            _isUpdatingFromCode = true;
-
-            int textLength = _mainTextBox.Text?.Length ?? 0;
-            int selLength = Math.Abs(_mainTextBox.SelectionEnd - _mainTextBox.SelectionStart);
-
-            bool isFullSelection = selLength == textLength;
-            if (!isFullSelection)
+            e.Handled = true;
+            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
             {
-                _mainTextBox.ClearSelection();
-                _mainTextBox.CaretIndex = textLength - selLength;
-                _mainTextBox.CaretIndex = textLength;
-            }
+                string currentText = _mainTextBox.Text;
+                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
 
-            _isUpdatingFromCode = false;
-        }, DispatcherPriority.Render);
+                _isUpdatingFromCode = true;
+                _mainTextBox.Text = newText;
+                _mainTextBox.CaretIndex = newText.Length;
+                _isUpdatingFromCode = false;
+
+                _intendedCaretPosition = newText.Length;
+            }
+            return;
+        }
+
+        if (e.Key == Key.Delete)
+        {
+            e.Handled = true;
+            if (_mainTextBox != null && !string.IsNullOrEmpty(_mainTextBox.Text))
+            {
+                string currentText = _mainTextBox.Text;
+                string newText = currentText.Length > 0 ? currentText.Substring(0, currentText.Length - 1) : string.Empty;
+
+                _isUpdatingFromCode = true;
+                _mainTextBox.Text = newText;
+                _mainTextBox.CaretIndex = newText.Length;
+                _isUpdatingFromCode = false;
+
+                _intendedCaretPosition = newText.Length;
+            }
+            return;
+        }
+
+        if (_mainTextBox != null)
+        {
+            _mainTextBox.CaretIndex = _mainTextBox.Text?.Length ?? 0;
+        }
     }
 
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
@@ -885,7 +1000,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in OnSecureKeyDebounceTimerTick");
+            System.Diagnostics.Debug.WriteLine($"Error in OnSecureKeyDebounceTimerTick: {ex.Message}");
         }
     }
 
@@ -902,18 +1017,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in OnDebounceTimerTick");
+            System.Diagnostics.Debug.WriteLine($"Error in OnDebounceTimerTick: {ex.Message}");
         }
     }
 
     private void ProcessSecureKeyChange()
     {
-        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed)
-            return;
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed || _isProcessingSecureKeyChange) return;
 
-        if (Interlocked.CompareExchange(ref _isProcessingSecureKeyChange, 1, 0) != 0)
-            return;
-
+        _isProcessingSecureKeyChange = true;
         try
         {
             string currentText = _mainTextBox.Text ?? string.Empty;
@@ -947,7 +1059,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 else if (currentElementCount < lastElementCount)
                 {
                     int removedCount = lastElementCount - currentElementCount;
-                    int removePos = Math.Max(HintedTextBoxConstants.InitialCaretIndex, _mainTextBox.CaretIndex);
+                    int removePos = currentElementCount;
 
                     _intendedCaretPosition = removePos;
 
@@ -958,7 +1070,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Error in ProcessSecureKeyChange");
+                System.Diagnostics.Debug.WriteLine($"Error in ProcessSecureKeyChange: {ex.Message}");
 
                 if (currentText.Length > lastText.Length)
                 {
@@ -994,7 +1106,18 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         finally
         {
-            Interlocked.Exchange(ref _isProcessingSecureKeyChange, 0);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_mainTextBox != null && !_isDisposed)
+                {
+                    int textLength = _mainTextBox.Text?.Length ?? 0;
+                    if (_mainTextBox.CaretIndex != textLength)
+                    {
+                        _mainTextBox.CaretIndex = textLength;
+                    }
+                }
+            });
+            _isProcessingSecureKeyChange = false;
         }
     }
 
@@ -1121,7 +1244,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         _mainTextBox.LostFocus -= OnLostFocus;
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
+        _mainTextBox.RemoveHandler(PointerPressedEvent, OnPointerPressed);
+        _mainTextBox.RemoveHandler(PointerMovedEvent, OnPointerMoved);
         _mainTextBox.RemoveHandler(PointerReleasedEvent, OnPointerReleased);
+        _mainTextBox.RemoveHandler(DragDrop.DragEnterEvent, OnDragEnter);
+        _mainTextBox.RemoveHandler(DragDrop.DragOverEvent, OnDragOver);
+        _mainTextBox.RemoveHandler(DragDrop.DropEvent, OnDrop);
+        _mainTextBox.RemoveHandler(Gestures.TappedEvent, OnTapped);
+        _mainTextBox.RemoveHandler(Gestures.DoubleTappedEvent, OnDoubleTapped);
+        _mainTextBox.RemoveHandler(Gestures.HoldingEvent, OnHolding);
     }
 
     private void FindControls()
@@ -1141,7 +1272,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in OnGotFocus");
+            System.Diagnostics.Debug.WriteLine($"Error in OnGotFocus: {ex.Message}");
         }
     }
 
@@ -1154,7 +1285,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in OnLostFocus");
+            System.Diagnostics.Debug.WriteLine($"Error in OnLostFocus: {ex.Message}");
         }
     }
 
@@ -1175,7 +1306,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in UpdateBorderState subscription");
+                    System.Diagnostics.Debug.WriteLine($"Error in UpdateBorderState subscription: {ex.Message}");
                 }
             })
             .DisposeWith(_disposables);
@@ -1196,7 +1327,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in ErrorText subscription");
+                    System.Diagnostics.Debug.WriteLine($"Error in ErrorText subscription: {ex.Message}");
                 }
             })
             .DisposeWith(_disposables);
@@ -1212,7 +1343,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in Text subscription");
+                    System.Diagnostics.Debug.WriteLine($"Error in Text subscription: {ex.Message}");
                 }
             })
             .DisposeWith(_disposables);
@@ -1230,7 +1361,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Log.Warning(ex, "Error in HasError subscription");
+                    System.Diagnostics.Debug.WriteLine($"Error in HasError subscription: {ex.Message}");
                 }
             })
             .DisposeWith(_disposables);
@@ -1270,7 +1401,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
+        _mainTextBox.RemoveHandler(PointerPressedEvent, OnPointerPressed);
+        _mainTextBox.RemoveHandler(PointerMovedEvent, OnPointerMoved);
         _mainTextBox.RemoveHandler(PointerReleasedEvent, OnPointerReleased);
+        _mainTextBox.RemoveHandler(DragDrop.DragEnterEvent, OnDragEnter);
+        _mainTextBox.RemoveHandler(DragDrop.DragOverEvent, OnDragOver);
+        _mainTextBox.RemoveHandler(DragDrop.DropEvent, OnDrop);
+        _mainTextBox.RemoveHandler(Gestures.TappedEvent, OnTapped);
+        _mainTextBox.RemoveHandler(Gestures.DoubleTappedEvent, OnDoubleTapped);
+        _mainTextBox.RemoveHandler(Gestures.HoldingEvent, OnHolding);
     }
 
     private void TriggerTypingAnimation()
@@ -1323,7 +1462,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error in TriggerTypingAnimation");
+            System.Diagnostics.Debug.WriteLine($"Error in TriggerTypingAnimation: {ex.Message}");
         }
     }
 
