@@ -21,7 +21,8 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration config) : IRe
             [RpcServiceType.RegistrationInit] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.RegistrationComplete] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
             [RpcServiceType.SignInInitRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
-            [RpcServiceType.SignInCompleteRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: true)
+            [RpcServiceType.SignInCompleteRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
+            [RpcServiceType.Logout] = new(ShouldRetry: true, ReinitOnCompleteFailure: true), //TODO do we need to renitin on complete failure here?
         }.ToFrozenDictionary();
 
     private sealed record ServiceRetryConfig(bool ShouldRetry, bool ReinitOnCompleteFailure);
