@@ -4,9 +4,25 @@ This directory contains all build, versioning, and development workflow scripts 
 
 ## 🚀 AOT Build Scripts
 
+### Unified Multi-Platform Build
+- **`build-all.sh`** - Build for multiple platforms from a single command
+
+```bash
+# Build for all platforms (runs on appropriate OS for each)
+./Scripts/build-all.sh --all
+
+# Build for specific platforms
+./Scripts/build-all.sh --linux --macos
+./Scripts/build-all.sh --windows
+
+# Build with options
+./Scripts/build-all.sh --all --increment patch --clean
+./Scripts/build-all.sh --linux --optimization size
+```
+
 ### Platform-Specific AOT Builds
 - **`build-aot-windows.ps1`** - Windows AOT build with full optimization
-- **`build-aot-linux.sh`** - Linux AOT build with AppImage support  
+- **`build-aot-linux.sh`** - Linux AOT build with AppImage support
 - **`build-aot-macos.sh`** - Enhanced macOS AOT build with Universal Binary support
 
 All AOT scripts provide:
@@ -19,6 +35,10 @@ All AOT scripts provide:
 
 ### Quick Start Examples
 ```bash
+# Multi-platform builds
+./Scripts/build-all.sh --all                    # Build all platforms
+./Scripts/build-all.sh --linux                  # Build Linux only
+
 # Windows (PowerShell)
 .\Scripts\build-aot-windows.ps1
 .\Scripts\build-aot-windows.ps1 -Runtime win-arm64 -Optimization aggressive
@@ -27,7 +47,7 @@ All AOT scripts provide:
 ./Scripts/build-aot-linux.sh
 ./Scripts/build-aot-linux.sh --arm64 --clean
 
-# macOS  
+# macOS
 ./Scripts/build-aot-macos.sh
 ./Scripts/build-aot-macos.sh --universal --increment minor
 ```
@@ -86,11 +106,12 @@ Scripts/
 ├── README.md                    # This documentation
 │
 ├── 🚀 AOT Build Scripts
+├── build-all.sh                # Multi-platform build orchestrator
 ├── build-aot-windows.ps1        # Windows AOT (PowerShell)
 ├── build-aot-linux.sh          # Linux AOT with AppImage
 ├── build-aot-macos.sh          # macOS AOT with Universal Binary
 │
-├── 🔄 Versioning System  
+├── 🔄 Versioning System
 ├── auto-version.sh              # Auto-versioning setup
 ├── version.sh                   # Version management wrapper
 ├── version-helper.py            # Core version implementation
@@ -98,7 +119,7 @@ Scripts/
 │
 └── 🔧 Development Workflow
     ├── new-branch.sh            # Git branch creation
-    ├── sync-develop.sh          # Branch synchronization  
+    ├── sync-develop.sh          # Branch synchronization
     └── pr-checks.sh             # Pre-PR validation
 ```
 
