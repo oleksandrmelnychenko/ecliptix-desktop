@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -26,10 +27,23 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public enum NetworkConnectionState
+public enum ConnectivityIssueCategory
 {
-    NoInternet,
-    ServerNotResponding
+    InternetUnavailable,
+    ServerUnreachable
+}
+
+public enum DetailedConnectivityStatus
+{
+    NoInternetConnection,
+    CheckingInternetConnection,
+    InternetRestored,
+    ConnectingToServer,
+    Reconnecting,
+    ServerNotResponding,
+    ServerShuttingDown,
+    RetriesExhausted,
+    ServerReconnected
 }
 
 public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDisposable
@@ -39,10 +53,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private readonly CompositeDisposable _disposables = new();
     private readonly SemaphoreSlim _statusUpdateSemaphore = new(1, 1);
 
-    private string? _cachedServerNotRespondingTitle;
-    private string? _cachedNoInternetTitle;
-    private string? _cachedServerNotRespondingDescription;
-    private string? _cachedNoInternetDescription;
+    private readonly Dictionary<DetailedConnectivityStatus, string> _cachedStatusTexts = new();
+    private readonly Dictionary<DetailedConnectivityStatus, string> _cachedStatusDescriptions = new();
     private string? _cachedRetryButtonText;
 
     private NetworkStatusNotification? _view;
@@ -51,8 +63,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private static Animation? _sharedAppearAnimation;
     private static Animation? _sharedDisappearAnimation;
 
-    private Bitmap? _cachedNoInternetIcon;
-    private Bitmap? _cachedServerNotRespondingIcon;
+    private Bitmap? _cachedInternetUnavailableIcon;
+    private Bitmap? _cachedServerUnreachableIcon;
 
     private TranslateTransform? _sharedTranslateTransform;
 
@@ -83,8 +95,11 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private readonly ObservableAsPropertyHelper<bool> _showRetryButton;
     public bool ShowRetryButton => _showRetryButton.Value;
 
-    private readonly ObservableAsPropertyHelper<NetworkConnectionState> _connectionState;
-    public NetworkConnectionState ConnectionState => _connectionState.Value;
+    private readonly ObservableAsPropertyHelper<ConnectivityIssueCategory> _issueCategory;
+    public ConnectivityIssueCategory IssueCategory => _issueCategory.Value;
+
+    private readonly ObservableAsPropertyHelper<DetailedConnectivityStatus> _detailedStatus;
+    public DetailedConnectivityStatus DetailedStatus => _detailedStatus.Value;
 
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
@@ -132,30 +147,62 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                     SubscriptionLifetime.Scoped);
             });
 
-        IObservable<NetworkConnectionState> connectionStateObservable = connectivitySnapshots
-            .Select(MapConnectionState)
-            .StartWith(MapConnectionState(initialSnapshot))
+        IObservable<ConnectivitySnapshot> internetSnapshots = connectivitySnapshots
+            .Where(snapshot => snapshot.Source == ConnectivitySource.InternetProbe);
+
+        IObservable<ConnectivitySnapshot> serverSnapshots = connectivitySnapshots
+            .Where(snapshot => snapshot.Source == ConnectivitySource.DataCenter);
+
+        IObservable<DetailedConnectivityStatus?> internetStatusObservable = internetSnapshots
+            .Select(MapInternetStatus)
+            .StartWith(initialSnapshot.Source == ConnectivitySource.InternetProbe
+                ? MapInternetStatus(initialSnapshot)
+                : null);
+
+        IObservable<DetailedConnectivityStatus?> serverStatusObservable = serverSnapshots
+            .Select(MapServerStatus)
+            .StartWith(initialSnapshot.Source == ConnectivitySource.DataCenter
+                ? MapServerStatus(initialSnapshot)
+                : null);
+
+        IObservable<DetailedConnectivityStatus> detailedStatusObservable = internetStatusObservable
+            .CombineLatest(serverStatusObservable, (internet, server) =>
+            {
+                if (internet == DetailedConnectivityStatus.NoInternetConnection ||
+                    internet == DetailedConnectivityStatus.CheckingInternetConnection)
+                {
+                    return internet.Value;
+                }
+
+                if (server.HasValue)
+                {
+                    return server.Value;
+                }
+
+                return DetailedConnectivityStatus.NoInternetConnection;
+            })
+            .DistinctUntilChanged();
+
+        IObservable<ConnectivityIssueCategory> issueCategoryObservable = detailedStatusObservable
+            .Select(status => status switch
+            {
+                DetailedConnectivityStatus.NoInternetConnection or
+                DetailedConnectivityStatus.CheckingInternetConnection or
+                DetailedConnectivityStatus.InternetRestored => ConnectivityIssueCategory.InternetUnavailable,
+                _ => ConnectivityIssueCategory.ServerUnreachable
+            })
             .DistinctUntilChanged();
 
         IObservable<string> retryButtonTextObservable = languageTrigger
             .Select(_ => GetCachedRetryButtonText());
 
+        IObservable<string> statusTextObservable = detailedStatusObservable
+            .CombineLatest(languageTrigger, (status, _) => GetStatusText(status));
 
-        IObservable<string> statusTextObservable = connectionStateObservable
-            .CombineLatest(languageTrigger, (state, _) => state switch
-            {
-                NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingTitle(),
-                _ => GetCachedNoInternetTitle(),
-            });
+        IObservable<string> statusDescriptionObservable = detailedStatusObservable
+            .CombineLatest(languageTrigger, (status, _) => GetStatusDescription(status));
 
-        IObservable<string> statusDescriptionObservable = connectionStateObservable
-            .CombineLatest(languageTrigger, (state, _) => state switch
-            {
-                NetworkConnectionState.ServerNotResponding => GetCachedServerNotRespondingDescription(),
-                _ => GetCachedNoInternetDescription(),
-            });
-
-        IObservable<Bitmap?> statusIconObservable = connectionStateObservable
+        IObservable<Bitmap?> statusIconObservable = issueCategoryObservable
             .Select(LoadCachedBitmap);
 
         IObservable<bool> showRetryButtonObservable = Observable.Merge(
@@ -187,7 +234,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                     ConnectivityStatus.Recovering => Observable.Return(true),
                 ConnectivityStatus.Unavailable => Observable.Return(true),
                 ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe
-                    && snapshot.Reason == ConnectivityReason.InternetRecovered => Observable.Return(false),
+                                                   && snapshot.Reason == ConnectivityReason.InternetRecovered =>
+                    Observable.Return(false),
                 ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe => Observable
                     .Return(true),
                 ConnectivityStatus.Connecting => Observable.Empty<bool>(),
@@ -197,7 +245,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .StartWith(false);
 
 
-        _connectionState = connectionStateObservable.ToProperty(this, x => x.ConnectionState).DisposeWith(_disposables);
+        _issueCategory = issueCategoryObservable.ToProperty(this, x => x.IssueCategory).DisposeWith(_disposables);
+        _detailedStatus = detailedStatusObservable.ToProperty(this, x => x.DetailedStatus).DisposeWith(_disposables);
         _statusText = statusTextObservable.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
         _statusDescription = statusDescriptionObservable.ToProperty(this, x => x.StatusDescription)
             .DisposeWith(_disposables);
@@ -248,10 +297,8 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     private void ClearStringCache()
     {
-        _cachedServerNotRespondingTitle = null;
-        _cachedNoInternetTitle = null;
-        _cachedServerNotRespondingDescription = null;
-        _cachedNoInternetDescription = null;
+        _cachedStatusTexts.Clear();
+        _cachedStatusDescriptions.Clear();
         _cachedRetryButtonText = null;
     }
 
@@ -398,20 +445,21 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         }
     }
 
-    private Bitmap? LoadCachedBitmap(NetworkConnectionState state)
+    private Bitmap? LoadCachedBitmap(ConnectivityIssueCategory category)
     {
         try
         {
-            return state switch
+            return category switch
             {
-                NetworkConnectionState.ServerNotResponding => _cachedServerNotRespondingIcon ??=
+                ConnectivityIssueCategory.ServerUnreachable => _cachedServerUnreachableIcon ??=
                     LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
-                _ => _cachedNoInternetIcon ??= LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
+                _ => _cachedInternetUnavailableIcon ??=
+                    LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
             };
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to load cached bitmap for state: {State}", state);
+            Log.Error(ex, "Failed to load cached bitmap for category: {Category}", category);
             return null;
         }
     }
@@ -422,34 +470,91 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         return new Bitmap(AssetLoader.Open(uri));
     }
 
-    private string GetCachedServerNotRespondingTitle() => _cachedServerNotRespondingTitle ??=
-        LocalizationService["NetworkNotification.ServerNotResponding.Title"];
+    private string GetStatusText(DetailedConnectivityStatus status)
+    {
+        if (_cachedStatusTexts.TryGetValue(status, out string? cached))
+            return cached;
 
-    private string GetCachedNoInternetTitle() =>
-        _cachedNoInternetTitle ??= LocalizationService["NetworkNotification.NoInternet.Title"];
+        string key = status switch
+        {
+            DetailedConnectivityStatus.NoInternetConnection => "NetworkNotification.NoInternet.Title",
+            DetailedConnectivityStatus.CheckingInternetConnection => "NetworkNotification.CheckingInternet.Title",
+            DetailedConnectivityStatus.InternetRestored => "NetworkNotification.InternetRestored.Title",
+            DetailedConnectivityStatus.ConnectingToServer => "NetworkNotification.Connecting.Title",
+            DetailedConnectivityStatus.Reconnecting => "NetworkNotification.Reconnecting.Title",
+            DetailedConnectivityStatus.ServerNotResponding => "NetworkNotification.ServerNotResponding.Title",
+            DetailedConnectivityStatus.ServerShuttingDown => "NetworkNotification.ServerShuttingDown.Title",
+            DetailedConnectivityStatus.RetriesExhausted => "NetworkNotification.RetriesExhausted.Title",
+            DetailedConnectivityStatus.ServerReconnected => "NetworkNotification.ServerReconnected.Title",
+            _ => "NetworkNotification.NoInternet.Title"
+        };
 
-    private string GetCachedServerNotRespondingDescription() => _cachedServerNotRespondingDescription ??=
-        LocalizationService["NetworkNotification.ServerNotResponding.Description"];
+        string text = LocalizationService[key];
+        _cachedStatusTexts[status] = text;
+        return text;
+    }
 
-    private string GetCachedNoInternetDescription() => _cachedNoInternetDescription ??=
-        LocalizationService["NetworkNotification.NoInternet.Description"];
+    private string GetStatusDescription(DetailedConnectivityStatus status)
+    {
+        if (_cachedStatusDescriptions.TryGetValue(status, out string? cached))
+            return cached;
+
+        string key = status switch
+        {
+            DetailedConnectivityStatus.NoInternetConnection => "NetworkNotification.NoInternet.Description",
+            DetailedConnectivityStatus.CheckingInternetConnection => "NetworkNotification.CheckingInternet.Description",
+            DetailedConnectivityStatus.InternetRestored => "NetworkNotification.InternetRestored.Description",
+            DetailedConnectivityStatus.ConnectingToServer => "NetworkNotification.Connecting.Description",
+            DetailedConnectivityStatus.Reconnecting => "NetworkNotification.Reconnecting.Description",
+            DetailedConnectivityStatus.ServerNotResponding => "NetworkNotification.ServerNotResponding.Description",
+            DetailedConnectivityStatus.ServerShuttingDown => "NetworkNotification.ServerShuttingDown.Description",
+            DetailedConnectivityStatus.RetriesExhausted => "NetworkNotification.RetriesExhausted.Description",
+            DetailedConnectivityStatus.ServerReconnected => "NetworkNotification.ServerReconnected.Description",
+            _ => "NetworkNotification.NoInternet.Description"
+        };
+
+        string text = LocalizationService[key];
+        _cachedStatusDescriptions[status] = text;
+        return text;
+    }
 
     private string GetCachedRetryButtonText() =>
         _cachedRetryButtonText ??= LocalizationService["NetworkNotification.Button.Retry"];
 
-    private static NetworkConnectionState MapConnectionState(ConnectivitySnapshot snapshot)
+    private static DetailedConnectivityStatus? MapInternetStatus(ConnectivitySnapshot snapshot)
     {
         return snapshot.Status switch
         {
-            ConnectivityStatus.Unavailable => NetworkConnectionState.NoInternet,
-            ConnectivityStatus.RetriesExhausted => NetworkConnectionState.ServerNotResponding,
-            ConnectivityStatus.Disconnected => NetworkConnectionState.ServerNotResponding,
-            ConnectivityStatus.ShuttingDown => NetworkConnectionState.ServerNotResponding,
-            ConnectivityStatus.Recovering => NetworkConnectionState.ServerNotResponding,
-            ConnectivityStatus.Connecting when snapshot.Source == ConnectivitySource.InternetProbe =>
-                NetworkConnectionState.NoInternet,
-            ConnectivityStatus.Connecting => NetworkConnectionState.ServerNotResponding,
-            _ => NetworkConnectionState.NoInternet
+            ConnectivityStatus.Unavailable => DetailedConnectivityStatus.NoInternetConnection,
+
+            ConnectivityStatus.Connecting when snapshot.Reason == ConnectivityReason.InternetRecovered
+                => DetailedConnectivityStatus.InternetRestored,
+
+            ConnectivityStatus.Connecting => DetailedConnectivityStatus.CheckingInternetConnection,
+
+            ConnectivityStatus.Connected => null,
+
+            _ => null
+        };
+    }
+
+    private static DetailedConnectivityStatus? MapServerStatus(ConnectivitySnapshot snapshot)
+    {
+        return snapshot.Status switch
+        {
+            ConnectivityStatus.Connecting => DetailedConnectivityStatus.ConnectingToServer,
+
+            ConnectivityStatus.Recovering => DetailedConnectivityStatus.Reconnecting,
+
+            ConnectivityStatus.RetriesExhausted => DetailedConnectivityStatus.RetriesExhausted,
+
+            ConnectivityStatus.ShuttingDown => DetailedConnectivityStatus.ServerShuttingDown,
+
+            ConnectivityStatus.Disconnected => DetailedConnectivityStatus.ServerNotResponding,
+
+            ConnectivityStatus.Connected => DetailedConnectivityStatus.ServerReconnected,
+
+            _ => null
         };
     }
 
@@ -502,9 +607,12 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         _disposables.Dispose();
         _statusUpdateSemaphore.Dispose();
 
-        _cachedNoInternetIcon?.Dispose();
-        _cachedServerNotRespondingIcon?.Dispose();
-        _cachedNoInternetIcon = null;
-        _cachedServerNotRespondingIcon = null;
+        _cachedInternetUnavailableIcon?.Dispose();
+        _cachedServerUnreachableIcon?.Dispose();
+        _cachedInternetUnavailableIcon = null;
+        _cachedServerUnreachableIcon = null;
+
+        _cachedStatusTexts.Clear();
+        _cachedStatusDescriptions.Clear();
     }
 }
