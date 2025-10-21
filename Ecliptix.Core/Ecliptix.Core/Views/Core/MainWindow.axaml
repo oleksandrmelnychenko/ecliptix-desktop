@@ -67,7 +67,7 @@
         </Border>
 
         <!-- 5. NetworkStatusNotification - Top Center (ZIndex=1001) -->
-        <coreControls:NetworkStatusNotification
+        <coreControls:ConnectivityNotificationView
             x:Name="NetworkNotification"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
@@ -76,7 +76,7 @@
             Width="320"
             Height="70"
             ZIndex="1001"
-            DataContext="{Binding NetworkStatusNotification}" />
+            DataContext="{Binding ConnectivityNotification}" />
 
         <!-- 6. MainBorder - Window Frame (contains module content) -->
         <Border Background="{DynamicResource Window.Background}"

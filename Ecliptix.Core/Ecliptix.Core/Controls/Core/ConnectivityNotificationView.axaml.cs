@@ -7,32 +7,32 @@ using Ecliptix.Core.Services.Abstractions.Core;
 
 namespace Ecliptix.Core.Controls.Core;
 
-public sealed partial class NetworkStatusNotification : ReactiveUserControl<NetworkStatusNotificationViewModel>
+public sealed partial class ConnectivityNotificationView : ReactiveUserControl<ConnectivityNotificationViewModel>
 {
     private const string DisconnectedIconPath =
         "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z " +
         "m.93-9.412-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z";
 
     public static readonly StyledProperty<TimeSpan> AppearDurationProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(AppearDuration),
+        AvaloniaProperty.Register<ConnectivityNotificationView, TimeSpan>(nameof(AppearDuration),
             TimeSpan.FromMilliseconds(300));
 
     public static readonly StyledProperty<TimeSpan> DisappearDurationProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, TimeSpan>(nameof(DisappearDuration),
+        AvaloniaProperty.Register<ConnectivityNotificationView, TimeSpan>(nameof(DisappearDuration),
             TimeSpan.FromMilliseconds(250));
     public new static readonly StyledProperty<IBrush> BackgroundProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(Background),
+        AvaloniaProperty.Register<ConnectivityNotificationView, IBrush>(nameof(Background),
             new SolidColorBrush(Color.Parse("#2f2f2f")));
 
     public static readonly StyledProperty<IBrush> EllipseColorProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, IBrush>(nameof(EllipseColor),
+        AvaloniaProperty.Register<ConnectivityNotificationView, IBrush>(nameof(EllipseColor),
             new SolidColorBrush(Color.Parse("#d81c1c")));
 
     public static readonly StyledProperty<Geometry> IconDataProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, Geometry>(nameof(IconData));
+        AvaloniaProperty.Register<ConnectivityNotificationView, Geometry>(nameof(IconData));
 
     public static readonly StyledProperty<ILocalizationService> LocalizationServiceProperty =
-        AvaloniaProperty.Register<NetworkStatusNotification, ILocalizationService>(nameof(LocalizationService));
+        AvaloniaProperty.Register<ConnectivityNotificationView, ILocalizationService>(nameof(LocalizationService));
 
     public ILocalizationService LocalizationService
     {
@@ -69,7 +69,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
         get => GetValue(DisappearDurationProperty);
         set => SetValue(DisappearDurationProperty, value);
     }
-    public NetworkStatusNotification()
+    public ConnectivityNotificationView()
     {
         InitializeComponent();
         IsVisible = false;
@@ -97,7 +97,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
     {
         base.OnDataContextChanged(e);
 
-        if (DataContext is not NetworkStatusNotificationViewModel viewModel) return;
+        if (DataContext is not ConnectivityNotificationViewModel viewModel) return;
         viewModel.SetView(this);
 
         viewModel.AppearDuration = AppearDuration;
@@ -108,7 +108,7 @@ public sealed partial class NetworkStatusNotification : ReactiveUserControl<Netw
     {
         base.OnPropertyChanged(change);
 
-        if (DataContext is NetworkStatusNotificationViewModel viewModel)
+        if (DataContext is ConnectivityNotificationViewModel viewModel)
         {
             if (change.Property == AppearDurationProperty)
                 viewModel.AppearDuration = AppearDuration;

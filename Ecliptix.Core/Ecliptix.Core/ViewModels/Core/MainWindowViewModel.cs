@@ -47,14 +47,14 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public LanguageSelectorViewModel LanguageSelector { get; }
 
-    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
+    public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public MainWindowViewModel(
         IBottomSheetService bottomSheetService,
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        NetworkStatusNotificationViewModel networkStatusNotification,
+        ConnectivityNotificationViewModel connectivityNotification,
         IMessageBus messageBus)
     {
         _bottomSheetService = bottomSheetService;
@@ -74,7 +74,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             storageProvider,
             rpcMetaDataProvider);
 
-        NetworkStatusNotification = networkStatusNotification;
+        ConnectivityNotification = connectivityNotification;
 
         Log.Information("[MainWindowViewModel] Initialized with dimensions: {Width}x{Height}", WindowWidth, WindowHeight);
         _ = SetupHandlersAsync();
@@ -200,7 +200,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         _disposables.Dispose();
         LanguageSelector.Dispose();
-        NetworkStatusNotification.Dispose();
+        ConnectivityNotification.Dispose();
 
         _isDisposed = true;
     }

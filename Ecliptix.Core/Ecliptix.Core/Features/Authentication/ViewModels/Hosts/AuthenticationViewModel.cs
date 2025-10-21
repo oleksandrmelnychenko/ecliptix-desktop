@@ -119,7 +119,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         _router = router;
         _mainWindowViewModel = mainWindowViewModel;
 
-        NetworkStatusNotification = mainWindowViewModel.NetworkStatusNotification;
+        ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
 
         AppVersion = VersionHelper.GetApplicationVersion();
         BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
@@ -244,7 +244,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     public RoutingState Router => throw new NotImplementedException("This host uses custom navigation");
 
-    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
+    public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public string AppVersion { get; }
 

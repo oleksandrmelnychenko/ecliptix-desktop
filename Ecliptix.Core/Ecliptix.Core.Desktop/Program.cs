@@ -460,7 +460,7 @@ public static class Program
 
         services.AddTransient<LanguageSelectorViewModel>();
         services.AddSingleton<BottomSheetViewModel>();
-        services.AddSingleton<NetworkStatusNotificationViewModel>();
+        services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();
         services.AddTransient<AuthenticationViewModel>();

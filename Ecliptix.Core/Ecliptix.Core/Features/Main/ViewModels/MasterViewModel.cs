@@ -28,7 +28,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    public NetworkStatusNotificationViewModel NetworkStatusNotification { get; }
+    public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
     public ReactiveCommand<SystemU, Result<Unit, LogoutFailure>> LogoutCommand { get; }
 
@@ -41,7 +41,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
     {
         _logoutService = logoutService;
         _mainWindowViewModel = mainWindowViewModel;
-        NetworkStatusNotification = mainWindowViewModel.NetworkStatusNotification;
+        ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
 
         IObservable<bool> canLogout = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy);
 

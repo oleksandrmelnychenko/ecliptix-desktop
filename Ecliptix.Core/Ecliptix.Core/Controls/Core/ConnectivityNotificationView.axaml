@@ -5,9 +5,9 @@
              xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Ecliptix.Core.Controls.Core.NetworkStatusNotification"
+             x:Class="Ecliptix.Core.Controls.Core.ConnectivityNotificationView"
              x:Name="Root"
-             x:DataType="core:NetworkStatusNotificationViewModel">
+             x:DataType="core:ConnectivityNotificationViewModel">
     
     <Border x:Name="MainBorder"
             CornerRadius="12"

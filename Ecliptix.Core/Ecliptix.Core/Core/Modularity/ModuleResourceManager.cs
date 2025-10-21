@@ -69,7 +69,7 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IAuthenticationService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IOpaqueRegistrationService>());
         moduleServices.AddSingleton(context.GetParentService<Services.Abstractions.Authentication.IPasswordRecoveryService>());
-        moduleServices.AddSingleton(context.GetParentService<Ecliptix.Core.Controls.Core.NetworkStatusNotificationViewModel>());
+        moduleServices.AddSingleton(context.GetParentService<Ecliptix.Core.Controls.Core.ConnectivityNotificationViewModel>());
 
         Log.Debug("Auto-forwarded core services to module service collection");
     }

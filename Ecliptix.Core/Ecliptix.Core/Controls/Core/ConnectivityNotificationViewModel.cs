@@ -46,7 +46,7 @@ public enum DetailedConnectivityStatus
     ServerReconnected
 }
 
-public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDisposable
+public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposable
 {
     public ILocalizationService LocalizationService { get; }
 
@@ -57,7 +57,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
     private readonly Dictionary<DetailedConnectivityStatus, string> _cachedStatusDescriptions = new();
     private string? _cachedRetryButtonText;
 
-    private NetworkStatusNotification? _view;
+    private ConnectivityNotificationView? _view;
     private Border? _mainBorder;
 
     private static Animation? _sharedAppearAnimation;
@@ -103,20 +103,19 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
 
     public ReactiveCommand<Unit, Unit> RetryCommand { get; }
 
-    public void SetView(NetworkStatusNotification view)
+    public void SetView(ConnectivityNotificationView view)
     {
         _view = view;
         _mainBorder = view.FindControl<Border>("MainBorder");
         CreateAnimations();
     }
 
-    public NetworkStatusNotificationViewModel(
+    public ConnectivityNotificationViewModel(
         ILocalizationService localizationService,
         IConnectivityService connectivityService,
         IPendingRequestManager pendingRequestManager)
     {
         LocalizationService = localizationService;
-
 
         IObservable<Unit> languageTrigger = Observable.FromEvent(
                 handler => LocalizationService.LanguageChanged += handler,
@@ -215,7 +214,7 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                     .Select(_ => false),
                 connectivitySnapshots
                     .Where(snapshot => snapshot.Status == ConnectivityStatus.Connected)
-                    .Do(snapshot => LogRetryButtonConnectionHide(snapshot))
+                    .Do(LogRetryButtonConnectionHide)
                     .Select(_ => false)
             )
             .StartWith(false);
@@ -244,7 +243,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
             .Switch()
             .StartWith(false);
 
-
         _issueCategory = issueCategoryObservable.ToProperty(this, x => x.IssueCategory).DisposeWith(_disposables);
         _detailedStatus = detailedStatusObservable.ToProperty(this, x => x.DetailedStatus).DisposeWith(_disposables);
         _statusText = statusTextObservable.ToProperty(this, x => x.StatusText).DisposeWith(_disposables);
@@ -255,7 +253,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
         _isVisible = isVisibleObservable.ToProperty(this, x => x.IsVisible).DisposeWith(_disposables);
         _isAnimating = Observable.Return(false).ToProperty(this, x => x.IsAnimating).DisposeWith(_disposables);
         _retryButtonText = retryButtonTextObservable.ToProperty(this, x => x.RetryButtonText).DisposeWith(_disposables);
-
 
         RetryCommand = ReactiveCommand.CreateFromTask(
             async ct =>
@@ -531,8 +528,6 @@ public sealed class NetworkStatusNotificationViewModel : ReactiveObject, IDispos
                 => DetailedConnectivityStatus.InternetRestored,
 
             ConnectivityStatus.Connecting => DetailedConnectivityStatus.CheckingInternetConnection,
-
-            ConnectivityStatus.Connected => null,
 
             _ => null
         };
