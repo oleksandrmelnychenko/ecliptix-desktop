@@ -66,7 +66,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
-    [Reactive] public string? NetworkErrorMessage { get; private set; } = string.Empty;
     [Reactive] public string? MobileNumberError { get; set; }
     [Reactive] public bool HasMobileNumberError { get; set; }
 
@@ -95,7 +94,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
-        NetworkErrorMessage = string.Empty;
         HasMobileNumberError = false;
         MobileNumberError = string.Empty;
     }
@@ -158,8 +156,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         if (_isDisposed) return Unit.Default;
 
-        NetworkErrorMessage = string.Empty;
-
         try
         {
             _currentOperationCts?.Cancel();
@@ -172,11 +168,12 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
             if (_flowContext == AuthenticationFlowContext.Registration)
             {
-                Task<Result<ValidateMobileNumberResponse, string>> validationTask = _registrationService.ValidateMobileNumberAsync(
-                    MobileNumber,
-                    systemDeviceIdentifier,
-                    connectId,
-                    operationToken);
+                Task<Result<ValidateMobileNumberResponse, string>> validationTask =
+                    _registrationService.ValidateMobileNumberAsync(
+                        MobileNumber,
+                        systemDeviceIdentifier,
+                        connectId,
+                        operationToken);
 
                 Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
@@ -185,6 +182,12 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 if (result.IsOk)
                 {
                     ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+
+                    if (validateMobileNumberResponse.Result == VerificationResult.InvalidMobile)
+                    {
+                        MobileNumberError = validateMobileNumberResponse.Message;
+                        return Unit.Default;
+                    }
 
                     Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
                         await _registrationService.CheckMobileNumberAvailabilityAsync(
@@ -204,29 +207,26 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         }
                         else
                         {
-                            NetworkErrorMessage = LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
-                            if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
-                                ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                            string errorMessage =
+                                LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+                            ShowError(errorMessage);
                         }
                     }
                     else
                     {
-                        NetworkErrorMessage = statusResult.UnwrapErr();
-                        if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
-                            ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                        ShowError(statusResult.UnwrapErr());
                     }
                 }
                 else if (!_isDisposed)
                 {
-                    NetworkErrorMessage = result.UnwrapErr();
-                    if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
-                        ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                    ShowError(result.UnwrapErr());
                 }
             }
             else
             {
                 Task<Result<ByteString, string>> recoveryValidationTask =
-                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier, connectId, operationToken);
+                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier,
+                        connectId, operationToken);
 
                 Result<ByteString, string> result = await recoveryValidationTask;
 
@@ -248,9 +248,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 }
                 else if (!_isDisposed)
                 {
-                    NetworkErrorMessage = result.UnwrapErr();
-                    if (HostScreen is AuthenticationViewModel hostWindow && !string.IsNullOrEmpty(NetworkErrorMessage))
-                        ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                    ShowError(result.UnwrapErr());
                 }
             }
         }
@@ -261,13 +259,21 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         {
             if (!_isDisposed)
             {
-                NetworkErrorMessage = LocalizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
-                if (HostScreen is AuthenticationViewModel hostWindow)
-                    ShowServerErrorNotification(hostWindow, NetworkErrorMessage);
+                string errorMessage = LocalizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+                ShowError(errorMessage);
             }
         }
 
         return Unit.Default;
+    }
+
+    private void ShowError(string errorMessage)
+    {
+        if (HostScreen is AuthenticationViewModel hostWindow &&
+            !string.IsNullOrEmpty(errorMessage))
+        {
+            ShowServerErrorNotification(hostWindow, errorMessage);
+        }
     }
 
     private Task NavigateToOtpVerificationAsync(ByteString mobileNumberIdentifier)

@@ -88,10 +88,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
 
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
-            await connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected(null, ConnectivityReason.HandshakeSucceeded))
-                .ConfigureAwait(false);
-
+            await connectivityService.PublishAsync(ConnectivityIntent.Connected()).ConfigureAwait(false);
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
         }
         catch (RpcException rpcEx)

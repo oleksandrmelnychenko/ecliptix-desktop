@@ -195,14 +195,14 @@ public sealed class ApplicationInitializer(
                             membershipId, failure.Message);
 
                         await CleanupCorruptedIdentityDataAsync(membershipId!, applicationInstanceSettings).ConfigureAwait(false);
-                        await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
                     }
                     else
                     {
                         Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
                             connectId, failure.Message);
-                        await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
                     }
+
+                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
                 }
                 else
                 {

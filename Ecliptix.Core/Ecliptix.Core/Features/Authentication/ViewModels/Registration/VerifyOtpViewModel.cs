@@ -276,7 +276,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             if (result.IsErr && !_isDisposed)
             {
-                ErrorMessage = result.UnwrapErr();
+                if (CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
+                {
+                    ErrorMessage = result.UnwrapErr();
+                }
             }
         });
     }
@@ -441,9 +444,21 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     {
                         if (!_isDisposed)
                         {
-                            ErrorMessage = result.UnwrapErr();
-                            HasError = true;
-                            SecondsRemaining = 0;
+                            string error = result.UnwrapErr();
+
+                            if (IsServerUnavailableError(error))
+                            {
+                                ErrorMessage = error;
+                                _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
+                                HasError = true;
+                                HasValidSession = false;
+                            }
+                            else
+                            {
+                                ErrorMessage = error;
+                                HasError = true;
+                                SecondsRemaining = 0;
+                            }
                         }
                     });
                 }
@@ -484,10 +499,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         return 0;
     }
 
-    private uint HandleUnavailable()
+    private uint HandleUnavailable(string? message)
     {
-        ErrorMessage = string.Empty;
-        SecondsRemaining = 0;
+        string errorMessage = !string.IsNullOrEmpty(message)
+            ? message
+            : _localizationService["error.server_unavailable"];
+
+        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, errorMessage);
+        HasError = true;
+        HasValidSession = false;
         return 0;
     }
 
@@ -571,7 +591,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleNotFoundStatus(),
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(message),
             _ => Math.Min(seconds, SecondsRemaining)
         };
         CurrentStatus = status;
@@ -605,6 +625,17 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private static string FormatRemainingTime(uint seconds) =>
         TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
+
+    private bool IsServerUnavailableError(string errorMessage)
+    {
+        string serverUnavailableText = _localizationService["error.server_unavailable"];
+        string serviceUnavailableText = _localizationService[ErrorI18nKeys.ServiceUnavailable];
+
+        return errorMessage.Contains(serverUnavailableText, StringComparison.OrdinalIgnoreCase) ||
+               errorMessage.Contains(serviceUnavailableText, StringComparison.OrdinalIgnoreCase) ||
+               errorMessage.Contains("unavailable", StringComparison.OrdinalIgnoreCase) ||
+               errorMessage.Contains("not responding", StringComparison.OrdinalIgnoreCase);
+    }
 
     private async Task CleanupSessionAsync()
     {

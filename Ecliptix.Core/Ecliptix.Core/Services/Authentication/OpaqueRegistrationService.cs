@@ -67,15 +67,7 @@ internal sealed class OpaqueRegistrationService(
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
             {
                 ValidateMobileNumberResponse response = Helpers.ParseFromBytes<ValidateMobileNumberResponse>(payload);
-
-                if (response.Result == VerificationResult.InvalidMobile)
-                {
-                    responseSource.TrySetException(new InvalidOperationException(response.Message));
-                }
-                else
-                {
-                    responseSource.TrySetResult(response);
-                }
+                responseSource.TrySetResult(response);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, true, cancellationToken).ConfigureAwait(false);
