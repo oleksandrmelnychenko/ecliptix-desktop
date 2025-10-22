@@ -14,7 +14,7 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
     private static readonly FrozenDictionary<RpcServiceType, TimeSpan> ServiceTimeouts =
         new Dictionary<RpcServiceType, TimeSpan>
         {
-            [RpcServiceType.InitiateVerification] = TimeSpan.FromSeconds(120),
+            [RpcServiceType.InitiateVerification] = TimeSpan.FromSeconds(400),
             [RpcServiceType.EstablishSecrecyChannel] = TimeSpan.FromSeconds(60),
             [RpcServiceType.RestoreSecrecyChannel] = TimeSpan.FromSeconds(60),
             [RpcServiceType.EstablishAuthenticatedSecureChannel] = TimeSpan.FromSeconds(60),
