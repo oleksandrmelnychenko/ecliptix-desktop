@@ -185,7 +185,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
                     if (validateMobileNumberResponse.Result == VerificationResult.InvalidMobile)
                     {
-                        MobileNumberError = validateMobileNumberResponse.Message;
+                        ShowError(validateMobileNumberResponse.Message);
                         return Unit.Default;
                     }
 
