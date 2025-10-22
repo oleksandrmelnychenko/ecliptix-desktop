@@ -72,7 +72,9 @@ public sealed class ModuleContentControl : ContentControl
     private Option<Control> TryCreateViewWithModuleFactory(object viewModel)
     {
         if (_moduleViewFactory == null)
+        {
             return Option<Control>.None;
+        }
 
         try
         {

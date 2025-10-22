@@ -34,7 +34,10 @@ public sealed class MessageBus : IMessageBus
 
     public IObservable<TMessage> GetEvent<TMessage>() where TMessage : class
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(MessageBus));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(MessageBus));
+        }
 
         ReactiveSubjectWrapper wrapper = _reactiveSubjects.GetOrAdd(
             typeof(TMessage),
@@ -53,7 +56,10 @@ public sealed class MessageBus : IMessageBus
 
     public void Publish<TMessage>(TMessage message) where TMessage : class
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (_reactiveSubjects.TryGetValue(typeof(TMessage), out ReactiveSubjectWrapper? wrapper))
         {
@@ -102,7 +108,9 @@ public sealed class MessageBus : IMessageBus
         where TResponse : class, IMessageResponse
     {
         if (timeout == TimeSpan.Zero)
+        {
             timeout = request.Timeout;
+        }
 
         TaskCompletionSource<IMessageResponse> tcs = new();
         _pendingRequests[request.MessageId] = request;
@@ -149,7 +157,10 @@ public sealed class MessageBus : IMessageBus
 
     private void CleanupUnusedSubjects(object? state)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         foreach (KeyValuePair<Type, ReactiveSubjectWrapper> kvp in _reactiveSubjects.ToArray())
         {
@@ -198,13 +209,17 @@ internal sealed class ReactiveSubjectWrapper(object subject) : IDisposable
     public void IncrementReference()
     {
         if (!_disposed)
+        {
             Interlocked.Increment(ref _referenceCount);
+        }
     }
 
     public void DecrementReference()
     {
         if (!_disposed)
+        {
             Interlocked.Decrement(ref _referenceCount);
+        }
     }
 
     public void Dispose()

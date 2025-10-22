@@ -48,9 +48,13 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         string country = networkProvider.ApplicationInstanceSettings.Country;
 
         if (string.IsNullOrWhiteSpace(country))
+        {
             _targetCulture = CultureInfo.CurrentCulture.Name;
+        }
         else
+        {
             _targetCulture = LanguageConfig.GetCultureByCountry(country) ?? CultureInfo.CurrentCulture.Name;
+        }
 
         CultureInfo targetInfo;
         try
@@ -66,7 +70,9 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         string languageName = targetInfo.DisplayName;
         int parenthesisIndex = languageName.IndexOf('(');
         if (parenthesisIndex > 0)
+        {
             languageName = languageName.Substring(0, parenthesisIndex).Trim();
+        }
 
         Title = localizationService?["LanguageDetection.Title"] ?? "Language Detection";
         PromptText = localizationService?.GetString("LanguageDetection.Prompt",
@@ -88,7 +94,11 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
     }
 

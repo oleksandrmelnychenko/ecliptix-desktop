@@ -250,8 +250,15 @@ public class UpdateService
             int v1Part = i < v1Parts.Length ? v1Parts[i] : 0;
             int v2Part = i < v2Parts.Length ? v2Parts[i] : 0;
 
-            if (v1Part < v2Part) return -1;
-            if (v1Part > v2Part) return 1;
+            if (v1Part < v2Part)
+            {
+                return -1;
+            }
+
+            if (v1Part > v2Part)
+            {
+                return 1;
+            }
         }
 
         return 0;

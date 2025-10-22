@@ -628,7 +628,9 @@ internal sealed class OpaqueAuthenticationService(
     private static bool ValidateMembershipIdentifier(ByteString identifier)
     {
         if (identifier.Length != CryptographicConstants.GuidByteLength)
+        {
             return false;
+        }
 
         ReadOnlySpan<byte> span = identifier.Span;
 
@@ -638,9 +640,13 @@ internal sealed class OpaqueAuthenticationService(
         for (int i = 0; i < span.Length; i++)
         {
             if (span[i] == 0)
+            {
                 zeroCount++;
+            }
             else
+            {
                 hasNonZero = true;
+            }
         }
 
         return hasNonZero && zeroCount <= MaxAllowedZeroBytes;

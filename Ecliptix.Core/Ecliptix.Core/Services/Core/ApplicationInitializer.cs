@@ -114,7 +114,9 @@ public sealed class ApplicationInitializer(
                 await TryRestoreSessionStateAsync(connectId, applicationInstanceSettings).ConfigureAwait(false);
 
             if (restoreResult.IsErr)
+            {
                 return Result<uint, NetworkFailure>.Err(restoreResult.UnwrapErr());
+            }
 
             if (restoreResult.Unwrap())
             {
@@ -235,7 +237,9 @@ public sealed class ApplicationInitializer(
             await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
         if (establishResult.IsErr)
+        {
             return Result<uint, NetworkFailure>.Err(establishResult.UnwrapErr());
+        }
 
         EcliptixSessionState secrecyChannelState = establishResult.Unwrap();
 
@@ -376,7 +380,9 @@ public sealed class ApplicationInitializer(
             await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
+        {
             return Result<bool, NetworkFailure>.Ok(false);
+        }
 
         byte[] stateBytes = loadResult.Unwrap();
 
@@ -390,7 +396,7 @@ public sealed class ApplicationInitializer(
             Log.Warning("[CLIENT-RESTORE] Failed to parse session state. ConnectId: {ConnectId}, Error: {Error}",
                 connectId, ex.Message);
             networkProvider.ClearConnection(connectId);
-            var deleteSecureStateResult =
+            Result<Unit, SecureStorageFailure> deleteSecureStateResult =
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             if (deleteSecureStateResult.IsErr)
             {
@@ -445,7 +451,9 @@ public sealed class ApplicationInitializer(
         }
 
         if (restoreResult.Unwrap())
+        {
             return Result<bool, NetworkFailure>.Ok(true);
+        }
 
         networkProvider.ClearConnection(connectId);
         Result<Unit, SecureStorageFailure> deleteResult =

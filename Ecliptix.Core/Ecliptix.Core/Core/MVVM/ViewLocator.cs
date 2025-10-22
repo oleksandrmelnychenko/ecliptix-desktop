@@ -28,10 +28,12 @@ public class ViewLocator : IViewLocator
         Type viewType)
     {
         if (!typeof(IRoutableViewModel).IsAssignableFrom(viewModelType))
+        {
             throw new ArgumentException($"ViewModel type {viewModelType.Name} must implement IRoutableViewModel");
+        }
 
         Func<object> factory = () => Activator.CreateInstance(viewType)
-            ?? throw new InvalidOperationException($"Could not create instance of {viewType.Name}");
+                                     ?? throw new InvalidOperationException($"Could not create instance of {viewType.Name}");
         _viewFactories[viewModelType] = factory;
     }
 

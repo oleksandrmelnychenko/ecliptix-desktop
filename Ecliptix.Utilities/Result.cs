@@ -62,7 +62,10 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             TE error = errorMapper(ex);
             if (error == null)
+            {
                 throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
+            }
+
             return Err(error);
         }
     }
@@ -80,7 +83,10 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             TE? error = errorMapper(ex);
             if (error == null)
+            {
                 throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
+            }
+
             return Result<Unit, TE>.Err(error);
         }
         finally

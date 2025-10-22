@@ -39,7 +39,9 @@ public partial class TitleBar : UserControl
             () =>
             {
                 if (Window != null)
+                {
                     Window.WindowState = WindowState.Minimized;
+                }
             },
             this.WhenAnyValue(x => x.DisableMinimizeButton).Select(disable => !disable)
         );
@@ -48,9 +50,11 @@ public partial class TitleBar : UserControl
             () =>
             {
                 if (Window != null)
+                {
                     Window.WindowState = Window.WindowState == WindowState.Maximized
                         ? WindowState.Normal
                         : WindowState.Maximized;
+                }
             },
             this.WhenAnyValue(x => x.DisableMaximizeButton).Select(disable => !disable)
         );
@@ -64,7 +68,9 @@ public partial class TitleBar : UserControl
             ).Subscribe(e =>
             {
                 if (e.EventArgs.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                {
                     Window?.BeginMoveDrag(e.EventArgs);
+                }
             });
         }
 

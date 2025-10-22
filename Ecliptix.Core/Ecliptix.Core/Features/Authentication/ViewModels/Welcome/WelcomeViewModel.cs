@@ -77,7 +77,11 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             NavToCreateAccountCommand.Dispose();

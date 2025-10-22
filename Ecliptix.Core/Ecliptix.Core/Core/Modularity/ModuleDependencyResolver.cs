@@ -23,7 +23,9 @@ public class ModuleDependencyResolver
         Dictionary<string, IModule> moduleMap = availableModules.ToDictionary(m => m.Id.ToName(), m => m);
 
         if (!moduleMap.TryGetValue(moduleName, out IModule? targetModule))
+        {
             throw new InvalidOperationException($"Module {moduleName} not found");
+        }
 
         HashSet<string> required = new();
         GetDependenciesRecursive(targetModule, moduleMap, required);
@@ -80,7 +82,9 @@ public class ModuleDependencyResolver
                 if (!visited.Contains(depName))
                 {
                     if (HasCircularDependency(depName, moduleMap, visited, recursionStack))
+                    {
                         return true;
+                    }
                 }
                 else if (recursionStack.Contains(depName))
                 {

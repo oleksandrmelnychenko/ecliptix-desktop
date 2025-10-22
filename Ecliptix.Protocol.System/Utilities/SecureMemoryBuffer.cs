@@ -24,7 +24,9 @@ internal sealed class SecureMemoryBuffer : IDisposable
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> result = SodiumSecureMemoryHandle.Allocate(allocatedSize);
         if (result.IsErr)
+        {
             throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToAllocateSecureMemory + result.UnwrapErr());
+        }
 
         _handle = result.Unwrap();
     }
@@ -32,7 +34,10 @@ internal sealed class SecureMemoryBuffer : IDisposable
     internal void SetRequestedSize(int requestedSize)
     {
         if (requestedSize > _allocatedSize)
+        {
             throw new ArgumentException(string.Format(ProtocolSystemConstants.ErrorMessages.RequestedSizeExceedsAllocated, requestedSize, _allocatedSize));
+        }
+
         _requestedSize = requestedSize;
     }
 
@@ -43,7 +48,9 @@ internal sealed class SecureMemoryBuffer : IDisposable
             using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(AllocatedSize);
             Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
             if (readResult.IsErr)
+            {
                 throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToReadSecureMemory + readResult.UnwrapErr());
+            }
 
             byte[] result = new byte[Length];
             tempBuffer.AsSpan()[..Length].CopyTo(result);
@@ -56,15 +63,19 @@ internal sealed class SecureMemoryBuffer : IDisposable
     public Result<int, SodiumFailure> ReadInto(Span<byte> destination)
     {
         if (_disposed)
+        {
             return Result<int, SodiumFailure>.Err(
                 SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
+        }
 
         int bytesToRead = Math.Min(destination.Length, Length);
         using SecurePooledArray<byte> tempBuffer = SecureArrayPool.Rent<byte>(bytesToRead);
 
         Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
         if (readResult.IsErr)
+        {
             return Result<int, SodiumFailure>.Err(readResult.UnwrapErr());
+        }
 
         tempBuffer.AsSpan()[..bytesToRead].CopyTo(destination);
         return Result<int, SodiumFailure>.Ok(bytesToRead);
@@ -73,15 +84,20 @@ internal sealed class SecureMemoryBuffer : IDisposable
     public Result<Unit, SodiumFailure> Read(Span<byte> destination)
     {
         if (_disposed)
+        {
             return Result<Unit, SodiumFailure>.Err(
                 SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
+        }
 
         return _handle.Read(destination);
     }
 
     internal void Clear()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         Span<byte> zeros = stackalloc byte[Math.Min(AllocatedSize, ProtocolSystemConstants.MemoryPool.SecureWipeChunkSize)];
         zeros.Clear();
@@ -95,7 +111,10 @@ internal sealed class SecureMemoryBuffer : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
         Clear();

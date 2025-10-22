@@ -313,9 +313,13 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                 LogVisibilityChange(visible);
 
                 if (visible)
+                {
                     await ShowAsync(newTokenSource.Token);
+                }
                 else
+                {
                     await HideAsync(newTokenSource.Token);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -348,17 +352,29 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private void ApplyClasses(bool serverIssue)
     {
-        if (_mainBorder == null) return;
+        if (_mainBorder == null)
+        {
+            return;
+        }
 
-        if (serverIssue) _mainBorder.Classes.Add("CircuitOpen");
-        else _mainBorder.Classes.Remove("CircuitOpen");
+        if (serverIssue)
+        {
+            _mainBorder.Classes.Add("CircuitOpen");
+        }
+        else
+        {
+            _mainBorder.Classes.Remove("CircuitOpen");
+        }
 
         _mainBorder.Classes.Remove("Retrying");
     }
 
     private void CreateAnimations()
     {
-        if (_view == null) return;
+        if (_view == null)
+        {
+            return;
+        }
 
         _sharedAppearAnimation ??= new Animation
         {
@@ -405,13 +421,19 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private async Task ShowAsync(CancellationToken token)
     {
-        if (_view == null) return;
+        if (_view == null)
+        {
+            return;
+        }
 
         try
         {
             _view.IsVisible = true;
             _view.RenderTransform = _sharedTranslateTransform;
-            if (_sharedAppearAnimation == null) CreateAnimations();
+            if (_sharedAppearAnimation == null)
+            {
+                CreateAnimations();
+            }
             await _sharedAppearAnimation!.RunAsync(_view, token);
         }
         catch (OperationCanceledException)
@@ -425,11 +447,17 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private async Task HideAsync(CancellationToken token)
     {
-        if (_view == null) return;
+        if (_view == null)
+        {
+            return;
+        }
 
         try
         {
-            if (_sharedDisappearAnimation == null) CreateAnimations();
+            if (_sharedDisappearAnimation == null)
+            {
+                CreateAnimations();
+            }
             await _sharedDisappearAnimation!.RunAsync(_view, token);
             _view.IsVisible = false;
         }
@@ -470,7 +498,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private string GetStatusText(DetailedConnectivityStatus status)
     {
         if (_cachedStatusTexts.TryGetValue(status, out string? cached))
+        {
             return cached;
+        }
 
         string key = status switch
         {
@@ -494,7 +524,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private string GetStatusDescription(DetailedConnectivityStatus status)
     {
         if (_cachedStatusDescriptions.TryGetValue(status, out string? cached))
+        {
             return cached;
+        }
 
         string key = status switch
         {
@@ -556,42 +588,56 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private static void LogRetryButtonShow()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🔘 RETRY BUTTON: Showing retry button");
+        }
     }
 
     private static void LogRetryButtonManualHide()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🔘 RETRY BUTTON: Hiding retry button (manual retry clicked)");
+        }
     }
 
     private static void LogRetryButtonConnectionHide(ConnectivitySnapshot snapshot)
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🔘 RETRY BUTTON: Hiding retry button (status {Status}, reason {Reason})",
                 snapshot.Status, snapshot.Reason);
+
+        }
     }
 
     private static void LogNetworkEvent(ConnectivitySnapshot snapshot)
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🔔 CONNECTIVITY EVENT: Status={Status}, Reason={Reason}, Source={Source}, Retry={Retry}",
                 snapshot.Status,
                 snapshot.Reason,
                 snapshot.Source,
                 snapshot.RetryAttempt);
+
+        }
     }
 
     private static void LogVisibilityChange(bool visible)
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🪟 NOTIFICATION VISIBILITY: Changing visibility to {Visible}", visible);
+        }
     }
 
     private static void LogOperationCancelled()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+        {
             Log.Debug("🪟 NOTIFICATION VISIBILITY: Operation was cancelled");
+        }
     }
 
     public void Dispose()

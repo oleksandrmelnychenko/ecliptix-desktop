@@ -142,7 +142,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 {
                     HasError = !string.IsNullOrEmpty(err);
                     if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
+                    {
                         ShowServerErrorNotification(hostWindow, err);
+                    }
                 })
                 .DisposeWith(disposables).DisposeWith(_disposables);
 
@@ -196,7 +198,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         try
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
             {
@@ -211,7 +216,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public void ResetState()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         CancellationTokenSource? cts = Interlocked.Exchange(ref _cancellationTokenSource, null);
         cts?.Cancel();
@@ -228,7 +236,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         return Observable.FromAsync(async () =>
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
@@ -245,7 +256,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
                             {
-                                if (_isDisposed) return;
+                                if (_isDisposed)
+                                {
+                                    return;
+                                }
+
                                 try
                                 {
                                     HandleCountdownUpdate(seconds, identifier, status, message);
@@ -261,7 +276,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
                             {
-                                if (_isDisposed) return;
+                                if (_isDisposed)
+                                {
+                                    return;
+                                }
+
                                 try
                                 {
                                     HandleCountdownUpdate(seconds, identifier, status, message);
@@ -286,7 +305,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task SendVerificationCode()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         string systemDeviceIdentifier = SystemDeviceIdentifier();
 
@@ -321,7 +343,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         Result<Membership, string> result = await verifyTask;
 
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         if (result.IsOk)
         {
@@ -369,7 +394,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private Task ShowAccountExistsRedirectAsync()
     {
-        if (_isDisposed) return Task.CompletedTask;
+        if (_isDisposed)
+        {
+            return Task.CompletedTask;
+        }
 
         string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey];
 
@@ -389,7 +417,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private Task ReSendVerificationCode()
     {
-        if (_isDisposed) return Task.CompletedTask;
+        if (_isDisposed)
+        {
+            return Task.CompletedTask;
+        }
 
         if (HasValidSession)
         {
@@ -407,7 +438,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             Task.Run(async () =>
             {
                 if (_isDisposed || _cancellationTokenSource.Token.IsCancellationRequested)
+                {
                     return;
+                }
 
                 _cancellationTokenSource.Token.ThrowIfCancellationRequested();
 
@@ -421,7 +454,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 RxApp.MainThreadScheduler.Schedule(() =>
                                 {
                                     if (!_isDisposed)
+                                    {
                                         HandleCountdownUpdate(seconds, identifier, status, message);
+                                    }
                                 }),
                             cancellationToken: _cancellationTokenSource.Token)
                         : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
@@ -432,7 +467,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 RxApp.MainThreadScheduler.Schedule(() =>
                                 {
                                     if (!_isDisposed)
+                                    {
                                         HandleCountdownUpdate(seconds, identifier, status, message);
+                                    }
                                 }),
                             cancellationToken: _cancellationTokenSource.Token);
 
@@ -515,7 +552,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         try
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -547,7 +587,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 ShowRedirectNotification(hostWindow, message, seconds, () =>
                 {
                     if (!_isDisposed)
+                    {
                         _ = CleanupAndNavigateAsync(targetView);
+                    }
                 });
             }
         }
@@ -561,13 +603,19 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
         VerificationCountdownUpdate.Types.CountdownUpdateStatus status, string? message)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         if (identifier != Guid.Empty)
         {
             lock (_sessionLock)
             {
-                if (_isDisposed) return;
+                if (_isDisposed)
+                {
+                    return;
+                }
 
                 if (_verificationSessionIdentifier == Guid.Empty)
                 {
@@ -581,7 +629,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             }
         }
 
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         SecondsRemaining = status switch
         {
@@ -601,7 +652,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         try
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
@@ -656,7 +710,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task ResetUiState()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {

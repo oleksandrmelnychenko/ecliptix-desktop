@@ -17,7 +17,10 @@ public static class RetryDecisionFactory
     {
         return static result =>
         {
-            if (result.IsOk) return false;
+            if (result.IsOk)
+            {
+                return false;
+            }
 
             NetworkFailure failure = result.UnwrapErr();
             return FailureClassification.IsProtocolStateMismatch(failure) ||

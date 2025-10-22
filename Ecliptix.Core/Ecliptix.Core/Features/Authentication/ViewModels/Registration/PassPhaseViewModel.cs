@@ -41,7 +41,10 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public void ResetState()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         PassPhase = string.Empty;
     }
@@ -53,7 +56,11 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             SubmitCommand?.Dispose();

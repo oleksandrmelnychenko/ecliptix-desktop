@@ -104,11 +104,20 @@ public static class GrpcMetadataHandler
     private static string GetOperatingSystem()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
             return "macOS";
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
             return "Windows";
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
             return "Linux";
+        }
+
         return "Unknown";
     }
 

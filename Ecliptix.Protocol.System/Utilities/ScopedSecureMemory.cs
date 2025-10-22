@@ -32,7 +32,10 @@ internal sealed class ScopedSecureMemory : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (_data != null && _clearOnDispose)
         {

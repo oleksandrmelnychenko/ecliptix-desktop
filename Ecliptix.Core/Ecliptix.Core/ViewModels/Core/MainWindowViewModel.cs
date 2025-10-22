@@ -194,7 +194,10 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         Log.Debug("[MainWindowViewModel] Disposing");
 

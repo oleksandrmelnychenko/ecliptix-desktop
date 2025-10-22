@@ -21,8 +21,10 @@ internal static class SecureByteStringInterop
         }
 
         if (length > source.Length)
+        {
             return Result<ByteString, SodiumFailure>.Err(
                 SodiumFailure.InvalidBufferSize($"Requested length {length} exceeds handle length {source.Length}"));
+        }
 
         return source.WithReadAccess(span => Result<ByteString, SodiumFailure>.Ok(ByteString.CopyFrom(span.Slice(0, length))));
     }

@@ -16,7 +16,10 @@ internal sealed class ScopedSecureMemoryCollection : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         for (int i = _resources.Count - 1; i >= 0; i--)
         {

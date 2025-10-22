@@ -20,7 +20,10 @@ internal sealed class InternetConnectivityBridge : IDisposable
 
         _subscription = connectivityObserver.Subscribe(async isOnline =>
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
             ConnectivityIntent intent = isOnline
                 ? ConnectivityIntent.InternetRecovered()
@@ -33,7 +36,9 @@ internal sealed class InternetConnectivityBridge : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
         _subscription.Dispose();

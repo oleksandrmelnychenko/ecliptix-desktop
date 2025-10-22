@@ -21,7 +21,9 @@ internal static partial class OpaqueNative
                                    "libopaque_client.so";
 
             if (NativeLibrary.TryLoad(platformLibrary, assembly, searchPath, out IntPtr handle))
+            {
                 return handle;
+            }
         }
         return IntPtr.Zero;
     }

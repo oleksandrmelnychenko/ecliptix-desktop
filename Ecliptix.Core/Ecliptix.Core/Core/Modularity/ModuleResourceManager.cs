@@ -88,7 +88,10 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
 

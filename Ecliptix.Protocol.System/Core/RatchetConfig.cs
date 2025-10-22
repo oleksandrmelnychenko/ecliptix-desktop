@@ -35,19 +35,29 @@ internal sealed class RatchetConfig
     public bool ShouldRatchet(uint messageIndex, DateTime lastRatchetTime, bool receivedNewDhKey, DateTime currentTime)
     {
         if (EnablePerMessageRatchet)
+        {
             return true;
+        }
 
         if (RatchetOnNewDhKey && receivedNewDhKey)
+        {
             return true;
+        }
 
         if (messageIndex > 0 && messageIndex % DhRatchetEveryNMessages == 0)
+        {
             return true;
+        }
 
         if (currentTime - lastRatchetTime > MaxChainAge)
+        {
             return true;
+        }
 
         if (messageIndex >= MaxMessagesWithoutRatchet)
+        {
             return true;
+        }
 
         return false;
     }

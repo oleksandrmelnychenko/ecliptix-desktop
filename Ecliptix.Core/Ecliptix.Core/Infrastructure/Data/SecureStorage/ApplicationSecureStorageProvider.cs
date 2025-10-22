@@ -45,7 +45,9 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
+        {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Culture = culture;
@@ -58,7 +60,9 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
+        {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.IsNewInstance = isNewInstance;
@@ -70,7 +74,9 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
+        {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Country = ipCountry.Country;
@@ -84,7 +90,9 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
+        {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Membership = membership;
@@ -97,12 +105,16 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
     {
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)
+        {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(getResult.UnwrapErr());
+        }
 
         Option<byte[]> maybeData = getResult.Unwrap();
         if (!maybeData.HasValue)
+        {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider.ApplicationSettingsNotFound));
+        }
 
         try
         {

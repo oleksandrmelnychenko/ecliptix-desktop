@@ -50,7 +50,11 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 
     private void ProcessConnectivityChange(ConnectivitySnapshot snapshot)
     {
-        if (_isShuttingDown) return;
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         Connectivity = snapshot;
     }
 

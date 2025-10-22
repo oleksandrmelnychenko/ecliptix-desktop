@@ -8,7 +8,11 @@ public static class ResultMappingExtensions
     public static Result<T, NetworkFailure> ToNetworkFailure<T>(
         this Result<T, EcliptixProtocolFailure> sourceResult)
     {
-        if (!sourceResult.IsErr) return Result<T, NetworkFailure>.Ok(sourceResult.Unwrap());
+        if (!sourceResult.IsErr)
+        {
+            return Result<T, NetworkFailure>.Ok(sourceResult.Unwrap());
+        }
+
         EcliptixProtocolFailure protocolFailure = sourceResult.UnwrapErr();
 
         NetworkFailure networkFailure = protocolFailure.ToNetworkFailure();

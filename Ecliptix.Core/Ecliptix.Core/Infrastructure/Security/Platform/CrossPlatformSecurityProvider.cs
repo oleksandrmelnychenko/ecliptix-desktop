@@ -46,7 +46,10 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
     private void InitializeKeychain()
     {
-        if (Directory.Exists(_keychainPath)) return;
+        if (Directory.Exists(_keychainPath))
+        {
+            return;
+        }
 
         Directory.CreateDirectory(_keychainPath);
 
@@ -149,7 +152,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 {
                     string keyFile = GetKeyFilePath(identifier);
                     if (!File.Exists(keyFile))
+                    {
                         return;
+                    }
 
 
                     byte[] randomData = RandomNumberGenerator.GetBytes(SecureOverwriteSize);
@@ -172,7 +177,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     public async Task<byte[]> GetOrCreateHmacKeyAsync()
     {
         if (_cachedHmacKey != null)
+        {
             return _cachedHmacKey;
+        }
 
         byte[]? hmacKey = await GetKeyFromKeychainAsync(HmacKeyIdentifier);
 
@@ -604,7 +611,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private static bool CheckWindowsTpm()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
             return false;
+        }
 
         try
         {

@@ -12,18 +12,25 @@ public sealed class OpaqueClient : IDisposable
     public OpaqueClient(byte[] serverPublicKey)
     {
         if (serverPublicKey?.Length != OpaqueConstants.PUBLIC_KEY_LENGTH)
+        {
             throw new ArgumentException(string.Format(OpaqueErrorMessages.ServerPublicKeyInvalidSize, OpaqueConstants.PUBLIC_KEY_LENGTH));
+        }
 
         int result =
             OpaqueNative.opaque_client_create(serverPublicKey, (UIntPtr)serverPublicKey.Length, out _clientHandle);
         if (result != (int)OpaqueResult.Success || _clientHandle == IntPtr.Zero)
+        {
             throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateOpaqueClient, (OpaqueResult)result));
+        }
     }
 
     public RegistrationResult CreateRegistrationRequest(byte[] password)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0) throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+        if (password == null || password.Length == 0)
+        {
+            throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+        }
 
         try
         {
@@ -31,7 +38,9 @@ public sealed class OpaqueClient : IDisposable
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
             if (stateResult != (int)OpaqueResult.Success)
+            {
                 throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
+            }
 
             int result = OpaqueNative.opaque_client_create_registration_request(
                 _clientHandle, password, (UIntPtr)password.Length, state, request, (UIntPtr)request.Length);
@@ -54,8 +63,10 @@ public sealed class OpaqueClient : IDisposable
     {
         ThrowIfDisposed();
         if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
+        {
             throw new ArgumentException(
                 string.Format(OpaqueErrorMessages.ServerResponseInvalidSize, OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
+        }
 
         byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
 
@@ -64,7 +75,9 @@ public sealed class OpaqueClient : IDisposable
             registrationState.StateHandle, record, (UIntPtr)record.Length);
 
         if (result != (int)OpaqueResult.Success)
+        {
             throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToFinalizeRegistration, (OpaqueResult)result));
+        }
 
         return record;
     }
@@ -72,7 +85,10 @@ public sealed class OpaqueClient : IDisposable
     public KeyExchangeResult GenerateKE1(byte[] password)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0) throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+        if (password == null || password.Length == 0)
+        {
+            throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+        }
 
         try
         {
@@ -80,7 +96,9 @@ public sealed class OpaqueClient : IDisposable
 
             int stateResult = OpaqueNative.opaque_client_state_create(out IntPtr state);
             if (stateResult != (int)OpaqueResult.Success)
+            {
                 throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToCreateState, (OpaqueResult)stateResult));
+            }
 
             int result = OpaqueNative.opaque_client_generate_ke1(
                 _clientHandle, password, (UIntPtr)password.Length, state, ke1, (UIntPtr)ke1.Length);
@@ -127,14 +145,19 @@ public sealed class OpaqueClient : IDisposable
             _clientHandle, keyExchangeState.StateHandle, sessionKey, (UIntPtr)sessionKey.Length);
 
         if (result != (int)OpaqueResult.Success)
+        {
             throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToDeriveSessionKey, (OpaqueResult)result));
+        }
 
         return sessionKey;
     }
 
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(OpaqueClient));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(OpaqueClient));
+        }
     }
 
     private static void ClearPassword(byte[] password)

@@ -18,10 +18,14 @@ public class AddConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
+        {
             return doubleValue + param;
+        }
 
         if (value is int intValue && parameter is string paramStr2 && int.TryParse(paramStr2, out int param2))
+        {
             return intValue + param2;
+        }
 
         return value;
     }
@@ -37,7 +41,9 @@ public class SubtractConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
+        {
             return doubleValue - param;
+        }
 
         return value;
     }
@@ -53,7 +59,9 @@ public class MultiplyConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
+        {
             return doubleValue * param;
+        }
 
         return value;
     }
@@ -69,7 +77,9 @@ public class DivideConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param) && param != 0)
+        {
             return doubleValue / param;
+        }
 
         return value;
     }

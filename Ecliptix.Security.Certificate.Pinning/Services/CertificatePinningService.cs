@@ -17,19 +17,27 @@ public sealed class CertificatePinningService : IAsyncDisposable
     public CertificatePinningOperationResult Initialize(CancellationToken cancellationToken = default)
     {
         if (_state == Disposed)
+        {
             return CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed());
+        }
 
         if (_state == Initialized)
+        {
             return CertificatePinningOperationResult.Success();
+        }
 
         _initializationLock.Wait(cancellationToken);
         try
         {
             if (_state == Initialized)
+            {
                 return CertificatePinningOperationResult.Success();
+            }
 
             if (_state == Disposed)
+            {
                 return CertificatePinningOperationResult.FromError(CertificatePinningFailure.ServiceDisposed());
+            }
 
             Interlocked.Exchange(ref _state, Initializing);
 
@@ -71,13 +79,19 @@ public sealed class CertificatePinningService : IAsyncDisposable
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
+        {
             return CertificatePinningBoolResult.FromError(stateCheck.Error!);
+        }
 
         if (data.IsEmpty)
+        {
             return CertificatePinningBoolResult.FromError(CertificatePinningFailure.MessageRequired());
+        }
 
         if (signature.IsEmpty)
+        {
             return CertificatePinningBoolResult.FromError(CertificatePinningFailure.InvalidSignatureSize(0));
+        }
 
         return VerifySignatureUnsafe(data.Span, signature.Span);
     }
@@ -117,10 +131,14 @@ public sealed class CertificatePinningService : IAsyncDisposable
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
+        {
             return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+        }
 
         if (plaintext.IsEmpty)
+        {
             return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.PlaintextRequired());
+        }
 
         return EncryptUnsafe(plaintext.Span);
     }
@@ -199,10 +217,14 @@ public sealed class CertificatePinningService : IAsyncDisposable
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
+        {
             return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+        }
 
         if (ciphertext.IsEmpty)
+        {
             return CertificatePinningByteArrayResult.FromError(CertificatePinningFailure.CiphertextRequired());
+        }
 
         return DecryptUnsafe(ciphertext.Span);
     }
@@ -252,7 +274,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
     {
         CertificatePinningOperationResult stateCheck = ValidateOperationState();
         if (!stateCheck.IsSuccess)
+        {
             return CertificatePinningByteArrayResult.FromError(stateCheck.Error!);
+        }
 
         return GetPublicKeyUnsafe();
     }
@@ -326,7 +350,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _state, Disposed) == Disposed)
+        {
             return;
+        }
 
         try
         {

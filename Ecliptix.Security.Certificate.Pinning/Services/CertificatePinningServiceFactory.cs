@@ -13,7 +13,9 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
     public Option<CertificatePinningService> GetOrInitializeService()
     {
         if (_disposed)
+        {
             return Option<CertificatePinningService>.None;
+        }
 
         return _service.Or(() =>
         {
@@ -21,7 +23,9 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             try
             {
                 if (_disposed)
+                {
                     return Option<CertificatePinningService>.None;
+                }
 
                 return _service.Or(() => TryInitializeService());
             }
@@ -62,13 +66,17 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
+        {
             return;
+        }
 
         await _initializationSemaphore.WaitAsync().ConfigureAwait(false);
         try
         {
             if (_disposed)
+            {
                 return;
+            }
 
             _disposed = true;
             Option<CertificatePinningService> serviceToDispose = _service;

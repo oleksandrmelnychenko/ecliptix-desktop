@@ -100,13 +100,20 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (ViewModel is IActivatableViewModel activatable)
+        {
             activatable.Activator.Deactivate();
+        }
 
         if (ViewModel is IDisposable disposableViewModel)
+        {
             disposableViewModel.Dispose();
+        }
 
         _disposed = true;
     }
@@ -228,7 +235,10 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private async Task OnVisibilityChanged(bool isVisible)
     {
-        if (_isAnimating || _rootGrid is null) return;
+        if (_isAnimating || _rootGrid is null)
+        {
+            return;
+        }
 
         if (isVisible)
         {

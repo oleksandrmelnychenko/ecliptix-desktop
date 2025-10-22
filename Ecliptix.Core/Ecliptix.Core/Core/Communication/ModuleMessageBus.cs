@@ -107,7 +107,10 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         return new DisposableAction(() =>
         {
             if (!_subscriptions.TryGetValue(messageType, out ConcurrentBag<IMessageSubscription>? subscriptions))
+            {
                 return;
+            }
+
             ConcurrentBag<IMessageSubscription> newBag = [];
             foreach (IMessageSubscription sub in subscriptions.Where(s => s != subscription))
             {

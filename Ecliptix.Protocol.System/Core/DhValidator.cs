@@ -8,17 +8,23 @@ internal static class DhValidator
     public static Result<Unit, EcliptixProtocolFailure> ValidateX25519PublicKey(byte[] publicKey)
     {
         if (publicKey.Length != Constants.X25519PublicKeySize)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     string.Format(EcliptixProtocolFailureMessages.DhValidator.InvalidPublicKeySize, Constants.X25519PublicKeySize, publicKey.Length)));
+        }
 
         if (HasSmallOrder(publicKey))
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyHasSmallOrder));
+        }
 
         if (!IsValidCurve25519Point(publicKey))
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyNotValidCurve25519Point));
+        }
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
@@ -26,7 +32,9 @@ internal static class DhValidator
     private static bool IsValidCurve25519Point(ReadOnlySpan<byte> publicKey)
     {
         if (publicKey.Length != Constants.Curve25519FieldElementSize)
+        {
             return false;
+        }
 
         return IsValidFieldElement(publicKey) && !HasSmallOrder(publicKey);
     }
@@ -60,8 +68,15 @@ internal static class DhValidator
 
         for (int i = 7; i >= 0; i--)
         {
-            if (element[i] < p[i]) return -1;
-            if (element[i] > p[i]) return 1;
+            if (element[i] < p[i])
+            {
+                return -1;
+            }
+
+            if (element[i] > p[i])
+            {
+                return 1;
+            }
         }
 
         return 0;
@@ -108,7 +123,9 @@ internal static class DhValidator
         foreach (byte[] smallOrderPoint in SmallOrderPoints)
         {
             if (ConstantTimeEquals(point, smallOrderPoint))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -117,7 +134,9 @@ internal static class DhValidator
     private static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
         if (a.Length != b.Length)
+        {
             return false;
+        }
 
         int result = 0;
         for (int i = 0; i < a.Length; i++)

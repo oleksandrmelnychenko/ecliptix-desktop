@@ -11,7 +11,10 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
 
     public async Task RequestLanguageChangeAsync(string targetCulture)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Confirm(targetCulture);
         await messageBus.PublishAsync(evt);
@@ -19,7 +22,10 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
 
     public async Task ConfirmLanguageChangeAsync(string targetCulture)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Confirm(targetCulture);
         await messageBus.PublishAsync(evt);
@@ -27,7 +33,10 @@ internal sealed class LanguageDetectionService(IMessageBus messageBus) : ILangua
 
     public async Task DeclineLanguageChangeAsync()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         LanguageDetectionDialogEvent evt = LanguageDetectionDialogEvent.Decline();
         await messageBus.PublishAsync(evt);

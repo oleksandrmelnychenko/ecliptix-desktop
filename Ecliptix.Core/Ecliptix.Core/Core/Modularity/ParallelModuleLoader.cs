@@ -139,7 +139,10 @@ internal class ParallelModuleLoader : IDisposable
             .Where(m => m.Manifest.LoadingStrategy == ModuleLoadingStrategy.Background)
             .ToArray();
 
-        if (backgroundModules.Length == 0) return;
+        if (backgroundModules.Length == 0)
+        {
+            return;
+        }
 
         _ = Task.Run(async () =>
         {

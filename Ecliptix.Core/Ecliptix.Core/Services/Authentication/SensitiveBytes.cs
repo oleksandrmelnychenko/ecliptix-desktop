@@ -34,7 +34,9 @@ internal sealed class SensitiveBytes : IDisposable
                 SodiumSecureMemoryHandle.Allocate(0);
 
             if (emptyResult.IsErr)
+            {
                 return Result<SensitiveBytes, SodiumFailure>.Err(emptyResult.UnwrapErr());
+            }
 
             return Result<SensitiveBytes, SodiumFailure>.Ok(
                 new SensitiveBytes(emptyResult.Unwrap(), 0));
@@ -44,7 +46,9 @@ internal sealed class SensitiveBytes : IDisposable
             SodiumSecureMemoryHandle.Allocate(source.Length);
 
         if (allocResult.IsErr)
+        {
             return Result<SensitiveBytes, SodiumFailure>.Err(allocResult.UnwrapErr());
+        }
 
         SodiumSecureMemoryHandle handle = allocResult.Unwrap();
 
@@ -65,8 +69,10 @@ internal sealed class SensitiveBytes : IDisposable
         EnsureNotDisposed();
 
         if (_handle == null)
+        {
             return Result<TResult, SodiumFailure>.Err(
                 SodiumFailure.NullPointer("SensitiveBytes handle is null"));
+        }
 
         return _handle.WithReadAccess(operation);
     }
@@ -74,7 +80,9 @@ internal sealed class SensitiveBytes : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _handle?.Dispose();
         _handle = null;
@@ -85,6 +93,8 @@ internal sealed class SensitiveBytes : IDisposable
     private void EnsureNotDisposed()
     {
         if (_disposed)
+        {
             throw new ObjectDisposedException(nameof(SensitiveBytes));
+        }
     }
 }

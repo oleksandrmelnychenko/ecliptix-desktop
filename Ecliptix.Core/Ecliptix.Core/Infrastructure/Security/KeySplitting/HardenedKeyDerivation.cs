@@ -27,7 +27,9 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             Result<byte[], KeySplittingFailure> stretchedResult =
                 await StretchKeyAsync(baseKey, salt, options.OutputLength, options);
             if (stretchedResult.IsErr)
+            {
                 return stretchedResult;
+            }
 
             byte[] stretchedKey = stretchedResult.Unwrap();
 
@@ -55,7 +57,9 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 finally
                 {
                     if (hwEntropy != null)
+                    {
                         CryptographicOperations.ZeroMemory(hwEntropy);
+                    }
                 }
             }
 
@@ -206,15 +210,19 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             Result<byte[], SodiumFailure> readResult =
                 baseKeyHandle.ReadBytes(baseKeyHandle.Length);
             if (readResult.IsErr)
+            {
                 return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
                     KeySplittingFailure.MemoryReadFailed(readResult.UnwrapErr().Message));
+            }
 
             baseKeyBytes = readResult.Unwrap();
 
             Result<byte[], KeySplittingFailure> deriveResult =
                 await DeriveEnhancedKeyAsync(baseKeyBytes, context, options);
             if (deriveResult.IsErr)
+            {
                 return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(deriveResult.UnwrapErr());
+            }
 
             byte[] derivedKey = deriveResult.Unwrap();
 
@@ -223,8 +231,10 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 Result<SodiumSecureMemoryHandle, SodiumFailure> allocateResult =
                     SodiumSecureMemoryHandle.Allocate(derivedKey.Length);
                 if (allocateResult.IsErr)
+                {
                     return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
                         KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
+                }
 
                 SodiumSecureMemoryHandle handle = allocateResult.Unwrap();
 
@@ -251,7 +261,9 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         finally
         {
             if (baseKeyBytes != null)
+            {
                 CryptographicOperations.ZeroMemory(baseKeyBytes);
+            }
         }
     }
 }

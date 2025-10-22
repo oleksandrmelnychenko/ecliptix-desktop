@@ -65,7 +65,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId, byte[] membershipId)
     {
         if (_disposed)
+        {
             return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
+        }
 
         try
         {
@@ -104,7 +106,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId)
     {
         if (_disposed)
+        {
             return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
+        }
 
         try
         {
@@ -198,7 +202,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key)
     {
         if (_disposed)
+        {
             return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
+        }
 
         try
         {
@@ -222,7 +228,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private static async Task DeleteFileWithRetryAsync(string filePath, int maxRetries = 3)
     {
         if (!File.Exists(filePath))
+        {
             return;
+        }
 
         for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -364,11 +372,15 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
         string magic = Encoding.ASCII.GetString(reader.ReadBytes(SecureStorageConstants.Header.MagicHeader.Length));
         if (magic != SecureStorageConstants.Header.MagicHeader)
+        {
             throw new InvalidOperationException(ApplicationErrorMessages.SecureProtocolStateStorage.InvalidContainerFormat);
+        }
 
         int version = reader.ReadInt32();
         if (version != SecureStorageConstants.Header.CurrentVersion)
+        {
             throw new InvalidOperationException(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.UnsupportedVersion, version));
+        }
 
         int saltLength = reader.ReadInt32();
         byte[] salt = reader.ReadBytes(saltLength);
@@ -404,7 +416,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
     private async Task<byte[]?> VerifyTamperProtectionAsync(byte[] protectedData)
     {
         if (protectedData.Length < SecureStorageConstants.Encryption.HmacSha512Size)
+        {
             return null;
+        }
 
         byte[] data = protectedData[..^SecureStorageConstants.Encryption.HmacSha512Size];
         byte[] mac = protectedData[^SecureStorageConstants.Encryption.HmacSha512Size..];
@@ -414,7 +428,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         byte[] expectedMac = hmac.ComputeHash(data);
 
         if (!CryptographicOperations.FixedTimeEquals(mac, expectedMac))
+        {
             return null;
+        }
 
         return data;
     }
@@ -463,7 +479,10 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (_masterKey != null)
         {

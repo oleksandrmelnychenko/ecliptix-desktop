@@ -37,7 +37,9 @@ public static class GrpcErrorClassifier
     public static bool IsProtocolStateMismatch(RpcException ex)
     {
         if (ex.StatusCode != StatusCode.Internal && ex.StatusCode != StatusCode.FailedPrecondition)
+        {
             return false;
+        }
 
         string detail = ex.Status.Detail?.ToLowerInvariant() ?? string.Empty;
 
@@ -70,15 +72,17 @@ public static class GrpcErrorClassifier
     public static bool IsAuthFlowMissing(RpcException ex)
     {
         if (ex.StatusCode != StatusCode.NotFound)
+        {
             return false;
+        }
 
         return GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.ErrorCode)
-            .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
-            .HasValue
-            ||
-            GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I18nKey)
-            .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-            .HasValue;
+                   .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
+                   .HasValue
+               ||
+               GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I18nKey)
+                   .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+                   .HasValue;
     }
 
     private static Option<string> GetMetadataValue(Metadata metadata, string key)

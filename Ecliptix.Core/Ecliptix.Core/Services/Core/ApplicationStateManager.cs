@@ -30,7 +30,9 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
     public Task TransitionToAuthenticatedAsync(string membershipId)
     {
         if (string.IsNullOrEmpty(membershipId))
+        {
             throw new ArgumentException("Membership ID cannot be null or empty", nameof(membershipId));
+        }
 
         Log.Information("[APPLICATION-STATE] Transitioning to Authenticated state. MembershipId: {MembershipId}",
             membershipId);
@@ -41,7 +43,11 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _stateSubject?.Dispose();
         _disposed = true;
     }

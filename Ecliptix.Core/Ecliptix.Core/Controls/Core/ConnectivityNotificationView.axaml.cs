@@ -97,7 +97,11 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
     {
         base.OnDataContextChanged(e);
 
-        if (DataContext is not ConnectivityNotificationViewModel viewModel) return;
+        if (DataContext is not ConnectivityNotificationViewModel viewModel)
+        {
+            return;
+        }
+
         viewModel.SetView(this);
 
         viewModel.AppearDuration = AppearDuration;
@@ -111,9 +115,13 @@ public sealed partial class ConnectivityNotificationView : ReactiveUserControl<C
         if (DataContext is ConnectivityNotificationViewModel viewModel)
         {
             if (change.Property == AppearDurationProperty)
+            {
                 viewModel.AppearDuration = AppearDuration;
+            }
             else if (change.Property == DisappearDurationProperty)
+            {
                 viewModel.DisappearDuration = DisappearDuration;
+            }
         }
     }
 }

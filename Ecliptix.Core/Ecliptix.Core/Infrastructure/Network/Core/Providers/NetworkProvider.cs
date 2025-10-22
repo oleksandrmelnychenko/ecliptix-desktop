@@ -285,7 +285,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         lock (_appInstanceSetterLock)
         {
             if (_applicationInstanceSettings.Value != null)
+            {
                 _applicationInstanceSettings.Value.Country = country;
+            }
         }
     }
 
@@ -318,7 +320,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void ClearConnection(uint connectId)
     {
-        if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? system)) return;
+        if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? system))
+        {
+            return;
+        }
+
         system.Dispose();
     }
 
@@ -713,8 +719,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         foreach (KeyValuePair<string, CancellationTokenSource> kvp in _pendingRequests)
         {
-            if (!kvp.Key.StartsWith(connectIdPrefix)) continue;
-            if (!_pendingRequests.TryRemove(kvp.Key, out CancellationTokenSource? operationCts)) continue;
+            if (!kvp.Key.StartsWith(connectIdPrefix))
+            {
+                continue;
+            }
+
+            if (!_pendingRequests.TryRemove(kvp.Key, out CancellationTokenSource? operationCts))
+            {
+                continue;
+            }
+
             try
             {
                 operationCts.Cancel();
@@ -737,7 +751,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         if (!_connections.TryRemove(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+        }
 
         protocolSystem.Dispose();
 
@@ -772,7 +788,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         foreach (PubKeyExchangeType exchangeType in knownTypes)
         {
             uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
-            if (computedConnectId != connectId) continue;
+            if (computedConnectId != connectId)
+            {
+                continue;
+            }
 
             return exchangeType;
         }
@@ -819,8 +838,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         EcliptixProtocolConnection? connection = system.GetConnection();
         if (connection == null)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic("Connection not established"));
+        }
 
         Log.Information(
             "[CLIENT-SYNC] Syncing with server. ConnectId: {ConnectId}, ServerSending: {ServerSending}, ServerReceiving: {ServerReceiving}",
@@ -857,7 +878,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> idKeysResult =
             EcliptixSystemIdentityKeys.FromProtoState(state.IdentityKeys);
         if (idKeysResult.IsErr)
+        {
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(idKeysResult.UnwrapErr());
+        }
 
         PubKeyExchangeType exchangeType = _applicationInstanceSettings.HasValue
             ? DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId)
@@ -1447,8 +1470,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task WaitForOutageRecoveryAsync(CancellationToken token, bool waitForRecovery = true)
     {
-        if (Volatile.Read(ref _outageState) == 0) return;
-        if (!waitForRecovery) return;
+        if (Volatile.Read(ref _outageState) == 0)
+        {
+            return;
+        }
+
+        if (!waitForRecovery)
+        {
+            return;
+        }
 
         Task waitTask;
         lock (_outageLock)
@@ -1481,14 +1511,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private void ExitOutage()
     {
-        if (Interlocked.Exchange(ref _outageState, 0) == 0) return;
+        if (Interlocked.Exchange(ref _outageState, 0) == 0)
+        {
+            return;
+        }
 
         CancelConnectionRecoveryToken();
 
         lock (_outageLock)
         {
             if (!_outageCompletionSource.Task.IsCompleted)
+            {
                 _outageCompletionSource.TrySetResult(true);
+            }
         }
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -1613,14 +1648,19 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             try
             {
-                if (_disposed || _shutdownCancellationToken.IsCancellationRequested) return;
+                if (_disposed || _shutdownCancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
 
                 if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
                 {
                     EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
                     EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
                     if (connection == null)
+                    {
                         return;
+                    }
 
                     if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
                     {
@@ -1645,7 +1685,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             catch (Exception ex)
             {
-                if (_disposed) return;
+                if (_disposed)
+                {
+                    return;
+                }
+
                 Log.Error(ex, "[CLIENT-PROTOCOL-PERSIST] Failed to persist session state in background");
             }
         }, _shutdownCancellationToken.Token);
@@ -1694,11 +1738,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         lock (_disposeLock)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
 
             try
@@ -1707,7 +1758,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 foreach (KeyValuePair<string, CancellationTokenSource> kv in _pendingRequests.ToArray())
                 {
-                    if (!_pendingRequests.TryRemove(kv.Key, out CancellationTokenSource? cts)) continue;
+                    if (!_pendingRequests.TryRemove(kv.Key, out CancellationTokenSource? cts))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         cts.Cancel();
@@ -1720,7 +1775,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 foreach (KeyValuePair<uint, CancellationTokenSource> kv in _activeStreams.ToArray())
                 {
-                    if (!_activeStreams.TryRemove(kv.Key, out CancellationTokenSource? streamCts)) continue;
+                    if (!_activeStreams.TryRemove(kv.Key, out CancellationTokenSource? streamCts))
+                    {
+                        continue;
+                    }
+
                     try
                     {
                         streamCts.Cancel();
@@ -1914,7 +1973,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType exchangeType, int? maxRetries,
         bool saveState)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         BeginSecrecyChannelEstablishRecovery();
 
@@ -1945,7 +2007,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ApplicationInstanceSettings applicationInstanceSettings,
         RestoreRetryMode retryMode)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         BeginSecrecyChannelEstablishRecovery();
 
@@ -1972,9 +2037,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private byte[]? GetMembershipIdBytes()
     {
-        if (!_applicationInstanceSettings.HasValue) return null;
+        if (!_applicationInstanceSettings.HasValue)
+        {
+            return null;
+        }
+
         ApplicationInstanceSettings settings = _applicationInstanceSettings.Value!;
-        if (settings.Membership == null) return null;
+        if (settings.Membership == null)
+        {
+            return null;
+        }
+
         return settings.Membership.UniqueIdentifier.ToByteArray();
     }
 

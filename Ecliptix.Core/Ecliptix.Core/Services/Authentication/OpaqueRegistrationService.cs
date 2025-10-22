@@ -890,7 +890,11 @@ internal sealed class OpaqueRegistrationService(
             Result<Unit, NetworkFailure> cleanupResult =
                 await networkProvider.CleanupStreamProtocolAsync(streamConnectId).ConfigureAwait(false);
 
-            if (!cleanupResult.IsErr) return Result<Unit, string>.Ok(Unit.Value);
+            if (!cleanupResult.IsErr)
+            {
+                return Result<Unit, string>.Ok(Unit.Value);
+            }
+
             return Result<Unit, string>.Err(cleanupResult.UnwrapErr().Message);
         }
 

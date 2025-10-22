@@ -26,7 +26,9 @@ internal class ModuleScope : IModuleScope
     public void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 1)
+        {
             return;
+        }
 
         try
         {

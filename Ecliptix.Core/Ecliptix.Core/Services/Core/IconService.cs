@@ -42,11 +42,20 @@ internal static class IconService
     private static Option<Uri> GetPlatformIconUri()
     {
         if (OperatingSystem.IsWindows())
+        {
             return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico"));
+        }
+
         if (OperatingSystem.IsMacOS())
+        {
             return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns"));
+        }
+
         if (OperatingSystem.IsLinux())
+        {
             return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png"));
+        }
+
         return Option<Uri>.None;
     }
 }

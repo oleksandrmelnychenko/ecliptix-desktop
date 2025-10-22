@@ -32,9 +32,14 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         InternetConnectivityObserverOptions currentOptions)
     {
         if (currentOptions == null)
+        {
             throw new ArgumentNullException(nameof(currentOptions));
+        }
+
         if (currentOptions.ProbeUrls == null || !currentOptions.ProbeUrls.Any())
+        {
             throw new ArgumentException("ProbeUrls cannot be null or empty", nameof(currentOptions));
+        }
 
         _httpClientFactory = httpClientFactory;
         _options = currentOptions;
@@ -99,7 +104,9 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         foreach (string url in options.ProbeUrls)
         {
             if (ct.IsCancellationRequested)
+            {
                 return false;
+            }
 
             try
             {
@@ -110,7 +117,9 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                 if (response.IsSuccessStatusCode)
+                {
                     return true;
+                }
             }
             catch
             {

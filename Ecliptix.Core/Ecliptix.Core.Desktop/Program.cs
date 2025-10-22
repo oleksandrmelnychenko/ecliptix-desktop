@@ -115,7 +115,10 @@ public static class Program
             Log.Fatal(ex, ApplicationConstants.Logging.FatalErrorMessage);
             if (configuration[ApplicationConstants.ApplicationSettings.EnvironmentKey] !=
                 ApplicationConstants.ApplicationSettings.DevelopmentEnvironment)
+            {
                 Environment.Exit(ApplicationConstants.ExitCodes.FatalError);
+            }
+
             throw;
         }
         finally
@@ -430,7 +433,9 @@ public static class Program
                     : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))
+            {
                 throw new InvalidOperationException(ApplicationConstants.Logging.GrpcEndpointErrorMessage);
+            }
 
             options.Address = new Uri(endpoint);
         }
@@ -485,7 +490,11 @@ public static class Program
     private static void SetSecurePermissionsIfUnix(string directory)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) &&
-            !RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+            !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            return;
+        }
+
         try
         {
             File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
@@ -500,7 +509,9 @@ public static class Program
     private static string ResolvePath(string path)
     {
         if (string.IsNullOrEmpty(path))
+        {
             throw new ArgumentException(ApplicationConstants.Logging.PathEmptyErrorMessage, nameof(path));
+        }
 
         string appDataDir = GetPlatformAppDataDirectory();
 
@@ -510,7 +521,10 @@ public static class Program
         );
 
         string? directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directory)) return path;
+        if (string.IsNullOrEmpty(directory))
+        {
+            return path;
+        }
 
         Directory.CreateDirectory(directory);
         SetSecurePermissionsIfUnix(directory);

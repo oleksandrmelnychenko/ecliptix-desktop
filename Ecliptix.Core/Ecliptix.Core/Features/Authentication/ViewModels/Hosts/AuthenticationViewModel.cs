@@ -356,7 +356,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
         foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
         {
-            if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel)) continue;
+            if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel))
+            {
+                continue;
+            }
+
             if (viewModel is IResettable resettableViewModel)
             {
                 resettableViewModel.ResetState();

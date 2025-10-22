@@ -11,7 +11,10 @@ internal sealed class BottomSheetService(IMessageBus messageBus) : IBottomSheetS
 
     public async Task ShowAsync(BottomSheetComponentType componentType, UserControl? control = null, bool showScrim = true, bool isDismissable = true)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(componentType, showScrim, control, isDismissable);
         await messageBus.PublishAsync(evt);
@@ -19,7 +22,10 @@ internal sealed class BottomSheetService(IMessageBus messageBus) : IBottomSheetS
 
     public async Task HideAsync()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         BottomSheetChangedEvent evt = BottomSheetChangedEvent.New(BottomSheetComponentType.Hidden, false);
         await messageBus.PublishAsync(evt);

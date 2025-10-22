@@ -28,7 +28,11 @@ public sealed class UserRequestErrorViewModel : ReactiveObject, IDisposable, IAc
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
     }
 }

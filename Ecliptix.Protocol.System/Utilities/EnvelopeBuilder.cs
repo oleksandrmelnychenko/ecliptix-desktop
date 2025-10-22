@@ -170,9 +170,20 @@ internal static class EnvelopeBuilder
         }
         finally
         {
-            if (metadataBytes != null) Sodium.SodiumInterop.SecureWipe(metadataBytes);
-            if (ciphertext != null) Sodium.SodiumInterop.SecureWipe(ciphertext);
-            if (tag != null) Sodium.SodiumInterop.SecureWipe(tag);
+            if (metadataBytes != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(metadataBytes);
+            }
+
+            if (ciphertext != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(ciphertext);
+            }
+
+            if (tag != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(tag);
+            }
         }
     }
 
@@ -187,8 +198,10 @@ internal static class EnvelopeBuilder
         {
             int cipherLength = encryptedMetadata.Length - Constants.AesGcmTagSize;
             if (cipherLength < 0)
+            {
                 return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.BufferTooSmall("Encrypted metadata too small"));
+            }
 
             ReadOnlySpan<byte> ciphertextSpan = encryptedMetadata.AsSpan(0, cipherLength);
             ReadOnlySpan<byte> tagSpan = encryptedMetadata.AsSpan(cipherLength);
@@ -216,7 +229,10 @@ internal static class EnvelopeBuilder
         }
         finally
         {
-            if (plaintext != null) Sodium.SodiumInterop.SecureWipe(plaintext);
+            if (plaintext != null)
+            {
+                Sodium.SodiumInterop.SecureWipe(plaintext);
+            }
         }
     }
 }
