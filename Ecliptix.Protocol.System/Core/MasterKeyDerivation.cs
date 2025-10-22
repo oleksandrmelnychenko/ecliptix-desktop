@@ -81,7 +81,9 @@ internal static class MasterKeyDerivation
         finally
         {
             if (stretchedKey != null)
+            {
                 CryptographicOperations.ZeroMemory(stretchedKey);
+            }
 
             CryptographicOperations.ZeroMemory(argonSalt);
             CryptographicOperations.ZeroMemory(membershipArray);
@@ -187,7 +189,9 @@ internal static class MasterKeyDerivation
             finally
             {
                 if (stretchedKey != null)
+                {
                     CryptographicOperations.ZeroMemory(stretchedKey);
+                }
 
                 CryptographicOperations.ZeroMemory(argonSalt);
                 CryptographicOperations.ZeroMemory(membershipArray);

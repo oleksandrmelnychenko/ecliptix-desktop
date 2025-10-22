@@ -36,7 +36,11 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
 
     private void SetupEventHandlers()
     {
-        if (_handlersAttached) return;
+        if (_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<SegmentedTextBox>("SegmentedTextBox") is { } segmentedTextBox)
         {
             segmentedTextBox.KeyDown += OnSegmentedTextBoxKeyDown;
@@ -46,7 +50,11 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
 
     private void TeardownEventHandlers()
     {
-        if (!_handlersAttached) return;
+        if (!_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<SegmentedTextBox>("SegmentedTextBox") is { } segmentedTextBox)
         {
             segmentedTextBox.KeyDown -= OnSegmentedTextBoxKeyDown;
@@ -56,9 +64,15 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
 
     private void OnSegmentedTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        if (e.Key != Key.Enter && e.Key != Key.Return)
+        {
+            return;
+        }
 
-        if (DataContext is not VerifyOtpViewModel vm) return;
+        if (DataContext is not VerifyOtpViewModel vm)
+        {
+            return;
+        }
 
         _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;

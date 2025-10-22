@@ -116,9 +116,20 @@ public static partial class SecureKeyValidator
         };
 
         int variety = GetCharacterClassCount(secureKey);
-        if (variety >= 2) score += 2;
-        if (variety >= 3) score += 1;
-        if (variety == 4) score += 1;
+        if (variety >= 2)
+        {
+            score += 2;
+        }
+
+        if (variety >= 3)
+        {
+            score += 1;
+        }
+
+        if (variety == 4)
+        {
+            score += 1;
+        }
 
         score -= recommendations.Count;
 
@@ -137,13 +148,19 @@ public static partial class SecureKeyValidator
 
     private static bool IsSequentialOrKeyboardPattern(string s)
     {
-        if (s.Length < 4) return false;
+        if (s.Length < 4)
+        {
+            return false;
+        }
+
         string lower = s.ToLowerInvariant();
         for (int i = 0; i <= lower.Length - 4; i++)
         {
             string sub = lower.Substring(i, 4);
             if (SecureKeyValidatorConstants.KeyboardRows.Any(row => row.Contains(sub)) || IsCharSequence(sub))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -154,8 +171,15 @@ public static partial class SecureKeyValidator
         bool asc = true, desc = true;
         for (int j = 1; j < sub.Length; j++)
         {
-            if (sub[j] != sub[j - 1] + 1) asc = false;
-            if (sub[j] != sub[j - 1] - 1) desc = false;
+            if (sub[j] != sub[j - 1] + 1)
+            {
+                asc = false;
+            }
+
+            if (sub[j] != sub[j - 1] - 1)
+            {
+                desc = false;
+            }
         }
 
         return asc || desc;
@@ -163,10 +187,17 @@ public static partial class SecureKeyValidator
 
     private static bool HasExcessiveRepeats(string s)
     {
-        if (s.Length < 4) return false;
+        if (s.Length < 4)
+        {
+            return false;
+        }
+
         for (int i = 0; i <= s.Length - 4; i++)
         {
-            if (s[i] == s[i + 1] && s[i] == s[i + 2] && s[i] == s[i + 3]) return true;
+            if (s[i] == s[i + 1] && s[i] == s[i + 2] && s[i] == s[i + 3])
+            {
+                return true;
+            }
         }
 
         return false;
@@ -178,10 +209,26 @@ public static partial class SecureKeyValidator
     private static int GetCharacterClassCount(string s)
     {
         int classes = 0;
-        if (HasLowercaseRegex.IsMatch(s)) classes++;
-        if (HasUppercaseRegex.IsMatch(s)) classes++;
-        if (HasDigitRegex.IsMatch(s)) classes++;
-        if (HasSpecialCharRegex.IsMatch(s)) classes++;
+        if (HasLowercaseRegex.IsMatch(s))
+        {
+            classes++;
+        }
+
+        if (HasUppercaseRegex.IsMatch(s))
+        {
+            classes++;
+        }
+
+        if (HasDigitRegex.IsMatch(s))
+        {
+            classes++;
+        }
+
+        if (HasSpecialCharRegex.IsMatch(s))
+        {
+            classes++;
+        }
+
         return classes;
     }
 
@@ -191,7 +238,11 @@ public static partial class SecureKeyValidator
 
     private static double CalculateTotalShannonEntropy(string s)
     {
-        if (string.IsNullOrEmpty(s)) return 0;
+        if (string.IsNullOrEmpty(s))
+        {
+            return 0;
+        }
+
         Dictionary<char, int> freqMap = s.GroupBy(c => c).ToDictionary(g => g.Key, g => g.Count());
         double totalLength = s.Length;
         double perCharEntropy = freqMap.Values

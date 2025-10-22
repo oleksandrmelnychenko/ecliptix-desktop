@@ -18,7 +18,11 @@ public class ReactiveUiViewLocatorAdapter(Abstractions.IViewLocator moduleViewLo
 
         object? view = moduleViewLocator.ResolveView(viewModel);
 
-        if (view is not IViewFor viewForInstance) return null;
+        if (view is not IViewFor viewForInstance)
+        {
+            return null;
+        }
+
         viewForInstance.ViewModel ??= viewModel;
         return viewForInstance;
     }

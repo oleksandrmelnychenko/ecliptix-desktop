@@ -80,7 +80,11 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             Observable.FromAsync(LoadMembershipAsync)
                 .Subscribe(result =>
                 {
-                    if (!result.IsErr) return;
+                    if (!result.IsErr)
+                    {
+                        return;
+                    }
+
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                 })
@@ -93,7 +97,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 {
                     HasServerError = !string.IsNullOrEmpty(err);
                     if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
+                    {
                         ShowServerErrorNotification(hostWindow, err);
+                    }
                 })
                 .DisposeWith(disposables);
 
@@ -134,28 +140,44 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     public void InsertSecureKeyChars(int index, string chars)
     {
-        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        if (!_hasSecureKeyBeenTouched)
+        {
+            _hasSecureKeyBeenTouched = true;
+        }
+
         _secureKeyBuffer.Insert(index, chars);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
     public void RemoveSecureKeyChars(int index, int count)
     {
-        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        if (!_hasSecureKeyBeenTouched)
+        {
+            _hasSecureKeyBeenTouched = true;
+        }
+
         _secureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
     }
 
     public void InsertVerifySecureKeyChars(int index, string chars)
     {
-        if (!_hasVerifySecureKeyBeenTouched) _hasVerifySecureKeyBeenTouched = true;
+        if (!_hasVerifySecureKeyBeenTouched)
+        {
+            _hasVerifySecureKeyBeenTouched = true;
+        }
+
         _verifySecureKeyBuffer.Insert(index, chars);
         this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
     }
 
     public void RemoveVerifySecureKeyChars(int index, int count)
     {
-        if (!_hasVerifySecureKeyBeenTouched) _hasVerifySecureKeyBeenTouched = true;
+        if (!_hasVerifySecureKeyBeenTouched)
+        {
+            _hasVerifySecureKeyBeenTouched = true;
+        }
+
         _verifySecureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentVerifySecureKeyLength));
     }
@@ -354,7 +376,10 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     private async Task SubmitRegistrationSecureKeyAsync()
     {
-        if (IsBusy || !CanSubmit) return;
+        if (IsBusy || !CanSubmit)
+        {
+            return;
+        }
 
         if (VerificationSessionId == null)
         {

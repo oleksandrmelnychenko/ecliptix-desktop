@@ -62,7 +62,9 @@ public static class VersionHelper
         {
             string buildInfoPath = Path.Combine(AppContext.BaseDirectory, "build-info.json");
             if (!File.Exists(buildInfoPath))
+            {
                 return Option<BuildInfo>.None;
+            }
 
             string json = File.ReadAllText(buildInfoPath);
             return JsonSerializer.Deserialize(json, EcliptixJsonContext.Default.BuildInfo).ToOption();

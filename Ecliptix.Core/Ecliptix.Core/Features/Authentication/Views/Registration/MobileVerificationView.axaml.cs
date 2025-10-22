@@ -39,7 +39,11 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
     private void SetupEventHandlers()
     {
-        if (_handlersAttached) return;
+        if (_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<HintedTextBox>(MobileTextBoxControlName) is { } mobileTextBox)
         {
             mobileTextBox.KeyDown += OnMobileTextBoxKeyDown;
@@ -49,7 +53,11 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
     private void TeardownEventHandlers()
     {
-        if (!_handlersAttached) return;
+        if (!_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<HintedTextBox>(MobileTextBoxControlName) is { } mobileTextBox)
         {
             mobileTextBox.KeyDown -= OnMobileTextBoxKeyDown;
@@ -60,9 +68,15 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
 
     private void OnMobileTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        if (e.Key != Key.Enter && e.Key != Key.Return)
+        {
+            return;
+        }
 
-        if (DataContext is not MobileVerificationViewModel vm) return;
+        if (DataContext is not MobileVerificationViewModel vm)
+        {
+            return;
+        }
 
         _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;

@@ -57,7 +57,10 @@ public partial class SplashWindow : ReactiveWindow<SplashWindowViewModel>
 
     private void UpdateWindowClass(ConnectivityStatus status)
     {
-        if (_currentConnectivityStatus == status) return;
+        if (_currentConnectivityStatus == status)
+        {
+            return;
+        }
 
         if (_currentConnectivityStatus != ConnectivityStatus.Disconnected)
         {

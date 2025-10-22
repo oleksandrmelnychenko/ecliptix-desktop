@@ -171,17 +171,29 @@ public partial class SegmentedTextBox : UserControl
         {
             string newValue = change.NewValue as string ?? string.Empty;
 
-            if (string.IsNullOrEmpty(newValue)) ClearAllSegments();
-            else UpdateSegmentsFromValue(newValue);
+            if (string.IsNullOrEmpty(newValue))
+            {
+                ClearAllSegments();
+            }
+            else
+            {
+                UpdateSegmentsFromValue(newValue);
+            }
         }
     }
 
     private static string ValidateNumericInput(string input)
     {
-        if (string.IsNullOrEmpty(input)) return input;
+        if (string.IsNullOrEmpty(input))
+        {
+            return input;
+        }
 
         char firstDigit = input.FirstOrDefault(char.IsDigit);
-        if (firstDigit == 0) return "";
+        if (firstDigit == 0)
+        {
+            return "";
+        }
 
         int digitValue = firstDigit - '0';
         return digitValue is >= 0 and <= 9 ? DigitStrings[digitValue] : firstDigit.ToString();
@@ -200,7 +212,10 @@ public partial class SegmentedTextBox : UserControl
             for (int i = 0; i < _segments.Count; i++)
             {
                 if (i >= newValue.Length)
+                {
                     break;
+                }
+
                 _segments[i].Text = newValue[i].ToString();
             }
 
@@ -247,7 +262,11 @@ public partial class SegmentedTextBox : UserControl
     private void BuildSegments()
     {
         StackPanel? segmentsPanel = this.FindControl<StackPanel>("SegmentsPanel");
-        if (segmentsPanel == null) return;
+        if (segmentsPanel == null)
+        {
+            return;
+        }
+
         _segments.Clear();
         segmentsPanel.Children.Clear();
         segmentsPanel.Spacing = SegmentSpacing;
@@ -350,7 +369,10 @@ public partial class SegmentedTextBox : UserControl
 
     private void Segment_TextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (sender is not TextBox tb) return;
+        if (sender is not TextBox tb)
+        {
+            return;
+        }
 
         int index = _segments.IndexOf(tb);
 
@@ -360,7 +382,10 @@ public partial class SegmentedTextBox : UserControl
 
     private void Segment_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is not TextBox tb) return;
+        if (sender is not TextBox tb)
+        {
+            return;
+        }
 
         int index = _segments.IndexOf(tb);
 
@@ -404,10 +429,16 @@ public partial class SegmentedTextBox : UserControl
         try
         {
             IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-            if (clipboard == null) return;
+            if (clipboard == null)
+            {
+                return;
+            }
 
             string? clipboardText = await clipboard.TryGetTextAsync();
-            if (string.IsNullOrEmpty(clipboardText)) return;
+            if (string.IsNullOrEmpty(clipboardText))
+            {
+                return;
+            }
 
             ProcessPastedText(clipboardText);
         }
@@ -423,7 +454,10 @@ public partial class SegmentedTextBox : UserControl
             ? new string(pastedText.Where(char.IsDigit).ToArray())
             : pastedText;
 
-        if (string.IsNullOrEmpty(validText)) return;
+        if (string.IsNullOrEmpty(validText))
+        {
+            return;
+        }
 
         if (AllowOnlyNumbers && !validText.All(char.IsDigit))
         {
@@ -519,7 +553,9 @@ public partial class SegmentedTextBox : UserControl
         }
 
         if (IsComplete != newIsComplete)
+        {
             SetValue(IsCompleteProperty, newIsComplete);
+        }
 
         _lastIsComplete = newIsComplete;
     }

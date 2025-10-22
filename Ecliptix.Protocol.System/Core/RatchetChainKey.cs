@@ -23,7 +23,11 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 
     public bool Equals(RatchetChainKey? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return Index == other.Index && ReferenceEquals(_keyProvider, other._keyProvider);
     }
 
@@ -35,9 +39,11 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
     public Result<Unit, EcliptixProtocolFailure> ReadKeyMaterial(Span<byte> destination)
     {
         if (destination.Length < Constants.X25519KeySize)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.BufferTooSmall(
                     $"Destination buffer must be at least {Constants.X25519KeySize} bytes, but was {destination.Length}."));
+        }
 
         byte[] buffer = new byte[Constants.X25519KeySize];
         try
@@ -73,8 +79,16 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 
     public static bool operator ==(RatchetChainKey? left, RatchetChainKey? right)
     {
-        if (ReferenceEquals(left, right)) return true;
-        if (left is null || right is null) return false;
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
         return left.Equals(right);
     }
 

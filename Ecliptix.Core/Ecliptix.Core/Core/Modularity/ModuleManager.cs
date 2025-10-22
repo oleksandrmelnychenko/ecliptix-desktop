@@ -61,12 +61,16 @@ public class ModuleManager : IModuleManager
     {
         Option<IModule> moduleOption = _catalog.GetModule(moduleName);
         if (!moduleOption.HasValue)
+        {
             throw new InvalidOperationException($"Module '{moduleName}' not found in catalog");
+        }
 
         IModule module = moduleOption.Value!;
 
         if (IsModuleLoaded(moduleName))
+        {
             return module;
+        }
 
         _moduleStates[moduleName] = ModuleState.Loading;
         ModuleLoading?.Invoke(this, new ModuleLoadingEventArgs { ModuleName = moduleName });
@@ -237,7 +241,9 @@ public class ModuleManager : IModuleManager
     {
         Option<IModule> moduleOption = _catalog.GetModule(moduleName);
         if (!moduleOption.HasValue || !IsModuleLoaded(moduleName))
+        {
             return;
+        }
 
         IModule module = moduleOption.Value!;
 

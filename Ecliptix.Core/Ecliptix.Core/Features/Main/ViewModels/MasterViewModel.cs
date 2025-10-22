@@ -106,7 +106,11 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
 
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             try

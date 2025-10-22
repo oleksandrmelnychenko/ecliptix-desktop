@@ -80,7 +80,10 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected void ShowServerErrorNotification(AuthenticationViewModel hostWindow, string errorMessage)
     {
-        if (string.IsNullOrEmpty(errorMessage)) return;
+        if (string.IsNullOrEmpty(errorMessage))
+        {
+            return;
+        }
 
         UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
         UserRequestErrorView errorView = new() { DataContext = errorViewModel };
@@ -109,9 +112,13 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         _ = Task.Run(async () =>
         {
             if (!_disposedValue)
+            {
                 await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView, showScrim: true, isDismissable: false);
+            }
             else
+            {
                 onComplete();
+            }
         });
     }
 

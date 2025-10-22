@@ -35,7 +35,11 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void SetupEventHandlers()
     {
-        if (_handlersAttached) return;
+        if (_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
@@ -48,7 +52,11 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void TeardownEventHandlers()
     {
-        if (!_handlersAttached) return;
+        if (!_handlersAttached)
+        {
+            return;
+        }
+
         if (this.FindControl<HintedTextBox>(SecureKeyTextBoxControlName) is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded -= OnSecureKeyCharactersAdded;
@@ -62,7 +70,10 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
 
         string localizedMessage = vm.GetLocalizedWarningMessage(e.WarningType);
         tb.WarningText = localizedMessage;
@@ -72,23 +83,37 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
 
     private void OnSecureKeyCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.InsertSecureKeyChars(e.Index, e.Characters);
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 
     private void OnSecureKeyCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not SignInViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.RemoveSecureKeyChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentSecureKeyLength);
     }
 
     private void OnSecureKeyBoxKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        if (e.Key != Key.Enter && e.Key != Key.Return)
+        {
+            return;
+        }
 
-        if (DataContext is not SignInViewModel vm) return;
+        if (DataContext is not SignInViewModel vm)
+        {
+            return;
+        }
 
         _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;

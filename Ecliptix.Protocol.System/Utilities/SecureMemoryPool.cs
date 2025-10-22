@@ -13,9 +13,14 @@ internal sealed class SecureMemoryPool : IDisposable
     public SecureMemoryPool(int defaultBufferSize = ProtocolSystemConstants.MemoryPool.DefaultBufferSize, int maxPoolSize = ProtocolSystemConstants.MemoryPool.MaxPoolSize)
     {
         if (defaultBufferSize <= 0)
+        {
             throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.BufferSizePositive, nameof(defaultBufferSize));
+        }
+
         if (maxPoolSize <= 0)
+        {
             throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.MaxPoolSizePositive, nameof(maxPoolSize));
+        }
 
         _defaultBufferSize = defaultBufferSize;
         _maxPoolSize = maxPoolSize;
@@ -24,7 +29,9 @@ internal sealed class SecureMemoryPool : IDisposable
     public SecureMemoryBuffer Rent(int minimumSize = -1)
     {
         if (_disposed)
+        {
             throw new ObjectDisposedException(nameof(SecureMemoryPool));
+        }
 
         int requestedSize = minimumSize > 0 ? minimumSize : _defaultBufferSize;
         int allocatedSize = minimumSize > 0 ? Math.Max(minimumSize, _defaultBufferSize) : _defaultBufferSize;
@@ -68,7 +75,10 @@ internal sealed class SecureMemoryPool : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
         while (_pool.TryTake(out SecureMemoryBuffer? buffer))

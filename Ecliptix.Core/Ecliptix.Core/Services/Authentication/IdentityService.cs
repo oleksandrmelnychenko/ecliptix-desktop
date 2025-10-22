@@ -77,7 +77,9 @@ internal sealed class IdentityService : IIdentityService
         finally
         {
             if (wrappingKey != null)
+            {
                 CryptographicOperations.ZeroMemory(wrappingKey);
+            }
         }
     }
 
@@ -172,19 +174,26 @@ internal sealed class IdentityService : IIdentityService
             finally
             {
                 if (encryptedKey != null)
+                {
                     CryptographicOperations.ZeroMemory(encryptedKey);
+                }
             }
         }
         catch (Exception)
         {
             if (masterKeyBytes == null)
+            {
                 throw;
+            }
+
             return (masterKeyBytes.AsSpan().ToArray(), null);
         }
         finally
         {
             if (masterKeyBytes != null)
+            {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
         }
     }
 
@@ -262,13 +271,24 @@ internal sealed class IdentityService : IIdentityService
         finally
         {
             if (masterKeyBytes != null)
+            {
                 CryptographicOperations.ZeroMemory(masterKeyBytes);
+            }
+
             if (wrappingKey != null)
+            {
                 CryptographicOperations.ZeroMemory(wrappingKey);
+            }
+
             if (encryptedKey != null)
+            {
                 CryptographicOperations.ZeroMemory(encryptedKey);
+            }
+
             if (iv != null)
+            {
                 CryptographicOperations.ZeroMemory(iv);
+            }
         }
     }
 

@@ -91,7 +91,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public void InsertSecureKeyChars(int index, string chars)
     {
-        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        if (!_hasSecureKeyBeenTouched)
+        {
+            _hasSecureKeyBeenTouched = true;
+        }
 
         _secureKeyBuffer.Insert(index, chars);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
@@ -99,7 +102,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public void RemoveSecureKeyChars(int index, int count)
     {
-        if (!_hasSecureKeyBeenTouched) _hasSecureKeyBeenTouched = true;
+        if (!_hasSecureKeyBeenTouched)
+        {
+            _hasSecureKeyBeenTouched = true;
+        }
 
         _secureKeyBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentSecureKeyLength));
@@ -122,7 +128,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     public void ResetState()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         _hasMobileNumberBeenTouched = false;
         _hasSecureKeyBeenTouched = false;
@@ -175,7 +184,9 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
             .CombineLatest(mobileValidation, (mobile, error) =>
             {
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
+                {
                     _hasMobileNumberBeenTouched = true;
+                }
 
                 return !_hasMobileNumberBeenTouched ? string.Empty : error;
             })
@@ -295,7 +306,9 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
                 _hasSecureKeyBeenTouched = true;
                 _signInErrorSubject.OnNext(error.Message);
                 if (HostScreen is AuthenticationViewModel hostWindow)
+                {
                     ShowServerErrorNotification(hostWindow, error.Message);
+                }
             })
             .DisposeWith(_disposables);
 
@@ -321,7 +334,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             try

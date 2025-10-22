@@ -50,7 +50,9 @@ internal static partial class SodiumInterop
                 int result = sodium_init();
                 const int dllImportSuccess = ProtocolSystemConstants.Numeric.DllImportSuccess;
                 if (result < dllImportSuccess)
+                {
                     throw new InvalidOperationException(SodiumFailureMessages.SodiumInitFailed);
+                }
             },
             ex => ex switch
             {
@@ -67,8 +69,10 @@ internal static partial class SodiumInterop
     public static Result<Unit, SodiumFailure> SecureWipe(byte[]? buffer)
     {
         if (!IsInitialized)
+        {
             return Result<Unit, SodiumFailure>.Err(
                 SodiumFailure.InitializationFailed(SodiumFailureMessages.NotInitialized));
+        }
 
         return Result<byte[], SodiumFailure>
             .FromValue(buffer, SodiumFailure.BufferTooSmall(SodiumFailureMessages.BufferNull))
@@ -96,8 +100,11 @@ internal static partial class SodiumInterop
             Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
                 SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize);
             if (allocResult.IsErr)
+            {
                 return Result<(SodiumSecureMemoryHandle, byte[]), EcliptixProtocolFailure>.Err(allocResult.UnwrapErr()
                     .ToEcliptixProtocolFailure());
+            }
+
             skHandle = allocResult.Unwrap();
 
             byte[] skBytes = SodiumCore.GetRandomBytes(Constants.X25519PrivateKeySize);
@@ -205,7 +212,9 @@ internal static partial class SodiumInterop
                 handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
                 IntPtr ptr = handle.AddrOfPinnedObject();
                 if (ptr == IntPtr.Zero && buffer.Length > ProtocolSystemConstants.Numeric.ZeroValue)
+                {
                     throw new InvalidOperationException(SodiumFailureMessages.AddressOfPinnedObjectFailed);
+                }
 
                 sodium_memzero(ptr, (UIntPtr)buffer.Length);
             },
@@ -223,7 +232,10 @@ internal static partial class SodiumInterop
             },
             () =>
             {
-                if (handle.IsAllocated) handle.Free();
+                if (handle.IsAllocated)
+                {
+                    handle.Free();
+                }
             }
         );
     }

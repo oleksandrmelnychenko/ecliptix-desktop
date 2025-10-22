@@ -47,7 +47,9 @@ internal sealed class ConnectivityService(IMessageBus messageBus) : IConnectivit
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
         _connectivityPublisher.Dispose();

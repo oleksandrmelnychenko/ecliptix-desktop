@@ -76,7 +76,9 @@ internal sealed class ConnectivityPublisher : IDisposable
         public static ConnectivityReason FromNetworkFailure(NetworkFailure? failure)
         {
             if (failure is null)
+            {
                 return ConnectivityReason.Unknown;
+            }
 
             return failure.FailureType switch
             {

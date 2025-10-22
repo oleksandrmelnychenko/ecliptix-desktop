@@ -36,7 +36,11 @@ internal static class StaticViewMapper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Control? CreateView(Type viewModelType)
     {
-        if (!ViewFactories.TryGetValue(viewModelType, out Lazy<Func<Control>>? lazyFactory)) return null;
+        if (!ViewFactories.TryGetValue(viewModelType, out Lazy<Func<Control>>? lazyFactory))
+        {
+            return null;
+        }
+
         Func<Control> factory = lazyFactory.Value;
         Control result = factory();
         return result;

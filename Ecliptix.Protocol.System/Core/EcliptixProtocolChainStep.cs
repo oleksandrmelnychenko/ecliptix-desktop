@@ -52,12 +52,16 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     public Result<T, EcliptixProtocolFailure> ExecuteWithKey<T>(uint keyIndex, Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
     {
         if (_disposed)
+        {
             return Result<T, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         if (!_messageKeys.TryGetValue(keyIndex, out SodiumSecureMemoryHandle? keyHandle))
+        {
             return Result<T, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(string.Format(EcliptixProtocolFailureMessages.ChainStep.KeyWithIndexNotFound, keyIndex)));
+        }
 
         Result<T, SodiumFailure> sodiumResult = keyHandle.WithReadAccess(keyMaterial =>
         {
@@ -74,7 +78,11 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
 
         foreach (SodiumSecureMemoryHandle handle in _messageKeys.Values)
@@ -85,7 +93,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
         _chainKeyHandle.Dispose();
         _dhPrivateKeyHandle?.Dispose();
-        if (_dhPublicKey != null) SodiumInterop.SecureWipe(_dhPublicKey);
+        if (_dhPublicKey != null)
+        {
+            SodiumInterop.SecureWipe(_dhPublicKey);
+        }
 
         _chainKeyHandle = null!;
         _dhPrivateKeyHandle = null;
@@ -103,8 +114,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     internal Result<byte[], EcliptixProtocolFailure> GetCurrentChainKey()
     {
         if (_disposed)
+        {
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         return _chainKeyHandle.ReadBytes(Constants.X25519KeySize)
             .MapSodiumFailure();
@@ -113,8 +126,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     internal Result<Unit, EcliptixProtocolFailure> SetCurrentIndex(uint value)
     {
         if (_disposed)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         if (_currentIndex != value)
         {
@@ -133,12 +148,16 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     {
         Result<Unit, EcliptixProtocolFailure> keyValidation = ValidateInitialChainKey(initialChainKey);
         if (keyValidation.IsErr)
+        {
             return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(keyValidation.UnwrapErr());
+        }
 
         Result<(SodiumSecureMemoryHandle? dhPrivateKeyHandle, byte[]? dhPublicKeyCloned), EcliptixProtocolFailure> dhKeysResult =
             ValidateAndPrepareDhKeys(initialDhPrivateKey, initialDhPublicKey);
         if (dhKeysResult.IsErr)
+        {
             return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(dhKeysResult.UnwrapErr());
+        }
 
         (SodiumSecureMemoryHandle? dhPrivateKeyHandle, byte[]? dhPublicKeyCloned) dhInfo = dhKeysResult.Unwrap();
 
@@ -146,7 +165,11 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         if (chainKeyResult.IsErr)
         {
             dhInfo.dhPrivateKeyHandle?.Dispose();
-            if (dhInfo.dhPublicKeyCloned != null) SodiumInterop.SecureWipe(dhInfo.dhPublicKeyCloned);
+            if (dhInfo.dhPublicKeyCloned != null)
+            {
+                SodiumInterop.SecureWipe(dhInfo.dhPublicKeyCloned);
+            }
+
             return Result<EcliptixProtocolChainStep, EcliptixProtocolFailure>.Err(chainKeyResult.UnwrapErr());
         }
 
@@ -175,21 +198,29 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         ValidateAndPrepareDhKeys(byte[]? initialDhPrivateKey, byte[]? initialDhPublicKey)
     {
         if (initialDhPrivateKey == null && initialDhPublicKey == null)
+        {
             return Result<(SodiumSecureMemoryHandle?, byte[]?), EcliptixProtocolFailure>.Ok((null, null));
+        }
 
         if (initialDhPrivateKey == null || initialDhPublicKey == null)
+        {
             return Result<(SodiumSecureMemoryHandle?, byte[]?), EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ChainStep.DhKeysProvidedOrNeither));
+        }
 
         if (initialDhPrivateKey.Length != Constants.X25519PrivateKeySize)
+        {
             return Result<(SodiumSecureMemoryHandle?, byte[]?), EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     string.Format(EcliptixProtocolFailureMessages.ChainStep.InitialDhPrivateKeyInvalidSize, Constants.X25519PrivateKeySize)));
+        }
 
         if (initialDhPublicKey.Length != Constants.X25519KeySize)
+        {
             return Result<(SodiumSecureMemoryHandle?, byte[]?), EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     string.Format(EcliptixProtocolFailureMessages.ChainStep.InitialDhPublicKeyInvalidSize, Constants.X25519KeySize)));
+        }
 
         SodiumSecureMemoryHandle? dhPrivateKeyHandle = null;
         try
@@ -197,8 +228,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
             Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
                 SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize);
             if (allocResult.IsErr)
+            {
                 return Result<(SodiumSecureMemoryHandle?, byte[]?), EcliptixProtocolFailure>.Err(
                     allocResult.UnwrapErr().ToEcliptixProtocolFailure());
+            }
 
             dhPrivateKeyHandle = allocResult.Unwrap();
             Result<Unit, SodiumFailure> writeResult = dhPrivateKeyHandle.Write(initialDhPrivateKey);
@@ -227,12 +260,18 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
             SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
         if (allocResult.IsErr)
+        {
             return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
                 allocResult.UnwrapErr().ToEcliptixProtocolFailure());
+        }
 
         SodiumSecureMemoryHandle chainKeyHandle = allocResult.Unwrap();
         Result<Unit, SodiumFailure> writeResult = chainKeyHandle.Write(initialChainKey);
-        if (!writeResult.IsErr) return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(chainKeyHandle);
+        if (!writeResult.IsErr)
+        {
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(chainKeyHandle);
+        }
+
         chainKeyHandle.Dispose();
         return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(
             writeResult.UnwrapErr().ToEcliptixProtocolFailure());
@@ -241,8 +280,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     internal Result<RatchetChainKey, EcliptixProtocolFailure> GetOrDeriveKeyFor(uint targetIndex)
     {
         if (_disposed)
+        {
             return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         if (_messageKeys.ContainsKey(targetIndex))
         {
@@ -251,19 +292,25 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
         Result<uint, EcliptixProtocolFailure> currentIndexResult = GetCurrentIndex();
         if (currentIndexResult.IsErr)
+        {
             return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(currentIndexResult.UnwrapErr());
+        }
 
         uint currentIndex = currentIndexResult.Unwrap();
 
         if (targetIndex <= currentIndex)
+        {
             return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     string.Format(EcliptixProtocolFailureMessages.ChainStep.RequestedIndexNotFuture, _stepType, targetIndex, currentIndex)));
+        }
 
         Result<byte[], EcliptixProtocolFailure> chainKeyResult = _chainKeyHandle.ReadBytes(Constants.X25519KeySize)
             .MapSodiumFailure();
         if (chainKeyResult.IsErr)
+        {
             return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(chainKeyResult.UnwrapErr());
+        }
 
         byte[] chainKey = chainKeyResult.Unwrap();
 
@@ -305,8 +352,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                     SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
 
                 if (secureHandleResult.IsErr)
+                {
                     return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ChainStep.FailedToAllocateSecureMemory, idx)));
+                }
 
                 SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
                 Result<Unit, SodiumFailure> writeResult = secureHandle.Write(msgKey);
@@ -339,7 +388,9 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
             Result<Unit, EcliptixProtocolFailure> setIndexResult = SetCurrentIndex(targetIndex);
             if (setIndexResult.IsErr)
+            {
                 return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(setIndexResult.UnwrapErr());
+            }
 
             PruneOldKeys();
 
@@ -387,8 +438,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     public Result<ChainStepState, EcliptixProtocolFailure> ToProtoState()
     {
         if (_disposed)
+        {
             return Result<ChainStepState, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         try
         {
@@ -401,8 +454,15 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                 ChainKey = ByteString.CopyFrom(chainKey),
             };
 
-            if (dhPrivKey != null) proto.DhPrivateKey = ByteString.CopyFrom(dhPrivKey);
-            if (_dhPublicKey != null) proto.DhPublicKey = ByteString.CopyFrom(_dhPublicKey);
+            if (dhPrivKey != null)
+            {
+                proto.DhPrivateKey = ByteString.CopyFrom(dhPrivKey);
+            }
+
+            if (_dhPublicKey != null)
+            {
+                proto.DhPublicKey = ByteString.CopyFrom(_dhPublicKey);
+            }
 
             return Result<ChainStepState, EcliptixProtocolFailure>.Ok(proto);
         }
@@ -425,10 +485,14 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
             SecureByteStringInterop.SecureCopyWithCleanup(proto.ChainKey, out chainKeyBytes);
 
             if (!proto.DhPrivateKey.IsEmpty)
+            {
                 SecureByteStringInterop.SecureCopyWithCleanup(proto.DhPrivateKey, out dhPrivKeyBytes);
+            }
 
             if (!proto.DhPublicKey.IsEmpty)
+            {
                 SecureByteStringInterop.SecureCopyWithCleanup(proto.DhPublicKey, out dhPubKeyBytes);
+            }
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> createResult =
                 Create(stepType, chainKeyBytes!, dhPrivKeyBytes, dhPubKeyBytes);
@@ -445,9 +509,20 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         }
         finally
         {
-            if (chainKeyBytes != null) SodiumInterop.SecureWipe(chainKeyBytes);
-            if (dhPrivKeyBytes != null) SodiumInterop.SecureWipe(dhPrivKeyBytes);
-            if (dhPubKeyBytes != null) SodiumInterop.SecureWipe(dhPubKeyBytes);
+            if (chainKeyBytes != null)
+            {
+                SodiumInterop.SecureWipe(chainKeyBytes);
+            }
+
+            if (dhPrivKeyBytes != null)
+            {
+                SodiumInterop.SecureWipe(dhPrivKeyBytes);
+            }
+
+            if (dhPubKeyBytes != null)
+            {
+                SodiumInterop.SecureWipe(dhPubKeyBytes);
+            }
         }
     }
 
@@ -458,23 +533,33 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
         if (disposedCheck.IsErr)
+        {
             return disposedCheck;
+        }
 
         Result<Unit, EcliptixProtocolFailure> keyValidation = ValidateNewChainKey(newChainKey);
         if (keyValidation.IsErr)
+        {
             return keyValidation;
+        }
 
         Result<Unit, EcliptixProtocolFailure> writeResult = _chainKeyHandle.Write(newChainKey).MapSodiumFailure();
         if (writeResult.IsErr)
+        {
             return writeResult;
+        }
 
         Result<Unit, EcliptixProtocolFailure> indexResult = SetCurrentIndex(ProtocolSystemConstants.ChainStep.ResetIndex);
         if (indexResult.IsErr)
+        {
             return indexResult;
+        }
 
         Result<Unit, EcliptixProtocolFailure> dhUpdateResult = HandleDhKeyUpdate(newDhPrivateKey, newDhPublicKey);
         if (dhUpdateResult.IsErr)
+        {
             return dhUpdateResult;
+        }
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
@@ -482,8 +567,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     private Result<Unit, EcliptixProtocolFailure> CheckDisposed()
     {
         if (_disposed)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(EcliptixProtocolChainStep)));
+        }
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
     }
@@ -491,7 +578,9 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     private static Result<Unit, EcliptixProtocolFailure> ValidateNewChainKey(byte[] newChainKey)
     {
         if (newChainKey.Length == Constants.X25519KeySize)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
 
         return Result<Unit, EcliptixProtocolFailure>.Err(
             EcliptixProtocolFailure.InvalidInput(string.Format(EcliptixProtocolFailureMessages.ChainStep.NewChainKeyInvalidSize, Constants.X25519KeySize)));
@@ -501,7 +590,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     {
         _messageKeys.Clear();
 
-        if (newDhPrivateKey == null && newDhPublicKey == null) return OkResult;
+        if (newDhPrivateKey == null && newDhPublicKey == null)
+        {
+            return OkResult;
+        }
 
         Result<Unit, EcliptixProtocolFailure> validationResult = ValidateAll(
             () => ValidateDhKeysNotNull(newDhPrivateKey, newDhPublicKey),
@@ -509,12 +601,16 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
             () => ValidateDhPublicKeySize(newDhPublicKey)
         );
         if (validationResult.IsErr)
+        {
             return validationResult;
+        }
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
             SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize);
         if (allocResult.IsErr)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(allocResult.UnwrapErr().ToEcliptixProtocolFailure());
+        }
 
         SodiumSecureMemoryHandle handle = allocResult.Unwrap();
         Result<Unit, SodiumFailure> writeResult = handle.Write(newDhPrivateKey!.AsSpan());
@@ -527,7 +623,11 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         _dhPrivateKeyHandle?.Dispose();
         _dhPrivateKeyHandle = handle;
 
-        if (_dhPublicKey != null) SodiumInterop.SecureWipe(_dhPublicKey);
+        if (_dhPublicKey != null)
+        {
+            SodiumInterop.SecureWipe(_dhPublicKey);
+        }
+
         _dhPublicKey = (byte[])newDhPublicKey!.Clone();
 
         return OkResult;
@@ -536,12 +636,18 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     private static Result<Unit, EcliptixProtocolFailure> ValidateAll(
         params Func<Result<Unit, EcliptixProtocolFailure>>[]? validators)
     {
-        if (validators is null || validators.Length == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold) return OkResult;
+        if (validators is null || validators.Length == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold)
+        {
+            return OkResult;
+        }
 
         foreach (Func<Result<Unit, EcliptixProtocolFailure>> validate in validators)
         {
             Result<Unit, EcliptixProtocolFailure> result = validate();
-            if (result.IsErr) return result;
+            if (result.IsErr)
+            {
+                return result;
+            }
         }
 
         return OkResult;
@@ -549,18 +655,26 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
     private static Result<Unit, EcliptixProtocolFailure> ValidateDhKeysNotNull(byte[]? privateKey, byte[]? publicKey)
     {
-        if (privateKey == null && publicKey == null) return OkResult;
+        if (privateKey == null && publicKey == null)
+        {
+            return OkResult;
+        }
 
         if (privateKey == null || publicKey == null)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ChainStep.DhKeysProvidedTogether));
+        }
 
         return OkResult;
     }
 
     private static Result<Unit, EcliptixProtocolFailure> ValidateDhPrivateKeySize(byte[]? privateKey)
     {
-        if (privateKey == null) return OkResult;
+        if (privateKey == null)
+        {
+            return OkResult;
+        }
 
         return privateKey.Length == Constants.X25519PrivateKeySize
             ? OkResult
@@ -571,7 +685,10 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
     private static Result<Unit, EcliptixProtocolFailure> ValidateDhPublicKeySize(byte[]? publicKey)
     {
-        if (publicKey == null) return OkResult;
+        if (publicKey == null)
+        {
+            return OkResult;
+        }
 
         return publicKey.Length == Constants.X25519KeySize
             ? OkResult
@@ -583,7 +700,9 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
     {
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
         if (disposedCheck.IsErr)
+        {
             return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+        }
 
         byte[] result = (byte[])_dhPublicKey?.Clone()!;
         return Result<byte[]?, EcliptixProtocolFailure>.Ok(result);
@@ -591,17 +710,28 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
 
     internal void PruneOldKeys()
     {
-        if (_disposed || _cacheWindow == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold || _messageKeys.Count == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold) return;
+        if (_disposed || _cacheWindow == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold || _messageKeys.Count == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold)
+        {
+            return;
+        }
 
         Result<uint, EcliptixProtocolFailure> currentIndexResult = GetCurrentIndex();
-        if (currentIndexResult.IsErr) return;
+        if (currentIndexResult.IsErr)
+        {
+            return;
+        }
+
         uint indexToPruneAgainst = currentIndexResult.Unwrap();
 
         uint minIndexToKeep = indexToPruneAgainst >= _cacheWindow ? indexToPruneAgainst - _cacheWindow + ProtocolSystemConstants.ChainStep.MinIndexToKeepOffset : ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold;
 
         List<uint> keysToRemove = [];
         keysToRemove.AddRange(_messageKeys.Keys.Where(key => key < minIndexToKeep));
-        if (keysToRemove.Count == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold) return;
+        if (keysToRemove.Count == ProtocolSystemConstants.ChainStep.ValidatorArrayEmptyThreshold)
+        {
+            return;
+        }
+
         foreach (uint keyIndex in keysToRemove)
         {
             if (_messageKeys.Remove(keyIndex, out SodiumSecureMemoryHandle? removedHandle))

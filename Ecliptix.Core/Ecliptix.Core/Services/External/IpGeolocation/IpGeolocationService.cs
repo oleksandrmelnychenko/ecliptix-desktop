@@ -78,7 +78,9 @@ internal sealed class IpGeolocationService(HttpClient http) : IIpGeolocationServ
         foreach (string n in names)
         {
             if (root.TryGetProperty(n, out JsonElement el) && el.ValueKind == JsonValueKind.String)
+            {
                 return el.GetString();
+            }
         }
 
         return (from p in root.EnumerateObject()

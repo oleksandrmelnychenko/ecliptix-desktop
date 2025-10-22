@@ -32,7 +32,10 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
             rpcMetaDataProvider.LocalIpAddress,
             rpcMetaDataProvider.PublicIpAddress,
             rpcMetaDataProvider.Platform);
-        foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
+        foreach (Metadata.Entry entry in newMetadata)
+        {
+            headers.Add(entry);
+        }
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
         ClientInterceptorContext<TRequest, TResponse> newContext = new(
@@ -67,7 +70,10 @@ public sealed class RequestMetaDataInterceptor(IRpcMetaDataProvider rpcMetaDataP
             rpcMetaDataProvider.LocalIpAddress,
             rpcMetaDataProvider.PublicIpAddress,
             rpcMetaDataProvider.Platform);
-        foreach (Metadata.Entry entry in newMetadata) headers.Add(entry);
+        foreach (Metadata.Entry entry in newMetadata)
+        {
+            headers.Add(entry);
+        }
 
         CallOptions newOptions = context.Options.WithHeaders(headers);
         ClientInterceptorContext<TRequest, TResponse> newContext = new(

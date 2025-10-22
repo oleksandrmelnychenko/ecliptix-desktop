@@ -70,14 +70,18 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
         Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult = ecliptixSystemIdentityKeys.CreatePublicBundle();
         if (bundleResult.IsErr)
+        {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
+        }
 
         LocalPublicKeyBundle bundle = bundleResult.Unwrap();
 
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> sessionResult =
             EcliptixProtocolConnection.Create(connectId, true, RatchetConfig.Default, exchangeType);
         if (sessionResult.IsErr)
+        {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(sessionResult.UnwrapErr());
+        }
 
         EcliptixProtocolConnection session = sessionResult.Unwrap();
 
@@ -92,12 +96,16 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
         Result<byte[]?, EcliptixProtocolFailure> dhKeyResult = session.GetCurrentSenderDhPublicKey();
         if (dhKeyResult.IsErr)
+        {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
+        }
 
         byte[]? dhPublicKey = dhKeyResult.Unwrap();
         if (dhPublicKey == null)
+        {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.PrepareLocal(ProtocolSystemConstants.ProtocolSystem.DhPublicKeyNullMessage));
+        }
 
         PubKeyExchange pubKeyExchange = new()
         {
@@ -149,26 +157,34 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                     ex => EcliptixProtocolFailure.Decode(ProtocolSystemConstants.ProtocolSystem.ParseProtobufFailedMessage, ex));
 
             if (parseResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(parseResult.UnwrapErr());
+            }
 
             PublicKeyBundle protobufBundle = parseResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult =
                 LocalPublicKeyBundle.FromProtobufExchange(protobufBundle);
             if (bundleResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
+            }
 
             LocalPublicKeyBundle peerBundle = bundleResult.Unwrap();
 
             Result<bool, EcliptixProtocolFailure> signatureResult = EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(
                 peerBundle.IdentityEd25519, peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature);
             if (signatureResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(signatureResult.UnwrapErr());
+            }
 
             bool spkValid = signatureResult.Unwrap();
             if (!spkValid)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.SignedPreKeyFailedMessage));
+            }
 
             byte[]? dhKeyBytes = null;
             try
@@ -178,27 +194,36 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 Result<Unit, EcliptixProtocolFailure> dhValidationResult =
                     DhValidator.ValidateX25519PublicKey(dhKeyBytes);
                 if (dhValidationResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(dhValidationResult.UnwrapErr());
+                }
 
                 Result<Unit, EcliptixProtocolFailure> finalizeResult =
                     _protocolConnection?.FinalizeChainAndDhKeys(rootKey, dhKeyBytes)
                     ?? Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
                 if (finalizeResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(finalizeResult.UnwrapErr());
+                }
 
                 Result<Unit, EcliptixProtocolFailure> setPeerResult = _protocolConnection?.SetPeerBundle(peerBundle)
                                                                       ?? Result<Unit, EcliptixProtocolFailure>.Err(
                                                                           EcliptixProtocolFailure.Generic(
                                                                               ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
                 if (setPeerResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(setPeerResult.UnwrapErr());
+                }
 
                 return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
             }
             finally
             {
-                if (dhKeyBytes != null) SodiumInterop.SecureWipe(dhKeyBytes);
+                if (dhKeyBytes != null)
+                {
+                    SodiumInterop.SecureWipe(dhKeyBytes);
+                }
             }
         }
         finally
@@ -246,31 +271,41 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                     ex => EcliptixProtocolFailure.Decode(ProtocolSystemConstants.ProtocolSystem.ParseProtobufFailedMessage, ex));
 
             if (parseResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(parseResult.UnwrapErr());
+            }
 
             PublicKeyBundle protobufBundle = parseResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> bundleResult =
                 LocalPublicKeyBundle.FromProtobufExchange(protobufBundle);
             if (bundleResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(bundleResult.UnwrapErr());
+            }
 
             LocalPublicKeyBundle peerBundle = bundleResult.Unwrap();
 
             Result<bool, EcliptixProtocolFailure> signatureResult = EcliptixSystemIdentityKeys.VerifyRemoteSpkSignature(
                 peerBundle.IdentityEd25519, peerBundle.SignedPreKeyPublic, peerBundle.SignedPreKeySignature);
             if (signatureResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(signatureResult.UnwrapErr());
+            }
 
             bool spkValid = signatureResult.Unwrap();
             if (!spkValid)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.SignedPreKeyFailedMessage));
+            }
 
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult =
                 ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3dhInfo);
             if (secretResult.IsErr)
+            {
                 return Result<Unit, EcliptixProtocolFailure>.Err(secretResult.UnwrapErr());
+            }
 
             SodiumSecureMemoryHandle derivedKeyHandle = secretResult.Unwrap();
             rootKeyHandle = derivedKeyHandle;
@@ -282,35 +317,46 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 Result<Unit, EcliptixProtocolFailure> readResult =
                     derivedKeyHandle.Read(rootKeyBytes).MapSodiumFailure();
                 if (readResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+                }
 
                 SecureByteStringInterop.SecureCopyWithCleanup(peerMessage.InitialDhPublicKey, out dhKeyBytes);
 
                 Result<Unit, EcliptixProtocolFailure> dhValidationResult =
                     DhValidator.ValidateX25519PublicKey(dhKeyBytes);
                 if (dhValidationResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(dhValidationResult.UnwrapErr());
+                }
 
                 Result<Unit, EcliptixProtocolFailure> finalizeResult =
                     _protocolConnection?.FinalizeChainAndDhKeys(rootKeyBytes, dhKeyBytes)
                     ?? Result<Unit, EcliptixProtocolFailure>.Err(
                         EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
                 if (finalizeResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(finalizeResult.UnwrapErr());
+                }
 
                 Result<Unit, EcliptixProtocolFailure> setPeerResult = _protocolConnection?.SetPeerBundle(peerBundle)
                                                                       ?? Result<Unit, EcliptixProtocolFailure>.Err(
                                                                           EcliptixProtocolFailure.Generic(
                                                                               ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
                 if (setPeerResult.IsErr)
+                {
                     return Result<Unit, EcliptixProtocolFailure>.Err(setPeerResult.UnwrapErr());
+                }
 
                 return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
             }
             finally
             {
                 SodiumInterop.SecureWipe(rootKeyBytes);
-                if (dhKeyBytes != null) SodiumInterop.SecureWipe(dhKeyBytes);
+                if (dhKeyBytes != null)
+                {
+                    SodiumInterop.SecureWipe(dhKeyBytes);
+                }
             }
         }
         finally
@@ -322,14 +368,18 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     public Result<SecureEnvelope, EcliptixProtocolFailure> ProduceOutboundEnvelope(byte[] plainPayload)
     {
         if (plainPayload.Length > ProtocolSystemConstants.ProtocolSystem.MaxPayloadSize)
+        {
             return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
                     $"Payload size ({plainPayload.Length} bytes) exceeds maximum allowed ({ProtocolSystemConstants.ProtocolSystem.MaxPayloadSize} bytes)"));
+        }
 
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
+        {
             return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
+        }
 
         return ProduceSingleEnvelope(plainPayload, connection);
     }
@@ -348,19 +398,25 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             Result<(RatchetChainKey RatchetKey, bool IncludeDhKey), EcliptixProtocolFailure> prepResult =
                 connection.PrepareNextSendMessage();
             if (prepResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(prepResult.UnwrapErr());
+            }
 
             (RatchetChainKey RatchetKey, bool IncludeDhKey) prep = prepResult.Unwrap();
 
             Result<byte[], EcliptixProtocolFailure> nonceResult = connection.GenerateNextNonce();
             if (nonceResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(nonceResult.UnwrapErr());
+            }
 
             nonce = nonceResult.Unwrap();
 
             Result<byte[], EcliptixProtocolFailure> dhKeyResult = GetOptionalSenderDhKey(prep.IncludeDhKey);
             if (dhKeyResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
+            }
 
             newSenderDhPublicKey = dhKeyResult.Unwrap();
 
@@ -368,7 +424,9 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+            }
 
             LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
@@ -380,7 +438,9 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             Result<byte[], EcliptixProtocolFailure> encryptResult =
                 Encrypt(messageKey!, nonce, plainPayload, ad);
             if (encryptResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(encryptResult.UnwrapErr());
+            }
 
             encrypted = encryptResult.Unwrap();
 
@@ -393,7 +453,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
             Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
             if (metadataKeyResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
+            }
+
             metadataKey = metadataKeyResult.Unwrap();
 
             byte[] metadataNonce = new byte[Constants.AesGcmNonceSize];
@@ -402,7 +465,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             Result<byte[], EcliptixProtocolFailure> encryptMetadataResult =
                 EnvelopeBuilder.EncryptMetadata(metadata, metadataKey, metadataNonce, ad);
             if (encryptMetadataResult.IsErr)
+            {
                 return Result<SecureEnvelope, EcliptixProtocolFailure>.Err(encryptMetadataResult.UnwrapErr());
+            }
+
             encryptedMetadata = encryptMetadataResult.Unwrap();
 
             SecureEnvelope envelope = new()
@@ -421,12 +487,35 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (nonce != null) SodiumInterop.SecureWipe(nonce);
-            if (ad != null) SodiumInterop.SecureWipe(ad);
-            if (encrypted != null) SodiumInterop.SecureWipe(encrypted);
-            if (newSenderDhPublicKey != null) SodiumInterop.SecureWipe(newSenderDhPublicKey);
-            if (metadataKey != null) SodiumInterop.SecureWipe(metadataKey);
-            if (encryptedMetadata != null) Array.Clear(encryptedMetadata);
+            if (nonce != null)
+            {
+                SodiumInterop.SecureWipe(nonce);
+            }
+
+            if (ad != null)
+            {
+                SodiumInterop.SecureWipe(ad);
+            }
+
+            if (encrypted != null)
+            {
+                SodiumInterop.SecureWipe(encrypted);
+            }
+
+            if (newSenderDhPublicKey != null)
+            {
+                SodiumInterop.SecureWipe(newSenderDhPublicKey);
+            }
+
+            if (metadataKey != null)
+            {
+                SodiumInterop.SecureWipe(metadataKey);
+            }
+
+            if (encryptedMetadata != null)
+            {
+                Array.Clear(encryptedMetadata);
+            }
         }
     }
 
@@ -434,8 +523,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
+        {
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
+        }
 
         return ProcessInboundEnvelopeInternal(secureEnvelope, connection);
     }
@@ -459,24 +550,34 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             {
                 Result<Unit, EcliptixProtocolFailure> ratchetResult = PerformRatchetIfNeeded(dhPublicKey);
                 if (ratchetResult.IsErr)
+                {
                     return Result<byte[], EcliptixProtocolFailure>.Err(ratchetResult.UnwrapErr());
+                }
             }
 
             if (secureEnvelope.HeaderNonce == null || secureEnvelope.HeaderNonce.IsEmpty ||
                 secureEnvelope.HeaderNonce.Length != Constants.AesGcmNonceSize)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(
                     EcliptixProtocolFailure.Decode("Invalid or missing header nonce for metadata decryption"));
+            }
 
             headerNonce = secureEnvelope.HeaderNonce.ToByteArray();
 
             Result<byte[], EcliptixProtocolFailure> metadataKeyResult = connection.GetMetadataEncryptionKey();
             if (metadataKeyResult.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(metadataKeyResult.UnwrapErr());
+            }
+
             metadataKey = metadataKeyResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+            }
+
             LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
             bool connectionIsInitiator = connection.IsInitiator();
@@ -488,7 +589,9 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
                 EnvelopeBuilder.DecryptMetadata(encryptedMetadata, metadataKey, headerNonce, ad);
             if (metadataResult.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(metadataResult.UnwrapErr());
+            }
 
             EnvelopeMetadata metadata = metadataResult.Unwrap();
             byte[] encryptedPayload = secureEnvelope.EncryptedPayload.ToByteArray();
@@ -497,11 +600,30 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (dhPublicKey != null) SodiumInterop.SecureWipe(dhPublicKey);
-            if (headerNonce != null) SodiumInterop.SecureWipe(headerNonce);
-            if (metadataKey != null) SodiumInterop.SecureWipe(metadataKey);
-            if (ad != null) SodiumInterop.SecureWipe(ad);
-            if (encryptedMetadata != null) Array.Clear(encryptedMetadata);
+            if (dhPublicKey != null)
+            {
+                SodiumInterop.SecureWipe(dhPublicKey);
+            }
+
+            if (headerNonce != null)
+            {
+                SodiumInterop.SecureWipe(headerNonce);
+            }
+
+            if (metadataKey != null)
+            {
+                SodiumInterop.SecureWipe(metadataKey);
+            }
+
+            if (ad != null)
+            {
+                SodiumInterop.SecureWipe(ad);
+            }
+
+            if (encryptedMetadata != null)
+            {
+                Array.Clear(encryptedMetadata);
+            }
         }
     }
 
@@ -509,11 +631,15 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (receivedDhKey == null || connection == null)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
 
         Result<byte[]?, EcliptixProtocolFailure> currentKeyResult = connection.GetCurrentPeerDhPublicKey();
         if (currentKeyResult.IsErr)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(currentKeyResult.UnwrapErr());
+        }
 
         byte[]? currentPeerDhKey = currentKeyResult.Unwrap();
 
@@ -534,14 +660,18 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     {
         EcliptixProtocolConnection? connection = GetConnectionSafe();
         if (connection == null)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.ProtocolConnectionNotInitializedMessage));
+        }
 
         connection.NotifyRatchetRotation();
 
         Result<Unit, EcliptixProtocolFailure> ratchetResult = connection.PerformReceivingRatchet(receivedDhKey);
         if (ratchetResult.IsErr)
+        {
             return ratchetResult;
+        }
 
         connection.NotifyRatchetRotation();
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
@@ -552,11 +682,15 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         EcliptixProtocolConnection? connection = GetConnectionSafe();
 
         if (!include || connection == null)
+        {
             return Result<byte[], EcliptixProtocolFailure>.Ok([]);
+        }
 
         Result<byte[]?, EcliptixProtocolFailure> keyResult = connection.GetCurrentSenderDhPublicKey();
         if (keyResult.IsErr)
+        {
             return Result<byte[], EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
+        }
 
         byte[]? key = keyResult.Unwrap();
 
@@ -567,10 +701,14 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     {
         int maxIdLength = ProtocolSystemConstants.ProtocolSystem.MaxIdentityKeyLength;
         if (id1.Length > maxIdLength || id2.Length > maxIdLength)
+        {
             throw new ArgumentException(string.Format(ProtocolSystemConstants.ProtocolSystem.IdentityKeysTooLargeMessage, maxIdLength));
+        }
 
         if (id1.Length + id2.Length > int.MaxValue / ProtocolSystemConstants.ProtocolSystem.IntegerOverflowDivisor)
+        {
             throw new ArgumentException(ProtocolSystemConstants.ProtocolSystem.IntegerOverflowMessage);
+        }
 
         byte[] ad = new byte[id1.Length + id2.Length];
         Buffer.BlockCopy(id1, ProtocolSystemConstants.ProtocolSystem.BufferCopyStartOffset, ad, ProtocolSystemConstants.ProtocolSystem.BufferCopyStartOffset, id1.Length);
@@ -587,7 +725,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
             Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
-            if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+            if (readResult.IsErr)
+            {
+                return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+            }
 
             ciphertext = new byte[plaintext.Length];
             Span<byte> tag = stackalloc byte[Constants.AesGcmTagSize];
@@ -605,7 +746,11 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         catch (Exception ex)
         {
-            if (ciphertext != null) SodiumInterop.SecureWipe(ciphertext);
+            if (ciphertext != null)
+            {
+                SodiumInterop.SecureWipe(ciphertext);
+            }
+
             return Result<byte[], EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(ProtocolSystemConstants.ProtocolSystem.AesGcmEncryptionFailedMessage, ex));
         }
@@ -630,18 +775,24 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 [.. metadata.Nonce],
                 metadata.RatchetIndex);
             if (replayCheck.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(replayCheck.UnwrapErr());
+            }
 
             Result<RatchetChainKey, EcliptixProtocolFailure> messageResult =
                 connection.ProcessReceivedMessage(metadata.RatchetIndex);
             if (messageResult.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(messageResult.UnwrapErr());
+            }
 
             RatchetChainKey messageKey = messageResult.Unwrap();
 
             Result<LocalPublicKeyBundle, EcliptixProtocolFailure> peerBundleResult = connection.GetPeerBundle();
             if (peerBundleResult.IsErr)
+            {
                 return Result<byte[], EcliptixProtocolFailure>.Err(peerBundleResult.UnwrapErr());
+            }
 
             LocalPublicKeyBundle peerBundle = peerBundleResult.Unwrap();
 
@@ -656,7 +807,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (ad != null) SodiumInterop.SecureWipe(ad);
+            if (ad != null)
+            {
+                SodiumInterop.SecureWipe(ad);
+            }
         }
     }
 
@@ -668,8 +822,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         int cipherLength = fullCipherSpan.Length - tagSize;
 
         if (cipherLength < ProtocolSystemConstants.ProtocolSystem.CipherLengthMinimumThreshold)
+        {
             return Result<byte[], EcliptixProtocolFailure>.Err(EcliptixProtocolFailure.BufferTooSmall(
                 string.Format(ProtocolSystemConstants.ProtocolSystem.CiphertextTooSmallMessage, fullCipherSpan.Length, tagSize)));
+        }
 
         using SecurePooledArray<byte> keyMaterial = SecureArrayPool.Rent<byte>(Constants.AesKeySize);
         byte[]? ciphertext = null;
@@ -681,7 +837,10 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
             Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
-            if (readResult.IsErr) return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+            if (readResult.IsErr)
+            {
+                return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
+            }
 
             ciphertext = fullCipherSpan[..cipherLength].ToArray();
             tag = fullCipherSpan[cipherLength..].ToArray();
@@ -707,10 +866,25 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (ciphertext != null) SodiumInterop.SecureWipe(ciphertext);
-            if (tag != null) SodiumInterop.SecureWipe(tag);
-            if (plaintext != null) SodiumInterop.SecureWipe(plaintext);
-            if (nonce != null) SodiumInterop.SecureWipe(nonce);
+            if (ciphertext != null)
+            {
+                SodiumInterop.SecureWipe(ciphertext);
+            }
+
+            if (tag != null)
+            {
+                SodiumInterop.SecureWipe(tag);
+            }
+
+            if (plaintext != null)
+            {
+                SodiumInterop.SecureWipe(plaintext);
+            }
+
+            if (nonce != null)
+            {
+                SodiumInterop.SecureWipe(nonce);
+            }
         }
     }
 }

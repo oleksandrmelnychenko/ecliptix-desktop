@@ -21,7 +21,10 @@ internal class CompositeServiceScope : IServiceScope
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
         _serviceProvider?.Dispose();
@@ -52,7 +55,10 @@ internal class CompositeServiceProvider : IServiceProvider, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
     }

@@ -169,7 +169,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private int _lastProcessedTextElementCount;
     private volatile bool _isProcessingSecureKeyChange;
     private int _intendedCaretPosition;
-    private string _originalErrorText = string.Empty;
 
     public HintedTextBox()
     {
@@ -256,7 +255,6 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         get => GetValue(ErrorTextProperty);
         private set
         {
-            _originalErrorText = value;
             SetValue(ErrorTextProperty, value);
         }
     }
@@ -395,7 +393,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public void SyncSecureKeyState(int newPasswordLength)
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         string maskText = newPasswordLength > 0
             ? new string(SecureKeyMaskChar, newPasswordLength)
@@ -416,7 +417,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         try
         {
@@ -478,7 +482,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private static CharacterWarningType GetWarningType(char c)
     {
         if (char.IsLetter(c) && !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')))
+        {
             return CharacterWarningType.NonLatinLetter;
+        }
 
         return CharacterWarningType.InvalidCharacter;
     }
@@ -486,13 +492,19 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private static bool IsAllowedCharacter(char c)
     {
         if (char.IsDigit(c))
+        {
             return true;
+        }
 
         if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+        {
             return true;
+        }
 
         if (!char.IsLetter(c) && !char.IsDigit(c))
+        {
             return true;
+        }
 
         return false;
     }
@@ -528,7 +540,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private static int GetTextElementCount(string text)
     {
-        if (string.IsNullOrEmpty(text)) return 0;
+        if (string.IsNullOrEmpty(text))
+        {
+            return 0;
+        }
 
         if (TextElementCountCache.TryGetValue(text, out int cachedCount))
         {
@@ -567,14 +582,20 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private static string SafeSubstring(string text, int startIndex, int length)
     {
-        if (string.IsNullOrEmpty(text) || startIndex < 0) return string.Empty;
+        if (string.IsNullOrEmpty(text) || startIndex < 0)
+        {
+            return string.Empty;
+        }
 
         try
         {
             StringInfo stringInfo = new(text);
             int textElementCount = stringInfo.LengthInTextElements;
 
-            if (startIndex >= textElementCount) return string.Empty;
+            if (startIndex >= textElementCount)
+            {
+                return string.Empty;
+            }
 
             int actualLength = Math.Min(length, textElementCount - startIndex);
             return actualLength <= 0 ? string.Empty : stringInfo.SubstringByTextElements(startIndex, actualLength);
@@ -609,7 +630,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             int currentCount = currentInfo.LengthInTextElements;
             int lastCount = lastInfo.LengthInTextElements;
 
-            if (currentCount <= lastCount) return string.Empty;
+            if (currentCount <= lastCount)
+            {
+                return string.Empty;
+            }
 
             int addedCount = currentCount - lastCount;
             int insertPos = Math.Max(0, Math.Min(caretIndex - addedCount, currentCount - addedCount));
@@ -619,7 +643,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         catch (Exception)
         {
             int addedCount = currentText.Length - lastText.Length;
-            if (addedCount <= 0) return string.Empty;
+            if (addedCount <= 0)
+            {
+                return string.Empty;
+            }
 
             int insertPos = Math.Max(0, caretIndex - addedCount);
             return SafeSubstring(currentText, insertPos, addedCount);
@@ -628,7 +655,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private static Color GetCachedColor(string colorHex)
     {
-        if (ColorCache.TryGetValue(colorHex, out Color color)) return color;
+        if (ColorCache.TryGetValue(colorHex, out Color color))
+        {
+            return color;
+        }
         color = Color.Parse(colorHex);
         ColorCache[colorHex] = color;
 
@@ -638,7 +668,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private static SolidColorBrush GetCachedBrush(Color color)
     {
         string key = color.ToString();
-        if (BrushCache.TryGetValue(key, out SolidColorBrush? brush)) return brush;
+        if (BrushCache.TryGetValue(key, out SolidColorBrush? brush))
+        {
+            return brush;
+        }
         brush = new SolidColorBrush(color);
         BrushCache[key] = brush;
 
@@ -647,16 +680,25 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
-        if (_isControlInitialized || _isDisposed) return;
+        if (_isControlInitialized || _isDisposed)
+        {
+            return;
+        }
         Initialize();
     }
 
     private void Initialize()
     {
-        if (_isControlInitialized) return;
+        if (_isControlInitialized)
+        {
+            return;
+        }
 
         FindControls();
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         _mainTextBox.TextChanged += OnTextChanged;
         _mainTextBox.GotFocus += OnGotFocus;
@@ -676,7 +718,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void DisableClipboardOperations()
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         _mainTextBox.AddHandler(TextInputEvent, OnTextInput, RoutingStrategies.Tunnel);
         _mainTextBox.AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -701,7 +746,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
         if (_mainTextBox != null)
         {
@@ -712,7 +760,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnTapped(object? sender, TappedEventArgs e)
     {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
+        if (!IsSecureKeyMode || _mainTextBox == null)
+        {
+            return;
+        }
         e.Handled = true;
 
         _mainTextBox.SelectionStart = 0;
@@ -728,7 +779,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
         if (_mainTextBox != null)
         {
@@ -738,37 +792,55 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnHolding(object? sender, HoldingRoutedEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
+        if (!IsSecureKeyMode || _mainTextBox == null)
+        {
+            return;
+        }
         e.Handled = true;
     }
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
     }
 
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
     }
 
     private void OnDrop(object? sender, DragEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
         e.Handled = true;
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!IsSecureKeyMode || _mainTextBox == null) return;
+        if (!IsSecureKeyMode || _mainTextBox == null)
+        {
+            return;
+        }
 
         e.Handled = true;
 
@@ -783,9 +855,15 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnTextInput(object? sender, TextInputEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
 
-        if (string.IsNullOrEmpty(e.Text)) return;
+        if (string.IsNullOrEmpty(e.Text))
+        {
+            return;
+        }
 
         if (e.Text.Length > 1)
         {
@@ -857,7 +935,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
-        if (!IsSecureKeyMode) return;
+        if (!IsSecureKeyMode)
+        {
+            return;
+        }
 
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta))
         {
@@ -940,7 +1021,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnTextChanged(object? sender, TextChangedEventArgs e)
     {
-        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed)
+        {
+            return;
+        }
 
         if (IsSecureKeyMode)
         {
@@ -1023,7 +1107,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void ProcessSecureKeyChange()
     {
-        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed || _isProcessingSecureKeyChange) return;
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed || _isProcessingSecureKeyChange)
+        {
+            return;
+        }
 
         _isProcessingSecureKeyChange = true;
         try
@@ -1031,7 +1118,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             string currentText = _mainTextBox.Text ?? string.Empty;
             string lastText = _lastProcessedText;
 
-            if (currentText == lastText) return;
+            if (currentText == lastText)
+            {
+                return;
+            }
 
             try
             {
@@ -1123,7 +1213,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void ProcessTextChange()
     {
-        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed) return;
+        if (_isUpdatingFromCode || _mainTextBox == null || _isDisposed)
+        {
+            return;
+        }
         ProcessStandardChange();
     }
 
@@ -1147,7 +1240,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         Text = input;
         UpdateRemainingCharacters();
 
-        if (!IsSecureKeyMode && GetTextElementCount(input) > GetTextElementCount(Text ?? string.Empty) -
+        if (!IsSecureKeyMode && GetTextElementCount(input) > GetTextElementCount(Text) -
             HintedTextBoxConstants.TypingAnimationThreshold)
         {
             TriggerTypingAnimation();
@@ -1156,7 +1249,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void UpdateTextBox(string? text, int caretIndex)
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         text ??= string.Empty;
         _isUpdatingFromCode = true;
@@ -1168,7 +1264,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void UpdateBorderState()
     {
         if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
+        {
             return;
+        }
 
         bool currentHasError = HasError;
         PasswordStrength currentPasswordStrength = PasswordStrength;
@@ -1176,8 +1274,14 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
         Dispatcher.UIThread.Post(() =>
         {
-            if (_isDisposed) return;
-            if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null) return;
+            if (_isDisposed)
+            {
+                return;
+            }
+            if (_mainTextBox == null || _focusBorder == null || _mainBorder == null || _shadowBorder == null)
+            {
+                return;
+            }
 
             bool isFocused = _mainTextBox.IsFocused;
             if (isFocused == _lastIsFocused
@@ -1200,7 +1304,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private void UpdateBorderStateInternal(bool isFocused, bool hasError, PasswordStrength passwordStrength, bool isPasswordStrengthMode)
     {
         if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
+        {
             return;
+        }
 
         if (isPasswordStrengthMode)
         {
@@ -1238,7 +1344,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void UnsubscribeTextBoxEvents()
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
         _mainTextBox.TextChanged -= OnTextChanged;
         _mainTextBox.GotFocus -= OnGotFocus;
         _mainTextBox.LostFocus -= OnLostFocus;
@@ -1268,7 +1377,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         try
         {
             if (!_isDisposed)
+            {
                 UpdateBorderState();
+            }
         }
         catch (Exception ex)
         {
@@ -1281,7 +1392,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         try
         {
             if (!_isDisposed)
+            {
                 UpdateBorderState();
+            }
         }
         catch (Exception ex)
         {
@@ -1302,7 +1415,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 try
                 {
                     if (!_isDisposed)
+                    {
                         UpdateBorderState();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1339,7 +1454,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 try
                 {
                     if (!_isDisposed)
+                    {
                         UpdateTextBox(text, (text).Length);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1355,9 +1472,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
                 try
                 {
                     if (!_isDisposed)
+                    {
                         EllipseOpacity = hasError
                             ? HintedTextBoxConstants.DefaultEllipseOpacityVisible
                             : HintedTextBoxConstants.DefaultEllipseOpacityHidden;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1377,7 +1496,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void OnIsSecureKeyModeChanged(bool isSecureKeyMode)
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
 
@@ -1397,7 +1519,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void EnableClipboardOperations()
     {
-        if (_mainTextBox == null) return;
+        if (_mainTextBox == null)
+        {
+            return;
+        }
 
         _mainTextBox.RemoveHandler(TextInputEvent, OnTextInput);
         _mainTextBox.RemoveHandler(KeyDownEvent, OnPreviewKeyDown);
@@ -1414,13 +1539,19 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private void TriggerTypingAnimation()
     {
-        if (_mainTextBox == null || _isDisposed || _focusBorder == null) return;
+        if (_mainTextBox == null || _isDisposed || _focusBorder == null)
+        {
+            return;
+        }
 
         try
         {
             _currentTypingAnimation?.Dispose();
 
-            if (!(_focusBorder.Opacity > HintedTextBoxConstants.ZeroOpacity)) return;
+            if (!(_focusBorder.Opacity > HintedTextBoxConstants.ZeroOpacity))
+            {
+                return;
+            }
             Animation pulseAnimation = new()
             {
                 Duration = TimeSpan.FromMilliseconds(HintedTextBoxConstants.TypingAnimationDurationMs),
@@ -1468,7 +1599,10 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     private BoxShadows GetCachedResource(string resourceKey)
     {
-        if (ResourceCache.TryGetValue(resourceKey, out BoxShadows shadow)) return shadow;
+        if (ResourceCache.TryGetValue(resourceKey, out BoxShadows shadow))
+        {
+            return shadow;
+        }
         shadow = this.FindResource(resourceKey) is BoxShadows foundShadow ? foundShadow : default;
         ResourceCache[resourceKey] = shadow;
 

@@ -26,7 +26,9 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
             });
 
             if (!key.HasValue)
+            {
                 throw new InvalidOperationException("Failed to load server public key");
+            }
 
             return (byte[])key.Value!.Clone();
         }

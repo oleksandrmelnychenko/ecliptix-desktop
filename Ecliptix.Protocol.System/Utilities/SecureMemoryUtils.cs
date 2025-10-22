@@ -19,7 +19,9 @@ internal static class SecureMemoryUtils
         byte[] fullBuffer = new byte[buffer.AllocatedSize];
         Result<Unit, SodiumFailure> readResult = buffer.Read(fullBuffer);
         if (readResult.IsErr)
+        {
             throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToReadSecureMemory + readResult.UnwrapErr());
+        }
 
         Span<byte> span = fullBuffer.AsSpan(0, size);
 
@@ -62,7 +64,9 @@ internal static class SecureMemoryUtils
     public static bool ConstantTimeEquals(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
         if (a.Length != b.Length)
+        {
             return false;
+        }
 
         return CryptographicOperations.FixedTimeEquals(a, b);
     }

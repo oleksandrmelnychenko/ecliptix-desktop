@@ -46,7 +46,9 @@ internal class ModulePriorityQueue
             Queue<IModule> queue = _priorityQueues[priority];
 
             if (queue.Count == 0)
+            {
                 continue;
+            }
 
             IModule module = queue.Dequeue();
             string moduleName = module.Id.ToName();

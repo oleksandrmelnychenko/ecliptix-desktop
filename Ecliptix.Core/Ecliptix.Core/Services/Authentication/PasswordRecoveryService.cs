@@ -41,7 +41,9 @@ internal sealed class PasswordRecoveryService(
             await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId, cancellationToken).ConfigureAwait(false);
 
         if (result.IsErr)
+        {
             return Result<ByteString, string>.Err(result.UnwrapErr());
+        }
 
         ValidateMobileNumberResponse response = result.Unwrap();
         return Result<ByteString, string>.Ok(response.MobileNumberIdentifier);
@@ -195,11 +197,19 @@ internal sealed class PasswordRecoveryService(
             registrationResult?.Dispose();
 
             if (passwordCopy != null)
+            {
                 CryptographicOperations.ZeroMemory(passwordCopy);
+            }
+
             if (serverRecoveryResponse != null)
+            {
                 CryptographicOperations.ZeroMemory(serverRecoveryResponse);
+            }
+
             if (recoveryRecord != null)
+            {
                 CryptographicOperations.ZeroMemory(recoveryRecord);
+            }
         }
     }
 
@@ -283,7 +293,10 @@ internal sealed class PasswordRecoveryService(
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         lock (_opaqueClientLock)
         {

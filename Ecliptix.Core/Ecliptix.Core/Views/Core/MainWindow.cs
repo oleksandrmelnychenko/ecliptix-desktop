@@ -52,7 +52,10 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
     private void LoadLanguageSelector(MainWindowViewModel viewModel)
     {
-        if (_languageSelectorLoaded || _languageSelectorContainer == null) return;
+        if (_languageSelectorLoaded || _languageSelectorContainer == null)
+        {
+            return;
+        }
 
         LanguageSelectorView languageSelector = new()
         {

@@ -43,7 +43,9 @@ public readonly struct OneTimePreKeyLocal : IDisposable
                     .MapSodiumFailure();
 
             if (allocResult.IsErr)
+            {
                 return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(allocResult.UnwrapErr());
+            }
 
             securePrivateKey = allocResult.Unwrap();
 
@@ -104,8 +106,15 @@ public readonly struct OneTimePreKeyLocal : IDisposable
         catch (Exception ex)
         {
             securePrivateKey?.Dispose();
-            if (tempPrivateKeyBytes != null) SodiumInterop.SecureWipe(tempPrivateKeyBytes);
-            if (tempPrivKeyCopy != null) SodiumInterop.SecureWipe(tempPrivKeyCopy);
+            if (tempPrivateKeyBytes != null)
+            {
+                SodiumInterop.SecureWipe(tempPrivateKeyBytes);
+            }
+
+            if (tempPrivKeyCopy != null)
+            {
+                SodiumInterop.SecureWipe(tempPrivKeyCopy);
+            }
 
             return Result<OneTimePreKeyLocal, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic($"Unexpected failure during OPK Generation for ID {preKeyId}.", ex)
@@ -115,6 +124,9 @@ public readonly struct OneTimePreKeyLocal : IDisposable
 
     public void Dispose()
     {
-        if (PrivateKeyHandle is { IsInvalid: false }) PrivateKeyHandle.Dispose();
+        if (PrivateKeyHandle is { IsInvalid: false })
+        {
+            PrivateKeyHandle.Dispose();
+        }
     }
 }

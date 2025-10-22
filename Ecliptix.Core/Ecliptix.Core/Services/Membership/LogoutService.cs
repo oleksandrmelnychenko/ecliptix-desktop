@@ -124,6 +124,11 @@ internal sealed class LogoutService(
         {
             NetworkFailure failure = networkResult.UnwrapErr();
             Log.Warning("[LOGOUT] Network request failed: {Error}", failure.Message);
+
+            // TODO add to a list of pending requests either to invoke before other unary request or on next app restart;
+            // also we can start sending hello until server is awake
+
+
             return Result<Unit, LogoutFailure>.Err(MapNetworkFailure(failure));
         }
 
@@ -206,7 +211,9 @@ internal sealed class LogoutService(
             await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
 
         if (settingsResult.IsErr)
+        {
             return Option<string>.None;
+        }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
 
@@ -267,7 +274,9 @@ internal sealed class LogoutService(
         {
             masterKeyHandle?.Dispose();
             if (hmacKey != null)
+            {
                 CryptographicOperations.ZeroMemory(hmacKey);
+            }
         }
     }
 
@@ -412,7 +421,10 @@ internal sealed class LogoutService(
             writer.Write(response.ServerTimestamp);
             writer.Write(fingerprintLength);
             if (fingerprintLength > 0)
+            {
                 writer.Write(fingerprint);
+            }
+
             writer.Write(nonce);
 
             writer.Flush();
@@ -445,7 +457,9 @@ internal sealed class LogoutService(
         {
             masterKeyHandle?.Dispose();
             if (proofKey != null)
+            {
                 CryptographicOperations.ZeroMemory(proofKey);
+            }
         }
     }
 

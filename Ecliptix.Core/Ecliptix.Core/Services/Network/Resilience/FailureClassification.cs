@@ -7,7 +7,9 @@ public static class FailureClassification
     public static bool IsTransient(NetworkFailure failure)
     {
         if (failure.FailureType == NetworkFailureType.OperationCancelled)
+        {
             return false;
+        }
 
         if (failure.UserError?.Retryable is bool retryable)
         {

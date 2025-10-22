@@ -29,7 +29,10 @@ internal sealed class SubscriptionManager : IDisposable
         SubscriptionLifetime lifetime,
         int priority) where T : class
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(SubscriptionManager));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(SubscriptionManager));
+        }
 
         string messageTypeKey = GetMessageTypeKey<T>();
         SubscriptionList list = _subscriptions.GetOrAdd(messageTypeKey, _ => new SubscriptionList());
@@ -59,15 +62,23 @@ internal sealed class SubscriptionManager : IDisposable
 
     public async Task PublishAsync<T>(T message, CancellationToken cancellationToken) where T : class
     {
-        if (_disposed || message == null) return;
+        if (_disposed || message == null)
+        {
+            return;
+        }
 
         string messageTypeKey = GetMessageTypeKey<T>();
 
         if (!_subscriptions.TryGetValue(messageTypeKey, out SubscriptionList? list))
+        {
             return;
+        }
 
         ISubscription[] activeSubscriptions = list.GetActiveSubscriptions();
-        if (activeSubscriptions.Length == 0) return;
+        if (activeSubscriptions.Length == 0)
+        {
+            return;
+        }
 
         if (activeSubscriptions.Length > 1)
         {
@@ -105,11 +116,17 @@ internal sealed class SubscriptionManager : IDisposable
 
     private void CleanupDeadReferences(object? state)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         lock (_cleanupLock)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
 
             int cleanedUp = 0;
             List<string> emptyLists = [];
@@ -240,8 +257,14 @@ internal sealed class SubscriptionList : IDisposable
             int weak = 0, strong = 0;
             foreach (ISubscription subscription in _subscriptions)
             {
-                if (subscription.IsWeak) weak++;
-                else strong++;
+                if (subscription.IsWeak)
+                {
+                    weak++;
+                }
+                else
+                {
+                    strong++;
+                }
             }
             return (weak, strong);
         }

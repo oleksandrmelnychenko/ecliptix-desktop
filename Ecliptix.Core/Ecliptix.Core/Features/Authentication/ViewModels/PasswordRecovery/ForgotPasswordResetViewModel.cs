@@ -75,7 +75,11 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
             Observable.FromAsync(LoadMembershipAsync)
                 .Subscribe(result =>
                 {
-                    if (!result.IsErr) return;
+                    if (!result.IsErr)
+                    {
+                        return;
+                    }
+
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
                 })
@@ -87,7 +91,9 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
                 {
                     HasServerError = !string.IsNullOrEmpty(err);
                     if (!string.IsNullOrEmpty(err) && HostScreen is AuthenticationViewModel hostWindow)
+                    {
                         ShowServerErrorNotification(hostWindow, err);
+                    }
                 })
                 .DisposeWith(disposables);
 
@@ -96,7 +102,9 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
                 .Subscribe(_ =>
                 {
                     if (HasServerError)
+                    {
                         return;
+                    }
 
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.SignIn);
@@ -130,28 +138,44 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
     public void InsertNewPasswordChars(int index, string chars)
     {
-        if (!_hasNewPasswordBeenTouched) _hasNewPasswordBeenTouched = true;
+        if (!_hasNewPasswordBeenTouched)
+        {
+            _hasNewPasswordBeenTouched = true;
+        }
+
         _newPasswordBuffer.Insert(index, chars);
         this.RaisePropertyChanged(nameof(CurrentNewPasswordLength));
     }
 
     public void RemoveNewPasswordChars(int index, int count)
     {
-        if (!_hasNewPasswordBeenTouched) _hasNewPasswordBeenTouched = true;
+        if (!_hasNewPasswordBeenTouched)
+        {
+            _hasNewPasswordBeenTouched = true;
+        }
+
         _newPasswordBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentNewPasswordLength));
     }
 
     public void InsertConfirmPasswordChars(int index, string chars)
     {
-        if (!_hasConfirmPasswordBeenTouched) _hasConfirmPasswordBeenTouched = true;
+        if (!_hasConfirmPasswordBeenTouched)
+        {
+            _hasConfirmPasswordBeenTouched = true;
+        }
+
         _confirmPasswordBuffer.Insert(index, chars);
         this.RaisePropertyChanged(nameof(CurrentConfirmPasswordLength));
     }
 
     public void RemoveConfirmPasswordChars(int index, int count)
     {
-        if (!_hasConfirmPasswordBeenTouched) _hasConfirmPasswordBeenTouched = true;
+        if (!_hasConfirmPasswordBeenTouched)
+        {
+            _hasConfirmPasswordBeenTouched = true;
+        }
+
         _confirmPasswordBuffer.Remove(index, count);
         this.RaisePropertyChanged(nameof(CurrentConfirmPasswordLength));
     }

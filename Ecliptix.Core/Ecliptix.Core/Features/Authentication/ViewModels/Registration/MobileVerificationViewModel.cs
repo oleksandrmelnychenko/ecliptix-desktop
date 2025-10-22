@@ -75,7 +75,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         try
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
             {
@@ -90,7 +93,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     public void ResetState()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
@@ -119,7 +125,9 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             .CombineLatest(mobileValidation, (mobile, validationError) =>
             {
                 if (!_hasMobileNumberBeenTouched && !string.IsNullOrWhiteSpace(mobile))
+                {
                     _hasMobileNumberBeenTouched = true;
+                }
 
                 return !_hasMobileNumberBeenTouched ? string.Empty : validationError;
             })
@@ -154,7 +162,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private async Task<Unit> ExecuteVerificationAsync()
     {
-        if (_isDisposed) return Unit.Default;
+        if (_isDisposed)
+        {
+            return Unit.Default;
+        }
 
         try
         {
@@ -177,7 +188,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
                 Result<ValidateMobileNumberResponse, string> result = await validationTask;
 
-                if (_isDisposed) return Unit.Default;
+                if (_isDisposed)
+                {
+                    return Unit.Default;
+                }
 
                 if (result.IsOk)
                 {
@@ -195,7 +209,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                             connectId,
                             operationToken);
 
-                    if (_isDisposed) return Unit.Default;
+                    if (_isDisposed)
+                    {
+                        return Unit.Default;
+                    }
 
                     if (statusResult.IsOk)
                     {
@@ -230,7 +247,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
                 Result<ByteString, string> result = await recoveryValidationTask;
 
-                if (_isDisposed) return Unit.Default;
+                if (_isDisposed)
+                {
+                    return Unit.Default;
+                }
 
                 if (result.IsOk)
                 {
@@ -278,7 +298,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private Task NavigateToOtpVerificationAsync(ByteString mobileNumberIdentifier)
     {
-        if (_isDisposed) return Task.CompletedTask;
+        if (_isDisposed)
+        {
+            return Task.CompletedTask;
+        }
 
         VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
@@ -299,7 +322,11 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             _currentOperationCts?.Cancel();

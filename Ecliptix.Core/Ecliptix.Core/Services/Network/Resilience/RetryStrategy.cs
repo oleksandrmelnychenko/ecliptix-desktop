@@ -99,7 +99,11 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public void SetLazyNetworkProvider(Lazy<NetworkProvider> lazyNetworkProvider)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(RetryStrategy));
+        }
+
         _lazyNetworkProvider = lazyNetworkProvider;
     }
 
@@ -230,11 +234,17 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public void MarkConnectionHealthy(uint connectId)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(RetryStrategy));
+        }
 
         Task.Run(async () =>
         {
-            if (_isDisposed) return;
+            if (_isDisposed)
+            {
+                return;
+            }
 
             try
             {
@@ -286,7 +296,10 @@ public sealed class RetryStrategy : IRetryStrategy
 
     public void ClearExhaustedOperations()
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(RetryStrategy));
+        }
 
         try
         {
@@ -322,7 +335,9 @@ public sealed class RetryStrategy : IRetryStrategy
     private async Task<bool> IsGloballyExhaustedAsync(RpcServiceType? serviceType = null)
     {
         if (_activeRetryOperations.IsEmpty)
+        {
             return false;
+        }
 
         await _stateLock.WaitAsync().ConfigureAwait(false);
         try
@@ -331,7 +346,9 @@ public sealed class RetryStrategy : IRetryStrategy
             foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
             {
                 if (serviceType.HasValue && operation.ServiceType != serviceType.Value)
+                {
                     continue;
+                }
 
                 hasAnyOperationsForService = true;
                 if (!operation.IsExhausted)
@@ -351,7 +368,9 @@ public sealed class RetryStrategy : IRetryStrategy
     private async Task HandleManualRetryRequestAsync(ManualRetryRequestedEvent evt)
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         Log.Information("🔄 MANUAL RETRY REQUEST: Received manual retry request for ConnectId {ConnectId}",
             evt.ConnectId);
@@ -493,7 +512,9 @@ public sealed class RetryStrategy : IRetryStrategy
     private void CleanupAbandonedOperations(object? state)
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         try
         {
@@ -869,7 +890,9 @@ public sealed class RetryStrategy : IRetryStrategy
     public void Dispose()
     {
         if (_isDisposed)
+        {
             return;
+        }
 
         _isDisposed = true;
 

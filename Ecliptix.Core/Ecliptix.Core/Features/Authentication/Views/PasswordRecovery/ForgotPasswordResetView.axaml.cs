@@ -40,7 +40,9 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
     private void SetupEventHandlers()
     {
         if (_handlersAttached)
+        {
             return;
+        }
 
         if (this.FindControl<HintedTextBox>("NewPasswordTextBox") is HintedTextBox newPasswordBox)
         {
@@ -64,7 +66,9 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
     private void TeardownEventHandlers()
     {
         if (!_handlersAttached)
+        {
             return;
+        }
 
         if (this.FindControl<HintedTextBox>("NewPasswordTextBox") is HintedTextBox newPasswordBox)
         {
@@ -87,35 +91,54 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
 
     private void OnNewPasswordCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.InsertNewPasswordChars(e.Index, e.Characters);
         tb.SyncSecureKeyState(vm.CurrentNewPasswordLength);
     }
 
     private void OnNewPasswordCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.RemoveNewPasswordChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentNewPasswordLength);
     }
 
     private void OnConfirmPasswordCharactersAdded(object? sender, SecureKeyCharactersAddedEventArgs e)
     {
-        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.InsertConfirmPasswordChars(e.Index, e.Characters);
         tb.SyncSecureKeyState(vm.CurrentConfirmPasswordLength);
     }
 
     private void OnConfirmPasswordCharactersRemoved(object? sender, SecureKeyCharactersRemovedEventArgs e)
     {
-        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
+
         vm.RemoveConfirmPasswordChars(e.Index, e.Count);
         tb.SyncSecureKeyState(vm.CurrentConfirmPasswordLength);
     }
 
     private void OnNewPasswordKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        if (e.Key != Key.Enter && e.Key != Key.Return)
+        {
+            return;
+        }
 
         HintedTextBox? confirmPasswordBox = this.FindControl<HintedTextBox>("ConfirmPasswordTextBox");
         confirmPasswordBox?.Focus();
@@ -124,9 +147,15 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
 
     private void OnConfirmPasswordKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter && e.Key != Key.Return) return;
+        if (e.Key != Key.Enter && e.Key != Key.Return)
+        {
+            return;
+        }
 
-        if (DataContext is not ForgotPasswordResetViewModel vm) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm)
+        {
+            return;
+        }
 
         _ = vm.HandleEnterKeyPressAsync();
         e.Handled = true;
@@ -134,7 +163,10 @@ public partial class ForgotPasswordResetView : ReactiveUserControl<ForgotPasswor
 
     private void OnCharacterRejected(object? sender, CharacterRejectedEventArgs e)
     {
-        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb) return;
+        if (DataContext is not ForgotPasswordResetViewModel vm || sender is not HintedTextBox tb)
+        {
+            return;
+        }
 
         string localizedMessage = vm.GetLocalizedWarningMessage(e.WarningType);
         tb.WarningText = localizedMessage;

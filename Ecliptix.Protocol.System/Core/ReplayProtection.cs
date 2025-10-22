@@ -48,12 +48,16 @@ internal sealed class ReplayProtection : IDisposable
         ulong chainIndex = 0)
     {
         if (_disposed)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.ObjectDisposed(nameof(ReplayProtection)));
+        }
 
         if (nonce.Length == 0)
+        {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ReplayProtection.NonceCannotBeNullOrEmpty));
+        }
 
         lock (_lock)
         {
@@ -67,7 +71,9 @@ internal sealed class ReplayProtection : IDisposable
 
             Result<Unit, EcliptixProtocolFailure> windowCheck = CheckMessageWindow(chainIndex, messageIndex);
             if (windowCheck.IsErr)
+            {
                 return windowCheck;
+            }
 
             _processedNonces[nonceKey] = DateTime.UtcNow;
             UpdateMessageWindow(chainIndex, messageIndex);
@@ -118,7 +124,10 @@ internal sealed class ReplayProtection : IDisposable
 
     private void CleanupExpiredEntries()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         DateTime cutoff = DateTime.UtcNow - _nonceLifetime;
 
@@ -141,11 +150,16 @@ internal sealed class ReplayProtection : IDisposable
 
     private void AdjustWindowSize()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         DateTime now = DateTime.UtcNow;
         if (now - _lastWindowAdjustment < ProtocolSystemConstants.Timeouts.WindowAdjustmentInterval)
+        {
             return;
+        }
 
         lock (_lock)
         {
@@ -171,7 +185,10 @@ internal sealed class ReplayProtection : IDisposable
 
     public void OnRatchetRotation()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         lock (_lock)
         {
@@ -181,7 +198,10 @@ internal sealed class ReplayProtection : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         _disposed = true;
         _cleanupTimer?.Dispose();

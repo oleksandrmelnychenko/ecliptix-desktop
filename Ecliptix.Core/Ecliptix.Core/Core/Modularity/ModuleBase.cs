@@ -24,7 +24,9 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
     public async Task LoadAsync(IServiceProvider serviceProvider)
     {
         if (_isLoaded)
+        {
             return;
+        }
 
         try
         {
@@ -55,7 +57,9 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
     public async Task UnloadAsync()
     {
         if (!_isLoaded)
+        {
             return;
+        }
 
         try
         {
@@ -87,7 +91,9 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
     protected T GetService<T>() where T : notnull
     {
         if (_serviceProvider == null)
+        {
             throw new InvalidOperationException($"Module {Id.ToName()} is not loaded");
+        }
 
         return _serviceProvider.GetRequiredService<T>();
     }

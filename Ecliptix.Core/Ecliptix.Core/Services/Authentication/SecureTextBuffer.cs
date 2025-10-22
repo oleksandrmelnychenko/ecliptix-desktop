@@ -18,19 +18,31 @@ public sealed class SecureTextBuffer : IDisposable
 
     public void Insert(int index, string text)
     {
-        if (string.IsNullOrEmpty(text)) return;
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
         ModifyState(index, 0, text);
     }
 
     public void Remove(int index, int count)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
+
         ModifyState(index, count, string.Empty);
     }
 
     public void WithSecureBytes(Action<ReadOnlySpan<byte>> action)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecureTextBuffer));
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(SecureTextBuffer));
+        }
+
         if (_secureHandle.IsInvalid || _secureHandle.Length == 0)
         {
             action(ReadOnlySpan<byte>.Empty);
@@ -47,7 +59,10 @@ public sealed class SecureTextBuffer : IDisposable
 
     private void ModifyState(int charIndex, int removeCharCount, string insertChars)
     {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(SecureTextBuffer));
+        if (_isDisposed)
+        {
+            throw new ObjectDisposedException(nameof(SecureTextBuffer));
+        }
 
         SodiumSecureMemoryHandle? newHandle = null;
         bool success = false;
@@ -173,7 +188,10 @@ public sealed class SecureTextBuffer : IDisposable
 
     private static int GetByteIndexFromTextElementIndex(string text, int textElementIndex)
     {
-        if (textElementIndex == 0 || string.IsNullOrEmpty(text)) return 0;
+        if (textElementIndex == 0 || string.IsNullOrEmpty(text))
+        {
+            return 0;
+        }
 
         try
         {
@@ -196,7 +214,11 @@ public sealed class SecureTextBuffer : IDisposable
 
     private static int GetTextElementCount(string text)
     {
-        if (string.IsNullOrEmpty(text)) return 0;
+        if (string.IsNullOrEmpty(text))
+        {
+            return 0;
+        }
+
         try
         {
             StringInfo stringInfo = new(text);
@@ -210,7 +232,11 @@ public sealed class SecureTextBuffer : IDisposable
 
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _secureHandle?.Dispose();
         _isDisposed = true;
     }

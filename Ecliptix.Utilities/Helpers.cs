@@ -32,16 +32,22 @@ internal static class Helpers
     private static bool IsLowEntropy(byte[] data)
     {
         if (data.All(b => b == UtilityConstants.Cryptography.MinByteValue) || data.All(b => b == UtilityConstants.Cryptography.MaxByteValue))
+        {
             return true;
+        }
 
         if (data.All(b => b == data[0]))
+        {
             return true;
+        }
 
         bool isSequential = true;
         for (int i = 1; i < data.Length && isSequential; i++)
         {
             if (data[i] != (byte)(data[i - 1] + 1))
+            {
                 isSequential = false;
+            }
         }
 
         return isSequential;
@@ -95,7 +101,9 @@ internal static class Helpers
     {
         int totalLength = appInstanceId.Length + appDeviceId.Length + sizeof(uint);
         if (operationContextId.HasValue)
+        {
             totalLength += UtilityConstants.Cryptography.GuidSizeBytes;
+        }
 
         Span<byte> buffer = totalLength <= UtilityConstants.Cryptography.StackAllocThreshold ? stackalloc byte[totalLength] : new byte[totalLength];
 
@@ -124,10 +132,14 @@ internal static class Helpers
         Guid? operationContextId = null)
     {
         if (!Guid.TryParse(appInstanceIdString, out Guid appInstanceGuid))
+        {
             throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppInstanceIdFormat}{appInstanceIdString}");
+        }
 
         if (!Guid.TryParse(appDeviceIdString, out Guid appDeviceGuid))
+        {
             throw new ArgumentException($"{UtilityConstants.ErrorMessages.InvalidAppDeviceIdFormat}{appDeviceIdString}");
+        }
 
         Span<byte> appInstanceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];
         Span<byte> appDeviceBytes = stackalloc byte[UtilityConstants.Cryptography.GuidSizeBytes];

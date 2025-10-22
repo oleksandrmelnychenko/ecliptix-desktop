@@ -26,8 +26,14 @@ public readonly record struct Option<T>
 
     public void Match(Action<T> onSome, Action onNone)
     {
-        if (HasValue) onSome(Value!);
-        else onNone();
+        if (HasValue)
+        {
+            onSome(Value!);
+        }
+        else
+        {
+            onNone();
+        }
     }
 
     public T ValueOr(T fallback)
