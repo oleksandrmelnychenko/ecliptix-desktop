@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Infrastructure.Data;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
@@ -19,6 +20,7 @@ using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.External.IpGeolocation;
+using Ecliptix.Core.Services.Network;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
@@ -43,6 +45,24 @@ public sealed class ApplicationInitializer(
     IStateCleanupService stateCleanupService) : IApplicationInitializer
 {
     private const int IpGeolocationTimeoutSeconds = 10;
+
+    private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
+        networkProvider,
+        new PendingLogoutRequestStorage(applicationSecureStorageProvider),
+        identityService,
+        applicationSecureStorageProvider);
+
+    private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
+    {
+        try
+        {
+            await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[INIT-PENDING-LOGOUT] Failed to process pending logout requests");
+        }
+    }
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
@@ -93,6 +113,9 @@ public sealed class ApplicationInitializer(
 
         Log.Information("[CLIENT-REGISTER] RegisterDevice completed successfully. ConnectId: {ConnectId}",
             connectId);
+
+        await ProcessPendingLogoutRequestsAsync(connectId).ConfigureAwait(false);
+
 
         return true;
     }
