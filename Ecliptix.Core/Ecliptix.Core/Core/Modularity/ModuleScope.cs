@@ -13,8 +13,8 @@ internal class ModuleScope : IModuleScope
 
     public ModuleScope(string moduleName, IServiceScope serviceScope)
     {
-        ModuleName = moduleName ?? throw new ArgumentNullException(nameof(moduleName));
-        _serviceScope = serviceScope ?? throw new ArgumentNullException(nameof(serviceScope));
+        ModuleName = moduleName;
+        _serviceScope = serviceScope;
         ServiceProvider = serviceScope.ServiceProvider;
 
         Log.Debug("Module scope created for {ModuleName}", ModuleName);

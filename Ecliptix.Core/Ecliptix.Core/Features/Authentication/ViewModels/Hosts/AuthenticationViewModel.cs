@@ -122,21 +122,16 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
 
         AppVersion = VersionHelper.GetApplicationVersion();
-        BuildInfo? buildInfo = VersionHelper.GetBuildInfo();
-        BuildInfo = buildInfo?.BuildNumber ?? "development";
+        Option<BuildInfo> buildInfo = VersionHelper.GetBuildInfo();
+        BuildInfo = buildInfo.Select(bi => bi.BuildNumber).GetValueOrDefault("development");
 
-        if (buildInfo != null)
-        {
-            FullVersionInfo = string.Concat(
+        FullVersionInfo = buildInfo.Match(
+            bi => string.Concat(
                 VersionHelper.GetDisplayVersion(),
-                "\nBuild: ", buildInfo.BuildNumber,
-                "\nCommit: ", buildInfo.GitCommit.Substring(0, 8),
-                "\nBranch: ", buildInfo.GitBranch);
-        }
-        else
-        {
-            FullVersionInfo = VersionHelper.GetDisplayVersion();
-        }
+                "\nBuild: ", bi.BuildNumber,
+                "\nCommit: ", bi.GitCommit.Substring(0, 8),
+                "\nBranch: ", bi.GitBranch),
+            () => VersionHelper.GetDisplayVersion());
 
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
         {

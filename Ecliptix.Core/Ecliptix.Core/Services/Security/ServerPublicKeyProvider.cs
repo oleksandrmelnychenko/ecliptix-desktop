@@ -1,29 +1,34 @@
+using System;
 using System.Threading;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Protocol.System.Utilities;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Security;
 
 internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) : IServerPublicKeyProvider
 {
     private readonly Lock _lock = new();
-    private byte[]? _cachedKey;
+    private Option<byte[]> _cachedKey = Option<byte[]>.None;
 
     public byte[] GetServerPublicKey()
     {
         lock (_lock)
         {
-            if (_cachedKey != null)
+            Option<byte[]> key = _cachedKey.Or(() =>
             {
-                return (byte[])_cachedKey.Clone();
-            }
+                byte[] newKey = SecureByteStringInterop.WithByteStringAsSpan(
+                    networkProvider.ApplicationInstanceSettings.ServerPublicKey,
+                    span => span.ToArray());
+                _cachedKey = Option<byte[]>.Some(newKey);
+                return _cachedKey;
+            });
 
-            _cachedKey = SecureByteStringInterop.WithByteStringAsSpan(
-                networkProvider.ApplicationInstanceSettings.ServerPublicKey,
-                span => span.ToArray());
+            if (!key.HasValue)
+                throw new InvalidOperationException("Failed to load server public key");
 
-            return (byte[])_cachedKey.Clone();
+            return (byte[])key.Value!.Clone();
         }
     }
 }

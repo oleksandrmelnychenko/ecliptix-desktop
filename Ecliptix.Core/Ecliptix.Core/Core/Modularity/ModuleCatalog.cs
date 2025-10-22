@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
@@ -13,7 +14,7 @@ public interface IModuleCatalog
     void AddModule(IModule module);
 
     IReadOnlyList<IModule> GetModules();
-    IModule? GetModule(string name);
+    Option<IModule> GetModule(string name);
 
     Task<IEnumerable<IModule>> GetLoadOrderAsync();
     Task<IEnumerable<IModule>> GetRequiredModulesAsync(ModuleIdentifier moduleId);
@@ -44,8 +45,9 @@ public class ModuleCatalog : IModuleCatalog
 
     public IReadOnlyList<IModule> GetModules() => _modules.AsReadOnly();
 
-    public IModule? GetModule(string name) =>
-        _modules.FirstOrDefault(m => string.Equals(m.Id.ToName(), name, StringComparison.OrdinalIgnoreCase));
+    public Option<IModule> GetModule(string name) =>
+        _modules.FirstOrDefault(m => string.Equals(m.Id.ToName(), name, StringComparison.OrdinalIgnoreCase))
+            .ToOption();
 
     public async Task<IEnumerable<IModule>> GetLoadOrderAsync()
     {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
@@ -19,10 +20,9 @@ public class ModuleViewFactory : IModuleViewFactory
         _factories[vmType] = () => new TView();
     }
 
-    public Control? CreateView(Type viewModelType)
+    public Option<Control> CreateView(Type viewModelType)
     {
-        if (!_factories.TryGetValue(viewModelType, out Func<Control>? factory)) return null;
-        Control view = factory();
-        return view;
+        return _factories.GetValueOrDefault(viewModelType).ToOption()
+            .Select(factory => factory());
     }
 }

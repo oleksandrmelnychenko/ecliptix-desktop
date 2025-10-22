@@ -59,7 +59,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
     }
 
     private static LanguageItem? GetLanguageByCode(string cultureCode) =>
-        LanguageConfig.GetLanguageByCode(cultureCode);
+        LanguageConfig.GetLanguageByCode(cultureCode).ToNullable();
 
     private static int GetLanguageIndex(string cultureCode) =>
         LanguageConfig.GetLanguageIndex(cultureCode);

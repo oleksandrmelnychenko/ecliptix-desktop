@@ -13,6 +13,8 @@ public class UpdateService
     private readonly string _currentVersion;
     private readonly string _appDataPath;
 
+    public string CurrentVersion => _currentVersion;
+
     public event EventHandler<UpdateProgress>? DownloadProgressChanged;
 
     public UpdateService(string updateServerUrl, string currentVersion)
@@ -50,7 +52,7 @@ public class UpdateService
             }
 
             string manifestJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            UpdateManifest? manifest = JsonSerializer.Deserialize<UpdateManifest>(manifestJson);
+            UpdateManifest? manifest = JsonSerializer.Deserialize(manifestJson, UpdateJsonContext.Default.UpdateManifest);
 
             if (manifest == null)
             {
@@ -167,7 +169,7 @@ public class UpdateService
         using SHA256 sha256 = SHA256.Create();
         using FileStream stream = File.OpenRead(filePath);
         byte[] hashBytes = await sha256.ComputeHashAsync(stream);
-        string actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        string actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToUpperInvariant();
         return actualHash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase);
     }
 

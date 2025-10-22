@@ -1,47 +1,51 @@
 namespace Ecliptix.Security.Certificate.Pinning.Services;
 
+using Ecliptix.Utilities;
+
 public sealed class CertificatePinningServiceFactory : ICertificatePinningServiceFactory
 {
-    private CertificatePinningService? _service;
+    private Option<CertificatePinningService> _service = Option<CertificatePinningService>.None;
 
     private readonly SemaphoreSlim _initializationSemaphore = new(1, 1);
 
     private bool _disposed;
 
-    public CertificatePinningService? GetOrInitializeService()
+    public Option<CertificatePinningService> GetOrInitializeService()
     {
         if (_disposed)
-            return null;
+            return Option<CertificatePinningService>.None;
 
-        if (_service != null)
-            return _service;
-
-        _initializationSemaphore.Wait();
-        try
+        return _service.Or(() =>
         {
-            if (_disposed)
-                return null;
-
-            if (_service != null)
-                return _service;
-
-            CertificatePinningService service = new();
-            CertificatePinningOperationResult result = service.Initialize();
-
-            if (result.IsSuccess)
+            _initializationSemaphore.Wait();
+            try
             {
-                _service = service;
-                AppDomain.CurrentDomain.ProcessExit += OnProcessExitAsync;
-                return _service;
-            }
+                if (_disposed)
+                    return Option<CertificatePinningService>.None;
 
-            service.DisposeAsync().AsTask().Wait();
-            return null;
-        }
-        finally
+                return _service.Or(() => TryInitializeService());
+            }
+            finally
+            {
+                _initializationSemaphore.Release();
+            }
+        });
+    }
+
+    private Option<CertificatePinningService> TryInitializeService()
+    {
+        CertificatePinningService service = new();
+        CertificatePinningOperationResult result = service.Initialize();
+
+        if (result.IsSuccess)
         {
-            _initializationSemaphore.Release();
+            _service = Option<CertificatePinningService>.Some(service);
+            AppDomain.CurrentDomain.ProcessExit += OnProcessExitAsync;
+            return _service;
         }
+
+        service.DisposeAsync().AsTask().Wait();
+        return Option<CertificatePinningService>.None;
     }
 
     private async void OnProcessExitAsync(object? sender, EventArgs e)
@@ -67,16 +71,16 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
                 return;
 
             _disposed = true;
-            CertificatePinningService? serviceToDispose = _service;
-            _service = null;
+            Option<CertificatePinningService> serviceToDispose = _service;
+            _service = Option<CertificatePinningService>.None;
 
             try
             {
                 AppDomain.CurrentDomain.ProcessExit -= OnProcessExitAsync;
 
-                if (serviceToDispose != null)
+                if (serviceToDispose.HasValue)
                 {
-                    await serviceToDispose.DisposeAsync().ConfigureAwait(false);
+                    await serviceToDispose.Value!.DisposeAsync().ConfigureAwait(false);
                 }
             }
             catch

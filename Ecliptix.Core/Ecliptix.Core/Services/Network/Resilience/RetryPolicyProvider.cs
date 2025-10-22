@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using Ecliptix.Core.Services.Abstractions.Network;
@@ -14,8 +13,8 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration retryStrategy
             [RpcServiceType.RegisterAppDevice] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.CheckMobileNumberAvailability] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.ValidateMobileNumber] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
-            [RpcServiceType.InitiateVerification] = new(ShouldRetry: false, ReinitOnCompleteFailure: false),
-            [RpcServiceType.VerifyOtp] = new(ShouldRetry: false, ReinitOnCompleteFailure: false),
+            [RpcServiceType.InitiateVerification] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
+            [RpcServiceType.VerifyOtp] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.RegistrationInit] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),
             [RpcServiceType.RegistrationComplete] = new(ShouldRetry: true, ReinitOnCompleteFailure: true),
             [RpcServiceType.SignInInitRequest] = new(ShouldRetry: true, ReinitOnCompleteFailure: false),

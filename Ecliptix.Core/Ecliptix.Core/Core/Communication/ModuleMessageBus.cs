@@ -38,8 +38,6 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
     public async Task PublishAsync<T>(T eventMessage, CancellationToken cancellationToken = default)
         where T : ModuleEvent
     {
-        if (eventMessage == null) throw new ArgumentNullException(nameof(eventMessage));
-
         await _messageWriter.WriteAsync(eventMessage, cancellationToken);
         Interlocked.Increment(ref _totalEventsPublished);
     }
@@ -50,8 +48,6 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         where TRequest : ModuleRequest
         where TResponse : ModuleResponse
     {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-
         TaskCompletionSource<IModuleMessage> tcs = new();
         _pendingRequests[request.MessageId] = tcs;
 
@@ -86,8 +82,6 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     public async Task SendAsync<T>(T message, CancellationToken cancellationToken = default) where T : IModuleMessage
     {
-        if (message == null) throw new ArgumentNullException(nameof(message));
-
         await _messageWriter.WriteAsync(message, cancellationToken);
         Interlocked.Increment(ref _totalMessagesSent);
     }

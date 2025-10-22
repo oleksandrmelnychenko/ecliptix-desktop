@@ -8,7 +8,9 @@ using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Utilities;
 using ReactiveUI;
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.Modals;
 
@@ -73,8 +75,9 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         DeclineButtonText = localizationService?["LanguageDetection.Button.Decline"] ?? "Decline";
 
 
-        LanguageItem? languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
-        FlagPath = languageItem?.FlagImagePath ?? "avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg";
+        Option<LanguageItem> languageItem = LanguageConfig.GetLanguageByCode(_targetCulture);
+        FlagPath = languageItem.Select(item => item.FlagImagePath)
+            .GetValueOrDefault("avares://Ecliptix.Core/Assets/Icons/Flags/usa_flag.svg");
 
         this.WhenActivated(disposables =>
         {

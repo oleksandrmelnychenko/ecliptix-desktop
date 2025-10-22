@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Diagnostics.CodeAnalysis;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core;
 
@@ -21,14 +22,14 @@ public static class VersionHelper
         Justification = "InformationalVersion is only used for display purposes and has fallback to ApplicationVersion")]
     private static readonly Lazy<string> InformationalVersion = new(CalculateInformationalVersion);
 
-    private static readonly Lazy<BuildInfo?> BuildInfo = new(LoadBuildInfo);
+    private static readonly Lazy<Option<BuildInfo>> BuildInfo = new(LoadBuildInfo);
     private static readonly Lazy<string> DisplayVersion = new(CalculateDisplayVersion);
 
     public static string GetApplicationVersion() => ApplicationVersion.Value;
 
     public static string GetInformationalVersion() => InformationalVersion.Value;
 
-    public static BuildInfo? GetBuildInfo() => BuildInfo.Value;
+    public static Option<BuildInfo> GetBuildInfo() => BuildInfo.Value;
 
     public static string GetDisplayVersion() => DisplayVersion.Value;
 
@@ -55,27 +56,28 @@ public static class VersionHelper
         }
     }
 
-    private static BuildInfo? LoadBuildInfo()
+    private static Option<BuildInfo> LoadBuildInfo()
     {
         try
         {
             string buildInfoPath = Path.Combine(AppContext.BaseDirectory, "build-info.json");
             if (!File.Exists(buildInfoPath))
-                return null;
+                return Option<BuildInfo>.None;
 
             string json = File.ReadAllText(buildInfoPath);
-            return JsonSerializer.Deserialize(json, EcliptixJsonContext.Default.BuildInfo);
+            return JsonSerializer.Deserialize(json, EcliptixJsonContext.Default.BuildInfo).ToOption();
         }
         catch
         {
-            return null;
+            return Option<BuildInfo>.None;
         }
     }
 
     private static string CalculateDisplayVersion()
     {
-        BuildInfo? buildInfo = GetBuildInfo();
-        return buildInfo?.FullVersion ?? GetInformationalVersion();
+        return GetBuildInfo()
+            .Select(info => info.FullVersion)
+            .ValueOr(GetInformationalVersion());
     }
 }
 

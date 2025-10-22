@@ -22,7 +22,7 @@ public class UpdateViewModel : ReactiveObject, IDisposable
 
     public UpdateViewModel(UpdateManager updateManager)
     {
-        _updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
+        _updateManager = updateManager;
 
         _updateManager.UpdateAvailable += OnUpdateAvailable;
         _updateManager.DownloadProgressChanged += OnDownloadProgressChanged;

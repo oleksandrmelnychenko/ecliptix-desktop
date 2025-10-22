@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Core.Abstractions;
 
@@ -9,5 +10,5 @@ public interface IModuleViewFactory
         where TViewModel : class
         where TView : Control, new();
 
-    Control? CreateView(Type viewModelType);
+    Option<Control> CreateView(Type viewModelType);
 }

@@ -12,8 +12,8 @@ internal class CompositeServiceScope : IServiceScope
 
     public CompositeServiceScope(ServiceProvider moduleServiceProvider, IServiceScope parentScope)
     {
-        _moduleServiceProvider = moduleServiceProvider ?? throw new ArgumentNullException(nameof(moduleServiceProvider));
-        _parentScope = parentScope ?? throw new ArgumentNullException(nameof(parentScope));
+        _moduleServiceProvider = moduleServiceProvider;
+        _parentScope = parentScope;
         _serviceProvider = new CompositeServiceProvider(_moduleServiceProvider, _parentScope.ServiceProvider);
     }
 
@@ -38,8 +38,8 @@ internal class CompositeServiceProvider : IServiceProvider, IDisposable
 
     public CompositeServiceProvider(IServiceProvider moduleProvider, IServiceProvider mainProvider)
     {
-        _moduleProvider = moduleProvider ?? throw new ArgumentNullException(nameof(moduleProvider));
-        _mainProvider = mainProvider ?? throw new ArgumentNullException(nameof(mainProvider));
+        _moduleProvider = moduleProvider;
+        _mainProvider = mainProvider;
     }
 
     public object? GetService(Type serviceType)

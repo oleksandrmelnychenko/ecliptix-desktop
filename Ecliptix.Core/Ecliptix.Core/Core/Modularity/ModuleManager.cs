@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -58,9 +59,11 @@ public class ModuleManager : IModuleManager
 
     public async Task<IModule> LoadModuleAsync(string moduleName)
     {
-        IModule? module = _catalog.GetModule(moduleName);
-        if (module == null)
+        Option<IModule> moduleOption = _catalog.GetModule(moduleName);
+        if (!moduleOption.HasValue)
             throw new InvalidOperationException($"Module '{moduleName}' not found in catalog");
+
+        IModule module = moduleOption.Value!;
 
         if (IsModuleLoaded(moduleName))
             return module;
@@ -232,9 +235,11 @@ public class ModuleManager : IModuleManager
 
     public async Task UnloadModuleAsync(string moduleName)
     {
-        IModule? module = _catalog.GetModule(moduleName);
-        if (module == null || !IsModuleLoaded(moduleName))
+        Option<IModule> moduleOption = _catalog.GetModule(moduleName);
+        if (!moduleOption.HasValue || !IsModuleLoaded(moduleName))
             return;
+
+        IModule module = moduleOption.Value!;
 
         _moduleStates[moduleName] = ModuleState.Unloading;
 

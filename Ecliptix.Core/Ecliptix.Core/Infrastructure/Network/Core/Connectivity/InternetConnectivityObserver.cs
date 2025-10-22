@@ -19,7 +19,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
     private const int NetworkChangeThrottleMs = 500;
     private const int FailurePollingSeconds = 1;
 
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IObservable<bool> _connectivityObservable;
     private readonly CompositeDisposable _disposables = new();
     private readonly CancellationTokenSource _probeCancellationCts = new();
@@ -27,7 +27,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
     private readonly InternetConnectivityObserverOptions _options;
 
     public InternetConnectivityObserver(
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         IScheduler uiScheduler,
         InternetConnectivityObserverOptions currentOptions)
     {
@@ -36,7 +36,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         if (currentOptions.ProbeUrls == null || !currentOptions.ProbeUrls.Any())
             throw new ArgumentException("ProbeUrls cannot be null or empty", nameof(currentOptions));
 
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _httpClientFactory = httpClientFactory;
         _options = currentOptions;
 
         BehaviorSubject<TimeSpan> pollingIntervalSubject = new(currentOptions.PollingInterval);
@@ -94,6 +94,8 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         InternetConnectivityObserverOptions options,
         CancellationToken ct)
     {
+        HttpClient httpClient = _httpClientFactory.CreateClient(HttpClientName);
+
         foreach (string url in options.ProbeUrls)
         {
             if (ct.IsCancellationRequested)
@@ -105,7 +107,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 linkedCts.CancelAfter(options.ProbeTimeout);
 
                 using HttpRequestMessage request = new(HttpMethod.Head, url);
-                HttpResponseMessage response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                 if (response.IsSuccessStatusCode)
                     return true;

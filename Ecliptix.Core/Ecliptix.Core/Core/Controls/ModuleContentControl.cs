@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 using Splat;
 
 namespace Ecliptix.Core.Core.Controls;
@@ -49,48 +50,44 @@ public sealed class ModuleContentControl : ContentControl
             return;
         }
 
-        Control? view = TryCreateViewWithModuleFactory(newViewModel) ?? TryCreateViewWithStaticMapper(newViewModel);
-        Serilog.Log.Information("🔍 ModuleContentControl: StaticViewMapper result: {ViewType}",
-            view?.GetType().Name ?? "null");
-        if (view != null)
-        {
-            view.DataContext = newViewModel;
-            Content = view;
-            Serilog.Log.Information(
-                "✅ ModuleContentControl: Successfully set view: {ViewType} for ViewModel: {ViewModelType}",
-                view.GetType().Name, newViewModel.GetType().Name);
-        }
-        else
-        {
-            Content = CreateFallbackView();
-            Serilog.Log.Warning("❌ ModuleContentControl: No view found, using fallback for ViewModel: {ViewModelType}",
-                newViewModel.GetType().Name);
-        }
+        TryCreateViewWithModuleFactory(newViewModel)
+            .Or(() => TryCreateViewWithStaticMapper(newViewModel).ToOption())
+            .Match(
+                view =>
+                {
+                    view.DataContext = newViewModel;
+                    Content = view;
+                    Serilog.Log.Information(
+                        "✅ ModuleContentControl: Successfully set view: {ViewType} for ViewModel: {ViewModelType}",
+                        view.GetType().Name, newViewModel.GetType().Name);
+                },
+                () =>
+                {
+                    Content = CreateFallbackView();
+                    Serilog.Log.Warning("❌ ModuleContentControl: No view found, using fallback for ViewModel: {ViewModelType}",
+                        newViewModel.GetType().Name);
+                });
     }
 
-    private Control? TryCreateViewWithModuleFactory(object viewModel)
+    private Option<Control> TryCreateViewWithModuleFactory(object viewModel)
     {
-        if (_moduleViewFactory == null) return null;
+        if (_moduleViewFactory == null)
+            return Option<Control>.None;
 
         try
         {
             Serilog.Log.Information("🔍 TryCreateViewWithModuleFactory: Attempting to create view for {ViewModelType}",
                 viewModel.GetType().FullName);
 
-            Control? result = _moduleViewFactory.CreateView(viewModel.GetType());
+            Option<Control> result = _moduleViewFactory.CreateView(viewModel.GetType());
 
-            if (result != null)
-            {
-                Serilog.Log.Information(
+            result.Match(
+                view => Serilog.Log.Information(
                     "✅ ModuleViewFactory: Successfully created {ViewType} for {ViewModelType}",
-                    result.GetType().Name, viewModel.GetType().Name);
-            }
-            else
-            {
-                Serilog.Log.Debug(
+                    view.GetType().Name, viewModel.GetType().Name),
+                () => Serilog.Log.Debug(
                     "🔍 ModuleViewFactory: No factory registered for {ViewModelType}",
-                    viewModel.GetType().Name);
-            }
+                    viewModel.GetType().Name));
 
             return result;
         }
@@ -98,7 +95,7 @@ public sealed class ModuleContentControl : ContentControl
         {
             Serilog.Log.Error(ex, "❌ TryCreateViewWithModuleFactory: Exception creating view for {ViewModelType}",
                 viewModel.GetType().FullName);
-            return null;
+            return Option<Control>.None;
         }
     }
 

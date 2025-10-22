@@ -27,7 +27,7 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
     {
         _authenticationServicesClient = authenticationServicesClient;
         _errorProcessor = errorProcessor;
-        _callOptionsFactory = callOptionsFactory ?? throw new ArgumentNullException(nameof(callOptionsFactory));
+        _callOptionsFactory = callOptionsFactory;
         _serviceHandlers = new Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
         {
             { RpcServiceType.InitiateVerification, InitiateVerification }

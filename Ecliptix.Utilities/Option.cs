@@ -16,7 +16,6 @@ public readonly record struct Option<T>
 
     public static Option<T> Some(T value)
     {
-        if (value is null) throw new ArgumentNullException(nameof(value));
         return new Option<T>(true, value);
     }
 

@@ -3,48 +3,50 @@ namespace Ecliptix.Core.Services.Core;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Ecliptix.Utilities;
 using Serilog;
 using System;
 
 internal static class IconService
 {
-    private static WindowIcon? _cachedIcon;
+    private static Option<WindowIcon> _cachedIcon = Option<WindowIcon>.None;
 
     public static void SetIconForWindow(Window window)
     {
-        if (_cachedIcon == null)
-        {
-            _cachedIcon = LoadPlatformIcon();
-        }
-
-        if (_cachedIcon != null)
-        {
-            window.Icon = _cachedIcon;
-        }
+        _cachedIcon.Or(() => LoadPlatformIcon())
+            .Do(icon =>
+            {
+                _cachedIcon = Option<WindowIcon>.Some(icon);
+                window.Icon = icon;
+            });
     }
 
-    private static WindowIcon? LoadPlatformIcon()
+    private static Option<WindowIcon> LoadPlatformIcon()
     {
-        Uri? iconUri = GetPlatformIconUri();
-        if (iconUri == null) return null;
-        try
-        {
-            Bitmap bitmap = new(AssetLoader.Open(iconUri));
-            return new WindowIcon(bitmap);
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to load application icon");
-        }
-        return null;
+        return GetPlatformIconUri()
+            .Bind(uri =>
+            {
+                try
+                {
+                    Bitmap bitmap = new(AssetLoader.Open(uri));
+                    return Option<WindowIcon>.Some(new WindowIcon(bitmap));
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to load application icon");
+                    return Option<WindowIcon>.None;
+                }
+            });
     }
 
-    private static Uri? GetPlatformIconUri()
+    private static Option<Uri> GetPlatformIconUri()
     {
         if (OperatingSystem.IsWindows())
-            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico");
+            return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Windows/ecliptix.ico"));
         if (OperatingSystem.IsMacOS())
-            return new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns");
-        return OperatingSystem.IsLinux() ? new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png") : null;
+            return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/macOS/EcliptixLogo.icns"));
+        if (OperatingSystem.IsLinux())
+            return Option<Uri>.Some(new Uri("avares://Ecliptix.Core/Assets/Branding/Platform/Linux/EcliptixLogo.png"));
+        return Option<Uri>.None;
     }
 }

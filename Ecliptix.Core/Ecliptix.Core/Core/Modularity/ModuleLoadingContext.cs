@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -72,9 +73,11 @@ internal class ModuleLoadingContext
         }
     }
 
-    public IModule? GetCachedModule(string moduleName)
+    public Option<IModule> GetCachedModule(string moduleName)
     {
-        return _loadedModules.TryGetValue(moduleName, out ModuleState state) ? state.Module : null;
+        return _loadedModules.TryGetValue(moduleName, out ModuleState state)
+            ? Option<IModule>.Some(state.Module)
+            : Option<IModule>.None;
     }
 
     public ModuleLoadingStats GetStats()

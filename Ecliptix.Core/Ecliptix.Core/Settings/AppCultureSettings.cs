@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Ecliptix.Core.Controls.LanguageSelector;
 using Ecliptix.Core.Settings.Constants;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Settings;
 
@@ -52,8 +53,8 @@ public sealed class AppCultureSettings
 
     public IReadOnlyCollection<LanguageItem> SupportedLanguages => _languagesByCode.Values;
 
-    public LanguageItem? GetLanguageByCode(string cultureCode) =>
-        _languagesByCode.GetValueOrDefault(cultureCode);
+    public Option<LanguageItem> GetLanguageByCode(string cultureCode) =>
+        _languagesByCode.GetValueOrDefault(cultureCode).ToOption();
 
     public string GetCultureByCountry(string countryCode) =>
         _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? AppCultureSettingsConstants.EmptyString, AppCultureSettingsConstants.DefaultCultureCode);
@@ -63,20 +64,21 @@ public sealed class AppCultureSettings
 
     public string GetDisplayName(string cultureCode)
     {
-        LanguageItem? languageItem = GetLanguageByCode(cultureCode);
-        if (languageItem != null)
-            return languageItem.DisplayName;
-
-        try
-        {
-            CultureInfo culture = CultureInfo.GetCultureInfo(cultureCode);
-            string englishName = culture.EnglishName;
-            int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CultureDisplayNameSeparator);
-            return separatorIndex > 0 ? englishName[..separatorIndex].Trim() : englishName.Trim();
-        }
-        catch (CultureNotFoundException)
-        {
-            return cultureCode;
-        }
+        return GetLanguageByCode(cultureCode)
+            .Select(lang => lang.DisplayName)
+            .GetValueOrDefault(() =>
+            {
+                try
+                {
+                    CultureInfo culture = CultureInfo.GetCultureInfo(cultureCode);
+                    string englishName = culture.EnglishName;
+                    int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CultureDisplayNameSeparator);
+                    return separatorIndex > 0 ? englishName[..separatorIndex].Trim() : englishName.Trim();
+                }
+                catch (CultureNotFoundException)
+                {
+                    return cultureCode;
+                }
+            });
     }
 }

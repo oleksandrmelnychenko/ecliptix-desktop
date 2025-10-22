@@ -28,7 +28,7 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     {
         _deviceServiceClient = deviceServiceClient;
         _errorProcessor = errorProcessor;
-        _callOptionsFactory = callOptionsFactory ?? throw new ArgumentNullException(nameof(callOptionsFactory));
+        _callOptionsFactory = callOptionsFactory;
     }
 
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(

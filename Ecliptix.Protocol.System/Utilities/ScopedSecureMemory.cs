@@ -10,7 +10,7 @@ internal sealed class ScopedSecureMemory : IDisposable
 
     private ScopedSecureMemory(byte[] data, bool clearOnDispose = true)
     {
-        _data = data ?? throw new ArgumentNullException(nameof(data));
+        _data = data;
         _clearOnDispose = clearOnDispose;
     }
 

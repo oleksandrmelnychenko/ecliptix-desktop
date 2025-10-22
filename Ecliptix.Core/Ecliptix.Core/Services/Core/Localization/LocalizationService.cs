@@ -7,6 +7,7 @@ using System.Threading;
 using Avalonia.Threading;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Settings;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Services.Core.Localization;
 
@@ -31,7 +32,8 @@ internal sealed class LocalizationService : ILocalizationService
         _currentCultureInfo = CreateCultureInfo(defaultCultureName);
         _defaultLanguageStrings = LocalizationData.EnglishStrings;
 
-        _currentLanguageStrings = GetLanguageStrings(defaultCultureName) ?? _defaultLanguageStrings;
+        _currentLanguageStrings = GetLanguageStrings(defaultCultureName.ToOption())
+            .ValueOr(_defaultLanguageStrings);
     }
 
     private static CultureInfo CreateCultureInfo(string? cultureName)
@@ -46,12 +48,11 @@ internal sealed class LocalizationService : ILocalizationService
         }
     }
 
-    private static FrozenDictionary<string, string>? GetLanguageStrings(string? cultureName)
+    private static Option<FrozenDictionary<string, string>> GetLanguageStrings(Option<string> cultureName)
     {
-        if (string.IsNullOrEmpty(cultureName))
-            return null;
-
-        return LocalizationData.AllLanguages.GetValueOrDefault(cultureName);
+        return cultureName
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Bind(name => LocalizationData.AllLanguages.GetValueOrDefault(name).ToOption());
     }
 
     public string this[string key]
@@ -105,7 +106,8 @@ internal sealed class LocalizationService : ILocalizationService
             }
 
             _currentCultureInfo = newCultureInfo;
-            _currentLanguageStrings = GetLanguageStrings(cultureName) ?? _defaultLanguageStrings;
+            _currentLanguageStrings = GetLanguageStrings(Option<string>.Some(cultureName))
+                .ValueOr(_defaultLanguageStrings);
         }
 
         if (onCultureChanged is not null)

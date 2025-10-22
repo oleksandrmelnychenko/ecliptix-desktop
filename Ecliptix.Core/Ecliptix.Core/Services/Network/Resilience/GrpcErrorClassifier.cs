@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
+using Ecliptix.Utilities;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network.Resilience;
@@ -69,20 +70,22 @@ public static class GrpcErrorClassifier
     public static bool IsAuthFlowMissing(RpcException ex)
     {
         if (ex.StatusCode != StatusCode.NotFound)
-        {
             return false;
-        }
 
-        Metadata trailers = ex.Trailers;
-        string? errorCode = trailers.FirstOrDefault(entry =>
-            string.Equals(entry.Key, GrpcErrorMetadataKeys.ErrorCode, StringComparison.OrdinalIgnoreCase))?.Value;
-        if (string.Equals(errorCode, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
+        return GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.ErrorCode)
+            .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
+            .HasValue
+            ||
+            GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I18nKey)
+            .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+            .HasValue;
+    }
 
-        string? i18nKey = trailers.FirstOrDefault(entry =>
-            string.Equals(entry.Key, GrpcErrorMetadataKeys.I18nKey, StringComparison.OrdinalIgnoreCase))?.Value;
-        return string.Equals(i18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase);
+    private static Option<string> GetMetadataValue(Metadata metadata, string key)
+    {
+        Metadata.Entry? entry = metadata
+            .FirstOrDefault(e => string.Equals(e.Key, key, StringComparison.OrdinalIgnoreCase));
+
+        return entry?.Value.ToOption() ?? Option<string>.None;
     }
 }

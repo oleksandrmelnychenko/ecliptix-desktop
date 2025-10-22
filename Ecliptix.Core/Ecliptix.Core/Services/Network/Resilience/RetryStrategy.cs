@@ -73,7 +73,7 @@ public sealed class RetryStrategy : IRetryStrategy
     {
         _strategyConfiguration = strategyConfiguration;
         _connectivityService = connectivityService;
-        _timeoutProvider = timeoutProvider ?? throw new ArgumentNullException(nameof(timeoutProvider));
+        _timeoutProvider = timeoutProvider;
 
         _cleanupTimer = new Timer(
             CleanupAbandonedOperations,
@@ -185,7 +185,7 @@ public sealed class RetryStrategy : IRetryStrategy
                         : 1;
                     Result<TResponse, NetworkFailure> opResult =
                         await operation(currentAttempt, ct).ConfigureAwait(false);
-                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
+                    if (Log.IsEnabled(LogEventLevel.Debug))
                     {
                         Log.Debug(
                             "🔧 RETRY POLICY: Operation '{OperationName}' attempt {Attempt} returned IsOk: {IsOk}",
@@ -225,22 +225,6 @@ public sealed class RetryStrategy : IRetryStrategy
             StopTrackingOperation(operationKey, $"Unexpected error: {ex.Message}");
             return Result<TResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding($"Unexpected error: {ex.Message}"));
-        }
-    }
-
-    public void ResetConnectionState(uint? connectId = null)
-    {
-        if (_isDisposed) throw new ObjectDisposedException(nameof(RetryStrategy));
-
-        try
-        {
-            if (!connectId.HasValue) return;
-            NetworkProvider? networkProvider = GetNetworkProvider();
-            networkProvider?.ClearConnection(connectId.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to reset connection state for ConnectId {ConnectId}", connectId);
         }
     }
 
@@ -724,8 +708,7 @@ public sealed class RetryStrategy : IRetryStrategy
                                             ConnectivityIntent.Disconnected(
                                                 currentFailure ??
                                                 NetworkFailure.DataCenterNotResponding("Connection lost"),
-                                                connectId,
-                                                ConnectivityReason.RpcFailure));
+                                                connectId));
                                     }
                                     catch (Exception ex)
                                     {

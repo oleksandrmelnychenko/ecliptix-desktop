@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Ecliptix.AutoUpdater.Models;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace Ecliptix.AutoUpdater;
 
@@ -27,7 +27,7 @@ public class UpdateManager : IDisposable
         UpdateConfiguration config,
         ILogger? logger = null)
     {
-        _config = config ?? throw new ArgumentNullException(nameof(config));
+        _config = config;
         _logger = logger;
 
         string version = Assembly.GetEntryAssembly()?
@@ -69,7 +69,7 @@ public class UpdateManager : IDisposable
             _logger?.LogDebug("Update check already in progress");
             return _lastCheckResult ?? new UpdateCheckResult
             {
-                CurrentVersion = _updateService._currentVersion,
+                CurrentVersion = _updateService.CurrentVersion,
                 IsUpdateAvailable = false,
                 ErrorMessage = "Check already in progress"
             };
@@ -116,7 +116,7 @@ public class UpdateManager : IDisposable
 
             UpdateCheckResult errorResult = new UpdateCheckResult
             {
-                CurrentVersion = _updateService._currentVersion,
+                CurrentVersion = _updateService.CurrentVersion,
                 IsUpdateAvailable = false,
                 ErrorMessage = ex.Message
             };
