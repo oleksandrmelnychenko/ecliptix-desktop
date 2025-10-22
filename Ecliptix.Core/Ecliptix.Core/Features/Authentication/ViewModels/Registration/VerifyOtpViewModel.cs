@@ -42,6 +42,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private Guid _verificationSessionIdentifier = Guid.Empty;
     private IDisposable? _autoRedirectTimer;
+    private IDisposable? _cooldownTimer;
     private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
 
@@ -104,9 +105,27 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         IObservable<bool> canResend = this.WhenAnyValue(
                 x => x.SecondsRemaining,
                 x => x.HasValidSession,
-                x => x.CurrentStatus)
-            .Select(tuple => tuple is { Item2: true, Item1: 0 } &&
-                             tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired)
+                x => x.CurrentStatus,
+                x => x.CooldownBufferSeconds)
+            .Select(tuple =>
+            {
+                if (!tuple.Item2)
+                {
+                    return false;
+                }
+
+                if (tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown)
+                {
+                    return tuple.Item4 == 0;
+                }
+
+                if (tuple.Item1 != 0)
+                {
+                    return false;
+                }
+
+                return tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
+            })
             .DistinctUntilChanged()
             .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
@@ -169,6 +188,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
     [Reactive] public uint SecondsRemaining { get; private set; }
     [Reactive] public bool HasError { get; private set; }
+    [Reactive] public uint CooldownBufferSeconds { get; private set; }
 
     [Reactive]
     public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } =
@@ -512,6 +532,48 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         return Task.CompletedTask;
     }
 
+    private uint HandleResendCooldown(string? message, uint seconds)
+    {
+        if (!string.IsNullOrEmpty(message))
+        {
+            string messageWithSeconds = seconds > 0
+                ? $"{message}. {seconds} second{(seconds > 1 ? "s" : "")} remaining"
+                : message;
+
+            ErrorMessage = messageWithSeconds;
+            HasError = true;
+        }
+
+        CooldownBufferSeconds = seconds;
+
+        _cooldownTimer?.Dispose();
+
+        if (seconds > 0)
+        {
+            _cooldownTimer = Observable.Interval(TimeSpan.FromSeconds(1))
+                .TakeWhile(_ => CooldownBufferSeconds > 0 && !_isDisposed)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(_ =>
+                {
+                    if (CooldownBufferSeconds > 0)
+                    {
+                        CooldownBufferSeconds--;
+                    }
+
+                    if (CooldownBufferSeconds == 0)
+                    {
+                        ErrorMessage = string.Empty;
+                        HasError = false;
+                        CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
+                        _cooldownTimer?.Dispose();
+                        _cooldownTimer = null;
+                    }
+                });
+        }
+
+        return 0;
+    }
+
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
@@ -638,6 +700,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message, seconds),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(message),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
@@ -720,6 +783,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _autoRedirectTimer?.Dispose();
             _autoRedirectTimer = null;
 
+            _cooldownTimer?.Dispose();
+            _cooldownTimer = null;
+
             IsUiLocked = false;
 
             if (HostScreen is AuthenticationViewModel hostWindow)
@@ -753,6 +819,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
             _autoRedirectTimer?.Dispose();
+            _cooldownTimer?.Dispose();
             _disposables?.Dispose();
         }
 

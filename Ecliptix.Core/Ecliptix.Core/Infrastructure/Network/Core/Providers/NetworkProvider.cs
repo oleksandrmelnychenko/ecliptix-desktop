@@ -212,9 +212,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
         {
-            CertificatePinningBoolResult certificatePinningBoolResult = certificatePinningService.Value!.VerifyServerSignature(
-                responseEnvelope.EncryptedPayload.Memory,
-                responseEnvelope.AuthenticationTag.Memory);
+            CertificatePinningBoolResult certificatePinningBoolResult =
+                certificatePinningService.Value!.VerifyServerSignature(
+                    responseEnvelope.EncryptedPayload.Memory,
+                    responseEnvelope.AuthenticationTag.Memory);
 
             if (!certificatePinningBoolResult.IsSuccess)
             {
@@ -440,13 +441,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Result<Unit, NetworkFailure> networkResult = flowType switch
                 {
                     ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, logicalOperationId,
-                        serviceType, plainBuffer, flowType, onCompleted, connectId, retryBehavior, operationToken).ConfigureAwait(false),
-                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem, logicalOperationId,
-                        serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId, operationToken).ConfigureAwait(false),
+                            serviceType, plainBuffer, flowType, onCompleted, connectId, retryBehavior, operationToken)
+                        .ConfigureAwait(false),
+                    ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
+                        logicalOperationId,
+                        serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId,
+                        operationToken).ConfigureAwait(false),
                     ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, logicalOperationId,
-                        serviceType, plainBuffer, flowType, effectiveContext, onCompleted, operationToken).ConfigureAwait(false),
+                            serviceType, plainBuffer, flowType, effectiveContext, onCompleted, operationToken)
+                        .ConfigureAwait(false),
                     ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                        logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, onCompleted, operationToken).ConfigureAwait(false),
+                        logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, onCompleted,
+                        operationToken).ConfigureAwait(false),
                     _ => Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                 };
@@ -555,13 +561,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (retryMode)
         {
             case RestoreRetryMode.AutoRetry:
-                {
-                    BeginSecrecyChannelEstablishRecovery();
-                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                    using CancellationTokenSource combinedCancellationTokenSource =
-                        cancellationToken.CanBeCanceled
-                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+            {
+                BeginSecrecyChannelEstablishRecovery();
+                CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                using CancellationTokenSource combinedCancellationTokenSource =
+                    cancellationToken.CanBeCanceled
+                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
                     (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
@@ -574,13 +580,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 break;
             }
             case RestoreRetryMode.ManualRetry:
-                {
-                    BeginSecrecyChannelEstablishRecovery();
-                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                    using CancellationTokenSource combinedCts =
-                        cancellationToken.CanBeCanceled
-                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+            {
+                BeginSecrecyChannelEstablishRecovery();
+                CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                using CancellationTokenSource combinedCts =
+                    cancellationToken.CanBeCanceled
+                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
                 restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
                     (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
@@ -766,9 +772,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
-                DhRatchetEveryNMessages = 20,
-                MaxChainAge = TimeSpan.FromMinutes(5),
-                MaxMessagesWithoutRatchet = 100
+                DhRatchetEveryNMessages = 20, MaxChainAge = TimeSpan.FromMinutes(5), MaxMessagesWithoutRatchet = 100
             },
             _ => RatchetConfig.Default
         };
@@ -908,46 +912,46 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (serviceType.ToString())
         {
             case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
-                {
-                    Span<byte> semanticBuffer = stackalloc byte[256];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
-                {
-                    Span<byte> semanticBuffer = stackalloc byte[256];
-                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+            {
+                Span<byte> semanticBuffer = stackalloc byte[256];
+                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             case "InitiateVerification":
-                {
-                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                    SHA256.HashData(plainBuffer, payloadHash);
+            {
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                SHA256.HashData(plainBuffer, payloadHash);
 
-                    string semantic =
-                        $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+                string semantic =
+                    $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
             default:
-                {
-                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                    SHA256.HashData(plainBuffer, payloadHash);
+            {
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                SHA256.HashData(plainBuffer, payloadHash);
 
-                    string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
-                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                    break;
-                }
+                string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
+                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                break;
+            }
         }
 
         uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
@@ -1038,7 +1042,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (shouldUseRetry)
         {
-            Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, serviceType, plainBuffer);
+            Result<SecureEnvelope, NetworkFailure> encryptResult =
+                EncryptPayload(protocolSystem, serviceType, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1051,7 +1056,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
                 (attempt, ct) =>
                 {
-                    RpcRequestContext attemptContext = RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
+                    RpcRequestContext attemptContext =
+                        RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
                     lastRequestContext = attemptContext;
 
                     ServiceRequest request = ServiceRequest.New(
@@ -1219,7 +1225,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         if (retryBehavior.ShouldRetry)
         {
-            Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, serviceType, plainBuffer);
+            Result<SecureEnvelope, NetworkFailure> encryptResult =
+                EncryptPayload(protocolSystem, serviceType, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1232,7 +1239,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return await _retryStrategy.ExecuteRpcOperationAsync(
                 async (attempt, ct) =>
                 {
-                    RpcRequestContext attemptContext = RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
+                    RpcRequestContext attemptContext =
+                        RpcRequestContext.CreateNewWithStableKey(stableIdempotencyKey, attempt);
 
                     ServiceRequest request = ServiceRequest.New(
                         logicalOperationId,
@@ -1253,19 +1261,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 maxRetries: Math.Max(0, retryBehavior.MaxAttempts - 1),
                 cancellationToken: token).ConfigureAwait(false);
         }
-        else
+
+        Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
+            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
+
+        if (serviceRequestResult.IsErr)
         {
-            Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
-                protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType, requestContext);
-
-            if (serviceRequestResult.IsErr)
-            {
-                return Result<Unit, NetworkFailure>.Err(serviceRequestResult.UnwrapErr());
-            }
-
-            ServiceRequest request = serviceRequestResult.Unwrap();
-            return await ProcessStreamWithRequest(protocolSystem, request, onStreamItem, connectId, token).ConfigureAwait(false);
+            return Result<Unit, NetworkFailure>.Err(serviceRequestResult.UnwrapErr());
         }
+
+        ServiceRequest request = serviceRequestResult.Unwrap();
+        return await ProcessStreamWithRequest(protocolSystem, request, onStreamItem, connectId, token)
+            .ConfigureAwait(false);
     }
 
     private async Task<Result<Unit, NetworkFailure>> ProcessStreamWithRequest(
@@ -1307,18 +1314,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     NetworkFailure failure = streamItem.UnwrapErr();
 
-                    if (failure.FailureType is NetworkFailureType.DataCenterNotResponding
-                        or NetworkFailureType.DataCenterShutdown)
+                    if (failure.FailureType is not (NetworkFailureType.DataCenterNotResponding
+                        or NetworkFailureType.DataCenterShutdown))
                     {
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            _ = _connectivityService.PublishAsync(
-                                ConnectivityIntent.Disconnected(failure, connectId));
-                        });
-                        return Result<Unit, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding(""));
+                        return Result<Unit, NetworkFailure>.Err(failure);
                     }
 
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        _ = _connectivityService.PublishAsync(
+                            ConnectivityIntent.Disconnected(failure, connectId));
+                    });
                     return Result<Unit, NetworkFailure>.Err(failure);
                 }
 
@@ -2254,8 +2260,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
                 {
-                    MembershipUniqueId = membershipIdentifier,
-                    ClientPubKeyExchange = clientExchange
+                    MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
                 };
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =
