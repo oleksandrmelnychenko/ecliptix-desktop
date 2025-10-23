@@ -1,15 +1,12 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Controls.Common;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -21,6 +18,8 @@ using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Connectivity;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
@@ -40,12 +39,14 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
+    private readonly IConnectivityService _connectivityService;
 
     private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
 
     public SecureKeyVerifierViewModel(
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
@@ -58,11 +59,60 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _authenticationService = authenticationService;
+        _connectivityService = connectivityService;
+
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
+        SetupCommands(isFormLogicallyValid);
+        SetupSubscriptions();
+    }
 
-        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
-            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
+        snapshot.Status is ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown
+            or ConnectivityStatus.Recovering
+            or ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Unavailable;
+
+
+    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
+    public IScreen HostScreen { get; }
+
+    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
+    public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
+
+    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; private set; }
+    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; private set; }
+
+    [Reactive] public string? SecureKeyError { get; set; }
+    [Reactive] public bool HasSecureKeyError { get; set; }
+    [Reactive] public string? VerifySecureKeyError { get; set; }
+    [Reactive] public bool HasVerifySecureKeyError { get; set; }
+    [Reactive] public string? ServerError { get; set; }
+    [Reactive] public bool HasServerError { get; set; }
+    [Reactive] public bool CanSubmit { get; private set; }
+
+    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
+    [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
+    [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
+    [ObservableAsProperty] public bool IsBusy { get; }
+
+    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
+
+    private ByteString? VerificationSessionId { get; set; }
+
+    private void SetupCommands(IObservable<bool> isFormLogicallyValid)
+    {
+        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
+            .Select(IsNetworkInOutage)
+            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
+            .DistinctUntilChanged();
+
+        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
+
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
+                (isBusy, isInOutage) => !isBusy && !isInOutage)
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync, canExecuteSubmit);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
@@ -72,7 +122,10 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         {
             ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
         });
+    }
 
+    private void SetupSubscriptions()
+    {
         this.WhenActivated(disposables =>
         {
             this.WhenAnyValue(x => x.CanSubmit).BindTo(this, x => x.CanSubmit).DisposeWith(disposables);
@@ -113,30 +166,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .DisposeWith(disposables);
         });
     }
-
-    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
-    public IScreen HostScreen { get; }
-
-    public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
-    public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
-
-    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; }
-    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; }
-
-    [Reactive] public string? SecureKeyError { get; set; }
-    [Reactive] public bool HasSecureKeyError { get; set; }
-    [Reactive] public string? VerifySecureKeyError { get; set; }
-    [Reactive] public bool HasVerifySecureKeyError { get; set; }
-    [Reactive] public string? ServerError { get; set; }
-    [Reactive] public bool HasServerError { get; set; }
-    [Reactive] public bool CanSubmit { get; private set; }
-
-    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
-    [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
-    [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
-    [ObservableAsProperty] public bool IsBusy { get; }
-
-    private ByteString? VerificationSessionId { get; set; }
 
     public void InsertSecureKeyChars(int index, string chars)
     {

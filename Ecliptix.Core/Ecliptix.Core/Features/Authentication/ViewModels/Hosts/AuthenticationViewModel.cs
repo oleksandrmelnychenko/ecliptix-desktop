@@ -67,7 +67,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                     new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg),
             [MembershipViewType.ConfirmSecureKey] =
                 (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
-                    new SecureKeyVerifierViewModel(netProvider, loc, host, storage, reg, auth),
+                    new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.PassPhase] =
                 (netEvents, netProvider, loc, _, _, host, _, _) =>
                     new PassPhaseViewModel(loc, host, netProvider),
