@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Connectivity;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
 using Google.Protobuf;
 using ReactiveUI;
@@ -29,6 +30,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
+    private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
 
     private CancellationTokenSource? _currentOperationCts;
@@ -36,6 +38,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private bool _isDisposed;
 
     public MobileVerificationViewModel(
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
@@ -46,6 +49,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         _registrationService = registrationService;
         _passwordRecoveryService = passwordRecoveryService;
+        _connectivityService = connectivityService;
         _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -70,6 +74,15 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     [Reactive] public bool HasMobileNumberError { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
+
+    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
+
+    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
+        snapshot.Status is ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown
+            or ConnectivityStatus.Recovering
+            or ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Unavailable;
 
     public async Task HandleEnterKeyPressAsync()
     {
@@ -149,8 +162,18 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
-            .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
+        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
+            .Select(IsNetworkInOutage)
+            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
+            .DistinctUntilChanged();
+
+        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
+
+
+        IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
+                (isBusy, isInOutage) => !isBusy && !isInOutage)
+            .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
+
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
         VerifyMobileNumberCommand.IsExecuting

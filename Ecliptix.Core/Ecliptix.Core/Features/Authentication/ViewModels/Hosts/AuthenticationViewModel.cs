@@ -64,7 +64,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                     new WelcomeViewModel(host, loc, netProvider),
             [MembershipViewType.MobileVerification] =
                 (netEvents, netProvider, loc, _, storage, host, reg, _) =>
-                    new MobileVerificationViewModel(netProvider, loc, host, storage, reg),
+                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg),
             [MembershipViewType.ConfirmSecureKey] =
                 (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
                     new SecureKeyVerifierViewModel(netProvider, loc, host, storage, reg, auth),
@@ -304,6 +304,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         ClearNavigationStack(true);
         MobileVerificationViewModel vm = new(
+            _connectivityService,
             _networkProvider,
             LocalizationService,
             this,
