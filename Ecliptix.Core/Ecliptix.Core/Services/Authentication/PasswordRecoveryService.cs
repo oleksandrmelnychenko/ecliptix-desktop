@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -23,7 +24,8 @@ internal sealed class PasswordRecoveryService(
     NetworkProvider networkProvider,
     IOpaqueRegistrationService registrationService,
     ILocalizationService localizationService,
-    IServerPublicKeyProvider serverPublicKeyProvider)
+    IServerPublicKeyProvider serverPublicKeyProvider,
+    IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : IPasswordRecoveryService, IDisposable
 {
     private readonly Lock _opaqueClientLock = new();
@@ -146,6 +148,18 @@ internal sealed class PasswordRecoveryService(
                 return Result<Unit, string>.Err(errorMessage);
             }
 
+            if (initResponse.Membership?.AccountUniqueIdentifier != null &&
+                initResponse.Membership.AccountUniqueIdentifier.Length > 0)
+            {
+                await applicationSecureStorageProvider
+                    .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
+                    .ConfigureAwait(false);
+                Serilog.Log.Information(
+                    "[PASSWORD-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                    Helpers.FromByteStringToGuid(membershipIdentifier),
+                    Helpers.FromByteStringToGuid(initResponse.Membership.AccountUniqueIdentifier));
+            }
+
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
@@ -213,6 +227,45 @@ internal sealed class PasswordRecoveryService(
         }
     }
 
+    public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier)
+    {
+        return registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient?.Dispose();
+            _opaqueClient = null;
+        }
+
+        _disposed = true;
+    }
+
+    private OpaqueClient GetOrCreateOpaqueClient()
+    {
+        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
+
+        lock (_opaqueClientLock)
+        {
+            if (_opaqueClient == null || _cachedServerPublicKey == null ||
+                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            {
+                _opaqueClient?.Dispose();
+                _opaqueClient = new OpaqueClient(serverPublicKey);
+                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+            }
+
+            return _opaqueClient;
+        }
+    }
+
     private async Task<Result<OpaqueRecoverySecureKeyInitResponse, string>> InitiatePasswordRecoveryAsync(
         ByteString membershipIdentifier,
         byte[] recoveryRequest,
@@ -266,44 +319,5 @@ internal sealed class PasswordRecoveryService(
         {
             return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(ex.Message);
         }
-    }
-
-    public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier)
-    {
-        return registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
-    }
-
-    private OpaqueClient GetOrCreateOpaqueClient()
-    {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
-
-        lock (_opaqueClientLock)
-        {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
-            {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
-            }
-
-            return _opaqueClient;
-        }
-    }
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        lock (_opaqueClientLock)
-        {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
-        }
-
-        _disposed = true;
     }
 }

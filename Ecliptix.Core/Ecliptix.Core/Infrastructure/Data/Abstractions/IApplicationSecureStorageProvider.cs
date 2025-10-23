@@ -7,6 +7,7 @@ using Ecliptix.Core.Services.External.IpGeolocation;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
+using Google.Protobuf;
 
 namespace Ecliptix.Core.Infrastructure.Data.Abstractions;
 
@@ -16,6 +17,7 @@ public interface IApplicationSecureStorageProvider : IAsyncDisposable
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry);
     Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership);
+    Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId);
     Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync();
 
     Task<Result<InstanceSettingsResult, InternalServiceApiFailure>> InitApplicationInstanceSettingsAsync(

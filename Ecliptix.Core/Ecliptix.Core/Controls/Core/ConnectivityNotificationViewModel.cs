@@ -585,6 +585,23 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         };
     }
 
+    public void Dispose()
+    {
+        _visibilityOperationTokenSource?.Cancel();
+        _visibilityOperationTokenSource?.Dispose();
+
+        _disposables.Dispose();
+        _statusUpdateSemaphore.Dispose();
+
+        _cachedInternetUnavailableIcon?.Dispose();
+        _cachedServerUnreachableIcon?.Dispose();
+        _cachedInternetUnavailableIcon = null;
+        _cachedServerUnreachableIcon = null;
+
+        _cachedStatusTexts.Clear();
+        _cachedStatusDescriptions.Clear();
+    }
+
     private static void LogRetryButtonShow()
     {
         if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
@@ -638,22 +655,5 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         {
             Log.Debug("🪟 NOTIFICATION VISIBILITY: Operation was cancelled");
         }
-    }
-
-    public void Dispose()
-    {
-        _visibilityOperationTokenSource?.Cancel();
-        _visibilityOperationTokenSource?.Dispose();
-
-        _disposables.Dispose();
-        _statusUpdateSemaphore.Dispose();
-
-        _cachedInternetUnavailableIcon?.Dispose();
-        _cachedServerUnreachableIcon?.Dispose();
-        _cachedInternetUnavailableIcon = null;
-        _cachedServerUnreachableIcon = null;
-
-        _cachedStatusTexts.Clear();
-        _cachedStatusDescriptions.Clear();
     }
 }

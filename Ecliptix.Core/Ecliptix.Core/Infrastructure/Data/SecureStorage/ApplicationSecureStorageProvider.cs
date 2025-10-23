@@ -101,6 +101,21 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId)
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        if (settingsResult.IsErr)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
+        }
+
+        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+        settings.CurrentAccountId = accountId ?? ByteString.Empty;
+
+        return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
+            span => StoreAsync(SettingsKey, span.ToArray()));
+    }
+
     public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync()
     {
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);

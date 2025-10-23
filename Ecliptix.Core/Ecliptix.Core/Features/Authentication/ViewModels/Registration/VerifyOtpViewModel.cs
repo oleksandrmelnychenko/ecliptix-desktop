@@ -175,19 +175,29 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     }
 
     public string? UrlPathSegment { get; } = "/verification-code-entry";
+
     public IScreen HostScreen { get; }
+
     public new ViewModelActivator Activator { get; } = new();
 
     public ReactiveCommand<Unit, Unit> SendVerificationCodeCommand { get; }
+
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
+
     public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
 
     [Reactive] public string VerificationCode { get; set; } = string.Empty;
+
     [Reactive] public bool IsSent { get; private set; }
+
     [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
+
     [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
+
     [Reactive] public uint SecondsRemaining { get; private set; }
+
     [Reactive] public bool HasError { get; private set; }
+
     [Reactive] public uint CooldownBufferSeconds { get; private set; }
 
     [Reactive]
@@ -195,12 +205,17 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
 
     [Reactive] public bool IsMaxAttemptsReached { get; private set; }
+
     [Reactive] public int AutoRedirectCountdown { get; private set; }
+
     [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
+
     [Reactive] public bool IsUiLocked { get; private set; }
+
     [Reactive] public bool HasValidSession { get; private set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
+
     [ObservableAsProperty] public bool IsResending { get; }
 
     private Guid? VerificationSessionIdentifier
@@ -250,6 +265,21 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             await ResetUiState();
             await CleanupSessionAsync();
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && !_isDisposed)
+        {
+            _isDisposed = true;
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _autoRedirectTimer?.Dispose();
+            _cooldownTimer?.Dispose();
+            _disposables?.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     private IObservable<Unit> OnViewLoaded()
@@ -382,6 +412,18 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
                 {
                     await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+                    if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
+                    {
+                        await _applicationSecureStorageProvider
+                            .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
+                            .ConfigureAwait(false);
+                        Log.Information(
+                            "[OTP-VERIFY-ACCOUNT] Active account stored from OTP verification. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                            Helpers.FromByteStringToGuid(membership.UniqueIdentifier),
+                            Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
+                    }
+
                     NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
                     hostWindow.ClearNavigationStack(true);
                 }
@@ -661,7 +703,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         }
     }
 
-
     private void HandleCountdownUpdate(uint seconds, Guid identifier,
         VerificationCountdownUpdate.Types.CountdownUpdateStatus status, string? message)
     {
@@ -809,20 +850,5 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 HasValidSession = false;
             }
         });
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing && !_isDisposed)
-        {
-            _isDisposed = true;
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _autoRedirectTimer?.Dispose();
-            _cooldownTimer?.Dispose();
-            _disposables?.Dispose();
-        }
-
-        base.Dispose(disposing);
     }
 }

@@ -33,11 +33,13 @@ namespace Ecliptix.Core.Services.Authentication;
 
 public sealed class SignInResult(
     SodiumSecureMemoryHandle masterKeyHandle,
-    Ecliptix.Protobuf.Membership.Membership? membership)
+    Ecliptix.Protobuf.Membership.Membership? membership,
+    Ecliptix.Protobuf.Account.Account? activeAccount = null)
     : IDisposable
 {
     public SodiumSecureMemoryHandle? MasterKeyHandle { get; private set; } = masterKeyHandle;
     public Protobuf.Membership.Membership? Membership { get; } = membership;
+    public Ecliptix.Protobuf.Account.Account? ActiveAccount { get; } = activeAccount;
 
     public void Dispose()
     {
@@ -121,6 +123,105 @@ internal sealed class OpaqueAuthenticationService(
         {
             passwordBytes?.Dispose();
         }
+    }
+
+    public void Dispose()
+    {
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient?.Dispose();
+            _opaqueClient = null;
+        }
+    }
+
+    private static bool IsInvalidCredentialFailure(NetworkFailure failure)
+    {
+        if (failure.UserError is null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(failure.UserError.I18nKey) &&
+            string.Equals(failure.UserError.I18nKey, AuthenticationConstants.InvalidCredentialsKey,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool ShouldReinit(NetworkFailure failure)
+    {
+        if (failure.RequiresReinit)
+        {
+            return true;
+        }
+
+        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
+        {
+            return true;
+        }
+
+        if (failure.UserError is { } userError)
+        {
+            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
+                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
+                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
+    {
+        return initResponse.Result switch
+        {
+            OpaqueSignInInitResponse.Types.SignInResult.InvalidCredentials => Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.SignInFailed(initResponse.Message)),
+            OpaqueSignInInitResponse.Types.SignInResult.LoginAttemptExceeded => Result<Unit, ValidationFailure>.Err(
+                ValidationFailure.LoginAttemptExceeded(initResponse.Message)),
+            _ when !string.IsNullOrEmpty(initResponse.Message) =>
+                Result<Unit, ValidationFailure>.Err(
+                    ValidationFailure.SignInFailed(initResponse.Message)),
+
+            _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
+        };
+    }
+
+    private static bool ValidateMembershipIdentifier(ByteString identifier)
+    {
+        if (identifier.Length != CryptographicConstants.GuidByteLength)
+        {
+            return false;
+        }
+
+        ReadOnlySpan<byte> span = identifier.Span;
+
+        int zeroCount = 0;
+        bool hasNonZero = false;
+
+        for (int i = 0; i < span.Length; i++)
+        {
+            if (span[i] == 0)
+            {
+                zeroCount++;
+            }
+            else
+            {
+                hasNonZero = true;
+            }
+        }
+
+        return hasNonZero && zeroCount <= MaxAllowedZeroBytes;
     }
 
     private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber,
@@ -359,6 +460,26 @@ internal sealed class OpaqueAuthenticationService(
                                 "[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}",
                                 membershipId);
 
+                            ByteString? accountIdToStore = null;
+                            if (signInResult.ActiveAccount != null && signInResult.ActiveAccount.UniqueIdentifier != null)
+                            {
+                                accountIdToStore = signInResult.ActiveAccount.UniqueIdentifier;
+                            }
+                            else if (signInResult.Membership?.AccountUniqueIdentifier != null && signInResult.Membership.AccountUniqueIdentifier.Length > 0)
+                            {
+                                accountIdToStore = signInResult.Membership.AccountUniqueIdentifier;
+                            }
+
+                            if (accountIdToStore != null)
+                            {
+                                await applicationSecureStorageProvider
+                                    .SetCurrentAccountIdAsync(accountIdToStore)
+                                    .ConfigureAwait(false);
+                                Serilog.Log.Information(
+                                    "[LOGIN-ACCOUNT-STORE] Active account stored successfully. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                                    membershipId, Helpers.FromByteStringToGuid(accountIdToStore));
+                            }
+
                             Serilog.Log.Information(
                                 "[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
                                 membershipId, connectId);
@@ -542,7 +663,7 @@ internal sealed class OpaqueAuthenticationService(
                 NetworkFailure.InvalidRequestType(message));
         }
 
-        SignInResult result = new(sessionKeyHandle, capturedResponse.Membership);
+        SignInResult result = new(sessionKeyHandle, capturedResponse.Membership, capturedResponse.ActiveAccount);
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
@@ -560,104 +681,5 @@ internal sealed class OpaqueAuthenticationService(
                 AuthenticationFailure.NetworkRequestFailed(message),
             _ => AuthenticationFailure.NetworkRequestFailed(message)
         };
-    }
-
-    private static bool IsInvalidCredentialFailure(NetworkFailure failure)
-    {
-        if (failure.UserError is null)
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(failure.UserError.I18nKey) &&
-            string.Equals(failure.UserError.I18nKey, AuthenticationConstants.InvalidCredentialsKey,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool ShouldReinit(NetworkFailure failure)
-    {
-        if (failure.RequiresReinit)
-        {
-            return true;
-        }
-
-        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
-        {
-            return true;
-        }
-
-        if (failure.UserError is { } userError)
-        {
-            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
-                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
-    {
-        return initResponse.Result switch
-        {
-            OpaqueSignInInitResponse.Types.SignInResult.InvalidCredentials => Result<Unit, ValidationFailure>.Err(
-                ValidationFailure.SignInFailed(initResponse.Message)),
-            OpaqueSignInInitResponse.Types.SignInResult.LoginAttemptExceeded => Result<Unit, ValidationFailure>.Err(
-                ValidationFailure.LoginAttemptExceeded(initResponse.Message)),
-            _ when !string.IsNullOrEmpty(initResponse.Message) =>
-                Result<Unit, ValidationFailure>.Err(
-                    ValidationFailure.SignInFailed(initResponse.Message)),
-
-            _ => Result<Unit, ValidationFailure>.Ok(Unit.Value)
-        };
-    }
-
-    private static bool ValidateMembershipIdentifier(ByteString identifier)
-    {
-        if (identifier.Length != CryptographicConstants.GuidByteLength)
-        {
-            return false;
-        }
-
-        ReadOnlySpan<byte> span = identifier.Span;
-
-        int zeroCount = 0;
-        bool hasNonZero = false;
-
-        for (int i = 0; i < span.Length; i++)
-        {
-            if (span[i] == 0)
-            {
-                zeroCount++;
-            }
-            else
-            {
-                hasNonZero = true;
-            }
-        }
-
-        return hasNonZero && zeroCount <= MaxAllowedZeroBytes;
-    }
-
-    public void Dispose()
-    {
-        lock (_opaqueClientLock)
-        {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
-        }
     }
 }

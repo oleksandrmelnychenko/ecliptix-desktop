@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
@@ -30,7 +31,8 @@ namespace Ecliptix.Core.Services.Authentication;
 internal sealed class OpaqueRegistrationService(
     NetworkProvider networkProvider,
     ILocalizationService localizationService,
-    IServerPublicKeyProvider serverPublicKeyProvider)
+    IServerPublicKeyProvider serverPublicKeyProvider,
+    IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : IOpaqueRegistrationService, IDisposable
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
@@ -311,7 +313,6 @@ internal sealed class OpaqueRegistrationService(
         return await responseSource.Task.ConfigureAwait(false);
     }
 
-    // README: Manual retry keeps the password in SensitiveBytes for the entire flow, recreates OPAQUE state per attempt, and zeroizes buffers when SensitiveBytes and attempt-scoped arrays are disposed.
     public async Task<Result<Unit, string>> CompleteRegistrationAsync(ByteString membershipIdentifier,
         SecureTextBuffer secureKey, uint connectId, CancellationToken cancellationToken = default)
     {
@@ -376,6 +377,92 @@ internal sealed class OpaqueRegistrationService(
         }
 
         return await CleanupStreamAsync(sessionIdentifier).ConfigureAwait(false);
+    }
+
+    public void Dispose()
+    {
+        lock (_opaqueClientLock)
+        {
+            _opaqueClient?.Dispose();
+            _opaqueClient = null;
+            _cachedServerPublicKey = null;
+        }
+    }
+
+    private static RegistrationAttemptResult CreateAttemptSuccess(RpcRequestContext context) =>
+        new(Result<Unit, string>.Ok(Unit.Value), false, context.CorrelationId, context.IdempotencyKey, string.Empty);
+
+    private static RegistrationAttemptResult CreateAttemptFailure(string error, bool isTransient,
+        RpcRequestContext context) =>
+        new(Result<Unit, string>.Err(error), isTransient, context.CorrelationId, context.IdempotencyKey, error);
+
+    private static bool IsTransientRpcStatus(StatusCode statusCode) =>
+        statusCode == StatusCode.Unavailable ||
+        statusCode == StatusCode.DeadlineExceeded ||
+        statusCode == StatusCode.Cancelled;
+
+    private static bool IsTransientException(Exception exception) =>
+        exception switch
+        {
+            RpcException rpcException when IsTransientRpcStatus(rpcException.StatusCode) => true,
+            IOException => true,
+            SocketException => true,
+            TimeoutException => true,
+            _ => false
+        };
+
+    private static bool IsTransientRegistrationFailure(NetworkFailure failure)
+    {
+        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
+            or NetworkFailureType.DataCenterShutdown
+            or NetworkFailureType.OperationCancelled;
+    }
+
+    private static bool ShouldReinit(NetworkFailure failure)
+    {
+        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
+        {
+            return true;
+        }
+
+        if (failure.UserError is { } userError)
+        {
+            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
+                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
+                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetNetworkFailureMessage(NetworkFailure failure) =>
+        failure.UserError?.Message ?? failure.Message;
+
+    private static bool IsVerificationSessionMissing(NetworkFailure failure)
+    {
+        if (failure.UserError is not { } userError)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
+            (string.Equals(userError.I18nKey, AuthenticationConstants.SessionNotFoundKey,
+                 StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(userError.I18nKey, AuthenticationConstants.VerificationSessionExpiredKey,
+                 StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return userError.ErrorCode == ErrorCode.NotFound;
     }
 
     private async Task<RegistrationAttemptResult> ExecuteCompleteRegistrationAttemptAsync(
@@ -558,6 +645,13 @@ internal sealed class OpaqueRegistrationService(
                     return CreateAttemptFailure(errorMessage, false, requestContext);
                 }
 
+                if (completeResponse.ActiveAccount != null && completeResponse.ActiveAccount.UniqueIdentifier != null)
+                {
+                    await applicationSecureStorageProvider
+                        .SetCurrentAccountIdAsync(completeResponse.ActiveAccount.UniqueIdentifier)
+                        .ConfigureAwait(false);
+                }
+
                 return CreateAttemptSuccess(requestContext);
             }
             catch (Exception ex) when (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
@@ -665,71 +759,10 @@ internal sealed class OpaqueRegistrationService(
         return lastResult.Outcome;
     }
 
-    private static RegistrationAttemptResult CreateAttemptSuccess(RpcRequestContext context) =>
-        new(Result<Unit, string>.Ok(Unit.Value), false, context.CorrelationId, context.IdempotencyKey, string.Empty);
-
-    private static RegistrationAttemptResult CreateAttemptFailure(string error, bool isTransient,
-        RpcRequestContext context) =>
-        new(Result<Unit, string>.Err(error), isTransient, context.CorrelationId, context.IdempotencyKey, error);
-
-    private readonly record struct RegistrationAttemptResult(
-        Result<Unit, string> Outcome,
-        bool IsTransient,
-        string CorrelationId,
-        string IdempotencyKey,
-        string FailureMessage);
-
-    private static bool IsTransientRpcStatus(StatusCode statusCode) =>
-        statusCode == StatusCode.Unavailable ||
-        statusCode == StatusCode.DeadlineExceeded ||
-        statusCode == StatusCode.Cancelled;
-
-    private static bool IsTransientException(Exception exception) =>
-        exception switch
-        {
-            RpcException rpcException when IsTransientRpcStatus(rpcException.StatusCode) => true,
-            IOException => true,
-            SocketException => true,
-            TimeoutException => true,
-            _ => false
-        };
-
     private string FormatNetworkFailure(NetworkFailure failure)
     {
         string message = failure.UserError?.Message ?? failure.Message;
         return $"{AuthenticationConstants.RegistrationFailurePrefix}{message}";
-    }
-
-    private static bool IsTransientRegistrationFailure(NetworkFailure failure)
-    {
-        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
-            or NetworkFailureType.DataCenterShutdown
-            or NetworkFailureType.OperationCancelled;
-    }
-
-    private static bool ShouldReinit(NetworkFailure failure)
-    {
-        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
-        {
-            return true;
-        }
-
-        if (failure.UserError is { } userError)
-        {
-            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
-                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private OpaqueClient GetOrCreateOpaqueClient()
@@ -792,28 +825,6 @@ internal sealed class OpaqueRegistrationService(
 
         OpaqueRegistrationInitResponse initResponse = await responseSource.Task.ConfigureAwait(false);
         return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Ok(initResponse);
-    }
-
-    private static string GetNetworkFailureMessage(NetworkFailure failure) =>
-        failure.UserError?.Message ?? failure.Message;
-
-    private static bool IsVerificationSessionMissing(NetworkFailure failure)
-    {
-        if (failure.UserError is not { } userError)
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-            (string.Equals(userError.I18nKey, AuthenticationConstants.SessionNotFoundKey,
-                 StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(userError.I18nKey, AuthenticationConstants.VerificationSessionExpiredKey,
-                 StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
-
-        return userError.ErrorCode == ErrorCode.NotFound;
     }
 
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
@@ -901,13 +912,10 @@ internal sealed class OpaqueRegistrationService(
         return Result<Unit, string>.Ok(Unit.Value);
     }
 
-    public void Dispose()
-    {
-        lock (_opaqueClientLock)
-        {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
-            _cachedServerPublicKey = null;
-        }
-    }
+    private readonly record struct RegistrationAttemptResult(
+        Result<Unit, string> Outcome,
+        bool IsTransient,
+        string CorrelationId,
+        string IdempotencyKey,
+        string FailureMessage);
 }

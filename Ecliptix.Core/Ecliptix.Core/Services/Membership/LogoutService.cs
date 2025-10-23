@@ -44,6 +44,7 @@ internal sealed class LogoutService(
 {
     private readonly PendingLogoutRequestStorage _pendingLogoutRequestStorage = new(applicationSecureStorageProvider);
     private readonly LogoutProofHandler _logoutProofHandler = new(identityService, applicationSecureStorageProvider);
+
     public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason,
         CancellationToken cancellationToken = default)
     {
@@ -76,7 +77,8 @@ internal sealed class LogoutService(
             MembershipIdentifier = membershipIdBytes,
             LogoutReason = reason.ToString(),
             Timestamp = timestamp,
-            Scope = LogoutScope.ThisDevice
+            Scope = LogoutScope.ThisDevice,
+            AccountIdentifier = settings.CurrentAccountId
         };
 
         Result<Unit, LogoutFailure> hmacResult = await _logoutProofHandler.GenerateLogoutHmacProofAsync(logoutRequest, membershipId);
@@ -181,25 +183,7 @@ internal sealed class LogoutService(
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
-    private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId, CancellationToken cancellationToken)
-    {
-        Result<Unit, Exception> cleanupResult =
-            await stateCleanupService.CleanupMembershipStateAsync(membershipId, connectId).ConfigureAwait(false);
-        if (cleanupResult.IsErr)
-        {
-            Log.Warning("[LOGOUT] Cleanup failed during logout. MembershipId: {MembershipId}, Error: {Error}",
-                membershipId, cleanupResult.UnwrapErr().Message);
-        }
-
-        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
-
-        await messageBus.PublishAsync(new MembershipLoggedOutEvent(membershipId, reason.ToString()), cancellationToken)
-            .ConfigureAwait(false);
-
-        await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
-    }
-
-     public static async Task<bool> HasRevocationProofAsync(IApplicationSecureStorageProvider storageProvider,
+    public static async Task<bool> HasRevocationProofAsync(IApplicationSecureStorageProvider storageProvider,
         string membershipId)
     {
         return await LogoutProofHandler.HasRevocationProofAsync(storageProvider, membershipId);
@@ -229,6 +213,24 @@ internal sealed class LogoutService(
     {
         string message = failure.UserError?.Message ?? failure.Message;
         return LogoutFailure.NetworkRequestFailed(message, failure.InnerException);
+    }
+
+    private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId, CancellationToken cancellationToken)
+    {
+        Result<Unit, Exception> cleanupResult =
+            await stateCleanupService.CleanupMembershipStateAsync(membershipId, connectId).ConfigureAwait(false);
+        if (cleanupResult.IsErr)
+        {
+            Log.Warning("[LOGOUT] Cleanup failed during logout. MembershipId: {MembershipId}, Error: {Error}",
+                membershipId, cleanupResult.UnwrapErr().Message);
+        }
+
+        await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
+
+        await messageBus.PublishAsync(new MembershipLoggedOutEvent(membershipId, reason.ToString()), cancellationToken)
+            .ConfigureAwait(false);
+
+        await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
     }
 
     private async Task<Option<string>> GetCurrentMembershipIdAsync()

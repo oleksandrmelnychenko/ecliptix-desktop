@@ -347,6 +347,49 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
     }
 
+    public new void Dispose()
+    {
+        Dispose(true);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            CleanupAuthenticationFlow();
+
+            _disposables.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private static void OpenUrl(string url)
+    {
+        Log.Information("Opening URL: {Url}", url);
+
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
+                .Windows))
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.OSX))
+        {
+            System.Diagnostics.Process.Start("open", url);
+        }
+        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
+                     .OSPlatform.Linux))
+        {
+            System.Diagnostics.Process.Start("xdg-open", url);
+        }
+        else
+        {
+            Log.Warning("Unsupported platform for opening URL: {Url}", url);
+        }
+    }
+
     private void CleanupAuthenticationFlow()
     {
         ClearNavigationStack();
@@ -480,32 +523,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
     }
 
-    private static void OpenUrl(string url)
-    {
-        Log.Information("Opening URL: {Url}", url);
-
-        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
-                .Windows))
-        {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.OSX))
-        {
-            System.Diagnostics.Process.Start("open", url);
-        }
-        else if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices
-                     .OSPlatform.Linux))
-        {
-            System.Diagnostics.Process.Start("xdg-open", url);
-        }
-        else
-        {
-            Log.Warning("Unsupported platform for opening URL: {Url}", url);
-        }
-    }
-
     private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType, bool resetState = true)
     {
         if (_viewModelCache.TryGetValue(viewType, out WeakReference<IRoutableViewModel>? weakRef) &&
@@ -535,22 +552,5 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
 
         return newViewModel;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            CleanupAuthenticationFlow();
-
-            _disposables.Dispose();
-        }
-
-        base.Dispose(disposing);
-    }
-
-    public new void Dispose()
-    {
-        Dispose(true);
     }
 }

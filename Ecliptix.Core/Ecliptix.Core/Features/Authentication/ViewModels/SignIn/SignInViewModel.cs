@@ -158,6 +158,51 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         HasServerError = false;
     }
 
+    public new void Dispose() =>
+        Dispose(true);
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            try
+            {
+                _signInCancellationTokenSource?.Cancel();
+                _signInCancellationTokenSource?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            _signInCancellationTokenSource = null;
+
+            SignInCommand?.Dispose();
+            AccountRecoveryCommand?.Dispose();
+
+            _secureKeyBuffer.Dispose();
+            _signInErrorSubject.Dispose();
+            _disposables.Dispose();
+
+            MobileNumber = string.Empty;
+            _hasMobileNumberBeenTouched = false;
+            _hasSecureKeyBeenTouched = false;
+        }
+
+        base.Dispose(disposing);
+        _isDisposed = true;
+    }
+
+    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
+        snapshot.Status is ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown
+            or ConnectivityStatus.Recovering
+            or ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Unavailable;
+
     private IObservable<bool> SetupValidation()
     {
         IObservable<SystemU> languageTrigger = LanguageChanged;
@@ -253,13 +298,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         return isFormLogicallyValid;
     }
 
-    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
-        snapshot.Status is ConnectivityStatus.Disconnected
-            or ConnectivityStatus.ShuttingDown
-            or ConnectivityStatus.Recovering
-            or ConnectivityStatus.RetriesExhausted
-            or ConnectivityStatus.Unavailable;
-
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
         IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
@@ -331,42 +369,4 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _secureKeyBuffer.Length == 0
             ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.Required]
             : string.Empty;
-
-    protected override void Dispose(bool disposing)
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            try
-            {
-                _signInCancellationTokenSource?.Cancel();
-                _signInCancellationTokenSource?.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            _signInCancellationTokenSource = null;
-
-            SignInCommand?.Dispose();
-            AccountRecoveryCommand?.Dispose();
-
-            _secureKeyBuffer.Dispose();
-            _signInErrorSubject.Dispose();
-            _disposables.Dispose();
-
-            MobileNumber = string.Empty;
-            _hasMobileNumberBeenTouched = false;
-            _hasSecureKeyBeenTouched = false;
-        }
-
-        base.Dispose(disposing);
-        _isDisposed = true;
-    }
-
-    public new void Dispose() =>
-        Dispose(true);
 }

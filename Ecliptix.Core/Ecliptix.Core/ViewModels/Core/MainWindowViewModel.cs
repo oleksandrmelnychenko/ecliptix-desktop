@@ -80,21 +80,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         _ = SetupHandlersAsync();
     }
 
-    private async Task SetupHandlersAsync()
-    {
-        try
-        {
-            Log.Information("[MainWindowViewModel] Message handlers setup completed");
-
-            await Task.CompletedTask;
-
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[MainWindowViewModel] Error setting up message handlers");
-        }
-    }
-
     public async Task SetAuthenticationContentAsync(object content)
     {
         Log.Information("[MainWindowViewModel] Switching to authentication content");
@@ -144,6 +129,42 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         return _bottomSheetService.OnBottomSheetHidden(handler, lifetime);
     }
 
+    public void Dispose()
+    {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        Log.Debug("[MainWindowViewModel] Disposing");
+
+        _disposables.Dispose();
+        LanguageSelector.Dispose();
+        ConnectivityNotification.Dispose();
+
+        _isDisposed = true;
+    }
+
+    private static double EaseInOutCubic(double t)
+    {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
+    }
+
+    private async Task SetupHandlersAsync()
+    {
+        try
+        {
+            Log.Information("[MainWindowViewModel] Message handlers setup completed");
+
+            await Task.CompletedTask;
+
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[MainWindowViewModel] Error setting up message handlers");
+        }
+    }
+
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
     {
         double startWidth = WindowWidth;
@@ -185,26 +206,5 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         CurrentContent = content;
 
         await Task.Delay(100).ConfigureAwait(false);
-    }
-
-    private static double EaseInOutCubic(double t)
-    {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
-    }
-
-    public void Dispose()
-    {
-        if (_isDisposed)
-        {
-            return;
-        }
-
-        Log.Debug("[MainWindowViewModel] Disposing");
-
-        _disposables.Dispose();
-        LanguageSelector.Dispose();
-        ConnectivityNotification.Dispose();
-
-        _isDisposed = true;
     }
 }

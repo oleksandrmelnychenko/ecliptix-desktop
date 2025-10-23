@@ -24,4 +24,7 @@ message ApplicationInstanceSettings {
 
   // Membership
   ecliptix.proto.membership.Membership membership = 9;
+
+  // Current Account
+  bytes current_account_id = 10;
 }

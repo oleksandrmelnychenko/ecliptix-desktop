@@ -13,47 +13,17 @@ namespace Ecliptix.Core.Services.Core.Localization;
 
 internal sealed class LocalizationService : ILocalizationService
 {
+    private readonly FrozenDictionary<string, string> _defaultLanguageStrings;
+    private readonly Lock _cultureChangeLock = new();
+
     private FrozenDictionary<string, string> _currentLanguageStrings;
     private CultureInfo _currentCultureInfo;
-    private readonly FrozenDictionary<string, string> _defaultLanguageStrings;
-
-    private readonly Lock _cultureChangeLock = new();
 
     public event Action? LanguageChanged;
     public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
     public CultureInfo CurrentCultureInfo => _currentCultureInfo;
     public string CurrentCultureName => _currentCultureInfo.Name;
-
-    public LocalizationService(DefaultSystemSettings defaultSystemSettings)
-    {
-        string? defaultCultureName = defaultSystemSettings.Culture;
-
-        _currentCultureInfo = CreateCultureInfo(defaultCultureName);
-        _defaultLanguageStrings = LocalizationData.EnglishStrings;
-
-        _currentLanguageStrings = GetLanguageStrings(defaultCultureName.ToOption())
-            .ValueOr(_defaultLanguageStrings);
-    }
-
-    private static CultureInfo CreateCultureInfo(string? cultureName)
-    {
-        try
-        {
-            return CultureInfo.GetCultureInfo(cultureName ?? "en-US");
-        }
-        catch (CultureNotFoundException)
-        {
-            return CultureInfo.GetCultureInfo("en-US");
-        }
-    }
-
-    private static Option<FrozenDictionary<string, string>> GetLanguageStrings(Option<string> cultureName)
-    {
-        return cultureName
-            .Where(name => !string.IsNullOrEmpty(name))
-            .Bind(name => LocalizationData.AllLanguages.GetValueOrDefault(name).ToOption());
-    }
 
     public string this[string key]
     {
@@ -71,6 +41,17 @@ internal sealed class LocalizationService : ILocalizationService
 
             return _defaultLanguageStrings.TryGetValue(key, out string? defaultValue) ? defaultValue : $"!{key}!";
         }
+    }
+
+    public LocalizationService(DefaultSystemSettings defaultSystemSettings)
+    {
+        string? defaultCultureName = defaultSystemSettings.Culture;
+
+        _currentCultureInfo = CreateCultureInfo(defaultCultureName);
+        _defaultLanguageStrings = LocalizationData.EnglishStrings;
+
+        _currentLanguageStrings = GetLanguageStrings(defaultCultureName.ToOption())
+            .ValueOr(_defaultLanguageStrings);
     }
 
     public string GetString(string key, params object[] args)
@@ -116,6 +97,25 @@ internal sealed class LocalizationService : ILocalizationService
             NotifyAllPropertiesChanged();
             onCultureChanged?.Invoke();
         }
+    }
+
+    private static CultureInfo CreateCultureInfo(string? cultureName)
+    {
+        try
+        {
+            return CultureInfo.GetCultureInfo(cultureName ?? "en-US");
+        }
+        catch (CultureNotFoundException)
+        {
+            return CultureInfo.GetCultureInfo("en-US");
+        }
+    }
+
+    private static Option<FrozenDictionary<string, string>> GetLanguageStrings(Option<string> cultureName)
+    {
+        return cultureName
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Bind(name => LocalizationData.AllLanguages.GetValueOrDefault(name).ToOption());
     }
 
     private void OnLanguageChanged()

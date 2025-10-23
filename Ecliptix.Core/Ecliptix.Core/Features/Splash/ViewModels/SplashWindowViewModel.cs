@@ -35,6 +35,12 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         SetupPrecompiledNetworkBinding(connectivityService);
     }
 
+    public Task PrepareForShutdownAsync()
+    {
+        _isShuttingDown = true;
+        return Task.CompletedTask;
+    }
+
     private void SetupPrecompiledNetworkBinding(IConnectivityService connectivityService)
     {
         ProcessConnectivityChange(connectivityService.CurrentSnapshot);
@@ -56,11 +62,5 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         }
 
         Connectivity = snapshot;
-    }
-
-    public Task PrepareForShutdownAsync()
-    {
-        _isShuttingDown = true;
-        return Task.CompletedTask;
     }
 }

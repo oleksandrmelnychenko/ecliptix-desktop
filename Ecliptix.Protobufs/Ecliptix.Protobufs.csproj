@@ -36,7 +36,6 @@
     <Protobuf Include="Sources\protocol\protocol_state.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
 
     <!-- Security proto files -->
-    <Protobuf Include="Sources\security\secure_request.proto" GrpcServices="Client" ProtoRoot="Sources" AdditionalImportDirs="Sources/" />
   </ItemGroup>
    
     <ItemGroup>
