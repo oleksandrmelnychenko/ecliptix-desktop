@@ -142,13 +142,10 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         if (shouldHide)
         {
             Log.Debug("[BottomSheet-Service] Waiting for show animation to fully complete before hiding...");
-            await Task.Delay(100); // Small delay to ensure control has finished updating its state
-
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
         }
         else if (requestToShow != null)
         {
-            await Task.Delay(100);
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
                 requestToShow.ComponentType,
                 requestToShow.Control,
