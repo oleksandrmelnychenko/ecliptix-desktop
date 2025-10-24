@@ -2,43 +2,32 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Ecliptix.Core.Core.Messaging;
+using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using ReactiveUI;
+using Serilog;
+using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
 public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel, IDisposable
 {
+    private readonly IBottomSheetService _bottomSheetService;
+    private readonly IMessageBus _messageBus;
     private bool _disposed;
     private bool _isVisible;
     private bool _isDismissableOnScrimClick;
     private bool _showScrim;
-    private readonly IBottomSheetService _bottomSheetService;
-
     private UserControl? _content;
 
     public UserControl? Content
     {
         get => _content;
-        set
-        {
-            if (_content != null && _content != value)
-            {
-                UserControl? oldContent = _content;
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (oldContent.DataContext is IDisposable disposableContext)
-                    {
-                        disposableContext.Dispose();
-                    }
-                });
-            }
-            this.RaiseAndSetIfChanged(ref _content, value);
-        }
+        set => this.RaiseAndSetIfChanged(ref _content, value);
     }
 
     public bool ShowScrim
@@ -61,94 +50,79 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public ViewModelActivator Activator { get; } = new();
 
-    public ReactiveCommand<Unit, Unit> ShowCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> HideCommand { get; }
-
-    public ReactiveCommand<Unit, Unit> ToggleCommand { get; }
-
-    public BottomSheetViewModel(
-        IBottomSheetService bottomSheetService)
+    public BottomSheetViewModel(IBottomSheetService bottomSheetService, IMessageBus messageBus)
     {
         _bottomSheetService = bottomSheetService;
-        _content = null;
-        _isVisible = false;
-        _isDismissableOnScrimClick = true;
-
-        ShowCommand = ReactiveCommand.Create(() =>
-        {
-            return Unit.Default;
-        });
-
-        HideCommand = ReactiveCommand.Create(() =>
-        {
-            IsVisible = false;
-            return Unit.Default;
-        });
-
-        ToggleCommand = ReactiveCommand.Create(() =>
-        {
-            bool newVisibility = !IsVisible;
-            IsVisible = newVisibility;
-            return Unit.Default;
-        });
+        _messageBus = messageBus;
 
         this.WhenActivated(disposables =>
         {
-            _bottomSheetService.OnBottomSheetChanged(eventArgs =>
+            _messageBus.Subscribe<BottomSheetCommandEvent>(async evt =>
+            {
+                await HandleCommand(evt);
+            }).DisposeWith(disposables);
+
+            this.WhenAnyValue(x => x.IsVisible)
+                .Skip(1)
+                .Subscribe(async isVisible =>
                 {
-                    bool shouldBeVisible = eventArgs.Control != null;
+                    UserControl? contentSnapshot = Content;
 
-                    if (shouldBeVisible)
+                    await Task.Delay(isVisible
+                        ? BottomSheetAnimationConstants.ShowAnimationDuration
+                        : BottomSheetAnimationConstants.HideAnimationDuration);
+
+                    await _messageBus.PublishAsync(isVisible
+                        ? BottomSheetAnimationCompleteEvent.ShowComplete()
+                        : BottomSheetAnimationCompleteEvent.HideComplete());
+
+                    if (!isVisible)
                     {
-                        if (_content != eventArgs.Control)
+                        await Task.Delay(50);
+
+                        await Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            Content = eventArgs.Control;
-                        }
+                            if (ReferenceEquals(Content, contentSnapshot))
+                            {
+                                Content = null;
+                            }
+                        });
                     }
-
-                    if (_showScrim != eventArgs.ShowScrim)
-                    {
-                        ShowScrim = eventArgs.ShowScrim;
-                    }
-
-                    if (_isDismissableOnScrimClick != eventArgs.IsDismissable)
-                    {
-                        IsDismissableOnScrimClick = eventArgs.IsDismissable;
-                    }
-
-                    if (_isVisible != shouldBeVisible)
-                    {
-                        IsVisible = shouldBeVisible;
-                    }
-
-                    if (!shouldBeVisible && _content != null)
-                    {
-                        Observable.Timer(BottomSheetAnimationConstants.HideAnimationDuration)
-                            .ObserveOn(RxApp.MainThreadScheduler)
-                            .Subscribe(_ => Content = null)
-                            .DisposeWith(disposables);
-                    }
-
-                    return System.Threading.Tasks.Task.CompletedTask;
-
-                }, SubscriptionLifetime.Scoped)
+                })
                 .DisposeWith(disposables);
         });
     }
 
-    public void BottomSheetDismissed()
-    {
-        _bottomSheetService.BottomSheetDismissed();
-    }
-
-    public void Dispose()
+    private async Task HandleCommand(BottomSheetCommandEvent evt)
     {
         if (_disposed)
         {
             return;
         }
 
-        _disposed = true;
+        if (evt.AnimationType == AnimationType.Show)
+        {
+            Content = evt.Control;
+            ShowScrim = evt.ShowScrim;
+            IsDismissableOnScrimClick = evt.IsDismissable;
+            IsVisible = true;
+        }
+        else
+        {
+            IsVisible = false;
+        }
+    }
+
+    public void BottomSheetDismissed()
+    {
+        Task.Run(async () => await _bottomSheetService.BottomSheetDismissed());
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+        }
     }
 }

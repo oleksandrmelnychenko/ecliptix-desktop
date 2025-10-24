@@ -14,6 +14,7 @@ using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using Avalonia.Styling;
 using ReactiveUI;
+using Serilog;
 using Splat;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
@@ -235,13 +236,37 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private async Task OnVisibilityChanged(bool isVisible)
     {
-        if (_isAnimating || _rootGrid is null)
+        Log.Debug("[BottomSheetControl] Visibility changed: {IsVisible}", isVisible);
+        Log.Debug("[BottomSheetControl] IsAnimating: {IsAnimating}", _isAnimating);
+
+        if (_rootGrid is null)
         {
+            Log.Debug("[BottomSheetControl] RootGrid is null, skipping");
             return;
+        }
+
+        if (_isAnimating)
+        {
+            Log.Debug("[BottomSheetControl] Animation in progress, waiting for completion...");
+
+            DateTime timeout = DateTime.UtcNow.AddSeconds(3);
+            while (_isAnimating && DateTime.UtcNow < timeout)
+            {
+                await Task.Delay(50);
+            }
+
+            if (_isAnimating)
+            {
+                Log.Warning("[BottomSheetControl] Animation timeout reached, forcing continue");
+                _isAnimating = false;
+            }
+
+            Log.Debug("[BottomSheetControl] Animation wait complete, proceeding with visibility change");
         }
 
         if (isVisible)
         {
+            UpdateSheetHeight();
             await ShowBottomSheet();
         }
         else
@@ -297,6 +322,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         }
 
         UpdateSheetHeight();
+
         CreateAnimations();
 
         if (_showAnimation is null)
@@ -378,8 +404,8 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         double hiddenPosition = _sheetHeight;
 
-        CubicEaseInOut showEasing = new CubicEaseInOut();
-        CubicEaseInOut hideEasing = new CubicEaseInOut();
+        CubicEaseInOut showEasing = new();
+        CubicEaseInOut hideEasing = new();
 
         _showAnimation = new Animation
         {
@@ -433,11 +459,14 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         }
     }
 
-    private void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
+    private async void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (IsDismissableOnScrimClick && ViewModel is not null && !_isAnimating)
         {
             ViewModel.IsVisible = false;
+
+            await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
+
             ViewModel.BottomSheetDismissed();
         }
     }

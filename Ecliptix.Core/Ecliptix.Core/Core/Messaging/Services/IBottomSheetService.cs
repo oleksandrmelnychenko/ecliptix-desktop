@@ -14,7 +14,7 @@ public interface IBottomSheetService
     Task BottomSheetDismissed();
 
     IDisposable OnBottomSheetChanged(
-        Func<BottomSheetChangedEvent, Task> handler,
+        Func<BottomSheetCommandEvent, Task> handler,
         SubscriptionLifetime lifetime = SubscriptionLifetime.Weak);
 
     IDisposable OnBottomSheetHidden(
