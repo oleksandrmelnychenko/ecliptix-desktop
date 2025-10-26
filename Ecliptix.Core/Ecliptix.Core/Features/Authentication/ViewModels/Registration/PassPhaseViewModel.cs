@@ -20,7 +20,7 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public PassPhaseViewModel(
         ILocalizationService localizationService,
-        IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider, localizationService)
+        IScreen hostScreen, NetworkProvider networkProvider) : base(networkProvider, localizationService, null)
     {
         HostScreen = hostScreen;
         SubmitCommand = ReactiveCommand.Create(() => { });

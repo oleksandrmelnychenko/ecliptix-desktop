@@ -63,8 +63,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 (_, netProvider, loc, _, _, host, _, _) =>
                     new WelcomeViewModel(host, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (netEvents, netProvider, loc, _, storage, host, reg, _) =>
-                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg),
+                (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
+                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth),
             [MembershipViewType.ConfirmSecureKey] =
                 (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
                     new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth),
@@ -73,7 +73,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                     new PassPhaseViewModel(loc, host, netProvider),
             [MembershipViewType.ForgotPasswordReset] =
                 (netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery) =>
-                    new ForgotPasswordResetViewModel(netProvider, loc, host, storage, pwdRecovery, auth)
+                    new ForgotPasswordResetViewModel(netEvents, netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -106,7 +106,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         ILanguageDetectionService languageDetectionService,
         IApplicationRouter router,
         MainWindowViewModel mainWindowViewModel)
-        : base(networkProvider, localizationService)
+        : base(networkProvider, localizationService, null)
     {
         _localizationService = localizationService;
         _connectivityService = connectivityService;
@@ -310,6 +310,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             this,
             _applicationSecureStorageProvider,
             _opaqueRegistrationService,
+            _authenticationService,
             AuthenticationFlowContext.PasswordRecovery,
             _passwordRecoveryService);
         NavigateToViewModel(vm);

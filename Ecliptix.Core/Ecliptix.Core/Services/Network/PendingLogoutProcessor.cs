@@ -21,8 +21,8 @@ internal sealed class PendingLogoutProcessor(
     IIdentityService identityService,
     IApplicationSecureStorageProvider secureStorageProvider)
 {
-
     private readonly LogoutProofHandler _logoutProofHandler = new(identityService, secureStorageProvider);
+
     public async Task ProcessPendingLogoutAsync(
         uint connectId,
         CancellationToken cancellationToken = default)
@@ -42,7 +42,8 @@ internal sealed class PendingLogoutProcessor(
             Guid membershipGuid = Helpers.FromByteStringToGuid(pendingRequest.MembershipIdentifier);
             string membershipId = membershipGuid.ToString();
 
-            Log.Information("[PENDING-LOGOUT-RETRY] Processing pending logout request for ConnectId: {ConnectId}", connectId);
+            Log.Information("[PENDING-LOGOUT-RETRY] Processing pending logout request for ConnectId: {ConnectId}",
+                connectId);
 
             TaskCompletionSource<bool> responseCompletionSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -62,36 +63,38 @@ internal sealed class PendingLogoutProcessor(
 
                         if (logoutResponse.Result == LogoutResponse.Types.Result.Succeeded)
                         {
+                            try
+                            {
+                                Result<Unit, LogoutFailure> proofVerification =
+                                    await _logoutProofHandler.VerifyRevocationProofAsync(logoutResponse, membershipId,
+                                        connectId);
 
-                                try
+                                if (proofVerification.IsErr)
                                 {
-                                    Result<Unit, LogoutFailure> proofVerification =
-                                        await _logoutProofHandler.VerifyRevocationProofAsync(logoutResponse, membershipId, connectId);
-
-                                    if (proofVerification.IsErr)
-                                    {
-                                        Log.Error("[PENDING-LOGOUT-RETRY] Revocation proof verification failed for MembershipId: {MembershipId}, Error: {Error}",
-                                            membershipId, proofVerification.UnwrapErr().Message);
-                                    }
-                                    else
-                                    {
-                                        Log.Information("[PENDING-LOGOUT-RETRY] Revocation proof verified successfully for MembershipId: {MembershipId}",
-                                            membershipId);
-                                    }
+                                    Log.Error(
+                                        "[PENDING-LOGOUT-RETRY] Revocation proof verification failed for MembershipId: {MembershipId}, Error: {Error}",
+                                        membershipId, proofVerification.UnwrapErr().Message);
                                 }
-                                catch (Exception ex)
+                                else
                                 {
-                                    Log.Error(ex, "[PENDING-LOGOUT-RETRY] Unexpected error during revocation proof verification for MembershipId: {MembershipId}",
+                                    Log.Information(
+                                        "[PENDING-LOGOUT-RETRY] Revocation proof verified successfully for MembershipId: {MembershipId}",
                                         membershipId);
                                 }
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex,
+                                    "[PENDING-LOGOUT-RETRY] Unexpected error during revocation proof verification for MembershipId: {MembershipId}",
+                                    membershipId);
+                            }
 
-                                responseCompletionSource.TrySetResult(true);
+                            responseCompletionSource.TrySetResult(true);
                         }
                         else
                         {
                             responseCompletionSource.TrySetResult(true);
                         }
-
                     }
                     catch (Exception ex)
                     {

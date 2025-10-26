@@ -1,9 +1,11 @@
 using System;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Modals;
+using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
@@ -13,6 +15,7 @@ using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Core.MVVM;
@@ -20,9 +23,11 @@ namespace Ecliptix.Core.Core.MVVM;
 public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private bool _disposedValue;
+    private IDisposable? _connectivitySubscription;
 
     protected ViewModelBase(NetworkProvider networkProvider,
-        ILocalizationService localizationService)
+        ILocalizationService localizationService,
+        IConnectivityService? connectivityService = null)
     {
         NetworkProvider = networkProvider;
         LocalizationService = localizationService;
@@ -35,6 +40,16 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             .Publish()
             .RefCount();
 
+        if (connectivityService != null)
+        {
+            IObservable<bool> networkStatusStream = connectivityService.ConnectivityStream
+                .Select(IsNetworkInOutage)
+                .StartWith(IsNetworkInOutage(connectivityService.CurrentSnapshot))
+                .DistinctUntilChanged();
+
+            _connectivitySubscription = networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
+        }
+
         this.WhenActivated(disposables =>
         {
             LanguageChanged
@@ -46,6 +61,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     public ILocalizationService LocalizationService { get; }
     public ViewModelActivator Activator { get; } = new();
+
+    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
 
     protected NetworkProvider NetworkProvider { get; }
     protected IObservable<SystemU> LanguageChanged { get; }
@@ -134,12 +151,36 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
+    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
+        snapshot.Status is ConnectivityStatus.Disconnected
+            or ConnectivityStatus.ShuttingDown
+            or ConnectivityStatus.Recovering
+            or ConnectivityStatus.RetriesExhausted
+            or ConnectivityStatus.Unavailable;
+
+    protected CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
+    {
+        try
+        {
+            cts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        cts?.Dispose();
+        cts = new CancellationTokenSource();
+        return cts;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!_disposedValue)
         {
             if (disposing)
             {
+                _connectivitySubscription?.Dispose();
+                _connectivitySubscription = null;
             }
 
             _disposedValue = true;

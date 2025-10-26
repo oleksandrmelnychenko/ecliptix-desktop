@@ -22,6 +22,15 @@ message Membership {
   optional bytes account_unique_identifier = 5;
 }
 
+enum MobileAvailabilityStatus {
+  AVAILABLE = 0;
+  INCOMPLETE_REGISTRATION = 1;
+  TAKEN_ACTIVE = 2;
+  TAKEN_INACTIVE = 3;
+  DATA_CORRUPTION = 4;
+  REGISTRATION_EXPIRED = 5;
+}
+
 enum LogoutScope {
   THIS_DEVICE = 0;
   ALL_DEVICES = 1;

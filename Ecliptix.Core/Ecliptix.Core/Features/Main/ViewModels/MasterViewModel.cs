@@ -37,7 +37,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
         ILocalizationService localizationService,
         ILogoutService logoutService,
         MainWindowViewModel mainWindowViewModel)
-        : base(networkProvider, localizationService)
+        : base(networkProvider, localizationService, null)
     {
         _logoutService = logoutService;
         _mainWindowViewModel = mainWindowViewModel;

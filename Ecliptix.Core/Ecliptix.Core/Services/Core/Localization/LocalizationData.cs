@@ -80,6 +80,12 @@ public static class LocalizationData
 
 
         ["MobileVerification.Error.MobileAlreadyRegistered"] = "A problem occurred with your registration. If you already have an account, please try logging in or use the account recovery option.",
+        ["mobile_available_for_registration"] = "This mobile number is available for registration.",
+        ["mobile_incomplete_registration_continue"] = "Continue your registration with this mobile number.",
+        ["mobile_taken_active_account"] = "This mobile number is already registered with an active account. Please sign in instead.",
+        ["mobile_taken_inactive_account"] = "This mobile number is registered but inactive. Please use password recovery to regain access.",
+        ["mobile_data_corruption_contact_support"] = "There's an issue with your account data. Please contact support for assistance.",
+        ["mobile_available_on_this_device"] = "This mobile number is available for registration on this device.",
 
 
         ["Verification.Error.InvalidOtpCode"] = "Invalid verification code",
@@ -270,6 +276,12 @@ public static class LocalizationData
 
 
         ["MobileVerification.Error.MobileAlreadyRegistered"] = "Під час реєстрації сталася помилка. Якщо у вас вже є акаунт, будь ласка, спробуйте увійти або скористайтеся опцією відновлення доступу.",
+        ["mobile_available_for_registration"] = "Цей номер доступний для реєстрації.",
+        ["mobile_incomplete_registration_continue"] = "Продовжіть реєстрацію з цим номером.",
+        ["mobile_taken_active_account"] = "Цей номер вже зареєстровано з активним акаунтом. Будь ласка, увійдіть.",
+        ["mobile_taken_inactive_account"] = "Цей номер зареєстровано, але акаунт неактивний. Скористайтеся відновленням пароля.",
+        ["mobile_data_corruption_contact_support"] = "Виникла проблема з даними вашого акаунта. Будь ласка, зверніться до підтримки.",
+        ["mobile_available_on_this_device"] = "Цей номер доступний для реєстрації на цьому пристрої.",
 
 
         ["Verification.Error.InvalidOtpCode"] = "Неправильний код підтвердження",

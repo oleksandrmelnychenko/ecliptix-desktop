@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Disposables;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
@@ -40,7 +39,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
 
 
     public WelcomeViewModel(IScreen hostScreen, ILocalizationService localizationService,
-        NetworkProvider networkProvider) : base(networkProvider, localizationService)
+        NetworkProvider networkProvider) : base(networkProvider, localizationService, null)
     {
         HostScreen = hostScreen;
 

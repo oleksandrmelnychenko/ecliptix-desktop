@@ -46,13 +46,14 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
     private CancellationTokenSource? _currentOperationCts;
 
     public ForgotPasswordResetViewModel(
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IPasswordRecoveryService passwordRecoveryService,
         IAuthenticationService authenticationService
-    ) : base(networkProvider, localizationService)
+    ) : base(networkProvider, localizationService, connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -61,7 +62,8 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
 
-        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, isBusy => !isBusy)
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
+                (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (notBusy, isValid) => notBusy && isValid);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitPasswordResetAsync, canExecuteSubmit);
@@ -408,17 +410,7 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
         try
         {
-            try
-            {
-                _currentOperationCts?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-
-            _currentOperationCts?.Dispose();
-            CancellationTokenSource operationCts = new();
-            _currentOperationCts = operationCts;
+            CancellationTokenSource operationCts = RecreateCancellationToken(ref _currentOperationCts);
             CancellationToken operationToken = operationCts.Token;
 
             try

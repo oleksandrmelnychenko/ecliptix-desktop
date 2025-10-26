@@ -1,12 +1,38 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Threading;
 using Ecliptix.Core.Services.Network.Rpc;
 
 namespace Ecliptix.Core.Services.Network;
 
 public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
 {
+#if DEBUG
+    private static readonly TimeSpan DefaultTimeout = Timeout.InfiniteTimeSpan;
+    private const double MaxAdaptiveMultiplier = 2.0;
+    private const double AdaptiveMultiplierIncrement = 0.5;
+
+    private static readonly FrozenDictionary<RpcServiceType, TimeSpan> ServiceTimeouts =
+        new Dictionary<RpcServiceType, TimeSpan>
+        {
+            [RpcServiceType.InitiateVerification] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.EstablishSecrecyChannel] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RestoreSecrecyChannel] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.EstablishAuthenticatedSecureChannel] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RegistrationInit] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RegistrationComplete] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RecoverySecretKeyInit] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RecoverySecretKeyComplete] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.SignInInitRequest] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.SignInCompleteRequest] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.ValidateMobileNumber] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.CheckMobileNumberAvailability] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.VerifyOtp] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.RegisterAppDevice] = Timeout.InfiniteTimeSpan,
+            [RpcServiceType.Logout] = Timeout.InfiniteTimeSpan
+        }.ToFrozenDictionary();
+#else
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
     private const double MaxAdaptiveMultiplier = 2.0;
     private const double AdaptiveMultiplierIncrement = 0.5;
@@ -26,10 +52,11 @@ public sealed class OperationTimeoutProvider : IOperationTimeoutProvider
             [RpcServiceType.SignInCompleteRequest] = TimeSpan.FromSeconds(45),
             [RpcServiceType.ValidateMobileNumber] = TimeSpan.FromSeconds(15),
             [RpcServiceType.CheckMobileNumberAvailability] = TimeSpan.FromSeconds(15),
-            [RpcServiceType.VerifyOtp] = TimeSpan.FromSeconds(20),
+            [RpcServiceType.VerifyOtp] = TimeSpan.FromSeconds(60),
             [RpcServiceType.RegisterAppDevice] = TimeSpan.FromSeconds(30),
             [RpcServiceType.Logout] = TimeSpan.FromSeconds(20)
         }.ToFrozenDictionary();
+#endif
 
     public TimeSpan GetTimeout(RpcServiceType serviceType, RpcRequestContext? requestContext = null)
     {

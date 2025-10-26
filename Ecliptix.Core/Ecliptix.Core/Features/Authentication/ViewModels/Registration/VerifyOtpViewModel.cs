@@ -6,18 +6,15 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Protobuf.Protocol;
@@ -47,6 +44,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
+        IConnectivityService connectivityService,
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IScreen hostScreen,
@@ -55,7 +53,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         IOpaqueRegistrationService registrationService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
         IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider,
-        localizationService)
+        localizationService, connectivityService)
     {
         _mobileNumberIdentifier = mobileNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
@@ -84,8 +82,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         IObservable<bool> canVerify = this.WhenAnyValue(
             x => x.VerificationCode,
             x => x.RemainingTime,
-            (code, time) => code.Length == 6 && code.All(char.IsDigit) &&
-                            time != AuthenticationConstants.ExpiredRemainingTime
+            x => x.IsInNetworkOutage,
+            (code, time, isInOutage) => code.Length == 6 && code.All(char.IsDigit) &&
+                            time != AuthenticationConstants.ExpiredRemainingTime && !isInOutage
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
@@ -106,10 +105,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 x => x.SecondsRemaining,
                 x => x.HasValidSession,
                 x => x.CurrentStatus,
-                x => x.CooldownBufferSeconds)
+                x => x.CooldownBufferSeconds,
+                x => x.IsInNetworkOutage)
             .Select(tuple =>
             {
-                if (!tuple.Item2)
+                if (!tuple.Item2 || tuple.Item5)
                 {
                     return false;
                 }
@@ -291,10 +291,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 return;
             }
 
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = new CancellationTokenSource();
-            _disposables.Add(_cancellationTokenSource);
+            CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _cancellationTokenSource);
+            _disposables.Add(cancellationTokenSource);
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
@@ -402,31 +400,23 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             Membership membership = result.Unwrap();
 
-            if (membership.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.SecureKeySet &&
-                _flowContext == AuthenticationFlowContext.Registration)
+            if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
             {
-                await ShowAccountExistsRedirectAsync();
-            }
-            else
-            {
-                if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+                await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+                if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
                 {
-                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-
-                    if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
-                    {
-                        await _applicationSecureStorageProvider
-                            .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
-                            .ConfigureAwait(false);
-                        Log.Information(
-                            "[OTP-VERIFY-ACCOUNT] Active account stored from OTP verification. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                            Helpers.FromByteStringToGuid(membership.UniqueIdentifier),
-                            Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
-                    }
-
-                    NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
-                    hostWindow.ClearNavigationStack(true);
+                    await _applicationSecureStorageProvider
+                        .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
+                        .ConfigureAwait(false);
+                    Log.Information(
+                        "[OTP-VERIFY-ACCOUNT] Active account stored from OTP verification. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                        Helpers.FromByteStringToGuid(membership.UniqueIdentifier),
+                        Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
                 }
+
+                NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+                hostWindow.ClearNavigationStack(true);
             }
 
             if (HasValidSession)
@@ -452,29 +442,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 IsSent = false;
             }
         }
-    }
-
-    private Task ShowAccountExistsRedirectAsync()
-    {
-        if (_isDisposed)
-        {
-            return Task.CompletedTask;
-        }
-
-        string message = LocalizationService[AuthenticationConstants.AccountAlreadyExistsKey];
-
-        if (HostScreen is AuthenticationViewModel hostWindow)
-        {
-            ShowRedirectNotification(hostWindow, message, 8, () =>
-            {
-                if (!_isDisposed)
-                {
-                    CleanupAndNavigate(hostWindow, MembershipViewType.Welcome);
-                }
-            });
-        }
-
-        return Task.CompletedTask;
     }
 
     private Task ReSendVerificationCode()

@@ -4,18 +4,13 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Controls.Common;
-using Ecliptix.Core.Controls.Modals;
-using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
-using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Membership.Constants;
-using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -23,17 +18,14 @@ using SystemU = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Services.Core.Localization;
 using Ecliptix.Protobuf.Protocol;
 using Serilog;
-using Serilog.Events;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
 public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable, IDisposable
 {
     private readonly IAuthenticationService _authService;
-    private readonly IConnectivityService _connectivityService;
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly CompositeDisposable _disposables = new();
     private readonly Subject<string> _signInErrorSubject = new();
@@ -49,11 +41,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         NetworkProvider networkProvider,
         ILocalizationService localizationService,
         IAuthenticationService authService,
-        IScreen hostScreen) : base(networkProvider, localizationService)
+        IScreen hostScreen) : base(networkProvider, localizationService, connectivityService)
     {
         HostScreen = hostScreen;
         _authService = authService;
-        _connectivityService = connectivityService;
         _hostWindowModel = (AuthenticationViewModel)hostScreen;
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
@@ -68,8 +59,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
 
     [ObservableAsProperty] public bool IsBusy { get; }
-
-    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
 
     [Reactive] public string? MobileNumberError { get; set; }
 
@@ -196,13 +185,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _isDisposed = true;
     }
 
-    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
-        snapshot.Status is ConnectivityStatus.Disconnected
-            or ConnectivityStatus.ShuttingDown
-            or ConnectivityStatus.Recovering
-            or ConnectivityStatus.RetriesExhausted
-            or ConnectivityStatus.Unavailable;
-
     private IObservable<bool> SetupValidation()
     {
         IObservable<SystemU> languageTrigger = LanguageChanged;
@@ -286,27 +268,13 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         IObservable<bool> isFormLogicallyValid = isMobileLogicallyValid
             .CombineLatest(isKeyLogicallyValid, (isMobileValid, isKeyValid) => isMobileValid && isKeyValid)
-            .DistinctUntilChanged()
-            .Do(valid =>
-            {
-                if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
-                {
-                    Log.Debug("✅ Form logically valid: {Valid}", valid);
-                }
-            });
+            .DistinctUntilChanged();
 
         return isFormLogicallyValid;
     }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
-            .Select(IsNetworkInOutage)
-            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
-            .DistinctUntilChanged();
-
-        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
-
         IObservable<bool> canSignIn = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
@@ -314,12 +282,10 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         SignInCommand = ReactiveCommand.CreateFromTask(
             async () =>
             {
-                _signInCancellationTokenSource?.Cancel();
-                _signInCancellationTokenSource?.Dispose();
-                _signInCancellationTokenSource = new CancellationTokenSource();
+                CancellationTokenSource cts = RecreateCancellationToken(ref _signInCancellationTokenSource);
 
                 uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-                CancellationToken cancellationToken = _signInCancellationTokenSource.Token;
+                CancellationToken cancellationToken = cts.Token;
                 Result<Unit, AuthenticationFailure> result =
                     await _authService.SignInAsync(MobileNumber, _secureKeyBuffer, connectId, cancellationToken);
                 return result;

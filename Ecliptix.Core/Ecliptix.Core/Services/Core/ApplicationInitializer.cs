@@ -116,7 +116,6 @@ public sealed class ApplicationInitializer(
 
         await ProcessPendingLogoutRequestsAsync(connectId).ConfigureAwait(false);
 
-
         return true;
     }
 

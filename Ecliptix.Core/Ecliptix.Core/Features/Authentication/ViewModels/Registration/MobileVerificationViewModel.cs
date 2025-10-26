@@ -28,6 +28,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
+    private readonly IAuthenticationService _authenticationService;
     private readonly IPasswordRecoveryService? _passwordRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
@@ -44,10 +45,13 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
+        IAuthenticationService authenticationService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
-        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider, localizationService)
+        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider, localizationService,
+        connectivityService)
     {
         _registrationService = registrationService;
+        _authenticationService = authenticationService;
         _passwordRecoveryService = passwordRecoveryService;
         _connectivityService = connectivityService;
         _flowContext = flowContext;
@@ -74,15 +78,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     [Reactive] public bool HasMobileNumberError { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
-
-    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
-
-    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
-        snapshot.Status is ConnectivityStatus.Disconnected
-            or ConnectivityStatus.ShuttingDown
-            or ConnectivityStatus.Recovering
-            or ConnectivityStatus.RetriesExhausted
-            or ConnectivityStatus.Unavailable;
 
     public async Task HandleEnterKeyPressAsync()
     {
@@ -162,18 +157,9 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
-            .Select(IsNetworkInOutage)
-            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
-            .DistinctUntilChanged();
-
-        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
-
-
         IObservable<bool> canVerify = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
-
 
         VerifyMobileNumberCommand = ReactiveCommand.CreateFromTask(ExecuteVerificationAsync, canVerify);
         VerifyMobileNumberCommand.IsExecuting
@@ -192,13 +178,11 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         try
         {
-            _currentOperationCts?.Cancel();
-            _currentOperationCts?.Dispose();
-            _currentOperationCts = new CancellationTokenSource();
+            CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _currentOperationCts);
 
             string systemDeviceIdentifier = SystemDeviceIdentifier();
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-            CancellationToken operationToken = _currentOperationCts.Token;
+            CancellationToken operationToken = cancellationTokenSource.Token;
 
             if (_flowContext == AuthenticationFlowContext.Registration)
             {
@@ -229,6 +213,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                     Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
                         await _registrationService.CheckMobileNumberAvailabilityAsync(
                             validateMobileNumberResponse.MobileNumberIdentifier,
+                            systemDeviceIdentifier,
                             connectId,
                             operationToken);
 
@@ -241,15 +226,89 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                     {
                         CheckMobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
 
-                        if (statusResponse.Status == "available")
+                        switch (statusResponse.Status)
                         {
-                            await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
-                        }
-                        else
-                        {
-                            string errorMessage =
-                                LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
-                            ShowError(errorMessage);
+                            case MobileAvailabilityStatus.Available:
+                                Serilog.Log.Information("[MOBILE-VERIFICATION] Mobile available, starting OTP verification");
+                                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                                break;
+
+                            case MobileAvailabilityStatus.RegistrationExpired:
+                                Serilog.Log.Information(
+                                    "[MOBILE-VERIFICATION] Registration window expired (1 hour), starting fresh OTP verification");
+                                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
+                                break;
+
+                            case MobileAvailabilityStatus.IncompleteRegistration:
+                                string membershipIdStr = statusResponse.ExistingMembershipId != null &&
+                                                         !statusResponse.ExistingMembershipId.IsEmpty
+                                    ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
+                                    : "Unknown";
+
+                                if (statusResponse.HasCreationStatus &&
+                                    statusResponse.CreationStatus ==
+                                    Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified)
+                                {
+                                    Serilog.Log.Information(
+                                        "[MOBILE-VERIFICATION] Incomplete registration - OTP verified, navigating to SecureKey. MembershipId: {MembershipId}",
+                                        membershipIdStr);
+                                    await NavigateToSecureKeyAsync();
+                                }
+                                else
+                                {
+                                    Serilog.Log.Information(
+                                        "[MOBILE-VERIFICATION] Incomplete registration - navigating to OTP. MembershipId: {MembershipId}, CreationStatus: {CreationStatus}",
+                                        membershipIdStr,
+                                        statusResponse.HasCreationStatus
+                                            ? statusResponse.CreationStatus.ToString()
+                                            : "Not Set");
+                                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse
+                                        .MobileNumberIdentifier);
+                                }
+
+                                break;
+
+                            case MobileAvailabilityStatus.DataCorruption:
+                                string corruptedMembershipId = statusResponse.ExistingMembershipId != null &&
+                                                               !statusResponse.ExistingMembershipId.IsEmpty
+                                    ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
+                                    : "Unknown";
+
+                                Serilog.Log.Warning(
+                                    "[MOBILE-VERIFICATION] Data corruption detected. MembershipId: {MembershipId}",
+                                    corruptedMembershipId);
+
+                                string corruptionError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+                                    ? LocalizationService[statusResponse.LocalizationKey]
+                                    : LocalizationService["MobileVerification.Error.DataCorruption"];
+                                ShowError(corruptionError);
+                                break;
+
+                            case MobileAvailabilityStatus.TakenActive:
+                            case MobileAvailabilityStatus.TakenInactive:
+                                if (statusResponse.RegisteredDeviceId != null &&
+                                    !statusResponse.RegisteredDeviceId.IsEmpty)
+                                {
+                                    Guid registeredDevice = Helpers.FromByteStringToGuid(statusResponse.RegisteredDeviceId);
+                                    Serilog.Log.Information(
+                                        "[MOBILE-VERIFICATION] Mobile taken on device: {DeviceId}, Status: {Status}",
+                                        registeredDevice, statusResponse.Status);
+                                }
+
+                                string takenError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+                                    ? LocalizationService[statusResponse.LocalizationKey]
+                                    : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+                                ShowError(takenError);
+                                break;
+
+                            default:
+                                Serilog.Log.Warning(
+                                    "[MOBILE-VERIFICATION] Unexpected status: {Status}", statusResponse.Status);
+                                string defaultError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+                                    ? LocalizationService[statusResponse.LocalizationKey]
+                                    : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+                                ShowError(defaultError);
+                                break;
                         }
                     }
                     else
@@ -279,7 +338,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 {
                     ByteString mobileNumberIdentifier = result.Unwrap();
 
-                    VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
+                    VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
                         _flowContext, _passwordRecoveryService);
 
@@ -326,8 +385,27 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return Task.CompletedTask;
         }
 
-        VerifyOtpViewModel vm = new(NetworkProvider, LocalizationService, HostScreen,
+        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
+
+        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+        {
+            hostWindow.RegistrationMobileNumber = MobileNumber;
+            hostWindow.NavigateToViewModel(vm);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task NavigateToSecureKeyAsync()
+    {
+        if (_isDisposed)
+        {
+            return Task.CompletedTask;
+        }
+
+        SecureKeyVerifierViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            _applicationSecureStorageProvider, _registrationService, _authenticationService);
 
         if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
         {

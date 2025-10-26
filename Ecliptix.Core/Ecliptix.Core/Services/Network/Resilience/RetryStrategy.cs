@@ -29,6 +29,8 @@ public sealed class RetryStrategy : IRetryStrategy
 
     private const int OperationTimeoutMinutes = 10;
 
+    private const string AttemptKey = "attempt";
+
     private readonly RetryStrategyConfiguration _strategyConfiguration;
     private readonly IConnectivityService _connectivityService;
     private readonly IOperationTimeoutProvider _timeoutProvider;
@@ -177,27 +179,11 @@ public sealed class RetryStrategy : IRetryStrategy
 
             Context context = new(operationName)
             {
-                ["attempt"] = 1
+                [AttemptKey] = 1
             };
 
             Result<TResponse, NetworkFailure> result = await retryPolicy.ExecuteAsync(
-                async (ctx, ct) =>
-                {
-                    ct.ThrowIfCancellationRequested();
-                    int currentAttempt = ctx.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
-                        ? a
-                        : 1;
-                    Result<TResponse, NetworkFailure> opResult =
-                        await operation(currentAttempt, ct).ConfigureAwait(false);
-                    if (Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug(
-                            "🔧 RETRY POLICY: Operation '{OperationName}' attempt {Attempt} returned IsOk: {IsOk}",
-                            operationName, currentAttempt, opResult.IsOk);
-                    }
-
-                    return opResult;
-                },
+                (ctx, ct) => ExecuteOperationWithLogging(ctx, ct, operation, operationName),
                 context,
                 cancellationToken).ConfigureAwait(false);
 
@@ -625,7 +611,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 retryDelays,
                 async (outcome, delay, retryCount, context) =>
                 {
-                    context["attempt"] = retryCount + 1;
+                    context[AttemptKey] = retryCount + 1;
 
                     bool isTimeout = outcome.Exception is TimeoutRejectedException;
                     bool hasResult = outcome.Exception is null;
@@ -772,20 +758,8 @@ public sealed class RetryStrategy : IRetryStrategy
             .TimeoutAsync<Result<TResponse, NetworkFailure>>(
                 (context) =>
                 {
-                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
-                        ? a
-                        : 1;
-
-                    TimeSpan timeout;
-                    if (serviceType.HasValue)
-                    {
-                        RpcRequestContext tempContext = RpcRequestContext.CreateNew(currentAttempt);
-                        timeout = _timeoutProvider.GetTimeout(serviceType.Value, tempContext);
-                    }
-                    else
-                    {
-                        timeout = _strategyConfiguration.PerAttemptTimeout;
-                    }
+                    int currentAttempt = GetCurrentAttempt(context);
+                    TimeSpan timeout = _strategyConfiguration.PerAttemptTimeout;
 
                     if (Log.IsEnabled(LogEventLevel.Debug))
                     {
@@ -799,9 +773,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 TimeoutStrategy.Pessimistic,
                 onTimeoutAsync: (context, timespan, _, _) =>
                 {
-                    int currentAttempt = context.TryGetValue("attempt", out object? attemptVal) && attemptVal is int a
-                        ? a
-                        : 1;
+                    int currentAttempt = GetCurrentAttempt(context);
                     Log.Warning(
                         "⏰ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} attempt {Attempt} timed out after {TimeoutSeconds}s",
                         operationName, connectId, currentAttempt, timespan.TotalSeconds);
@@ -885,6 +857,29 @@ public sealed class RetryStrategy : IRetryStrategy
     private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime)
     {
         return $"{operationName}_{connectId}_{startTime.Ticks}_{Guid.NewGuid():N}";
+    }
+
+    private static int GetCurrentAttempt(Context ctx) =>
+        ctx.TryGetValue(AttemptKey, out object? val) && val is int attempt ? attempt : 1;
+
+    private async Task<Result<TResponse, NetworkFailure>> ExecuteOperationWithLogging<TResponse>(
+        Context ctx,
+        CancellationToken ct,
+        Func<int, CancellationToken, Task<Result<TResponse, NetworkFailure>>> operation,
+        string operationName)
+    {
+        ct.ThrowIfCancellationRequested();
+        int currentAttempt = GetCurrentAttempt(ctx);
+        Result<TResponse, NetworkFailure> opResult =
+            await operation(currentAttempt, ct).ConfigureAwait(false);
+        if (Log.IsEnabled(LogEventLevel.Debug))
+        {
+            Log.Debug(
+                "🔧 RETRY POLICY: Operation '{OperationName}' attempt {Attempt} returned IsOk: {IsOk}",
+                operationName, currentAttempt, opResult.IsOk);
+        }
+
+        return opResult;
     }
 
     public void Dispose()

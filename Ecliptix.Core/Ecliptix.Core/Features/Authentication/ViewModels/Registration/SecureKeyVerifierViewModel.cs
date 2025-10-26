@@ -39,7 +39,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
-    private readonly IConnectivityService _connectivityService;
 
     private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
@@ -53,27 +52,18 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService
-    ) : base(networkProvider, localizationService)
+    ) : base(networkProvider, localizationService, connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _authenticationService = authenticationService;
-        _connectivityService = connectivityService;
 
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
         SetupSubscriptions();
     }
-
-    private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
-        snapshot.Status is ConnectivityStatus.Disconnected
-            or ConnectivityStatus.ShuttingDown
-            or ConnectivityStatus.Recovering
-            or ConnectivityStatus.RetriesExhausted
-            or ConnectivityStatus.Unavailable;
-
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
     public IScreen HostScreen { get; }
@@ -97,19 +87,10 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    [ObservableAsProperty] public bool IsInNetworkOutage { get; }
-
     private ByteString? VerificationSessionId { get; set; }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> networkStatusStream = _connectivityService.ConnectivityStream
-            .Select(IsNetworkInOutage)
-            .StartWith(IsNetworkInOutage(_connectivityService.CurrentSnapshot))
-            .DistinctUntilChanged();
-
-        networkStatusStream.ToPropertyEx(this, x => x.IsInNetworkOutage);
-
         IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
@@ -417,12 +398,10 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             return;
         }
 
-        _currentOperationCts?.Cancel();
-        _currentOperationCts?.Dispose();
-        _currentOperationCts = new CancellationTokenSource();
+        CancellationTokenSource cts = RecreateCancellationToken(ref _currentOperationCts);
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        CancellationToken operationToken = _currentOperationCts.Token;
+        CancellationToken operationToken = cts.Token;
 
         Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
             VerificationSessionId,

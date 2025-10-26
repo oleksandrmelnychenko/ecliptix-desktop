@@ -20,6 +20,7 @@ using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Ecliptix.Core.Services.Authentication.Constants;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reactive.Concurrency;
 using ReactiveUI;
 using Ecliptix.Opaque.Protocol;
@@ -36,6 +37,7 @@ internal sealed class OpaqueRegistrationService(
     : IOpaqueRegistrationService, IDisposable
 {
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
+    private readonly ConcurrentDictionary<Guid, VerificationPurpose> _activeSessionPurposes = new();
 
     private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
@@ -84,7 +86,9 @@ internal sealed class OpaqueRegistrationService(
     }
 
     public async Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
-        ByteString mobileNumberIdentifier, uint connectId,
+        ByteString mobileNumberIdentifier,
+        string deviceIdentifier,
+        uint connectId,
         CancellationToken cancellationToken = default)
     {
         if (mobileNumberIdentifier.IsEmpty)
@@ -93,9 +97,16 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
         }
 
+        if (string.IsNullOrEmpty(deviceIdentifier))
+        {
+            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(
+                localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
+        }
+
         CheckMobileNumberAvailabilityRequest request = new()
         {
-            MobileNumberIdentifier = mobileNumberIdentifier
+            MobileNumberId = mobileNumberIdentifier,
+            DeviceId = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
         };
 
         TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource = new();
@@ -162,7 +173,7 @@ internal sealed class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate, purpose),
             true, cancellationToken).ConfigureAwait(false);
 
         if (streamResult.IsErr)
@@ -222,11 +233,13 @@ internal sealed class OpaqueRegistrationService(
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
         }
 
+        VerificationPurpose purpose = _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
+
         InitiateVerificationRequest request = new()
         {
             MobileNumberIdentifier = mobileNumberIdentifier,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
-            Purpose = VerificationPurpose.Registration,
+            Purpose = purpose,
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
 
@@ -234,7 +247,7 @@ internal sealed class OpaqueRegistrationService(
             streamConnectId,
             RpcServiceType.InitiateVerification,
             SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()),
-            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate),
+            payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate, purpose),
             true, cancellationToken).ConfigureAwait(false);
 
         if (result.IsErr)
@@ -275,10 +288,12 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.NoActiveVerificationSessionKey]);
         }
 
+        VerificationPurpose purpose = _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
+
         VerifyCodeRequest request = new()
         {
             Code = otpCode,
-            Purpose = VerificationPurpose.Registration,
+            Purpose = purpose,
             AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
             StreamConnectId = activeStreamId,
         };
@@ -693,15 +708,9 @@ internal sealed class OpaqueRegistrationService(
             }
             finally
             {
-                if (registrationResult != null)
-                {
-                    registrationResult.Dispose();
-                }
+                registrationResult?.Dispose();
 
-                if (trackedRegistrationResult != null)
-                {
-                    trackedRegistrationResult.Dispose();
-                }
+                trackedRegistrationResult?.Dispose();
 
                 if (passwordCopy is { Length: > 0 })
                 {
@@ -830,7 +839,8 @@ internal sealed class OpaqueRegistrationService(
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
         byte[] payload,
         uint streamConnectId,
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate,
+        VerificationPurpose purpose = VerificationPurpose.Registration)
     {
         VerificationCountdownUpdate verificationCountdownUpdate =
             Helpers.ParseFromBytes<VerificationCountdownUpdate>(payload);
@@ -876,6 +886,7 @@ internal sealed class OpaqueRegistrationService(
             if (verificationIdentifier != Guid.Empty)
             {
                 _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
+                _activeSessionPurposes.TryAdd(verificationIdentifier, purpose);
             }
 
             RxApp.MainThreadScheduler.Schedule(() =>
@@ -896,6 +907,8 @@ internal sealed class OpaqueRegistrationService(
 
     private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier)
     {
+        _activeSessionPurposes.TryRemove(sessionIdentifier, out _);
+
         if (_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
         {
             Result<Unit, NetworkFailure> cleanupResult =
