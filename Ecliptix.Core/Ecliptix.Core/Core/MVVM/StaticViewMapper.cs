@@ -3,14 +3,14 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
-using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
-using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
-using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
-using Ecliptix.Core.Features.Authentication.Views.SignIn;
-using Ecliptix.Core.Features.Authentication.Views.Registration;
-using Ecliptix.Core.Features.Authentication.Views.Welcome;
+using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
+using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
+using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
+using Ecliptix.Core.Features.Authentication.Views.Registration;
+using Ecliptix.Core.Features.Authentication.Views.SignIn;
+using Ecliptix.Core.Features.Authentication.Views.Welcome;
 
 namespace Ecliptix.Core.Core.MVVM;
 

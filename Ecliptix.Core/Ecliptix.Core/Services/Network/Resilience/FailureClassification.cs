@@ -11,6 +11,11 @@ public static class FailureClassification
             return false;
         }
 
+        if (failure.FailureType == NetworkFailureType.ProtocolStateMismatch)
+        {
+            return false;
+        }
+
         if (failure.UserError?.Retryable is bool retryable)
         {
             return retryable;

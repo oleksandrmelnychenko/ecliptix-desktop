@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Reactive.Concurrency;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +12,10 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
-using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Resilience;
+using Ecliptix.Core.Services.Network.Rpc;
+using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
@@ -18,14 +23,9 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
-using Ecliptix.Core.Services.Authentication.Constants;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Reactive.Concurrency;
-using ReactiveUI;
-using Ecliptix.Opaque.Protocol;
-using Unit = Ecliptix.Utilities.Unit;
 using Grpc.Core;
+using ReactiveUI;
+using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
@@ -772,24 +772,6 @@ internal sealed class OpaqueRegistrationService(
     {
         string message = failure.UserError?.Message ?? failure.Message;
         return $"{AuthenticationConstants.RegistrationFailurePrefix}{message}";
-    }
-
-    private OpaqueClient GetOrCreateOpaqueClient()
-    {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
-
-        lock (_opaqueClientLock)
-        {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
-            {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
-            }
-
-            return _opaqueClient;
-        }
     }
 
     private async Task<Result<OpaqueRegistrationInitResponse, NetworkFailure>> InitiateOpaqueRegistrationAsync(

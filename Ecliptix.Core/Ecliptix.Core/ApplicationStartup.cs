@@ -1,11 +1,11 @@
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Settings;
 using Ecliptix.Core.Features.Splash.ViewModels;
 using Ecliptix.Core.Features.Splash.Views;
 using Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
+using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Settings;
 using Serilog;
 using Splat;
 

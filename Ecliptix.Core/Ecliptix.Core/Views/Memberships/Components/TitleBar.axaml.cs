@@ -1,11 +1,11 @@
+using System;
+using System.Reactive;
+using System.Reactive.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using ReactiveUI;
-using System;
-using System.Reactive;
-using System.Reactive.Linq;
 
 namespace Ecliptix.Core.Views.Memberships.Components;
 

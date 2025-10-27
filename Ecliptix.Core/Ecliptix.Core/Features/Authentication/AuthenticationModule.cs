@@ -1,9 +1,7 @@
-using System;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Modularity;
 using Ecliptix.Core.Core.Communication;
+using Ecliptix.Core.Core.Modularity;
 using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication;
@@ -32,7 +30,7 @@ public class AuthenticationModule : ModuleBase<AuthenticationModuleManifest>
         Log.Information("Authentication module message handlers setup completed");
     }
 
-    private Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
+    private static Task OnUserAuthenticated(UserAuthenticatedEvent authEvent)
     {
         Log.Information("User authenticated: {UserId} - {Username}",
             authEvent.UserId, authEvent.Username);

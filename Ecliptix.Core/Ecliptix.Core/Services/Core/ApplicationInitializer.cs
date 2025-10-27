@@ -1,13 +1,7 @@
-using Ecliptix.Protocol.System.Utilities;
-using Ecliptix.Protobuf.Device;
-using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.ProtocolState;
 using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Infrastructure.Data;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
@@ -16,17 +10,21 @@ using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.External;
-using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.External.IpGeolocation;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Network;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings;
 using Ecliptix.Core.Settings.Constants;
+using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Authentication;
+using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using Serilog;
 
@@ -67,7 +65,8 @@ public sealed class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture).ConfigureAwait(false);
+            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture)
+                .ConfigureAwait(false);
 
         if (settingsResult.IsErr)
         {
@@ -103,7 +102,8 @@ public sealed class ApplicationInitializer(
         Log.Information("[CLIENT-REGISTER] Calling RegisterDevice. ConnectId: {ConnectId}",
             connectId);
 
-        Result<Unit, NetworkFailure> registrationResult = await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
+        Result<Unit, NetworkFailure> registrationResult =
+            await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
             Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, Error: {Error}",
@@ -142,16 +142,10 @@ public sealed class ApplicationInitializer(
 
             if (restoreResult.Unwrap())
             {
-                if (!string.IsNullOrEmpty(membershipId) && await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false))
+                if (!string.IsNullOrEmpty(membershipId) &&
+                    await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false))
                 {
                     await stateManager.TransitionToAuthenticatedAsync(membershipId).ConfigureAwait(false);
-                    Log.Information("[CLIENT-RESTORE] Session restored successfully. ConnectId: {ConnectId}, IsMembershipConfirmed: {Confirmed}, MembershipId: {MembershipId}",
-                        connectId, true, membershipId);
-                }
-                else
-                {
-                    Log.Information("[CLIENT-RESTORE] Session restored successfully. ConnectId: {ConnectId}, IsMembershipConfirmed: {Confirmed}, Auth: Anonymous",
-                        connectId, false);
                 }
 
                 return Result<uint, NetworkFailure>.Ok(connectId);
@@ -161,48 +155,24 @@ public sealed class ApplicationInitializer(
         bool shouldUseAuthenticatedProtocol = false;
         SodiumSecureMemoryHandle? masterKeyHandle = null;
 
-        if (!string.IsNullOrEmpty(membershipId))
+        bool hasStoredIdentity = !string.IsNullOrEmpty(membershipId) &&
+            await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
+        if (hasStoredIdentity)
         {
-            Log.Information("[CLIENT-INIT-CHECK] Checking prerequisites for authenticated protocol. MembershipId: {MembershipId}",
-                membershipId);
+            masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId!, applicationInstanceSettings)
+                .ConfigureAwait(false);
 
-            bool hasStoredIdentity = await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
-            Log.Information("[CLIENT-INIT-CHECK] HasStoredIdentity: {HasStoredIdentity}", hasStoredIdentity);
-
-            if (hasStoredIdentity)
+            if (masterKeyHandle != null)
             {
-                masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
-
-                if (masterKeyHandle != null)
-                {
-                    Log.Information("[CLIENT-INIT-CHECK] All prerequisites met for authenticated protocol. MembershipId: {MembershipId}",
-                        membershipId);
-                    shouldUseAuthenticatedProtocol = true;
-                }
-                else
-                {
-                    Log.Warning("[CLIENT-INIT-CHECK] Failed to reconstruct master key. Will use anonymous protocol. MembershipId: {MembershipId}",
-                        membershipId);
-                }
+                shouldUseAuthenticatedProtocol = true;
             }
-            else
-            {
-                Log.Information("[CLIENT-INIT-CHECK] No stored identity found. Will use anonymous protocol. MembershipId: {MembershipId}",
-                    membershipId);
-            }
-        }
-        else
-        {
-            Log.Information("[CLIENT-INIT-CHECK] No membership identifier. Will use anonymous protocol.");
         }
 
         try
         {
             if (shouldUseAuthenticatedProtocol && masterKeyHandle != null)
             {
-                ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier;
-                Log.Information("[CLIENT-AUTH-HANDSHAKE] Creating authenticated protocol. ConnectId: {ConnectId}, MembershipId: {MembershipId}",
-                    connectId, membershipId);
+                ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier!;
 
                 Result<Unit, NetworkFailure> recreateResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(
@@ -214,34 +184,23 @@ public sealed class ApplicationInitializer(
 
                     if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
                     {
-                        Log.Error(
-                            "[CLIENT-AUTH-CRITICAL] Critical authentication failure detected. Server cannot derive identity keys. Performing full cleanup. MembershipId: {MembershipId}, Error: {Error}",
-                            membershipId, failure.Message);
-
-                        await CleanupCorruptedIdentityDataAsync(membershipId!, applicationInstanceSettings).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        Log.Warning("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol creation failed. Falling back to anonymous. ConnectId: {ConnectId}, Error: {Error}",
-                            connectId, failure.Message);
+                        await CleanupCorruptedIdentityDataAsync(membershipId!, applicationInstanceSettings)
+                            .ConfigureAwait(false);
                     }
 
-                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
+                    await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+                        .ConfigureAwait(false);
                 }
                 else
                 {
-                    Log.Information("[CLIENT-AUTH-HANDSHAKE] Authenticated protocol created successfully. ConnectId: {ConnectId}",
-                        connectId);
                     await stateManager.TransitionToAuthenticatedAsync(membershipId!).ConfigureAwait(false);
-
                     return Result<uint, NetworkFailure>.Ok(connectId);
                 }
             }
             else
             {
-                Log.Information("[CLIENT-ANON-HANDSHAKE] Creating anonymous protocol. ConnectId: {ConnectId}",
-                    connectId);
-                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId).ConfigureAwait(false);
+                await InitializeProtocolWithoutIdentityAsync(applicationInstanceSettings, connectId)
+                    .ConfigureAwait(false);
             }
         }
         finally
@@ -250,10 +209,18 @@ public sealed class ApplicationInitializer(
         }
 
         byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
+
+        /*
+        if (membershipIdBytes == null || membershipIdBytes.Length == 0)
+        {
+            return Result<uint, NetworkFailure>.Ok(connectId);
+        }*/
+
         return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
     }
 
-    private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId, byte[]? membershipId)
+    private async Task<Result<uint, NetworkFailure>> EstablishAndSaveSecrecyChannelAsync(uint connectId,
+        byte[]? membershipId)
     {
         Result<EcliptixSessionState, NetworkFailure> establishResult =
             await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
@@ -267,21 +234,11 @@ public sealed class ApplicationInitializer(
 
         if (membershipId != null)
         {
-            Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
-                secrecyChannelState.ToByteString(),
-                span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId))
+            await SecureByteStringInterop.WithByteStringAsSpan(
+                    secrecyChannelState.ToByteString(),
+                    span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(),
+                        membershipId))
                 .ConfigureAwait(false);
-
-            if (saveResult.IsErr)
-            {
-                Log.Warning("[CLIENT-STATE-SAVE] Failed to save secrecy channel state. ConnectId: {ConnectId}, Error: {Error}",
-                    connectId, saveResult.UnwrapErr().Message);
-            }
-        }
-        else
-        {
-            Log.Warning("[CLIENT-STATE-SAVE] Cannot save state: membershipId not available. ConnectId: {ConnectId}",
-                connectId);
         }
 
         return Result<uint, NetworkFailure>.Ok(connectId);
@@ -305,31 +262,26 @@ public sealed class ApplicationInitializer(
 
     private async Task<SodiumSecureMemoryHandle?> TryLoadMasterKeyFromStorageAsync(string membershipId)
     {
-        Log.Information("[CLIENT-MASTERKEY-STORAGE] Attempting to load master key from storage. MembershipId: {MembershipId}", membershipId);
-
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
             await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
         {
-            Log.Warning("[CLIENT-MASTERKEY-STORAGE] Master key load failed. MembershipId: {MembershipId}, Error: {Error}",
-                membershipId, loadResult.UnwrapErr().Message);
             return null;
         }
 
         SodiumSecureMemoryHandle loadedHandle = loadResult.Unwrap();
 
-        Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult = loadedHandle.ReadBytes(loadedHandle.Length);
-        if (readResult.IsOk)
+        Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+            loadedHandle.ReadBytes(loadedHandle.Length);
+        if (!readResult.IsOk)
         {
-            byte[] masterKeyBytes = readResult.Unwrap();
-            string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytes))[..16];
-            Log.Information("[CLIENT-MASTERKEY-STORAGE-LOADED] Master key loaded from storage with fingerprint. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                membershipId, masterKeyFingerprint);
-            CryptographicOperations.ZeroMemory(masterKeyBytes);
+            return loadedHandle;
         }
 
-        Log.Information("[CLIENT-MASTERKEY-STORAGE] Master key loaded successfully from storage. MembershipId: {MembershipId}", membershipId);
+        byte[] masterKeyBytes = readResult.Unwrap();
+        CryptographicOperations.ZeroMemory(masterKeyBytes);
+
         return loadedHandle;
     }
 
@@ -337,17 +289,13 @@ public sealed class ApplicationInitializer(
         string membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        Log.Information("[CLIENT-MASTERKEY] Starting master key load from storage. MembershipId: {MembershipId}", membershipId);
-
-        SodiumSecureMemoryHandle? storageHandle = await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
+        SodiumSecureMemoryHandle? storageHandle =
+            await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
 
         if (storageHandle != null)
         {
-            Log.Information("[CLIENT-MASTERKEY] Master key loaded successfully from storage. MembershipId: {MembershipId}", membershipId);
             return storageHandle;
         }
-
-        Log.Error("[CLIENT-MASTERKEY-RECOVERY] Master key load failed. Triggering automatic data cleanup. MembershipId: {MembershipId}", membershipId);
 
         await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
 
@@ -358,8 +306,6 @@ public sealed class ApplicationInitializer(
         string membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        Log.Warning("[CLIENT-RECOVERY] Starting automatic recovery from corrupted identity data. MembershipId: {MembershipId}", membershipId);
-
         try
         {
             uint connectId = NetworkProvider.ComputeUniqueConnectId(
@@ -367,22 +313,20 @@ public sealed class ApplicationInitializer(
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
             Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId).ConfigureAwait(false);
+                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+                    .ConfigureAwait(false);
 
             if (cleanupResult.IsErr)
             {
-                Log.Error(cleanupResult.UnwrapErr(), "[CLIENT-RECOVERY] Cleanup failed during automatic recovery. MembershipId: {MembershipId}", membershipId);
                 return;
             }
 
             await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
-
-            Log.Information("[CLIENT-RECOVERY] Automatic recovery completed successfully. All corrupted data cleaned. MembershipId: {MembershipId}", membershipId);
-            Log.Information("[CLIENT-RECOVERY] User will be redirected to authentication window for fresh login.");
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}", membershipId);
+            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}",
+                membershipId);
         }
     }
 
@@ -393,8 +337,6 @@ public sealed class ApplicationInitializer(
         byte[]? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
         if (membershipId == null)
         {
-            Log.Warning("[CLIENT-RESTORE] Cannot restore: membershipId not available. ConnectId: {ConnectId}",
-                connectId);
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -413,22 +355,21 @@ public sealed class ApplicationInitializer(
         {
             state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
         }
-        catch (InvalidProtocolBufferException ex)
+        catch (InvalidProtocolBufferException)
         {
-            Log.Warning("[CLIENT-RESTORE] Failed to parse session state. ConnectId: {ConnectId}, Error: {Error}",
-                connectId, ex.Message);
             networkProvider.ClearConnection(connectId);
             Result<Unit, SecureStorageFailure> deleteSecureStateResult =
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             if (deleteSecureStateResult.IsErr)
             {
-                Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
+                Log.Warning(
+                    "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }
+
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
-        // SECURITY: Check if session was explicitly logged out (revocation proof exists)
         string membershipIdString = SecureByteStringInterop.WithByteStringAsSpan(
             applicationInstanceSettings.Membership!.UniqueIdentifier!,
             span => new Guid(span.ToArray()).ToString());
@@ -439,19 +380,8 @@ public sealed class ApplicationInitializer(
 
         if (hasRevocationProof)
         {
-            Log.Warning("[CLIENT-RESTORE-GUARD] Session restoration blocked - revocation proof exists. " +
-                       "Session was explicitly logged out. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
-                membershipIdString, connectId);
-
             networkProvider.ClearConnection(connectId);
-            Result<Unit, SecureStorageFailure> deleteStateResult =
-                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
-
-            if (deleteStateResult.IsErr)
-            {
-                Log.Warning("[CLIENT-RESTORE-GUARD] Failed to delete state after revocation block. ConnectId: {ConnectId}, Error: {Error}",
-                    connectId, deleteStateResult.UnwrapErr().Message);
-            }
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
             return Result<bool, NetworkFailure>.Ok(false);
         }
@@ -462,13 +392,8 @@ public sealed class ApplicationInitializer(
         if (restoreResult.IsErr)
         {
             networkProvider.ClearConnection(connectId);
-            Result<Unit, SecureStorageFailure> deleteStateResult =
-                await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
-            if (deleteStateResult.IsErr)
-            {
-                Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete state after restore failure. ConnectId: {ConnectId}, Error: {Error}",
-                    connectId, deleteStateResult.UnwrapErr().Message);
-            }
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+
             return Result<bool, NetworkFailure>.Ok(false);
         }
 
@@ -478,13 +403,7 @@ public sealed class ApplicationInitializer(
         }
 
         networkProvider.ClearConnection(connectId);
-        Result<Unit, SecureStorageFailure> deleteResult =
-            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
-        if (deleteResult.IsErr)
-        {
-            Log.Warning("[CLIENT-RESTORE-CLEANUP] Failed to delete state after unsuccessful restore. ConnectId: {ConnectId}, Error: {Error}",
-                connectId, deleteResult.UnwrapErr().Message);
-        }
+        await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
         return Result<bool, NetworkFailure>.Ok(false);
     }
@@ -532,5 +451,4 @@ public sealed class ApplicationInitializer(
                 await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country).ConfigureAwait(false);
             }
         });
-
 }

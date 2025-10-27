@@ -4,22 +4,26 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+
+using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Membership;
 using Ecliptix.Core.Services.Membership.Constants;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Authentication;
+
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using SystemU = System.Reactive.Unit;
-using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Utilities.Failures.Authentication;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Protobuf.Protocol;
+
 using Serilog;
+
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 
@@ -128,15 +132,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         MobileNumber = string.Empty;
         _secureKeyBuffer.Remove(0, _secureKeyBuffer.Length);
 
-        try
-        {
-            _signInCancellationTokenSource?.Cancel();
-            _signInCancellationTokenSource?.Dispose();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-
+        CancelSignInOperation();
         _signInErrorSubject.OnNext(string.Empty);
 
         MobileNumberError = string.Empty;
@@ -147,8 +143,11 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         HasServerError = false;
     }
 
-    public new void Dispose() =>
+    public new void Dispose()
+    {
         Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
     protected override void Dispose(bool disposing)
     {
@@ -159,15 +158,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         if (disposing)
         {
-            try
-            {
-                _signInCancellationTokenSource?.Cancel();
-                _signInCancellationTokenSource?.Dispose();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            _signInCancellationTokenSource = null;
+            CancelSignInOperation();
 
             SignInCommand?.Dispose();
             AccountRecoveryCommand?.Dispose();
@@ -324,8 +315,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
                 _hostWindowModel.SwitchToMainWindowCommand.Execute().Subscribe(
                     _ => { },
-                    ex => { Log.Error(ex, "Failed to transition to main window"); },
-                    () => Log.Information("Main window transition completed")
+                    ex => { Log.Error(ex, "Failed to transition to main window"); }
                 );
             })
             .DisposeWith(_disposables);
@@ -335,4 +325,25 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         _secureKeyBuffer.Length == 0
             ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.Required]
             : string.Empty;
+
+    private void CancelSignInOperation()
+    {
+        CancellationTokenSource? cancellationSource = Interlocked.Exchange(ref _signInCancellationTokenSource, null);
+        if (cancellationSource == null)
+        {
+            return;
+        }
+
+        try
+        {
+            cancellationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            cancellationSource.Dispose();
+        }
+    }
 }

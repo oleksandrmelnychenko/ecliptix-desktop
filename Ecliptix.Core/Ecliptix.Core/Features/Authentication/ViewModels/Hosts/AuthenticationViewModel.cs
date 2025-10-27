@@ -9,34 +9,28 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Events;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Settings;
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Core;
-using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Authentication;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Network;
-using Ecliptix.Core.Services.Common;
-using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
-using Ecliptix.Core.Features.Authentication.Common;
-using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
-using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
-using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
-using Ecliptix.Core.Features.Main.ViewModels;
-using Ecliptix.Core.Views.Core;
+using Ecliptix.Core.Core.Messaging.Connectivity;
+using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.Authentication.Common;
+using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
+using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
+using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
+using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
+using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Settings;
 using Ecliptix.Core.ViewModels.Core;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 using Serilog;
 using Splat;
@@ -202,8 +196,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
                     if (recoveryResult.IsOk)
                     {
-                        ConnectivityIntent intent = ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
-                            with { Source = ConnectivitySource.ManualAction };
+                        ConnectivityIntent intent =
+                            ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
+                                with
+                                {
+                                    Source = ConnectivitySource.ManualAction
+                                };
                         await _connectivityService.PublishAsync(intent);
                     }
                 })
@@ -216,8 +214,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
         });
-
-        Log.Information("[MEMBERSHIP-HOST-CTOR] Constructor completed");
     }
 
     public IRoutableViewModel? CurrentView
@@ -237,7 +233,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         private set => this.RaiseAndSetIfChanged(ref _canNavigateBack, value);
     }
 
-    public RoutingState Router => throw new NotImplementedException("This host uses custom navigation");
+    public RoutingState Router => new();
 
     public ConnectivityNotificationViewModel ConnectivityNotification { get; }
 
@@ -273,7 +269,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         {
             try
             {
-                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
+                IRoutableViewModel welcomeView =
+                    GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
                 _navigationStack.Push(welcomeView);
             }
             catch (Exception ex)
@@ -281,8 +278,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 Log.Warning(ex, "Failed to preserve welcome view in navigation stack");
             }
         }
+
         CanNavigateBack = _navigationStack.Count > 0;
-        Log.Information("Navigation stack cleared{Preserve}", preserveInitialWelcome ? " (preserved welcome)" : "");
     }
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
@@ -349,7 +346,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
     }
 
-    public new void Dispose()
+    public void Dispose()
     {
         Dispose(true);
     }
@@ -368,8 +365,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     private static void OpenUrl(string url)
     {
-        Log.Information("Opening URL: {Url}", url);
-
         if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform
                 .Windows))
         {
@@ -452,10 +447,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 _ = Task.Run(async () =>
                 {
                     Result<Utilities.Unit, InternalServiceApiFailure> result =
-                        await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture).ConfigureAwait(false);
+                        await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture)
+                            .ConfigureAwait(false);
                     if (result.IsErr)
                     {
-                        Log.Warning("[LANGUAGE-CHANGE] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                        Log.Warning(
+                            "[LANGUAGE-CHANGE] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
                             targetCulture, result.UnwrapErr().Message);
                     }
                 });
@@ -464,19 +461,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     private Task HandleBottomSheetDismissedEvent(BottomSheetHiddenEvent evt)
     {
-        try
-        {
-            if (evt.WasDismissedByUser)
-            {
-                Log.Information("Bottom sheet dismissed by user");
-            }
-        }
-        finally
-        {
-            _languageSubscription?.Dispose();
-            _bottomSheetHiddenSubscription?.Dispose();
-        }
-
+        _languageSubscription?.Dispose();
+        _bottomSheetHiddenSubscription?.Dispose();
         return Task.CompletedTask;
     }
 
@@ -509,10 +495,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                         _networkProvider
                     );
 
-                    DetectLanguageDialog detectLanguageView = new()
-                    {
-                        DataContext = detectLanguageViewModel
-                    };
+                    DetectLanguageDialog detectLanguageView = new() { DataContext = detectLanguageViewModel };
 
                     await _mainWindowViewModel.ShowBottomSheetAsync(
                         BottomSheetComponentType.DetectedLocalization,

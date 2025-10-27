@@ -59,6 +59,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     private ConnectivityNotificationView? _view;
     private Border? _mainBorder;
+    private bool _disposed;
 
     private static Animation? _sharedAppearAnimation;
     private static Animation? _sharedDisappearAnimation;
@@ -587,8 +588,23 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
     public void Dispose()
     {
-        _visibilityOperationTokenSource?.Cancel();
-        _visibilityOperationTokenSource?.Dispose();
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            _visibilityOperationTokenSource?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            _visibilityOperationTokenSource?.Dispose();
+            _visibilityOperationTokenSource = null;
+        }
 
         _disposables.Dispose();
         _statusUpdateSemaphore.Dispose();
@@ -600,6 +616,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
 
         _cachedStatusTexts.Clear();
         _cachedStatusDescriptions.Clear();
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     private static void LogRetryButtonShow()

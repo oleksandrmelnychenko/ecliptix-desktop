@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging.Connectivity;
@@ -9,29 +10,28 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Infrastructure.Network.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
+using Ecliptix.Core.Infrastructure.Security.Crypto;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Infrastructure;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Settings.Constants;
-using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Common;
-using Ecliptix.Protobuf.ProtocolState;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Core;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Security.Certificate.Pinning.Services;
-using Ecliptix.Core.Infrastructure.Security.Crypto;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
-using Unit = Ecliptix.Utilities.Unit;
-using System.Security.Cryptography;
 using Serilog;
+using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
@@ -561,42 +561,42 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (retryMode)
         {
             case RestoreRetryMode.AutoRetry:
-            {
-                BeginSecrecyChannelEstablishRecovery();
-                CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                using CancellationTokenSource combinedCancellationTokenSource =
-                    cancellationToken.CanBeCanceled
-                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                {
+                    BeginSecrecyChannelEstablishRecovery();
+                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                    using CancellationTokenSource combinedCancellationTokenSource =
+                        cancellationToken.CanBeCanceled
+                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
-                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
-                        request,
-                        cancellationToken: ct),
-                    "RestoreSecrecyChannel",
-                    ecliptixSecrecyChannelState.ConnectId,
-                    serviceType: RpcServiceType.RestoreSecrecyChannel,
-                    cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
-                break;
-            }
+                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
+                        (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
+                            request,
+                            cancellationToken: ct),
+                        "RestoreSecrecyChannel",
+                        ecliptixSecrecyChannelState.ConnectId,
+                        serviceType: RpcServiceType.RestoreSecrecyChannel,
+                        cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
+                    break;
+                }
             case RestoreRetryMode.ManualRetry:
-            {
-                BeginSecrecyChannelEstablishRecovery();
-                CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                using CancellationTokenSource combinedCts =
-                    cancellationToken.CanBeCanceled
-                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                {
+                    BeginSecrecyChannelEstablishRecovery();
+                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                    using CancellationTokenSource combinedCts =
+                        cancellationToken.CanBeCanceled
+                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
-                    (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
-                        request,
-                        cancellationToken: ct),
-                    "RestoreSecrecyChannel",
-                    ecliptixSecrecyChannelState.ConnectId,
-                    cancellationToken: combinedCts.Token).ConfigureAwait(false);
-                break;
-            }
+                    restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
+                        (attempt, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
+                            request,
+                            cancellationToken: ct),
+                        "RestoreSecrecyChannel",
+                        ecliptixSecrecyChannelState.ConnectId,
+                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
+                    break;
+                }
             case RestoreRetryMode.DirectNoRetry:
                 try
                 {
@@ -772,7 +772,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
-                DhRatchetEveryNMessages = 20, MaxChainAge = TimeSpan.FromMinutes(5), MaxMessagesWithoutRatchet = 100
+                DhRatchetEveryNMessages = 20,
+                MaxChainAge = TimeSpan.FromMinutes(5),
+                MaxMessagesWithoutRatchet = 100
             },
             _ => RatchetConfig.Default
         };
@@ -912,46 +914,46 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (serviceType.ToString())
         {
             case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
-            {
-                Span<byte> semanticBuffer = stackalloc byte[256];
-                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                break;
-            }
+                {
+                    Span<byte> semanticBuffer = stackalloc byte[256];
+                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                    break;
+                }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
-            {
-                Span<byte> semanticBuffer = stackalloc byte[256];
-                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                break;
-            }
+                {
+                    Span<byte> semanticBuffer = stackalloc byte[256];
+                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                    break;
+                }
             case "InitiateVerification":
-            {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                SHA256.HashData(plainBuffer, payloadHash);
+                {
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                    SHA256.HashData(plainBuffer, payloadHash);
 
-                string semantic =
-                    $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
-                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                break;
-            }
+                    string semantic =
+                        $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
+                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                    break;
+                }
             default:
-            {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
-                SHA256.HashData(plainBuffer, payloadHash);
+                {
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                    SHA256.HashData(plainBuffer, payloadHash);
 
-                string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
-                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                hashLength = NetworkConstants.Cryptography.Sha256HashSize;
-                break;
-            }
+                    string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
+                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+                    break;
+                }
         }
 
         uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
@@ -2260,7 +2262,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
                 {
-                    MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
+                    MembershipUniqueId = membershipIdentifier,
+                    ClientPubKeyExchange = clientExchange
                 };
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =

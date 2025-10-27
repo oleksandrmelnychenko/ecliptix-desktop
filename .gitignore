@@ -87,3 +87,4 @@ logs/
 # Build artifacts and publish output
 publish/
 *.dSYM/
+build-output.txt

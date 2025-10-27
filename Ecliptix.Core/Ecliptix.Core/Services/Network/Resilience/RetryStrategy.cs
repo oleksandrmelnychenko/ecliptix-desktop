@@ -5,9 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using Polly;
-using Polly.Contrib.WaitAndRetry;
-using Polly.Timeout;
 using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
@@ -16,6 +13,9 @@ using Ecliptix.Core.Services.Abstractions.Network;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
+using Polly;
+using Polly.Contrib.WaitAndRetry;
+using Polly.Timeout;
 using Serilog;
 using Serilog.Events;
 
@@ -291,8 +291,8 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             List<string> exhaustedKeys = [];
             exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
-                where operation.IsExhausted
-                select operation.UniqueKey);
+                                   where operation.IsExhausted
+                                   select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {

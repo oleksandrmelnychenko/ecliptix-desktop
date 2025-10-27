@@ -56,7 +56,7 @@
   "files": {
     "version_files": [
       {
-        "path": "Ecliptix.Core/Directory.Build.props",
+        "path": "Directory.Build.props",
         "type": "msbuild",
         "properties": ["MajorVersion", "MinorVersion", "PatchVersion"]
       }

@@ -1,7 +1,4 @@
 using System;
-using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Core.Messaging;
@@ -19,14 +16,9 @@ using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protocol.System.Core;
-using Ecliptix.Protocol.System.Sodium;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.Membership;
 using Ecliptix.Utilities.Failures.Network;
-using Ecliptix.Utilities.Failures.Sodium;
 using Google.Protobuf;
 using Serilog;
 
@@ -169,7 +161,7 @@ internal sealed class LogoutService(
             {
                 Log.Error("[LOGOUT] Revocation proof verification failed for MembershipId: {MembershipId}",
                     membershipId);
-               // return proofVerification;
+                // return proofVerification;
             }
         }
 
@@ -207,12 +199,6 @@ internal sealed class LogoutService(
             _ => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server returned unknown logout status"))
         };
-    }
-
-    private static LogoutFailure MapNetworkFailure(NetworkFailure failure)
-    {
-        string message = failure.UserError?.Message ?? failure.Message;
-        return LogoutFailure.NetworkRequestFailed(message, failure.InnerException);
     }
 
     private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId, CancellationToken cancellationToken)

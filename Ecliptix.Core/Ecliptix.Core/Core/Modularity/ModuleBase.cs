@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Ecliptix.Core.Core.Abstractions;
 using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;

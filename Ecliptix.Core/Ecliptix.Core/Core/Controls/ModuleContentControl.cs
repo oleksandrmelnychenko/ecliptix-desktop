@@ -1,8 +1,8 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
-using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.MVVM;
 using Ecliptix.Utilities;
 using Splat;
 

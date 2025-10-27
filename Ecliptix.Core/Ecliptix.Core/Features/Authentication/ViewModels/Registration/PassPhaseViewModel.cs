@@ -2,11 +2,12 @@ using System;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
+
 using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -52,6 +53,7 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     public new void Dispose()
     {
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
@@ -63,7 +65,6 @@ public sealed class PassPhaseViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (disposing)
         {
-            SubmitCommand?.Dispose();
             _disposables.Dispose();
         }
 

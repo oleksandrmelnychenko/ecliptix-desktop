@@ -1,38 +1,20 @@
 using System;
-using System.Threading.Tasks;
-using Avalonia.Interactivity;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Services.Abstractions.Core;
 using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-using Splat;
 
 namespace Ecliptix.Core.Controls.Modals;
 
-public sealed class UserRequestErrorViewModel : ReactiveObject, IDisposable, IActivatableViewModel
+public sealed class UserRequestErrorViewModel : ReactiveObject, IActivatableViewModel
 {
     public ViewModelActivator Activator { get; } = new();
-    private bool _disposed = false;
-    private ILocalizationService _localizationService;
-    [Reactive] public string ErrorMessage { get; set; }
 
-    public UserRequestErrorViewModel(
-        string errorMessage,
-        ILocalizationService localizationService,
-        Action? onComplete = null)
+    public UserRequestErrorViewModel(string errorMessage, ILocalizationService localizationService)
     {
-        _localizationService = localizationService;
-        ErrorMessage = errorMessage;
+        _ = localizationService ?? throw new ArgumentNullException(nameof(localizationService));
+        ErrorMessage = string.IsNullOrWhiteSpace(errorMessage)
+            ? localizationService["Common.UnexpectedError"]
+            : errorMessage;
     }
 
-
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-    }
+    public string ErrorMessage { get; }
 }

@@ -1,11 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Ecliptix.Core.Settings;
 using Ecliptix.Core.Core.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
-using ReactiveUI;
+using Ecliptix.Core.Settings;
 using Splat;
 
 namespace Ecliptix.Core;
@@ -23,13 +22,13 @@ public class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Splat.Locator.CurrentMutable.RegisterConstant(desktop, typeof(IClassicDesktopStyleApplicationLifetime));
+            Locator.CurrentMutable.RegisterConstant(desktop, typeof(IClassicDesktopStyleApplicationLifetime));
 
             _ = Task.Run(async () =>
             {
                 await InitializeModulesAsync();
 
-                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
                 {
                     ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
                     await applicationStartup.RunAsync(defaultSystemSettings);

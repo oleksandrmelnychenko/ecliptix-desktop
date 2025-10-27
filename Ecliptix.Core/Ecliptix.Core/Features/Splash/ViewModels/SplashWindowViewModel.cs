@@ -26,11 +26,13 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
 
     public ConnectivityStatus ConnectivityStatus => Connectivity.Status;
 
-    public TaskCompletionSource IsSubscribed { get; } = new();
+    public TaskCompletionSource<bool> IsSubscribed { get; } = new();
 
-    public SplashWindowViewModel(IConnectivityService connectivityService,
-        ILocalizationService localizationService, NetworkProvider networkProvider)
-        : base(networkProvider, localizationService, null)
+    public SplashWindowViewModel(
+        IConnectivityService connectivityService,
+        ILocalizationService localizationService,
+        NetworkProvider networkProvider)
+        : base(networkProvider, localizationService)
     {
         SetupPrecompiledNetworkBinding(connectivityService);
     }
@@ -50,7 +52,7 @@ public sealed class SplashWindowViewModel : Core.MVVM.ViewModelBase
         this.WhenActivated(disposables =>
         {
             subscription.DisposeWith(disposables);
-            IsSubscribed.TrySetResult();
+            IsSubscribed.TrySetResult(true);
         });
     }
 

@@ -1,11 +1,11 @@
 namespace Ecliptix.Core.Services.Core;
 
+using System;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Ecliptix.Utilities;
 using Serilog;
-using System;
 
 internal static class IconService
 {
@@ -13,7 +13,7 @@ internal static class IconService
 
     public static void SetIconForWindow(Window window)
     {
-        _cachedIcon.Or(() => LoadPlatformIcon())
+        _cachedIcon.Or(LoadPlatformIcon)
             .Do(icon =>
             {
                 _cachedIcon = Option<WindowIcon>.Some(icon);

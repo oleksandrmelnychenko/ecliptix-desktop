@@ -222,6 +222,13 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)
     {
+        // Replay attack detection - must not retry
+        if (rpcException.StatusCode == StatusCode.FailedPrecondition &&
+            rpcException.Status.Detail?.Contains("Replay attack", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return NetworkFailureType.ProtocolStateMismatch;
+        }
+
         if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcException) ||
             GrpcErrorClassifier.IsAuthenticationError(rpcException) ||
             userError.ErrorCode == ErrorCode.Unauthenticated)

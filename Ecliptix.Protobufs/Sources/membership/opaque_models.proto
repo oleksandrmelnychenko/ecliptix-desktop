@@ -6,7 +6,6 @@ import "google/protobuf/timestamp.proto";
 package ecliptix.proto.membership;
 option csharp_namespace = "Ecliptix.Protobuf.Membership";
 
-// OPAQUE Registration Messages
 message OpaqueRegistrationInitRequest {
   bytes peer_oprf = 1;
   bytes membership_identifier = 2;
@@ -42,7 +41,6 @@ message OpaqueRegistrationCompleteResponse {
   optional ecliptix.proto.account.Account active_account = 5;
 }
 
-// OPAQUE Sign In Messages
 message OpaqueSignInInitRequest {
   string mobile_number = 1;
   bytes peer_oprf = 2;
@@ -89,7 +87,6 @@ message OpaqueSignInFinalizeResponse {
   }
 }
 
-// OPAQUE Recovery Messages
 message OpaqueRecoverySecureKeyInitRequest {
   bytes peer_oprf = 1;
   bytes membership_identifier = 2;
@@ -117,7 +114,6 @@ message OpaqueRecoverySecretKeyCompleteResponse {
   optional string message = 1;
 }
 
-// AKE State Messages
 message AkeServerState {
   bytes server_ephemeral_private_key_bytes = 1;
   bytes server_ephemeral_public_key = 2;

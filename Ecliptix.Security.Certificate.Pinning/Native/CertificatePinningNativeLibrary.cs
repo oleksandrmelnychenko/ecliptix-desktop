@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
-using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using Ecliptix.Security.Certificate.Pinning.Constants;
 
 namespace Ecliptix.Security.Certificate.Pinning.Native;
@@ -42,12 +42,12 @@ internal static unsafe class CertificatePinningNativeLibrary
             fileName = $"{LibraryName}{extension}";
         }
 
-        string[] searchPaths = new[]
-        {
+        string[] searchPaths =
+        [
             Path.Combine(AppContext.BaseDirectory, fileName),
             Path.Combine(AppContext.BaseDirectory, "runtimes", GetRuntimeIdentifier(), "native", fileName),
             Path.Combine(Path.GetDirectoryName(assembly.Location) ?? string.Empty, fileName)
-        };
+        ];
 
         foreach (string libPath in searchPaths)
         {

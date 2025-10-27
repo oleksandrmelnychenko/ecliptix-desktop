@@ -6,18 +6,18 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Protobuf.Membership;
-using Ecliptix.Utilities;
-using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -92,12 +92,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             .Subscribe(ex =>
             {
                 Log.Error(ex, "[OTP-VERIFICATION] Unhandled exception in SendVerificationCodeCommand");
-                if (!_isDisposed)
+                if (_isDisposed)
                 {
-                    ErrorMessage = ex.Message;
-                    IsSent = false;
-                    HasError = true;
+                    return;
                 }
+
+                ErrorMessage = ex.Message;
+                IsSent = false;
+                HasError = true;
             })
             .DisposeWith(_disposables);
 
@@ -317,7 +319,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource.Token)
+                        cancellationToken: _cancellationTokenSource != null ? _cancellationTokenSource.Token : CancellationToken.None)
                     : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
                         _mobileNumberIdentifier,
                         deviceIdentifier,
@@ -337,7 +339,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource.Token);
+                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None);
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 

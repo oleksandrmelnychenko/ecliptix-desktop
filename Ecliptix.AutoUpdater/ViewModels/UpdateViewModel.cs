@@ -1,4 +1,6 @@
+using System;
 using System.Reactive;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Ecliptix.AutoUpdater.Models;
 using ReactiveUI;
@@ -8,6 +10,7 @@ namespace Ecliptix.AutoUpdater.ViewModels;
 public class UpdateViewModel : ReactiveObject, IDisposable
 {
     private readonly UpdateManager _updateManager;
+    private bool _disposed;
     private bool _isUpdateAvailable;
     private bool _isChecking;
     private bool _isDownloading;
@@ -222,10 +225,26 @@ public class UpdateViewModel : ReactiveObject, IDisposable
         }
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            _updateManager.UpdateAvailable -= OnUpdateAvailable;
+            _updateManager.DownloadProgressChanged -= OnDownloadProgressChanged;
+            _updateManager.ErrorOccurred -= OnErrorOccurred;
+        }
+
+        _disposed = true;
+    }
+
     public void Dispose()
     {
-        _updateManager.UpdateAvailable -= OnUpdateAvailable;
-        _updateManager.DownloadProgressChanged -= OnDownloadProgressChanged;
-        _updateManager.ErrorOccurred -= OnErrorOccurred;
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

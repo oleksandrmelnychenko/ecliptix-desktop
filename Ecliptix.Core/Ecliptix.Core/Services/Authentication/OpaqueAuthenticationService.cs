@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Core.Messaging.Events;
+using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Infrastructure.Security.KeySplitting;
@@ -12,13 +12,13 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
-using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Core.Services.Network.Resilience;
+using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Authentication;
@@ -80,7 +80,6 @@ internal sealed class OpaqueAuthenticationService(
 
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
-    private byte[]? _cachedServerPublicKey;
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
         SecureTextBuffer securePassword,
@@ -574,24 +573,6 @@ internal sealed class OpaqueAuthenticationService(
         return OpaqueErrorMessages.TryGetValue(error, out string? key)
             ? localizationService[key]
             : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
-    }
-
-    private OpaqueClient GetOrCreateOpaqueClient()
-    {
-        byte[] serverPublicKey = serverPublicKeyProvider.GetServerPublicKey();
-
-        lock (_opaqueClientLock)
-        {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
-            {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
-            }
-
-            return _opaqueClient;
-        }
     }
 
     private async Task<Result<OpaqueSignInInitResponse, NetworkFailure>> SendInitRequestAsync(

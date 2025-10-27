@@ -3,13 +3,16 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Ecliptix.Core.Settings;
+
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Common;
+using Ecliptix.Core.Settings;
 using Ecliptix.Utilities;
+
 using ReactiveUI;
+
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Controls.LanguageSelector;

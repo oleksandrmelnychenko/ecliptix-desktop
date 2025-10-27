@@ -115,7 +115,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
-    protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds, Action onComplete)
+    protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds,
+        Action onComplete)
     {
         if (_disposedValue)
         {
@@ -130,7 +131,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             if (!_disposedValue)
             {
-                await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView, showScrim: true, isDismissable: false);
+                await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
+                    showScrim: true, isDismissable: false);
             }
             else
             {
@@ -139,7 +141,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
-    protected void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
+    protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
     {
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
         membershipHostWindow.ClearNavigationStack();
@@ -147,7 +149,6 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         _ = Task.Run(async () =>
         {
             await membershipHostWindow.HideBottomSheetAsync();
-
         });
     }
 

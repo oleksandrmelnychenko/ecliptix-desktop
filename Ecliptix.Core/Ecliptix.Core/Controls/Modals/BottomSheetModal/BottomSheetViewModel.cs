@@ -1,15 +1,14 @@
 using System;
-using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+
 using Avalonia.Controls;
 using Avalonia.Threading;
-using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
+
 using ReactiveUI;
-using Serilog;
 using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
@@ -93,11 +92,11 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         });
     }
 
-    private async Task HandleCommand(BottomSheetCommandEvent evt)
+    private Task HandleCommand(BottomSheetCommandEvent evt)
     {
         if (_disposed)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         if (evt.AnimationType == AnimationType.Show)
@@ -111,6 +110,8 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
         {
             IsVisible = false;
         }
+
+        return Task.CompletedTask;
     }
 
     public void BottomSheetDismissed()
@@ -120,9 +121,12 @@ public sealed class BottomSheetViewModel : ReactiveObject, IActivatableViewModel
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (_disposed)
         {
-            _disposed = true;
+            return;
         }
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 }

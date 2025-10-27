@@ -468,7 +468,9 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         {
             if (File.Exists(tempPath))
             {
-                try { File.Delete(tempPath); } catch { }
+                try
+                { File.Delete(tempPath); }
+                catch { }
             }
             throw;
         }

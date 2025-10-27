@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
@@ -15,13 +14,12 @@ using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Infrastructure.Data;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protobuf.Device;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
@@ -199,18 +197,7 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
 
     public void ResetState()
     {
-        try
-        {
-            _currentOperationCts?.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        finally
-        {
-            _currentOperationCts?.Dispose();
-            _currentOperationCts = null;
-        }
+        CancelCurrentOperation();
 
         _newPasswordBuffer.Remove(0, _newPasswordBuffer.Length);
         _confirmPasswordBuffer.Remove(0, _confirmPasswordBuffer.Length);
@@ -488,24 +475,33 @@ public sealed class ForgotPasswordResetViewModel : Core.MVVM.ViewModelBase, IRou
     {
         if (disposing)
         {
-            try
-            {
-                _currentOperationCts?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            finally
-            {
-                _currentOperationCts?.Dispose();
-                _currentOperationCts = null;
-            }
-
+            CancelCurrentOperation();
             _newPasswordBuffer.Dispose();
             _confirmPasswordBuffer.Dispose();
             _disposables.Dispose();
         }
 
         base.Dispose(disposing);
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? operationSource = Interlocked.Exchange(ref _currentOperationCts, null);
+        if (operationSource == null)
+        {
+            return;
+        }
+
+        try
+        {
+            operationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            operationSource.Dispose();
+        }
     }
 }

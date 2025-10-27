@@ -3,24 +3,28 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
-using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Membership;
-using Ecliptix.Utilities;
+
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
-using Google.Protobuf;
-using ReactiveUI;
-using ReactiveUI.Fody.Helpers;
-using Unit = System.Reactive.Unit;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
+using Ecliptix.Core.Infrastructure.Data.Abstractions;
+using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Utilities;
+
+using Google.Protobuf;
+
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
+
+using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -106,6 +110,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return;
         }
 
+        CancelCurrentOperation();
         MobileNumber = string.Empty;
         _hasMobileNumberBeenTouched = false;
         HasMobileNumberError = false;
@@ -451,6 +456,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public new void Dispose()
     {
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)
@@ -462,13 +468,32 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         if (disposing)
         {
-            _currentOperationCts?.Cancel();
-            _currentOperationCts?.Dispose();
-            _currentOperationCts = null;
+            CancelCurrentOperation();
             _disposables.Dispose();
         }
 
         base.Dispose(disposing);
         _isDisposed = true;
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? operationSource = Interlocked.Exchange(ref _currentOperationCts, null);
+        if (operationSource == null)
+        {
+            return;
+        }
+
+        try
+        {
+            operationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            operationSource.Dispose();
+        }
     }
 }

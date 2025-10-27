@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Core.Modularity;
 

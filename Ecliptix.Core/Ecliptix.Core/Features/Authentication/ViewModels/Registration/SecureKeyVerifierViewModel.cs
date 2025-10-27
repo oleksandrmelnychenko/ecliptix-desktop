@@ -7,23 +7,22 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Core.Core.Messaging.Services;
+using Ecliptix.Core.Features.Authentication.Common;
+using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Authentication;
+using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication;
 using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Membership;
-using Ecliptix.Core.Features.Authentication.Common;
-using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
-using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Messaging.Connectivity;
-using Ecliptix.Core.Core.Messaging.Services;
-using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Authentication;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -71,16 +70,15 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
     public int CurrentVerifySecureKeyLength => _verifySecureKeyBuffer.Length;
 
-    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; private set; }
-    public ReactiveCommand<SystemU, SystemU> NavPassConfToPassPhase { get; private set; }
+    public ReactiveCommand<SystemU, SystemU> SubmitCommand { get; private set; } = null!;
 
-    [Reactive] public string? SecureKeyError { get; set; }
-    [Reactive] public bool HasSecureKeyError { get; set; }
-    [Reactive] public string? VerifySecureKeyError { get; set; }
-    [Reactive] public bool HasVerifySecureKeyError { get; set; }
-    [Reactive] public string? ServerError { get; set; }
-    [Reactive] public bool HasServerError { get; set; }
-    [Reactive] public bool CanSubmit { get; private set; }
+    [Reactive] public string? SecureKeyError { get; private set; }
+    [Reactive] public bool HasSecureKeyError { get; private set; }
+    [Reactive] public string? VerifySecureKeyError { get; private set; }
+    [Reactive] public bool HasVerifySecureKeyError { get; private set; }
+    [Reactive] public string? ServerError { get; private set; }
+    [Reactive] public bool HasServerError { get; private set; }
+    [Reactive] public bool CanSubmit { get; set; }
 
     [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -98,11 +96,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync, canExecuteSubmit);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
-
-        NavPassConfToPassPhase = ReactiveCommand.Create(() =>
-        {
-            ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
-        });
     }
 
     private void SetupSubscriptions()
@@ -194,16 +187,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     public async Task HandleEnterKeyPressAsync()
     {
-        try
+        if (await SubmitCommand.CanExecute.FirstOrDefaultAsync())
         {
-            if (SubmitCommand != null && await SubmitCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                SubmitCommand.Execute().Subscribe();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[SECURE-KEY-VERIFIER-ENTERKEY] Error handling enter key press");
+            SubmitCommand.Execute().Subscribe();
         }
     }
 
@@ -464,13 +450,32 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     {
         if (disposing)
         {
-            _currentOperationCts?.Cancel();
-            _currentOperationCts?.Dispose();
-            _currentOperationCts = null;
+            CancelCurrentOperation();
             _secureKeyBuffer.Dispose();
             _verifySecureKeyBuffer.Dispose();
         }
 
         base.Dispose(disposing);
+    }
+
+    private void CancelCurrentOperation()
+    {
+        CancellationTokenSource? operationSource = Interlocked.Exchange(ref _currentOperationCts, null);
+        if (operationSource == null)
+        {
+            return;
+        }
+
+        try
+        {
+            operationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            operationSource.Dispose();
+        }
     }
 }

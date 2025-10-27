@@ -10,9 +10,9 @@ using Ecliptix.Core.Infrastructure.Data.SecureStorage.Configuration;
 using Ecliptix.Core.Services.Common;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.Services.External.IpGeolocation;
-using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Google.Protobuf;
 using Microsoft.AspNetCore.DataProtection;
@@ -313,6 +313,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             }
             catch
             {
+                // ignored
             }
         }
     }

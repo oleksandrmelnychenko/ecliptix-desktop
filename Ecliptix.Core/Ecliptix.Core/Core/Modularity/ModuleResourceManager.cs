@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Microsoft.Extensions.DependencyInjection;
 using Ecliptix.Core.Core.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;

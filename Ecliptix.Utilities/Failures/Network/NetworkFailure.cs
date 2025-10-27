@@ -37,32 +37,31 @@ public record NetworkFailure(
     }
 
     public static NetworkFailure InvalidRequestType(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.InvalidRequestType, details, inner) { UserError = userError };
+        new(NetworkFailureType.InvalidRequestType, details, inner) { UserError = userError };
 
     public static NetworkFailure DataCenterNotResponding(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.DataCenterNotResponding, details, inner) { UserError = userError };
+        new(NetworkFailureType.DataCenterNotResponding, details, inner) { UserError = userError };
 
     public static NetworkFailure DataCenterShutdown(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.DataCenterShutdown, details, inner) { UserError = userError };
+        new(NetworkFailureType.DataCenterShutdown, details, inner) { UserError = userError };
 
     public static NetworkFailure RsaEncryption(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.RsaEncryptionFailure, details, inner) { UserError = userError };
+        new(NetworkFailureType.RsaEncryptionFailure, details, inner) { UserError = userError };
 
     public static NetworkFailure ProtocolStateMismatch(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.ProtocolStateMismatch, details, inner) { UserError = userError };
+        new(NetworkFailureType.ProtocolStateMismatch, details, inner) { UserError = userError };
 
     public static NetworkFailure OperationCancelled(string? details = null, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.OperationCancelled, details ?? "Operation was cancelled", inner)
+        new(NetworkFailureType.OperationCancelled, details ?? "Operation was cancelled", inner)
         {
             UserError = userError
         };
 
     public static NetworkFailure CriticalAuthenticationFailure(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new NetworkFailure(NetworkFailureType.CriticalAuthenticationFailure, details, inner) { UserError = userError };
+        new(NetworkFailureType.CriticalAuthenticationFailure, details, inner) { UserError = userError };
 
     public override GrpcErrorDescriptor ToGrpcDescriptor()
     {
-        // If UserError is present, use it; otherwise map from FailureType
         if (UserError is not null)
         {
             return new GrpcErrorDescriptor(
