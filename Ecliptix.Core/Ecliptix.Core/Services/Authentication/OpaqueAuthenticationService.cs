@@ -109,14 +109,14 @@ internal sealed class OpaqueAuthenticationService(
 
             passwordBytes = createResult.Value.Unwrap();
 
-            if (passwordBytes.Length == 0)
+            if (passwordBytes.Length != 0)
             {
-                string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
+                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
-            return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
-                .ConfigureAwait(false);
+            string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
         }
         finally
         {
@@ -140,14 +140,9 @@ internal sealed class OpaqueAuthenticationService(
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(failure.UserError.I18nKey) &&
-            string.Equals(failure.UserError.I18nKey, AuthenticationConstants.InvalidCredentialsKey,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return false;
+        return !string.IsNullOrWhiteSpace(failure.UserError.I18nKey) &&
+               string.Equals(failure.UserError.I18nKey, AuthenticationConstants.InvalidCredentialsKey,
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ShouldReinit(NetworkFailure failure)
@@ -162,22 +157,19 @@ internal sealed class OpaqueAuthenticationService(
             return true;
         }
 
-        if (failure.UserError is { } userError)
+        if (failure.UserError is not { } userError)
         {
-            if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-                string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (userError.ErrorCode == ErrorCode.DependencyUnavailable &&
-                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound })
-            {
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
+            string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return userError.ErrorCode == ErrorCode.DependencyUnavailable &&
+               failure.InnerException is RpcException { StatusCode: StatusCode.NotFound };
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
@@ -394,31 +386,62 @@ internal sealed class OpaqueAuthenticationService(
                                         localizationService[AuthenticationConstants.InvalidCredentialsKey]));
                             }
 
-                            Serilog.Log.Information(
-                                "[LOGIN-MASTERKEY-DERIVE] Deriving master key from enhanced key. MembershipId: {MembershipId}",
-                                membershipId);
+                            bool hasMasterKey = await identityService.HasStoredIdentityAsync(membershipId.ToString());
 
-                            Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
-                                MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle,
-                                    membershipIdentifier);
+                            SodiumSecureMemoryHandle masterKeyHandle;
 
-                            if (masterKeyHandleResult.IsErr)
+                            if (hasMasterKey)
                             {
-                                Serilog.Log.Error(
-                                    "[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
-                                    membershipId, masterKeyHandleResult.UnwrapErr().Message);
-                                return Result<Unit, AuthenticationFailure>.Err(
-                                    AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr()
-                                        .Message));
+                                Serilog.Log.Information(
+                                    "[LOGIN-MASTERKEY-LOAD] Loading stored master key. MembershipId: {MembershipId}",
+                                    membershipId);
+
+                                Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
+                                    await identityService.LoadMasterKeyHandleAsync(membershipId.ToString()).ConfigureAwait(false);
+
+                                if (loadResult.IsErr)
+                                {
+                                    Serilog.Log.Error(
+                                        "[LOGIN-MASTERKEY-LOAD-ERROR] Failed to load stored master key. MembershipId: {MembershipId}, Error: {Error}",
+                                        membershipId, loadResult.UnwrapErr().Message);
+                                    return Result<Unit, AuthenticationFailure>.Err(loadResult.UnwrapErr());
+                                }
+
+                                masterKeyHandle = loadResult.Unwrap();
+
+                                Serilog.Log.Information(
+                                    "[LOGIN-MASTERKEY-LOAD] Stored master key loaded successfully. MembershipId: {MembershipId}",
+                                    membershipId);
+                            }
+                            else
+                            {
+                                Serilog.Log.Information(
+                                    "[LOGIN-MASTERKEY-DERIVE] No stored master key found, deriving from enhanced key (first-time auto-login). MembershipId: {MembershipId}",
+                                    membershipId);
+
+                                Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
+                                    MasterKeyDerivation.DeriveMasterKeyHandle(enhancedMasterKeyHandle,
+                                        membershipIdentifier);
+
+                                if (masterKeyHandleResult.IsErr)
+                                {
+                                    Serilog.Log.Error(
+                                        "[LOGIN-MASTERKEY-DERIVE] Master key derivation failed. MembershipId: {MembershipId}, Error: {Error}",
+                                        membershipId, masterKeyHandleResult.UnwrapErr().Message);
+                                    return Result<Unit, AuthenticationFailure>.Err(
+                                        AuthenticationFailure.MasterKeyDerivationFailed(masterKeyHandleResult.UnwrapErr().Message));
+                                }
+
+                                masterKeyHandle = masterKeyHandleResult.Unwrap();
+
+                                Serilog.Log.Information(
+                                    "[LOGIN-MASTERKEY-DERIVE] Master key derived successfully for first-time auto-login. MembershipId: {MembershipId}",
+                                    membershipId);
                             }
 
-                            Serilog.Log.Information(
-                                "[LOGIN-MASTERKEY-DERIVE] Master key derived successfully. MembershipId: {MembershipId}",
-                                membershipId);
-
-                            using SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
-
-                            Result<byte[], SodiumFailure> masterKeyBytesResult =
+                            using (masterKeyHandle)
+                            {
+                                Result<byte[], SodiumFailure> masterKeyBytesResult =
                                 masterKeyHandle.ReadBytes(masterKeyHandle.Length);
                             if (masterKeyBytesResult.IsOk)
                             {
@@ -512,6 +535,7 @@ internal sealed class OpaqueAuthenticationService(
                             Serilog.Log.Information(
                                 "[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}",
                                 membershipId);
+                            }
                         }
 
                         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);

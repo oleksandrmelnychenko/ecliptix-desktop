@@ -21,7 +21,8 @@ internal sealed class GrpcDeadlineProvider(IOperationTimeoutProvider timeoutProv
         }
         catch (ArgumentOutOfRangeException ex)
         {
-            Log.Warning(ex, "[GRPC-DEADLINE] Timeout value {NormalizedTimeout} caused overflow for service {ServiceType}. Using max deadline. CorrelationId: {CorrelationId}",
+            Log.Warning(ex,
+                "[GRPC-DEADLINE] Timeout value {NormalizedTimeout} caused overflow for service {ServiceType}. Using max deadline. CorrelationId: {CorrelationId}",
                 normalizedTimeout,
                 serviceType,
                 requestContext?.CorrelationId ?? "N/A");
@@ -31,11 +32,11 @@ internal sealed class GrpcDeadlineProvider(IOperationTimeoutProvider timeoutProv
 
     private static TimeSpan NormalizeTimeout(TimeSpan timeout)
     {
-        if (timeout <= TimeSpan.Zero || timeout == Timeout.InfiniteTimeSpan)
+        if (timeout == Timeout.InfiniteTimeSpan)
         {
-            return DefaultDeadline;
+            return TimeSpan.MaxValue;
         }
 
-        return timeout;
+        return timeout <= TimeSpan.Zero ? DefaultDeadline : timeout;
     }
 }

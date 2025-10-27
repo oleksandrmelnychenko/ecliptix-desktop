@@ -14,7 +14,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
     private readonly Queue<BottomSheetRequest> _requestQueue = new();
     private readonly object _queueLock = new();
     private BottomSheetRequest? _currentRequest;
-    private BottomSheetRequest? _pendingRequest; // NEW: Track the next request to show
+    private BottomSheetRequest? _pendingRequest;
     private bool _isShowingBottomSheet;
     private bool _isAnimating;
     private bool _disposed;
@@ -91,7 +91,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         await _messageBus.PublishAsync(BottomSheetCommandEvent.Hide());
     }
 
-    // FIXED: Complete rewrite of ProcessNextRequest
     private async Task ProcessNextRequest()
     {
         if (_disposed)
@@ -104,24 +103,20 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 
         lock (_queueLock)
         {
-            // Can't process if already animating
             if (_isAnimating)
             {
                 Log.Debug("[BottomSheet-Service] Cannot process: Already animating");
                 return;
             }
 
-            // No requests to process
             if (_requestQueue.Count == 0)
             {
                 Log.Debug("[BottomSheet-Service] Queue empty, nothing to process");
                 return;
             }
 
-            // If sheet is showing, we need to hide it first
             if (_isShowingBottomSheet)
             {
-                // Dequeue the next request and store it as pending
                 _pendingRequest = _requestQueue.Dequeue();
                 Log.Debug("[BottomSheet-Service] Sheet showing, hiding current to show next. Type={Type}, Queue remaining: {QueueSize}",
                     _pendingRequest.ComponentType, _requestQueue.Count);
@@ -130,7 +125,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             }
             else
             {
-                // No sheet showing, show the next one immediately
                 requestToShow = _requestQueue.Dequeue();
                 _currentRequest = requestToShow;
                 _isAnimating = true;
@@ -154,7 +148,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         }
     }
 
-    // FIXED: Properly handle the pending request
     private async Task HandleAnimationComplete(BottomSheetAnimationCompleteEvent evt)
     {
         if (_disposed)
@@ -179,7 +172,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
                 _currentRequest = null;
                 Log.Debug("[BottomSheet-Service] Hide animation complete - sheet is now hidden");
 
-                // If we have a pending request, show it now
                 if (_pendingRequest != null)
                 {
                     requestToShow = _pendingRequest;
@@ -191,7 +183,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             }
         }
 
-        // Show the pending request outside the lock
         if (requestToShow != null)
         {
             await _messageBus.PublishAsync(BottomSheetCommandEvent.Show(
@@ -202,7 +193,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         }
         else
         {
-            // Only process next if we don't have a pending request
             await ProcessNextRequest();
         }
     }
@@ -231,7 +221,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         {
             _requestQueue.Clear();
             _currentRequest = null;
-            _pendingRequest = null; // NEW: Clear pending request
+            _pendingRequest = null;
         }
     }
 

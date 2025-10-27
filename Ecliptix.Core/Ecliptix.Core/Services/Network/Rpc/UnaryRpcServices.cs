@@ -323,8 +323,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             SecureEnvelope response = await call.ResponseAsync.ConfigureAwait(false);
 
             await connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected(null,
-                        ConnectivityReason.HandshakeSucceeded))
+                    ConnectivityIntent.Connected())
                 .ConfigureAwait(false);
 
             return Result<SecureEnvelope, NetworkFailure>.Ok(response);
@@ -332,9 +331,14 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         catch (RpcException rpcEx)
         {
             NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
-            await connectivityService.PublishAsync(
-                    ConnectivityIntent.Disconnected(failure))
-                .ConfigureAwait(false);
+
+            if (failure.FailureType != NetworkFailureType.ProtocolStateMismatch)
+            {
+                await connectivityService.PublishAsync(
+                        ConnectivityIntent.Disconnected(failure))
+                    .ConfigureAwait(false);
+            }
+
             return Result<SecureEnvelope, NetworkFailure>.Err(failure);
         }
         catch (Exception ex)

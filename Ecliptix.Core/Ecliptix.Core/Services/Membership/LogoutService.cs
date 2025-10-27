@@ -161,7 +161,6 @@ internal sealed class LogoutService(
             {
                 Log.Error("[LOGOUT] Revocation proof verification failed for MembershipId: {MembershipId}",
                     membershipId);
-                // return proofVerification;
             }
         }
 

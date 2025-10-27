@@ -48,11 +48,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             errorCode,
             rpcException.Status.Detail);
 
-        bool? retryable = ParseRetryable(trailers);
-        if (retryable is null)
-        {
-            retryable = IsTransientStatus(rpcException.StatusCode);
-        }
+        bool? retryable = ParseRetryable(trailers) ?? IsTransientStatus(rpcException.StatusCode);
 
         if (GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
@@ -91,7 +87,8 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         return MapStatusCode(rpcException.StatusCode);
     }
 
-    private (string Message, string KeyUsed) ResolveMessage(string? requestedKey, ErrorCode errorCode, string statusDetail)
+    private (string Message, string KeyUsed) ResolveMessage(string? requestedKey, ErrorCode errorCode,
+        string statusDetail)
     {
         if (!string.IsNullOrWhiteSpace(requestedKey))
         {
@@ -222,13 +219,6 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)
     {
-        // Replay attack detection - must not retry
-        if (rpcException.StatusCode == StatusCode.FailedPrecondition &&
-            rpcException.Status.Detail?.Contains("Replay attack", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            return NetworkFailureType.ProtocolStateMismatch;
-        }
-
         if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcException) ||
             GrpcErrorClassifier.IsAuthenticationError(rpcException) ||
             userError.ErrorCode == ErrorCode.Unauthenticated)
@@ -261,7 +251,6 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         if (rpcException.StatusCode == StatusCode.Cancelled)
         {
-            return NetworkFailureType.DataCenterNotResponding;
         }
 
         return NetworkFailureType.DataCenterNotResponding;

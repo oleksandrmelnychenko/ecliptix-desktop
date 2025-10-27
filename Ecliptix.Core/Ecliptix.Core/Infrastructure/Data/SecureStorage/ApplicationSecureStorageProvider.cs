@@ -313,7 +313,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             }
             catch
             {
-                // ignored
             }
         }
     }

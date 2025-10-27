@@ -15,7 +15,10 @@ namespace Ecliptix.Core.Services.Network.Rpc;
 
 public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
 {
-    private readonly Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>> _serviceHandlers;
+    private readonly
+        Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
+        _serviceHandlers;
+
     private readonly AuthVerificationServices.AuthVerificationServicesClient _authenticationServicesClient;
     private readonly IGrpcErrorProcessor _errorProcessor;
     private readonly IGrpcCallOptionsFactory _callOptionsFactory;
@@ -28,10 +31,11 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
         _authenticationServicesClient = authenticationServicesClient;
         _errorProcessor = errorProcessor;
         _callOptionsFactory = callOptionsFactory;
-        _serviceHandlers = new Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
-        {
-            { RpcServiceType.InitiateVerification, InitiateVerification }
-        };
+        _serviceHandlers =
+            new Dictionary<RpcServiceType, Func<ServiceRequest, CancellationToken, Result<RpcFlow, NetworkFailure>>>
+            {
+                { RpcServiceType.InitiateVerification, InitiateVerification }
+            };
     }
 
     public Task<Result<RpcFlow, NetworkFailure>> ProcessRequest(ServiceRequest request,
@@ -82,7 +86,8 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
                     .Select(response => response != null
                         ? Result<SecureEnvelope, NetworkFailure>.Ok(response)
                         : Result<SecureEnvelope, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService.ReceivedNullResponseFromStream)))
+                            NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService
+                                .ReceivedNullResponseFromStream)))
                     .Catch<Result<SecureEnvelope, NetworkFailure>, RpcException>(rpcEx =>
                         Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
                             _errorProcessor.Process(rpcEx))))
