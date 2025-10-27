@@ -24,12 +24,12 @@
                     Spacing="{StaticResource Spacing.S}"
                     MaxWidth="{StaticResource Header.MaxWidth}"
                     HorizontalAlignment="Left">
-            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.MobileVerification.Title]}"
+            <TextBlock Text="{Binding Title}"
                        FontSize="{StaticResource Font.XXL}"
                        FontWeight="Light"
                        Foreground="{DynamicResource OnSurface}"
                        LineHeight="{StaticResource LineHeight.Loose}" />
-            <TextBlock Text="{Binding LocalizationService[Authentication.SignUp.MobileVerification.Description]}"
+            <TextBlock Text="{Binding Description}"
                        TextWrapping="Wrap"
                        FontSize="{StaticResource Font.XXXL}"
                        LineHeight="{StaticResource LineHeight.Subtitle}"
@@ -42,8 +42,8 @@
         <coreControls:HintedTextBox
             Grid.Row="1"
             x:Name="MobileTextBox"
-            Watermark="{Binding LocalizationService[Authentication.SignUp.MobileVerification.Watermark]}"
-            Hint="{Binding LocalizationService[Authentication.SignUp.MobileVerification.Hint]}"
+            Watermark="{Binding Watermark}"
+            Hint="{Binding Hint}"
             TextForeground="{DynamicResource OnSurface}"
             HintForeground="{DynamicResource Primary}"
             ErrorText="{Binding MobileNumberError, Mode=OneWay}"
@@ -61,7 +61,7 @@
 
         <!-- Continue Button -->
         <Button Grid.Row="2"
-                Content="{Binding LocalizationService[Authentication.SignUp.MobileVerification.Button]}"
+                Content="{Binding ButtonText}"
                 Command="{Binding VerifyMobileNumberCommand}"
                 IsEnabled="{Binding VerifyMobileNumberCommand.CanExecute}"
                 Classes="auth-button continue-button loading-button"

@@ -75,6 +75,42 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public string? UrlPathSegment { get; } = "/mobile-verification";
     public IScreen HostScreen { get; }
 
+    public string Title => _flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Title"],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Title"],
+        _ => LocalizationService["Authentication.SignUp.MobileVerification.Title"]
+    };
+
+    public string Description => _flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Description"],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Description"],
+        _ => LocalizationService["Authentication.SignUp.MobileVerification.Description"]
+    };
+
+    public string Hint => _flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Hint"],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Hint"],
+        _ => LocalizationService["Authentication.SignUp.MobileVerification.Hint"]
+    };
+
+    public string Watermark => _flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Watermark"],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Watermark"],
+        _ => LocalizationService["Authentication.SignUp.MobileVerification.Watermark"]
+    };
+
+    public string ButtonText => _flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Button"],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Button"],
+        _ => LocalizationService["Authentication.SignUp.MobileVerification.Button"]
+    };
+
+
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
@@ -120,6 +156,17 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private IObservable<bool> SetupValidation()
     {
         IObservable<Unit> languageTrigger = LanguageChanged;
+
+        languageTrigger
+            .Subscribe(_ =>
+            {
+                this.RaisePropertyChanged(nameof(Title));
+                this.RaisePropertyChanged(nameof(Description));
+                this.RaisePropertyChanged(nameof(Hint));
+                this.RaisePropertyChanged(nameof(Watermark));
+                this.RaisePropertyChanged(nameof(ButtonText));
+            })
+            .DisposeWith(_disposables);
 
         IObservable<Unit> mobileTrigger = this
             .WhenAnyValue(x => x.MobileNumber)

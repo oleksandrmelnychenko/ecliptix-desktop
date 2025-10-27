@@ -32,6 +32,14 @@ public static class LocalizationData
         ["Authentication.SignUp.MobileVerification.Watermark"] = "Mobile Number",
         ["Authentication.SignUp.MobileVerification.Button"] = "Continue",
 
+
+        ["Authentication.PasswordRecovery.MobileVerification.Title"] = "Reset Password",
+        ["Authentication.PasswordRecovery.MobileVerification.Description"] = "Enter your mobile number to receive a verification code.",
+        ["Authentication.PasswordRecovery.MobileVerification.Hint"] = "Include country code",
+        ["Authentication.PasswordRecovery.MobileVerification.Watermark"] = "Mobile Number",
+        ["Authentication.PasswordRecovery.MobileVerification.Button"] = "Continue",
+
+
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Verify Your Number",
         ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Enter the code sent to your mobile.",
         ["Authentication.SignUp.VerificationCodeEntry.Hint"] = "Verification Code",
@@ -227,6 +235,14 @@ public static class LocalizationData
         ["Authentication.SignUp.MobileVerification.Hint"] = "Включно з кодом країни",
         ["Authentication.SignUp.MobileVerification.Watermark"] = "Номер мобільного",
         ["Authentication.SignUp.MobileVerification.Button"] = "Продовжити",
+
+
+        ["Authentication.PasswordRecovery.MobileVerification.Title"] = "Скинути пароль",
+        ["Authentication.PasswordRecovery.MobileVerification.Description"] = "Підтвердьте номер для отримання коду підтвердження.",
+        ["Authentication.PasswordRecovery.MobileVerification.Hint"] = "Включно з кодом країни",
+        ["Authentication.PasswordRecovery.MobileVerification.Watermark"] = "Номер мобільного",
+        ["Authentication.PasswordRecovery.MobileVerification.Button"] = "Продовжити",
+
 
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Підтвердження номера",
         ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Введіть код, надісланий на ваш мобільний.",
