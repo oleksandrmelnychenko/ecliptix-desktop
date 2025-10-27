@@ -87,7 +87,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
 
-    private ByteString? VerificationSessionId { get; set; }
+    private ByteString? MembershipUniqueId { get; set; }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
@@ -234,7 +234,20 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
 
         ApplicationInstanceSettings settings = applicationInstance.Unwrap();
-        VerificationSessionId = settings.Membership.UniqueIdentifier;
+
+        if (settings.Membership == null)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreKeyNotFound("Membership data is not available. Please complete registration from the beginning."));
+        }
+
+        if (settings.Membership.UniqueIdentifier == null || settings.Membership.UniqueIdentifier.IsEmpty)
+        {
+            return Result<Unit, InternalServiceApiFailure>.Err(
+                InternalServiceApiFailure.SecureStoreKeyNotFound("Membership unique identifier is missing. Please complete registration from the beginning."));
+        }
+
+        MembershipUniqueId = settings.Membership.UniqueIdentifier;
         return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
     }
 
@@ -391,9 +404,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             return;
         }
 
-        if (VerificationSessionId == null)
+        if (MembershipUniqueId == null)
         {
-            ServerError = LocalizationService[AuthenticationConstants.NoVerificationSessionKey];
+            ServerError = LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey];
             HasServerError = true;
             return;
         }
@@ -404,7 +417,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         CancellationToken operationToken = cts.Token;
 
         Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
-            VerificationSessionId,
+            MembershipUniqueId,
             _secureKeyBuffer,
             connectId,
             operationToken);

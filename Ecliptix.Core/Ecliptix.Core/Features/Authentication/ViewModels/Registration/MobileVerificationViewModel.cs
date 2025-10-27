@@ -249,9 +249,41 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                                     statusResponse.CreationStatus ==
                                     Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified)
                                 {
-                                    Serilog.Log.Information(
-                                        "[MOBILE-VERIFICATION] Incomplete registration - OTP verified, navigating to SecureKey. MembershipId: {MembershipId}",
-                                        membershipIdStr);
+                                    Protobuf.Membership.Membership membership = new Protobuf.Membership.Membership
+                                    {
+                                        UniqueIdentifier = statusResponse.ExistingMembershipId,
+                                        Status = statusResponse.HasActivityStatus
+                                            ? statusResponse.ActivityStatus
+                                            : Protobuf.Membership.Membership.Types.ActivityStatus.Active,
+                                        CreationStatus = statusResponse.CreationStatus
+                                    };
+
+                                    if (statusResponse.AccountUniqueIdentifier != null &&
+                                        !statusResponse.AccountUniqueIdentifier.IsEmpty)
+                                    {
+                                        membership.AccountUniqueIdentifier = statusResponse.AccountUniqueIdentifier;
+                                    }
+
+                                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+                                    if (statusResponse.AccountUniqueIdentifier != null &&
+                                        !statusResponse.AccountUniqueIdentifier.IsEmpty)
+                                    {
+                                        await _applicationSecureStorageProvider
+                                            .SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier)
+                                            .ConfigureAwait(false);
+                                        Serilog.Log.Information(
+                                            "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                                            membershipIdStr,
+                                            Helpers.FromByteStringToGuid(statusResponse.AccountUniqueIdentifier));
+                                    }
+                                    else
+                                    {
+                                        Serilog.Log.Information(
+                                            "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}",
+                                            membershipIdStr);
+                                    }
+
                                     await NavigateToSecureKeyAsync();
                                 }
                                 else
