@@ -13,11 +13,9 @@ using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protocol.System.Core;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures;
 using Ecliptix.Utilities.Failures.Authentication;
 using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
@@ -27,23 +25,6 @@ using Grpc.Core;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
-
-public sealed class SignInResult(
-    SodiumSecureMemoryHandle masterKeyHandle,
-    Ecliptix.Protobuf.Membership.Membership? membership,
-    Protobuf.Account.Account? activeAccount = null)
-    : IDisposable
-{
-    public SodiumSecureMemoryHandle? MasterKeyHandle { get; private set; } = masterKeyHandle;
-    public Protobuf.Membership.Membership? Membership { get; } = membership;
-    public Protobuf.Account.Account? ActiveAccount { get; } = activeAccount;
-
-    public void Dispose()
-    {
-        MasterKeyHandle?.Dispose();
-        MasterKeyHandle = null;
-    }
-}
 
 internal sealed class OpaqueAuthenticationService(
     NetworkProvider networkProvider,
@@ -272,7 +253,7 @@ internal sealed class OpaqueAuthenticationService(
                     ke2Data = initResponse.ServerStateToken.ToByteArray();
 
                     Result<byte[], AuthenticationFailure> ke3Result =
-                        PerformOpaqueKE3Exchange(opaqueClient, ke2Data, ke1Result);
+                        PerformOpaqueKe3Exchange(opaqueClient, ke2Data, ke1Result);
                     if (ke3Result.IsErr)
                     {
                         return Result<Unit, AuthenticationFailure>.Err(ke3Result.UnwrapErr());
@@ -309,41 +290,39 @@ internal sealed class OpaqueAuthenticationService(
                                     "Failed to create master key handle"));
                         }
 
-                        if (signInResult.Membership != null)
+                        if (signInResult.Membership == null)
                         {
-                            ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
-
-                            Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
-                                DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
-
-                            if (masterKeyValidationResult.IsErr)
-                            {
-                                return Result<Unit, AuthenticationFailure>.Err(masterKeyValidationResult.UnwrapErr());
-                            }
-
-                            using SodiumSecureMemoryHandle validatedMasterKeyHandle = masterKeyValidationResult.Unwrap();
-
-                            Result<Unit, AuthenticationFailure> storeResult =
-                                await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult)
-                                    .ConfigureAwait(false);
-
-                            if (storeResult.IsErr)
-                            {
-                                return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
-                            }
-
-                            Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
-                            Result<Unit, AuthenticationFailure> protocolResult =
-                                await RecreateAuthenticatedProtocolAsync(masterKeyHandle, membershipIdentifier,
-                                    connectId, membershipId).ConfigureAwait(false);
-
-                            if (protocolResult.IsErr)
-                            {
-                                return Result<Unit, AuthenticationFailure>.Err(protocolResult.UnwrapErr());
-                            }
+                            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
                         }
 
-                        return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+                        ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+
+                        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
+                            DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
+
+                        if (masterKeyValidationResult.IsErr)
+                        {
+                            return Result<Unit, AuthenticationFailure>.Err(masterKeyValidationResult.UnwrapErr());
+                        }
+
+                        using SodiumSecureMemoryHandle validatedMasterKeyHandle =
+                            masterKeyValidationResult.Unwrap();
+
+                        Result<Unit, AuthenticationFailure> storeResult =
+                            await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult)
+                                .ConfigureAwait(false);
+
+                        if (storeResult.IsErr)
+                        {
+                            return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
+                        }
+
+                        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+                        Result<Unit, AuthenticationFailure> protocolResult =
+                            await RecreateAuthenticatedProtocolAsync(masterKeyHandle, membershipIdentifier,
+                                connectId, membershipId).ConfigureAwait(false);
+
+                        return protocolResult.IsErr ? Result<Unit, AuthenticationFailure>.Err(protocolResult.UnwrapErr()) : Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
                     }
 
                     NetworkFailure finalizeFailure = finalResult.UnwrapErr();
@@ -366,18 +345,19 @@ internal sealed class OpaqueAuthenticationService(
 
             bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
 
-            if (isRetryableError && attempt < MaxSignInFlowAttempts)
+            if (!isRetryableError || attempt >= MaxSignInFlowAttempts)
             {
-                Serilog.Log.Warning(
-                    "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MaxAttempts}",
-                    attempt + 1, MaxSignInFlowAttempts);
-
-                networkProvider.ClearExhaustedOperations();
-                Serilog.Log.Information("[SIGNIN-FLOW-RETRY] Cleared exhaustion state to allow retry");
-                continue;
+                return Result<Unit, AuthenticationFailure>.Err(lastError);
             }
 
-            return Result<Unit, AuthenticationFailure>.Err(lastError);
+            Serilog.Log.Warning(
+                "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MaxAttempts}",
+                attempt + 1, MaxSignInFlowAttempts);
+
+            networkProvider.ClearExhaustedOperations();
+            Serilog.Log.Information("[SIGNIN-FLOW-RETRY] Cleared exhaustion state to allow retry");
+            continue;
+
         }
 
         return Result<Unit, AuthenticationFailure>.Err(lastError ??
@@ -480,34 +460,34 @@ internal sealed class OpaqueAuthenticationService(
                 AuthenticationFailure.UnexpectedError($"Failed to read password: {readResult.UnwrapErr().Message}"));
         }
 
-        if (passwordCopy == null || passwordCopy.Length == 0)
+        if (passwordCopy != null && passwordCopy.Length != 0)
         {
-            string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-            return Result<byte[], AuthenticationFailure>.Err(
-                AuthenticationFailure.PasswordRequired(requiredError));
+            return Result<byte[], AuthenticationFailure>.Ok(passwordCopy);
         }
 
-        return Result<byte[], AuthenticationFailure>.Ok(passwordCopy);
+        string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+        return Result<byte[], AuthenticationFailure>.Err(
+            AuthenticationFailure.PasswordRequired(requiredError));
     }
 
-    private Result<byte[], AuthenticationFailure> PerformOpaqueKE3Exchange(
+    private Result<byte[], AuthenticationFailure> PerformOpaqueKe3Exchange(
         OpaqueClient opaqueClient,
         byte[] ke2Data,
         KeyExchangeResult ke1Result)
     {
         Result<byte[], OpaqueResult> ke3DataResult = opaqueClient.GenerateKe3(ke2Data, ke1Result);
 
-        if (ke3DataResult.IsErr)
+        if (!ke3DataResult.IsErr)
         {
-            string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
-            return Result<byte[], AuthenticationFailure>.Err(
-                AuthenticationFailure.InvalidCredentials(errorMessage));
+            return Result<byte[], AuthenticationFailure>.Ok(ke3DataResult.Unwrap());
         }
 
-        return Result<byte[], AuthenticationFailure>.Ok(ke3DataResult.Unwrap());
+        string errorMessage = GetOpaqueErrorMessage(ke3DataResult.UnwrapErr());
+        return Result<byte[], AuthenticationFailure>.Err(
+            AuthenticationFailure.InvalidCredentials(errorMessage));
     }
 
-    private Result<SodiumSecureMemoryHandle, AuthenticationFailure> ExtractMasterKeyFromOpaque(
+    private static Result<SodiumSecureMemoryHandle, AuthenticationFailure> ExtractMasterKeyFromOpaque(
         OpaqueClient opaqueClient,
         KeyExchangeResult ke1Result)
     {
@@ -532,14 +512,14 @@ internal sealed class OpaqueAuthenticationService(
             SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
             Result<Unit, SodiumFailure> writeResult = masterKeyHandle.Write(masterKeyBytes);
 
-            if (writeResult.IsErr)
+            if (!writeResult.IsErr)
             {
-                masterKeyHandle.Dispose();
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
             }
 
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
+            masterKeyHandle.Dispose();
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
         }
         finally
         {
@@ -617,16 +597,18 @@ internal sealed class OpaqueAuthenticationService(
 
         Result<byte[], SodiumFailure> masterKeyBytesResult =
             masterKeyHandle.ReadBytes(masterKeyHandle.Length);
-        if (masterKeyBytesResult.IsOk)
+        if (!masterKeyBytesResult.IsOk)
         {
-            byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
-            string masterKeyFingerprint =
-                CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
-            Serilog.Log.Information(
-                "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
-                membershipId, masterKeyFingerprint);
-            CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
         }
+
+        byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
+        string masterKeyFingerprint =
+            CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
+        Serilog.Log.Information(
+            "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
+            membershipId, masterKeyFingerprint);
+        CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
 
         return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
     }
@@ -678,15 +660,17 @@ internal sealed class OpaqueAuthenticationService(
             accountIdToStore = signInResult.Membership.AccountUniqueIdentifier;
         }
 
-        if (accountIdToStore != null)
+        if (accountIdToStore == null)
         {
-            await applicationSecureStorageProvider
-                .SetCurrentAccountIdAsync(accountIdToStore)
-                .ConfigureAwait(false);
-            Serilog.Log.Information(
-                "[LOGIN-ACCOUNT-STORE] Active account stored successfully. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                membershipId, Helpers.FromByteStringToGuid(accountIdToStore));
+            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
         }
+
+        await applicationSecureStorageProvider
+            .SetCurrentAccountIdAsync(accountIdToStore)
+            .ConfigureAwait(false);
+        Serilog.Log.Information(
+            "[LOGIN-ACCOUNT-STORE] Active account stored successfully. MembershipId: {MembershipId}, AccountId: {AccountId}",
+            membershipId, Helpers.FromByteStringToGuid(accountIdToStore));
 
         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
     }
@@ -702,7 +686,7 @@ internal sealed class OpaqueAuthenticationService(
         }
     }
 
-    private AuthenticationFailure MapNetworkFailure(NetworkFailure failure)
+    private static AuthenticationFailure MapNetworkFailure(NetworkFailure failure)
     {
         string message = failure.UserError?.Message ?? failure.Message;
 

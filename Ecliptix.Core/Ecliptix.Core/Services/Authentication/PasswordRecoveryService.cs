@@ -40,7 +40,9 @@ internal sealed class PasswordRecoveryService(
         CancellationToken cancellationToken = default)
     {
         Result<ValidateMobileNumberResponse, string> result =
-            await registrationService.ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId, cancellationToken).ConfigureAwait(false);
+            await registrationService
+                .ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId, cancellationToken)
+                .ConfigureAwait(false);
 
         if (result.IsErr)
         {
@@ -55,40 +57,35 @@ internal sealed class PasswordRecoveryService(
         ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
-        CancellationToken cancellationToken = default)
-    {
-        return registrationService.InitiateOtpVerificationAsync(
+        CancellationToken cancellationToken = default) =>
+        registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
             deviceIdentifier,
             VerificationPurpose.PasswordRecovery,
             onCountdownUpdate,
             cancellationToken);
-    }
 
     public Task<Result<Unit, string>> ResendPasswordResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
-        CancellationToken cancellationToken = default)
-    {
-        return registrationService.ResendOtpVerificationAsync(
+        CancellationToken cancellationToken = default) =>
+        registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
             deviceIdentifier,
             onCountdownUpdate,
             cancellationToken);
-    }
 
     public Task<Result<Protobuf.Membership.Membership, string>> VerifyPasswordResetOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
         string deviceIdentifier,
         uint connectId,
-        CancellationToken cancellationToken = default)
-    {
-        return registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, deviceIdentifier, connectId, cancellationToken);
-    }
+        CancellationToken cancellationToken = default) =>
+        registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, deviceIdentifier, connectId,
+            cancellationToken);
 
     public async Task<Result<Unit, string>> CompletePasswordResetAsync(
         ByteString membershipIdentifier,
@@ -108,28 +105,24 @@ internal sealed class PasswordRecoveryService(
         }
 
         RegistrationResult? registrationResult = null;
-        byte[]? passwordCopy = null;
-        byte[]? serverRecoveryResponse = null;
-        byte[]? recoveryRecord = null;
-        byte[]? masterKey = null;
 
         try
         {
             OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
-            newPassword.WithSecureBytes(passwordBytes =>
-            {
-                passwordCopy = passwordBytes.ToArray();
-                registrationResult = opaqueClient.CreateRegistrationRequest(passwordCopy);
-            });
+            Result<RegistrationResult, string> requestResult =
+                CreatePasswordRecoveryRequest(opaqueClient, newPassword);
 
-            if (registrationResult == null)
+            if (requestResult.IsErr)
             {
-                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.RegistrationFailedKey]);
+                return Result<Unit, string>.Err(requestResult.UnwrapErr());
             }
 
+            registrationResult = requestResult.Unwrap();
+
             Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
-                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(), connectId, cancellationToken).ConfigureAwait(false);
+                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
+                    connectId, cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)
             {
@@ -138,29 +131,129 @@ internal sealed class PasswordRecoveryService(
 
             OpaqueRecoverySecureKeyInitResponse initResponse = initResult.Unwrap();
 
-            if (initResponse.Result != OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.Succeeded)
+            Result<Unit, string> processResult =
+                await ProcessPasswordRecoveryInitResponse(initResponse, membershipIdentifier).ConfigureAwait(false);
+
+            if (processResult.IsErr)
             {
-                string errorMessage = initResponse.Result switch
-                {
-                    OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.InvalidCredentials =>
-                        localizationService[AuthenticationConstants.InvalidCredentialsKey],
-                    _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
-                };
-                return Result<Unit, string>.Err(errorMessage);
+                return processResult;
             }
 
-            if (initResponse.Membership?.AccountUniqueIdentifier != null &&
-                initResponse.Membership.AccountUniqueIdentifier.Length > 0)
-            {
-                await applicationSecureStorageProvider
-                    .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
-                    .ConfigureAwait(false);
-                Serilog.Log.Information(
-                    "[PASSWORD-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                    Helpers.FromByteStringToGuid(membershipIdentifier),
-                    Helpers.FromByteStringToGuid(initResponse.Membership.AccountUniqueIdentifier));
-            }
+            return await FinalizePasswordRecoveryAsync(opaqueClient, initResponse, registrationResult,
+                membershipIdentifier, connectId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return Result<Unit, string>.Err(ex.Message);
+        }
+        finally
+        {
+            registrationResult?.Dispose();
+        }
+    }
 
+    public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier) =>
+        registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
+
+    private static void CleanupSensitiveRecoveryData(
+        byte[]? passwordCopy,
+        byte[]? serverRecoveryResponse,
+        byte[]? recoveryRecord,
+        byte[]? masterKey)
+    {
+        if (passwordCopy is { Length: > 0 })
+        {
+            CryptographicOperations.ZeroMemory(passwordCopy);
+        }
+
+        if (serverRecoveryResponse is { Length: > 0 })
+        {
+            CryptographicOperations.ZeroMemory(serverRecoveryResponse);
+        }
+
+        if (recoveryRecord is { Length: > 0 })
+        {
+            CryptographicOperations.ZeroMemory(recoveryRecord);
+        }
+
+        if (masterKey is { Length: > 0 })
+        {
+            CryptographicOperations.ZeroMemory(masterKey);
+        }
+    }
+
+    private Result<RegistrationResult, string> CreatePasswordRecoveryRequest(
+        OpaqueClient opaqueClient,
+        SecureTextBuffer newPassword)
+    {
+        RegistrationResult? registrationResult = null;
+
+        newPassword.WithSecureBytes(passwordBytes =>
+        {
+            byte[] passwordCopy = passwordBytes.ToArray();
+            try
+            {
+                registrationResult = opaqueClient.CreateRegistrationRequest(passwordCopy);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(passwordCopy);
+            }
+        });
+
+        if (registrationResult == null)
+        {
+            return Result<RegistrationResult, string>.Err(
+                localizationService[AuthenticationConstants.RegistrationFailedKey]);
+        }
+
+        return Result<RegistrationResult, string>.Ok(registrationResult);
+    }
+
+    private async Task<Result<Unit, string>> ProcessPasswordRecoveryInitResponse(
+        OpaqueRecoverySecureKeyInitResponse initResponse,
+        ByteString membershipIdentifier)
+    {
+        if (initResponse.Result != OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.Succeeded)
+        {
+            string errorMessage = initResponse.Result switch
+            {
+                OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.InvalidCredentials =>
+                    localizationService[AuthenticationConstants.InvalidCredentialsKey],
+                _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
+            };
+            return Result<Unit, string>.Err(errorMessage);
+        }
+
+        if (initResponse.Membership?.AccountUniqueIdentifier != null &&
+            initResponse.Membership.AccountUniqueIdentifier.Length > 0)
+        {
+            await applicationSecureStorageProvider
+                .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
+                .ConfigureAwait(false);
+            Serilog.Log.Information(
+                "[PASSWORD-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                Helpers.FromByteStringToGuid(membershipIdentifier),
+                Helpers.FromByteStringToGuid(initResponse.Membership.AccountUniqueIdentifier));
+        }
+
+        return Result<Unit, string>.Ok(Unit.Value);
+    }
+
+    private async Task<Result<Unit, string>> FinalizePasswordRecoveryAsync(
+        OpaqueClient opaqueClient,
+        OpaqueRecoverySecureKeyInitResponse initResponse,
+        RegistrationResult registrationResult,
+        ByteString membershipIdentifier,
+        uint connectId,
+        CancellationToken cancellationToken)
+    {
+        byte[]? serverRecoveryResponse = null;
+        byte[]? recoveryRecord = null;
+        byte[]? masterKey = null;
+
+        try
+        {
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
@@ -192,9 +285,11 @@ internal sealed class PasswordRecoveryService(
                     }
                     catch (Exception ex)
                     {
-                        Serilog.Log.Error(ex, "[PASSWORD-RECOVERY-COMPLETE] Failed to parse password recovery complete response");
+                        Serilog.Log.Error(ex,
+                            "[PASSWORD-RECOVERY-COMPLETE] Failed to parse password recovery complete response");
                         responseSource.TrySetException(ex);
                     }
+
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true, cancellationToken).ConfigureAwait(false);
 
@@ -204,42 +299,12 @@ internal sealed class PasswordRecoveryService(
             }
 
             await responseSource.Task.ConfigureAwait(false);
-
             return Result<Unit, string>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            return Result<Unit, string>.Err(ex.Message);
         }
         finally
         {
-            registrationResult?.Dispose();
-
-            if (passwordCopy != null)
-            {
-                CryptographicOperations.ZeroMemory(passwordCopy);
-            }
-
-            if (serverRecoveryResponse != null)
-            {
-                CryptographicOperations.ZeroMemory(serverRecoveryResponse);
-            }
-
-            if (recoveryRecord != null)
-            {
-                CryptographicOperations.ZeroMemory(recoveryRecord);
-            }
-
-            if (masterKey != null)
-            {
-                CryptographicOperations.ZeroMemory(masterKey);
-            }
+            CleanupSensitiveRecoveryData(null, serverRecoveryResponse, recoveryRecord, masterKey);
         }
-    }
-
-    public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier)
-    {
-        return registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
     }
 
     public void Dispose()
@@ -264,13 +329,15 @@ internal sealed class PasswordRecoveryService(
 
         lock (_opaqueClientLock)
         {
-            if (_opaqueClient == null || _cachedServerPublicKey == null ||
-                !serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+            if (_opaqueClient != null && _cachedServerPublicKey != null &&
+                serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
             {
-                _opaqueClient?.Dispose();
-                _opaqueClient = new OpaqueClient(serverPublicKey);
-                _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
+                return _opaqueClient;
             }
+
+            _opaqueClient?.Dispose();
+            _opaqueClient = new OpaqueClient(serverPublicKey);
+            _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
             return _opaqueClient;
         }
@@ -292,8 +359,7 @@ internal sealed class PasswordRecoveryService(
         {
             OpaqueRecoverySecureKeyInitRequest request = new()
             {
-                PeerOprf = ByteString.CopyFrom(recoveryRequest),
-                MembershipIdentifier = membershipIdentifier
+                PeerOprf = ByteString.CopyFrom(recoveryRequest), MembershipIdentifier = membershipIdentifier
             };
 
             TaskCompletionSource<OpaqueRecoverySecureKeyInitResponse> responseSource = new();
@@ -311,9 +377,11 @@ internal sealed class PasswordRecoveryService(
                     }
                     catch (Exception ex)
                     {
-                        Serilog.Log.Error(ex, "[PASSWORD-RECOVERY-INIT] Failed to parse password recovery init response");
+                        Serilog.Log.Error(ex,
+                            "[PASSWORD-RECOVERY-INIT] Failed to parse password recovery init response");
                         responseSource.TrySetException(ex);
                     }
+
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true, cancellationToken).ConfigureAwait(false);
 
