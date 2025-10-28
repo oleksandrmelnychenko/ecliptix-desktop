@@ -40,7 +40,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private Guid _verificationSessionIdentifier = Guid.Empty;
     private IDisposable? _autoRedirectTimer;
     private IDisposable? _cooldownTimer;
-    private Option<CancellationTokenSource> _cancellationTokenSource = Option<CancellationTokenSource>.None;
+    private CancellationTokenSource? _cancellationTokenSource;
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
@@ -250,12 +250,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        Option<CancellationTokenSource> oldCts = Interlocked.Exchange(ref _cancellationTokenSource, Option<CancellationTokenSource>.None);
-        oldCts.Do(cts =>
+        CancellationTokenSource? oldCts = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        if (oldCts != null)
         {
-            cts.Cancel();
-            cts.Dispose();
-        });
+            oldCts.Cancel();
+            oldCts.Dispose();
+        }
 
         _ = Task.Run(async () =>
         {
@@ -269,11 +269,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         if (disposing && !_isDisposed)
         {
             _isDisposed = true;
-            _cancellationTokenSource.Do(cts =>
+            if (_cancellationTokenSource != null)
             {
-                cts.Cancel();
-                cts.Dispose();
-            });
+                _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
+            }
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables?.Dispose();
@@ -317,7 +317,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource.ToCancellationToken())
+                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None)
                     : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
                         _mobileNumberIdentifier,
                         deviceIdentifier,
@@ -337,7 +337,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource.ToCancellationToken());
+                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None);
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
@@ -373,7 +373,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        CancellationToken operationToken = _cancellationTokenSource.ToCancellationToken();
+        CancellationToken operationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
 
         Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
             ? _registrationService.VerifyOtpAsync(
@@ -458,12 +458,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-            Option<CancellationTokenSource> oldCts = _cancellationTokenSource;
+            CancellationTokenSource? oldCts = _cancellationTokenSource;
             CancellationTokenSource newCts = new CancellationTokenSource();
-            _cancellationTokenSource = Option<CancellationTokenSource>.Some(newCts);
+            _cancellationTokenSource = newCts;
             _disposables.Add(newCts);
 
-            oldCts.Do(cts => cts.Dispose());
+            oldCts?.Dispose();
 
             Task.Run(async () =>
             {
@@ -720,12 +720,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        _cancellationTokenSource.Do(cts =>
+        if (_cancellationTokenSource != null)
         {
-            cts.Cancel();
-            cts.Dispose();
-        });
-        _cancellationTokenSource = Option<CancellationTokenSource>.None;
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
+        }
+        _cancellationTokenSource = null;
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {

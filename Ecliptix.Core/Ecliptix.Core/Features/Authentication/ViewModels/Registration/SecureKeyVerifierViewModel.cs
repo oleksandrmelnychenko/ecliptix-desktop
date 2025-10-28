@@ -41,7 +41,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
 
-    private Option<CancellationTokenSource> _currentOperationCts = Option<CancellationTokenSource>.None;
+    private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
 
@@ -266,13 +266,15 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         if (settings.Membership == null)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreKeyNotFound("Membership data is not available. Please complete registration from the beginning."));
+                InternalServiceApiFailure.SecureStoreKeyNotFound(
+                    "Membership data is not available. Please complete registration from the beginning."));
         }
 
         if (settings.Membership.UniqueIdentifier == null || settings.Membership.UniqueIdentifier.IsEmpty)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreKeyNotFound("Membership unique identifier is missing. Please complete registration from the beginning."));
+                InternalServiceApiFailure.SecureStoreKeyNotFound(
+                    "Membership unique identifier is missing. Please complete registration from the beginning."));
         }
 
         MembershipUniqueId = settings.Membership.UniqueIdentifier;
@@ -425,7 +427,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         return string.IsNullOrEmpty(message) ? strengthText : string.Concat(strengthText, ": ", message);
     }
 
-   private async Task<SystemU> SubmitAsync()
+    private async Task<SystemU> SubmitAsync()
     {
         if (IsBusy || !CanSubmit)
         {
@@ -443,7 +445,6 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             try
             {
                 uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-                string deviceIdentifier = SystemDeviceIdentifier();
 
                 Task<Result<Unit, string>> completeTask = _flowContext == AuthenticationFlowContext.Registration
                     ? CompleteRegistrationAsync(connectId, operationToken)
@@ -474,15 +475,11 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             }
             finally
             {
-                _currentOperationCts.Match(
-                    onSome: cts => {
-                        if (ReferenceEquals(cts, operationCts))
-                        {
-                            _currentOperationCts = Option<CancellationTokenSource>.None;
-                        }
-                    },
-                    onNone: () => { }
-                );
+                if (_currentOperationCts != null && ReferenceEquals(_currentOperationCts, operationCts))
+                {
+                    _currentOperationCts = null;
+                }
+
                 operationCts.Dispose();
             }
         }
@@ -492,11 +489,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    private async Task<Result<Unit, string>> CompleteRegistrationAsync(uint connectId, CancellationToken cancellationToken)
+    private async Task<Result<Unit, string>> CompleteRegistrationAsync(uint connectId,
+        CancellationToken cancellationToken)
     {
         if (MembershipUniqueId == null)
         {
-            return Result<Unit, string>.Err(LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+            return Result<Unit, string>.Err(
+                LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
 
         return await _registrationService.CompleteRegistrationAsync(
@@ -506,11 +505,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             cancellationToken);
     }
 
-    private async Task<Result<Unit, string>> CompletePasswordResetAsync(uint connectId, CancellationToken cancellationToken)
+    private async Task<Result<Unit, string>> CompletePasswordResetAsync(uint connectId,
+        CancellationToken cancellationToken)
     {
         if (MembershipUniqueId == null)
         {
-            return Result<Unit, string>.Err(LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+            return Result<Unit, string>.Err(
+                LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
 
         return await _passwordRecoveryService!.CompletePasswordResetAsync(
@@ -563,23 +564,23 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     private void CancelCurrentOperation()
     {
-        Option<CancellationTokenSource> operationSource = Interlocked.Exchange(
+        CancellationTokenSource? operationSource = Interlocked.Exchange(
             ref _currentOperationCts,
-            Option<CancellationTokenSource>.None);
+            null);
 
-        operationSource.Do(cts =>
+        if (operationSource != null)
         {
             try
             {
-                cts.Cancel();
+                operationSource.Cancel();
             }
             catch (ObjectDisposedException)
             {
             }
             finally
             {
-                cts.Dispose();
+                operationSource.Dispose();
             }
-        });
+        }
     }
 }

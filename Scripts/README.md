@@ -99,6 +99,65 @@ All AOT scripts provide:
 ./Scripts/pr-checks.sh
 ```
 
+## 🧹 Application Data Management
+
+### Cleanup Scripts
+- **`cleanup-app-data.sh`** - macOS/Linux application data cleanup
+- **`cleanup-app-data.ps1`** - Windows application data cleanup
+
+These scripts remove all persisted application data for fresh initialization, including:
+- DataProtection encryption keys
+- Secure storage (settings, membership, device IDs, master keys)
+- Application logs (optional)
+
+### Cleanup Examples
+```bash
+# macOS/Linux - Preview what will be deleted (dry-run)
+./Scripts/cleanup-app-data.sh --dry-run
+
+# macOS/Linux - Interactive cleanup with confirmation
+./Scripts/cleanup-app-data.sh
+
+# macOS/Linux - Force cleanup without prompts
+./Scripts/cleanup-app-data.sh --force
+
+# macOS/Linux - Keep logs, only remove keys/settings
+./Scripts/cleanup-app-data.sh --keep-logs
+
+# Windows - Preview deletions
+.\Scripts\cleanup-app-data.ps1 -DryRun
+
+# Windows - Interactive cleanup
+.\Scripts\cleanup-app-data.ps1
+
+# Windows - Force cleanup
+.\Scripts\cleanup-app-data.ps1 -Force
+
+# Windows - Keep logs
+.\Scripts\cleanup-app-data.ps1 -KeepLogs
+```
+
+### Storage Locations
+| Platform | Path |
+|---|---|
+| **macOS** | `~/Library/Application Support/Ecliptix/Storage/` |
+| **Linux** | `~/.local/share/Ecliptix/Storage/` |
+| **Windows** | `%APPDATA%\Ecliptix\Storage\` |
+
+### What Gets Cleaned
+- **Storage/DataProtection-Keys/** - ASP.NET Core encryption keys
+- **Storage/state/** - Encrypted app state (settings, membership, device IDs)
+- **.keychain/** - Platform keychain (14+ .key files, machine key, wrap keys)
+- **master_*.ecliptix** - Master encryption key files (5+ files)
+- **[numbers].ecliptix** - Session-specific encrypted data files
+- **Storage/logs/** - Application log files (optional, preserved with `--keep-logs`)
+
+### Use Cases
+- **Fresh development start** - Clear all user data for testing
+- **Testing new features** - Reset application state
+- **Debugging authentication** - Remove stored credentials
+- **Pre-release testing** - Simulate first-time user experience
+
 ## 📁 File Structure
 
 ```
@@ -117,10 +176,14 @@ Scripts/
 ├── version-helper.py            # Core version implementation
 ├── version-config.json          # Configuration file
 │
-└── 🔧 Development Workflow
-    ├── new-branch.sh            # Git branch creation
-    ├── sync-develop.sh          # Branch synchronization
-    └── pr-checks.sh             # Pre-PR validation
+├── 🔧 Development Workflow
+├── new-branch.sh                # Git branch creation
+├── sync-develop.sh              # Branch synchronization
+├── pr-checks.sh                 # Pre-PR validation
+│
+└── 🧹 Application Data Management
+    ├── cleanup-app-data.sh      # macOS/Linux data cleanup
+    └── cleanup-app-data.ps1     # Windows data cleanup
 ```
 
 ## 🎯 Integration Points

@@ -38,7 +38,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
 
-    private Option<CancellationTokenSource> _currentOperationCts = Option<CancellationTokenSource>.None;
+    private CancellationTokenSource? _currentOperationCts;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
 
@@ -506,23 +506,23 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void CancelCurrentOperation()
     {
-        Option<CancellationTokenSource> operationSource = Interlocked.Exchange(
+        CancellationTokenSource? operationSource = Interlocked.Exchange(
             ref _currentOperationCts,
-            Option<CancellationTokenSource>.None);
+            null);
 
-        operationSource.Do(cts =>
+        if (operationSource != null)
         {
             try
             {
-                cts.Cancel();
+                operationSource.Cancel();
             }
             catch (ObjectDisposedException)
             {
             }
             finally
             {
-                cts.Dispose();
+                operationSource.Dispose();
             }
-        });
+        }
     }
 }

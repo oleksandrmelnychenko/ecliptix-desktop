@@ -35,7 +35,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     private readonly Subject<string> _signInErrorSubject = new();
     private readonly AuthenticationViewModel _hostWindowModel;
 
-    private Option<CancellationTokenSource> _signInCancellationTokenSource = Option<CancellationTokenSource>.None;
+    private CancellationTokenSource? _signInCancellationTokenSource;
     private bool _hasMobileNumberBeenTouched;
     private bool _hasSecureKeyBeenTouched;
     private bool _isDisposed;
@@ -328,23 +328,23 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private void CancelSignInOperation()
     {
-        Option<CancellationTokenSource> cancellationSource = Interlocked.Exchange(
+        CancellationTokenSource? cancellationSource = Interlocked.Exchange(
             ref _signInCancellationTokenSource,
-            Option<CancellationTokenSource>.None);
+            null);
 
-        cancellationSource.Do(cts =>
+        if (cancellationSource != null)
         {
             try
             {
-                cts.Cancel();
+                cancellationSource.Cancel();
             }
             catch (ObjectDisposedException)
             {
             }
             finally
             {
-                cts.Dispose();
+                cancellationSource.Dispose();
             }
-        });
+        }
     }
 }
