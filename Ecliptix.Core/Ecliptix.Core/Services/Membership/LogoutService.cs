@@ -36,6 +36,7 @@ internal sealed class LogoutService(
 {
     private readonly PendingLogoutRequestStorage _pendingLogoutRequestStorage = new(applicationSecureStorageProvider);
     private readonly LogoutProofHandler _logoutProofHandler = new(identityService, applicationSecureStorageProvider);
+    private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
     private const bool KeepPendingLogout = true;
     private const bool ClearPendingLogout = false;
@@ -261,14 +262,50 @@ internal sealed class LogoutService(
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
-    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, CancellationToken cancellationToken)
+    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, bool shouldRetryPendingLogout, CancellationToken cancellationToken)
     {
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
         await messageBus.PublishAsync(new MembershipLoggedOutEvent(membershipId, reason.ToString()), cancellationToken)
             .ConfigureAwait(false);
 
+        // NavigateToAuthenticationAsync calls EnsureAnonymousProtocolAsync which establishes the protocol
         await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
+
+        // At this point, anonymous protocol is GUARANTEED to be established
+        // Immediately retry pending logout if this was a failed logout scenario
+        if (shouldRetryPendingLogout)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    Log.Information("[LOGOUT-RETRY] Anonymous protocol established, retrying pending logout immediately for MembershipId: {MembershipId}", membershipId);
+
+                    Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+                        await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
+
+                    if (settingsResult.IsOk)
+                    {
+                        ApplicationInstanceSettings settings = settingsResult.Unwrap();
+                        uint anonymousConnectId = NetworkProvider.ComputeUniqueConnectId(
+                            settings,
+                            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+                        Log.Information("[LOGOUT-RETRY] Computed anonymous ConnectId: {ConnectId}, processing pending logout", anonymousConnectId);
+                        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        Log.Warning("[LOGOUT-RETRY] Failed to get settings for immediate retry: {Error}, will retry on next startup", settingsResult.UnwrapErr().Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
+                }
+            });
+        }
     }
 
     private static Result<LogoutResponse, LogoutFailure> MapLogoutResponse(LogoutResponse response)
@@ -320,6 +357,6 @@ internal sealed class LogoutService(
 
         Log.Information("[LOGOUT-CLEANUP] All cleanup completed. MembershipId: {MembershipId}", membershipId);
 
-        await FinalizeLogoutAsync(membershipId, reason, cancellationToken).ConfigureAwait(false);
+        await FinalizeLogoutAsync(membershipId, reason, keepPendingLogout, cancellationToken).ConfigureAwait(false);
     }
 }
