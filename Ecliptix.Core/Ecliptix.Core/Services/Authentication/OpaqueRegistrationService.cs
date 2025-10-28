@@ -43,7 +43,6 @@ internal sealed class OpaqueRegistrationService(
 
     private readonly Lock _opaqueClientLock = new();
     private OpaqueClient? _opaqueClient;
-    private byte[]? _cachedServerPublicKey;
 
     public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
@@ -85,7 +84,8 @@ internal sealed class OpaqueRegistrationService(
         return Result<ValidateMobileNumberResponse, string>.Ok(identifier);
     }
 
-    public async Task<Result<CheckMobileNumberAvailabilityResponse, string>> CheckMobileNumberAvailabilityAsync(
+    public async Task<Result<CheckMobileNumberAvailabilityResponse, string>>
+        CheckMobileNumberAvailabilityAsync(
         ByteString mobileNumberIdentifier,
         string deviceIdentifier,
         uint connectId,
@@ -250,23 +250,23 @@ internal sealed class OpaqueRegistrationService(
             payload => HandleVerificationStreamResponse(payload, streamConnectId, onCountdownUpdate, purpose),
             true, cancellationToken).ConfigureAwait(false);
 
-        if (result.IsErr)
+        if (!result.IsErr)
         {
-            NetworkFailure failure = result.UnwrapErr();
-            string errorMessage = GetNetworkFailureMessage(failure);
-
-            if (IsVerificationSessionMissing(failure))
-            {
-                RxApp.MainThreadScheduler.Schedule(() =>
-                    onCountdownUpdate?.Invoke(0, Guid.Empty,
-                        VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
-                        AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
-            }
-
-            return Result<Unit, string>.Err(errorMessage);
+            return Result<Unit, string>.Ok(Unit.Value);
         }
 
-        return Result<Unit, string>.Ok(Unit.Value);
+        NetworkFailure failure = result.UnwrapErr();
+        string errorMessage = GetNetworkFailureMessage(failure);
+
+        if (IsVerificationSessionMissing(failure))
+        {
+            RxApp.MainThreadScheduler.Schedule(() =>
+                onCountdownUpdate?.Invoke(0, Guid.Empty,
+                    VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
+                    AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
+        }
+
+        return Result<Unit, string>.Err(errorMessage);
     }
 
     public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
@@ -400,7 +400,6 @@ internal sealed class OpaqueRegistrationService(
         {
             _opaqueClient?.Dispose();
             _opaqueClient = null;
-            _cachedServerPublicKey = null;
         }
     }
 
@@ -499,6 +498,7 @@ internal sealed class OpaqueRegistrationService(
             byte[]? passwordCopy = null;
             byte[]? serverRegistrationResponse = null;
             byte[]? registrationRecord = null;
+            byte[]? masterKey = null;
             RegistrationResult? registrationResult = null;
             RegistrationResult? trackedRegistrationResult = null;
 
@@ -584,13 +584,16 @@ internal sealed class OpaqueRegistrationService(
                 serverRegistrationResponse = GC.AllocateUninitializedArray<byte>(initResponse.PeerOprf.Length);
                 initResponse.PeerOprf.Span.CopyTo(serverRegistrationResponse);
 
-                registrationRecord =
+                (byte[] record, byte[] generatedMasterKey) =
                     opaqueClient.FinalizeRegistration(serverRegistrationResponse, trackedRegistrationResult!);
+                registrationRecord = record;
+                masterKey = generatedMasterKey;
 
                 OpaqueRegistrationCompleteRequest completeRequest = new()
                 {
                     PeerRegistrationRecord = ByteString.CopyFrom(registrationRecord),
-                    MembershipIdentifier = membershipIdentifier
+                    MembershipIdentifier = membershipIdentifier,
+                    MasterKey = ByteString.CopyFrom(masterKey)
                 };
 
                 TaskCompletionSource<OpaqueRegistrationCompleteResponse> responseSource =
@@ -725,6 +728,11 @@ internal sealed class OpaqueRegistrationService(
                 if (registrationRecord is { Length: > 0 })
                 {
                     CryptographicOperations.ZeroMemory(registrationRecord);
+                }
+
+                if (masterKey is { Length: > 0 })
+                {
+                    CryptographicOperations.ZeroMemory(masterKey);
                 }
             }
         }

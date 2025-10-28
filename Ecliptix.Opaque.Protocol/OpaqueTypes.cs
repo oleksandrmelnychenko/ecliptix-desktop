@@ -4,22 +4,15 @@ namespace Ecliptix.Opaque.Protocol;
 
 public static class OpaqueConstants
 {
-    public const int OPRF_SEED_LENGTH = 32;
-    public const int PRIVATE_KEY_LENGTH = 32;
     public const int PUBLIC_KEY_LENGTH = 32;
-    public const int NONCE_LENGTH = 32;
-    public const int MAC_LENGTH = 64;
     public const int HASH_LENGTH = 64;
-    public const int ENVELOPE_LENGTH = 144;
+    public const int MASTER_KEY_LENGTH = 32;
     public const int REGISTRATION_REQUEST_LENGTH = 32;
     public const int REGISTRATION_RESPONSE_LENGTH = 96;
-    public const int REGISTRATION_RECORD_LENGTH = 176;
-    public const int CREDENTIAL_REQUEST_LENGTH = 96;
-    public const int CREDENTIAL_RESPONSE_LENGTH = 176;
+    public const int REGISTRATION_RECORD_LENGTH = 208;
     public const int KE1_LENGTH = 96;
-    public const int KE2_LENGTH = 304;
+    public const int KE2_LENGTH = 336;
     public const int KE3_LENGTH = 64;
-    public const int SESSION_KEY_LENGTH = 64;
 }
 
 public enum OpaqueResult : int

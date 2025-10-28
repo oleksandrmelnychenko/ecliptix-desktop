@@ -1,6 +1,6 @@
 namespace Ecliptix.Security.Certificate.Pinning.Services;
 
-using Ecliptix.Utilities;
+using Utilities;
 
 public sealed class CertificatePinningServiceFactory : ICertificatePinningServiceFactory
 {
@@ -10,30 +10,27 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
 
     private bool _disposed;
 
-    public Option<CertificatePinningService> GetOrInitializeService()
+    public async Task<Option<CertificatePinningService>> GetOrInitializeServiceAsync()
     {
         if (_disposed)
         {
             return Option<CertificatePinningService>.None;
         }
 
-        return _service.Or(() =>
+        if (_service.HasValue)
         {
-            _initializationSemaphore.Wait();
-            try
-            {
-                if (_disposed)
-                {
-                    return Option<CertificatePinningService>.None;
-                }
+            return _service;
+        }
 
-                return _service.Or(() => TryInitializeService());
-            }
-            finally
-            {
-                _initializationSemaphore.Release();
-            }
-        });
+        await _initializationSemaphore.WaitAsync();
+        try
+        {
+            return _disposed ? Option<CertificatePinningService>.None : _service.Or(TryInitializeService);
+        }
+        finally
+        {
+            _initializationSemaphore.Release();
+        }
     }
 
     private Option<CertificatePinningService> TryInitializeService()
@@ -48,7 +45,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             return _service;
         }
 
-        service.DisposeAsync().AsTask().Wait();
+        Task.Run(async () => await service.DisposeAsync()).Wait();
         return Option<CertificatePinningService>.None;
     }
 

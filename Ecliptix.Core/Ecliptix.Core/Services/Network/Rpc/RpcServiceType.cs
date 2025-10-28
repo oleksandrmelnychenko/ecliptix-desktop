@@ -24,4 +24,5 @@ public enum RpcServiceType : short
     SignInCompleteRequest,
 
     Logout,
+    AnonymousLogout,
 }

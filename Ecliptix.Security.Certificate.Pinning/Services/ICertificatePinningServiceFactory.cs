@@ -1,8 +1,8 @@
 namespace Ecliptix.Security.Certificate.Pinning.Services;
 
-using Ecliptix.Utilities;
+using Utilities;
 
 public interface ICertificatePinningServiceFactory : IAsyncDisposable
 {
-    Option<CertificatePinningService> GetOrInitializeService();
+    Task<Option<CertificatePinningService>> GetOrInitializeServiceAsync();
 }

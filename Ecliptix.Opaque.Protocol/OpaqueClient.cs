@@ -59,7 +59,7 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    public byte[] FinalizeRegistration(byte[] serverResponse, RegistrationResult registrationState)
+    public (byte[] Record, byte[] MasterKey) FinalizeRegistration(byte[] serverResponse, RegistrationResult registrationState)
     {
         ThrowIfDisposed();
         if (serverResponse?.Length != OpaqueConstants.REGISTRATION_RESPONSE_LENGTH)
@@ -68,10 +68,14 @@ public sealed class OpaqueClient : IDisposable
                 string.Format(OpaqueErrorMessages.ServerResponseInvalidSize, OpaqueConstants.REGISTRATION_RESPONSE_LENGTH));
         }
 
+        byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(masterKey);
+
         byte[] record = new byte[OpaqueConstants.REGISTRATION_RECORD_LENGTH];
 
         int result = OpaqueNative.opaque_client_finalize_registration(
             _clientHandle, serverResponse, (UIntPtr)serverResponse.Length,
+            masterKey, (UIntPtr)masterKey.Length,
             registrationState.StateHandle, record, (UIntPtr)record.Length);
 
         if (result != (int)OpaqueResult.Success)
@@ -79,7 +83,7 @@ public sealed class OpaqueClient : IDisposable
             throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToFinalizeRegistration, (OpaqueResult)result));
         }
 
-        return record;
+        return (record, masterKey);
     }
 
     public KeyExchangeResult GenerateKE1(byte[] password)
@@ -135,21 +139,24 @@ public sealed class OpaqueClient : IDisposable
             : Result<byte[], OpaqueResult>.Ok(ke3);
     }
 
-    public byte[] DeriveBaseMasterKey(KeyExchangeResult keyExchangeState)
+    public (byte[] SessionKey, byte[] MasterKey) DeriveBaseMasterKey(KeyExchangeResult keyExchangeState)
     {
         ThrowIfDisposed();
 
         byte[] sessionKey = new byte[OpaqueConstants.HASH_LENGTH];
+        byte[] masterKey = new byte[OpaqueConstants.MASTER_KEY_LENGTH];
 
         int result = OpaqueNative.opaque_client_finish(
-            _clientHandle, keyExchangeState.StateHandle, sessionKey, (UIntPtr)sessionKey.Length);
+            _clientHandle, keyExchangeState.StateHandle,
+            sessionKey, (UIntPtr)sessionKey.Length,
+            masterKey, (UIntPtr)masterKey.Length);
 
         if (result != (int)OpaqueResult.Success)
         {
             throw new InvalidOperationException(string.Format(OpaqueErrorMessages.FailedToDeriveSessionKey, (OpaqueResult)result));
         }
 
-        return sessionKey;
+        return (sessionKey, masterKey);
     }
 
     private void ThrowIfDisposed()

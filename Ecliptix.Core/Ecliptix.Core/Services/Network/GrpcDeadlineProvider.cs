@@ -33,7 +33,7 @@ internal sealed class GrpcDeadlineProvider(IOperationTimeoutProvider timeoutProv
     {
         if (timeout == Timeout.InfiniteTimeSpan)
         {
-            return TimeSpan.MaxValue;
+            return TimeSpan.FromHours(24);
         }
 
         return timeout <= TimeSpan.Zero ? DefaultDeadline : timeout;

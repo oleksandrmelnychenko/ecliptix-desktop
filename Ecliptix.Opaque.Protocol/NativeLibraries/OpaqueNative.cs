@@ -50,7 +50,7 @@ internal static partial class OpaqueNative
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finalize_registration(
-        IntPtr clientHandle, byte[] responseData, UIntPtr responseLength, IntPtr stateHandle, byte[] recordData, UIntPtr recordBufferSize);
+        IntPtr clientHandle, byte[] responseData, UIntPtr responseLength, byte[] masterKey, UIntPtr masterKeyLength, IntPtr stateHandle, byte[] recordData, UIntPtr recordBufferSize);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_generate_ke1(
@@ -62,7 +62,7 @@ internal static partial class OpaqueNative
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finish(
-        IntPtr clientHandle, IntPtr stateHandle, byte[] sessionKey, UIntPtr sessionKeyBufferSize);
+        IntPtr clientHandle, IntPtr stateHandle, byte[] sessionKey, UIntPtr sessionKeyBufferSize, byte[] masterKey, UIntPtr masterKeyBufferSize);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_create_default(out IntPtr handle);

@@ -46,9 +46,7 @@ public sealed class ApplicationInitializer(
 
     private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
         networkProvider,
-        new PendingLogoutRequestStorage(applicationSecureStorageProvider),
-        identityService,
-        applicationSecureStorageProvider);
+        new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
     private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
     {
@@ -209,13 +207,6 @@ public sealed class ApplicationInitializer(
         }
 
         byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
-
-        /*
-        if (membershipIdBytes == null || membershipIdBytes.Length == 0)
-        {
-            return Result<uint, NetworkFailure>.Ok(connectId);
-        }*/
-
         return await EstablishAndSaveSecrecyChannelAsync(connectId, membershipIdBytes).ConfigureAwait(false);
     }
 

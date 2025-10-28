@@ -53,7 +53,8 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
             [RpcServiceType.RecoverySecretKeyComplete] = OpaqueRecoveryCompleteRequestAsync,
             [RpcServiceType.SignInInitRequest] = OpaqueSignInInitRequestAsync,
             [RpcServiceType.SignInCompleteRequest] = OpaqueSignInCompleteRequestAsync,
-            [RpcServiceType.Logout] = LogoutAsync
+            [RpcServiceType.Logout] = LogoutAsync,
+            [RpcServiceType.AnonymousLogout] = AnonymousLogoutAsync
         };
         return;
 
@@ -71,6 +72,26 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
                 token,
                 callOptions =>
                     _membershipServicesClient.LogoutAsync(
+                        payload,
+                        callOptions
+                    )
+            ).ConfigureAwait(false);
+        }
+
+        async Task<Result<SecureEnvelope, NetworkFailure>> AnonymousLogoutAsync(
+            SecureEnvelope payload,
+            RpcRequestContext? requestContext,
+            IConnectivityService connectivityService,
+            CancellationToken token
+        )
+        {
+            return await ExecuteGrpcCallAsync(
+                RpcServiceType.AnonymousLogout,
+                connectivityService,
+                requestContext,
+                token,
+                callOptions =>
+                    _membershipServicesClient.AnonymousLogoutAsync(
                         payload,
                         callOptions
                     )

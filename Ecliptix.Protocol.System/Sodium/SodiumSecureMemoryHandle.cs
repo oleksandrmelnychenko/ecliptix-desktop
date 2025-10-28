@@ -301,6 +301,7 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         finally
         {
             _lock.ExitWriteLock();
+            _lock.Dispose();
         }
     }
 

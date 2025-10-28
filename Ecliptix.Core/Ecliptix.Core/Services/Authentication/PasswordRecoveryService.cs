@@ -111,6 +111,7 @@ internal sealed class PasswordRecoveryService(
         byte[]? passwordCopy = null;
         byte[]? serverRecoveryResponse = null;
         byte[]? recoveryRecord = null;
+        byte[]? masterKey = null;
 
         try
         {
@@ -163,12 +164,16 @@ internal sealed class PasswordRecoveryService(
             serverRecoveryResponse =
                 SecureByteStringInterop.WithByteStringAsSpan(initResponse.PeerOprf, span => span.ToArray());
 
-            recoveryRecord = opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
+            (byte[] record, byte[] generatedMasterKey) =
+                opaqueClient.FinalizeRegistration(serverRecoveryResponse, registrationResult);
+            recoveryRecord = record;
+            masterKey = generatedMasterKey;
 
             OpaqueRecoverySecretKeyCompleteRequest completeRequest = new()
             {
                 PeerRecoveryRecord = ByteString.CopyFrom(recoveryRecord),
-                MembershipIdentifier = membershipIdentifier
+                MembershipIdentifier = membershipIdentifier,
+                MasterKey = ByteString.CopyFrom(masterKey)
             };
 
             TaskCompletionSource<OpaqueRecoverySecretKeyCompleteResponse> responseSource = new();
@@ -223,6 +228,11 @@ internal sealed class PasswordRecoveryService(
             if (recoveryRecord != null)
             {
                 CryptographicOperations.ZeroMemory(recoveryRecord);
+            }
+
+            if (masterKey != null)
+            {
+                CryptographicOperations.ZeroMemory(masterKey);
             }
         }
     }

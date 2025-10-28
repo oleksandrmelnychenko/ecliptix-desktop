@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using Ecliptix.Security.Certificate.Pinning.Services;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -17,26 +18,32 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         ArgumentNullException.ThrowIfNull(certificatePinningService);
         ArgumentNullException.ThrowIfNull(originalData);
 
-        int chunkCount = (originalData.Length + RsaMaxChunkSize - 1) / RsaMaxChunkSize;
-        int estimatedSize = chunkCount * RsaEncryptedChunkSize;
-        byte[] combinedEncryptedPayload = new byte[estimatedSize];
-        int currentOffset = 0;
-
-        for (int offset = 0; offset < originalData.Length; offset += RsaMaxChunkSize)
+        try
         {
-            int chunkSize = Math.Min(RsaMaxChunkSize, originalData.Length - offset);
-            Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
+            int chunkCount = (originalData.Length + RsaMaxChunkSize - 1) / RsaMaxChunkSize;
+            int estimatedSize = chunkCount * RsaEncryptedChunkSize;
+            byte[] combinedEncryptedPayload = new byte[estimatedSize];
+            int currentOffset = 0;
 
-            CertificatePinningByteArrayResult chunkResult = certificatePinningService.Encrypt(chunk);
-
-            if (chunkResult.Error != null)
+            for (int offset = 0; offset < originalData.Length; offset += RsaMaxChunkSize)
             {
-                return Result<byte[], NetworkFailure>.Err(
-                    NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}"));
-            }
+                int chunkSize = Math.Min(RsaMaxChunkSize, originalData.Length - offset);
+                Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
-            if (chunkResult.Value != null)
-            {
+                CertificatePinningByteArrayResult chunkResult =
+                    certificatePinningService.Encrypt(chunk);
+
+                if (chunkResult.Error != null)
+                {
+                    return Result<byte[], NetworkFailure>.Err(
+                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}"));
+                }
+
+                if (chunkResult.Value == null)
+                {
+                    continue;
+                }
+
                 int encryptedLength = chunkResult.Value.Length;
                 if (currentOffset + encryptedLength > combinedEncryptedPayload.Length)
                 {
@@ -46,14 +53,34 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 Array.Copy(chunkResult.Value, 0, combinedEncryptedPayload, currentOffset, encryptedLength);
                 currentOffset += encryptedLength;
             }
-        }
 
-        if (currentOffset < combinedEncryptedPayload.Length)
+            if (currentOffset < combinedEncryptedPayload.Length)
+            {
+                Array.Resize(ref combinedEncryptedPayload, currentOffset);
+            }
+
+            return Result<byte[], NetworkFailure>.Ok(combinedEncryptedPayload);
+        }
+        catch (CryptographicException ex)
         {
-            Array.Resize(ref combinedEncryptedPayload, currentOffset);
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"Cryptographic error: {ex.Message}"));
         }
-
-        return Result<byte[], NetworkFailure>.Ok(combinedEncryptedPayload);
+        catch (OutOfMemoryException ex)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"Out of memory encrypting data: {ex.Message}"));
+        }
+        catch (ArgumentException ex)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"Invalid encryption parameters: {ex.Message}"));
+        }
+        catch (Exception ex)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.RsaEncryption($"Encryption failed: {ex.Message}"));
+        }
     }
 
     public Result<byte[], NetworkFailure> DecryptInChunks(
@@ -83,17 +110,19 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                         $"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}"));
             }
 
-            if (chunkDecryptResult.Value != null)
+            if (chunkDecryptResult.Value == null)
             {
-                int decryptedLength = chunkDecryptResult.Value.Length;
-                if (currentOffset + decryptedLength > decryptedData.Length)
-                {
-                    Array.Resize(ref decryptedData, currentOffset + decryptedLength);
-                }
-
-                Array.Copy(chunkDecryptResult.Value, 0, decryptedData, currentOffset, decryptedLength);
-                currentOffset += decryptedLength;
+                continue;
             }
+
+            int decryptedLength = chunkDecryptResult.Value.Length;
+            if (currentOffset + decryptedLength > decryptedData.Length)
+            {
+                Array.Resize(ref decryptedData, currentOffset + decryptedLength);
+            }
+
+            Array.Copy(chunkDecryptResult.Value, 0, decryptedData, currentOffset, decryptedLength);
+            currentOffset += decryptedLength;
         }
 
         if (currentOffset < decryptedData.Length)

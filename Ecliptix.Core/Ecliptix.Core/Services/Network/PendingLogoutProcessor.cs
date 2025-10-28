@@ -2,9 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Infrastructure.Data;
-using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
-using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Utilities;
@@ -17,12 +15,8 @@ namespace Ecliptix.Core.Services.Network;
 
 internal sealed class PendingLogoutProcessor(
     NetworkProvider networkProvider,
-    PendingLogoutRequestStorage pendingLogoutStorage,
-    IIdentityService identityService,
-    IApplicationSecureStorageProvider secureStorageProvider)
+    PendingLogoutRequestStorage pendingLogoutStorage)
 {
-    private readonly LogoutProofHandler _logoutProofHandler = new(identityService, secureStorageProvider);
-
     public async Task ProcessPendingLogoutAsync(
         uint connectId,
         CancellationToken cancellationToken = default)
@@ -50,49 +44,28 @@ internal sealed class PendingLogoutProcessor(
 
             Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
                 connectId,
-                RpcServiceType.Logout,
+                RpcServiceType.AnonymousLogout,
                 pendingRequest.ToByteArray(),
                 async responsePayload =>
                 {
                     try
                     {
-                        LogoutResponse logoutResponse = LogoutResponse.Parser.ParseFrom(responsePayload);
+                        AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
                         Log.Information("[PENDING-LOGOUT-RETRY] Pending logout request completed with status: {Status}",
                             logoutResponse.Result);
-                        responseCompletionSource.TrySetResult(true);
 
-                        if (logoutResponse.Result == LogoutResponse.Types.Result.Succeeded)
+                        if (logoutResponse.Result == AnonymousLogoutResponse.Types.Result.Succeeded)
                         {
-                            try
-                            {
-                                Result<Unit, LogoutFailure> proofVerification =
-                                    await _logoutProofHandler.VerifyRevocationProofAsync(logoutResponse, membershipId,
-                                        connectId);
-
-                                if (proofVerification.IsErr)
-                                {
-                                    Log.Error(
-                                        "[PENDING-LOGOUT-RETRY] Revocation proof verification failed for MembershipId: {MembershipId}, Error: {Error}",
-                                        membershipId, proofVerification.UnwrapErr().Message);
-                                }
-                                else
-                                {
-                                    Log.Information(
-                                        "[PENDING-LOGOUT-RETRY] Revocation proof verified successfully for MembershipId: {MembershipId}",
-                                        membershipId);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex,
-                                    "[PENDING-LOGOUT-RETRY] Unexpected error during revocation proof verification for MembershipId: {MembershipId}",
-                                    membershipId);
-                            }
-
+                            Log.Information(
+                                "[PENDING-LOGOUT-RETRY] Anonymous logout completed successfully for MembershipId: {MembershipId}",
+                                membershipId);
                             responseCompletionSource.TrySetResult(true);
                         }
                         else
                         {
+                            Log.Warning(
+                                "[PENDING-LOGOUT-RETRY] Anonymous logout failed with status: {Status}, Message: {Message}",
+                                logoutResponse.Result, logoutResponse.Message ?? "");
                             responseCompletionSource.TrySetResult(true);
                         }
                     }

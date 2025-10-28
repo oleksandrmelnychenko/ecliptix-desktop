@@ -83,11 +83,7 @@ public sealed class ReceiveStreamRpcServices : IReceiveStreamRpcServices
             IAsyncEnumerable<Result<SecureEnvelope, NetworkFailure>> stream =
                 streamingCall.ResponseStream.ReadAllAsync(token)
                     .ToObservable()
-                    .Select(response => response != null
-                        ? Result<SecureEnvelope, NetworkFailure>.Ok(response)
-                        : Result<SecureEnvelope, NetworkFailure>.Err(
-                            NetworkFailure.DataCenterNotResponding(NetworkServiceMessages.RpcService
-                                .ReceivedNullResponseFromStream)))
+                    .Select(Result<SecureEnvelope, NetworkFailure>.Ok)
                     .Catch<Result<SecureEnvelope, NetworkFailure>, RpcException>(rpcEx =>
                         Observable.Return(Result<SecureEnvelope, NetworkFailure>.Err(
                             _errorProcessor.Process(rpcEx))))
