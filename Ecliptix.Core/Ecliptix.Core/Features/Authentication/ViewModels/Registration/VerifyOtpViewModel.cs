@@ -68,15 +68,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 "Password recovery service is required when flow context is PasswordRecovery");
         }
 
+        Log.Information("[VERIFYOTP-VM] Initialized with flow context: {FlowContext}", flowContext);
+
         HostScreen = hostScreen;
 
         NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            MembershipViewType nextView = _flowContext == AuthenticationFlowContext.Registration
-                ? MembershipViewType.ConfirmSecureKey
-                : MembershipViewType.ForgotPasswordReset;
-            return hostWindow.Navigate.Execute(nextView);
+            return hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(

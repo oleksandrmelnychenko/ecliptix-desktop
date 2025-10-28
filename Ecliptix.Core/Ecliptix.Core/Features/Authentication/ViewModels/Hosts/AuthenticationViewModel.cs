@@ -17,7 +17,6 @@ using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
-using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
@@ -45,29 +44,26 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private static readonly FrozenDictionary<MembershipViewType, Func<IConnectivityService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-        IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>> ViewModelFactories =
+        IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-            IOpaqueRegistrationService, IPasswordRecoveryService, IRoutableViewModel>>
+            IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
         {
-            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _) =>
+            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _,_) =>
                 new SignInViewModel(netEvents, netProvider, loc, auth, host),
             [MembershipViewType.Welcome] =
-                (_, netProvider, loc, _, _, host, _, _) =>
+                (_, netProvider, loc, _, _, host, _, _, _) =>
                     new WelcomeViewModel(host, loc, netProvider),
             [MembershipViewType.MobileVerification] =
-                (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
-                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth),
+                (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
+                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth, pwdRecovery, flowContext),
             [MembershipViewType.ConfirmSecureKey] =
-                (netEvents, netProvider, loc, auth, storage, host, reg, _) =>
-                    new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth),
+                (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
+                    new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth, pwdRecovery, flowContext),
             [MembershipViewType.PassPhase] =
-                (netEvents, netProvider, loc, _, _, host, _, _) =>
+                (netEvents, netProvider, loc, _, _, host, _, _, _) =>
                     new PassPhaseViewModel(loc, host, netProvider),
-            [MembershipViewType.ForgotPasswordReset] =
-                (netEvents, netProvider, loc, auth, storage, host, _, pwdRecovery) =>
-                    new ForgotPasswordResetViewModel(netEvents, netProvider, loc, host, storage, pwdRecovery, auth)
         }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -80,7 +76,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly IApplicationRouter _router;
-    private readonly Dictionary<MembershipViewType, WeakReference<IRoutableViewModel>> _viewModelCache = new();
+    private readonly Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext), WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
     private readonly CompositeDisposable _disposables = new();
 
@@ -88,6 +84,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private IDisposable? _languageSubscription;
     private IDisposable? _bottomSheetHiddenSubscription;
     private IRoutableViewModel? _currentView;
+
+    public AuthenticationFlowContext CurrentFlowContext { get; set; } = AuthenticationFlowContext.Registration;
 
     public AuthenticationViewModel(
         IConnectivityService connectivityService,
@@ -300,17 +298,8 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     public void StartPasswordRecoveryFlow()
     {
         ClearNavigationStack(true);
-        MobileVerificationViewModel vm = new(
-            _connectivityService,
-            _networkProvider,
-            LocalizationService,
-            this,
-            _applicationSecureStorageProvider,
-            _opaqueRegistrationService,
-            _authenticationService,
-            AuthenticationFlowContext.PasswordRecovery,
-            _passwordRecoveryService);
-        NavigateToViewModel(vm);
+        CurrentFlowContext = AuthenticationFlowContext.PasswordRecovery;
+        Navigate.Execute(MembershipViewType.MobileVerification).Subscribe();
     }
 
     public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
@@ -391,10 +380,10 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         ClearNavigationStack();
 
-        List<KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>>> cachedItems =
+        List<KeyValuePair< (MembershipViewType viewType, AuthenticationFlowContext actualFlowContext), WeakReference<IRoutableViewModel>>> cachedItems =
             _viewModelCache.ToList();
 
-        foreach (KeyValuePair<MembershipViewType, WeakReference<IRoutableViewModel>> item in cachedItems)
+        foreach (KeyValuePair< (MembershipViewType viewType, AuthenticationFlowContext actualFlowContext), WeakReference<IRoutableViewModel>> item in cachedItems)
         {
             if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel))
             {
@@ -508,33 +497,50 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         }
     }
 
+    private static readonly FrozenSet<MembershipViewType> FlowSpecificViews = new HashSet<MembershipViewType>
+    {
+        MembershipViewType.MobileVerification,
+        MembershipViewType.VerifyOtp,
+        MembershipViewType.ConfirmSecureKey,
+    }.ToFrozenSet();
+
+
     private IRoutableViewModel GetOrCreateViewModelForView(MembershipViewType viewType, bool resetState = true)
     {
-        if (_viewModelCache.TryGetValue(viewType, out WeakReference<IRoutableViewModel>? weakRef) &&
+        AuthenticationFlowContext flowContext = CurrentFlowContext;
+
+        bool useFlowSpecificCaching = FlowSpecificViews.Contains(viewType);
+
+        (MembershipViewType viewType, AuthenticationFlowContext) cacheKey = useFlowSpecificCaching
+            ? (viewType, flowContext)
+            : (viewType, AuthenticationFlowContext.Registration);
+
+        if (_viewModelCache.TryGetValue(cacheKey, out WeakReference<IRoutableViewModel>? weakRef) &&
             weakRef.TryGetTarget(out IRoutableViewModel? cachedViewModel))
         {
             if (resetState && cachedViewModel is IResettable resettable)
             {
                 resettable.ResetState();
             }
-
             return cachedViewModel;
         }
 
-        if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<IConnectivityService, NetworkProvider, ILocalizationService,
-                    IAuthenticationService,
-                    IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
-                    IPasswordRecoveryService, IRoutableViewModel>? factory))
+        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel> factory))
         {
-            throw new InvalidOperationException($"No factory registered for view type: {viewType}");
+            throw new InvalidOperationException($"No factory found for view type: {viewType}");
         }
 
         IRoutableViewModel newViewModel = factory(_connectivityService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
-            _passwordRecoveryService);
-        _viewModelCache[viewType] = new WeakReference<IRoutableViewModel>(newViewModel);
+            _passwordRecoveryService, flowContext);
+
+        _viewModelCache[cacheKey] = new WeakReference<IRoutableViewModel>(newViewModel);
+
+        if (resetState && newViewModel is IResettable resettableNew)
+        {
+            resettableNew.ResetState();
+        }
 
         return newViewModel;
     }

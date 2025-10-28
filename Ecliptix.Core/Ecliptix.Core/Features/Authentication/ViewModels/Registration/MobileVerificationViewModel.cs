@@ -23,7 +23,7 @@ using Google.Protobuf;
 
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-
+using Serilog;
 using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
@@ -50,8 +50,8 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService,
-        AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
-        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider, localizationService,
+        IPasswordRecoveryService passwordRecoveryService,
+        AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
         connectivityService)
     {
         _registrationService = registrationService;
@@ -62,7 +62,9 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
 
-        if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
+        Log.Information("[MOBILE-VERIFICATION-VM] Initialized with flow context: {FlowContext}", flowContext);
+
+        if (_flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
         {
             throw new ArgumentNullException(nameof(passwordRecoveryService),
                 "Password recovery service is required when flow context is PasswordRecovery");
@@ -75,41 +77,30 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public string? UrlPathSegment { get; } = "/mobile-verification";
     public IScreen HostScreen { get; }
 
-    public string Title => _flowContext switch
-    {
-        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Title"],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Title"],
-        _ => LocalizationService["Authentication.SignUp.MobileVerification.Title"]
-    };
+    public string Title => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.MobileVerificationKeys.RegistrationTitle,
+        AuthenticationConstants.MobileVerificationKeys.RecoveryTitle);
 
-    public string Description => _flowContext switch
-    {
-        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Description"],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Description"],
-        _ => LocalizationService["Authentication.SignUp.MobileVerification.Description"]
-    };
+    public string Description => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.MobileVerificationKeys.RegistrationDescription,
+        AuthenticationConstants.MobileVerificationKeys.RecoveryDescription);
 
-    public string Hint => _flowContext switch
-    {
-        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Hint"],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Hint"],
-        _ => LocalizationService["Authentication.SignUp.MobileVerification.Hint"]
-    };
+    public string Hint => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.MobileVerificationKeys.RegistrationHint,
+        AuthenticationConstants.MobileVerificationKeys.RecoveryHint);
 
-    public string Watermark => _flowContext switch
-    {
-        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Watermark"],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Watermark"],
-        _ => LocalizationService["Authentication.SignUp.MobileVerification.Watermark"]
-    };
+    public string Watermark => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.MobileVerificationKeys.RegistrationWatermark,
+        AuthenticationConstants.MobileVerificationKeys.RecoveryWatermark);
 
-    public string ButtonText => _flowContext switch
-    {
-        AuthenticationFlowContext.Registration => LocalizationService["Authentication.SignUp.MobileVerification.Button"],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService["Authentication.PasswordRecovery.MobileVerification.Button"],
-        _ => LocalizationService["Authentication.SignUp.MobileVerification.Button"]
-    };
-
+    public string ButtonText => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.MobileVerificationKeys.RegistrationButton,
+        AuthenticationConstants.MobileVerificationKeys.RecoveryButton);
 
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
@@ -135,7 +126,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         }
         catch (Exception ex)
         {
-            Serilog.Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
+            Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
         }
     }
 
@@ -488,13 +479,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return Task.CompletedTask;
         }
 
-        SecureKeyVerifierViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-            _applicationSecureStorageProvider, _registrationService, _authenticationService);
-
         if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.NavigateToViewModel(vm);
+            hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
         }
 
         return Task.CompletedTask;

@@ -3,11 +3,9 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
-using Ecliptix.Core.Features.Authentication.ViewModels.PasswordRecovery;
 using Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;
 using Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
-using Ecliptix.Core.Features.Authentication.Views.PasswordRecovery;
 using Ecliptix.Core.Features.Authentication.Views.Registration;
 using Ecliptix.Core.Features.Authentication.Views.SignIn;
 using Ecliptix.Core.Features.Authentication.Views.Welcome;
@@ -29,7 +27,6 @@ internal static class StaticViewMapper
             [typeof(SecureKeyVerifierViewModel)] = new(() => () => new SecureKeyConfirmationView()),
             [typeof(PassPhaseViewModel)] = new(() => () => new PassPhaseView()),
             [typeof(WelcomeViewModel)] = new(() => () => new WelcomeView()),
-            [typeof(ForgotPasswordResetViewModel)] = new(() => () => new ForgotPasswordResetView())
         };
     }
 

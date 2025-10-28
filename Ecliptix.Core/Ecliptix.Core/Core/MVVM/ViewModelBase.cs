@@ -152,6 +152,13 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         });
     }
 
+    protected string GetSecureKeyLocalization(AuthenticationFlowContext flowContext, string registrationKey, string recoveryKey) => flowContext switch
+    {
+        AuthenticationFlowContext.Registration => LocalizationService[registrationKey],
+        AuthenticationFlowContext.PasswordRecovery => LocalizationService[recoveryKey],
+        _ => LocalizationService[registrationKey]
+    };
+
     private static bool IsNetworkInOutage(ConnectivitySnapshot snapshot) =>
         snapshot.Status is ConnectivityStatus.Disconnected
             or ConnectivityStatus.ShuttingDown

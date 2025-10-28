@@ -38,6 +38,8 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
+    private readonly IPasswordRecoveryService _passwordRecoveryService;
+    private readonly AuthenticationFlowContext _flowContext;
 
     private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
@@ -50,19 +52,59 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IAuthenticationService authenticationService
+        IAuthenticationService authenticationService,
+        IPasswordRecoveryService passwordRecoveryService,
+        AuthenticationFlowContext flowContext
     ) : base(networkProvider, localizationService, connectivityService)
     {
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _authenticationService = authenticationService;
+        _passwordRecoveryService = passwordRecoveryService;
+        _flowContext = flowContext;
 
+        Log.Information("[SECUREKEYVERIFIER-VM] Initialized with flow context: {FlowContext}", flowContext);
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
         SetupSubscriptions();
     }
+
+    public string Title => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationTitle,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryTitle);
+
+    public string Description => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationDescription,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryDescription);
+
+    public string PasswordPlaceholder => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.PasswordPlaceholder,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryPasswordPlaceholder);
+
+    public string PasswordHint => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.PasswordHint,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryPasswordHint);
+
+    public string VerifyPasswordPlaceholder => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.VerifyPasswordPlaceholder,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryVerifyPasswordPlaceholder);
+
+    public string VerifyPasswordHint => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.VerifyPasswordHint,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryVerifyPasswordHint);
+
+    public string ButtonText => GetSecureKeyLocalization(
+        _flowContext,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationButton,
+        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryButton);
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
     public IScreen HostScreen { get; }
@@ -93,7 +135,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 (isBusy, isInOutage) => !isBusy && !isInOutage)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
-        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitRegistrationSecureKeyAsync, canExecuteSubmit);
+        SubmitCommand = ReactiveCommand.CreateFromTask(SubmitAsync, canExecuteSubmit);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
         canExecuteSubmit.BindTo(this, x => x.CanSubmit);
     }
@@ -383,66 +425,122 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         return string.IsNullOrEmpty(message) ? strengthText : string.Concat(strengthText, ": ", message);
     }
 
-    private async Task SubmitRegistrationSecureKeyAsync()
+   private async Task<SystemU> SubmitAsync()
     {
         if (IsBusy || !CanSubmit)
         {
-            return;
+            return SystemU.Default;
         }
 
+        ServerError = string.Empty;
+        HasServerError = false;
+
+        try
+        {
+            CancellationTokenSource operationCts = RecreateCancellationToken(ref _currentOperationCts);
+            CancellationToken operationToken = operationCts.Token;
+
+            try
+            {
+                uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
+                string deviceIdentifier = SystemDeviceIdentifier();
+
+                Task<Result<Unit, string>> completeTask = _flowContext == AuthenticationFlowContext.Registration
+                    ? CompleteRegistrationAsync(connectId, operationToken)
+                    : CompletePasswordResetAsync(connectId, operationToken);
+
+                Result<Unit, string> result = await completeTask;
+
+                if (result.IsErr)
+                {
+                    ServerError = result.UnwrapErr();
+                    HasServerError = true;
+                    return SystemU.Default;
+                }
+
+                if (HostScreen is AuthenticationViewModel hostViewModel)
+                {
+                    string? mobileNumber = _flowContext == AuthenticationFlowContext.Registration
+                        ? hostViewModel.RegistrationMobileNumber
+                        : hostViewModel.RecoveryMobileNumber;
+
+                    if (!string.IsNullOrEmpty(mobileNumber))
+                    {
+                        await SignInAsync(mobileNumber, connectId, operationToken);
+                    }
+                }
+
+                return SystemU.Default;
+            }
+            finally
+            {
+                if (ReferenceEquals(_currentOperationCts, operationCts))
+                {
+                    _currentOperationCts = null;
+                }
+                operationCts.Dispose();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return SystemU.Default;
+        }
+    }
+
+    private async Task<Result<Unit, string>> CompleteRegistrationAsync(uint connectId, CancellationToken cancellationToken)
+    {
         if (MembershipUniqueId == null)
         {
-            ServerError = LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey];
-            HasServerError = true;
-            return;
+            return Result<Unit, string>.Err(LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
 
-        CancellationTokenSource cts = RecreateCancellationToken(ref _currentOperationCts);
-
-        uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-        CancellationToken operationToken = cts.Token;
-
-        Result<Unit, string> registrationResult = await _registrationService.CompleteRegistrationAsync(
+        return await _registrationService.CompleteRegistrationAsync(
             MembershipUniqueId,
             _secureKeyBuffer,
             connectId,
-            operationToken);
+            cancellationToken);
+    }
 
-        if (registrationResult.IsErr)
+    private async Task<Result<Unit, string>> CompletePasswordResetAsync(uint connectId, CancellationToken cancellationToken)
+    {
+        if (MembershipUniqueId == null)
         {
-            ServerError = registrationResult.UnwrapErr();
-            HasServerError = true;
+            return Result<Unit, string>.Err(LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
-        else
+
+        return await _passwordRecoveryService!.CompletePasswordResetAsync(
+            MembershipUniqueId,
+            _secureKeyBuffer,
+            connectId,
+            cancellationToken);
+    }
+
+    private async Task SignInAsync(string mobileNumber, uint connectId, CancellationToken cancellationToken)
+    {
+        Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
+            mobileNumber,
+            _secureKeyBuffer,
+            connectId,
+            cancellationToken);
+
+        if (signInResult.IsOk && HostScreen is AuthenticationViewModel hostViewModel)
         {
-            AuthenticationViewModel hostViewModel = (AuthenticationViewModel)HostScreen;
-            string registrationMobileNumber = hostViewModel.RegistrationMobileNumber!;
-
-            Result<Unit, AuthenticationFailure> signInResult = await _authenticationService.SignInAsync(
-                registrationMobileNumber,
-                _secureKeyBuffer,
-                connectId,
-                operationToken);
-
-            if (signInResult.IsOk)
+            try
             {
-                try
-                {
-                    await hostViewModel.SwitchToMainWindowCommand.Execute();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to switch to main window after successful sign-in");
-                    ServerError = $"Failed to navigate to main window: {ex.Message}";
-                    HasServerError = true;
-                }
+                await hostViewModel.SwitchToMainWindowCommand.Execute();
             }
-            else
+            catch (Exception ex)
             {
-                AuthenticationFailure failure = signInResult.UnwrapErr();
-                ServerError = string.Concat("Auto-login failed: ", failure.Message);
+                Log.Error(ex, "Failed to switch to main window after successful authentication");
+                ServerError = $"{LocalizationService[AuthenticationConstants.NavigationFailureKey]}";
                 HasServerError = true;
             }
+        }
+        else if (signInResult.IsErr)
+        {
+            AuthenticationFailure failure = signInResult.UnwrapErr();
+            ServerError = failure.Message;
+            HasServerError = true;
         }
     }
 

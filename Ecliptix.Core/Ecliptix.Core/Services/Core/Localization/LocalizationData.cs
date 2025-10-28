@@ -25,6 +25,14 @@ public static class LocalizationData
         [ErrorI18nKeys.Cancelled] = "Request was cancelled.",
         [ErrorI18nKeys.Internal] = "Something went wrong. Please try again later.",
         [ErrorI18nKeys.DatabaseUnavailable] = "Database is unavailable. Please retry later.",
+
+
+        ["Authentication.Error.NavigationFailure"] = "Failed to navigate to main window",
+        ["Authentication.Error.MembershipIdentifierRequired"] = "Membership identifier is required",
+        ["Authentication.Error.SessionExpired"] = "Your session has expired. Please start the registration process again.",
+        ["Authentication.Error.RegistrationIncomplete"] = "Registration data is incomplete. Please restart the registration process.",
+
+
         ["error.server_unavailable"] = "Server is currently unavailable. Please try again later.",
         ["Authentication.SignUp.MobileVerification.Title"] = "Create Account",
         ["Authentication.SignUp.MobileVerification.Description"] = "Confirm your number. We'll text you a verification code.",
@@ -230,6 +238,14 @@ public static class LocalizationData
         [ErrorI18nKeys.Internal] = "Сталася помилка. Спробуйте пізніше.",
         [ErrorI18nKeys.DatabaseUnavailable] = "База даних недоступна. Повторіть спробу пізніше.",
         ["error.server_unavailable"] = "Сервер наразі недоступний. Будь ласка, спробуйте пізніше.",
+
+
+        ["Authentication.Error.NavigationFailure"] = "Не вдалося перейти до головного вікна",
+        ["Authentication.Error.MembershipIdentifierRequired"] = "Ідентифікатор учасника є обов'язковим",
+        ["Authentication.Error.SessionExpired"] = "Ваша сесія закінчилася. Будь ласка, почніть реєстрацію спочатку.",
+        ["Authentication.Error.RegistrationIncomplete"] = "Дані реєстрації неповні. Будь ласка, почніть процес реєстрації знову.",
+
+
         ["Authentication.SignUp.MobileVerification.Title"] = "Створити акаунт",
         ["Authentication.SignUp.MobileVerification.Description"] = "Підтвердьте номер. Ми надішлемо код в SMS.",
         ["Authentication.SignUp.MobileVerification.Hint"] = "Включно з кодом країни",

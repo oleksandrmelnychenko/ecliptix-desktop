@@ -33,6 +33,8 @@ public static class AuthenticationConstants
     public const string MaxAttemptsReachedKey = "Verification.Error.MaxAttemptsReached";
     public const string SessionNotFoundKey = "Verification.Error.SessionNotFound";
     public const string RedirectingInSecondsKey = "Verification.Info.RedirectingInSeconds";
+    public const string NavigationFailureKey = "Authentication.Error.NavigationFailure";
+
 
     public const string AccountAlreadyExistsKey = "ResponseErrors.MobileNumber.AccountAlreadyRegistered";
     public const string TimeoutExceededKey = "ResponseErrors.Common.TimeoutExceeded";
@@ -53,4 +55,42 @@ public static class AuthenticationConstants
     {
         public static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(5);
     }
+
+    public static class SecureKeyConfirmationKeys
+    {
+        public const string RegistrationTitle = "Authentication.SignUp.PasswordConfirmation.Title";
+        public const string RegistrationDescription = "Authentication.SignUp.PasswordConfirmation.Description";
+        public const string RegistrationButton = "Authentication.SignUp.PasswordConfirmation.Button";
+
+        public const string RecoveryTitle = "Authentication.PasswordRecovery.Reset.Title";
+        public const string RecoveryDescription = "Authentication.PasswordRecovery.Reset.Description";
+        public const string RecoveryButton = "Authentication.PasswordRecovery.Reset.Button";
+
+        public const string PasswordPlaceholder = "Authentication.SignUp.PasswordConfirmation.PasswordPlaceholder";
+        public const string PasswordHint = "Authentication.SignUp.PasswordConfirmation.PasswordHint";
+        public const string VerifyPasswordPlaceholder = "Authentication.SignUp.PasswordConfirmation.VerifyPasswordPlaceholder";
+        public const string VerifyPasswordHint = "Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint";
+
+        public const string RecoveryPasswordPlaceholder = "Authentication.PasswordRecovery.Reset.NewPasswordPlaceholder";
+        public const string RecoveryPasswordHint = "Authentication.PasswordRecovery.Reset.NewPasswordHint";
+        public const string RecoveryVerifyPasswordPlaceholder = "Authentication.PasswordRecovery.Reset.ConfirmPasswordPlaceholder";
+        public const string RecoveryVerifyPasswordHint = "Authentication.PasswordRecovery.Reset.ConfirmPasswordHint";
+    }
+
+    public static class MobileVerificationKeys
+    {
+        public const string RegistrationTitle = "Authentication.SignUp.MobileVerification.Title";
+        public const string RegistrationDescription = "Authentication.SignUp.MobileVerification.Description";
+        public const string RegistrationHint = "Authentication.SignUp.MobileVerification.Hint";
+        public const string RegistrationWatermark = "Authentication.SignUp.MobileVerification.Watermark";
+        public const string RegistrationButton = "Authentication.SignUp.MobileVerification.Button";
+
+        public const string RecoveryTitle = "Authentication.PasswordRecovery.MobileVerification.Title";
+        public const string RecoveryDescription = "Authentication.PasswordRecovery.MobileVerification.Description";
+        public const string RecoveryHint = "Authentication.PasswordRecovery.MobileVerification.Hint";
+        public const string RecoveryWatermark = "Authentication.PasswordRecovery.MobileVerification.Watermark";
+        public const string RecoveryButton = "Authentication.PasswordRecovery.MobileVerification.Button";
+    }
+
+
 }
