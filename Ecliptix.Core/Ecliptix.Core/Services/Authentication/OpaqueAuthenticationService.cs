@@ -48,7 +48,7 @@ internal sealed class OpaqueAuthenticationService(
     };
 
     private readonly Lock _opaqueClientLock = new();
-    private OpaqueClient? _opaqueClient;
+    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
         SecureTextBuffer securePassword,
@@ -97,8 +97,8 @@ internal sealed class OpaqueAuthenticationService(
     {
         lock (_opaqueClientLock)
         {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
+            _opaqueClient.Do(client => client.Dispose());
+            _opaqueClient = Option<OpaqueClient>.None;
         }
     }
 
@@ -355,7 +355,6 @@ internal sealed class OpaqueAuthenticationService(
                 attempt + 1, MaxSignInFlowAttempts);
 
             networkProvider.ClearExhaustedOperations();
-            Serilog.Log.Information("[SIGNIN-FLOW-RETRY] Cleared exhaustion state to allow retry");
             continue;
 
         }
@@ -495,12 +494,6 @@ internal sealed class OpaqueAuthenticationService(
 
         try
         {
-            string sessionKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(sessionKeyBytes);
-            string masterKeyFingerprint = CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytes);
-            Serilog.Log.Information(
-                "[CLIENT-OPAQUE-KEYS] OPAQUE keys extracted from envelope. SessionKeyFingerprint: {SessionKeyFingerprint}, MasterKeyFingerprint: {MasterKeyFingerprint}",
-                sessionKeyFingerprint, masterKeyFingerprint);
-
             Result<SodiumSecureMemoryHandle, SodiumFailure> masterKeyHandleResult =
                 SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
             if (masterKeyHandleResult.IsErr)
@@ -534,10 +527,6 @@ internal sealed class OpaqueAuthenticationService(
         uint connectId,
         Guid membershipId)
     {
-        Serilog.Log.Information(
-            "[LOGIN-PROTOCOL-RECREATE] Recreating authenticated protocol with master key. MembershipId: {MembershipId}, ConnectId: {ConnectId}",
-            membershipId, connectId);
-
         Result<Unit, NetworkFailure> recreateProtocolResult =
             await networkProvider.RecreateProtocolWithMasterKeyAsync(
                 masterKeyHandle, membershipIdentifier, connectId).ConfigureAwait(false);
@@ -564,10 +553,6 @@ internal sealed class OpaqueAuthenticationService(
                     $"Failed to establish authenticated protocol: {networkFailure.Message}"));
         }
 
-        Serilog.Log.Information(
-            "[LOGIN-COMPLETE] Login flow completed successfully. MembershipId: {MembershipId}",
-            membershipId);
-
         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
     }
 
@@ -576,10 +561,6 @@ internal sealed class OpaqueAuthenticationService(
         ByteString membershipIdentifier)
     {
         Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
-
-        Serilog.Log.Information(
-            "[LOGIN-START] Starting login flow for MembershipId: {MembershipId}",
-            membershipId);
 
         if (!ValidateMembershipIdentifier(membershipIdentifier))
         {
@@ -591,10 +572,6 @@ internal sealed class OpaqueAuthenticationService(
                     localizationService[AuthenticationConstants.InvalidCredentialsKey]));
         }
 
-        Serilog.Log.Information(
-            "[LOGIN-MASTERKEY-EXTRACT] Master key extracted from OPAQUE envelope. MembershipId: {MembershipId}",
-            membershipId);
-
         Result<byte[], SodiumFailure> masterKeyBytesResult =
             masterKeyHandle.ReadBytes(masterKeyHandle.Length);
         if (!masterKeyBytesResult.IsOk)
@@ -603,11 +580,6 @@ internal sealed class OpaqueAuthenticationService(
         }
 
         byte[] masterKeyBytesTemp = masterKeyBytesResult.Unwrap();
-        string masterKeyFingerprint =
-            CryptographicHelpers.ComputeSha256Fingerprint(masterKeyBytesTemp);
-        Serilog.Log.Information(
-            "[LOGIN-MASTERKEY-VERIFY] Master key fingerprint. MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
-            membershipId, masterKeyFingerprint);
         CryptographicOperations.ZeroMemory(masterKeyBytesTemp);
 
         return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(masterKeyHandle);
@@ -620,10 +592,6 @@ internal sealed class OpaqueAuthenticationService(
         ByteString membershipIdentifier = signInResult.Membership!.UniqueIdentifier;
         Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
 
-        Serilog.Log.Information(
-            "[LOGIN-IDENTITY-STORE] Storing identity (master key). MembershipId: {MembershipId}",
-            membershipId);
-
         Result<Unit, AuthenticationFailure> storeResult = await identityService
             .StoreIdentityAsync(masterKeyHandle, membershipId.ToString()).ConfigureAwait(false);
 
@@ -635,19 +603,9 @@ internal sealed class OpaqueAuthenticationService(
             return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
         }
 
-        Serilog.Log.Information(
-            "[LOGIN-IDENTITY-STORE] Identity stored and verified successfully. MembershipId: {MembershipId}",
-            membershipId);
-
-        Serilog.Log.Information(
-            "[LOGIN-MEMBERSHIP-STORE] Storing membership data. MembershipId: {MembershipId}",
-            membershipId);
         await applicationSecureStorageProvider
             .SetApplicationMembershipAsync(signInResult.Membership)
             .ConfigureAwait(false);
-        Serilog.Log.Information(
-            "[LOGIN-MEMBERSHIP-STORE] Membership data stored successfully. MembershipId: {MembershipId}",
-            membershipId);
 
         ByteString? accountIdToStore = null;
         if (signInResult.ActiveAccount != null && signInResult.ActiveAccount.UniqueIdentifier != null)
@@ -668,9 +626,6 @@ internal sealed class OpaqueAuthenticationService(
         await applicationSecureStorageProvider
             .SetCurrentAccountIdAsync(accountIdToStore)
             .ConfigureAwait(false);
-        Serilog.Log.Information(
-            "[LOGIN-ACCOUNT-STORE] Active account stored successfully. MembershipId: {MembershipId}, AccountId: {AccountId}",
-            membershipId, Helpers.FromByteStringToGuid(accountIdToStore));
 
         return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
     }

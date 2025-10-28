@@ -38,7 +38,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
 
-    private CancellationTokenSource? _currentOperationCts;
+    private Option<CancellationTokenSource> _currentOperationCts = Option<CancellationTokenSource>.None;
     private bool _hasMobileNumberBeenTouched;
     private bool _isDisposed;
 
@@ -112,21 +112,14 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     public async Task HandleEnterKeyPressAsync()
     {
-        try
+        if (_isDisposed)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
+            return;
         }
-        catch (Exception ex)
+
+        if (VerifyMobileNumberCommand != null && await VerifyMobileNumberCommand.CanExecute.FirstOrDefaultAsync())
         {
-            Log.Error(ex, "[MOBILE-VERIFICATION-ENTERKEY] Error handling enter key press");
+            VerifyMobileNumberCommand.Execute().Subscribe().DisposeWith(_disposables);
         }
     }
 
@@ -513,22 +506,23 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void CancelCurrentOperation()
     {
-        CancellationTokenSource? operationSource = Interlocked.Exchange(ref _currentOperationCts, null);
-        if (operationSource == null)
-        {
-            return;
-        }
+        Option<CancellationTokenSource> operationSource = Interlocked.Exchange(
+            ref _currentOperationCts,
+            Option<CancellationTokenSource>.None);
 
-        try
+        operationSource.Do(cts =>
         {
-            operationSource.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        finally
-        {
-            operationSource.Dispose();
-        }
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        });
     }
 }

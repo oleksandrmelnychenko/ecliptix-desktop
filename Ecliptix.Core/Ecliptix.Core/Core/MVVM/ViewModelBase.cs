@@ -14,6 +14,7 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using SystemU = System.Reactive.Unit;
@@ -179,6 +180,25 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         cts?.Dispose();
         cts = new CancellationTokenSource();
         return cts;
+    }
+
+    protected CancellationTokenSource RecreateCancellationToken(ref Option<CancellationTokenSource> ctsOption)
+    {
+        ctsOption.Do(cts =>
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            cts.Dispose();
+        });
+
+        CancellationTokenSource newCts = new CancellationTokenSource();
+        ctsOption = Option<CancellationTokenSource>.Some(newCts);
+        return newCts;
     }
 
     protected virtual void Dispose(bool disposing)

@@ -71,12 +71,10 @@ public static partial class SecureKeyValidator
         foreach ((Func<string, bool> isInvalid, string errorMessageKey, object[]? args) in hardValidationRules)
         {
             bool result = isInvalid(secureKey);
-            Log.Information("Hard rule \'{ErrorMessageKey}\': IsInvalid={Result}", errorMessageKey, result);
             if (result)
             {
                 string message = localizationService[errorMessageKey];
                 error = args != null ? string.Format(message, args) : message;
-                Log.Information($"Hard validation error: {error}");
                 return (error, recommendations);
             }
         }
@@ -84,7 +82,6 @@ public static partial class SecureKeyValidator
         foreach ((Func<string, bool> isWeak, string errorMessageKey, object[]? args) in recommendationRules)
         {
             bool result = isWeak(secureKey);
-            Log.Information($"Recommendation rule '{errorMessageKey}': IsWeak={result}");
             if (result)
             {
                 string message = localizationService[errorMessageKey];
@@ -92,7 +89,6 @@ public static partial class SecureKeyValidator
             }
         }
 
-        Log.Information($"Validation result: Error='{error}', Recommendations=[{string.Join(", ", recommendations)}]");
         return (null, recommendations);
     }
 
@@ -101,7 +97,6 @@ public static partial class SecureKeyValidator
         (string? error, List<string> recommendations) = Validate(secureKey, localizationService, isSignIn: false);
         if (error != null)
         {
-            Log.Information($"Password strength: {PasswordStrength.Invalid} (due to error: {error})");
             return PasswordStrength.Invalid;
         }
 
@@ -140,8 +135,6 @@ public static partial class SecureKeyValidator
             <= 6 => PasswordStrength.Strong,
             _ => PasswordStrength.VeryStrong
         };
-        Log.Information(
-            $"Password strength: {strength}, Score={score}, Variety={variety}, RecommendationsCount={recommendations.Count}");
         return strength;
     }
 

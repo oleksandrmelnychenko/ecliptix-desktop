@@ -180,9 +180,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
                     LogoutFailure.InvalidRevocationProof("Server revocation proof HMAC verification failed"));
             }
 
-            Log.Information("[LOGOUT-PROOF] Revocation proof verified successfully for MembershipId: {MembershipId}",
-                membershipId);
-
             Result<Unit, LogoutFailure> storeResult =
                 await StoreRevocationProofAsync(membershipId, revocationProof);
 
@@ -225,9 +222,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
                         $"Revocation proof storage failed: {storeResult.UnwrapErr().Message}"));
             }
 
-            Log.Information("[LOGOUT-PROOF-STORE] Revocation proof stored for MembershipId: {MembershipId}",
-                membershipId);
-
             return Result<Unit, LogoutFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -260,9 +254,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
 
             if (proofOption.HasValue)
             {
-                Log.Information(
-                    "[LOGOUT-PROOF-CHECK] Revocation proof found for MembershipId: {MembershipId} - session was logged out",
-                    membershipId);
                 return true;
             }
 
@@ -287,11 +278,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
             if (deleteResult.IsErr)
             {
                 Log.Warning("[LOGOUT-PROOF-CLEAR] Failed to clear revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-            }
-            else
-            {
-                Log.Information("[LOGOUT-PROOF-CLEAR] Revocation proof cleared for MembershipId: {MembershipId}",
                     membershipId);
             }
         }
@@ -347,8 +333,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
 
             byte[] hmacProof = LogoutKeyDerivation.ComputeHmac(hmacKey, canonicalBytes);
             request.HmacProof = ByteString.CopyFrom(hmacProof);
-
-            Log.Information("[LOGOUT-HMAC] HMAC proof generated for MembershipId: {MembershipId}", membershipId);
 
             return Result<Unit, LogoutFailure>.Ok(Unit.Value);
         }

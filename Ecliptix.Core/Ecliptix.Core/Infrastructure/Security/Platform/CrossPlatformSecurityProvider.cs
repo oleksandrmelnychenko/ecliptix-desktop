@@ -341,8 +341,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
 
         FileInfo fileInfo = new(keyFile);
-        Log.Information("[KEYCHAIN-FILE] Reading encrypted key file. Identifier: {Identifier}, Path: {Path}, Size: {Size}, LastModified: {LastModified}",
-            identifier, keyFile, fileInfo.Length, fileInfo.LastWriteTimeUtc);
 
         try
         {
@@ -372,9 +370,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
             using ICryptoTransform decryptor = aes.CreateDecryptor();
             byte[] decrypted = decryptor.TransformFinalBlock(encrypted, AesIvSize, encrypted.Length - AesIvSize);
-
-            Log.Information("[KEYCHAIN-FILE-SUCCESS] Successfully decrypted key file. Identifier: {Identifier}, DecryptedSize: {Size}",
-                identifier, decrypted.Length);
 
             return Result<byte[], SecureStorageFailure>.Ok(decrypted);
         }
@@ -433,10 +428,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
         string machineKeyFile = Path.Combine(_keychainPath, MachineKeyFilename);
         string machineId = BuildMachineIdentifier();
-        string machineIdFingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(machineId)))[..16];
-
-        Log.Information("[MACHINE-KEY] Machine identifier built. Fingerprint: {Fingerprint}, MachineName: {MachineName}, ProcessorCount: {ProcessorCount}",
-            machineIdFingerprint, Environment.MachineName, Environment.ProcessorCount);
 
         if (File.Exists(machineKeyFile))
         {
@@ -446,10 +437,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 if (_cachedMachineKey.Length == AesKeySize)
                 {
                     string storedKeyFingerprint = Convert.ToHexString(SHA256.HashData(_cachedMachineKey))[..16];
-                    FileInfo fileInfo = new(machineKeyFile);
-
-                    Log.Information("[MACHINE-KEY] Loaded existing machine key file. StoredKeyFingerprint: {StoredKeyFingerprint}, FileSize: {FileSize}, LastModified: {LastModified}, MachineIdFingerprint: {MachineIdFingerprint}",
-                        storedKeyFingerprint, _cachedMachineKey.Length, fileInfo.LastWriteTimeUtc, machineIdFingerprint);
 
                     byte[] derivedKey = DeriveKeyFromMachineId(machineId);
                     string derivedKeyFingerprint = Convert.ToHexString(SHA256.HashData(derivedKey))[..16];
@@ -458,11 +445,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                     {
                         Log.Warning("[MACHINE-KEY-MISMATCH] Machine identifier changed! StoredKey: {StoredKey}, DerivedKey: {DerivedKey}. This will cause decryption failures for all encrypted files!",
                             storedKeyFingerprint, derivedKeyFingerprint);
-                    }
-                    else
-                    {
-                        Log.Information("[MACHINE-KEY-VERIFIED] Machine key matches derived key. System: {StoredKey}",
-                            storedKeyFingerprint);
                     }
 
                     CryptographicOperations.ZeroMemory(derivedKey);
@@ -480,17 +462,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                     ex.Message);
             }
         }
-        else
-        {
-            Log.Information("[MACHINE-KEY] No existing machine key file found at: {FilePath}",
-                machineKeyFile);
-        }
-
         _cachedMachineKey = DeriveKeyFromMachineId(machineId);
-        string newKeyFingerprint = Convert.ToHexString(SHA256.HashData(_cachedMachineKey))[..16];
-
-        Log.Information("[MACHINE-KEY] Derived new machine key. Fingerprint: {Fingerprint}, MachineId: {MachineIdFingerprint}",
-            newKeyFingerprint, machineIdFingerprint);
 
         try
         {
@@ -499,9 +471,6 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             {
                 File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
-
-            Log.Information("[MACHINE-KEY] Machine key file created successfully at: {FilePath}",
-                machineKeyFile);
         }
         catch (Exception ex)
         {

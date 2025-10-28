@@ -40,7 +40,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private Guid _verificationSessionIdentifier = Guid.Empty;
     private IDisposable? _autoRedirectTimer;
     private IDisposable? _cooldownTimer;
-    private CancellationTokenSource? _cancellationTokenSource;
+    private Option<CancellationTokenSource> _cancellationTokenSource = Option<CancellationTokenSource>.None;
     private volatile bool _isDisposed;
 
     public VerifyOtpViewModel(
@@ -232,21 +232,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public async Task HandleEnterKeyPressAsync()
     {
-        try
+        if (_isDisposed)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
-            {
-                SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
-            }
+            return;
         }
-        catch (Exception ex)
+
+        if (await SendVerificationCodeCommand.CanExecute.FirstOrDefaultAsync())
         {
-            Log.Error(ex, "[OTP-ENTERKEY] Error handling enter key press");
+            SendVerificationCodeCommand.Execute().Subscribe().DisposeWith(_disposables);
         }
     }
 
@@ -257,9 +250,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        CancellationTokenSource? cts = Interlocked.Exchange(ref _cancellationTokenSource, null);
-        cts?.Cancel();
-        cts?.Dispose();
+        Option<CancellationTokenSource> oldCts = Interlocked.Exchange(ref _cancellationTokenSource, Option<CancellationTokenSource>.None);
+        oldCts.Do(cts =>
+        {
+            cts.Cancel();
+            cts.Dispose();
+        });
 
         _ = Task.Run(async () =>
         {
@@ -273,8 +269,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         if (disposing && !_isDisposed)
         {
             _isDisposed = true;
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource.Do(cts =>
+            {
+                cts.Cancel();
+                cts.Dispose();
+            });
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables?.Dispose();
@@ -318,7 +317,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource != null ? _cancellationTokenSource.Token : CancellationToken.None)
+                        cancellationToken: _cancellationTokenSource.ToCancellationToken())
                     : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
                         _mobileNumberIdentifier,
                         deviceIdentifier,
@@ -338,7 +337,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 {
                                 }
                             }),
-                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None);
+                        cancellationToken: _cancellationTokenSource.ToCancellationToken());
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
@@ -374,7 +373,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        CancellationToken operationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
+        CancellationToken operationToken = _cancellationTokenSource.ToCancellationToken();
 
         Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
             ? _registrationService.VerifyOtpAsync(
@@ -459,20 +458,21 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             string deviceIdentifier = SystemDeviceIdentifier();
 
-            CancellationTokenSource? oldCts = _cancellationTokenSource;
-            _cancellationTokenSource = new CancellationTokenSource();
-            _disposables.Add(_cancellationTokenSource);
+            Option<CancellationTokenSource> oldCts = _cancellationTokenSource;
+            CancellationTokenSource newCts = new CancellationTokenSource();
+            _cancellationTokenSource = Option<CancellationTokenSource>.Some(newCts);
+            _disposables.Add(newCts);
 
-            oldCts?.Dispose();
+            oldCts.Do(cts => cts.Dispose());
 
             Task.Run(async () =>
             {
-                if (_isDisposed || _cancellationTokenSource.Token.IsCancellationRequested)
+                if (_isDisposed || newCts.Token.IsCancellationRequested)
                 {
                     return;
                 }
 
-                _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+                newCts.Token.ThrowIfCancellationRequested();
 
                 Task<Result<Ecliptix.Utilities.Unit, string>> resendTask =
                     _flowContext == AuthenticationFlowContext.Registration
@@ -488,7 +488,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                         HandleCountdownUpdate(seconds, identifier, status, message);
                                     }
                                 }),
-                            cancellationToken: _cancellationTokenSource.Token)
+                            cancellationToken: newCts.Token)
                         : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
                             VerificationSessionIdentifier!.Value,
                             _mobileNumberIdentifier,
@@ -501,7 +501,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                         HandleCountdownUpdate(seconds, identifier, status, message);
                                     }
                                 }),
-                            cancellationToken: _cancellationTokenSource.Token);
+                            cancellationToken: newCts.Token);
 
                 Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
@@ -529,7 +529,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         }
                     });
                 }
-            }, _cancellationTokenSource.Token);
+            }, newCts.Token);
         }
         else
         {
@@ -622,52 +622,45 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizaedMessage = "")
     {
-        try
+        if (_isDisposed)
         {
-            if (_isDisposed)
-            {
-                return;
-            }
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                _autoRedirectTimer?.Dispose();
-                _autoRedirectTimer = null;
-
-                AutoRedirectCountdown = seconds;
-                IsUiLocked = true;
-                return Task.CompletedTask;
-            });
-
-            string message;
-
-            if (!string.IsNullOrEmpty(localizaedMessage))
-            {
-                message = localizaedMessage;
-            }
-            else
-            {
-                string key = IsMaxAttemptsReached
-                    ? AuthenticationConstants.MaxAttemptsReachedKey
-                    : AuthenticationConstants.SessionNotFoundKey;
-
-                message = _localizationService.GetString(key);
-            }
-
-            if (HostScreen is AuthenticationViewModel hostWindow)
-            {
-                ShowRedirectNotification(hostWindow, message, seconds, () =>
-                {
-                    if (!_isDisposed)
-                    {
-                        _ = CleanupAndNavigateAsync(targetView);
-                    }
-                });
-            }
+            return;
         }
-        catch (Exception ex)
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            Log.Error(ex, "[OTP-AUTO-REDIRECT] Error during auto-redirect");
+            _autoRedirectTimer?.Dispose();
+            _autoRedirectTimer = null;
+
+            AutoRedirectCountdown = seconds;
+            IsUiLocked = true;
+            return Task.CompletedTask;
+        });
+
+        string message;
+
+        if (!string.IsNullOrEmpty(localizaedMessage))
+        {
+            message = localizaedMessage;
+        }
+        else
+        {
+            string key = IsMaxAttemptsReached
+                ? AuthenticationConstants.MaxAttemptsReachedKey
+                : AuthenticationConstants.SessionNotFoundKey;
+
+            message = _localizationService.GetString(key);
+        }
+
+        if (HostScreen is AuthenticationViewModel hostWindow)
+        {
+            ShowRedirectNotification(hostWindow, message, seconds, () =>
+            {
+                if (!_isDisposed)
+                {
+                    _ = CleanupAndNavigateAsync(targetView);
+                }
+            });
         }
     }
 
@@ -722,31 +715,27 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
     {
-        try
+        if (_isDisposed)
         {
-            if (_isDisposed)
+            return;
+        }
+
+        _cancellationTokenSource.Do(cts =>
+        {
+            cts.Cancel();
+            cts.Dispose();
+        });
+        _cancellationTokenSource = Option<CancellationTokenSource>.None;
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
             {
-                return;
+                CleanupAndNavigate(membershipHostWindow, targetView);
             }
 
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                if (!_isDisposed && HostScreen is AuthenticationViewModel membershipHostWindow)
-                {
-                    CleanupAndNavigate(membershipHostWindow, targetView);
-                }
-
-                return Task.CompletedTask;
-            });
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[OTP-CLEANUP-NAV] Error during cleanup and navigation");
-        }
+            return Task.CompletedTask;
+        });
     }
 
     private static string FormatRemainingTime(uint seconds) =>

@@ -21,7 +21,6 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
 
     public Task TransitionToAnonymousAsync()
     {
-        Log.Information("[APPLICATION-STATE] Transitioning to Anonymous state");
         _currentMembershipId = Option<string>.None;
         _stateSubject.OnNext(ApplicationState.Anonymous);
         return Task.CompletedTask;
@@ -34,8 +33,6 @@ public sealed class ApplicationStateManager : IApplicationStateManager, IDisposa
             throw new ArgumentException("Membership ID cannot be null or empty", nameof(membershipId));
         }
 
-        Log.Information("[APPLICATION-STATE] Transitioning to Authenticated state. MembershipId: {MembershipId}",
-            membershipId);
         _currentMembershipId = Option<string>.Some(membershipId);
         _stateSubject.OnNext(ApplicationState.Authenticated);
         return Task.CompletedTask;

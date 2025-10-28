@@ -36,7 +36,6 @@ internal sealed class PendingLogoutRequestStorage
                     LogoutFailure.UnexpectedError($"Storage failed: {storeResult.UnwrapErr().Message}"));
             }
 
-            Log.Information("[PENDING-LOGOUT] Stored pending logout request");
             return Result<Unit, LogoutFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -90,7 +89,6 @@ internal sealed class PendingLogoutRequestStorage
         try
         {
             _storageProvider.Delete(StorageKey);
-            Log.Information("[PENDING-LOGOUT] Cleared pending logout request");
         }
         catch (Exception ex)
         {

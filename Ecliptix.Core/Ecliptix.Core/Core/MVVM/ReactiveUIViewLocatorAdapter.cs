@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using Serilog;
 
@@ -16,7 +17,14 @@ public class ReactiveUiViewLocatorAdapter(Abstractions.IViewLocator moduleViewLo
             return null;
         }
 
-        object? view = moduleViewLocator.ResolveView(viewModel);
+        Option<object> viewOption = moduleViewLocator.ResolveView(viewModel);
+
+        if (!viewOption.HasValue)
+        {
+            return null;
+        }
+
+        object view = viewOption.Value!;
 
         if (view is not IViewFor viewForInstance)
         {

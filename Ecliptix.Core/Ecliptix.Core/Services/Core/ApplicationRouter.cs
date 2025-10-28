@@ -42,7 +42,7 @@ public sealed class ApplicationRouter(
 
     public async Task NavigateToAuthenticationAsync()
     {
-        Log.Information("[ROUTER-NAV] Starting navigation to Authentication content");
+        Log.Debug("[ROUTER-NAV] Starting navigation to Authentication content");
 
         IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
@@ -61,21 +61,21 @@ public sealed class ApplicationRouter(
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMembershipViewModel);
         }
 
-        Log.Information("[ROUTER-NAV] Setting authentication content in MainWindow");
+        Log.Debug("[ROUTER-NAV] Setting authentication content in MainWindow");
         await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Unloading Main module");
+        Log.Debug("[ROUTER-NAV] Unloading Main module");
         await moduleManager.UnloadModuleAsync("Main").ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Ensuring anonymous protocol is available");
+        Log.Debug("[ROUTER-NAV] Ensuring anonymous protocol is available");
         await EnsureAnonymousProtocolAsync().ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Navigation to Authentication completed successfully");
+        Log.Debug("[ROUTER-NAV] Navigation to Authentication completed successfully");
     }
 
     public async Task NavigateToMainAsync()
     {
-        Log.Information("[ROUTER-NAV] Starting navigation to Main content");
+        Log.Debug("[ROUTER-NAV] Starting navigation to Main content");
 
         IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
@@ -94,20 +94,20 @@ public sealed class ApplicationRouter(
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
         }
 
-        Log.Information("[ROUTER-NAV] Setting main content in MainWindow");
+        Log.Debug("[ROUTER-NAV] Setting main content in MainWindow");
         await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Unloading Authentication module");
+        Log.Debug("[ROUTER-NAV] Unloading Authentication module");
         await moduleManager.UnloadModuleAsync("Authentication").ConfigureAwait(false);
 
-        Log.Information("[ROUTER-NAV] Navigation to Main completed successfully");
+        Log.Debug("[ROUTER-NAV] Navigation to Main completed successfully");
     }
 
     public async Task TransitionFromSplashAsync(Window splashWindow, bool isAuthenticated)
     {
-        Log.Information("[ROUTER] TransitionFromSplash called. IsAuthenticated: {IsAuthenticated}", isAuthenticated);
+        Log.Debug("[ROUTER] TransitionFromSplash called. IsAuthenticated: {IsAuthenticated}", isAuthenticated);
 
-        Log.Information("[ROUTER] Creating MainWindow (single window instance)");
+        Log.Debug("[ROUTER] Creating MainWindow (single window instance)");
         _mainWindow = await Dispatcher.UIThread.InvokeAsync(() => new MainWindow
         {
             DataContext = mainWindowViewModel
@@ -115,7 +115,7 @@ public sealed class ApplicationRouter(
 
         if (isAuthenticated)
         {
-            Log.Information("[ROUTER] Loading Main module");
+            Log.Debug("[ROUTER] Loading Main module");
             IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
             if (mainModule.ServiceScope?.ServiceProvider == null)
@@ -133,12 +133,12 @@ public sealed class ApplicationRouter(
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
             }
 
-            Log.Information("[ROUTER] Setting Main content in MainWindow");
+            Log.Debug("[ROUTER] Setting Main content in MainWindow");
             await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
         }
         else
         {
-            Log.Information("[ROUTER] Loading Authentication module");
+            Log.Debug("[ROUTER] Loading Authentication module");
             IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
             if (authModule.ServiceScope?.ServiceProvider == null)
@@ -156,17 +156,17 @@ public sealed class ApplicationRouter(
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMembershipViewModel);
             }
 
-            Log.Information("[ROUTER] Setting Authentication content in MainWindow");
+            Log.Debug("[ROUTER] Setting Authentication content in MainWindow");
             await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
         }
 
-        Log.Information("[ROUTER] Preparing and showing MainWindow");
+        Log.Debug("[ROUTER] Preparing and showing MainWindow");
         await PrepareAndShowWindowAsync(_mainWindow).ConfigureAwait(false);
-        Log.Information("[ROUTER] Setting MainWindow as desktop.MainWindow");
+        Log.Debug("[ROUTER] Setting MainWindow as desktop.MainWindow");
         desktop.MainWindow = _mainWindow;
-        Log.Information("[ROUTER] Starting fade transition from splash to MainWindow");
+        Log.Debug("[ROUTER] Starting fade transition from splash to MainWindow");
         await PerformFadeTransitionAsync(splashWindow, _mainWindow).ConfigureAwait(false);
-        Log.Information("[ROUTER] Transition complete - MainWindow is now the single OS window");
+        Log.Debug("[ROUTER] Transition complete - MainWindow is now the single OS window");
     }
 
     private async Task PrepareAndShowWindowAsync(Window window)
@@ -182,7 +182,7 @@ public sealed class ApplicationRouter(
 
     private async Task PerformFadeTransitionAsync(Window fromWindow, Window toWindow)
     {
-        Log.Information("[ROUTER-FADE] Starting fade transition from {From} to {To}",
+        Log.Debug("[ROUTER-FADE] Starting fade transition from {From} to {To}",
             fromWindow.GetType().Name, toWindow.GetType().Name);
 
         TimeSpan duration = TimeSpan.FromMilliseconds(FadeDurationMs);
@@ -199,33 +199,33 @@ public sealed class ApplicationRouter(
             await Task.Delay(FrameDelayMs).ConfigureAwait(false);
         }
 
-        Log.Information("[ROUTER-FADE] Fade animation complete, starting window close sequence");
+        Log.Debug("[ROUTER-FADE] Fade animation complete, starting window close sequence");
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             try
             {
-                Log.Information("[ROUTER-CLOSE] Attempting to close old window. Type: {Type}, IsVisible: {IsVisible}",
+                Log.Debug("[ROUTER-CLOSE] Attempting to close old window. Type: {Type}, IsVisible: {IsVisible}",
                     fromWindow.GetType().Name, fromWindow.IsVisible);
 
                 fromWindow.Opacity = 0;
                 toWindow.Opacity = 1;
 
                 Window? oldMainWindow = desktop.MainWindow;
-                Log.Information("[ROUTER-CLOSE] Current desktop.MainWindow: {Type}",
+                Log.Debug("[ROUTER-CLOSE] Current desktop.MainWindow: {Type}",
                     oldMainWindow?.GetType().Name ?? "null");
 
                 desktop.MainWindow = toWindow;
-                Log.Information("[ROUTER-CLOSE] desktop.MainWindow set to new window: {Type}",
+                Log.Debug("[ROUTER-CLOSE] desktop.MainWindow set to new window: {Type}",
                     toWindow.GetType().Name);
 
-                Log.Information("[ROUTER-CLOSE] Hiding old window for immediate visual feedback");
+                Log.Debug("[ROUTER-CLOSE] Hiding old window for immediate visual feedback");
                 fromWindow.Hide();
 
-                Log.Information("[ROUTER-CLOSE] Calling fromWindow.Close()...");
+                Log.Debug("[ROUTER-CLOSE] Calling fromWindow.Close()...");
                 fromWindow.Close();
 
-                Log.Information("[ROUTER-CLOSE] fromWindow.Close() completed successfully");
+                Log.Debug("[ROUTER-CLOSE] fromWindow.Close() completed successfully");
             }
             catch (Exception ex)
             {
@@ -237,7 +237,7 @@ public sealed class ApplicationRouter(
                     Log.Warning("[ROUTER-CLOSE-ERROR] Attempting force hide as fallback");
                     fromWindow.Hide();
                     fromWindow.Opacity = 0;
-                    Log.Information("[ROUTER-CLOSE-ERROR] Force hide succeeded");
+                    Log.Debug("[ROUTER-CLOSE-ERROR] Force hide succeeded");
                 }
                 catch (Exception hideEx)
                 {
@@ -248,7 +248,7 @@ public sealed class ApplicationRouter(
 
         await Task.Delay(100).ConfigureAwait(false);
 
-        Log.Information("[ROUTER-CLOSE-VERIFY] Verifying old window closed successfully");
+        Log.Debug("[ROUTER-CLOSE-VERIFY] Verifying old window closed successfully");
         bool isStillVisible = await Dispatcher.UIThread.InvokeAsync(() => fromWindow.IsVisible);
 
         if (isStillVisible)
@@ -261,7 +261,7 @@ public sealed class ApplicationRouter(
                     fromWindow.Hide();
                     fromWindow.Close();
                 });
-                Log.Information("[ROUTER-CLOSE-VERIFY] Second close attempt completed");
+                Log.Debug("[ROUTER-CLOSE-VERIFY] Second close attempt completed");
             }
             catch (Exception ex)
             {
@@ -270,10 +270,10 @@ public sealed class ApplicationRouter(
         }
         else
         {
-            Log.Information("[ROUTER-CLOSE-VERIFY] Window successfully closed ✓");
+            Log.Debug("[ROUTER-CLOSE-VERIFY] Window successfully closed ✓");
         }
 
-        Log.Information("[ROUTER-FADE] Transition complete");
+        Log.Debug("[ROUTER-FADE] Transition complete");
     }
 
     private async Task EnsureAnonymousProtocolAsync()
@@ -294,7 +294,6 @@ public sealed class ApplicationRouter(
 
             if (settings.Membership != null)
             {
-                Log.Information("[ROUTER-PROTOCOL] User has membership, skipping anonymous protocol creation");
                 return;
             }
 
@@ -303,16 +302,11 @@ public sealed class ApplicationRouter(
 
             if (networkProvider.HasConnection(connectId))
             {
-                Log.Information("[ROUTER-PROTOCOL] Anonymous protocol already exists. ConnectId: {ConnectId}",
-                    connectId);
                 return;
             }
 
-            Log.Information("[ROUTER-PROTOCOL] Creating anonymous protocol. ConnectId: {ConnectId}", connectId);
             networkProvider.InitiateEcliptixProtocolSystem(settings, connectId);
 
-            Log.Information("[ROUTER-PROTOCOL] Establishing anonymous protocol handshake. ConnectId: {ConnectId}",
-                connectId);
             Result<EcliptixSessionState, NetworkFailure> establishResult =
                 await networkProvider.EstablishSecrecyChannelAsync(connectId).ConfigureAwait(false);
 
@@ -323,13 +317,6 @@ public sealed class ApplicationRouter(
                 return;
             }
 
-            Log.Information(
-                "[ROUTER-PROTOCOL] Anonymous protocol created and handshake completed successfully. ConnectId: {ConnectId}",
-                connectId);
-
-            Log.Information("[ROUTER-PROTOCOL] Calling RegisterDevice to fetch server public key. ConnectId: {ConnectId}",
-                connectId);
-
             Result<Unit, NetworkFailure> registerResult = await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
 
             if (registerResult.IsErr)
@@ -339,8 +326,6 @@ public sealed class ApplicationRouter(
                 return;
             }
 
-            Log.Information("[ROUTER-PROTOCOL] RegisterDevice completed successfully. ConnectId: {ConnectId}",
-                connectId);
         }
         catch (Exception ex)
         {
@@ -373,7 +358,7 @@ public sealed class ApplicationRouter(
                 settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     ByteString.CopyFrom);
 
-                Log.Information("[ROUTER-PROTOCOL-REGISTER] Server public key updated. AppServerInstanceId: {InstanceId}",
+                Log.Debug("[ROUTER-PROTOCOL-REGISTER] Server public key updated. AppServerInstanceId: {InstanceId}",
                     appServerInstanceId);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));

@@ -41,7 +41,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IPasswordRecoveryService _passwordRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
 
-    private CancellationTokenSource? _currentOperationCts;
+    private Option<CancellationTokenSource> _currentOperationCts = Option<CancellationTokenSource>.None;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
 
@@ -474,10 +474,15 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             }
             finally
             {
-                if (ReferenceEquals(_currentOperationCts, operationCts))
-                {
-                    _currentOperationCts = null;
-                }
+                _currentOperationCts.Match(
+                    onSome: cts => {
+                        if (ReferenceEquals(cts, operationCts))
+                        {
+                            _currentOperationCts = Option<CancellationTokenSource>.None;
+                        }
+                    },
+                    onNone: () => { }
+                );
                 operationCts.Dispose();
             }
         }
@@ -558,22 +563,23 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     private void CancelCurrentOperation()
     {
-        CancellationTokenSource? operationSource = Interlocked.Exchange(ref _currentOperationCts, null);
-        if (operationSource == null)
-        {
-            return;
-        }
+        Option<CancellationTokenSource> operationSource = Interlocked.Exchange(
+            ref _currentOperationCts,
+            Option<CancellationTokenSource>.None);
 
-        try
+        operationSource.Do(cts =>
         {
-            operationSource.Cancel();
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        finally
-        {
-            operationSource.Dispose();
-        }
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        });
     }
 }

@@ -32,24 +32,13 @@ public class ApplicationStartup(
 
         await _splashViewModel.IsSubscribed.Task;
 
-        Log.Information("[STARTUP] Splash screen activated, starting initialization");
-
         bool success = await initializer.InitializeAsync(defaultSystemSettings);
-
-        Log.Information("[STARTUP] Initialization completed. Success: {Success}", success);
 
         if (success && _splashScreen != null)
         {
             bool isAuthenticated = stateManager.CurrentState == ApplicationState.Authenticated;
-            Log.Information("[STARTUP] Application state: {State}, IsAuthenticated: {IsAuthenticated}",
-                stateManager.CurrentState, isAuthenticated);
-
-            Log.Information("[STARTUP] Starting transition from splash to {Target}",
-                isAuthenticated ? "Main" : "Authentication");
 
             await router.TransitionFromSplashAsync(_splashScreen, isAuthenticated);
-
-            Log.Information("[STARTUP] Transition completed successfully");
 
             _splashViewModel?.Dispose();
             _splashViewModel = null;

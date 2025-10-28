@@ -97,9 +97,6 @@ public sealed class ApplicationInitializer(
 
         uint connectId = connectIdResult.Unwrap();
 
-        Log.Information("[CLIENT-REGISTER] Calling RegisterDevice. ConnectId: {ConnectId}",
-            connectId);
-
         Result<Unit, NetworkFailure> registrationResult =
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
@@ -108,9 +105,6 @@ public sealed class ApplicationInitializer(
                 connectId, registrationResult.UnwrapErr().Message);
             return false;
         }
-
-        Log.Information("[CLIENT-REGISTER] RegisterDevice completed successfully. ConnectId: {ConnectId}",
-            connectId);
 
         await ProcessPendingLogoutRequestsAsync(connectId).ConfigureAwait(false);
 
@@ -151,16 +145,16 @@ public sealed class ApplicationInitializer(
         }
 
         bool shouldUseAuthenticatedProtocol = false;
-        SodiumSecureMemoryHandle? masterKeyHandle = null;
+        Option<SodiumSecureMemoryHandle> masterKeyHandle = Option<SodiumSecureMemoryHandle>.None;
 
         bool hasStoredIdentity = !string.IsNullOrEmpty(membershipId) &&
-            await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
+                                 await identityService.HasStoredIdentityAsync(membershipId).ConfigureAwait(false);
         if (hasStoredIdentity)
         {
             masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId!, applicationInstanceSettings)
                 .ConfigureAwait(false);
 
-            if (masterKeyHandle != null)
+            if (masterKeyHandle.HasValue)
             {
                 shouldUseAuthenticatedProtocol = true;
             }
@@ -168,13 +162,13 @@ public sealed class ApplicationInitializer(
 
         try
         {
-            if (shouldUseAuthenticatedProtocol && masterKeyHandle != null)
+            if (shouldUseAuthenticatedProtocol && masterKeyHandle.HasValue)
             {
                 ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier!;
 
                 Result<Unit, NetworkFailure> recreateResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(
-                        masterKeyHandle, membershipByteString, connectId).ConfigureAwait(false);
+                        masterKeyHandle.Value!, membershipByteString, connectId).ConfigureAwait(false);
 
                 if (recreateResult.IsErr)
                 {
@@ -203,7 +197,7 @@ public sealed class ApplicationInitializer(
         }
         finally
         {
-            masterKeyHandle?.Dispose();
+            masterKeyHandle.Do(handle => handle.Dispose());
         }
 
         byte[]? membershipIdBytes = applicationInstanceSettings.Membership?.UniqueIdentifier?.ToByteArray();
@@ -251,14 +245,14 @@ public sealed class ApplicationInitializer(
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
     }
 
-    private async Task<SodiumSecureMemoryHandle?> TryLoadMasterKeyFromStorageAsync(string membershipId)
+    private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
     {
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
             await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
 
         if (loadResult.IsErr)
         {
-            return null;
+            return Option<SodiumSecureMemoryHandle>.None;
         }
 
         SodiumSecureMemoryHandle loadedHandle = loadResult.Unwrap();
@@ -267,30 +261,30 @@ public sealed class ApplicationInitializer(
             loadedHandle.ReadBytes(loadedHandle.Length);
         if (!readResult.IsOk)
         {
-            return loadedHandle;
+            return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
         }
 
         byte[] masterKeyBytes = readResult.Unwrap();
         CryptographicOperations.ZeroMemory(masterKeyBytes);
 
-        return loadedHandle;
+        return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
     }
 
-    private async Task<SodiumSecureMemoryHandle?> TryReconstructMasterKeyAsync(
+    private async Task<Option<SodiumSecureMemoryHandle>> TryReconstructMasterKeyAsync(
         string membershipId,
         ApplicationInstanceSettings applicationInstanceSettings)
     {
-        SodiumSecureMemoryHandle? storageHandle =
+        Option<SodiumSecureMemoryHandle> storageHandle =
             await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
 
-        if (storageHandle != null)
+        if (storageHandle.HasValue)
         {
             return storageHandle;
         }
 
         await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
 
-        return null;
+        return Option<SodiumSecureMemoryHandle>.None;
     }
 
     private async Task CleanupCorruptedIdentityDataAsync(

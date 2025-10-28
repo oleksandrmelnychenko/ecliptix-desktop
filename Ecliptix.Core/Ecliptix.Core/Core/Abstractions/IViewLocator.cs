@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using Ecliptix.Utilities;
 using ReactiveUI;
 
 namespace Ecliptix.Core.Core.Abstractions;
@@ -19,10 +20,10 @@ public interface IViewLocator
     void RegisterFactory<TViewModel>(Func<object> factory)
         where TViewModel : class, IRoutableViewModel;
 
-    object? ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel;
+    Option<object> ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel;
 
     [RequiresUnreferencedCode("ViewLocator uses reflection to determine view model types")]
-    object? ResolveView(object? viewModel);
+    Option<object> ResolveView(object? viewModel);
 
     bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel;
 

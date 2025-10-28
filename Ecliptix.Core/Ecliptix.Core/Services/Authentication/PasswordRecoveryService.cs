@@ -29,7 +29,7 @@ internal sealed class PasswordRecoveryService(
     : IPasswordRecoveryService, IDisposable
 {
     private readonly Lock _opaqueClientLock = new();
-    private OpaqueClient? _opaqueClient;
+    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
     private byte[]? _cachedServerPublicKey;
     private bool _disposed;
 
@@ -316,8 +316,8 @@ internal sealed class PasswordRecoveryService(
 
         lock (_opaqueClientLock)
         {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
+            _opaqueClient.Do(client => client.Dispose());
+            _opaqueClient = Option<OpaqueClient>.None;
         }
 
         _disposed = true;
@@ -329,17 +329,18 @@ internal sealed class PasswordRecoveryService(
 
         lock (_opaqueClientLock)
         {
-            if (_opaqueClient != null && _cachedServerPublicKey != null &&
+            if (_opaqueClient.HasValue && _cachedServerPublicKey != null &&
                 serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
             {
-                return _opaqueClient;
+                return _opaqueClient.Value!;
             }
 
-            _opaqueClient?.Dispose();
-            _opaqueClient = new OpaqueClient(serverPublicKey);
+            _opaqueClient.Do(client => client.Dispose());
+            OpaqueClient newClient = new OpaqueClient(serverPublicKey);
+            _opaqueClient = Option<OpaqueClient>.Some(newClient);
             _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
-            return _opaqueClient;
+            return newClient;
         }
     }
 

@@ -152,4 +152,48 @@ public static class OptionExtensions
             }
         }
     }
+
+    public static Option<TValue> TryGetOption<TKey, TValue>(
+        this IDictionary<TKey, TValue> dictionary,
+        TKey key)
+    {
+        ArgumentNullException.ThrowIfNull(dictionary);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return dictionary.TryGetValue(key, out TValue? value)
+            ? Option<TValue>.Some(value)
+            : Option<TValue>.None;
+    }
+
+    public static Option<TValue> TryGetOption<TKey, TValue>(
+        this IReadOnlyDictionary<TKey, TValue> dictionary,
+        TKey key)
+    {
+        ArgumentNullException.ThrowIfNull(dictionary);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return dictionary.TryGetValue(key, out TValue? value)
+            ? Option<TValue>.Some(value)
+            : Option<TValue>.None;
+    }
+
+    public static Option<TValue> TryGetOption<TKey, TValue>(
+        this System.Collections.Concurrent.ConcurrentDictionary<TKey, TValue> dictionary,
+        TKey key) where TKey : notnull
+    {
+        ArgumentNullException.ThrowIfNull(dictionary);
+        ArgumentNullException.ThrowIfNull(key);
+
+        return dictionary.TryGetValue(key, out TValue? value)
+            ? Option<TValue>.Some(value)
+            : Option<TValue>.None;
+    }
+
+    public static System.Threading.CancellationToken ToCancellationToken(
+        this Option<System.Threading.CancellationTokenSource> cancellationTokenSourceOption)
+    {
+        return cancellationTokenSourceOption.Match(
+            onSome: cts => cts.Token,
+            onNone: () => System.Threading.CancellationToken.None);
+    }
 }

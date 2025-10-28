@@ -105,15 +105,8 @@ internal sealed class LogoutService(
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);
 
-        Log.Information(
-            "[LOGOUT] {Context}, proceeding with local logout. Starting cleanup for MembershipId: {MembershipId}",
-            failureContext, membershipId);
-
         await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KeepPendingLogout, cancellationToken)
             .ConfigureAwait(false);
-
-        Log.Information("[LOGOUT] Local logout completed, retry will happen on next app run. MembershipId: {MembershipId}",
-            membershipId);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
@@ -182,8 +175,6 @@ internal sealed class LogoutService(
             settings,
             PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        Log.Information("[LOGOUT] Using existing authenticated protocol. ConnectId: {ConnectId}", connectId);
-
         return Result<(LogoutRequest, uint), LogoutFailure>.Ok((logoutRequest, connectId));
     }
 
@@ -251,13 +242,8 @@ internal sealed class LogoutService(
                 membershipId);
         }
 
-        Log.Information("[LOGOUT] Logout API call succeeded. Starting cleanup for MembershipId: {MembershipId}",
-            membershipId);
-
         await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, ClearPendingLogout, cancellationToken)
             .ConfigureAwait(false);
-
-        Log.Information("[LOGOUT] Logout completed successfully. MembershipId: {MembershipId}", membershipId);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
@@ -269,19 +255,14 @@ internal sealed class LogoutService(
         await messageBus.PublishAsync(new MembershipLoggedOutEvent(membershipId, reason.ToString()), cancellationToken)
             .ConfigureAwait(false);
 
-        // NavigateToAuthenticationAsync calls EnsureAnonymousProtocolAsync which establishes the protocol
         await router.NavigateToAuthenticationAsync().ConfigureAwait(false);
 
-        // At this point, anonymous protocol is GUARANTEED to be established
-        // Immediately retry pending logout if this was a failed logout scenario
         if (shouldRetryPendingLogout)
         {
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    Log.Information("[LOGOUT-RETRY] Anonymous protocol established, retrying pending logout immediately for MembershipId: {MembershipId}", membershipId);
-
                     Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
                         await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
 
@@ -292,7 +273,6 @@ internal sealed class LogoutService(
                             settings,
                             PubKeyExchangeType.DataCenterEphemeralConnect);
 
-                        Log.Information("[LOGOUT-RETRY] Computed anonymous ConnectId: {ConnectId}, processing pending logout", anonymousConnectId);
                         await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId).ConfigureAwait(false);
                     }
                     else
@@ -331,9 +311,6 @@ internal sealed class LogoutService(
     private async Task CompleteLogoutWithCleanupAsync(string membershipId, LogoutReason reason, uint connectId,
         bool keepPendingLogout, CancellationToken cancellationToken)
     {
-        Log.Information("[LOGOUT-CLEANUP] Starting comprehensive cleanup. MembershipId: {MembershipId}, KeepPendingLogout: {KeepPendingLogout}",
-            membershipId, keepPendingLogout);
-
         Result<Unit, Exception> cleanupResult =
             await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
                 .ConfigureAwait(false);
@@ -348,14 +325,7 @@ internal sealed class LogoutService(
         if (!keepPendingLogout)
         {
             _pendingLogoutRequestStorage.ClearPendingLogout();
-            Log.Information("[LOGOUT-CLEANUP] Pending logout cleared (server success)");
         }
-        else
-        {
-            Log.Information("[LOGOUT-CLEANUP] Pending logout kept for retry on next app run");
-        }
-
-        Log.Information("[LOGOUT-CLEANUP] All cleanup completed. MembershipId: {MembershipId}", membershipId);
 
         await FinalizeLogoutAsync(membershipId, reason, keepPendingLogout, cancellationToken).ConfigureAwait(false);
     }

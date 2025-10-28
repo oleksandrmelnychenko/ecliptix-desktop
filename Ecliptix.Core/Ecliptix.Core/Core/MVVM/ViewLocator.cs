@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Ecliptix.Core.Core.Abstractions;
+using Ecliptix.Utilities;
 using ReactiveUI;
 using Serilog;
 using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;
@@ -45,17 +46,17 @@ public class ViewLocator : IViewLocator
 
     [UnconditionalSuppressMessage("Trimming", "IL2026",
         Justification = "ResolveView delegates to the RequiresUnreferencedCode overload which handles reflection safely")]
-    public object? ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel
+    public Option<object> ResolveView<TViewModel>(TViewModel? viewModel = null) where TViewModel : class, IRoutableViewModel
     {
         return ResolveView((object?)viewModel);
     }
 
     [RequiresUnreferencedCode("ViewLocator uses reflection to determine view model types")]
-    public object? ResolveView(object? viewModel)
+    public Option<object> ResolveView(object? viewModel)
     {
         if (viewModel == null)
         {
-            return null;
+            return Option<object>.None;
         }
 
         Type viewModelType = viewModel.GetType();
@@ -63,11 +64,11 @@ public class ViewLocator : IViewLocator
         if (_viewFactories.TryGetValue(viewModelType, out Func<object>? factory))
         {
             object view = factory();
-            return view;
+            return Option<object>.Some(view);
         }
 
         object? staticView = StaticViewMapper.CreateView(viewModelType);
-        return staticView;
+        return staticView.ToOption();
     }
 
     public bool IsRegistered<TViewModel>() where TViewModel : class, IRoutableViewModel

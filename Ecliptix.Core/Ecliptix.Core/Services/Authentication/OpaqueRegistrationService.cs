@@ -42,7 +42,7 @@ internal sealed class OpaqueRegistrationService(
     private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
     private readonly Lock _opaqueClientLock = new();
-    private OpaqueClient? _opaqueClient;
+    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
 
     public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
@@ -373,8 +373,8 @@ internal sealed class OpaqueRegistrationService(
     {
         lock (_opaqueClientLock)
         {
-            _opaqueClient?.Dispose();
-            _opaqueClient = null;
+            _opaqueClient.Do(client => client.Dispose());
+            _opaqueClient = Option<OpaqueClient>.None;
         }
     }
 

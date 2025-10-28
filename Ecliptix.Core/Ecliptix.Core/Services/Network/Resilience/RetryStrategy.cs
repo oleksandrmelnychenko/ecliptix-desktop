@@ -153,15 +153,9 @@ public sealed class RetryStrategy : IRetryStrategy
 
         if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync().ConfigureAwait(false))
         {
-            Log.Information(
-                "🚫 OPERATION BLOCKED: Cannot start new operation '{OperationName}' - system is globally exhausted, manual retry required",
-                operationName);
             return Result<TResponse, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("All operations exhausted, manual retry required"));
         }
-
-        Log.Information("🚀 EXECUTE OPERATION: Starting operation '{OperationName}' on ConnectId {ConnectId}",
-            operationName, actualConnectId);
 
         DateTime operationStartTime = DateTime.UtcNow;
         string operationKey = CreateOperationKey(operationName, actualConnectId, operationStartTime);
@@ -358,9 +352,6 @@ public sealed class RetryStrategy : IRetryStrategy
             return;
         }
 
-        Log.Information("🔄 MANUAL RETRY REQUEST: Received manual retry request for ConnectId {ConnectId}",
-            evt.ConnectId);
-
         try
         {
             ClearExhaustedOperations();
@@ -369,7 +360,6 @@ public sealed class RetryStrategy : IRetryStrategy
 
             if (anySucceeded)
             {
-                Log.Information("🔄 MANUAL RETRY: Operations succeeded. Connection restored");
                 Dispatcher.UIThread.Post(() =>
                 {
                     try
@@ -827,7 +817,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
-                Log.Information("Successfully restored connection for ConnectId {ConnectId}", connectId);
+                // Connection successfully restored.
             }
             else if (restoreResult.IsErr)
             {

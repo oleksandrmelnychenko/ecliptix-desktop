@@ -33,12 +33,6 @@ internal sealed class PendingLogoutProcessor(
 
             LogoutRequest pendingRequest = getResult.Unwrap().Value!;
 
-            Guid membershipGuid = Helpers.FromByteStringToGuid(pendingRequest.MembershipIdentifier);
-            string membershipId = membershipGuid.ToString();
-
-            Log.Information("[PENDING-LOGOUT-RETRY] Processing pending logout request for ConnectId: {ConnectId}",
-                connectId);
-
             TaskCompletionSource<bool> responseCompletionSource =
                 new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -48,31 +42,15 @@ internal sealed class PendingLogoutProcessor(
                 pendingRequest.ToByteArray(),
                 async responsePayload =>
                 {
-                    try
-                    {
-                        AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
-                        Log.Information("[PENDING-LOGOUT-RETRY] Pending logout request completed with status: {Status}",
-                            logoutResponse.Result);
+                    AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
 
-                        if (logoutResponse.Result == AnonymousLogoutResponse.Types.Result.Succeeded)
-                        {
-                            Log.Information(
-                                "[PENDING-LOGOUT-RETRY] Anonymous logout completed successfully for MembershipId: {MembershipId}",
-                                membershipId);
-                            responseCompletionSource.TrySetResult(true);
-                        }
-                        else
-                        {
-                            Log.Warning(
-                                "[PENDING-LOGOUT-RETRY] Anonymous logout failed with status: {Status}, Message: {Message}",
-                                logoutResponse.Result, logoutResponse.Message ?? "");
-                            responseCompletionSource.TrySetResult(true);
-                        }
-                    }
-                    catch (Exception ex)
+                    if (logoutResponse.Result == AnonymousLogoutResponse.Types.Result.Succeeded)
                     {
-                        Log.Error(ex, "[PENDING-LOGOUT-RETRY] Failed to parse pending logout response");
-                        responseCompletionSource.TrySetResult(false);
+                        responseCompletionSource.TrySetResult(true);
+                    }
+                    else
+                    {
+                        responseCompletionSource.TrySetResult(true);
                     }
 
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -84,7 +62,6 @@ internal sealed class PendingLogoutProcessor(
             {
                 await responseCompletionSource.Task.ConfigureAwait(false);
                 pendingLogoutStorage.ClearPendingLogout();
-                Log.Information("[PENDING-LOGOUT-RETRY] Successfully processed pending logout");
             }
             else
             {

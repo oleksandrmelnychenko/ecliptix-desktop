@@ -642,9 +642,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     EcliptixProtocolFailure error = syncResult.UnwrapErr();
                     if (error.Message.Contains("Session validation failed"))
                     {
-                        Log.Information(
-                            "[CLIENT-RESTORE] Session validation failed, will attempt fresh handshake. ConnectId: {ConnectId}",
-                            ecliptixSecrecyChannelState.ConnectId);
                         return Result<bool, NetworkFailure>.Ok(false);
                     }
 
@@ -858,11 +855,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 EcliptixProtocolFailure.Generic("Connection not established"));
         }
 
-        Log.Information(
-            "[CLIENT-SYNC] Syncing with server. ConnectId: {ConnectId}, ServerSending: {ServerSending}, ServerReceiving: {ServerReceiving}",
-            currentState.ConnectId, peerSecrecyChannelState.SendingChainLength,
-            peerSecrecyChannelState.ReceivingChainLength);
-
         Result<Unit, EcliptixProtocolFailure> syncResult = connection.SyncWithRemoteState(
             peerSecrecyChannelState.SendingChainLength,
             peerSecrecyChannelState.ReceivingChainLength
@@ -875,13 +867,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Result<RatchetState, EcliptixProtocolFailure> ratchetState = connection.ToProtoState();
-        if (ratchetState.IsOk)
-        {
-            RatchetState state = ratchetState.Unwrap();
-            Log.Information(
-                "[CLIENT-SYNC] Sync complete. ConnectId: {ConnectId}, ClientSending: {Sending}, ClientReceiving: {Receiving}",
-                currentState.ConnectId, state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
-        }
 
         _connections.TryAdd(currentState.ConnectId, system);
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
@@ -974,19 +959,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         RpcServiceType serviceType,
         byte[] plainBuffer)
     {
-        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-        if (connection != null && serviceType != RpcServiceType.Logout)
-        {
-            Result<RatchetState, EcliptixProtocolFailure> stateResult = connection.ToProtoState();
-            if (stateResult.IsOk)
-            {
-                RatchetState state = stateResult.Unwrap();
-                Log.Information(
-                    "[CLIENT-ENCRYPT-BEFORE] About to encrypt {ServiceType}. Sending: {Sending}, Receiving: {Receiving}",
-                    serviceType, state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
-            }
-        }
-
         Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
             protocolSystem.ProduceOutboundEnvelope(plainBuffer);
 
@@ -997,16 +969,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         SecureEnvelope cipherPayload = outboundPayload.Unwrap();
-
-        Log.Information(
-            "[CLIENT-ENCRYPT-ENVELOPE] Outgoing envelope for {ServiceType}. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
-            serviceType,
-            Convert.ToHexString(cipherPayload.HeaderNonce.ToByteArray())[
-                ..Math.Min(16, cipherPayload.HeaderNonce.Length * 2)],
-            cipherPayload.AuthenticationTag != null
-                ? Convert.ToHexString(cipherPayload.AuthenticationTag.ToByteArray())[
-                    ..Math.Min(16, cipherPayload.AuthenticationTag.Length * 2)]
-                : "NULL");
 
         return Result<SecureEnvelope, NetworkFailure>.Ok(cipherPayload);
     }
@@ -1125,26 +1087,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         SecureEnvelope inboundPayload = callResult.Unwrap();
 
-        Log.Information(
-            "[CLIENT-DECRYPT-ENVELOPE] Incoming response envelope. HeaderNonce: {HeaderNonce}, AuthTag: {AuthTag}",
-            Convert.ToHexString(inboundPayload.HeaderNonce.ToByteArray())[
-                ..Math.Min(16, inboundPayload.HeaderNonce.Length * 2)],
-            inboundPayload.AuthenticationTag != null
-                ? Convert.ToHexString(inboundPayload.AuthenticationTag.ToByteArray())[
-                    ..Math.Min(16, inboundPayload.AuthenticationTag.Length * 2)]
-                : "NULL");
-
         EcliptixProtocolConnection? conn = protocolSystem.GetConnection();
-        if (conn != null && serviceType != RpcServiceType.Logout)
-        {
-            Result<RatchetState, EcliptixProtocolFailure> beforeState = conn.ToProtoState();
-            if (beforeState.IsOk)
-            {
-                RatchetState state = beforeState.Unwrap();
-                Log.Information("[CLIENT-DECRYPT-BEFORE] Before decryption. Sending: {Sending}, Receiving: {Receiving}",
-                    state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
-            }
-        }
 
         Result<byte[], EcliptixProtocolFailure> decryptedData =
             protocolSystem.ProcessInboundEnvelope(inboundPayload);
@@ -1154,19 +1097,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             NetworkFailure decryptFailure = decryptedData.UnwrapErr().ToNetworkFailure();
             decryptFailure = ApplyReinitIfNeeded(decryptFailure, serviceType, retryBehavior);
             return Result<Unit, NetworkFailure>.Err(decryptFailure);
-        }
-
-        Log.Information("[CLIENT-DECRYPT-SUCCESS] Decryption succeeded.");
-
-        if (conn != null && serviceType != RpcServiceType.Logout)
-        {
-            Result<RatchetState, EcliptixProtocolFailure> afterState = conn.ToProtoState();
-            if (afterState.IsOk)
-            {
-                RatchetState state = afterState.Unwrap();
-                Log.Information("[CLIENT-DECRYPT-AFTER] After decryption. Sending: {Sending}, Receiving: {Receiving}",
-                    state.SendingStep.CurrentIndex, state.ReceivingStep.CurrentIndex);
-            }
         }
 
         await onCompleted(decryptedData.Unwrap()).ConfigureAwait(false);
@@ -1998,9 +1928,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
-            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel establish retry. ConnectId: {ConnectId}",
-                connectId);
-
             CancellationToken recoveryToken = GetConnectionRecoveryToken();
             using CancellationTokenSource linkedCts =
                 CancellationTokenSource.CreateLinkedTokenSource(ct, recoveryToken);
@@ -2032,9 +1959,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
-            Log.Information("[CLIENT-RETRY] Scheduling secrecy channel restore retry. ConnectId: {ConnectId}",
-                sessionState.ConnectId);
-
             CancellationToken recoveryToken = GetConnectionRecoveryToken();
             using CancellationTokenSource linkedCts =
                 CancellationTokenSource.CreateLinkedTokenSource(ct, recoveryToken);
@@ -2118,10 +2042,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 byte[]? membershipId = GetMembershipIdBytes();
                 if (membershipId == null)
                 {
-                    Log.Information(
-                        "[CLIENT-TRY-RESTORE] Anonymous connection - removing stale protocol and re-establishing. ConnectId: {ConnectId}",
-                        connectId);
-
                     if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
                     {
                         oldSystem?.Dispose();
@@ -2182,16 +2102,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            string masterKeyFingerprint = Convert.ToHexString(SHA256.HashData(masterKeyBytes))[..16];
-            Log.Information(
-                "[CLIENT-AUTH-MASTERKEY] Using master key to create identity keys. ConnectId: {ConnectId}, MembershipId: {MembershipId}, MasterKeyFingerprint: {MasterKeyFingerprint}",
-                connectId, membershipId, masterKeyFingerprint);
-
-            string masterKeyHashForLog = Convert.ToHexString(SHA256.HashData(masterKeyBytes));
-            Log.Information(
-                "[CLIENT-AUTH-HKDF-PARAMS] HKDF parameters for initial root key. ConnectId: {ConnectId}, IKM (master key hash): {IkmHash}, Salt: NULL, Info: 'ecliptix-protocol-root-key'",
-                connectId, masterKeyHashForLog);
-
             rootKeyBytes = new byte[32];
             HKDF.DeriveKey(
                 HashAlgorithmName.SHA256,
@@ -2200,14 +2110,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 salt: null,
                 info: "ecliptix-protocol-root-key"u8.ToArray()
             );
-
-            string rootKeyHash = Convert.ToHexString(SHA256.HashData(rootKeyBytes))[..16];
-            Log.Information(
-                "[CLIENT-AUTH-ROOTKEY] Derived root key from master key using HKDF. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}",
-                connectId, rootKeyHash);
-            Log.Information(
-                "[CLIENT-AUTH-ROOTKEY-BEFORE-COMPLETE] Initial root key before CompleteAuthenticatedPubKeyExchange. ConnectId: {ConnectId}, InitialRootKeyHash: {RootKeyHash}",
-                connectId, rootKeyHash);
 
             Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
                 EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId,
@@ -2220,12 +2122,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             EcliptixSystemIdentityKeys identityKeys = identityKeysResult.Unwrap();
-
-            string identityX25519Hash =
-                Convert.ToHexString(SHA256.HashData(identityKeys.GetIdentityX25519PublicKeyCopy()))[..16];
-            Log.Information(
-                "[CLIENT-AUTH-IDENTITY] Identity keys created. ConnectId: {ConnectId}, IdentityX25519Hash: {IdentityX25519Hash}",
-                connectId, identityX25519Hash);
 
             if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldProtocol))
             {
@@ -2251,20 +2147,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
 
                 PubKeyExchange clientExchange = clientExchangeResult.Unwrap();
-
-                Log.Information(
-                    "[CLIENT-AUTH-HANDSHAKE-SEND] Sending client pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
-                    connectId,
-                    clientExchange.InitialDhPublicKey.IsEmpty
-                        ? "NONE"
-                        : Convert.ToHexString(clientExchange.InitialDhPublicKey.ToByteArray())[
-                            ..Math.Min(16, clientExchange.InitialDhPublicKey.Length * 2)]);
-
-                string clientDhFullHash =
-                    Convert.ToHexString(SHA256.HashData(clientExchange.InitialDhPublicKey.ToByteArray()));
-                Log.Information(
-                    "[CLIENT-AUTH-DH-CLIENT] Client DH public key full hash. ConnectId: {ConnectId}, ClientDhHash: {DhHash}",
-                    connectId, clientDhFullHash);
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
                 {
@@ -2318,23 +2200,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 PubKeyExchange serverExchange = PubKeyExchange.Parser.ParseFrom(decryptResult.Unwrap());
 
-                Log.Information(
-                    "[CLIENT-AUTH-HANDSHAKE-RECV] Received server pub key exchange. ConnectId: {ConnectId}, InitialDhPublicKey: {InitialDhKeyHash}",
-                    connectId,
-                    serverExchange.InitialDhPublicKey.IsEmpty
-                        ? "NONE"
-                        : Convert.ToHexString(serverExchange.InitialDhPublicKey.ToByteArray())[
-                            ..Math.Min(16, serverExchange.InitialDhPublicKey.Length * 2)]);
-
-                string serverDhFullHash =
-                    Convert.ToHexString(SHA256.HashData(serverExchange.InitialDhPublicKey.ToByteArray()));
-                Log.Information(
-                    "[CLIENT-AUTH-DH-SERVER] Server DH public key received full hash. ConnectId: {ConnectId}, ServerDhHash: {DhHash}",
-                    connectId, serverDhFullHash);
-
-                Log.Information("[CLIENT-AUTH-FINALIZE] Finalizing protocol with HKDF root key. ConnectId: {ConnectId}",
-                    connectId);
-
                 Result<Unit, EcliptixProtocolFailure> completeResult =
                     newProtocol.CompleteAuthenticatedPubKeyExchange(serverExchange, rootKeyBytes);
 
@@ -2349,14 +2214,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (tempConn != null)
                 {
                     Result<RatchetState, EcliptixProtocolFailure> tempStateResult = tempConn.ToProtoState();
-                    if (tempStateResult.IsOk)
-                    {
-                        string finalRootKeyHash =
-                            Convert.ToHexString(SHA256.HashData(tempStateResult.Unwrap().RootKey.ToByteArray()))[..16];
-                        Log.Information(
-                            "[CLIENT-AUTH-FINAL-ROOTKEY] Final root key after authenticated handshake complete. ConnectId: {ConnectId}, FinalRootKeyHash: {FinalRootKeyHash}",
-                            connectId, finalRootKeyHash);
-                    }
                 }
 
                 _connections.TryAdd(connectId, newProtocol);
@@ -2380,30 +2237,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         EcliptixSessionState sessionState = sessionStateResult.Unwrap();
 
-                        string sessionRootKeyHash =
-                            Convert.ToHexString(
-                                SHA256.HashData(sessionState.RatchetState.RootKey
-                                    .ToByteArray()))[..16];
-                        string sendingChainKeyHash =
-                            Convert.ToHexString(
-                                SHA256.HashData(sessionState.RatchetState.SendingStep
-                                    .ChainKey.ToByteArray()))[..16];
-                        string receivingChainKeyHash =
-                            Convert.ToHexString(
-                                SHA256.HashData(sessionState.RatchetState.ReceivingStep
-                                    .ChainKey.ToByteArray()))[..16];
-
-                        Log.Information(
-                            "[CLIENT-AUTH-PROTOCOL-STATE] Protocol state created. ConnectId: {ConnectId}, RootKeyHash: {RootKeyHash}, SendingChainKeyHash: {SendingChainKeyHash}, ReceivingChainKeyHash: {ReceivingChainKeyHash}",
-                            connectId, sessionRootKeyHash, sendingChainKeyHash, receivingChainKeyHash);
-
                         await PersistSessionStateAsync(sessionState, connectId, membershipIdentifier.ToByteArray())
                             .ConfigureAwait(false);
-
-                        Log.Information(
-                            "[CLIENT-AUTH-SAVED] Authenticated protocol state saved. ConnectId: {ConnectId}, Sending: {Sending}, Receiving: {Receiving}, MembershipId: {MembershipId}",
-                            connectId, sessionState.RatchetState.SendingStep.CurrentIndex,
-                            sessionState.RatchetState.ReceivingStep.CurrentIndex, membershipIdentifier);
                     }
                 }
 

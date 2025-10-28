@@ -21,17 +21,9 @@ internal sealed class StateCleanupService(
     {
         try
         {
-            Log.Information("[STATE-CLEANUP] Starting lightweight cleanup for MembershipId: {MembershipId}, ConnectId: {ConnectId}",
-                membershipId, connectId);
-
-            Log.Information("[STATE-CLEANUP-DELETE] Deleting protocol state file for ConnectId: {ConnectId}", connectId);
             Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
-            if (deleteResult.IsOk)
-            {
-                Log.Information("[STATE-CLEANUP-DELETE] Protocol state file deleted successfully for ConnectId: {ConnectId}", connectId);
-            }
-            else
+            if (deleteResult.IsErr)
             {
                 Log.Warning("[STATE-CLEANUP-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteResult.UnwrapErr().Message);
@@ -40,9 +32,6 @@ internal sealed class StateCleanupService(
             await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
 
             networkProvider.ClearConnection(connectId);
-
-            Log.Information("[STATE-CLEANUP] Lightweight cleanup completed successfully for MembershipId: {MembershipId}",
-                membershipId);
 
             return Result<Unit, Exception>.Ok(Unit.Value);
         }
@@ -57,17 +46,9 @@ internal sealed class StateCleanupService(
     {
         try
         {
-            Log.Information("[STATE-CLEANUP-FULL] Starting full cleanup with key deletion for MembershipId: {MembershipId}, ConnectId: {ConnectId}",
-                membershipId, connectId);
-
-            Log.Information("[STATE-CLEANUP-FULL-DELETE] Deleting protocol state file for ConnectId: {ConnectId}", connectId);
             Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
-            if (deleteResult.IsOk)
-            {
-                Log.Information("[STATE-CLEANUP-FULL-DELETE] Protocol state file deleted successfully for ConnectId: {ConnectId}", connectId);
-            }
-            else
+            if (deleteResult.IsErr)
             {
                 Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteResult.UnwrapErr().Message);
@@ -85,9 +66,6 @@ internal sealed class StateCleanupService(
             await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
 
             networkProvider.ClearConnection(connectId);
-
-            Log.Information("[STATE-CLEANUP-FULL] Full cleanup completed successfully for MembershipId: {MembershipId}",
-                membershipId);
 
             return Result<Unit, Exception>.Ok(Unit.Value);
         }

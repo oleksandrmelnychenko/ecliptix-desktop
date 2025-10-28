@@ -91,9 +91,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             CryptographicOperations.ZeroMemory(encryptionKey);
             CryptographicOperations.ZeroMemory(protocolState);
 
-            Log.Information("[CLIENT-STATE-SAVE] Protocol state saved. ConnectId: {ConnectId}, FilePath: {FilePath}",
-                connectId, storagePath);
-
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
@@ -154,16 +151,10 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             {
                 byte[] plaintext = DecryptState(ciphertext, encryptionKey, nonce, tag, associatedData);
 
-                Log.Information("[CLIENT-STATE-LOAD] Protocol state loaded successfully with membershipId. ConnectId: {ConnectId}",
-                    connectId);
-
                 return Result<byte[], SecureStorageFailure>.Ok(plaintext);
             }
             catch (CryptographicException) when (storedKey == null)
             {
-                Log.Warning("[CLIENT-STATE-LOAD-MIGRATION] Attempting legacy decryption with connectId. ConnectId: {ConnectId}",
-                    connectId);
-
                 CryptographicOperations.ZeroMemory(encryptionKey);
 
                 (byte[] legacyKey, byte[] _) = await DeriveKeyWithSaltAsync(Encoding.UTF8.GetBytes(connectId), salt).ConfigureAwait(false);
@@ -171,9 +162,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 try
                 {
                     byte[] plaintext = DecryptState(ciphertext, legacyKey, nonce, tag, associatedData);
-
-                    Log.Warning("[CLIENT-STATE-LOAD-MIGRATION] Legacy decryption succeeded. Re-saving with membershipId. ConnectId: {ConnectId}",
-                        connectId);
 
                     await SaveStateAsync(plaintext, connectId, membershipId).ConfigureAwait(false);
 
@@ -212,8 +200,6 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             await DeleteFileWithRetryAsync(storagePath).ConfigureAwait(false);
             await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}").ConfigureAwait(false);
 
-            Log.Information("[CLIENT-STATE-DELETE] Protocol state deleted securely. Key: {Key}, FilePath: {FilePath}",
-                key, storagePath);
             return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)

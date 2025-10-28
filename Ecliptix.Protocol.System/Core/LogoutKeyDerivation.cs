@@ -8,20 +8,14 @@ using Serilog;
 
 namespace Ecliptix.Protocol.System.Core;
 
-/// <summary>
-/// Provides HKDF-based key derivation for logout authentication and revocation proof generation.
-/// Implements mutual authentication protocol for secure logout operations.
-/// </summary>
 public static class LogoutKeyDerivation
 {
     private const int KeySize = 32;
     private const int HmacSize = 32;
 
-    // Context strings for domain separation (prevents key reuse across different purposes)
     private const string LogoutHmacKeyInfo = "ecliptix-logout-hmac-v1";
     private const string LogoutProofKeyInfo = "ecliptix-logout-proof-v1";
 
-    // Logging tags
     private const string LogTagLogoutHmacKey = "[LOGOUT-HMAC-KEY]";
     private const string LogTagLogoutProofKey = "[LOGOUT-PROOF-KEY]";
 
@@ -31,12 +25,6 @@ public static class LogoutKeyDerivation
     private const string ErrorMessageMasterKeyReadFailed = "Failed to read master key bytes";
     private const string ErrorMessageHkdfDerivationFailed = "HKDF key derivation failed";
 
-    /// <summary>
-    /// Derives a key for HMAC-authenticating logout requests from client to server.
-    /// Both client and server derive the same key from their shared session master key.
-    /// </summary>
-    /// <param name="masterKeyHandle">Secure handle to the session master key</param>
-    /// <returns>32-byte HMAC key, or error</returns>
     public static Result<byte[], SodiumFailure> DeriveLogoutHmacKey(SodiumSecureMemoryHandle masterKeyHandle)
     {
         byte[]? masterKeyBytes = null;
@@ -68,7 +56,7 @@ public static class LogoutKeyDerivation
                 Log.Debug(LogMessageHmacKeyDerived, LogTagLogoutHmacKey, keyFingerprint);
 
                 byte[] result = hmacKey;
-                hmacKey = null; // Prevent disposal in finally
+                hmacKey = null;
                 return Result<byte[], SodiumFailure>.Ok(result);
             }
             catch (CryptographicException ex)
@@ -91,12 +79,6 @@ public static class LogoutKeyDerivation
         }
     }
 
-    /// <summary>
-    /// Derives a key for HMAC-verifying server's revocation proof.
-    /// Used to verify unforgeable cryptographic proof of logout completion.
-    /// </summary>
-    /// <param name="masterKeyHandle">Secure handle to the session master key</param>
-    /// <returns>32-byte proof verification key, or error</returns>
     public static Result<byte[], SodiumFailure> DeriveLogoutProofKey(SodiumSecureMemoryHandle masterKeyHandle)
     {
         byte[]? masterKeyBytes = null;
@@ -128,7 +110,7 @@ public static class LogoutKeyDerivation
                 Log.Debug(LogMessageProofKeyDerived, LogTagLogoutProofKey, keyFingerprint);
 
                 byte[] result = proofKey;
-                proofKey = null; // Prevent disposal in finally
+                proofKey = null;
                 return Result<byte[], SodiumFailure>.Ok(result);
             }
             catch (CryptographicException ex)
@@ -151,26 +133,12 @@ public static class LogoutKeyDerivation
         }
     }
 
-    /// <summary>
-    /// Computes HMAC-SHA256 over data using the provided key.
-    /// Uses constant-time comparison for verification.
-    /// </summary>
-    /// <param name="key">32-byte HMAC key</param>
-    /// <param name="data">Data to authenticate</param>
-    /// <returns>32-byte HMAC tag</returns>
     public static byte[] ComputeHmac(byte[] key, byte[] data)
     {
         using HMACSHA256 hmac = new HMACSHA256(key);
         return hmac.ComputeHash(data);
     }
 
-    /// <summary>
-    /// Verifies HMAC tag in constant time to prevent timing attacks.
-    /// </summary>
-    /// <param name="key">32-byte HMAC key</param>
-    /// <param name="data">Data that was authenticated</param>
-    /// <param name="expectedHmac">Expected HMAC tag to verify</param>
-    /// <returns>True if HMAC is valid</returns>
     public static bool VerifyHmac(byte[] key, byte[] data, byte[] expectedHmac)
     {
         if (expectedHmac.Length != HmacSize)

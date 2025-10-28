@@ -99,7 +99,6 @@ public class Program
 
         ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-        // Configure Avalonia
         return AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .LogToTrace()
@@ -110,7 +109,6 @@ public class Program
             })
             .AfterSetup(builder =>
             {
-                // Store service provider for access in App
                 ((App)builder.Instance!).ServiceProvider = serviceProvider;
             });
     }
@@ -217,7 +215,6 @@ public class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            // Wait for app to fully load
             await Task.Delay(TimeSpan.FromSeconds(5));
 
             _logger.Information("Performing startup update check");

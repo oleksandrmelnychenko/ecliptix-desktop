@@ -33,9 +33,6 @@ internal sealed class IdentityService : IIdentityService
             await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
-        Log.Information("[CLIENT-IDENTITY-CHECK] Checking stored identity. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Exists: {Exists}",
-            context.MembershipId, context.StorageKey, exists);
-
         return exists;
     }
 
@@ -55,13 +52,7 @@ internal sealed class IdentityService : IIdentityService
             byte[] originalMasterKeyBytes = readResult.Unwrap();
             string originalFingerprint = Convert.ToHexString(SHA256.HashData(originalMasterKeyBytes))[..16];
 
-            Log.Information("[CLIENT-IDENTITY-STORE-PRE] Master key fingerprint before storage. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                context.MembershipId, originalFingerprint);
-
             await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
-
-            Log.Information("[CLIENT-IDENTITY-VERIFY] Verifying stored master key. MembershipId: {MembershipId}",
-                context.MembershipId);
 
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(context).ConfigureAwait(false);
 
@@ -87,9 +78,6 @@ internal sealed class IdentityService : IIdentityService
             byte[] loadedMasterKeyBytes = loadedReadResult.Unwrap();
             string loadedFingerprint = Convert.ToHexString(SHA256.HashData(loadedMasterKeyBytes))[..16];
 
-            Log.Information("[CLIENT-IDENTITY-VERIFY-POST] Master key fingerprint after load. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                context.MembershipId, loadedFingerprint);
-
             if (!originalMasterKeyBytes.AsSpan().SequenceEqual(loadedMasterKeyBytes))
             {
                 Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}, Original: {Original}, Loaded: {Loaded}",
@@ -99,9 +87,6 @@ internal sealed class IdentityService : IIdentityService
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Master key verification failed - fingerprints don't match! Original: {originalFingerprint}, Loaded: {loadedFingerprint}"));
             }
-
-            Log.Information("[CLIENT-IDENTITY-VERIFY-SUCCESS] Master key verification passed. MembershipId: {MembershipId}, Fingerprint: {Fingerprint}",
-                context.MembershipId, originalFingerprint);
 
             CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
@@ -163,9 +148,6 @@ internal sealed class IdentityService : IIdentityService
 
         try
         {
-            Log.Information("[CLIENT-IDENTITY-STORE-START] Starting identity storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                context.MembershipId, storageKey);
-
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
             Result<Unit, SecureStorageFailure> saveResult =
@@ -178,16 +160,10 @@ internal sealed class IdentityService : IIdentityService
                 throw new InvalidOperationException($"Failed to save master key to storage: {saveResult.UnwrapErr().Message}");
             }
 
-            Log.Information("[CLIENT-IDENTITY-STORE] Master key stored. MembershipId: {MembershipId}, StorageKey: {StorageKey}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
-                context.MembershipId, storageKey, hardwareAvailable);
-
             if (hardwareAvailable && wrappingKey != null)
             {
                 string keychainKey = context.KeychainKey;
                 await _platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
-
-                Log.Information("[CLIENT-IDENTITY-KEYCHAIN] Wrapping key stored in keychain. MembershipId: {MembershipId}, KeychainKey: {KeychainKey}",
-                    context.MembershipId, keychainKey);
             }
         }
         finally
@@ -205,9 +181,6 @@ internal sealed class IdentityService : IIdentityService
 
         try
         {
-            Log.Information("[CLIENT-IDENTITY-LOAD-START] Starting master key load. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                context.MembershipId, storageKey);
-
             Result<byte[], SecureStorageFailure> result =
                 await _storage.LoadStateAsync(storageKey, context.MembershipBytes).ConfigureAwait(false);
 
@@ -222,12 +195,6 @@ internal sealed class IdentityService : IIdentityService
 
             byte[] protectedKey = result.Unwrap();
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> unwrapResult = await UnwrapMasterKeyAsync(protectedKey, context).ConfigureAwait(false);
-
-            if (unwrapResult.IsOk)
-            {
-                Log.Information("[CLIENT-IDENTITY-LOAD] Master key loaded successfully. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
-                    context.MembershipId, storageKey);
-            }
 
             return unwrapResult;
         }
@@ -257,20 +224,14 @@ internal sealed class IdentityService : IIdentityService
 
             masterKeyBytes = readResult.Unwrap();
 
-            Log.Information("[CLIENT-IDENTITY-WRAP] Wrapping master key. HardwareSecurityAvailable: {HardwareSecurityAvailable}",
-                hardwareSecurityAvailable);
-
             if (!hardwareSecurityAvailable)
             {
-                Log.Information("[CLIENT-IDENTITY-WRAP] Using software-only protection (no hardware security)");
                 return (masterKeyBytes.AsSpan().ToArray(), null);
             }
 
             byte[]? encryptedKey = null;
             try
             {
-                Log.Information("[CLIENT-IDENTITY-WRAP] Using hardware-backed AES encryption");
-
                 byte[] wrappingKey = await GenerateWrappingKeyAsync().ConfigureAwait(false);
 
                 using Aes aes = Aes.Create();
@@ -282,8 +243,6 @@ internal sealed class IdentityService : IIdentityService
                 byte[] wrappedData = new byte[aes.IV.Length + encryptedKey.Length];
                 aes.IV.CopyTo(wrappedData, 0);
                 encryptedKey.CopyTo(wrappedData, aes.IV.Length);
-
-                Log.Information("[CLIENT-IDENTITY-WRAP] Master key wrapped successfully with hardware encryption");
 
                 return (wrappedData, wrappingKey);
             }
@@ -323,12 +282,8 @@ internal sealed class IdentityService : IIdentityService
 
         try
         {
-            Log.Information("[CLIENT-IDENTITY-UNWRAP] Unwrapping master key. MembershipId: {MembershipId}, HardwareSecurityAvailable: {HardwareSecurityAvailable}",
-                context.MembershipId, hardwareSecurityAvailable);
-
             if (!hardwareSecurityAvailable)
             {
-                Log.Information("[CLIENT-IDENTITY-UNWRAP] Using software-only protection (no hardware security)");
                 masterKeyBytes = protectedKey.AsSpan().ToArray();
             }
             else
@@ -344,8 +299,6 @@ internal sealed class IdentityService : IIdentityService
                 }
                 else
                 {
-                    Log.Information("[CLIENT-IDENTITY-UNWRAP] Using hardware-backed AES decryption");
-
                     using Aes aes = Aes.Create();
                     aes.Key = wrappingKey;
 
@@ -355,8 +308,6 @@ internal sealed class IdentityService : IIdentityService
 
                     aes.IV = iv;
                     masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
-
-                    Log.Information("[CLIENT-IDENTITY-UNWRAP] Master key unwrapped successfully with hardware decryption");
                 }
             }
 
