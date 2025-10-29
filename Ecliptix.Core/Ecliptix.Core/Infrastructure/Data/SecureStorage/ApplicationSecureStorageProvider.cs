@@ -80,7 +80,6 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
         settings.Country = ipCountry.Country;
-        settings.IpAddress = ipCountry.IpAddress;
 
         return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
@@ -125,7 +124,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         Option<byte[]> maybeData = getResult.Unwrap();
-        if (!maybeData.HasValue)
+        if (!maybeData.IsSome)
         {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
                 InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider.ApplicationSettingsNotFound));
@@ -156,7 +155,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         }
 
         Option<byte[]> maybeData = getResult.Unwrap();
-        if (maybeData.HasValue)
+        if (maybeData.IsSome)
         {
             try
             {

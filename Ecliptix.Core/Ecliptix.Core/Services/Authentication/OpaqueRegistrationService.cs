@@ -46,7 +46,6 @@ internal sealed class OpaqueRegistrationService(
 
     public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
-        string deviceIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
@@ -58,8 +57,7 @@ internal sealed class OpaqueRegistrationService(
 
         ValidateMobileNumberRequest request = new()
         {
-            MobileNumber = mobileNumber,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
+            MobileNumber = mobileNumber
         };
 
         TaskCompletionSource<ValidateMobileNumberResponse> responseSource = new();
@@ -87,7 +85,6 @@ internal sealed class OpaqueRegistrationService(
     public async Task<Result<CheckMobileNumberAvailabilityResponse, string>>
         CheckMobileNumberAvailabilityAsync(
             ByteString mobileNumberIdentifier,
-            string deviceIdentifier,
             uint connectId,
             CancellationToken cancellationToken = default)
     {
@@ -97,16 +94,9 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
         }
 
-        if (string.IsNullOrEmpty(deviceIdentifier))
-        {
-            return Result<CheckMobileNumberAvailabilityResponse, string>.Err(
-                localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
-        }
-
         CheckMobileNumberAvailabilityRequest request = new()
         {
-            MobileNumberId = mobileNumberIdentifier,
-            DeviceId = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier))
+            MobileNumberId = mobileNumberIdentifier
         };
 
         TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource = new();
@@ -133,7 +123,6 @@ internal sealed class OpaqueRegistrationService(
 
     public async Task<Result<Unit, string>> InitiateOtpVerificationAsync(
         ByteString mobileNumberIdentifier,
-        string deviceIdentifier,
         VerificationPurpose purpose = VerificationPurpose.Registration,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
@@ -142,11 +131,6 @@ internal sealed class OpaqueRegistrationService(
         {
             return Result<Unit, string>.Err(
                 localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
-        }
-
-        if (string.IsNullOrEmpty(deviceIdentifier))
-        {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
         }
 
         Result<uint, NetworkFailure> protocolResult =
@@ -164,7 +148,6 @@ internal sealed class OpaqueRegistrationService(
         InitiateVerificationRequest request = new()
         {
             MobileNumberIdentifier = mobileNumberIdentifier,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
             Purpose = purpose,
             Type = InitiateVerificationRequest.Types.Type.SendOtp
         };
@@ -189,7 +172,6 @@ internal sealed class OpaqueRegistrationService(
     public async Task<Result<Unit, string>> ResendOtpVerificationAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default)
     {
@@ -205,11 +187,6 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
         }
 
-        if (string.IsNullOrEmpty(deviceIdentifier))
-        {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.DeviceIdentifierRequiredKey]);
-        }
-
         if (!_activeStreams.TryGetValue(sessionIdentifier, out uint streamConnectId))
         {
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
@@ -221,7 +198,6 @@ internal sealed class OpaqueRegistrationService(
         InitiateVerificationRequest request = new()
         {
             MobileNumberIdentifier = mobileNumberIdentifier,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
             Purpose = purpose,
             Type = InitiateVerificationRequest.Types.Type.ResendOtp
         };
@@ -246,7 +222,6 @@ internal sealed class OpaqueRegistrationService(
     public async Task<Result<Protobuf.Membership.Membership, string>> VerifyOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
-        string deviceIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
@@ -269,8 +244,7 @@ internal sealed class OpaqueRegistrationService(
         {
             Code = otpCode,
             Purpose = purpose,
-            AppDeviceIdentifier = Helpers.GuidToByteString(Guid.Parse(deviceIdentifier)),
-            StreamConnectId = activeStreamId,
+            StreamConnectId = activeStreamId
         };
 
         TaskCompletionSource<Result<Protobuf.Membership.Membership, string>> responseSource = new();

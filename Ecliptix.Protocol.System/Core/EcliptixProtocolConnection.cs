@@ -662,7 +662,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 return Result<RatchetChainKey, EcliptixProtocolFailure>.Err(recoveryResult.UnwrapErr());
             }
 
-            if (recoveryResult.Unwrap().HasValue)
+            if (recoveryResult.Unwrap().IsSome)
             {
                 hasSkippedKeys = true;
                 _eventHandler?.OnMessageProcessed(_id, receivedIndex, hasSkippedKeys);

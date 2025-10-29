@@ -61,7 +61,7 @@ internal sealed class PendingLogoutRequestStorage
             }
 
             Option<byte[]> dataOption = getResult.Unwrap();
-            if (!dataOption.HasValue)
+            if (!dataOption.IsSome)
             {
                 return Result<Option<LogoutRequest>, LogoutFailure>.Ok(Option<LogoutRequest>.None);
             }

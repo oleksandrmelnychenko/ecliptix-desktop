@@ -25,7 +25,7 @@ internal sealed class ServerPublicKeyProvider(NetworkProvider networkProvider) :
                 return _cachedKey;
             });
 
-            if (!key.HasValue)
+            if (!key.IsSome)
             {
                 throw new InvalidOperationException("Failed to load server public key");
             }

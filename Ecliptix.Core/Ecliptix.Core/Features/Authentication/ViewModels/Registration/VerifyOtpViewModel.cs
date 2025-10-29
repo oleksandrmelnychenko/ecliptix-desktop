@@ -294,13 +294,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _cancellationTokenSource);
             _disposables.Add(cancellationTokenSource);
 
-            string deviceIdentifier = SystemDeviceIdentifier();
-
             Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask =
                 _flowContext == AuthenticationFlowContext.Registration
                     ? _registrationService.InitiateOtpVerificationAsync(
                         _mobileNumberIdentifier,
-                        deviceIdentifier,
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
                             {
@@ -320,7 +317,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None)
                     : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
                         _mobileNumberIdentifier,
-                        deviceIdentifier,
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
                             {
@@ -358,8 +354,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        string systemDeviceIdentifier = SystemDeviceIdentifier();
-
         IsSent = true;
         ErrorMessage = string.Empty;
 
@@ -379,13 +373,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             ? _registrationService.VerifyOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
-                systemDeviceIdentifier,
                 connectId,
                 operationToken)
             : _passwordRecoveryService!.VerifyPasswordResetOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
-                systemDeviceIdentifier,
                 connectId,
                 operationToken);
 
@@ -456,8 +448,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             ErrorMessage = string.Empty;
             HasError = false;
 
-            string deviceIdentifier = SystemDeviceIdentifier();
-
             CancellationTokenSource? oldCts = _cancellationTokenSource;
             CancellationTokenSource newCts = new CancellationTokenSource();
             _cancellationTokenSource = newCts;
@@ -479,7 +469,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         ? _registrationService.ResendOtpVerificationAsync(
                             VerificationSessionIdentifier!.Value,
                             _mobileNumberIdentifier,
-                            deviceIdentifier,
                             onCountdownUpdate: (seconds, identifier, status, message) =>
                                 RxApp.MainThreadScheduler.Schedule(() =>
                                 {
@@ -492,7 +481,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
                             VerificationSessionIdentifier!.Value,
                             _mobileNumberIdentifier,
-                            deviceIdentifier,
                             onCountdownUpdate: (seconds, identifier, status, message) =>
                                 RxApp.MainThreadScheduler.Schedule(() =>
                                 {

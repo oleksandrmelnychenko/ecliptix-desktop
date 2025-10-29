@@ -15,18 +15,18 @@ public static class OptionExtensions
 
     public static T? ToNullable<T>(this Option<T> option) where T : class
     {
-        return option.HasValue ? option.Value : null;
+        return option.IsSome ? option.Value : null;
     }
 
     public static T? ToNullableStruct<T>(this Option<T> option) where T : struct
     {
-        return option.HasValue ? option.Value : null;
+        return option.IsSome ? option.Value : null;
     }
 
     public static Option<T> Where<T>(this Option<T> option, Func<T, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return option.HasValue && predicate(option.Value!) ? option : Option<T>.None;
+        return option.IsSome && predicate(option.Value!) ? option : Option<T>.None;
     }
 
     public static Option<TResult> Select<T, TResult>(this Option<T> option, Func<T, TResult> selector)
@@ -38,7 +38,7 @@ public static class OptionExtensions
     public static Option<TResult> Bind<T, TResult>(this Option<T> option, Func<T, Option<TResult>> binder)
     {
         ArgumentNullException.ThrowIfNull(binder);
-        return option.HasValue ? binder(option.Value!) : Option<TResult>.None;
+        return option.IsSome ? binder(option.Value!) : Option<TResult>.None;
     }
 
     public static Option<TResult> SelectMany<T, TResult>(this Option<T> option, Func<T, Option<TResult>> selector)
@@ -67,13 +67,13 @@ public static class OptionExtensions
     public static T GetValueOrDefault<T>(this Option<T> option, Func<T> defaultFactory)
     {
         ArgumentNullException.ThrowIfNull(defaultFactory);
-        return option.HasValue ? option.Value! : defaultFactory();
+        return option.IsSome ? option.Value! : defaultFactory();
     }
 
     public static Option<T> Do<T>(this Option<T> option, Action<T> action)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (option.HasValue)
+        if (option.IsSome)
         {
             action(option.Value!);
         }
@@ -83,7 +83,7 @@ public static class OptionExtensions
     public static Result<T, TError> ToResult<T, TError>(this Option<T> option, TError errorWhenNone) where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(errorWhenNone);
-        return option.HasValue
+        return option.IsSome
             ? Result<T, TError>.Ok(option.Value!)
             : Result<T, TError>.Err(errorWhenNone);
     }
@@ -91,7 +91,7 @@ public static class OptionExtensions
     public static Result<T, TError> ToResult<T, TError>(this Option<T> option, Func<TError> errorFactory) where TError : notnull
     {
         ArgumentNullException.ThrowIfNull(errorFactory);
-        return option.HasValue
+        return option.IsSome
             ? Result<T, TError>.Ok(option.Value!)
             : Result<T, TError>.Err(errorFactory());
     }
@@ -102,25 +102,25 @@ public static class OptionExtensions
         Func<T1, T2, TResult> combiner)
     {
         ArgumentNullException.ThrowIfNull(combiner);
-        return option1.HasValue && option2.HasValue
+        return option1.IsSome && option2.IsSome
             ? Option<TResult>.Some(combiner(option1.Value!, option2.Value!))
             : Option<TResult>.None;
     }
 
     public static Option<T> Or<T>(this Option<T> option, Option<T> alternative)
     {
-        return option.HasValue ? option : alternative;
+        return option.IsSome ? option : alternative;
     }
 
     public static Option<T> Or<T>(this Option<T> option, Func<Option<T>> alternativeFactory)
     {
         ArgumentNullException.ThrowIfNull(alternativeFactory);
-        return option.HasValue ? option : alternativeFactory();
+        return option.IsSome ? option : alternativeFactory();
     }
 
     public static Option<T> Flatten<T>(this Option<Option<T>> nestedOption)
     {
-        return nestedOption.HasValue ? nestedOption.Value! : Option<T>.None;
+        return nestedOption.IsSome ? nestedOption.Value! : Option<T>.None;
     }
 
     public static Option<IEnumerable<T>> Sequence<T>(this IEnumerable<Option<T>> options)
@@ -130,7 +130,7 @@ public static class OptionExtensions
         List<T> results = new();
         foreach (Option<T> option in options)
         {
-            if (!option.HasValue)
+            if (!option.IsSome)
             {
                 return Option<IEnumerable<T>>.None;
             }
@@ -146,7 +146,7 @@ public static class OptionExtensions
 
         foreach (Option<T> option in options)
         {
-            if (option.HasValue)
+            if (option.IsSome)
             {
                 yield return option.Value!;
             }

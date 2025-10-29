@@ -19,7 +19,7 @@ public class ReactiveUiViewLocatorAdapter(Abstractions.IViewLocator moduleViewLo
 
         Option<object> viewOption = moduleViewLocator.ResolveView(viewModel);
 
-        if (!viewOption.HasValue)
+        if (!viewOption.IsSome)
         {
             return null;
         }

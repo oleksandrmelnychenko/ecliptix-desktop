@@ -26,7 +26,7 @@ internal sealed class PendingLogoutProcessor(
             Result<Option<LogoutRequest>, LogoutFailure> getResult =
                 await pendingLogoutStorage.GetPendingLogoutAsync().ConfigureAwait(false);
 
-            if (getResult.IsErr || !getResult.Unwrap().HasValue)
+            if (getResult.IsErr || !getResult.Unwrap().IsSome)
             {
                 return;
             }

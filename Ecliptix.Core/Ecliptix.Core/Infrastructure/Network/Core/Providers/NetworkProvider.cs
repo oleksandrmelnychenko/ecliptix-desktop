@@ -95,7 +95,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         get
         {
-            if (!_applicationInstanceSettings.HasValue)
+            if (!_applicationInstanceSettings.IsSome)
             {
                 throw new InvalidOperationException(
                     "ApplicationInstanceSettings has not been initialized. Call InitiateEcliptixProtocolSystem first.");
@@ -146,7 +146,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Option<CertificatePinningService> certificatePinningService =
             await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
 
-        if (!certificatePinningService.HasValue)
+        if (!certificatePinningService.IsSome)
         {
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
                 NetworkFailure.RsaEncryption("Failed to initialize certificate pinning service"));
@@ -540,7 +540,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         bool enablePendingRegistration = true,
         CancellationToken cancellationToken = default)
     {
-        if (!_applicationInstanceSettings.HasValue)
+        if (!_applicationInstanceSettings.IsSome)
         {
             _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
         }
@@ -686,7 +686,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Option<EcliptixSessionState> stateOption = result.Unwrap();
-        if (!stateOption.HasValue)
+        if (!stateOption.IsSome)
         {
             return Result<EcliptixSessionState, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding("Failed to create session state"));
@@ -698,7 +698,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     public async Task<Result<uint, NetworkFailure>> EnsureProtocolForTypeAsync(
         PubKeyExchangeType exchangeType)
     {
-        if (!_applicationInstanceSettings.HasValue)
+        if (!_applicationInstanceSettings.IsSome)
         {
             return Result<uint, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Application not initialized"));
@@ -882,7 +882,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(idKeysResult.UnwrapErr());
         }
 
-        PubKeyExchangeType exchangeType = _applicationInstanceSettings.HasValue
+        PubKeyExchangeType exchangeType = _applicationInstanceSettings.IsSome
             ? DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId)
             : PubKeyExchangeType.DataCenterEphemeralConnect;
 
@@ -1812,7 +1812,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string failureMessage,
         bool failOnMissingState = false)
     {
-        if (!_applicationInstanceSettings.HasValue)
+        if (!_applicationInstanceSettings.IsSome)
         {
             return Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType("Application instance settings not available"));
@@ -1975,7 +1975,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private byte[]? GetMembershipIdBytes()
     {
-        if (!_applicationInstanceSettings.HasValue)
+        if (!_applicationInstanceSettings.IsSome)
         {
             return null;
         }
@@ -2181,7 +2181,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 Option<CertificatePinningService> certificatePinningService =
                     await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
 
-                if (!certificatePinningService.HasValue)
+                if (!certificatePinningService.IsSome)
                 {
                     await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     return Result<Unit, NetworkFailure>.Err(

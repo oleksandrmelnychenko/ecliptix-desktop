@@ -350,16 +350,11 @@ public sealed class ApplicationRouter(
                 span => span.ToArray()),
             decryptedPayload =>
             {
-                AppDeviceRegisteredStateReply reply =
-                    Helpers.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
-                Guid appServerInstanceId = Helpers.FromByteStringToGuid(reply.UniqueId);
+                DeviceRegistrationResponse reply =
+                    Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                settings.SystemDeviceIdentifier = appServerInstanceId.ToString();
                 settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     ByteString.CopyFrom);
-
-                Log.Debug("[ROUTER-PROTOCOL-REGISTER] Server public key updated. AppServerInstanceId: {InstanceId}",
-                    appServerInstanceId);
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None).ConfigureAwait(false);

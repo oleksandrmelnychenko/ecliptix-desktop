@@ -17,7 +17,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             return Option<CertificatePinningService>.None;
         }
 
-        if (_service.HasValue)
+        if (_service.IsSome)
         {
             return _service;
         }
@@ -83,7 +83,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             {
                 AppDomain.CurrentDomain.ProcessExit -= OnProcessExitAsync;
 
-                if (serviceToDispose.HasValue)
+                if (serviceToDispose.IsSome)
                 {
                     await serviceToDispose.Value!.DisposeAsync().ConfigureAwait(false);
                 }

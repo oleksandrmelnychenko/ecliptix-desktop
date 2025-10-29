@@ -35,13 +35,12 @@ internal sealed class PasswordRecoveryService(
 
     public async Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(
         string mobileNumber,
-        string deviceIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
         Result<ValidateMobileNumberResponse, string> result =
             await registrationService
-                .ValidateMobileNumberAsync(mobileNumber, deviceIdentifier, connectId, cancellationToken)
+                .ValidateMobileNumberAsync(mobileNumber, connectId, cancellationToken)
                 .ConfigureAwait(false);
 
         if (result.IsErr)
@@ -55,12 +54,10 @@ internal sealed class PasswordRecoveryService(
 
     public Task<Result<Unit, string>> InitiatePasswordResetOtpAsync(
         ByteString mobileNumberIdentifier,
-        string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
-            deviceIdentifier,
             VerificationPurpose.PasswordRecovery,
             onCountdownUpdate,
             cancellationToken);
@@ -68,23 +65,20 @@ internal sealed class PasswordRecoveryService(
     public Task<Result<Unit, string>> ResendPasswordResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
-        string deviceIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.ResendOtpVerificationAsync(
             sessionIdentifier,
             mobileNumberIdentifier,
-            deviceIdentifier,
             onCountdownUpdate,
             cancellationToken);
 
     public Task<Result<Protobuf.Membership.Membership, string>> VerifyPasswordResetOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
-        string deviceIdentifier,
         uint connectId,
         CancellationToken cancellationToken = default) =>
-        registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, deviceIdentifier, connectId,
+        registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, connectId,
             cancellationToken);
 
     public async Task<Result<Unit, string>> CompletePasswordResetAsync(
@@ -329,7 +323,7 @@ internal sealed class PasswordRecoveryService(
 
         lock (_opaqueClientLock)
         {
-            if (_opaqueClient.HasValue && _cachedServerPublicKey != null &&
+            if (_opaqueClient.IsSome && _cachedServerPublicKey != null &&
                 serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
             {
                 return _opaqueClient.Value!;

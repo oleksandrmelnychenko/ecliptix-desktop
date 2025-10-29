@@ -78,11 +78,11 @@ public static class GrpcErrorClassifier
 
         return GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.ErrorCode)
                    .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
-                   .HasValue
+                   .IsSome
                ||
                GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I18nKey)
                    .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-                   .HasValue;
+                   .IsSome;
     }
 
     private static Option<string> GetMetadataValue(Metadata metadata, string key)

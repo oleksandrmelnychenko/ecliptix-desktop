@@ -3,13 +3,13 @@ namespace Ecliptix.Utilities;
 
 public readonly record struct Option<T>
 {
-    private Option(bool hasValue, T? value)
+    private Option(bool isSome, T? value)
     {
-        HasValue = hasValue;
+        IsSome = isSome;
         Value = value;
     }
 
-    public bool HasValue { get; }
+    public bool IsSome { get; }
     public T? Value { get; }
 
     public static Option<T> None => new(false, default);
@@ -21,12 +21,12 @@ public readonly record struct Option<T>
 
     public TResult Match<TResult>(Func<T, TResult> onSome, Func<TResult> onNone)
     {
-        return HasValue ? onSome(Value!) : onNone();
+        return IsSome ? onSome(Value!) : onNone();
     }
 
     public void Match(Action<T> onSome, Action onNone)
     {
-        if (HasValue)
+        if (IsSome)
         {
             onSome(Value!);
         }
@@ -38,12 +38,12 @@ public readonly record struct Option<T>
 
     public T ValueOr(T fallback)
     {
-        return HasValue ? Value! : fallback;
+        return IsSome ? Value! : fallback;
     }
 
     public Option<TResult> Map<TResult>(Func<T, TResult> selector)
     {
-        return HasValue ? Option<TResult>.Some(selector(Value!)) : Option<TResult>.None;
+        return IsSome ? Option<TResult>.Some(selector(Value!)) : Option<TResult>.None;
     }
 
     public static Option<T> From(T? value)

@@ -216,7 +216,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         {
             CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _currentOperationCts);
 
-            string systemDeviceIdentifier = SystemDeviceIdentifier();
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
             CancellationToken operationToken = cancellationTokenSource.Token;
 
@@ -225,7 +224,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                 Task<Result<ValidateMobileNumberResponse, string>> validationTask =
                     _registrationService.ValidateMobileNumberAsync(
                         MobileNumber,
-                        systemDeviceIdentifier,
                         connectId,
                         operationToken);
 
@@ -249,7 +247,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                     Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
                         await _registrationService.CheckMobileNumberAvailabilityAsync(
                             validateMobileNumberResponse.MobileNumberIdentifier,
-                            systemDeviceIdentifier,
                             connectId,
                             operationToken);
 
@@ -392,7 +389,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             else
             {
                 Task<Result<ByteString, string>> recoveryValidationTask =
-                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, systemDeviceIdentifier,
+                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber,
                         connectId, operationToken);
 
                 Result<ByteString, string> result = await recoveryValidationTask;

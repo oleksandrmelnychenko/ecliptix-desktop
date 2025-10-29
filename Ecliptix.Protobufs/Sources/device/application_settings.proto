@@ -9,12 +9,10 @@ message ApplicationInstanceSettings {
   bytes app_instance_id = 1;
   bytes device_id = 2;
 
-  string system_device_identifier = 3;
   bytes server_public_key = 4;
 
   string culture = 5;
   string country = 6;
-  string ip_address = 7;
 
   bool is_new_instance = 8;
 

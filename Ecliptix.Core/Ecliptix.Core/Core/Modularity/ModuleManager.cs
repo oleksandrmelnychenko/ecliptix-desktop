@@ -60,7 +60,7 @@ public class ModuleManager : IModuleManager
     public async Task<IModule> LoadModuleAsync(string moduleName)
     {
         Option<IModule> moduleOption = _catalog.GetModule(moduleName);
-        if (!moduleOption.HasValue)
+        if (!moduleOption.IsSome)
         {
             throw new InvalidOperationException($"Module '{moduleName}' not found in catalog");
         }
@@ -240,7 +240,7 @@ public class ModuleManager : IModuleManager
     public async Task UnloadModuleAsync(string moduleName)
     {
         Option<IModule> moduleOption = _catalog.GetModule(moduleName);
-        if (!moduleOption.HasValue || !IsModuleLoaded(moduleName))
+        if (!moduleOption.IsSome || !IsModuleLoaded(moduleName))
         {
             return;
         }

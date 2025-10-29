@@ -43,7 +43,6 @@ message LogoutRequest {
   bytes hmac_proof = 4;
   LogoutScope scope = 5;
   optional bytes account_identifier = 6;
-  optional bytes device_identifier = 7;
 }
 
 message LogoutResponse {

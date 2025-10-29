@@ -77,9 +77,6 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return connectId;
     }
 
-    protected string SystemDeviceIdentifier() =>
-        NetworkProvider.ApplicationInstanceSettings.SystemDeviceIdentifier;
-
     protected Membership Membership() =>
         NetworkProvider.ApplicationInstanceSettings.Membership;
 

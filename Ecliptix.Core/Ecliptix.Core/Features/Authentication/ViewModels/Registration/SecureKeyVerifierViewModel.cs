@@ -28,11 +28,14 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
 using SystemU = System.Reactive.Unit;
+using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.SecureKeyConfirmationKeys;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
 public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
+    private const int ValidationThrottleMs = 150;
+
     private readonly SecureTextBuffer _secureKeyBuffer = new();
     private readonly SecureTextBuffer _verifySecureKeyBuffer = new();
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
@@ -44,6 +47,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private CancellationTokenSource? _currentOperationCts;
     private bool _hasSecureKeyBeenTouched;
     private bool _hasVerifySecureKeyBeenTouched;
+    private bool _isDisposed;
 
     public SecureKeyVerifierViewModel(
         IConnectivityService connectivityService,
@@ -71,40 +75,16 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         SetupSubscriptions();
     }
 
-    public string Title => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationTitle,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryTitle);
+    public string Title => Localize(Keys.RegistrationTitle, Keys.RecoveryTitle);
+    public string Description => Localize(Keys.RegistrationDescription, Keys.RecoveryDescription);
+    public string PasswordPlaceholder => Localize(Keys.PasswordPlaceholder, Keys.RecoveryPasswordPlaceholder);
+    public string PasswordHint => Localize(Keys.PasswordHint, Keys.RecoveryPasswordHint);
 
-    public string Description => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationDescription,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryDescription);
+    public string VerifyPasswordPlaceholder =>
+        Localize(Keys.VerifyPasswordPlaceholder, Keys.RecoveryVerifyPasswordPlaceholder);
 
-    public string PasswordPlaceholder => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.PasswordPlaceholder,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryPasswordPlaceholder);
-
-    public string PasswordHint => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.PasswordHint,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryPasswordHint);
-
-    public string VerifyPasswordPlaceholder => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.VerifyPasswordPlaceholder,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryVerifyPasswordPlaceholder);
-
-    public string VerifyPasswordHint => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.VerifyPasswordHint,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryVerifyPasswordHint);
-
-    public string ButtonText => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RegistrationButton,
-        AuthenticationConstants.SecureKeyConfirmationKeys.RecoveryButton);
+    public string VerifyPasswordHint => Localize(Keys.VerifyPasswordHint, Keys.RecoveryVerifyPasswordHint);
+    public string ButtonText => Localize(Keys.RegistrationButton, Keys.RecoveryButton);
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
     public IScreen HostScreen { get; }
@@ -120,7 +100,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     [Reactive] public bool HasVerifySecureKeyError { get; private set; }
     [Reactive] public string? ServerError { get; private set; }
     [Reactive] public bool HasServerError { get; private set; }
-    [Reactive] public bool CanSubmit { get; set; }
+    [ObservableAsProperty] public bool CanSubmit { get; }
 
     [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
@@ -137,15 +117,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitAsync, canExecuteSubmit);
         SubmitCommand.IsExecuting.ToPropertyEx(this, x => x.IsBusy);
-        canExecuteSubmit.BindTo(this, x => x.CanSubmit);
+        canExecuteSubmit.ToPropertyEx(this, x => x.CanSubmit);
     }
 
     private void SetupSubscriptions()
     {
         this.WhenActivated(disposables =>
         {
-            this.WhenAnyValue(x => x.CanSubmit).BindTo(this, x => x.CanSubmit).DisposeWith(disposables);
-
             Observable.FromAsync(LoadMembershipAsync)
                 .Subscribe(result =>
                 {
@@ -251,6 +229,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         HasServerError = false;
     }
 
+    private string Localize(string registrationKey, string recoveryKey) =>
+        GetSecureKeyLocalization(_flowContext, registrationKey, recoveryKey);
+
     private async Task<Result<Unit, InternalServiceApiFailure>> LoadMembershipAsync()
     {
         Result<ApplicationInstanceSettings, InternalServiceApiFailure> applicationInstance =
@@ -291,6 +272,16 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
         IObservable<SystemU> validationTrigger = lengthTrigger.Merge(languageTrigger);
 
+        IObservable<bool> isSecureKeyLogicallyValid = SetupSecureKeyValidation(validationTrigger);
+        IObservable<bool> secureKeysMatch = SetupVerifyKeyValidation(validationTrigger);
+
+        return isSecureKeyLogicallyValid
+            .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
+            .DistinctUntilChanged();
+    }
+
+    private IObservable<bool> SetupSecureKeyValidation(IObservable<SystemU> validationTrigger)
+    {
         IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation =
             validationTrigger
                 .Select(_ => ValidateSecureKeyWithStrength())
@@ -308,25 +299,18 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             .Select(_ => _hasSecureKeyBeenTouched)
             .ToPropertyEx(this, x => x.HasSecureKeyBeenTouched);
 
-        IObservable<string> secureKeyErrorStream = secureKeyValidation
-            .Select(v =>
-                _hasSecureKeyBeenTouched
-                    ? FormatSecureKeyStrengthMessage(v.Strength, v.Error, v.Recommendations)
-                    : string.Empty)
-            .Replay(1)
-            .RefCount();
-
-        secureKeyErrorStream
-            .Subscribe(error => SecureKeyError = error);
+        this.WhenAnyValue(x => x.SecureKeyStrengthMessage)
+            .Subscribe(message => SecureKeyError = message);
         this.WhenAnyValue(x => x.SecureKeyError)
             .Select(e => !string.IsNullOrEmpty(e))
             .Subscribe(flag => HasSecureKeyError = flag);
 
-        IObservable<bool> isSecureKeyLogicallyValid = secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
+        return secureKeyValidation.Select(v => string.IsNullOrEmpty(v.Error));
+    }
 
-        IObservable<SystemU> verifyValidationTrigger = lengthTrigger.Merge(languageTrigger);
-
-        IObservable<bool> secureKeysMatch = verifyValidationTrigger
+    private IObservable<bool> SetupVerifyKeyValidation(IObservable<SystemU> validationTrigger)
+    {
+        IObservable<bool> secureKeysMatch = validationTrigger
             .Select(_ => DoSecureKeysMatch())
             .Replay(1)
             .RefCount();
@@ -341,7 +325,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                     : string.Empty;
             })
             .DistinctUntilChanged()
-            .Throttle(TimeSpan.FromMilliseconds(150))
+            .Throttle(TimeSpan.FromMilliseconds(ValidationThrottleMs))
             .ObserveOn(RxApp.MainThreadScheduler)
             .Replay(1)
             .RefCount();
@@ -354,9 +338,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             .Select(e => !string.IsNullOrEmpty(e))
             .Subscribe(flag => HasVerifySecureKeyError = flag);
 
-        return isSecureKeyLogicallyValid
-            .CombineLatest(secureKeysMatch, (isSecureKeyValid, areMatching) => isSecureKeyValid && areMatching)
-            .DistinctUntilChanged();
+        return secureKeysMatch;
     }
 
     private (string? Error, string Recommendations, PasswordStrength Strength) ValidateSecureKeyWithStrength()
@@ -424,7 +406,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         };
 
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
-        return string.IsNullOrEmpty(message) ? strengthText : string.Concat(strengthText, ": ", message);
+        return string.IsNullOrEmpty(message) ? strengthText : $"{strengthText}: {message}";
+    }
+
+    private void SetServerError(string? error)
+    {
+        ServerError = error;
+        HasServerError = !string.IsNullOrEmpty(error);
     }
 
     private async Task<SystemU> SubmitAsync()
@@ -434,8 +422,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             return SystemU.Default;
         }
 
-        ServerError = string.Empty;
-        HasServerError = false;
+        SetServerError(string.Empty);
 
         try
         {
@@ -454,21 +441,22 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
                 if (result.IsErr)
                 {
-                    ServerError = result.UnwrapErr();
-                    HasServerError = true;
+                    SetServerError(result.UnwrapErr());
                     return SystemU.Default;
                 }
 
-                if (HostScreen is AuthenticationViewModel hostViewModel)
+                if (HostScreen is not AuthenticationViewModel hostViewModel)
                 {
-                    string? mobileNumber = _flowContext == AuthenticationFlowContext.Registration
-                        ? hostViewModel.RegistrationMobileNumber
-                        : hostViewModel.RecoveryMobileNumber;
+                    return SystemU.Default;
+                }
 
-                    if (!string.IsNullOrEmpty(mobileNumber))
-                    {
-                        await SignInAsync(mobileNumber, connectId, operationToken);
-                    }
+                Option<string> mobileNumberOption = _flowContext == AuthenticationFlowContext.Registration
+                    ? Option<string>.Some(hostViewModel.RegistrationMobileNumber!)
+                    : Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
+
+                if (mobileNumberOption.IsSome)
+                {
+                    await SignInAsync(mobileNumberOption.Value!, connectId, operationToken);
                 }
 
                 return SystemU.Default;
@@ -538,20 +526,23 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             catch (Exception ex)
             {
                 Log.Error(ex, "Failed to switch to main window after successful authentication");
-                ServerError = $"{LocalizationService[AuthenticationConstants.NavigationFailureKey]}";
-                HasServerError = true;
+                SetServerError($"{LocalizationService[AuthenticationConstants.NavigationFailureKey]}");
             }
         }
         else if (signInResult.IsErr)
         {
             AuthenticationFailure failure = signInResult.UnwrapErr();
-            ServerError = failure.Message;
-            HasServerError = true;
+            SetServerError(failure.Message);
         }
     }
 
     protected override void Dispose(bool disposing)
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
         if (disposing)
         {
             CancelCurrentOperation();
@@ -559,6 +550,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             _verifySecureKeyBuffer.Dispose();
         }
 
+        _isDisposed = true;
         base.Dispose(disposing);
     }
 
@@ -568,19 +560,21 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             ref _currentOperationCts,
             null);
 
-        if (operationSource != null)
+        if (operationSource == null)
         {
-            try
-            {
-                operationSource.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            finally
-            {
-                operationSource.Dispose();
-            }
+            return;
+        }
+
+        try
+        {
+            operationSource.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            operationSource.Dispose();
         }
     }
 }

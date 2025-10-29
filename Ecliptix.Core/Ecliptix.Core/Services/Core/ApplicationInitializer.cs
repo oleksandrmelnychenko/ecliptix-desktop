@@ -42,23 +42,17 @@ public sealed class ApplicationInitializer(
     IApplicationStateManager stateManager,
     IStateCleanupService stateCleanupService) : IApplicationInitializer
 {
+    #region Constants & Fields
+
     private const int IpGeolocationTimeoutSeconds = 10;
 
     private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
         networkProvider,
         new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
-    private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
-    {
-        try
-        {
-            await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[INIT-PENDING-LOGOUT] Failed to process pending logout requests");
-        }
-    }
+    #endregion
+
+    #region Public API
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
@@ -111,6 +105,41 @@ public sealed class ApplicationInitializer(
         return true;
     }
 
+    #endregion
+
+    #region Background Tasks
+
+    private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
+    {
+        try
+        {
+            await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[INIT-PENDING-LOGOUT] Failed to process pending logout requests");
+        }
+    }
+
+    private Task FetchIpGeolocationInBackgroundAsync() =>
+        Task.Run(async () =>
+        {
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
+            Result<IpCountry, InternalServiceApiFailure> countryResult =
+                await ipGeolocationService.GetIpCountryAsync(cts.Token).ConfigureAwait(false);
+
+            if (countryResult.IsOk)
+            {
+                IpCountry country = countryResult.Unwrap();
+                networkProvider.SetCountry(country.Country);
+                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country).ConfigureAwait(false);
+            }
+        });
+
+    #endregion
+
+    #region Protocol & Channel Establishment
+
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
     {
@@ -154,7 +183,7 @@ public sealed class ApplicationInitializer(
             masterKeyHandle = await TryReconstructMasterKeyAsync(membershipId!, applicationInstanceSettings)
                 .ConfigureAwait(false);
 
-            if (masterKeyHandle.HasValue)
+            if (masterKeyHandle.IsSome)
             {
                 shouldUseAuthenticatedProtocol = true;
             }
@@ -162,7 +191,7 @@ public sealed class ApplicationInitializer(
 
         try
         {
-            if (shouldUseAuthenticatedProtocol && masterKeyHandle.HasValue)
+            if (shouldUseAuthenticatedProtocol && masterKeyHandle.IsSome)
             {
                 ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier!;
 
@@ -245,75 +274,9 @@ public sealed class ApplicationInitializer(
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
     }
 
-    private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
-    {
-        Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
-            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+    #endregion
 
-        if (loadResult.IsErr)
-        {
-            return Option<SodiumSecureMemoryHandle>.None;
-        }
-
-        SodiumSecureMemoryHandle loadedHandle = loadResult.Unwrap();
-
-        Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
-            loadedHandle.ReadBytes(loadedHandle.Length);
-        if (!readResult.IsOk)
-        {
-            return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
-        }
-
-        byte[] masterKeyBytes = readResult.Unwrap();
-        CryptographicOperations.ZeroMemory(masterKeyBytes);
-
-        return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
-    }
-
-    private async Task<Option<SodiumSecureMemoryHandle>> TryReconstructMasterKeyAsync(
-        string membershipId,
-        ApplicationInstanceSettings applicationInstanceSettings)
-    {
-        Option<SodiumSecureMemoryHandle> storageHandle =
-            await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
-
-        if (storageHandle.HasValue)
-        {
-            return storageHandle;
-        }
-
-        await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
-
-        return Option<SodiumSecureMemoryHandle>.None;
-    }
-
-    private async Task CleanupCorruptedIdentityDataAsync(
-        string membershipId,
-        ApplicationInstanceSettings applicationInstanceSettings)
-    {
-        try
-        {
-            uint connectId = NetworkProvider.ComputeUniqueConnectId(
-                applicationInstanceSettings,
-                PubKeyExchangeType.DataCenterEphemeralConnect);
-
-            Result<Unit, Exception> cleanupResult =
-                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
-                    .ConfigureAwait(false);
-
-            if (cleanupResult.IsErr)
-            {
-                return;
-            }
-
-            await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}",
-                membershipId);
-        }
-    }
+    #region Session State Management
 
     private async Task<Result<bool, NetworkFailure>> TryRestoreSessionStateAsync(
         uint connectId,
@@ -393,6 +356,56 @@ public sealed class ApplicationInitializer(
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
+    #endregion
+
+    #region Identity & Master Key Management
+
+    private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
+    {
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
+            await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
+
+        if (loadResult.IsErr)
+        {
+            return Option<SodiumSecureMemoryHandle>.None;
+        }
+
+        SodiumSecureMemoryHandle loadedHandle = loadResult.Unwrap();
+
+        Result<byte[], Ecliptix.Utilities.Failures.Sodium.SodiumFailure> readResult =
+            loadedHandle.ReadBytes(loadedHandle.Length);
+        if (!readResult.IsOk)
+        {
+            return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
+        }
+
+        byte[] masterKeyBytes = readResult.Unwrap();
+        CryptographicOperations.ZeroMemory(masterKeyBytes);
+
+        return Option<SodiumSecureMemoryHandle>.Some(loadedHandle);
+    }
+
+    private async Task<Option<SodiumSecureMemoryHandle>> TryReconstructMasterKeyAsync(
+        string membershipId,
+        ApplicationInstanceSettings applicationInstanceSettings)
+    {
+        Option<SodiumSecureMemoryHandle> storageHandle =
+            await TryLoadMasterKeyFromStorageAsync(membershipId).ConfigureAwait(false);
+
+        if (storageHandle.IsSome)
+        {
+            return storageHandle;
+        }
+
+        await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings).ConfigureAwait(false);
+
+        return Option<SodiumSecureMemoryHandle>.None;
+    }
+
+    #endregion
+
+    #region Device Registration
+
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
@@ -410,11 +423,9 @@ public sealed class ApplicationInitializer(
                 span => span.ToArray()),
             decryptedPayload =>
             {
-                AppDeviceRegisteredStateReply reply =
-                    Helpers.ParseFromBytes<AppDeviceRegisteredStateReply>(decryptedPayload);
-                Guid appServerInstanceId = Helpers.FromByteStringToGuid(reply.UniqueId);
+                DeviceRegistrationResponse reply =
+                    Helpers.ParseFromBytes<DeviceRegistrationResponse>(decryptedPayload);
 
-                settings.SystemDeviceIdentifier = appServerInstanceId.ToString();
                 settings.ServerPublicKey = SecureByteStringInterop.WithByteStringAsSpan(reply.ServerPublicKey,
                     ByteString.CopyFrom);
 
@@ -422,18 +433,37 @@ public sealed class ApplicationInitializer(
             }, false, CancellationToken.None).ConfigureAwait(false);
     }
 
-    private Task FetchIpGeolocationInBackgroundAsync() =>
-        Task.Run(async () =>
-        {
-            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
-            Result<IpCountry, InternalServiceApiFailure> countryResult =
-                await ipGeolocationService.GetIpCountryAsync(cts.Token).ConfigureAwait(false);
+    #endregion
 
-            if (countryResult.IsOk)
+    #region Cleanup & Recovery
+
+    private async Task CleanupCorruptedIdentityDataAsync(
+        string membershipId,
+        ApplicationInstanceSettings applicationInstanceSettings)
+    {
+        try
+        {
+            uint connectId = NetworkProvider.ComputeUniqueConnectId(
+                applicationInstanceSettings,
+                PubKeyExchangeType.DataCenterEphemeralConnect);
+
+            Result<Unit, Exception> cleanupResult =
+                await stateCleanupService.CleanupMembershipStateWithKeysAsync(membershipId, connectId)
+                    .ConfigureAwait(false);
+
+            if (cleanupResult.IsErr)
             {
-                IpCountry country = countryResult.Unwrap();
-                networkProvider.SetCountry(country.Country);
-                await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country).ConfigureAwait(false);
+                return;
             }
-        });
+
+            await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[CLIENT-RECOVERY] Failed to cleanup corrupted identity data. MembershipId: {MembershipId}",
+                membershipId);
+        }
+    }
+
+    #endregion
 }
