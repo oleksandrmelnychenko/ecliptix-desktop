@@ -83,7 +83,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             x => x.RemainingTime,
             x => x.IsInNetworkOutage,
             (code, time, isInOutage) => code.Length == 6 && code.All(char.IsDigit) &&
-                            time != AuthenticationConstants.ExpiredRemainingTime && !isInOutage
+                                        time != AuthenticationConstants.ExpiredRemainingTime && !isInOutage
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
@@ -274,6 +274,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 _cancellationTokenSource.Cancel();
                 _cancellationTokenSource.Dispose();
             }
+
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables?.Dispose();
@@ -581,7 +582,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private uint HandleNotFoundStatus()
     {
-        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
+        string message = _localizationService[AuthenticationConstants.SessionNotFoundKey];
+        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, message);
+        return 0;
+    }
+
+    private uint HandleSessionExpiredStatus()
+    {
+        string message = _localizationService[AuthenticationConstants.VerificationSessionExpiredKey];
+        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, message);
         return 0;
     }
 
@@ -608,7 +617,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         return 0;
     }
 
-    private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizaedMessage = "")
+    private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizedMessage = "")
     {
         if (_isDisposed)
         {
@@ -627,9 +636,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         string message;
 
-        if (!string.IsNullOrEmpty(localizaedMessage))
+        if (!string.IsNullOrEmpty(localizedMessage))
         {
-            message = localizaedMessage;
+            message = localizedMessage;
         }
         else
         {
@@ -690,11 +699,12 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message, seconds),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message,
+                seconds),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(message),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleNotFoundStatus(),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.SessionExpired => HandleSessionExpiredStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(message),
             _ => Math.Min(seconds, SecondsRemaining)
         };
@@ -713,6 +723,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _cancellationTokenSource.Cancel();
             _cancellationTokenSource.Dispose();
         }
+
         _cancellationTokenSource = null;
 
         await Dispatcher.UIThread.InvokeAsync(() =>
