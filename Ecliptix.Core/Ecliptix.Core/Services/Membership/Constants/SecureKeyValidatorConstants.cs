@@ -47,7 +47,7 @@ public static class SecureKeyValidatorConstants
         "opaque"
     ]);
 
-    public static readonly FrozenSet<string> CommonlyUsedPasswords = FrozenSet.ToFrozenSet(
+    public static readonly FrozenSet<string> CommonlyUsedSecureKeys = FrozenSet.ToFrozenSet(
     [
         "123456",
         "password",

@@ -7,7 +7,7 @@ option csharp_namespace = "Ecliptix.Protobuf.Membership";
 enum VerificationPurpose {
   REGISTRATION = 0;
   LOGIN = 1;
-  PASSWORD_RECOVERY = 2;
+  SECURE_KEY_RECOVERY = 2;
 }
 
 enum VerificationResult {

@@ -13,7 +13,7 @@ public static class HintedTextBoxConstants
     public const string VeryStrongStrengthColorHex = "#32cd32";
 
     public const char DefaultMaskChar = '●';
-    public const char NoPasswordChar = '\0';
+    public const char NoSecureKeyChar = '\0';
     public const double DefaultEllipseOpacityVisible = 1.0;
     public const double DefaultEllipseOpacityHidden = 0.0;
     public const double DefaultFontSize = 16.0;

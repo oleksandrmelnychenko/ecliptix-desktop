@@ -8,24 +8,24 @@ using Google.Protobuf;
 
 namespace Ecliptix.Core.Services.Abstractions.Authentication;
 
-public interface IPasswordRecoveryService
+public interface ISecureKeyRecoveryService
 {
     Task<Result<ByteString, string>> ValidateMobileForRecoveryAsync(string mobileNumber,
         uint connectId, CancellationToken cancellationToken = default);
 
-    Task<Result<Unit, string>> InitiatePasswordResetOtpAsync(ByteString mobileNumberIdentifier,
+    Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(ByteString mobileNumberIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
-    Task<Result<Unit, string>> ResendPasswordResetOtpAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
+    Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(Guid sessionIdentifier, ByteString mobileNumberIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default);
 
-    Task<Result<Protobuf.Membership.Membership, string>> VerifyPasswordResetOtpAsync(Guid sessionIdentifier, string otpCode,
+    Task<Result<Protobuf.Membership.Membership, string>> VerifySecureKeyResetOtpAsync(Guid sessionIdentifier, string otpCode,
         uint connectId, CancellationToken cancellationToken = default);
 
-    Task<Result<Unit, string>> CompletePasswordResetAsync(ByteString membershipIdentifier, SecureTextBuffer newPassword,
+    Task<Result<Unit, string>> CompleteSecureKeyResetAsync(ByteString membershipIdentifier, SecureTextBuffer newSecureKey,
         uint connectId, CancellationToken cancellationToken = default);
 
-    Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier);
+    Task<Result<Unit, string>> CleanupSecureKeyResetSessionAsync(Guid sessionIdentifier);
 }

@@ -44,11 +44,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private static readonly FrozenDictionary<MembershipViewType, Func<IConnectivityService,
         NetworkProvider,
         ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-        IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel>> ViewModelFactories =
+        IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>> ViewModelFactories =
         new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
             ILocalizationService,
             IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-            IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
+            IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
         {
             [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _,_) =>
                 new SignInViewModel(netEvents, netProvider, loc, auth, host),
@@ -74,7 +74,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private readonly MainWindowViewModel _mainWindowViewModel;
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
-    private readonly IPasswordRecoveryService _passwordRecoveryService;
+    private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly IApplicationRouter _router;
     private readonly Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext), WeakReference<IRoutableViewModel>> _viewModelCache = new();
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
@@ -94,7 +94,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IAuthenticationService authenticationService,
         IOpaqueRegistrationService opaqueRegistrationService,
-        IPasswordRecoveryService passwordRecoveryService,
+        ISecureKeyRecoveryService secureKeyRecoveryService,
         ILanguageDetectionService languageDetectionService,
         IApplicationRouter router,
         MainWindowViewModel mainWindowViewModel)
@@ -106,7 +106,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         _networkProvider = networkProvider;
         _authenticationService = authenticationService;
         _opaqueRegistrationService = opaqueRegistrationService;
-        _passwordRecoveryService = passwordRecoveryService;
+        _secureKeyRecoveryService = secureKeyRecoveryService;
         _languageDetectionService = languageDetectionService;
         _router = router;
         _mainWindowViewModel = mainWindowViewModel;
@@ -295,10 +295,10 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         CurrentView = viewModel;
     }
 
-    public void StartPasswordRecoveryFlow()
+    public void StartSecureKeyRecoveryFlow()
     {
         ClearNavigationStack(true);
-        CurrentFlowContext = AuthenticationFlowContext.PasswordRecovery;
+        CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
         Navigate.Execute(MembershipViewType.MobileVerification).Subscribe();
     }
 
@@ -520,7 +520,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             return cachedViewModel;
         }
 
-        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, IPasswordRecoveryService, AuthenticationFlowContext, IRoutableViewModel> factory))
+        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel> factory))
         {
             throw new InvalidOperationException($"No factory found for view type: {viewType}");
         }
@@ -528,7 +528,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
         IRoutableViewModel newViewModel = factory(_connectivityService, _networkProvider,
             LocalizationService,
             _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
-            _passwordRecoveryService, flowContext);
+            _secureKeyRecoveryService, flowContext);
 
         _viewModelCache[cacheKey] = new WeakReference<IRoutableViewModel>(newViewModel);
 

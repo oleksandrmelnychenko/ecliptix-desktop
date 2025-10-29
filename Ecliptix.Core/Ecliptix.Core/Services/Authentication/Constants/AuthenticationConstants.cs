@@ -14,12 +14,12 @@ public static class AuthenticationConstants
     public const string VerifySecureKeyDoesNotMatchKey = "ValidationErrors.VerifySecureKey.DoesNotMatch";
     public const string CommonUnexpectedErrorKey = "Common.UnexpectedError";
 
-    public const string PasswordStrengthInvalidKey = "ValidationErrors.PasswordStrength.Invalid";
-    public const string PasswordStrengthVeryWeakKey = "ValidationErrors.PasswordStrength.VeryWeak";
-    public const string PasswordStrengthWeakKey = "ValidationErrors.PasswordStrength.Weak";
-    public const string PasswordStrengthGoodKey = "ValidationErrors.PasswordStrength.Good";
-    public const string PasswordStrengthStrongKey = "ValidationErrors.PasswordStrength.Strong";
-    public const string PasswordStrengthVeryStrongKey = "ValidationErrors.PasswordStrength.VeryStrong";
+    public const string SecureKeyStrengthInvalidKey = "ValidationErrors.SecureKeyStrength.Invalid";
+    public const string SecureKeyStrengthVeryWeakKey = "ValidationErrors.SecureKeyStrength.VeryWeak";
+    public const string SecureKeyStrengthWeakKey = "ValidationErrors.SecureKeyStrength.Weak";
+    public const string SecureKeyStrengthGoodKey = "ValidationErrors.SecureKeyStrength.Good";
+    public const string SecureKeyStrengthStrongKey = "ValidationErrors.SecureKeyStrength.Strong";
+    public const string SecureKeyStrengthVeryStrongKey = "ValidationErrors.SecureKeyStrength.VeryStrong";
 
     public const string NetworkFailurePrefix = "Failed to parse response: ";
     public const string VerificationFailurePrefix = "Verification failed: ";
@@ -58,23 +58,23 @@ public static class AuthenticationConstants
 
     public static class SecureKeyConfirmationKeys
     {
-        public const string RegistrationTitle = "Authentication.SignUp.PasswordConfirmation.Title";
-        public const string RegistrationDescription = "Authentication.SignUp.PasswordConfirmation.Description";
-        public const string RegistrationButton = "Authentication.SignUp.PasswordConfirmation.Button";
+        public const string RegistrationTitle = "Authentication.SignUp.SecureKeyConfirmation.Title";
+        public const string RegistrationDescription = "Authentication.SignUp.SecureKeyConfirmation.Description";
+        public const string RegistrationButton = "Authentication.SignUp.SecureKeyConfirmation.Button";
 
-        public const string RecoveryTitle = "Authentication.PasswordRecovery.Reset.Title";
-        public const string RecoveryDescription = "Authentication.PasswordRecovery.Reset.Description";
-        public const string RecoveryButton = "Authentication.PasswordRecovery.Reset.Button";
+        public const string RecoveryTitle = "Authentication.SecureKeyRecovery.Reset.Title";
+        public const string RecoveryDescription = "Authentication.SecureKeyRecovery.Reset.Description";
+        public const string RecoveryButton = "Authentication.SecureKeyRecovery.Reset.Button";
 
-        public const string PasswordPlaceholder = "Authentication.SignUp.PasswordConfirmation.PasswordPlaceholder";
-        public const string PasswordHint = "Authentication.SignUp.PasswordConfirmation.PasswordHint";
-        public const string VerifyPasswordPlaceholder = "Authentication.SignUp.PasswordConfirmation.VerifyPasswordPlaceholder";
-        public const string VerifyPasswordHint = "Authentication.SignUp.PasswordConfirmation.VerifyPasswordHint";
+        public const string SecureKeyPlaceholder = "Authentication.SignUp.SecureKeyConfirmation.SecureKeyPlaceholder";
+        public const string SecureKeyHint = "Authentication.SignUp.SecureKeyConfirmation.SecureKeyHint";
+        public const string VerifySecureKeyPlaceholder = "Authentication.SignUp.SecureKeyConfirmation.VerifySecureKeyPlaceholder";
+        public const string VerifySecureKeyHint = "Authentication.SignUp.SecureKeyConfirmation.VerifySecureKeyHint";
 
-        public const string RecoveryPasswordPlaceholder = "Authentication.PasswordRecovery.Reset.NewPasswordPlaceholder";
-        public const string RecoveryPasswordHint = "Authentication.PasswordRecovery.Reset.NewPasswordHint";
-        public const string RecoveryVerifyPasswordPlaceholder = "Authentication.PasswordRecovery.Reset.ConfirmPasswordPlaceholder";
-        public const string RecoveryVerifyPasswordHint = "Authentication.PasswordRecovery.Reset.ConfirmPasswordHint";
+        public const string RecoverySecureKeyPlaceholder = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyPlaceholder";
+        public const string RecoverySecureKeyHint = "Authentication.SecureKeyRecovery.Reset.NewSecureKeyHint";
+        public const string RecoveryVerifySecureKeyPlaceholder = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyPlaceholder";
+        public const string RecoveryVerifySecureKeyHint = "Authentication.SecureKeyRecovery.Reset.ConfirmSecureKeyHint";
     }
 
     public static class MobileVerificationKeys
@@ -85,11 +85,11 @@ public static class AuthenticationConstants
         public const string RegistrationWatermark = "Authentication.SignUp.MobileVerification.Watermark";
         public const string RegistrationButton = "Authentication.SignUp.MobileVerification.Button";
 
-        public const string RecoveryTitle = "Authentication.PasswordRecovery.MobileVerification.Title";
-        public const string RecoveryDescription = "Authentication.PasswordRecovery.MobileVerification.Description";
-        public const string RecoveryHint = "Authentication.PasswordRecovery.MobileVerification.Hint";
-        public const string RecoveryWatermark = "Authentication.PasswordRecovery.MobileVerification.Watermark";
-        public const string RecoveryButton = "Authentication.PasswordRecovery.MobileVerification.Button";
+        public const string RecoveryTitle = "Authentication.SecureKeyRecovery.MobileVerification.Title";
+        public const string RecoveryDescription = "Authentication.SecureKeyRecovery.MobileVerification.Description";
+        public const string RecoveryHint = "Authentication.SecureKeyRecovery.MobileVerification.Hint";
+        public const string RecoveryWatermark = "Authentication.SecureKeyRecovery.MobileVerification.Watermark";
+        public const string RecoveryButton = "Authentication.SecureKeyRecovery.MobileVerification.Button";
     }
 
 

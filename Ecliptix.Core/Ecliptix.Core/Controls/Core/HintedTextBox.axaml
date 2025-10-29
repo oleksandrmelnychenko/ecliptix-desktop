@@ -141,7 +141,7 @@
             <Setter Property="Margin" Value="{StaticResource Icon.Margin}" />
             <Setter Property="Data" Value="{StaticResource LampIcon.Path}" />
             <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="Fill" Value="{Binding PasswordStrengthIconBrush, ElementName=control}" />
+            <Setter Property="Fill" Value="{Binding SecureKeyStrengthIconBrush, ElementName=control}" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Fill" Duration="{StaticResource Brush.TransitionDuration}" />
@@ -210,7 +210,7 @@
             <Setter Property="Margin" Value="{StaticResource CounterMargin}" />
         </Style>
         
-        <Style Selector="TextBlock.password-mask-overlay">
+        <Style Selector="TextBlock.securekey-mask-overlay">
             <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
             <Setter Property="FontSize" Value="{Binding FontSize, ElementName=control}" />
             <Setter Property="FontWeight" Value="{Binding FontWeight, ElementName=control}" />
@@ -293,8 +293,8 @@
                                  TextWrapping="{Binding TextWrapping, ElementName=control}"
                                  MaxLength="{Binding MaxLength, ElementName=control}" />
 
-                        <TextBlock x:Name="PasswordMaskOverlay"
-                                   Classes="password-mask-overlay"
+                        <TextBlock x:Name="SecureKeyMaskOverlay"
+                                   Classes="securekey-mask-overlay"
                                    IsVisible="{Binding IsSecureKeyMode, ElementName=control}" />
                         
                         <StackPanel Grid.Row="0"
@@ -310,7 +310,7 @@
                                 Grid.Row="1"
                                 Classes="hint-section"
                                 Orientation="Horizontal"
-                                IsVisible="{Binding !IsPasswordStrengthMode, ElementName=control}"
+                                IsVisible="{Binding !IsSecureKeyStrengthMode, ElementName=control}"
                                 Background="{DynamicResource Surface}">
                         <Path Classes="hint-icon"
                               VerticalAlignment="Center"
@@ -337,17 +337,17 @@
                     </StackPanel>
                     
                     <StackPanel Grid.Row="1"
-                                x:Name="PasswordStrengthStackPanel"
+                                x:Name="SecureKeyStrengthStackPanel"
                                 Classes="hint-section"
                                 Orientation="Horizontal"
-                                IsVisible="{Binding IsPasswordStrengthMode, ElementName=control}"
+                                IsVisible="{Binding IsSecureKeyStrengthMode, ElementName=control}"
                                 Background="{DynamicResource Surface}">
                         <Path Classes="strength-icon"
                               VerticalAlignment="Center"
                               Margin="0,0,8,0" />
-                        <TextBlock x:Name="PasswordStrengthTextBlock"
-                                   Text="{Binding PasswordStrengthText, ElementName=control}"
-                                   Foreground="{Binding PasswordStrengthTextBrush, ElementName=control}"
+                        <TextBlock x:Name="SecureKeyStrengthTextBlock"
+                                   Text="{Binding SecureKeyStrengthText, ElementName=control}"
+                                   Foreground="{Binding SecureKeyStrengthTextBrush, ElementName=control}"
                                    VerticalAlignment="Center"
                                    Classes="hint-text" />
                     </StackPanel>

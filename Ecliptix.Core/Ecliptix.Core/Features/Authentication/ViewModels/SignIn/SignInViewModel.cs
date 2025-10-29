@@ -287,7 +287,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         AccountRecoveryCommand = ReactiveCommand.Create(() =>
         {
-            ((AuthenticationViewModel)HostScreen).StartPasswordRecoveryFlow();
+            ((AuthenticationViewModel)HostScreen).StartSecureKeyRecoveryFlow();
         });
     }
 

@@ -31,7 +31,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private readonly ByteString _mobileNumberIdentifier;
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
-    private readonly IPasswordRecoveryService? _passwordRecoveryService;
+    private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
     private readonly ILocalizationService _localizationService;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly Lock _sessionLock = new();
@@ -52,27 +52,27 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
-        IPasswordRecoveryService? passwordRecoveryService = null) : base(networkProvider,
+        ISecureKeyRecoveryService? secureKeyRecoveryService = null) : base(networkProvider,
         localizationService, connectivityService)
     {
         _mobileNumberIdentifier = mobileNumberIdentifier;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
-        _passwordRecoveryService = passwordRecoveryService;
+        _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
         _localizationService = localizationService;
 
-        if (flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
+        if (flowContext == AuthenticationFlowContext.SecureKeyRecovery && secureKeyRecoveryService == null)
         {
-            throw new ArgumentNullException(nameof(passwordRecoveryService),
-                "Password recovery service is required when flow context is PasswordRecovery");
+            throw new ArgumentNullException(nameof(secureKeyRecoveryService),
+                "Secure key recovery service is required when flow context is SecureKeyRecovery");
         }
 
         Log.Information("[VERIFYOTP-VM] Initialized with flow context: {FlowContext}", flowContext);
 
         HostScreen = hostScreen;
 
-        NavToPasswordConfirmation = ReactiveCommand.CreateFromObservable(() =>
+        NavToSecureKeyConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             return hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey);
@@ -185,7 +185,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     public ReactiveCommand<Unit, Unit> ResendSendVerificationCodeCommand { get; }
 
-    public ReactiveCommand<Unit, IRoutableViewModel> NavToPasswordConfirmation { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel> NavToSecureKeyConfirmation { get; }
 
     [Reactive] public string VerificationCode { get; set; } = string.Empty;
 
@@ -315,7 +315,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 }
                             }),
                         cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None)
-                    : _passwordRecoveryService!.InitiatePasswordResetOtpAsync(
+                    : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(
                         _mobileNumberIdentifier,
                         onCountdownUpdate: (seconds, identifier, status, message) =>
                             RxApp.MainThreadScheduler.Schedule(() =>
@@ -375,7 +375,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 VerificationCode,
                 connectId,
                 operationToken)
-            : _passwordRecoveryService!.VerifyPasswordResetOtpAsync(
+            : _secureKeyRecoveryService!.VerifySecureKeyResetOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
                 connectId,
@@ -407,7 +407,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
                 }
 
-                NavToPasswordConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+                NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
                 hostWindow.ClearNavigationStack(true);
             }
 
@@ -418,10 +418,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
                         .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
                 }
-                else if (_passwordRecoveryService != null)
+                else if (_secureKeyRecoveryService != null)
                 {
-                    await _passwordRecoveryService
-                        .CleanupPasswordResetSessionAsync(VerificationSessionIdentifier!.Value)
+                    await _secureKeyRecoveryService
+                        .CleanupSecureKeyResetSessionAsync(VerificationSessionIdentifier!.Value)
                         .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
                 }
             }
@@ -478,7 +478,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                     }
                                 }),
                             cancellationToken: newCts.Token)
-                        : _passwordRecoveryService!.ResendPasswordResetOtpAsync(
+                        : _secureKeyRecoveryService!.ResendSecureKeyResetOtpAsync(
                             VerificationSessionIdentifier!.Value,
                             _mobileNumberIdentifier,
                             onCountdownUpdate: (seconds, identifier, status, message) =>
@@ -750,9 +750,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             {
                 await _registrationService.CleanupVerificationSessionAsync(sessionId);
             }
-            else if (_passwordRecoveryService != null)
+            else if (_secureKeyRecoveryService != null)
             {
-                await _passwordRecoveryService.CleanupPasswordResetSessionAsync(sessionId);
+                await _secureKeyRecoveryService.CleanupSecureKeyResetSessionAsync(sessionId);
             }
         }
     }

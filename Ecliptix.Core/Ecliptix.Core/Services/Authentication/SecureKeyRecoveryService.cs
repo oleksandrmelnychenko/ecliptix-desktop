@@ -20,13 +20,13 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
 
-internal sealed class PasswordRecoveryService(
+internal sealed class SecureKeyRecoveryService(
     NetworkProvider networkProvider,
     IOpaqueRegistrationService registrationService,
     ILocalizationService localizationService,
     IServerPublicKeyProvider serverPublicKeyProvider,
     IApplicationSecureStorageProvider applicationSecureStorageProvider)
-    : IPasswordRecoveryService, IDisposable
+    : ISecureKeyRecoveryService, IDisposable
 {
     private readonly Lock _opaqueClientLock = new();
     private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
@@ -52,17 +52,17 @@ internal sealed class PasswordRecoveryService(
         return Result<ByteString, string>.Ok(response.MobileNumberIdentifier);
     }
 
-    public Task<Result<Unit, string>> InitiatePasswordResetOtpAsync(
+    public Task<Result<Unit, string>> InitiateSecureKeyResetOtpAsync(
         ByteString mobileNumberIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
         CancellationToken cancellationToken = default) =>
         registrationService.InitiateOtpVerificationAsync(
             mobileNumberIdentifier,
-            VerificationPurpose.PasswordRecovery,
+            VerificationPurpose.SecureKeyRecovery,
             onCountdownUpdate,
             cancellationToken);
 
-    public Task<Result<Unit, string>> ResendPasswordResetOtpAsync(
+    public Task<Result<Unit, string>> ResendSecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         ByteString mobileNumberIdentifier,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate = null,
@@ -73,7 +73,7 @@ internal sealed class PasswordRecoveryService(
             onCountdownUpdate,
             cancellationToken);
 
-    public Task<Result<Protobuf.Membership.Membership, string>> VerifyPasswordResetOtpAsync(
+    public Task<Result<Protobuf.Membership.Membership, string>> VerifySecureKeyResetOtpAsync(
         Guid sessionIdentifier,
         string otpCode,
         uint connectId,
@@ -81,9 +81,9 @@ internal sealed class PasswordRecoveryService(
         registrationService.VerifyOtpAsync(sessionIdentifier, otpCode, connectId,
             cancellationToken);
 
-    public async Task<Result<Unit, string>> CompletePasswordResetAsync(
+    public async Task<Result<Unit, string>> CompleteSecureKeyResetAsync(
         ByteString membershipIdentifier,
-        SecureTextBuffer newPassword,
+        SecureTextBuffer newSecureKey,
         uint connectId,
         CancellationToken cancellationToken = default)
     {
@@ -93,7 +93,7 @@ internal sealed class PasswordRecoveryService(
                 localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
 
-        if (newPassword.Length == 0)
+        if (newSecureKey.Length == 0)
         {
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
         }
@@ -105,7 +105,7 @@ internal sealed class PasswordRecoveryService(
             OpaqueClient opaqueClient = GetOrCreateOpaqueClient();
 
             Result<RegistrationResult, string> requestResult =
-                CreatePasswordRecoveryRequest(opaqueClient, newPassword);
+                CreateSecureKeyRecoveryRequest(opaqueClient, newSecureKey);
 
             if (requestResult.IsErr)
             {
@@ -115,7 +115,7 @@ internal sealed class PasswordRecoveryService(
             registrationResult = requestResult.Unwrap();
 
             Result<OpaqueRecoverySecureKeyInitResponse, string> initResult =
-                await InitiatePasswordRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
+                await InitiateSecureKeyRecoveryAsync(membershipIdentifier, registrationResult.GetRequestCopy(),
                     connectId, cancellationToken).ConfigureAwait(false);
 
             if (initResult.IsErr)
@@ -126,14 +126,14 @@ internal sealed class PasswordRecoveryService(
             OpaqueRecoverySecureKeyInitResponse initResponse = initResult.Unwrap();
 
             Result<Unit, string> processResult =
-                await ProcessPasswordRecoveryInitResponse(initResponse, membershipIdentifier).ConfigureAwait(false);
+                await ProcessSecureKeyRecoveryInitResponse(initResponse, membershipIdentifier).ConfigureAwait(false);
 
             if (processResult.IsErr)
             {
                 return processResult;
             }
 
-            return await FinalizePasswordRecoveryAsync(opaqueClient, initResponse, registrationResult,
+            return await FinalizeSecureKeyRecoveryAsync(opaqueClient, initResponse, registrationResult,
                 membershipIdentifier, connectId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -146,18 +146,18 @@ internal sealed class PasswordRecoveryService(
         }
     }
 
-    public Task<Result<Unit, string>> CleanupPasswordResetSessionAsync(Guid sessionIdentifier) =>
+    public Task<Result<Unit, string>> CleanupSecureKeyResetSessionAsync(Guid sessionIdentifier) =>
         registrationService.CleanupVerificationSessionAsync(sessionIdentifier);
 
     private static void CleanupSensitiveRecoveryData(
-        byte[]? passwordCopy,
+        byte[]? secureKeyCopy,
         byte[]? serverRecoveryResponse,
         byte[]? recoveryRecord,
         byte[]? masterKey)
     {
-        if (passwordCopy is { Length: > 0 })
+        if (secureKeyCopy is { Length: > 0 })
         {
-            CryptographicOperations.ZeroMemory(passwordCopy);
+            CryptographicOperations.ZeroMemory(secureKeyCopy);
         }
 
         if (serverRecoveryResponse is { Length: > 0 })
@@ -176,22 +176,22 @@ internal sealed class PasswordRecoveryService(
         }
     }
 
-    private Result<RegistrationResult, string> CreatePasswordRecoveryRequest(
+    private Result<RegistrationResult, string> CreateSecureKeyRecoveryRequest(
         OpaqueClient opaqueClient,
-        SecureTextBuffer newPassword)
+        SecureTextBuffer newSecureKey)
     {
         RegistrationResult? registrationResult = null;
 
-        newPassword.WithSecureBytes(passwordBytes =>
+        newSecureKey.WithSecureBytes(secureKeyBytes =>
         {
-            byte[] passwordCopy = passwordBytes.ToArray();
+            byte[] secureKeyCopy = secureKeyBytes.ToArray();
             try
             {
-                registrationResult = opaqueClient.CreateRegistrationRequest(passwordCopy);
+                registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
             }
             finally
             {
-                CryptographicOperations.ZeroMemory(passwordCopy);
+                CryptographicOperations.ZeroMemory(secureKeyCopy);
             }
         });
 
@@ -204,7 +204,7 @@ internal sealed class PasswordRecoveryService(
         return Result<RegistrationResult, string>.Ok(registrationResult);
     }
 
-    private async Task<Result<Unit, string>> ProcessPasswordRecoveryInitResponse(
+    private async Task<Result<Unit, string>> ProcessSecureKeyRecoveryInitResponse(
         OpaqueRecoverySecureKeyInitResponse initResponse,
         ByteString membershipIdentifier)
     {
@@ -226,7 +226,7 @@ internal sealed class PasswordRecoveryService(
                 .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
                 .ConfigureAwait(false);
             Serilog.Log.Information(
-                "[PASSWORD-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                "[SECUREKEY-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
                 Helpers.FromByteStringToGuid(membershipIdentifier),
                 Helpers.FromByteStringToGuid(initResponse.Membership.AccountUniqueIdentifier));
         }
@@ -234,7 +234,7 @@ internal sealed class PasswordRecoveryService(
         return Result<Unit, string>.Ok(Unit.Value);
     }
 
-    private async Task<Result<Unit, string>> FinalizePasswordRecoveryAsync(
+    private async Task<Result<Unit, string>> FinalizeSecureKeyRecoveryAsync(
         OpaqueClient opaqueClient,
         OpaqueRecoverySecureKeyInitResponse initResponse,
         RegistrationResult registrationResult,
@@ -280,7 +280,7 @@ internal sealed class PasswordRecoveryService(
                     catch (Exception ex)
                     {
                         Serilog.Log.Error(ex,
-                            "[PASSWORD-RECOVERY-COMPLETE] Failed to parse password recovery complete response");
+                            "[SECUREKEY-RECOVERY-COMPLETE] Failed to parse secure key recovery complete response");
                         responseSource.TrySetException(ex);
                     }
 
@@ -338,7 +338,7 @@ internal sealed class PasswordRecoveryService(
         }
     }
 
-    private async Task<Result<OpaqueRecoverySecureKeyInitResponse, string>> InitiatePasswordRecoveryAsync(
+    private async Task<Result<OpaqueRecoverySecureKeyInitResponse, string>> InitiateSecureKeyRecoveryAsync(
         ByteString membershipIdentifier,
         byte[] recoveryRequest,
         uint connectId,
@@ -373,7 +373,7 @@ internal sealed class PasswordRecoveryService(
                     catch (Exception ex)
                     {
                         Serilog.Log.Error(ex,
-                            "[PASSWORD-RECOVERY-INIT] Failed to parse password recovery init response");
+                            "[SECUREKEY-RECOVERY-INIT] Failed to parse secure key recovery init response");
                         responseSource.TrySetException(ex);
                     }
 

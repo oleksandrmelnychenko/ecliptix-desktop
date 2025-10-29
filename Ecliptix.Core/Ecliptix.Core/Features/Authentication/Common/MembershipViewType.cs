@@ -9,5 +9,5 @@ public enum MembershipViewType
     AccountRecovery,
     ConfirmSecureKey,
     PassPhase,
-    ForgotPasswordReset
+    ForgotSecureKeyReset
 }

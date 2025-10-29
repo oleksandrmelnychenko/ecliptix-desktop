@@ -43,7 +43,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.PasswordRecovery;
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
             MembershipViewType viewType = NavigationCache[SignInKey];
             return hostWindow.Navigate.Execute(viewType);
         });

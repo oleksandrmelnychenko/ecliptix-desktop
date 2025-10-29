@@ -5,7 +5,7 @@ public enum AuthenticationFailureType
     InvalidCredentials,
     LoginAttemptExceeded,
     MobileNumberRequired,
-    PasswordRequired,
+    SecureKeyRequired,
     UnexpectedError,
     SecureMemoryAllocationFailed,
     SecureMemoryWriteFailed,

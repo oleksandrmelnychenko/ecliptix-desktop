@@ -291,24 +291,24 @@ internal sealed class OpaqueRegistrationService(
             return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
         }
 
-        SensitiveBytes? passwordBytes = null;
+        SensitiveBytes? secureKeyBytes = null;
         Result<SensitiveBytes, SodiumFailure>? createResult = null;
 
         try
         {
-            secureKey.WithSecureBytes(passwordSpan => { createResult = SensitiveBytes.From(passwordSpan); });
+            secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
 
             if (createResult == null || createResult.Value.IsErr)
             {
                 string errorMessage = createResult?.IsErr == true
-                    ? $"Failed to create secure password buffer: {createResult.Value.UnwrapErr().Message}"
+                    ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
                     : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
                 return Result<Unit, string>.Err(errorMessage);
             }
 
-            passwordBytes = createResult.Value.Unwrap();
+            secureKeyBytes = createResult.Value.Unwrap();
 
-            if (passwordBytes.Length == 0)
+            if (secureKeyBytes.Length == 0)
             {
                 return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
             }
@@ -320,7 +320,7 @@ internal sealed class OpaqueRegistrationService(
                     (attempt, attemptCancellationToken) =>
                         ExecuteCompleteRegistrationAttemptAsync(
                             membershipIdentifier,
-                            passwordBytes!,
+                            secureKeyBytes!,
                             connectId,
                             attempt,
                             attemptCancellationToken),
@@ -329,7 +329,7 @@ internal sealed class OpaqueRegistrationService(
         }
         finally
         {
-            passwordBytes?.Dispose();
+            secureKeyBytes?.Dispose();
         }
     }
 
@@ -453,11 +453,11 @@ internal sealed class OpaqueRegistrationService(
         string IdempotencyKey,
         string FailureMessage);
 
-    private Result<byte[], RegistrationAttemptResult> ValidatePasswordCopy(
-        byte[]? passwordCopy,
+    private Result<byte[], RegistrationAttemptResult> ValidateSecureKeyCopy(
+        byte[]? secureKeyCopy,
         RpcRequestContext requestContext)
     {
-        if (passwordCopy == null || passwordCopy.Length == 0)
+        if (secureKeyCopy == null || secureKeyCopy.Length == 0)
         {
             return Result<byte[], RegistrationAttemptResult>.Err(
                 CreateAttemptFailure(
@@ -466,16 +466,16 @@ internal sealed class OpaqueRegistrationService(
                     requestContext));
         }
 
-        return Result<byte[], RegistrationAttemptResult>.Ok(passwordCopy);
+        return Result<byte[], RegistrationAttemptResult>.Ok(secureKeyCopy);
     }
 
     private Result<RegistrationResult, RegistrationAttemptResult> CreateAndTrackRegistrationState(
         OpaqueClient opaqueClient,
-        byte[] passwordCopy,
+        byte[] secureKeyCopy,
         ByteString membershipIdentifier,
         RpcRequestContext requestContext)
     {
-        RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(passwordCopy);
+        RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
 
         if (_opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult))
         {
@@ -514,14 +514,14 @@ internal sealed class OpaqueRegistrationService(
     }
 
     private void CleanupSensitiveRegistrationData(
-        byte[]? passwordCopy,
+        byte[]? secureKeyCopy,
         byte[]? serverRegistrationResponse,
         byte[]? registrationRecord,
         byte[]? masterKey)
     {
-        if (passwordCopy is { Length: > 0 })
+        if (secureKeyCopy is { Length: > 0 })
         {
-            CryptographicOperations.ZeroMemory(passwordCopy);
+            CryptographicOperations.ZeroMemory(secureKeyCopy);
         }
 
         if (serverRegistrationResponse is { Length: > 0 })
@@ -630,7 +630,7 @@ internal sealed class OpaqueRegistrationService(
 
     private async Task<RegistrationAttemptResult> ExecuteCompleteRegistrationAttemptAsync(
         ByteString membershipIdentifier,
-        SensitiveBytes password,
+        SensitiveBytes secureKey,
         uint connectId,
         int attempt,
         CancellationToken cancellationToken)
@@ -644,36 +644,36 @@ internal sealed class OpaqueRegistrationService(
 
             using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
-            byte[]? passwordCopy = null;
+            byte[]? secureKeyCopy = null;
             RegistrationResult? registrationResult = null;
             RegistrationResult? trackedRegistrationResult = null;
 
             try
             {
-                Result<Unit, SodiumFailure> readPasswordResult = password.WithReadAccess(span =>
+                Result<Unit, SodiumFailure> readSecureKeyResult = secureKey.WithReadAccess(span =>
                 {
-                    passwordCopy = span.ToArray();
+                    secureKeyCopy = span.ToArray();
                     return Result<Unit, SodiumFailure>.Ok(Unit.Value);
                 });
 
-                if (readPasswordResult.IsErr)
+                if (readSecureKeyResult.IsErr)
                 {
                     return CreateAttemptFailure(
-                        $"Failed to read password: {readPasswordResult.UnwrapErr().Message}",
+                        $"Failed to read secure key: {readSecureKeyResult.UnwrapErr().Message}",
                         false,
                         requestContext);
                 }
 
-                Result<byte[], RegistrationAttemptResult> passwordValidation =
-                    ValidatePasswordCopy(passwordCopy, requestContext);
+                Result<byte[], RegistrationAttemptResult> secureKeyValidation =
+                    ValidateSecureKeyCopy(secureKeyCopy, requestContext);
 
-                if (passwordValidation.IsErr)
+                if (secureKeyValidation.IsErr)
                 {
-                    return passwordValidation.UnwrapErr();
+                    return secureKeyValidation.UnwrapErr();
                 }
 
                 Result<RegistrationResult, RegistrationAttemptResult> stateResult =
-                    CreateAndTrackRegistrationState(opaqueClient, passwordValidation.Unwrap(), membershipIdentifier,
+                    CreateAndTrackRegistrationState(opaqueClient, secureKeyValidation.Unwrap(), membershipIdentifier,
                         requestContext);
 
                 if (stateResult.IsErr)
@@ -797,7 +797,7 @@ internal sealed class OpaqueRegistrationService(
             {
                 registrationResult?.Dispose();
                 trackedRegistrationResult?.Dispose();
-                CleanupSensitiveRegistrationData(passwordCopy, null, null, null);
+                CleanupSensitiveRegistrationData(secureKeyCopy, null, null, null);
             }
         }
     }

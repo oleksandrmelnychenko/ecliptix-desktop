@@ -24,12 +24,12 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    public RegistrationResult CreateRegistrationRequest(byte[] password)
+    public RegistrationResult CreateRegistrationRequest(byte[] secureKey)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0)
+        if (secureKey == null || secureKey.Length == 0)
         {
-            throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+            throw new ArgumentException(OpaqueErrorMessages.SecureKeyNullOrEmpty);
         }
 
         try
@@ -43,7 +43,7 @@ public sealed class OpaqueClient : IDisposable
             }
 
             int result = OpaqueNative.opaque_client_create_registration_request(
-                _clientHandle, password, (UIntPtr)password.Length, state, request, (UIntPtr)request.Length);
+                _clientHandle, secureKey, (UIntPtr)secureKey.Length, state, request, (UIntPtr)request.Length);
 
             if (result != (int)OpaqueResult.Success)
             {
@@ -55,7 +55,7 @@ public sealed class OpaqueClient : IDisposable
         }
         finally
         {
-            ClearPassword(password);
+            ClearSecureKey(secureKey);
         }
     }
 
@@ -86,12 +86,12 @@ public sealed class OpaqueClient : IDisposable
         return (record, masterKey);
     }
 
-    public KeyExchangeResult GenerateKE1(byte[] password)
+    public KeyExchangeResult GenerateKE1(byte[] secureKey)
     {
         ThrowIfDisposed();
-        if (password == null || password.Length == 0)
+        if (secureKey == null || secureKey.Length == 0)
         {
-            throw new ArgumentException(OpaqueErrorMessages.PasswordNullOrEmpty);
+            throw new ArgumentException(OpaqueErrorMessages.SecureKeyNullOrEmpty);
         }
 
         try
@@ -105,7 +105,7 @@ public sealed class OpaqueClient : IDisposable
             }
 
             int result = OpaqueNative.opaque_client_generate_ke1(
-                _clientHandle, password, (UIntPtr)password.Length, state, ke1, (UIntPtr)ke1.Length);
+                _clientHandle, secureKey, (UIntPtr)secureKey.Length, state, ke1, (UIntPtr)ke1.Length);
 
             if (result != (int)OpaqueResult.Success)
             {
@@ -117,7 +117,7 @@ public sealed class OpaqueClient : IDisposable
         }
         finally
         {
-            ClearPassword(password);
+            ClearSecureKey(secureKey);
         }
     }
 
@@ -167,9 +167,9 @@ public sealed class OpaqueClient : IDisposable
         }
     }
 
-    private static void ClearPassword(byte[] password)
+    private static void ClearSecureKey(byte[] secureKey)
     {
-        Array.Clear(password, 0, password.Length);
+        Array.Clear(secureKey, 0, secureKey.Length);
     }
 
     public void Dispose()

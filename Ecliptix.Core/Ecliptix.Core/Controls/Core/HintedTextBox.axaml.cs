@@ -24,10 +24,10 @@ namespace Ecliptix.Core.Controls.Core;
 
 public sealed partial class HintedTextBox : UserControl, IDisposable
 {
-    public static readonly StyledProperty<bool> IsPasswordModeProperty =
+    public static readonly StyledProperty<bool> IsSecureKeyModeProperty =
         AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyMode));
 
-    public static readonly StyledProperty<char> PasswordMaskCharProperty =
+    public static readonly StyledProperty<char> SecureKeyMaskCharProperty =
         AvaloniaProperty.Register<HintedTextBox, char>(nameof(SecureKeyMaskChar),
             HintedTextBoxConstants.DefaultMaskChar);
 
@@ -101,21 +101,21 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     public new static readonly StyledProperty<FontWeight> FontWeightProperty =
         AvaloniaProperty.Register<HintedTextBox, FontWeight>(nameof(FontWeight), FontWeight.Normal);
 
-    public static readonly StyledProperty<bool> IsPasswordStrengthModeProperty =
-        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsPasswordStrengthMode));
+    public static readonly StyledProperty<bool> IsSecureKeyStrengthModeProperty =
+        AvaloniaProperty.Register<HintedTextBox, bool>(nameof(IsSecureKeyStrengthMode));
 
-    public static readonly StyledProperty<PasswordStrength> PasswordStrengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, PasswordStrength>(nameof(PasswordStrength), PasswordStrength.Invalid);
+    public static readonly StyledProperty<SecureKeyStrength> SecureKeyStrengthProperty =
+        AvaloniaProperty.Register<HintedTextBox, SecureKeyStrength>(nameof(SecureKeyStrength), SecureKeyStrength.Invalid);
 
-    public static readonly StyledProperty<string> PasswordStrengthTextProperty =
-        AvaloniaProperty.Register<HintedTextBox, string>(nameof(PasswordStrengthText), string.Empty);
+    public static readonly StyledProperty<string> SecureKeyStrengthTextProperty =
+        AvaloniaProperty.Register<HintedTextBox, string>(nameof(SecureKeyStrengthText), string.Empty);
 
-    public static readonly StyledProperty<IBrush> PasswordStrengthTextBrushProperty =
-        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthTextBrush),
+    public static readonly StyledProperty<IBrush> SecureKeyStrengthTextBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(SecureKeyStrengthTextBrush),
             new SolidColorBrush(Colors.Gray));
 
-    public static readonly StyledProperty<IBrush> PasswordStrengthIconBrushProperty =
-        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(PasswordStrengthIconBrush),
+    public static readonly StyledProperty<IBrush> SecureKeyStrengthIconBrushProperty =
+        AvaloniaProperty.Register<HintedTextBox, IBrush>(nameof(SecureKeyStrengthIconBrush),
             new SolidColorBrush(Colors.Gray));
 
     public static readonly StyledProperty<string> WarningTextProperty =
@@ -162,8 +162,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     private DispatcherTimer? _secureKeyDebounceTimer;
     private bool _lastIsFocused;
     private bool _lastHasError;
-    private PasswordStrength _lastPasswordStrength = PasswordStrength.Invalid;
-    private bool _lastIsPasswordStrengthMode;
+    private SecureKeyStrength _lastSecureKeyStrength = SecureKeyStrength.Invalid;
+    private bool _lastIsSecureKeyStrengthMode;
     private string _lastProcessedText = string.Empty;
     private IDisposable? _currentTypingAnimation;
     private int _lastProcessedTextElementCount;
@@ -184,11 +184,11 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public bool IsSecureKeyMode
     {
-        get => GetValue(IsPasswordModeProperty);
+        get => GetValue(IsSecureKeyModeProperty);
         set
         {
-            bool oldValue = GetValue(IsPasswordModeProperty);
-            SetValue(IsPasswordModeProperty, value);
+            bool oldValue = GetValue(IsSecureKeyModeProperty);
+            SetValue(IsSecureKeyModeProperty, value);
             if (oldValue != value)
             {
                 OnIsSecureKeyModeChanged(value);
@@ -198,8 +198,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
     public char SecureKeyMaskChar
     {
-        get => GetValue(PasswordMaskCharProperty);
-        set => SetValue(PasswordMaskCharProperty, value);
+        get => GetValue(SecureKeyMaskCharProperty);
+        set => SetValue(SecureKeyMaskCharProperty, value);
     }
 
     public string Text
@@ -331,34 +331,34 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(FontWeightProperty, value);
     }
 
-    public bool IsPasswordStrengthMode
+    public bool IsSecureKeyStrengthMode
     {
-        get => GetValue(IsPasswordStrengthModeProperty);
-        set => SetValue(IsPasswordStrengthModeProperty, value);
+        get => GetValue(IsSecureKeyStrengthModeProperty);
+        set => SetValue(IsSecureKeyStrengthModeProperty, value);
     }
 
-    public PasswordStrength PasswordStrength
+    public SecureKeyStrength SecureKeyStrength
     {
-        get => GetValue(PasswordStrengthProperty);
-        set => SetValue(PasswordStrengthProperty, value);
+        get => GetValue(SecureKeyStrengthProperty);
+        set => SetValue(SecureKeyStrengthProperty, value);
     }
 
-    public string PasswordStrengthText
+    public string SecureKeyStrengthText
     {
-        get => GetValue(PasswordStrengthTextProperty);
-        set => SetValue(PasswordStrengthTextProperty, value);
+        get => GetValue(SecureKeyStrengthTextProperty);
+        set => SetValue(SecureKeyStrengthTextProperty, value);
     }
 
-    public IBrush PasswordStrengthTextBrush
+    public IBrush SecureKeyStrengthTextBrush
     {
-        get => GetValue(PasswordStrengthTextBrushProperty);
-        set => SetValue(PasswordStrengthTextBrushProperty, value);
+        get => GetValue(SecureKeyStrengthTextBrushProperty);
+        set => SetValue(SecureKeyStrengthTextBrushProperty, value);
     }
 
-    public IBrush PasswordStrengthIconBrush
+    public IBrush SecureKeyStrengthIconBrush
     {
-        get => GetValue(PasswordStrengthIconBrushProperty);
-        set => SetValue(PasswordStrengthIconBrushProperty, value);
+        get => GetValue(SecureKeyStrengthIconBrushProperty);
+        set => SetValue(SecureKeyStrengthIconBrushProperty, value);
     }
 
     public string WarningText
@@ -391,20 +391,20 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         remove => RemoveHandler(SecureKeyCharactersRemovedEvent, value);
     }
 
-    public void SyncSecureKeyState(int newPasswordLength)
+    public void SyncSecureKeyState(int newSecureKeyLength)
     {
         if (_mainTextBox == null)
         {
             return;
         }
 
-        string maskText = newPasswordLength > 0
-            ? new string(SecureKeyMaskChar, newPasswordLength)
+        string maskText = newSecureKeyLength > 0
+            ? new string(SecureKeyMaskChar, newSecureKeyLength)
             : string.Empty;
 
-        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
+        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoSecureKeyChar;
 
-        int caretPosition = Math.Clamp(_intendedCaretPosition, 0, newPasswordLength);
+        int caretPosition = Math.Clamp(_intendedCaretPosition, 0, newSecureKeyLength);
         UpdateTextBox(maskText, caretPosition);
         UpdateRemainingCharacters();
     }
@@ -509,27 +509,27 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         return false;
     }
 
-    private static (Color BorderColor, string ShadowKey, Color IconColor) GetPasswordStrengthColors(
-        PasswordStrength strength)
+    private static (Color BorderColor, string ShadowKey, Color IconColor) GetSecureKeyStrengthColors(
+        SecureKeyStrength strength)
     {
         return strength switch
         {
-            PasswordStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
+            SecureKeyStrength.Invalid => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
                 HintedTextBoxConstants.InvalidStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex)),
-            PasswordStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
+            SecureKeyStrength.VeryWeak => (GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex),
                 HintedTextBoxConstants.VeryWeakStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.VeryWeakStrengthColorHex)),
-            PasswordStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
+            SecureKeyStrength.Weak => (GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex),
                 HintedTextBoxConstants.WeakStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.WeakStrengthColorHex)),
-            PasswordStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
+            SecureKeyStrength.Good => (GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex),
                 HintedTextBoxConstants.GoodStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.GoodStrengthColorHex)),
-            PasswordStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
+            SecureKeyStrength.Strong => (GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex),
                 HintedTextBoxConstants.StrongStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.StrongStrengthColorHex)),
-            PasswordStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
+            SecureKeyStrength.VeryStrong => (GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex),
                 HintedTextBoxConstants.VeryStrongStrengthShadowKey,
                 GetCachedColor(HintedTextBoxConstants.VeryStrongStrengthColorHex)),
             _ => (GetCachedColor(HintedTextBoxConstants.InvalidStrengthColorHex),
@@ -1269,8 +1269,8 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         }
 
         bool currentHasError = HasError;
-        PasswordStrength currentPasswordStrength = PasswordStrength;
-        bool currentIsPasswordStrengthMode = IsPasswordStrengthMode;
+        SecureKeyStrength currentSecureKeyStrength = SecureKeyStrength;
+        bool currentIsSecureKeyStrengthMode = IsSecureKeyStrengthMode;
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -1286,39 +1286,39 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             bool isFocused = _mainTextBox.IsFocused;
             if (isFocused == _lastIsFocused
                 && currentHasError == _lastHasError
-                && currentPasswordStrength == _lastPasswordStrength
-                && currentIsPasswordStrengthMode == _lastIsPasswordStrengthMode)
+                && currentSecureKeyStrength == _lastSecureKeyStrength
+                && currentIsSecureKeyStrengthMode == _lastIsSecureKeyStrengthMode)
             {
                 return;
             }
 
             _lastIsFocused = isFocused;
             _lastHasError = currentHasError;
-            _lastPasswordStrength = currentPasswordStrength;
-            _lastIsPasswordStrengthMode = currentIsPasswordStrengthMode;
+            _lastSecureKeyStrength = currentSecureKeyStrength;
+            _lastIsSecureKeyStrengthMode = currentIsSecureKeyStrengthMode;
 
-            UpdateBorderStateInternal(isFocused, currentHasError, currentPasswordStrength, currentIsPasswordStrengthMode);
+            UpdateBorderStateInternal(isFocused, currentHasError, currentSecureKeyStrength, currentIsSecureKeyStrengthMode);
         }, DispatcherPriority.Render);
     }
 
-    private void UpdateBorderStateInternal(bool isFocused, bool hasError, PasswordStrength passwordStrength, bool isPasswordStrengthMode)
+    private void UpdateBorderStateInternal(bool isFocused, bool hasError, SecureKeyStrength secureKeyStrength, bool isSecureKeyStrengthMode)
     {
         if (_focusBorder == null || _mainBorder == null || _shadowBorder == null)
         {
             return;
         }
 
-        if (isPasswordStrengthMode)
+        if (isSecureKeyStrengthMode)
         {
-            (Color borderColor, string shadowKey, Color iconColor) = GetPasswordStrengthColors(passwordStrength);
+            (Color borderColor, string shadowKey, Color iconColor) = GetSecureKeyStrengthColors(secureKeyStrength);
 
             _focusBorder.BorderBrush = GetCachedBrush(borderColor);
             _focusBorder.Opacity = HintedTextBoxConstants.FullOpacity;
             _mainBorder.BorderBrush = GetCachedBrush(Colors.Transparent);
             _shadowBorder.BoxShadow = GetCachedResource(shadowKey);
 
-            PasswordStrengthIconBrush = GetCachedBrush(iconColor);
-            PasswordStrengthTextBrush = GetCachedBrush(iconColor);
+            SecureKeyStrengthIconBrush = GetCachedBrush(iconColor);
+            SecureKeyStrengthTextBrush = GetCachedBrush(iconColor);
         }
         else if (hasError)
         {
@@ -1406,9 +1406,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
     {
         this.WhenAnyValue(
                 x => x.HasError,
-                x => x.PasswordStrength,
-                x => x.IsPasswordStrengthMode,
-                (hasError, passwordStrength, isPasswordStrengthMode) => (hasError, passwordStrength, isPasswordStrengthMode))
+                x => x.SecureKeyStrength,
+                x => x.IsSecureKeyStrengthMode,
+                (hasError, secureKeyStrength, isSecureKeyStrengthMode) => (hasError, secureKeyStrength, isSecureKeyStrengthMode))
             .DistinctUntilChanged()
             .Subscribe(_ =>
             {
@@ -1501,7 +1501,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             return;
         }
 
-        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoPasswordChar;
+        _mainTextBox.PasswordChar = HintedTextBoxConstants.NoSecureKeyChar;
 
         if (isSecureKeyMode)
         {

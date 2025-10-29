@@ -8,7 +8,7 @@ public enum LogoutReason
     DeviceRemoved,
     SecurityViolation,
     AccountDeactivated,
-    PasswordChanged,
+    SecureKeyChanged,
     ForceLogout,
     SystemMaintenance
 }

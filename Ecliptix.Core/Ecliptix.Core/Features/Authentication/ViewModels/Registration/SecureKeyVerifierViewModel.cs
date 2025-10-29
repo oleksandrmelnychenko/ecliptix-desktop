@@ -41,7 +41,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
-    private readonly IPasswordRecoveryService _passwordRecoveryService;
+    private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
 
     private CancellationTokenSource? _currentOperationCts;
@@ -57,7 +57,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService,
-        IPasswordRecoveryService passwordRecoveryService,
+        ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext
     ) : base(networkProvider, localizationService, connectivityService)
     {
@@ -65,7 +65,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
         _registrationService = registrationService;
         _authenticationService = authenticationService;
-        _passwordRecoveryService = passwordRecoveryService;
+        _secureKeyRecoveryService = secureKeyRecoveryService;
         _flowContext = flowContext;
 
         Log.Information("[SECUREKEYVERIFIER-VM] Initialized with flow context: {FlowContext}", flowContext);
@@ -77,13 +77,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     public string Title => Localize(Keys.RegistrationTitle, Keys.RecoveryTitle);
     public string Description => Localize(Keys.RegistrationDescription, Keys.RecoveryDescription);
-    public string PasswordPlaceholder => Localize(Keys.PasswordPlaceholder, Keys.RecoveryPasswordPlaceholder);
-    public string PasswordHint => Localize(Keys.PasswordHint, Keys.RecoveryPasswordHint);
+    public string SecureKeyPlaceholder => Localize(Keys.SecureKeyPlaceholder, Keys.RecoverySecureKeyPlaceholder);
+    public string SecureKeyHint => Localize(Keys.SecureKeyHint, Keys.RecoverySecureKeyHint);
 
-    public string VerifyPasswordPlaceholder =>
-        Localize(Keys.VerifyPasswordPlaceholder, Keys.RecoveryVerifyPasswordPlaceholder);
+    public string VerifySecureKeyPlaceholder =>
+        Localize(Keys.VerifySecureKeyPlaceholder, Keys.RecoveryVerifySecureKeyPlaceholder);
 
-    public string VerifyPasswordHint => Localize(Keys.VerifyPasswordHint, Keys.RecoveryVerifyPasswordHint);
+    public string VerifySecureKeyHint => Localize(Keys.VerifySecureKeyHint, Keys.RecoveryVerifySecureKeyHint);
     public string ButtonText => Localize(Keys.RegistrationButton, Keys.RecoveryButton);
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";
@@ -102,7 +102,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     [Reactive] public bool HasServerError { get; private set; }
     [ObservableAsProperty] public bool CanSubmit { get; }
 
-    [ObservableAsProperty] public PasswordStrength CurrentSecureKeyStrength { get; private set; }
+    [ObservableAsProperty] public SecureKeyStrength CurrentSecureKeyStrength { get; private set; }
     [ObservableAsProperty] public string? SecureKeyStrengthMessage { get; private set; }
     [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
@@ -282,7 +282,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     private IObservable<bool> SetupSecureKeyValidation(IObservable<SystemU> validationTrigger)
     {
-        IObservable<(string? Error, string Recommendations, PasswordStrength Strength)> secureKeyValidation =
+        IObservable<(string? Error, string Recommendations, SecureKeyStrength Strength)> secureKeyValidation =
             validationTrigger
                 .Select(_ => ValidateSecureKeyWithStrength())
                 .Replay(1)
@@ -341,17 +341,17 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         return secureKeysMatch;
     }
 
-    private (string? Error, string Recommendations, PasswordStrength Strength) ValidateSecureKeyWithStrength()
+    private (string? Error, string Recommendations, SecureKeyStrength Strength) ValidateSecureKeyWithStrength()
     {
         string? error = null;
         string recommendations = string.Empty;
-        PasswordStrength strength = PasswordStrength.Invalid;
+        SecureKeyStrength strength = SecureKeyStrength.Invalid;
 
         _secureKeyBuffer.WithSecureBytes(bytes =>
         {
             string secureKey = Encoding.UTF8.GetString(bytes);
             (error, List<string> recs) = SecureKeyValidator.Validate(secureKey, LocalizationService);
-            strength = SecureKeyValidator.EstimatePasswordStrength(secureKey, LocalizationService);
+            strength = SecureKeyValidator.EstimateSecureKeyStrength(secureKey, LocalizationService);
             if (recs.Count > 0)
             {
                 recommendations = recs[0];
@@ -392,17 +392,17 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
     }
 
-    private string FormatSecureKeyStrengthMessage(PasswordStrength strength, string? error, string recommendations)
+    private string FormatSecureKeyStrengthMessage(SecureKeyStrength strength, string? error, string recommendations)
     {
         string strengthText = strength switch
         {
-            PasswordStrength.Invalid => LocalizationService[AuthenticationConstants.PasswordStrengthInvalidKey],
-            PasswordStrength.VeryWeak => LocalizationService[AuthenticationConstants.PasswordStrengthVeryWeakKey],
-            PasswordStrength.Weak => LocalizationService[AuthenticationConstants.PasswordStrengthWeakKey],
-            PasswordStrength.Good => LocalizationService[AuthenticationConstants.PasswordStrengthGoodKey],
-            PasswordStrength.Strong => LocalizationService[AuthenticationConstants.PasswordStrengthStrongKey],
-            PasswordStrength.VeryStrong => LocalizationService[AuthenticationConstants.PasswordStrengthVeryStrongKey],
-            _ => LocalizationService[AuthenticationConstants.PasswordStrengthInvalidKey]
+            SecureKeyStrength.Invalid => LocalizationService[AuthenticationConstants.SecureKeyStrengthInvalidKey],
+            SecureKeyStrength.VeryWeak => LocalizationService[AuthenticationConstants.SecureKeyStrengthVeryWeakKey],
+            SecureKeyStrength.Weak => LocalizationService[AuthenticationConstants.SecureKeyStrengthWeakKey],
+            SecureKeyStrength.Good => LocalizationService[AuthenticationConstants.SecureKeyStrengthGoodKey],
+            SecureKeyStrength.Strong => LocalizationService[AuthenticationConstants.SecureKeyStrengthStrongKey],
+            SecureKeyStrength.VeryStrong => LocalizationService[AuthenticationConstants.SecureKeyStrengthVeryStrongKey],
+            _ => LocalizationService[AuthenticationConstants.SecureKeyStrengthInvalidKey]
         };
 
         string message = !string.IsNullOrEmpty(error) ? error : recommendations;
@@ -435,7 +435,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
                 Task<Result<Unit, string>> completeTask = _flowContext == AuthenticationFlowContext.Registration
                     ? CompleteRegistrationAsync(connectId, operationToken)
-                    : CompletePasswordResetAsync(connectId, operationToken);
+                    : CompleteSecureKeyResetAsync(connectId, operationToken);
 
                 Result<Unit, string> result = await completeTask;
 
@@ -493,7 +493,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             cancellationToken);
     }
 
-    private async Task<Result<Unit, string>> CompletePasswordResetAsync(uint connectId,
+    private async Task<Result<Unit, string>> CompleteSecureKeyResetAsync(uint connectId,
         CancellationToken cancellationToken)
     {
         if (MembershipUniqueId == null)
@@ -502,7 +502,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 LocalizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
         }
 
-        return await _passwordRecoveryService!.CompletePasswordResetAsync(
+        return await _secureKeyRecoveryService!.CompleteSecureKeyResetAsync(
             MembershipUniqueId,
             _secureKeyBuffer,
             connectId,

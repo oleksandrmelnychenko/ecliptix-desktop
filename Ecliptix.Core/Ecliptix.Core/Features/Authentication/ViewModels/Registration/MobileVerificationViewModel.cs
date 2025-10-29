@@ -33,7 +33,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
     private readonly IAuthenticationService _authenticationService;
-    private readonly IPasswordRecoveryService? _passwordRecoveryService;
+    private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
     private readonly CompositeDisposable _disposables = new();
@@ -50,13 +50,13 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
         IAuthenticationService authenticationService,
-        IPasswordRecoveryService passwordRecoveryService,
+        ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
         connectivityService)
     {
         _registrationService = registrationService;
         _authenticationService = authenticationService;
-        _passwordRecoveryService = passwordRecoveryService;
+        _secureKeyRecoveryService = secureKeyRecoveryService;
         _connectivityService = connectivityService;
         _flowContext = flowContext;
         HostScreen = hostScreen;
@@ -64,10 +64,10 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         Log.Information("[MOBILE-VERIFICATION-VM] Initialized with flow context: {FlowContext}", flowContext);
 
-        if (_flowContext == AuthenticationFlowContext.PasswordRecovery && passwordRecoveryService == null)
+        if (_flowContext == AuthenticationFlowContext.SecureKeyRecovery && secureKeyRecoveryService == null)
         {
-            throw new ArgumentNullException(nameof(passwordRecoveryService),
-                "Password recovery service is required when flow context is PasswordRecovery");
+            throw new ArgumentNullException(nameof(secureKeyRecoveryService),
+                "Secure key recovery service is required when flow context is SecureKeyRecovery");
         }
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
@@ -389,7 +389,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             else
             {
                 Task<Result<ByteString, string>> recoveryValidationTask =
-                    _passwordRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber,
+                    _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber,
                         connectId, operationToken);
 
                 Result<ByteString, string> result = await recoveryValidationTask;
@@ -405,7 +405,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
                     VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
-                        _flowContext, _passwordRecoveryService);
+                        _flowContext, _secureKeyRecoveryService);
 
                     if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
                     {

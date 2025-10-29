@@ -28,8 +28,8 @@ public record AuthenticationFailure(
     public static AuthenticationFailure MobileNumberRequired(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.MobileNumberRequired, details, inner);
 
-    public static AuthenticationFailure PasswordRequired(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.PasswordRequired, details, inner);
+    public static AuthenticationFailure SecureKeyRequired(string details, Exception? inner = null) =>
+        new(AuthenticationFailureType.SecureKeyRequired, details, inner);
 
     public static AuthenticationFailure UnexpectedError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.UnexpectedError, details, inner);
@@ -82,7 +82,7 @@ public record AuthenticationFailure(
                 ErrorCode.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MaxAttempts),
             AuthenticationFailureType.MobileNumberRequired => new GrpcErrorDescriptor(
                 ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
-            AuthenticationFailureType.PasswordRequired => new GrpcErrorDescriptor(
+            AuthenticationFailureType.SecureKeyRequired => new GrpcErrorDescriptor(
                 ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
             AuthenticationFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
                 ErrorCode.ServiceUnavailable, StatusCode.Unavailable, ErrorI18nKeys.ServiceUnavailable, Retryable: true),

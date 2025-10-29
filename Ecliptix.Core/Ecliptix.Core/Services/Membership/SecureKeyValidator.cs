@@ -59,7 +59,7 @@ public static partial class SecureKeyValidator
             (s => s.Trim() != s, SecureKeyValidatorConstants.LocalizationKeys.NoSpaces, null),
             (s => CalculateTotalShannonEntropy(s) < SecureKeyValidatorConstants.ValidationRules.MinTotalEntropyBits,
                 SecureKeyValidatorConstants.LocalizationKeys.TooSimple, null),
-            (s => SecureKeyValidatorConstants.CommonlyUsedPasswords.Contains(s),
+            (s => SecureKeyValidatorConstants.CommonlyUsedSecureKeys.Contains(s),
                 SecureKeyValidatorConstants.LocalizationKeys.TooCommon, null),
             (IsSequentialOrKeyboardPattern, SecureKeyValidatorConstants.LocalizationKeys.SequentialPattern, null),
             (HasExcessiveRepeats, SecureKeyValidatorConstants.LocalizationKeys.RepeatedChars, null),
@@ -92,12 +92,12 @@ public static partial class SecureKeyValidator
         return (null, recommendations);
     }
 
-    public static PasswordStrength EstimatePasswordStrength(string secureKey, ILocalizationService localizationService)
+    public static SecureKeyStrength EstimateSecureKeyStrength(string secureKey, ILocalizationService localizationService)
     {
         (string? error, List<string> recommendations) = Validate(secureKey, localizationService, isSignIn: false);
         if (error != null)
         {
-            return PasswordStrength.Invalid;
+            return SecureKeyStrength.Invalid;
         }
 
         int score = 0;
@@ -128,12 +128,12 @@ public static partial class SecureKeyValidator
 
         score -= recommendations.Count;
 
-        PasswordStrength strength = score switch
+        SecureKeyStrength strength = score switch
         {
-            <= 2 => PasswordStrength.Weak,
-            <= 4 => PasswordStrength.Good,
-            <= 6 => PasswordStrength.Strong,
-            _ => PasswordStrength.VeryStrong
+            <= 2 => SecureKeyStrength.Weak,
+            <= 4 => SecureKeyStrength.Good,
+            <= 6 => SecureKeyStrength.Strong,
+            _ => SecureKeyStrength.VeryStrong
         };
         return strength;
     }

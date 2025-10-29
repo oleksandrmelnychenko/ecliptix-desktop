@@ -82,7 +82,7 @@ public static class OpaqueErrorMessages
 {
     public const string ServerPublicKeyInvalidSize = "Server public key must be exactly {0} bytes";
     public const string FailedToCreateOpaqueClient = "Failed to create OPAQUE client: {0}";
-    public const string PasswordNullOrEmpty = "Password cannot be null or empty";
+    public const string SecureKeyNullOrEmpty = "SecureKey cannot be null or empty";
     public const string FailedToCreateState = "Failed to create state: {0}";
     public const string FailedToCreateRegistrationRequest = "Failed to create registration request: {0}";
     public const string ServerResponseInvalidSize = "Server response must be exactly {0} bytes";

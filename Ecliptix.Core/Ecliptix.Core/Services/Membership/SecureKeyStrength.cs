@@ -1,6 +1,6 @@
 namespace Ecliptix.Core.Services.Membership;
 
-public enum PasswordStrength
+public enum SecureKeyStrength
 {
     Invalid,
     VeryWeak,

@@ -345,7 +345,7 @@ public static class Program
     {
         services.AddSingleton<IAuthenticationService, OpaqueAuthenticationService>();
         services.AddSingleton<IOpaqueRegistrationService, OpaqueRegistrationService>();
-        services.AddSingleton<IPasswordRecoveryService, PasswordRecoveryService>();
+        services.AddSingleton<ISecureKeyRecoveryService, SecureKeyRecoveryService>();
         services.AddSingleton<IIdentityService, IdentityService>();
 
         services.AddSingleton<IHardenedKeyDerivation, HardenedKeyDerivation>();

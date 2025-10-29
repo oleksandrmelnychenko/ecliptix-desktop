@@ -153,7 +153,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
     protected string GetSecureKeyLocalization(AuthenticationFlowContext flowContext, string registrationKey, string recoveryKey) => flowContext switch
     {
         AuthenticationFlowContext.Registration => LocalizationService[registrationKey],
-        AuthenticationFlowContext.PasswordRecovery => LocalizationService[recoveryKey],
+        AuthenticationFlowContext.SecureKeyRecovery => LocalizationService[recoveryKey],
         _ => LocalizationService[registrationKey]
     };
 

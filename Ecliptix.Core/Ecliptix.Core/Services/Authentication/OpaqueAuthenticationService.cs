@@ -51,7 +51,7 @@ internal sealed class OpaqueAuthenticationService(
     private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
 
     public async Task<Result<Unit, AuthenticationFailure>> SignInAsync(string mobileNumber,
-        SecureTextBuffer securePassword,
+        SecureTextBuffer secureKey,
         uint connectId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(mobileNumber))
@@ -61,35 +61,35 @@ internal sealed class OpaqueAuthenticationService(
                 AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
 
-        SensitiveBytes? passwordBytes = null;
+        SensitiveBytes? secureKeyBytes = null;
         Result<SensitiveBytes, SodiumFailure>? createResult = null;
 
         try
         {
-            securePassword.WithSecureBytes(passwordSpan => { createResult = SensitiveBytes.From(passwordSpan); });
+            secureKey.WithSecureBytes(secureKeySpan => { createResult = SensitiveBytes.From(secureKeySpan); });
 
             if (createResult == null || createResult.Value.IsErr)
             {
                 string errorMessage = createResult?.IsErr == true
-                    ? $"Failed to create secure password buffer: {createResult.Value.UnwrapErr().Message}"
+                    ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
                     : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(errorMessage));
+                return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(errorMessage));
             }
 
-            passwordBytes = createResult.Value.Unwrap();
+            secureKeyBytes = createResult.Value.Unwrap();
 
-            if (passwordBytes.Length != 0)
+            if (secureKeyBytes.Length != 0)
             {
-                return await ExecuteSignInFlowAsync(mobileNumber, passwordBytes, connectId, cancellationToken)
+                return await ExecuteSignInFlowAsync(mobileNumber, secureKeyBytes, connectId, cancellationToken)
                     .ConfigureAwait(false);
             }
 
             string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
-            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.PasswordRequired(requiredError));
+            return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(requiredError));
         }
         finally
         {
-            passwordBytes?.Dispose();
+            secureKeyBytes?.Dispose();
         }
     }
 
@@ -185,7 +185,7 @@ internal sealed class OpaqueAuthenticationService(
     }
 
     private async Task<Result<Unit, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber,
-        SensitiveBytes password,
+        SensitiveBytes secureKey,
         uint connectId, CancellationToken cancellationToken)
     {
         AuthenticationFailure? lastError = null;
@@ -201,22 +201,22 @@ internal sealed class OpaqueAuthenticationService(
 
                 using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
-                byte[]? passwordCopy = null;
+                byte[]? secureKeyCopy = null;
                 byte[]? ke2Data = null;
                 byte[]? ke3Data = null;
 
                 try
                 {
-                    Result<byte[], AuthenticationFailure> passwordResult = ValidateAndCopyPassword(password);
-                    if (passwordResult.IsErr)
+                    Result<byte[], AuthenticationFailure> secureKeyResult = ValidateAndCopySecureKey(secureKey);
+                    if (secureKeyResult.IsErr)
                     {
-                        lastError = passwordResult.UnwrapErr();
+                        lastError = secureKeyResult.UnwrapErr();
                         break;
                     }
 
-                    passwordCopy = passwordResult.Unwrap();
+                    secureKeyCopy = secureKeyResult.Unwrap();
 
-                    using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(passwordCopy);
+                    using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(secureKeyCopy);
 
                     OpaqueSignInInitRequest initRequest = new()
                     {
@@ -339,7 +339,7 @@ internal sealed class OpaqueAuthenticationService(
                 }
                 finally
                 {
-                    SecureCleanup(passwordCopy, ke2Data, ke3Data);
+                    SecureCleanup(secureKeyCopy, ke2Data, ke3Data);
                 }
             }
 
@@ -443,30 +443,30 @@ internal sealed class OpaqueAuthenticationService(
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
-    private Result<byte[], AuthenticationFailure> ValidateAndCopyPassword(SensitiveBytes password)
+    private Result<byte[], AuthenticationFailure> ValidateAndCopySecureKey(SensitiveBytes secureKey)
     {
-        byte[]? passwordCopy = null;
+        byte[]? secureKeyCopy = null;
 
-        Result<Unit, SodiumFailure> readResult = password.WithReadAccess(span =>
+        Result<Unit, SodiumFailure> readResult = secureKey.WithReadAccess(span =>
         {
-            passwordCopy = span.ToArray();
+            secureKeyCopy = span.ToArray();
             return Result<Unit, SodiumFailure>.Ok(Unit.Value);
         });
 
         if (readResult.IsErr)
         {
             return Result<byte[], AuthenticationFailure>.Err(
-                AuthenticationFailure.UnexpectedError($"Failed to read password: {readResult.UnwrapErr().Message}"));
+                AuthenticationFailure.UnexpectedError($"Failed to read secure key: {readResult.UnwrapErr().Message}"));
         }
 
-        if (passwordCopy != null && passwordCopy.Length != 0)
+        if (secureKeyCopy != null && secureKeyCopy.Length != 0)
         {
-            return Result<byte[], AuthenticationFailure>.Ok(passwordCopy);
+            return Result<byte[], AuthenticationFailure>.Ok(secureKeyCopy);
         }
 
         string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
         return Result<byte[], AuthenticationFailure>.Err(
-            AuthenticationFailure.PasswordRequired(requiredError));
+            AuthenticationFailure.SecureKeyRequired(requiredError));
     }
 
     private Result<byte[], AuthenticationFailure> PerformOpaqueKe3Exchange(
