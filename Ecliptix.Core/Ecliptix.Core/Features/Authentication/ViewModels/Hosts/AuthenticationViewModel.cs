@@ -267,7 +267,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     public void ClearNavigationStack(bool preserveInitialWelcome = false, MembershipViewType? preserveViewType = null)
     {
-        // Always reset current view state if it's resettable
         if (_currentView is IResettable currentResettable)
         {
             currentResettable.ResetState();
@@ -275,7 +274,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
         _navigationStack.Clear();
 
-        // Handle Welcome preservation (backward compatibility)
         if (preserveInitialWelcome)
         {
             try
@@ -291,7 +289,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             }
         }
 
-        // Handle other view type preservation
         if (preserveViewType.HasValue)
         {
             try
@@ -307,7 +304,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             }
         }
 
-        // Clear current view to ensure clean navigation
         _currentView = null;
         this.RaisePropertyChanged(nameof(CurrentView));
 
