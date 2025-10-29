@@ -498,23 +498,25 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 {
                     RxApp.MainThreadScheduler.Schedule(() =>
                     {
-                        if (!_isDisposed)
+                        if (_isDisposed)
                         {
-                            string error = result.UnwrapErr();
+                            return;
+                        }
 
-                            if (IsServerUnavailableError(error))
-                            {
-                                ErrorMessage = error;
-                                _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
-                                HasError = true;
-                                HasValidSession = false;
-                            }
-                            else
-                            {
-                                ErrorMessage = error;
-                                HasError = true;
-                                SecondsRemaining = 0;
-                            }
+                        string error = result.UnwrapErr();
+
+                        if (IsServerUnavailableError(error))
+                        {
+                            ErrorMessage = error;
+                            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
+                            HasError = true;
+                            HasValidSession = false;
+                        }
+                        else
+                        {
+                            ErrorMessage = error;
+                            HasError = true;
+                            SecondsRemaining = 0;
                         }
                     });
                 }
@@ -559,14 +561,16 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         CooldownBufferSeconds--;
                     }
 
-                    if (CooldownBufferSeconds == 0)
+                    if (CooldownBufferSeconds != 0)
                     {
-                        ErrorMessage = string.Empty;
-                        HasError = false;
-                        CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
-                        _cooldownTimer?.Dispose();
-                        _cooldownTimer = null;
+                        return;
                     }
+
+                    ErrorMessage = string.Empty;
+                    HasError = false;
+                    CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
+                    _cooldownTimer?.Dispose();
+                    _cooldownTimer = null;
                 });
         }
 

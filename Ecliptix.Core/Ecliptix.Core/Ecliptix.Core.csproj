@@ -63,10 +63,6 @@
       <DependentUpon>AuthorizationWindow.axaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="Views\Memberships\ForgotPasswordView.axaml.cs">
-      <DependentUpon>ForgotPasswordView.axaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Update="Views\Memberships\Components\TitleBar.axaml.cs">
       <DependentUpon>TitleBar.axaml</DependentUpon>
       <SubType>Code</SubType>

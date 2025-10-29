@@ -107,12 +107,17 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     [ObservableAsProperty] public bool HasSecureKeyBeenTouched { get; private set; }
     [ObservableAsProperty] public bool IsBusy { get; }
 
+    [Reactive] public bool IsMembershipLoading { get; private set; } = true;
+
     private ByteString? MembershipUniqueId { get; set; }
 
     private void SetupCommands(IObservable<bool> isFormLogicallyValid)
     {
-        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(x => x.IsBusy, x => x.IsInNetworkOutage,
-                (isBusy, isInOutage) => !isBusy && !isInOutage)
+        IObservable<bool> canExecuteSubmit = this.WhenAnyValue(
+                x => x.IsBusy,
+                x => x.IsInNetworkOutage,
+                x => x.IsMembershipLoading,
+                (isBusy, isInOutage, isMembershipLoading) => !isBusy && !isInOutage && !isMembershipLoading)
             .CombineLatest(isFormLogicallyValid, (canExecute, isValid) => canExecute && isValid);
 
         SubmitCommand = ReactiveCommand.CreateFromTask(SubmitAsync, canExecuteSubmit);
@@ -125,16 +130,26 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         this.WhenActivated(disposables =>
         {
             Observable.FromAsync(LoadMembershipAsync)
-                .Subscribe(result =>
-                {
-                    if (!result.IsErr)
+                .Subscribe(
+                    result =>
                     {
-                        return;
-                    }
+                        IsMembershipLoading = false;
 
-                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
-                })
+                        if (!result.IsErr)
+                        {
+                            return;
+                        }
+
+                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                    },
+                    error =>
+                    {
+                        IsMembershipLoading = false;
+                        Log.Error(error, "[SECUREKEYVERIFIER-VM] Unexpected error loading membership");
+                        ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                    })
                 .DisposeWith(disposables);
 
             this.WhenAnyValue(x => x.ServerError)
@@ -227,6 +242,9 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
         ServerError = string.Empty;
         HasServerError = false;
+
+        IsMembershipLoading = true;
+        MembershipUniqueId = null;
     }
 
     private string Localize(string registrationKey, string recoveryKey) =>

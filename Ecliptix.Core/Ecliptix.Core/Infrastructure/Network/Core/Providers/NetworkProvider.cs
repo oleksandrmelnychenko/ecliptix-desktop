@@ -1252,8 +1252,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     NetworkFailure failure = streamItem.UnwrapErr();
 
-                    if (failure.FailureType is not (NetworkFailureType.DataCenterNotResponding
-                        or NetworkFailureType.DataCenterShutdown))
+                    bool enteredOutage = Interlocked.CompareExchange(ref _outageState, 1, 0) == 0;
+
+                    if (!enteredOutage)
                     {
                         return Result<Unit, NetworkFailure>.Err(failure);
                     }
@@ -1263,6 +1264,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         _ = _connectivityService.PublishAsync(
                             ConnectivityIntent.Disconnected(failure, connectId));
                     });
+
+                    lock (_outageLock)
+                    {
+                        if (_outageCompletionSource.Task.IsCompleted)
+                        {
+                            _outageCompletionSource = CreateOutageTcs();
+                        }
+                    }
+
                     return Result<Unit, NetworkFailure>.Err(failure);
                 }
 
@@ -1285,6 +1295,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (_activeStreams.TryRemove(connectId, out _))
             {
             }
+        }
+
+        bool exitedOutage = Interlocked.CompareExchange(ref _outageState, 0, 1) == 1;
+
+        if (exitedOutage)
+        {
+            lock (_outageLock)
+            {
+                if (!_outageCompletionSource.Task.IsCompleted)
+                {
+                    _outageCompletionSource.TrySetResult(true);
+                }
+            }
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                _ = _connectivityService.PublishAsync(
+                    ConnectivityIntent.Connected(connectId));
+            });
         }
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -2102,7 +2131,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            rootKeyBytes = new byte[32];
+            rootKeyBytes = new byte[CryptographicConstants.AesKeySize];
             HKDF.DeriveKey(
                 HashAlgorithmName.SHA256,
                 ikm: masterKeyBytes,
@@ -2160,18 +2189,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (serverResponseResult.IsErr)
                 {
                     NetworkFailure failure = serverResponseResult.UnwrapErr();
-
-                    if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
-                    {
-                        Log.Error(
-                            "[CLIENT-AUTH-CRITICAL-FAILURE] Critical authentication failure - server cannot derive identity keys. ConnectId: {ConnectId}, Error: {Error}",
-                            connectId, failure.Message);
-
-                        await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
-
-                        return Result<Unit, NetworkFailure>.Err(failure);
-                    }
-
                     await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     return Result<Unit, NetworkFailure>.Err(failure);
                 }
@@ -2208,12 +2225,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     await CleanupFailedAuthenticationAsync(connectId).ConfigureAwait(false);
                     return Result<Unit, NetworkFailure>.Err(
                         completeResult.UnwrapErr().ToNetworkFailure());
-                }
-
-                EcliptixProtocolConnection? tempConn = newProtocol.GetConnection();
-                if (tempConn != null)
-                {
-                    Result<RatchetState, EcliptixProtocolFailure> tempStateResult = tempConn.ToProtoState();
                 }
 
                 _connections.TryAdd(connectId, newProtocol);
