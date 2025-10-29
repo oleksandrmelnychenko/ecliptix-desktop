@@ -150,6 +150,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
                 IRoutableViewModel previousView = _navigationStack.Pop();
 
+                if (previousView is IResettable previousResettable)
+                {
+                    previousResettable.ResetState();
+                }
+
                 _currentView = previousView;
                 this.RaisePropertyChanged(nameof(CurrentView));
                 CanNavigateBack = _navigationStack.Count > 0;
@@ -159,6 +164,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
             return null;
         });
+
 
         CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
         {
@@ -259,16 +265,22 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
 
-    public void ClearNavigationStack(bool preserveInitialWelcome = false)
+    public void ClearNavigationStack(bool preserveInitialWelcome = false, MembershipViewType? preserveViewType = null)
     {
+        if (_currentView is IResettable currentResettable)
+        {
+            currentResettable.ResetState();
+        }
+
         _navigationStack.Clear();
 
         if (preserveInitialWelcome)
         {
             try
             {
-                IRoutableViewModel welcomeView =
-                    GetOrCreateViewModelForView(MembershipViewType.Welcome, resetState: true);
+                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(
+                    MembershipViewType.Welcome,
+                    resetState: true);
                 _navigationStack.Push(welcomeView);
             }
             catch (Exception ex)
@@ -277,8 +289,29 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             }
         }
 
+        if (preserveViewType.HasValue)
+        {
+            try
+            {
+                IRoutableViewModel preservedView = GetOrCreateViewModelForView(
+                    preserveViewType.Value,
+                    resetState: true);
+                _navigationStack.Push(preservedView);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to preserve {ViewType} view in navigation stack", preserveViewType.Value);
+            }
+        }
+
+        _currentView = null;
+        this.RaisePropertyChanged(nameof(CurrentView));
+
         CanNavigateBack = _navigationStack.Count > 0;
     }
+
+
+
 
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {

@@ -169,7 +169,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Where(_ => !IsBusy && CanSubmit)
                 .Subscribe(_ =>
                 {
-                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
+                    ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
                     ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
                 })
                 .DisposeWith(disposables);

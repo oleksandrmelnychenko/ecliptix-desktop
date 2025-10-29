@@ -408,8 +408,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                         Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
                 }
 
+                hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerification);
                 NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
-                hostWindow.ClearNavigationStack(true);
             }
 
             if (HasValidSession)
