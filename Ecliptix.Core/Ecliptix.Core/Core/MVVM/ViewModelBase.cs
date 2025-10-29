@@ -141,8 +141,8 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
     {
-        membershipHostWindow.Navigate.Execute(targetView).Subscribe();
         membershipHostWindow.ClearNavigationStack();
+        membershipHostWindow.Navigate.Execute(targetView).Subscribe();
 
         _ = Task.Run(async () =>
         {
