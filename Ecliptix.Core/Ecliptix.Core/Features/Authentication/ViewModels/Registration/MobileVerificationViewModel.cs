@@ -25,6 +25,7 @@ using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
 using Unit = System.Reactive.Unit;
+using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 
@@ -77,30 +78,18 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public string? UrlPathSegment { get; } = "/mobile-verification";
     public IScreen HostScreen { get; }
 
-    public string Title => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.MobileVerificationKeys.RegistrationTitle,
-        AuthenticationConstants.MobileVerificationKeys.RecoveryTitle);
+    private string Localize(string registrationKey, string recoveryKey) =>
+        GetSecureKeyLocalization(_flowContext, registrationKey, recoveryKey);
 
-    public string Description => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.MobileVerificationKeys.RegistrationDescription,
-        AuthenticationConstants.MobileVerificationKeys.RecoveryDescription);
+    public string Title => Localize(Keys.RegistrationTitle, Keys.RecoveryTitle);
 
-    public string Hint => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.MobileVerificationKeys.RegistrationHint,
-        AuthenticationConstants.MobileVerificationKeys.RecoveryHint);
+    public string Description => Localize(Keys.RegistrationDescription, Keys.RecoveryDescription);
 
-    public string Watermark => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.MobileVerificationKeys.RegistrationWatermark,
-        AuthenticationConstants.MobileVerificationKeys.RecoveryWatermark);
+    public string Hint => Localize(Keys.RegistrationHint, Keys.RecoveryHint);
 
-    public string ButtonText => GetSecureKeyLocalization(
-        _flowContext,
-        AuthenticationConstants.MobileVerificationKeys.RegistrationButton,
-        AuthenticationConstants.MobileVerificationKeys.RecoveryButton);
+    public string Watermark => Localize(Keys.RegistrationWatermark, Keys.RecoveryWatermark);
+
+    public string ButtonText => Localize(Keys.RegistrationButton, Keys.RecoveryButton);
 
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
