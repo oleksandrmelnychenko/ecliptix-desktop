@@ -171,10 +171,7 @@ public sealed class RetryStrategy : IRetryStrategy
                     serviceType,
                     cancellationToken);
 
-            Context context = new(operationName)
-            {
-                [AttemptKey] = 1
-            };
+            Context context = new(operationName) { [AttemptKey] = 1 };
 
             Result<TResponse, NetworkFailure> result = await retryPolicy.ExecuteAsync(
                 (ctx, ct) => ExecuteOperationWithLogging(ctx, ct, operation, operationName),
@@ -285,8 +282,8 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             List<string> exhaustedKeys = [];
             exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
-                                   where operation.IsExhausted
-                                   select operation.UniqueKey);
+                where operation.IsExhausted
+                select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {
@@ -356,10 +353,14 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             ClearExhaustedOperations();
 
-            bool anySucceeded = await RetryAllExhaustedOperationsAsync().ConfigureAwait(false);
+            NetworkProvider networkProvider = GetNetworkProvider();
+            Result<Unit, NetworkFailure> retryResult =
+                await networkProvider.ForceFreshConnectionAsync().ConfigureAwait(false);
 
-            if (anySucceeded)
+            if (retryResult.IsOk)
             {
+                Log.Information("🔄 MANUAL RETRY: Connection restored successfully");
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     try
@@ -377,7 +378,21 @@ public sealed class RetryStrategy : IRetryStrategy
             }
             else
             {
-                Log.Information("🔄 MANUAL RETRY: Operations failed. Will retry via normal retry strategy");
+                NetworkFailure failure = retryResult.UnwrapErr();
+                Log.Warning("🔄 MANUAL RETRY: Connection restore failed: {Error}", failure.Message);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try
+                    {
+                        _ = _connectivityService.PublishAsync(
+                            ConnectivityIntent.Disconnected(failure, evt.ConnectId));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Failed to notify UI of disconnected state");
+                    }
+                });
             }
         }
         catch (Exception ex)
@@ -647,7 +662,7 @@ public sealed class RetryStrategy : IRetryStrategy
                             ConnectivityIntent.Recovering(recoveringFailure, connectId, retryCount + 1, delay))
                         .ConfigureAwait(false);
 
-                    if (retryCount >= retryDelays.Length)
+                    if (retryCount == retryDelays.Length)
                     {
                         Log.Warning(
                             "🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries} exhausted all retries",
@@ -783,12 +798,7 @@ public sealed class RetryStrategy : IRetryStrategy
             return;
         }
 
-        NetworkProvider? networkProvider = GetNetworkProvider();
-        if (networkProvider == null)
-        {
-            Log.Debug("NetworkProvider not available for connection recovery");
-            return;
-        }
+        NetworkProvider networkProvider = GetNetworkProvider();
 
         try
         {
@@ -817,7 +827,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
-                // Connection successfully restored.
+                //TODO: Connection successfully restored.
             }
             else if (restoreResult.IsErr)
             {
@@ -831,17 +841,9 @@ public sealed class RetryStrategy : IRetryStrategy
         }
     }
 
-    private NetworkProvider? GetNetworkProvider()
+    private NetworkProvider GetNetworkProvider()
     {
-        try
-        {
-            return _lazyNetworkProvider?.Value;
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Failed to get NetworkProvider instance");
-            return null;
-        }
+        return _lazyNetworkProvider!.Value;
     }
 
     private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime)
