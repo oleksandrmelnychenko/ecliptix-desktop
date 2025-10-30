@@ -15,9 +15,12 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Core.Services.Common;
+using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
+using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -618,7 +621,35 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, errorMessage);
         HasError = true;
         HasValidSession = false;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await EnsureProtocolInBackground();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "[VERIFY-OTP] Background secrecy channel establishment failed");
+            }
+        });
         return 0;
+    }
+
+    private async Task EnsureProtocolInBackground()
+    {
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settings =
+            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
+        if (settings.IsOk)
+        {
+            Result<uint, NetworkFailure> ensureResult = await NetworkProvider.EnsureProtocolForTypeAsync(
+                PubKeyExchangeType.DataCenterEphemeralConnect);
+
+            if (ensureResult.IsErr)
+            {
+                Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
+                    ensureResult.UnwrapErr().Message);
+            }
+        }
     }
 
     private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizedMessage = "")
@@ -660,6 +691,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 if (!_isDisposed)
                 {
                     _ = CleanupAndNavigateAsync(targetView);
+
                 }
             });
         }

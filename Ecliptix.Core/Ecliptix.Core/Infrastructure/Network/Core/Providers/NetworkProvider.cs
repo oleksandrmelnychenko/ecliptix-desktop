@@ -1252,26 +1252,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     NetworkFailure failure = streamItem.UnwrapErr();
 
-                    bool enteredOutage = Interlocked.CompareExchange(ref _outageState, 1, 0) == 0;
-
-                    if (!enteredOutage)
-                    {
-                        return Result<Unit, NetworkFailure>.Err(failure);
-                    }
-
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         _ = _connectivityService.PublishAsync(
                             ConnectivityIntent.Disconnected(failure, connectId));
                     });
-
-                    lock (_outageLock)
-                    {
-                        if (_outageCompletionSource.Task.IsCompleted)
-                        {
-                            _outageCompletionSource = CreateOutageTcs();
-                        }
-                    }
 
                     return Result<Unit, NetworkFailure>.Err(failure);
                 }
