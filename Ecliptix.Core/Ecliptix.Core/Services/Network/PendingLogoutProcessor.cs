@@ -5,6 +5,7 @@ using Ecliptix.Core.Infrastructure.Data;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Protobuf.Membership;
+using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Membership;
 using Ecliptix.Utilities.Failures.Network;
@@ -69,11 +70,34 @@ internal sealed class PendingLogoutProcessor(
                     networkResult.UnwrapErr().Message);
                 pendingLogoutStorage.ClearPendingLogout();
                 Log.Warning("[PENDING-LOGOUT-RETRY] Deleting corrupted expired pending logout");
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await EnsureProtocolInBackground();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "[VERIFY-OTP] Background secrecy channel establishment failed");
+                    }
+                });
             }
         }
         catch (Exception ex)
         {
             Log.Error(ex, "[PENDING-LOGOUT-RETRY] Unexpected error processing pending logout");
+        }
+    }
+
+    private async Task EnsureProtocolInBackground()
+    {
+        Result<uint, NetworkFailure> ensureResult = await networkProvider.EnsureProtocolForTypeAsync(
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        if (ensureResult.IsErr)
+        {
+            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
+                ensureResult.UnwrapErr().Message);
         }
     }
 }

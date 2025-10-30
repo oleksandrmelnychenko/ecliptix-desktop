@@ -637,18 +637,13 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task EnsureProtocolInBackground()
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settings =
-            await _applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync();
-        if (settings.IsOk)
-        {
-            Result<uint, NetworkFailure> ensureResult = await NetworkProvider.EnsureProtocolForTypeAsync(
-                PubKeyExchangeType.DataCenterEphemeralConnect);
+        Result<uint, NetworkFailure> ensureResult = await NetworkProvider.EnsureProtocolForTypeAsync(
+            PubKeyExchangeType.DataCenterEphemeralConnect);
 
-            if (ensureResult.IsErr)
-            {
-                Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
-                    ensureResult.UnwrapErr().Message);
-            }
+        if (ensureResult.IsErr)
+        {
+            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
+                ensureResult.UnwrapErr().Message);
         }
     }
 

@@ -2100,6 +2100,25 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ByteString membershipIdentifier,
         uint connectId)
     {
+        RetryBehavior retryBehavior =
+            _retryPolicyProvider.GetRetryBehavior(RpcServiceType.EstablishAuthenticatedSecureChannel);
+        return await _retryStrategy.ExecuteRpcOperationAsync(
+            async (attempt, ct) => await RecreateProtocolWithMasterKeyAsyncInternal(
+                masterKeyHandle,
+                membershipIdentifier,
+                connectId).ConfigureAwait(false),
+            "RecreateProtocolWithMasterKey",
+            connectId,
+            serviceType: RpcServiceType.EstablishAuthenticatedSecureChannel,
+            maxRetries: retryBehavior.MaxAttempts - 1,
+            cancellationToken: CancellationToken.None).ConfigureAwait(false);
+    }
+
+    private async Task<Result<Unit, NetworkFailure>> RecreateProtocolWithMasterKeyAsyncInternal(
+        SodiumSecureMemoryHandle masterKeyHandle,
+        ByteString membershipIdentifier,
+        uint connectId)
+    {
         byte[]? masterKeyBytes = null;
         byte[]? rootKeyBytes = null;
 
