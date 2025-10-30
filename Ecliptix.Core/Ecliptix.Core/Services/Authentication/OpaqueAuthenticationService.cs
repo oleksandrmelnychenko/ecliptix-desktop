@@ -145,6 +145,7 @@ internal sealed class OpaqueAuthenticationService(
 
                 if (!isRetryableError || attempt >= maxProtocolRecreateAttempts)
                 {
+                    networkProvider.ExitOutage();
                     return Result<Unit, AuthenticationFailure>.Err(lastError);
                 }
 
@@ -155,6 +156,7 @@ internal sealed class OpaqueAuthenticationService(
                 networkProvider.ClearExhaustedOperations();
             }
 
+            networkProvider.ExitOutage();
             return Result<Unit, AuthenticationFailure>.Err(lastError ??
                                                            AuthenticationFailure.NetworkRequestFailed(
                                                                "Protocol recreation failed after retries"));
@@ -421,6 +423,7 @@ internal sealed class OpaqueAuthenticationService(
 
             if (!isRetryableError || attempt >= MaxSignInFlowAttempts)
             {
+                networkProvider.ExitOutage();
                 return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError);
             }
 
@@ -431,6 +434,7 @@ internal sealed class OpaqueAuthenticationService(
             networkProvider.ClearExhaustedOperations();
         }
 
+        networkProvider.ExitOutage();
         return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError ??
                                                                    AuthenticationFailure.UnexpectedError(
                                                                        "Sign-in flow failed"));

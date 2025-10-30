@@ -1467,7 +1467,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private void ExitOutage()
+    internal void ExitOutage()
     {
         if (Interlocked.Exchange(ref _outageState, 0) == 0)
         {
