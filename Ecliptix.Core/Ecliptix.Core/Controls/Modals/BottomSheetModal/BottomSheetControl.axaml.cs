@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -13,6 +14,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using ReactiveUI;
 using Serilog;
 using Splat;
@@ -61,6 +63,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         InitializeComponent();
         InitializeDefaults();
+        Focusable = true;
     }
 
     public IBrush DismissableScrimColor
@@ -119,9 +122,17 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _disposed = true;
     }
 
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        KeyDown += OnKeyDown;
+    }
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
+        KeyDown -= OnKeyDown;
         Dispose();
     }
 
@@ -230,10 +241,21 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         this.WhenAnyValue(x => x.ViewModel!.IsVisible)
             .Skip(1)
             .ObserveOn(RxApp.MainThreadScheduler)
-            .Subscribe(async isVisible => await OnVisibilityChanged(isVisible))
+            .Subscribe(async void (isVisible) =>
+            {
+                try
+                {
+                    await OnVisibilityChanged(isVisible);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "[BottomSheetControl] Error during visibility change to {IsVisible}", isVisible);
+                }
+            })
             .DisposeWith(disposables);
     }
 
+    private IInputElement? _previousFocusedElement;
     private async Task OnVisibilityChanged(bool isVisible)
     {
         Log.Debug("[BottomSheetControl] Visibility changed: {IsVisible}", isVisible);
@@ -266,12 +288,57 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         if (isVisible)
         {
+            Log.Information("Sheet is showing. Storing previous focus.");
+            try
+            {
+                TopLevel? visualRoot = _rootGrid.GetVisualRoot() as TopLevel;
+                _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
+                Log.Information("Stored previous focused element: {Element}", _previousFocusedElement?.GetType().Name ?? "null"); // Added
+            }
+            catch
+            {
+                Log.Information("Exception while getting previous focus. Setting to null.");
+                _previousFocusedElement = null;
+            }
             UpdateSheetHeight();
             await ShowBottomSheet();
+            Focus();
         }
         else
         {
+            Log.Information("Sheet is hiding. Restoring previous focus.");
             await HideBottomSheet();
+            try
+            {
+                if (_previousFocusedElement is { } previous)
+                {
+                    Log.Information("Restoring focus to previous element: {Element}", previous.GetType().Name);
+                     previous.Focus();
+                    _previousFocusedElement = null;
+                }
+                else if (Parent is Control parentControl)
+                {
+                    Log.Information("No previous element found. Falling back to focus parent: {Element}", parentControl.GetType().Name);
+                    parentControl.Focus();
+                }
+                else
+                {
+                    Log.Information("No previous element and no parent to focus.");
+                }
+            }
+            catch
+            {
+                Log.Information("Exception while restoring focus. Attempting fallback to parent.");
+                if (Parent is Control fallbackParent)
+                {
+                    Log.Information("Restoring focus to fallback parent: {Element}", fallbackParent.GetType().Name);
+                    fallbackParent.Focus();
+                }
+                else
+                {
+                    Log.Information("Fallback focus failed. No parent found.");
+                }
+            }
         }
     }
 
@@ -470,4 +537,29 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             ViewModel.BottomSheetDismissed();
         }
     }
+
+    private static readonly FrozenDictionary<Key, Func<BottomSheetControl, bool>> DismissKeys =
+        new Dictionary<Key, Func<BottomSheetControl, bool>>
+        {
+            { Key.Enter, control => control.IsDismissableOnScrimClick },
+            { Key.Escape, control => control.IsDismissableOnScrimClick },
+            { Key.Space, control => control.IsDismissableOnScrimClick }
+        }.ToFrozenDictionary();
+
+    private async void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DismissKeys.TryGetValue(e.Key, out Func<BottomSheetControl, bool>? shouldDismiss) &&
+            shouldDismiss(this) &&
+            ViewModel is not null &&
+            !_isAnimating)
+        {
+            ViewModel.IsVisible = false;
+
+            await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
+
+            ViewModel.BottomSheetDismissed();
+            e.Handled = true;
+        }
+    }
+
 }
