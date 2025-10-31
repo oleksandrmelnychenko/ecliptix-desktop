@@ -276,6 +276,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (enablePendingRegistration && mappedResult.IsOk)
         {
             _pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, exchangeType));
+            ExitOutage();
         }
 
         return mappedResult;
@@ -461,6 +462,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
                 {
                     ExitOutage();
+                    Log.Information("[OUTAGE RECOVERED] Network operations have resumed successfully.");
                 }
 
                 return networkResult;
@@ -2091,7 +2093,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         RetryBehavior retryBehavior =
             _retryPolicyProvider.GetRetryBehavior(RpcServiceType.EstablishAuthenticatedSecureChannel);
-        return await _retryStrategy.ExecuteRpcOperationAsync(
+        Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteRpcOperationAsync(
             async (attempt, ct) => await RecreateProtocolWithMasterKeyAsyncInternal(
                 masterKeyHandle,
                 membershipIdentifier,
@@ -2101,6 +2103,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             serviceType: RpcServiceType.EstablishAuthenticatedSecureChannel,
             maxRetries: retryBehavior.MaxAttempts - 1,
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
+
+        if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
+        {
+            ExitOutage();
+            Log.Information("[OUTAGE RECOVERED] Network operations have resumed successfully.");
+        }
+        return networkResult;
     }
 
     private async Task<Result<Unit, NetworkFailure>> RecreateProtocolWithMasterKeyAsyncInternal(

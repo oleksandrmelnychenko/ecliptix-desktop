@@ -62,10 +62,20 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
                         operationCts.Token).ConfigureAwait(false);
                     return result;
                 }
+                catch (TimeoutException ex)
+                {
+                    return Result<Unit, LogoutFailure>.Err(
+                        LogoutFailure.NetworkRequestFailed("Logout timed out - secrecy channel not restored.", ex));
+                }
                 catch (OperationCanceledException ex)
                 {
                     return Result<Unit, LogoutFailure>.Err(
                         LogoutFailure.NetworkRequestFailed("Logout cancelled.", ex));
+                }
+                catch (Exception ex)
+                {
+                    return Result<Unit, LogoutFailure>.Err(
+                        LogoutFailure.NetworkRequestFailed("Logout failed due to an unexpected error.", ex));
                 }
                 finally
                 {

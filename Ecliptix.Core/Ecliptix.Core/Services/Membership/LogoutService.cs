@@ -203,7 +203,8 @@ internal sealed class LogoutService(
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             },
             allowDuplicates: false,
-            token: cancellationToken).ConfigureAwait(false);
+            token: cancellationToken,
+            waitForRecovery: false).ConfigureAwait(false);
 
         if (networkResult.IsErr)
         {
