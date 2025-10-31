@@ -407,6 +407,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             tokenRegistration = cancellationToken.Register(() =>
             {
+                //TODO: check dispose
                 if (!cancellationTokenSource.IsCancellationRequested)
                 {
                     cancellationTokenSource.Cancel();
@@ -515,7 +516,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         catch (OperationCanceledException) when (_shutdownCancellationToken.IsCancellationRequested)
         {
-            return;
         }
         finally
         {
@@ -640,12 +640,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (syncResult.IsErr)
                 {
                     EcliptixProtocolFailure error = syncResult.UnwrapErr();
-                    if (error.Message.Contains("Session validation failed"))
-                    {
-                        return Result<bool, NetworkFailure>.Ok(false);
-                    }
-
-                    return Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
+                    //TODO: fix it.
+                    return error.Message.Contains("Session validation failed")
+                        ? Result<bool, NetworkFailure>.Ok(false)
+                        : Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
                 }
 
                 if (enablePendingRegistration)
@@ -718,13 +716,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Result<Option<EcliptixSessionState>, NetworkFailure> establishOptionResult =
             await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType).ConfigureAwait(false);
 
-        if (establishOptionResult.IsErr)
+        if (!establishOptionResult.IsErr)
         {
-            _connections.TryRemove(connectId, out _);
-            return Result<uint, NetworkFailure>.Err(establishOptionResult.UnwrapErr());
+            return Result<uint, NetworkFailure>.Ok(connectId);
         }
 
-        return Result<uint, NetworkFailure>.Ok(connectId);
+        _connections.TryRemove(connectId, out _);
+        return Result<uint, NetworkFailure>.Err(establishOptionResult.UnwrapErr());
     }
 
     private void CancelOperationsForConnection(uint connectId)
@@ -1851,17 +1849,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (stateResult.IsErr)
         {
-            if (failOnMissingState)
-            {
-                return Result<Unit, NetworkFailure>.Err(
-                    NetworkFailure.DataCenterNotResponding("No stored state for immediate recovery"));
-            }
-
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding(failureMessage));
+            return Result<Unit, NetworkFailure>.Err(failOnMissingState
+                ? NetworkFailure.DataCenterNotResponding("No stored state for immediate recovery")
+                : NetworkFailure.DataCenterNotResponding(failureMessage));
         }
 
-        bool restorationSucceeded = false;
+        bool restorationSucceeded;
         try
         {
             byte[] stateBytes = stateResult.Unwrap();
@@ -1995,12 +1988,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         ApplicationInstanceSettings settings = _applicationInstanceSettings.Value!;
-        if (settings.Membership == null)
-        {
-            return null;
-        }
 
-        return settings.Membership.UniqueIdentifier.ToByteArray();
+        return settings.Membership?.UniqueIdentifier.ToByteArray();
     }
 
     private async Task PersistSessionStateAsync(EcliptixSessionState state, uint connectId,
@@ -2058,7 +2047,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldSystem))
                     {
-                        oldSystem?.Dispose();
+                        oldSystem.Dispose();
                     }
 
                     Result<Option<EcliptixSessionState>, NetworkFailure> reEstablishResult =
@@ -2162,7 +2151,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 oldProtocol?.Dispose();
             }
 
-            PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
+            const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
             EcliptixProtocolSystem? newProtocol = new(identityKeys);
 
             try
