@@ -396,7 +396,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             Membership membership = result.Unwrap();
 
-            if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+            if (HostScreen is AuthenticationViewModel hostWindow)
             {
                 await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
 
@@ -432,11 +432,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         }
         else
         {
-            if (!_isDisposed)
-            {
-                ErrorMessage = result.UnwrapErr();
-                IsSent = false;
-            }
+            ErrorMessage = result.UnwrapErr();
+            IsSent = false;
         }
     }
 

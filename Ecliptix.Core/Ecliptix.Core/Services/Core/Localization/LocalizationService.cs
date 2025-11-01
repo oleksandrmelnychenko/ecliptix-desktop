@@ -95,7 +95,7 @@ internal sealed class LocalizationService : ILocalizationService
         {
             OnLanguageChanged();
             NotifyAllPropertiesChanged();
-            onCultureChanged?.Invoke();
+            onCultureChanged.Invoke();
         }
     }
 

@@ -370,7 +370,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         ShowError(statusResult.UnwrapErr());
                     }
                 }
-                else if (!_isDisposed)
+                else
                 {
                     ShowError(result.UnwrapErr());
                 }
@@ -396,13 +396,13 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
                         _flowContext, _secureKeyRecoveryService);
 
-                    if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+                    if (HostScreen is AuthenticationViewModel hostWindow)
                     {
                         hostWindow.RecoveryMobileNumber = MobileNumber;
                         hostWindow.NavigateToViewModel(vm);
                     }
                 }
-                else if (!_isDisposed)
+                else
                 {
                     ShowError(result.UnwrapErr());
                 }
@@ -442,7 +442,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
 
-        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+        if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.NavigateToViewModel(vm);
@@ -458,7 +458,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return Task.CompletedTask;
         }
 
-        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+        if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();

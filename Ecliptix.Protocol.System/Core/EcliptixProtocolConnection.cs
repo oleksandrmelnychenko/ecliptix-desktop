@@ -148,7 +148,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 initialSendingDhPrivateKeyHandle.ReadBytes(Constants.X25519PrivateKeySize);
             if (readBytesResult.IsErr)
             {
-                initialSendingDhPrivateKeyHandle?.Dispose();
+                initialSendingDhPrivateKeyHandle.Dispose();
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(
                     readBytesResult.UnwrapErr().ToEcliptixProtocolFailure());
             }
@@ -159,7 +159,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
                 SodiumInterop.GenerateX25519KeyPair(EcliptixProtocolFailureMessages.PersistentDhKeyPurpose);
             if (persistentKeysResult.IsErr)
             {
-                initialSendingDhPrivateKeyHandle?.Dispose();
+                initialSendingDhPrivateKeyHandle.Dispose();
                 WipeIfNotNull(initialSendingDhPrivateKeyBytes);
                 return Result<EcliptixProtocolConnection, EcliptixProtocolFailure>.Err(persistentKeysResult
                     .UnwrapErr());
