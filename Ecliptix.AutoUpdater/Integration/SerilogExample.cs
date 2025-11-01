@@ -169,7 +169,7 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void OnUpdateAvailable(object? sender, UpdateCheckResult result)
+    private void OnUpdateAvailable(object? _, UpdateCheckResult result)
     {
         Log.Information(
             "Update available: {CurrentVersion} -> {LatestVersion}, Critical: {IsCritical}",

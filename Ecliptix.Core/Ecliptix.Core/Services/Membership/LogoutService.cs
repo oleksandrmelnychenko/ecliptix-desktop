@@ -100,7 +100,7 @@ internal sealed class LogoutService(
         string membershipId,
         LogoutReason reason,
         uint connectId,
-        string failureContext,
+        string _,
         CancellationToken cancellationToken)
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);

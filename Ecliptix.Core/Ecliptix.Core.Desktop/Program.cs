@@ -222,7 +222,7 @@ public static class Program
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
     }
 
-    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration)
+    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration _)
     {
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
         {

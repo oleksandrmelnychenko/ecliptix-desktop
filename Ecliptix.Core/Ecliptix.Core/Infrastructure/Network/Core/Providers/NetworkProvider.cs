@@ -810,7 +810,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     private void InitiateEcliptixProtocolSystemForType(uint connectId,
-        PubKeyExchangeType exchangeType)
+        PubKeyExchangeType _)
     {
         EcliptixSystemIdentityKeys identityKeys =
             EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
@@ -954,7 +954,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private static Result<SecureEnvelope, NetworkFailure> EncryptPayload(
         EcliptixProtocolSystem protocolSystem,
-        RpcServiceType serviceType,
+        RpcServiceType _,
         byte[] plainBuffer)
     {
         Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
@@ -1350,7 +1350,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> _,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
@@ -1389,7 +1389,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> _,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
