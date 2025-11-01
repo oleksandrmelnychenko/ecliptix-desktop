@@ -33,7 +33,7 @@ public static class GrpcMetadataHandler
         string? localIpAddress = null,
         string? publicIpAddress = null,
         string? platform = null,
-        Guid operationId = default)
+        Guid _ = default)
     {
         Metadata metadata = new()
         {

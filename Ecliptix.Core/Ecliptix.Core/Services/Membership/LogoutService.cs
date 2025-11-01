@@ -36,7 +36,9 @@ internal sealed class LogoutService(
 {
     private readonly PendingLogoutRequestStorage _pendingLogoutRequestStorage = new(applicationSecureStorageProvider);
     private readonly LogoutProofHandler _logoutProofHandler = new(identityService, applicationSecureStorageProvider);
-    private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
+
+    private readonly PendingLogoutProcessor _pendingLogoutProcessor =
+        new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
     private const bool KeepPendingLogout = true;
     private const bool ClearPendingLogout = false;
@@ -68,7 +70,7 @@ internal sealed class LogoutService(
         if (logoutResult.IsErr)
         {
             return await HandleFailedLogoutAsync(logoutRequest, membershipId, reason, connectId,
-                "Logout failed", cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
 
         LogoutResponse response = logoutResult.Unwrap();
@@ -100,7 +102,6 @@ internal sealed class LogoutService(
         string membershipId,
         LogoutReason reason,
         uint connectId,
-        string _,
         CancellationToken cancellationToken)
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);
@@ -249,7 +250,8 @@ internal sealed class LogoutService(
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
-    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, bool shouldRetryPendingLogout, CancellationToken cancellationToken)
+    private async Task FinalizeLogoutAsync(string membershipId, LogoutReason reason, bool shouldRetryPendingLogout,
+        CancellationToken cancellationToken)
     {
         await stateManager.TransitionToAnonymousAsync().ConfigureAwait(false);
 
@@ -265,7 +267,8 @@ internal sealed class LogoutService(
                 try
                 {
                     Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-                        await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync().ConfigureAwait(false);
+                        await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync()
+                            .ConfigureAwait(false);
 
                     if (settingsResult.IsOk)
                     {
@@ -274,11 +277,14 @@ internal sealed class LogoutService(
                             settings,
                             PubKeyExchangeType.DataCenterEphemeralConnect);
 
-                        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId).ConfigureAwait(false);
+                        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId)
+                            .ConfigureAwait(false);
                     }
                     else
                     {
-                        Log.Warning("[LOGOUT-RETRY] Failed to get settings for immediate retry: {Error}, will retry on next startup", settingsResult.UnwrapErr().Message);
+                        Log.Warning(
+                            "[LOGOUT-RETRY] Failed to get settings for immediate retry: {Error}, will retry on next startup",
+                            settingsResult.UnwrapErr().Message);
                     }
                 }
                 catch (Exception ex)

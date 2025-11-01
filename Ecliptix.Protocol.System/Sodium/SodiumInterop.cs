@@ -13,33 +13,28 @@ internal static partial class SodiumInterop
 
     private const int MaxBufferSize = 1_000_000_000;
 
-    private static readonly Result<Unit, SodiumFailure> InitializationResult;
-
-    static SodiumInterop()
-    {
-        InitializationResult = InitializeSodium();
-    }
+    private static readonly Result<Unit, SodiumFailure> InitializationResult = InitializeSodium();
 
     public static bool IsInitialized => InitializationResult.IsOk;
 
     [LibraryImport(LibSodium, EntryPoint = "sodium_init")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial int sodium_init();
 
     [LibraryImport(LibSodium, EntryPoint = "sodium_malloc")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     internal static partial IntPtr sodium_malloc(nuint size);
 
     [LibraryImport(LibSodium, EntryPoint = "sodium_free")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     internal static partial void sodium_free(IntPtr ptr);
 
     [LibraryImport(LibSodium, EntryPoint = "sodium_memzero")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial void sodium_memzero(IntPtr ptr, nuint length);
 
     [LibraryImport(LibSodium, EntryPoint = "sodium_memcmp")]
-    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial int sodium_memcmp(byte[] b1, byte[] b2, nuint length);
 
     private static Result<Unit, SodiumFailure> InitializeSodium()
@@ -164,7 +159,6 @@ internal static partial class SodiumInterop
         }
         catch (Exception ex)
         {
-            skHandle?.Dispose();
             return Result<(SodiumSecureMemoryHandle, byte[]), EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.KeyGeneration($"Unexpected error generating {keyPurpose} key pair.", ex));
         }

@@ -396,46 +396,6 @@ public sealed class RetryStrategy : IRetryStrategy
         }
     }
 
-    private async Task<bool> RetryAllExhaustedOperationsAsync()
-    {
-        await _stateLock.WaitAsync().ConfigureAwait(false);
-        List<RetryOperationInfo> exhaustedOperations = new();
-        try
-        {
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
-            {
-                if (operation.IsExhausted)
-                {
-                    exhaustedOperations.Add(operation);
-                }
-            }
-        }
-        finally
-        {
-            _stateLock.Release();
-        }
-
-        if (exhaustedOperations.Count == 0)
-        {
-            Log.Debug("🔄 MANUAL RETRY: No exhausted operations to retry");
-            return false;
-        }
-
-        Log.Information("🔄 MANUAL RETRY: Found {Count} exhausted operations, clearing for fresh retry",
-            exhaustedOperations.Count);
-
-        foreach (RetryOperationInfo operation in exhaustedOperations)
-        {
-            operation.IsExhausted = false;
-            operation.CurrentRetryCount = 0;
-            StopTrackingOperation(operation.UniqueKey, "Manual retry cleared");
-        }
-
-        Log.Information("🔄 MANUAL RETRY: Cleared {Count} exhausted operations for fresh retry",
-            exhaustedOperations.Count);
-        return true;
-    }
-
     private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey,
         RpcServiceType? serviceType)
     {

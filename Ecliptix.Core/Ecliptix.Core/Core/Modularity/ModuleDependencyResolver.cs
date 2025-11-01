@@ -52,8 +52,8 @@ public class ModuleDependencyResolver
 
     private void DetectCircularDependencies(List<IModule> modules, Dictionary<string, IModule> moduleMap)
     {
-        HashSet<string> visited = new();
-        HashSet<string> recursionStack = new();
+        HashSet<string> visited = [];
+        HashSet<string> recursionStack = [];
 
         foreach (IModule module in modules.Where(m => !visited.Contains(m.Id.ToName())))
         {

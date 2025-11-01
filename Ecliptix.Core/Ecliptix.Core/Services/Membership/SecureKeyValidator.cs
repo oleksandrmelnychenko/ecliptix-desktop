@@ -33,7 +33,7 @@ public static partial class SecureKeyValidator
     private static partial Regex HasNonEnglishLetterRegexPattern();
 
     public static (string? Error, List<string> Recommendations) Validate(string secureKey,
-        ILocalizationService localizationService, bool isSignIn = false)
+        ILocalizationService localizationService, bool _ = false)
     {
         List<string> recommendations = [];
         string? error = null;
@@ -94,7 +94,7 @@ public static partial class SecureKeyValidator
 
     public static SecureKeyStrength EstimateSecureKeyStrength(string secureKey, ILocalizationService localizationService)
     {
-        (string? error, List<string> recommendations) = Validate(secureKey, localizationService, isSignIn: false);
+        (string? error, List<string> recommendations) = Validate(secureKey, localizationService);
         if (error != null)
         {
             return SecureKeyStrength.Invalid;

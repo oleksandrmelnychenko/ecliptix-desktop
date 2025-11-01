@@ -35,21 +35,22 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
-public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
+public sealed class NetworkProvider(
+    IRpcServiceManager rpcServiceManager,
+    IApplicationSecureStorageProvider applicationSecureStorageProvider,
+    ISecureProtocolStateStorage secureProtocolStateStorage,
+    IRpcMetaDataProvider rpcMetaDataProvider,
+    IConnectivityService connectivityService,
+    IRetryStrategy retryStrategy,
+    IPendingRequestManager pendingRequestManager,
+    ICertificatePinningServiceFactory certificatePinningServiceFactory,
+    IRsaChunkEncryptor rsaChunkEncryptor,
+    IRetryPolicyProvider retryPolicyProvider)
+    : INetworkProvider, IDisposable, IProtocolEventHandler
 {
     private static TaskCompletionSource<bool> CreateOutageTcs() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly IRpcServiceManager _rpcServiceManager;
-    private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
-    private readonly ISecureProtocolStateStorage _secureProtocolStateStorage;
-    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
-    private readonly IConnectivityService _connectivityService;
-    private readonly IRetryStrategy _retryStrategy;
-    private readonly IPendingRequestManager _pendingRequestManager;
-    private readonly ICertificatePinningServiceFactory _certificatePinningServiceFactory;
-    private readonly IRsaChunkEncryptor _rsaChunkEncryptor;
-    private readonly IRetryPolicyProvider _retryPolicyProvider;
     private readonly ConcurrentDictionary<uint, EcliptixProtocolSystem> _connections = new();
     private readonly ConcurrentDictionary<uint, CancellationTokenSource> _activeStreams = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _pendingRequests = new();
@@ -66,30 +67,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private int _outageState;
     private TaskCompletionSource<bool> _outageCompletionSource = CreateOutageTcs();
     private volatile bool _disposed;
-
-    public NetworkProvider(
-        IRpcServiceManager rpcServiceManager,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        ISecureProtocolStateStorage secureProtocolStateStorage,
-        IRpcMetaDataProvider rpcMetaDataProvider,
-        IConnectivityService connectivityService,
-        IRetryStrategy retryStrategy,
-        IPendingRequestManager pendingRequestManager,
-        ICertificatePinningServiceFactory certificatePinningServiceFactory,
-        IRsaChunkEncryptor rsaChunkEncryptor,
-        IRetryPolicyProvider retryPolicyProvider)
-    {
-        _rpcServiceManager = rpcServiceManager;
-        _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _secureProtocolStateStorage = secureProtocolStateStorage;
-        _rpcMetaDataProvider = rpcMetaDataProvider;
-        _connectivityService = connectivityService;
-        _retryStrategy = retryStrategy;
-        _pendingRequestManager = pendingRequestManager;
-        _certificatePinningServiceFactory = certificatePinningServiceFactory;
-        _rsaChunkEncryptor = rsaChunkEncryptor;
-        _retryPolicyProvider = retryPolicyProvider;
-    }
 
     public ApplicationInstanceSettings ApplicationInstanceSettings
     {
@@ -117,7 +94,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _ = _connectivityService.PublishAsync(ConnectivityIntent.Connecting(connectId));
+                _ = connectivityService.PublishAsync(ConnectivityIntent.Connecting(connectId));
             });
         }
 
@@ -144,7 +121,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         );
 
         Option<CertificatePinningService> certificatePinningService =
-            await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+            await certificatePinningServiceFactory.GetOrInitializeServiceAsync();
 
         if (!certificatePinningService.IsSome)
         {
@@ -155,7 +132,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] originalData = pubKeyExchangeRequest.Unwrap().ToByteArray();
 
         Result<byte[], NetworkFailure> encryptResult =
-            _rsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, originalData);
+            rsaChunkEncryptor.EncryptInChunks(certificatePinningService.Value!, originalData);
         if (encryptResult.IsErr)
         {
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(encryptResult.UnwrapErr());
@@ -175,8 +152,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Result<SecureEnvelope, NetworkFailure> establishAppDeviceSecrecyChannelResult;
         if (maxRetries.HasValue)
         {
-            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
-                (_, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_connectivityService, envelope,
+            establishAppDeviceSecrecyChannelResult = await retryStrategy.ExecuteRpcOperationAsync(
+                (_, ct) => rpcServiceManager.EstablishSecrecyChannelAsync(connectivityService, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -187,8 +164,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            establishAppDeviceSecrecyChannelResult = await _retryStrategy.ExecuteRpcOperationAsync(
-                (_, ct) => _rpcServiceManager.EstablishSecrecyChannelAsync(_connectivityService, envelope,
+            establishAppDeviceSecrecyChannelResult = await retryStrategy.ExecuteRpcOperationAsync(
+                (_, ct) => rpcServiceManager.EstablishSecrecyChannelAsync(connectivityService, envelope,
                     exchangeType,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
@@ -228,7 +205,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
 
         Result<byte[], NetworkFailure> decryptResult =
-            _rsaChunkEncryptor.DecryptInChunks(certificatePinningService.Value!, combinedEncryptedResponse);
+            rsaChunkEncryptor.DecryptInChunks(certificatePinningService.Value!, combinedEncryptedResponse);
         if (decryptResult.IsErr)
         {
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(decryptResult.UnwrapErr());
@@ -275,7 +252,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (enablePendingRegistration && mappedResult.IsOk)
         {
-            _pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, exchangeType));
+            pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, exchangeType));
             ExitOutage();
         }
 
@@ -317,7 +294,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ? AppCultureSettingsConstants.DefaultCultureCode
             : applicationInstanceSettings.Culture;
 
-        _rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
+        rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
     }
 
     public void ClearConnection(uint connectId)
@@ -332,7 +309,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public void ClearExhaustedOperations()
     {
-        _retryStrategy.ClearExhaustedOperations();
+        retryStrategy.ClearExhaustedOperations();
     }
 
     public bool HasConnection(uint connectId) => _connections.ContainsKey(connectId);
@@ -377,7 +354,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         RpcRequestContext? requestContext = null)
     {
         RpcRequestContext effectiveContext = requestContext ?? RpcRequestContext.CreateNew();
-        RetryBehavior retryBehavior = _retryPolicyProvider.GetRetryBehavior(serviceType);
+        RetryBehavior retryBehavior = retryPolicyProvider.GetRetryBehavior(serviceType);
 
         string requestKey;
         if (serviceType is RpcServiceType.SignInInitRequest or RpcServiceType.SignInCompleteRequest)
@@ -430,7 +407,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                     "Connection unavailable - server may be recovering");
-                _ = _connectivityService.PublishAsync(
+                _ = connectivityService.PublishAsync(
                     ConnectivityIntent.ServerShutdown(noConnectionFailure));
                 return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
             }
@@ -449,11 +426,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId,
                         operationToken).ConfigureAwait(false),
                     ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, logicalOperationId,
-                            serviceType, plainBuffer, flowType, effectiveContext, onCompleted, operationToken)
+                            serviceType, plainBuffer, flowType, effectiveContext, operationToken)
                         .ConfigureAwait(false),
                     ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                        logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, onCompleted,
-                        operationToken).ConfigureAwait(false),
+                            logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, operationToken)
+                        .ConfigureAwait(false),
                     _ => Result<Unit, NetworkFailure>.Err(
                         NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
                 };
@@ -461,7 +438,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
                 {
                     ExitOutage();
-                    Log.Information("[OUTAGE RECOVERED] Network operations have resumed successfully.");
                 }
 
                 return networkResult;
@@ -513,7 +489,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             await _retryPendingRequestsGate.WaitAsync(_shutdownCancellationToken.Token).ConfigureAwait(false);
             acquired = true;
-            await _pendingRequestManager.RetryAllPendingRequestsAsync().ConfigureAwait(false);
+            await pendingRequestManager.RetryAllPendingRequestsAsync().ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_shutdownCancellationToken.IsCancellationRequested)
         {
@@ -550,7 +526,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             ? AppCultureSettingsConstants.DefaultCultureCode
             : applicationInstanceSettings.Culture;
 
-        _rpcMetaDataProvider.SetAppInfo(
+        rpcMetaDataProvider.SetAppInfo(
             Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId),
             Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId),
             culture);
@@ -570,8 +546,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                         : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteRpcOperationAsync(
-                    (_, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
+                restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteRpcOperationAsync(
+                    (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -589,8 +565,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
                         : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await _retryStrategy.ExecuteManualRetryRpcOperationAsync(
-                    (_, ct) => _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
+                restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteManualRetryRpcOperationAsync(
+                    (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
                         request,
                         cancellationToken: ct),
                     "RestoreSecrecyChannel",
@@ -602,7 +578,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 try
                 {
                     restoreAppDeviceSecrecyChannelResponse =
-                        await _rpcServiceManager.RestoreSecrecyChannelAsync(_connectivityService,
+                        await rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
                             request,
                             cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
@@ -648,7 +624,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 if (enablePendingRegistration)
                 {
-                    _pendingRequestManager.RemovePendingRequest(
+                    pendingRequestManager.RemovePendingRequest(
                         BuildSecrecyChannelRestoreKey(ecliptixSecrecyChannelState.ConnectId));
                 }
 
@@ -710,7 +686,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             existingConnection.Dispose();
         }
 
-        InitiateEcliptixProtocolSystemForType(connectId, exchangeType);
+        InitiateEcliptixProtocolSystemForType(connectId);
 
         Result<Option<EcliptixSessionState>, NetworkFailure> establishOptionResult =
             await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType).ConfigureAwait(false);
@@ -808,8 +784,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return PubKeyExchangeType.DataCenterEphemeralConnect;
     }
 
-    private void InitiateEcliptixProtocolSystemForType(uint connectId,
-        PubKeyExchangeType _)
+    private void InitiateEcliptixProtocolSystemForType(uint connectId
+    )
     {
         EcliptixSystemIdentityKeys identityKeys =
             EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
@@ -953,7 +929,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private static Result<SecureEnvelope, NetworkFailure> EncryptPayload(
         EcliptixProtocolSystem protocolSystem,
-        RpcServiceType _,
         byte[] plainBuffer)
     {
         Result<SecureEnvelope, EcliptixProtocolFailure> outboundPayload =
@@ -978,7 +953,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceFlowType flowType,
         RpcRequestContext requestContext)
     {
-        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, serviceType, plainBuffer);
+        Result<SecureEnvelope, NetworkFailure> encryptResult = EncryptPayload(protocolSystem, plainBuffer);
 
         if (encryptResult.IsErr)
         {
@@ -1010,7 +985,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (shouldUseRetry)
         {
             Result<SecureEnvelope, NetworkFailure> encryptResult =
-                EncryptPayload(protocolSystem, serviceType, plainBuffer);
+                EncryptPayload(protocolSystem, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1020,7 +995,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             SecureEnvelope encryptedPayload = encryptResult.Unwrap();
             string stableIdempotencyKey = Guid.NewGuid().ToString("N");
 
-            invokeResult = await _retryStrategy.ExecuteRpcOperationAsync(
+            invokeResult = await retryStrategy.ExecuteRpcOperationAsync(
                 (attempt, ct) =>
                 {
                     RpcRequestContext attemptContext =
@@ -1035,7 +1010,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                         [],
                         attemptContext);
 
-                    return _rpcServiceManager.InvokeServiceRequestAsync(request, ct);
+                    return rpcServiceManager.InvokeServiceRequestAsync(request, ct);
                 },
                 $"UnaryRequest_{serviceType}",
                 connectId,
@@ -1045,7 +1020,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            RpcRequestContext singleAttemptContext = RpcRequestContext.CreateNew(1);
+            RpcRequestContext singleAttemptContext = RpcRequestContext.CreateNew();
             lastRequestContext = singleAttemptContext;
 
             Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
@@ -1057,7 +1032,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
 
             ServiceRequest request = serviceRequestResult.Unwrap();
-            invokeResult = await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+            invokeResult = await rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
         }
 
         if (invokeResult.IsErr)
@@ -1159,7 +1134,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (retryBehavior.ShouldRetry)
         {
             Result<SecureEnvelope, NetworkFailure> encryptResult =
-                EncryptPayload(protocolSystem, serviceType, plainBuffer);
+                EncryptPayload(protocolSystem, plainBuffer);
 
             if (encryptResult.IsErr)
             {
@@ -1169,7 +1144,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             SecureEnvelope encryptedPayload = encryptResult.Unwrap();
             string stableIdempotencyKey = requestContext.IdempotencyKey;
 
-            return await _retryStrategy.ExecuteRpcOperationAsync(
+            return await retryStrategy.ExecuteRpcOperationAsync(
                 async (attempt, ct) =>
                 {
                     RpcRequestContext attemptContext =
@@ -1220,11 +1195,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return await ProcessStreamDirectly(protocolSystem, request, onStreamItem, token).ConfigureAwait(false);
         }
 
-        using CancellationTokenSource streamCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _activeStreams.TryAdd(connectId, streamCts);
+        using CancellationTokenSource linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _activeStreams.TryAdd(connectId, linkedTokenSource);
 
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+            await rpcServiceManager.InvokeServiceRequestAsync(request, linkedTokenSource.Token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1241,7 +1216,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         try
         {
             await foreach (Result<SecureEnvelope, NetworkFailure> streamItem in
-                           inboundStream.Stream.WithCancellation(streamCts.Token))
+                           inboundStream.Stream.WithCancellation(linkedTokenSource.Token))
             {
                 if (streamItem.IsErr)
                 {
@@ -1249,7 +1224,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _ = _connectivityService.PublishAsync(
+                        _ = connectivityService.PublishAsync(
                             ConnectivityIntent.Disconnected(failure, connectId));
                     });
 
@@ -1267,7 +1242,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 await onStreamItem(streamDecryptedData.Unwrap()).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) when (streamCts.Token.IsCancellationRequested)
+        catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)
         {
         }
         finally
@@ -1279,22 +1254,24 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         bool exitedOutage = Interlocked.CompareExchange(ref _outageState, 0, 1) == 1;
 
-        if (exitedOutage)
+        if (!exitedOutage)
         {
-            lock (_outageLock)
-            {
-                if (!_outageCompletionSource.Task.IsCompleted)
-                {
-                    _outageCompletionSource.TrySetResult(true);
-                }
-            }
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                _ = _connectivityService.PublishAsync(
-                    ConnectivityIntent.Connected(connectId));
-            });
+            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
+
+        lock (_outageLock)
+        {
+            if (!_outageCompletionSource.Task.IsCompleted)
+            {
+                _outageCompletionSource.TrySetResult(true);
+            }
+        }
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _ = connectivityService.PublishAsync(
+                ConnectivityIntent.Connected(connectId));
+        });
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
@@ -1306,7 +1283,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         CancellationToken token)
     {
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+            await rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1349,7 +1326,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> _,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
@@ -1363,7 +1339,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceRequest request = serviceRequestResult.Unwrap();
 
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+            await rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1388,7 +1364,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         byte[] plainBuffer,
         ServiceFlowType flowType,
         RpcRequestContext requestContext,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> _,
         CancellationToken token)
     {
         Result<ServiceRequest, NetworkFailure> serviceRequestResult = BuildRequestWithId(
@@ -1402,7 +1377,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ServiceRequest request = serviceRequestResult.Unwrap();
 
         Result<RpcFlow, NetworkFailure> invokeResult =
-            await _rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
+            await rpcServiceManager.InvokeServiceRequestAsync(request, token).ConfigureAwait(false);
 
         if (invokeResult.IsErr)
         {
@@ -1481,8 +1456,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _ = _connectivityService.PublishAsync(
-                ConnectivityIntent.Connected(null, ConnectivityReason.HandshakeSucceeded));
+            _ = connectivityService.PublishAsync(
+                ConnectivityIntent.Connected());
         });
     }
 
@@ -1527,7 +1502,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
             }
 
-            _ = _connectivityService.PublishAsync(
+            _ = connectivityService.PublishAsync(
                 ConnectivityIntent.Recovering(
                     NetworkFailure.DataCenterNotResponding("Recovering secrecy channel")));
         }
@@ -1595,7 +1570,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         };
     }
 
-    private void PersistProtocolStateInBackground(uint connectId, string stateContext)
+    private void PersistProtocolStateInBackground(uint connectId)
     {
         _ = Task.Run(async () =>
         {
@@ -1649,10 +1624,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex) =>
-        PersistProtocolStateInBackground(connectId, "ratchet");
+        PersistProtocolStateInBackground(connectId);
 
     public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength) =>
-        PersistProtocolStateInBackground(connectId, "chain");
+        PersistProtocolStateInBackground(connectId);
 
     public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
     {
@@ -1755,12 +1730,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 {
                     try
                     {
-                        connection.Value?.Dispose();
+                        connection.Value.Dispose();
                     }
-                    catch (Exception ex)
+                    catch
                     {
                         // Continue disposing other connections even if one fails
-                        Log.Debug(ex, "[NETWORK-PROVIDER] Error disposing connection {ConnectId}", connection.Key);
                     }
                 }
 
@@ -1791,7 +1765,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     public async Task<Result<Unit, NetworkFailure>> ForceFreshConnectionAsync()
     {
-        _retryStrategy.ClearExhaustedOperations();
+        retryStrategy.ClearExhaustedOperations();
 
         Result<Unit, NetworkFailure> immediateResult = await PerformImmediateRecoveryLogic().ConfigureAwait(false);
 
@@ -1846,7 +1820,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Result<byte[], SecureStorageFailure> stateResult =
-            await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
+            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
 
         if (stateResult.IsErr)
         {
@@ -1871,7 +1845,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    _ = _connectivityService.PublishAsync(
+                    _ = connectivityService.PublishAsync(
                         ConnectivityIntent.Connected(connectId));
                 });
             }
@@ -1904,7 +1878,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         foreach (KeyValuePair<uint, EcliptixProtocolSystem> connection in _connections)
         {
-            _retryStrategy.MarkConnectionHealthy(connection.Key);
+            retryStrategy.MarkConnectionHealthy(connection.Key);
         }
     }
 
@@ -1934,7 +1908,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         string pendingKey = BuildSecrecyChannelPendingKey(connectId, exchangeType);
 
-        _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
+        pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
             CancellationToken recoveryToken = GetConnectionRecoveryToken();
             using CancellationTokenSource linkedCts =
@@ -1965,7 +1939,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         string pendingKey = BuildSecrecyChannelRestoreKey(sessionState.ConnectId);
 
-        _pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
+        pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
             CancellationToken recoveryToken = GetConnectionRecoveryToken();
             using CancellationTokenSource linkedCts =
@@ -2006,7 +1980,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Result<Unit, SecureStorageFailure> saveResult = await SecureByteStringInterop.WithByteStringAsSpan(
                 state.ToByteString(),
-                span => _secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId))
+                span => secureProtocolStateStorage.SaveStateAsync(span.ToArray(), connectId.ToString(), membershipId))
             .ConfigureAwait(false);
 
         if (saveResult.IsErr)
@@ -2016,7 +1990,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         string timestampKey = $"{connectId}_timestamp";
-        await _applicationSecureStorageProvider.StoreAsync(timestampKey,
+        await applicationSecureStorageProvider.StoreAsync(timestampKey,
             BitConverter.GetBytes(DateTime.UtcNow.ToBinary())).ConfigureAwait(false);
     }
 
@@ -2064,7 +2038,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
 
                 Result<byte[], SecureStorageFailure> stateResult =
-                    await _secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
+                    await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId)
                         .ConfigureAwait(false);
                 if (stateResult.IsErr)
                 {
@@ -2091,9 +2065,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         uint connectId)
     {
         RetryBehavior retryBehavior =
-            _retryPolicyProvider.GetRetryBehavior(RpcServiceType.EstablishAuthenticatedSecureChannel);
-        Result<Unit, NetworkFailure> networkResult = await _retryStrategy.ExecuteRpcOperationAsync(
-            async (attempt, ct) => await RecreateProtocolWithMasterKeyAsyncInternal(
+            retryPolicyProvider.GetRetryBehavior(RpcServiceType.EstablishAuthenticatedSecureChannel);
+        Result<Unit, NetworkFailure> networkResult = await retryStrategy.ExecuteRpcOperationAsync(
+            async (_, _) => await RecreateProtocolWithMasterKeyAsyncInternal(
                 masterKeyHandle,
                 membershipIdentifier,
                 connectId).ConfigureAwait(false),
@@ -2106,8 +2080,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
         {
             ExitOutage();
-            Log.Information("[OUTAGE RECOVERED] Network operations have resumed successfully.");
         }
+
         return networkResult;
     }
 
@@ -2156,7 +2130,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? oldProtocol))
             {
                 CancelOperationsForConnection(connectId);
-                oldProtocol?.Dispose();
+                oldProtocol.Dispose();
             }
 
             const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
@@ -2184,8 +2158,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 };
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =
-                    await _rpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
-                        _connectivityService, authenticatedRequest).ConfigureAwait(false);
+                    await rpcServiceManager.EstablishAuthenticatedSecureChannelAsync(
+                        connectivityService, authenticatedRequest).ConfigureAwait(false);
 
                 if (serverResponseResult.IsErr)
                 {
@@ -2197,7 +2171,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 SecureEnvelope responseEnvelope = serverResponseResult.Unwrap();
 
                 Option<CertificatePinningService> certificatePinningService =
-                    await _certificatePinningServiceFactory.GetOrInitializeServiceAsync();
+                    await certificatePinningServiceFactory.GetOrInitializeServiceAsync();
 
                 if (!certificatePinningService.IsSome)
                 {
@@ -2208,7 +2182,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 byte[] combinedEncryptedResponse = responseEnvelope.EncryptedPayload.ToByteArray();
                 Result<byte[], NetworkFailure> decryptResult =
-                    _rsaChunkEncryptor.DecryptInChunks(certificatePinningService.Value!, combinedEncryptedResponse);
+                    rsaChunkEncryptor.DecryptInChunks(certificatePinningService.Value!, combinedEncryptedResponse);
 
                 if (decryptResult.IsErr)
                 {
@@ -2284,7 +2258,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task CleanupFailedAuthenticationAsync(uint connectId)
     {
         Result<Unit, SecureStorageFailure> deleteResult =
-            await _secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
 
         if (deleteResult.IsErr)
         {

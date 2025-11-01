@@ -60,7 +60,7 @@ internal sealed class SubscriptionManager : IDisposable
         });
     }
 
-    public async Task PublishAsync<T>(T message, CancellationToken cancellationToken) where T : class
+    public async Task PublishAsync<T>(T message, CancellationToken _) where T : class
     {
         if (_disposed || message == null)
         {

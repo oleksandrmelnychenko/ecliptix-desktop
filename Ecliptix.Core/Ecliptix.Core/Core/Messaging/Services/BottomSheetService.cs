@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Ecliptix.Core.Controls.Modals.BottomSheetModal;
@@ -12,8 +13,7 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
 {
     private readonly IMessageBus _messageBus;
     private readonly Queue<BottomSheetRequest> _requestQueue = new();
-    private readonly object _queueLock = new();
-    private BottomSheetRequest? _currentRequest;
+    private readonly Lock _queueLock = new();
     private BottomSheetRequest? _pendingRequest;
     private bool _isShowingBottomSheet;
     private bool _isAnimating;
@@ -126,7 +126,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             else
             {
                 requestToShow = _requestQueue.Dequeue();
-                _currentRequest = requestToShow;
                 _isAnimating = true;
                 Log.Debug("[BottomSheet-Service] Processing request: Type={Type}, Queue remaining: {QueueSize}",
                     requestToShow.ComponentType, _requestQueue.Count);
@@ -169,13 +168,11 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
             else // Hide
             {
                 _isShowingBottomSheet = false;
-                _currentRequest = null;
                 Log.Debug("[BottomSheet-Service] Hide animation complete - sheet is now hidden");
 
                 if (_pendingRequest != null)
                 {
                     requestToShow = _pendingRequest;
-                    _currentRequest = requestToShow;
                     _pendingRequest = null;
                     _isAnimating = true;
                     Log.Debug("[BottomSheet-Service] Showing pending request: Type={Type}", requestToShow.ComponentType);
@@ -220,7 +217,6 @@ internal sealed class BottomSheetService : IBottomSheetService, IDisposable
         lock (_queueLock)
         {
             _requestQueue.Clear();
-            _currentRequest = null;
             _pendingRequest = null;
         }
     }
