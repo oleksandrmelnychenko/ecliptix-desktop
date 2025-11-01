@@ -375,9 +375,6 @@ internal sealed class OpaqueAuthenticationService(
                                 .UnwrapErr());
                         }
 
-                        SodiumSecureMemoryHandle validatedMasterKeyHandle =
-                            masterKeyValidationResult.Unwrap();
-
                         Result<Unit, AuthenticationFailure> storeResult =
                             await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult)
                                 .ConfigureAwait(false);

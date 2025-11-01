@@ -103,7 +103,6 @@ public sealed class DetectLanguageDialogViewModel : ReactiveObject, IDisposable,
         }
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
     private async Task OnConfirm()

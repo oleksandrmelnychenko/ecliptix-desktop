@@ -468,7 +468,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)

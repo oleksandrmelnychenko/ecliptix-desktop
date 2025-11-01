@@ -618,7 +618,6 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _cachedStatusDescriptions.Clear();
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
     private static void LogRetryButtonShow()
