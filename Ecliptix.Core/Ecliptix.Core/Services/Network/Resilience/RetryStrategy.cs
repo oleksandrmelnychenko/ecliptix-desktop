@@ -33,7 +33,6 @@ public sealed class RetryStrategy : IRetryStrategy
 
     private readonly RetryStrategyConfiguration _strategyConfiguration;
     private readonly IConnectivityService _connectivityService;
-    private readonly IOperationTimeoutProvider _timeoutProvider;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
     private readonly ConcurrentDictionary<string, object> _pipelineCache = new();
     private readonly SemaphoreSlim _stateLock = new(1, 1);
@@ -71,11 +70,10 @@ public sealed class RetryStrategy : IRetryStrategy
     public RetryStrategy(
         RetryStrategyConfiguration strategyConfiguration,
         IConnectivityService connectivityService,
-        IOperationTimeoutProvider timeoutProvider)
+        IOperationTimeoutProvider _)
     {
         _strategyConfiguration = strategyConfiguration;
         _connectivityService = connectivityService;
-        _timeoutProvider = timeoutProvider;
 
         _cleanupTimer = new Timer(
             CleanupAbandonedOperations,

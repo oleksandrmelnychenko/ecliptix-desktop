@@ -33,7 +33,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
-    private readonly IAuthenticationService _authenticationService;
     private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
@@ -50,13 +49,12 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IAuthenticationService authenticationService,
+        IAuthenticationService _,
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
         connectivityService)
     {
         _registrationService = registrationService;
-        _authenticationService = authenticationService;
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _connectivityService = connectivityService;
         _flowContext = flowContext;

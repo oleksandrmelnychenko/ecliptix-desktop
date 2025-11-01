@@ -41,16 +41,17 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         InitializeStorageDirectory();
     }
 
-    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? culture)
+    public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationSettingsCultureAsync(string? cultureName)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
         }
 
         ApplicationInstanceSettings settings = settingsResult.Unwrap();
-        settings.Culture = culture;
+        settings.Culture = cultureName;
 
         return await SecureByteStringInterop.WithByteStringAsSpan(settings.ToByteString(),
             span => StoreAsync(SettingsKey, span.ToArray()));
@@ -58,7 +59,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationInstanceAsync(bool isNewInstance)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
@@ -72,7 +74,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationIpCountryAsync(IpCountry ipCountry)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
@@ -87,7 +90,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetApplicationMembershipAsync(Membership? membership)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
@@ -102,7 +106,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
     public async Task<Result<Unit, InternalServiceApiFailure>> SetCurrentAccountIdAsync(ByteString? accountId)
     {
-        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult = await GetApplicationInstanceSettingsAsync();
+        Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+            await GetApplicationInstanceSettingsAsync();
         if (settingsResult.IsErr)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(settingsResult.UnwrapErr());
@@ -115,7 +120,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             span => StoreAsync(SettingsKey, span.ToArray()));
     }
 
-    public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>> GetApplicationInstanceSettingsAsync()
+    public async Task<Result<ApplicationInstanceSettings, InternalServiceApiFailure>>
+        GetApplicationInstanceSettingsAsync()
     {
         Result<Option<byte[]>, InternalServiceApiFailure> getResult = await TryGetByKeyAsync(SettingsKey);
         if (getResult.IsErr)
@@ -127,7 +133,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         if (!maybeData.IsSome)
         {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider.ApplicationSettingsNotFound));
+                InternalServiceApiFailure.SecureStoreKeyNotFound(ApplicationErrorMessages.SecureStorageProvider
+                    .ApplicationSettingsNotFound));
         }
 
         try
@@ -138,7 +145,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         catch (InvalidProtocolBufferException ex)
         {
             return Result<ApplicationInstanceSettings, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.CorruptSettingsData, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.CorruptSettingsData, ex));
         }
     }
 
@@ -165,7 +173,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             }
             catch (InvalidProtocolBufferException ex)
             {
-                Log.Warning(ex, "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. Error: {Error}",
+                Log.Warning(ex,
+                    "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. Error: {Error}",
                     ex.Message);
                 return await CreateAndStoreNewSettingsAsync(defaultCulture);
             }
@@ -190,7 +199,8 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
 
         if (storeResult.IsErr)
         {
-            Log.Warning("[SETTINGS-INIT-RECOVERY] Failed to persist fresh settings, continuing in-memory. Error: {Error}",
+            Log.Warning(
+                "[SETTINGS-INIT-RECOVERY] Failed to persist fresh settings, continuing in-memory. Error: {Error}",
                 storeResult.UnwrapErr().Message);
         }
 
@@ -211,12 +221,14 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         catch (CryptographicException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToEncryptData, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FailedToEncryptData, ex));
         }
         catch (IOException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToWriteToStorage, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FailedToWriteToStorage, ex));
         }
     }
 
@@ -242,12 +254,14 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         catch (CryptographicException ex)
         {
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToDecryptData, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FailedToDecryptData, ex));
         }
         catch (IOException ex)
         {
             return Result<Option<byte[]>, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToAccessStorage, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FailedToAccessStorage, ex));
         }
     }
 
@@ -265,12 +279,14 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             {
                 File.Delete(filePath);
             }
+
             return Result<Unit, InternalServiceApiFailure>.Ok(Unit.Value);
         }
         catch (IOException ex)
         {
             return Result<Unit, InternalServiceApiFailure>.Err(
-                InternalServiceApiFailure.SecureStoreAccessDenied(ApplicationErrorMessages.SecureStorageProvider.FailedToDeleteFromStorage, ex));
+                InternalServiceApiFailure.SecureStoreAccessDenied(
+                    ApplicationErrorMessages.SecureStorageProvider.FailedToDeleteFromStorage, ex));
         }
     }
 
@@ -292,28 +308,27 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                     RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    File.SetUnixFileMode(_storagePath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                    File.SetUnixFileMode(_storagePath,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                 }
             }
         }
         catch (IOException ex)
         {
-            throw new InvalidOperationException(string.Format(ApplicationErrorMessages.SecureStorageProvider.SecureStorageDirectoryCreationFailed, _storagePath), ex);
+            throw new InvalidOperationException(
+                string.Format(ApplicationErrorMessages.SecureStorageProvider.SecureStorageDirectoryCreationFailed,
+                    _storagePath), ex);
         }
     }
 
-    private void SetSecureFilePermissions(string filePath)
+    private static void SetSecureFilePermissions(string filePath)
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && !RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
-            try
-            {
-                File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
-            catch
-            {
-            }
+            return;
         }
+
+        File.SetUnixFileMode(filePath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 
     public ValueTask DisposeAsync()
@@ -322,6 +337,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
         {
             _disposed = true;
         }
+
         return ValueTask.CompletedTask;
     }
 }

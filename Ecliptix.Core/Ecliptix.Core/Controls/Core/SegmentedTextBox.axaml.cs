@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -58,7 +59,6 @@ public partial class SegmentedTextBox : UserControl
 
     private readonly List<TextBox> _segments = [];
 
-    private bool _lastIsComplete;
     private int _currentActiveIndex;
     private bool _isInternalUpdate = false;
 
@@ -233,7 +233,7 @@ public partial class SegmentedTextBox : UserControl
         return string.Concat(_segments.Select(tb => tb.Text ?? ""));
     }
 
-    private void ProcessTextInput(TextBox textBox, int index)
+    private void ProcessTextInput(TextBox textBox)
     {
         if (AllowOnlyNumbers)
         {
@@ -251,7 +251,7 @@ public partial class SegmentedTextBox : UserControl
         }
     }
 
-    private void UpdateTextBoxText(TextBox textBox, string newText)
+    private static void UpdateTextBoxText(TextBox textBox, string newText)
     {
         int selectionStart = textBox.SelectionStart;
         textBox.Text = newText;
@@ -374,9 +374,7 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        int index = _segments.IndexOf(tb);
-
-        ProcessTextInput(tb, index);
+        ProcessTextInput(tb);
         OnSegmentChanged();
     }
 
@@ -391,7 +389,7 @@ public partial class SegmentedTextBox : UserControl
 
         if (e is { Key: Key.V, KeyModifiers: KeyModifiers.Control })
         {
-            HandlePasteAsync();
+            _ = HandlePasteAsync();
             e.Handled = true;
             return;
         }
@@ -424,7 +422,7 @@ public partial class SegmentedTextBox : UserControl
         OnSegmentChanged();
     }
 
-    private async void HandlePasteAsync()
+    private async Task HandlePasteAsync()
     {
         try
         {
@@ -467,7 +465,6 @@ public partial class SegmentedTextBox : UserControl
 
         if (validText.Length != _segments.Count)
         {
-            Log.Warning($"Pasted text length ({validText.Length}) does not match segment count ({_segments.Count}).");
             return;
         }
 
@@ -556,8 +553,6 @@ public partial class SegmentedTextBox : UserControl
         {
             SetValue(IsCompleteProperty, newIsComplete);
         }
-
-        _lastIsComplete = newIsComplete;
     }
 
     private void UpdateTabIndexes()

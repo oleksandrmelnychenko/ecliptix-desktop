@@ -748,7 +748,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (_cancellationTokenSource != null)
         {
-            _cancellationTokenSource.Cancel();
+            await _cancellationTokenSource.CancelAsync();
             _cancellationTokenSource.Dispose();
         }
 

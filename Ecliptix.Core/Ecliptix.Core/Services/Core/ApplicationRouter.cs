@@ -42,13 +42,10 @@ public sealed class ApplicationRouter(
 
     public async Task NavigateToAuthenticationAsync()
     {
-        Log.Debug("[ROUTER-NAV] Starting navigation to Authentication content");
-
         IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
         if (authModule.ServiceScope?.ServiceProvider == null)
         {
-            Log.Error("[ROUTER-NAV] Failed to load Authentication module");
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
         }
 
@@ -169,7 +166,7 @@ public sealed class ApplicationRouter(
         Log.Debug("[ROUTER] Transition complete - MainWindow is now the single OS window");
     }
 
-    private async Task PrepareAndShowWindowAsync(Window window)
+    private static async Task PrepareAndShowWindowAsync(Window window)
     {
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -205,27 +202,12 @@ public sealed class ApplicationRouter(
         {
             try
             {
-                Log.Debug("[ROUTER-CLOSE] Attempting to close old window. Type: {Type}, IsVisible: {IsVisible}",
-                    fromWindow.GetType().Name, fromWindow.IsVisible);
-
                 fromWindow.Opacity = 0;
                 toWindow.Opacity = 1;
 
-                Window? oldMainWindow = desktop.MainWindow;
-                Log.Debug("[ROUTER-CLOSE] Current desktop.MainWindow: {Type}",
-                    oldMainWindow?.GetType().Name ?? "null");
-
                 desktop.MainWindow = toWindow;
-                Log.Debug("[ROUTER-CLOSE] desktop.MainWindow set to new window: {Type}",
-                    toWindow.GetType().Name);
-
-                Log.Debug("[ROUTER-CLOSE] Hiding old window for immediate visual feedback");
                 fromWindow.Hide();
-
-                Log.Debug("[ROUTER-CLOSE] Calling fromWindow.Close()...");
                 fromWindow.Close();
-
-                Log.Debug("[ROUTER-CLOSE] fromWindow.Close() completed successfully");
             }
             catch (Exception ex)
             {
