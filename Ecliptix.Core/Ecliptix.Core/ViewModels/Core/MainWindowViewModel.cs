@@ -142,7 +142,7 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         return t < 0.5 ? 4 * t * t * t : 1 - Math.Pow(-2 * t + 2, 3) / 2;
     }
 
-    private Task SetupHandlersAsync() => Task.CompletedTask;
+    private static Task SetupHandlersAsync() => Task.CompletedTask;
 
     private async Task AnimateWindowResizeAsync(double targetWidth, double targetHeight, TimeSpan duration)
     {

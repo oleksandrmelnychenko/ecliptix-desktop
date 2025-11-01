@@ -164,7 +164,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             or ConnectivityStatus.RetriesExhausted
             or ConnectivityStatus.Unavailable;
 
-    protected CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
+    protected static CancellationTokenSource RecreateCancellationToken(ref CancellationTokenSource? cts)
     {
         try
         {
@@ -180,7 +180,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         return cts;
     }
 
-    protected CancellationTokenSource RecreateCancellationToken(ref Option<CancellationTokenSource> ctsOption)
+    protected static CancellationTokenSource RecreateCancellationToken(ref Option<CancellationTokenSource> ctsOption)
     {
         ctsOption.Do(cts =>
         {
