@@ -116,9 +116,9 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
                     LogoutFailure.InvalidRevocationProof("Revocation proof truncated while reading HMAC"));
             }
         }
-        catch (EndOfStreamException)
+        catch (EndOfStreamException ex)
         {
-            Log.Warning("[LOGOUT-PROOF] Revocation proof truncated during parsing");
+            Log.Warning(ex, "[LOGOUT-PROOF] Revocation proof truncated during parsing");
             return Result<Unit, LogoutFailure>.Err(
                 LogoutFailure.InvalidRevocationProof("Revocation proof truncated during parsing"));
         }

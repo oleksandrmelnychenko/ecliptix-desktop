@@ -173,9 +173,9 @@ public class UpdateManager : IDisposable
 
             return success;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            _logger?.LogInformation("Update download cancelled");
+            _logger?.LogInformation(ex, "Update download cancelled");
             return false;
         }
         catch (Exception ex)

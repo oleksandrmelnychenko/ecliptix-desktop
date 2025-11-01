@@ -303,14 +303,14 @@ public sealed class ApplicationInitializer(
         {
             state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
         }
-        catch (InvalidProtocolBufferException)
+        catch (InvalidProtocolBufferException ex)
         {
             networkProvider.ClearConnection(connectId);
             Result<Unit, SecureStorageFailure> deleteSecureStateResult =
                 await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
             if (deleteSecureStateResult.IsErr)
             {
-                Log.Warning(
+                Log.Warning(ex,
                     "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }

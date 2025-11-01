@@ -827,7 +827,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
-                //TODO: Connection successfully restored.
+                Log.Information("Connection successfully restored for ConnectId {ConnectId}", connectId);
             }
             else if (restoreResult.IsErr)
             {

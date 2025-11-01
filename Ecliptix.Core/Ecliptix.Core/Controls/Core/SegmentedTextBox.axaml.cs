@@ -442,9 +442,9 @@ public partial class SegmentedTextBox : UserControl
 
             ProcessPastedText(clipboardText);
         }
-        catch
+        catch (Exception ex)
         {
-            Log.Warning("Failed to access clipboard for pasting.");
+            Log.Warning(ex, "Failed to access clipboard for pasting.");
         }
     }
 

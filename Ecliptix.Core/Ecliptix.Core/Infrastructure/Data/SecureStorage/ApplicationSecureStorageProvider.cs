@@ -165,7 +165,7 @@ internal sealed class ApplicationSecureStorageProvider : IApplicationSecureStora
             }
             catch (InvalidProtocolBufferException ex)
             {
-                Log.Warning("[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. Error: {Error}",
+                Log.Warning(ex, "[SETTINGS-INIT-RECOVERY] Settings parsing failed, creating fresh settings. Error: {Error}",
                     ex.Message);
                 return await CreateAndStoreNewSettingsAsync(defaultCulture);
             }

@@ -408,7 +408,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             tokenRegistration = cancellationToken.Register(() =>
             {
-                //TODO: check dispose
                 if (!cancellationTokenSource.IsCancellationRequested)
                 {
                     cancellationTokenSource.Cancel();
@@ -642,7 +641,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (syncResult.IsErr)
                 {
                     EcliptixProtocolFailure error = syncResult.UnwrapErr();
-                    //TODO: fix it.
                     return error.Message.Contains("Session validation failed")
                         ? Result<bool, NetworkFailure>.Ok(false)
                         : Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
@@ -1086,8 +1084,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         SecureEnvelope inboundPayload = callResult.Unwrap();
-
-        EcliptixProtocolConnection? conn = protocolSystem.GetConnection();
 
         Result<byte[], EcliptixProtocolFailure> decryptedData =
             protocolSystem.ProcessInboundEnvelope(inboundPayload);
