@@ -172,6 +172,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         }
         catch (ObjectDisposedException)
         {
+            // CTS already disposed - safe to ignore during cleanup
         }
 
         cts?.Dispose();
@@ -189,6 +190,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             }
             catch (ObjectDisposedException)
             {
+                // CTS already disposed - safe to ignore during cleanup
             }
             cts.Dispose();
         });
