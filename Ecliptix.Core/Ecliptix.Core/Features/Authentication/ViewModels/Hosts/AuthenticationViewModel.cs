@@ -338,7 +338,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
         bool showScrim = true, bool isDismissable = false)
     {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
         {
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
@@ -355,7 +355,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     public async Task HideBottomSheetAsync()
     {
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime)
         {
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {

@@ -658,8 +658,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             case RestoreChannelResponse.Types.Status.SessionNotFound:
             {
-                Result<EcliptixSessionState, NetworkFailure> t =
-                    await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
+                _ = await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
                 break;
             }
             default:
@@ -864,7 +863,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, EcliptixProtocolFailure>.Err(syncResult.UnwrapErr());
         }
 
-        Result<RatchetState, EcliptixProtocolFailure> ratchetState = connection.ToProtoState();
+        _ = connection.ToProtoState();
 
         _connections.TryAdd(currentState.ConnectId, system);
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
