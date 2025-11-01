@@ -148,9 +148,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             lock (_lockObject)
             {
+                string keyFile = GetKeyFilePath(identifier);
                 try
                 {
-                    string keyFile = GetKeyFilePath(identifier);
                     if (!File.Exists(keyFile))
                     {
                         return;
@@ -167,8 +167,10 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
                     File.Delete(keyFile);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    // Best-effort cleanup - file may already be deleted or locked
+                    Log.Debug(ex, "[KEYCHAIN-CLEANUP] Could not delete old key file during rotation: {KeyFile}", keyFile);
                 }
             }
         });

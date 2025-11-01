@@ -99,6 +99,7 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
+                // Swallow handler invocation exceptions to allow other handlers to run
             }
         }
 
@@ -110,6 +111,7 @@ internal sealed class SubscriptionManager : IDisposable
             }
             catch (Exception)
             {
+                // One or more handlers failed - individual handler exceptions are caught above
             }
         }
     }

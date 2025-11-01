@@ -1758,8 +1758,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     {
                         connection.Value?.Dispose();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        // Continue disposing other connections even if one fails
+                        Log.Debug(ex, "[NETWORK-PROVIDER] Error disposing connection {ConnectId}", connection.Key);
                     }
                 }
 
@@ -1780,8 +1782,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 _shutdownCancellationToken.Dispose();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Final safety catch for any disposal errors
+                Log.Warning(ex, "[NETWORK-PROVIDER] Error during final disposal cleanup");
             }
         }
     }
