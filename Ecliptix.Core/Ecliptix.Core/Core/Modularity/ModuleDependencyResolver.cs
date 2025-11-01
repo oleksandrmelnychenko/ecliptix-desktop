@@ -55,14 +55,11 @@ public class ModuleDependencyResolver
         HashSet<string> visited = new();
         HashSet<string> recursionStack = new();
 
-        foreach (IModule module in modules)
+        foreach (IModule module in modules.Where(m => !visited.Contains(m.Id.ToName())))
         {
-            if (!visited.Contains(module.Id.ToName()))
+            if (HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack))
             {
-                if (HasCircularDependency(module.Id.ToName(), moduleMap, visited, recursionStack))
-                {
-                    throw new InvalidOperationException($"Circular dependency detected starting from module '{module.Id.ToName()}'");
-                }
+                throw new InvalidOperationException($"Circular dependency detected starting from module '{module.Id.ToName()}'");
             }
         }
     }

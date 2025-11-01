@@ -285,13 +285,10 @@ public sealed class RetryStrategy : IRetryStrategy
 
             foreach (string key in exhaustedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Log.IsEnabled(LogEventLevel.Debug))
                 {
-                    if (Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
-                            operation.OperationName);
-                    }
+                    Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
+                        operation.OperationName);
                 }
             }
 
@@ -519,13 +516,10 @@ public sealed class RetryStrategy : IRetryStrategy
 
             foreach (string key in abandonedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
-                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
-                            operation.OperationName, OperationTimeoutMinutes);
-                    }
+                    Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
+                        operation.OperationName, OperationTimeoutMinutes);
                 }
             }
 
@@ -549,18 +543,15 @@ public sealed class RetryStrategy : IRetryStrategy
     {
         string cacheKey = CreateDelaysCacheKey(maxRetries);
 
-        if (_pipelineCache.TryGetValue(cacheKey, out object? cachedDelays))
+        if (_pipelineCache.TryGetValue(cacheKey, out object? cachedDelays) && cachedDelays is TimeSpan[] delays)
         {
-            if (cachedDelays is TimeSpan[] delays)
+            if (Log.IsEnabled(LogEventLevel.Debug))
             {
-                if (Log.IsEnabled(LogEventLevel.Debug))
-                {
-                    Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
-                        maxRetries);
-                }
-
-                return delays;
+                Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
+                    maxRetries);
             }
+
+            return delays;
         }
 
         if (Log.IsEnabled(LogEventLevel.Debug))

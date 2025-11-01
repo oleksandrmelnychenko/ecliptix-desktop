@@ -341,12 +341,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
-            if (result.IsErr && !_isDisposed)
+            if (result.IsErr && !_isDisposed && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
             {
-                if (CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
-                {
-                    ErrorMessage = result.UnwrapErr();
-                }
+                ErrorMessage = result.UnwrapErr();
             }
         });
     }
