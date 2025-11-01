@@ -59,6 +59,7 @@ internal static unsafe class CertificatePinningNativeLibrary
                 }
                 catch (Exception)
                 {
+                    // Try next library path if this one fails to load
                 }
             }
         }

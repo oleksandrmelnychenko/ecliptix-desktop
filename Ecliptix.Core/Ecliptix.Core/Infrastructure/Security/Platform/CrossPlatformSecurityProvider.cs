@@ -148,9 +148,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         {
             lock (_lockObject)
             {
+                string keyFile = GetKeyFilePath(identifier);
                 try
                 {
-                    string keyFile = GetKeyFilePath(identifier);
                     if (!File.Exists(keyFile))
                     {
                         return;
@@ -167,8 +167,10 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
                     File.Delete(keyFile);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    // Best-effort cleanup - file may already be deleted or locked
+                    Log.Debug(ex, "[KEYCHAIN-CLEANUP] Could not delete old key file during rotation: {KeyFile}", keyFile);
                 }
             }
         });
@@ -378,7 +380,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             byte[] machineKey = GetMachineKey();
             string machineKeyFingerprint = Convert.ToHexString(SHA256.HashData(machineKey))[..16];
 
-            Log.Error("[KEYCHAIN-FILE-DECRYPT-FAILED] Decryption failed - likely machine key mismatch or file corruption. Identifier: {Identifier}, Path: {Path}, Size: {Size}, MachineKeyFingerprint: {MachineKeyFingerprint}, Error: {Error}, LastModified: {LastModified}",
+            Log.Error(cryptoEx, "[KEYCHAIN-FILE-DECRYPT-FAILED] Decryption failed - likely machine key mismatch or file corruption. Identifier: {Identifier}, Path: {Path}, Size: {Size}, MachineKeyFingerprint: {MachineKeyFingerprint}, Error: {Error}, LastModified: {LastModified}",
                 identifier, keyFile, fileInfo.Length, machineKeyFingerprint, cryptoEx.Message, fileInfo.LastWriteTimeUtc);
 
             try
@@ -389,7 +391,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
             catch (Exception deleteEx)
             {
-                Log.Error("[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+                Log.Error(deleteEx, "[KEYCHAIN-FILE-DELETE-ERROR] Failed to delete corrupted key file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
                     identifier, keyFile, deleteEx.Message);
             }
 
@@ -398,7 +400,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error("[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
+            Log.Error(ex, "[KEYCHAIN-FILE-ERROR] Failed to read encrypted file. Identifier: {Identifier}, Path: {Path}, Error: {Error}",
                 identifier, keyFile, ex.Message);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure($"Failed to read encrypted file: {ex.Message}"));
@@ -458,7 +460,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             }
             catch (Exception ex)
             {
-                Log.Error("[MACHINE-KEY-ERROR] Failed to read existing machine key file: {Error}",
+                Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to read existing machine key file: {Error}",
                     ex.Message);
             }
         }
@@ -474,7 +476,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         }
         catch (Exception ex)
         {
-            Log.Error("[MACHINE-KEY-ERROR] Failed to write machine key file: {Error}",
+            Log.Error(ex, "[MACHINE-KEY-ERROR] Failed to write machine key file: {Error}",
                 ex.Message);
         }
 
@@ -497,8 +499,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 }
             }
         }
-        catch
+        catch (Exception)
         {
+            // Hardware random enhancement is best-effort - fallback to software RNG is acceptable
         }
     }
 

@@ -121,8 +121,9 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                     return true;
                 }
             }
-            catch
+            catch (Exception)
             {
+                // Network connectivity check failed - return false to indicate no connection
             }
         }
 

@@ -27,8 +27,9 @@ internal sealed class ScopedSecureMemoryCollection : IDisposable
             {
                 _resources[i].Dispose();
             }
-            catch
+            catch (Exception)
             {
+                // Continue disposing remaining resources even if one fails
             }
         }
 

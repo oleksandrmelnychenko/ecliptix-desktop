@@ -379,28 +379,6 @@ internal sealed class OpaqueRegistrationService(
             or NetworkFailureType.OperationCancelled;
     }
 
-    private static bool ShouldReinit(NetworkFailure failure)
-    {
-        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
-        {
-            return true;
-        }
-
-        if (failure.UserError is not { } userError)
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-            string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return userError.ErrorCode == ErrorCode.DependencyUnavailable &&
-               failure.InnerException is RpcException { StatusCode: StatusCode.NotFound };
-    }
-
     private static string GetNetworkFailureMessage(NetworkFailure failure) =>
         failure.UserError?.Message ?? failure.Message;
 

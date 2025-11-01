@@ -157,9 +157,7 @@ internal sealed class OpaqueAuthenticationService(
             }
 
             networkProvider.ExitOutage();
-            return Result<Unit, AuthenticationFailure>.Err(lastError ??
-                                                           AuthenticationFailure.NetworkRequestFailed(
-                                                               "Protocol recreation failed after retries"));
+            return Result<Unit, AuthenticationFailure>.Err(lastError!);
         }
         finally
         {
@@ -376,9 +374,6 @@ internal sealed class OpaqueAuthenticationService(
                             return Result<SignInFlowResult, AuthenticationFailure>.Err(masterKeyValidationResult
                                 .UnwrapErr());
                         }
-
-                        SodiumSecureMemoryHandle validatedMasterKeyHandle =
-                            masterKeyValidationResult.Unwrap();
 
                         Result<Unit, AuthenticationFailure> storeResult =
                             await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult)

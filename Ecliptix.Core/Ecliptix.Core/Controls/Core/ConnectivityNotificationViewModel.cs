@@ -439,6 +439,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (OperationCanceledException)
         {
+            // Animation cancelled - expected during rapid state changes
         }
         catch (Exception ex)
         {
@@ -464,6 +465,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (OperationCanceledException)
         {
+            // Animation cancelled - expected during rapid state changes
         }
         catch (Exception ex)
         {
@@ -599,6 +601,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (ObjectDisposedException)
         {
+            // Token source already disposed - safe to ignore during cleanup
         }
         finally
         {
@@ -618,7 +621,6 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         _cachedStatusDescriptions.Clear();
 
         _disposed = true;
-        GC.SuppressFinalize(this);
     }
 
     private static void LogRetryButtonShow()

@@ -340,8 +340,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 return Marshal.PtrToStringUTF8((IntPtr)errorPtr) ?? FormattableString.Invariant($"Unknown error: {result}");
             }
         }
-        catch
+        catch (Exception)
         {
+            // Error message retrieval failed - return error code instead
         }
 
         return FormattableString.Invariant($"Error code: {result}");
@@ -362,8 +363,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 {
                     CertificatePinningNativeLibrary.Cleanup();
                 }
-                catch
+                catch (Exception)
                 {
+                    // Native cleanup failure during disposal is non-critical
                 }
             }).ConfigureAwait(false);
         }

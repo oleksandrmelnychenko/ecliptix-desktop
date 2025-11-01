@@ -24,7 +24,7 @@ public partial class TitleBar : UserControl
     public ReactiveCommand<Unit, Unit> MinimizeCommand { get; }
     public ReactiveCommand<Unit, Unit> MaximizeCommand { get; }
 
-    private IDisposable? _pointerPressedSubscription;
+    private readonly IDisposable? _pointerPressedSubscription;
 
     public TitleBar()
     {

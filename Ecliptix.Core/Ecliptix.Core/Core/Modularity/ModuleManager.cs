@@ -300,9 +300,9 @@ public class ModuleManager : IModuleManager
                 }
             }
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            Log.Warning("Falling back to manual dependency resolution for module: {ModuleName}",
+            Log.Warning(ex, "Falling back to manual dependency resolution for module: {ModuleName}",
                 module.Id.ToName());
             foreach (ModuleIdentifier dependency in module.Manifest.Dependencies)
             {

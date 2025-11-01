@@ -146,7 +146,6 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)

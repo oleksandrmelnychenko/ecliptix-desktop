@@ -341,12 +341,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
-            if (result.IsErr && !_isDisposed)
+            if (result.IsErr && !_isDisposed && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
             {
-                if (CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
-                {
-                    ErrorMessage = result.UnwrapErr();
-                }
+                ErrorMessage = result.UnwrapErr();
             }
         });
     }
@@ -396,7 +393,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             Membership membership = result.Unwrap();
 
-            if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+            if (HostScreen is AuthenticationViewModel hostWindow)
             {
                 await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
 
@@ -432,11 +429,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         }
         else
         {
-            if (!_isDisposed)
-            {
-                ErrorMessage = result.UnwrapErr();
-                IsSent = false;
-            }
+            ErrorMessage = result.UnwrapErr();
+            IsSent = false;
         }
     }
 
@@ -751,7 +745,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (_cancellationTokenSource != null)
         {
-            _cancellationTokenSource.Cancel();
+            await _cancellationTokenSource.CancelAsync();
             _cancellationTokenSource.Dispose();
         }
 

@@ -154,6 +154,8 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             }
             catch (Exception)
             {
+                // Swallow exceptions to prevent message processing loop from crashing
+                // Individual message processing errors should not stop the entire message bus
             }
             finally
             {
@@ -188,6 +190,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
                 }
                 catch (Exception)
                 {
+                    // Swallow handler registration exceptions to allow other handlers to run
                 }
             }
         }
@@ -219,6 +222,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         }
         catch (Exception)
         {
+            // Expected during disposal if task is cancelled or times out
         }
 
         _cancellationTokenSource.Dispose();

@@ -295,9 +295,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
                 Log.Information("Stored previous focused element: {Element}", _previousFocusedElement?.GetType().Name ?? "null"); // Added
             }
-            catch
+            catch (Exception ex)
             {
-                Log.Information("Exception while getting previous focus. Setting to null.");
+                Log.Information(ex, "Exception while getting previous focus. Setting to null.");
                 _previousFocusedElement = null;
             }
             UpdateSheetHeight();
@@ -326,9 +326,9 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     Log.Information("No previous element and no parent to focus.");
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Log.Information("Exception while restoring focus. Attempting fallback to parent.");
+                Log.Information(ex, "Exception while restoring focus. Attempting fallback to parent.");
                 if (Parent is Control fallbackParent)
                 {
                     Log.Information("Restoring focus to fallback parent: {Element}", fallbackParent.GetType().Name);

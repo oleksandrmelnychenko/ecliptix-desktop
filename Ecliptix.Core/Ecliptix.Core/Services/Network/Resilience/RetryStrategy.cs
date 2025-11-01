@@ -33,7 +33,6 @@ public sealed class RetryStrategy : IRetryStrategy
 
     private readonly RetryStrategyConfiguration _strategyConfiguration;
     private readonly IConnectivityService _connectivityService;
-    private readonly IOperationTimeoutProvider _timeoutProvider;
     private readonly ConcurrentDictionary<string, RetryOperationInfo> _activeRetryOperations = new();
     private readonly ConcurrentDictionary<string, object> _pipelineCache = new();
     private readonly SemaphoreSlim _stateLock = new(1, 1);
@@ -71,11 +70,10 @@ public sealed class RetryStrategy : IRetryStrategy
     public RetryStrategy(
         RetryStrategyConfiguration strategyConfiguration,
         IConnectivityService connectivityService,
-        IOperationTimeoutProvider timeoutProvider)
+        IOperationTimeoutProvider _)
     {
         _strategyConfiguration = strategyConfiguration;
         _connectivityService = connectivityService;
-        _timeoutProvider = timeoutProvider;
 
         _cleanupTimer = new Timer(
             CleanupAbandonedOperations,
@@ -287,13 +285,10 @@ public sealed class RetryStrategy : IRetryStrategy
 
             foreach (string key in exhaustedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Log.IsEnabled(LogEventLevel.Debug))
                 {
-                    if (Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
-                            operation.OperationName);
-                    }
+                    Log.Debug("🔄 CLEARED: Removed exhausted operation {OperationName} for fresh retry",
+                        operation.OperationName);
                 }
             }
 
@@ -401,46 +396,6 @@ public sealed class RetryStrategy : IRetryStrategy
         }
     }
 
-    private async Task<bool> RetryAllExhaustedOperationsAsync()
-    {
-        await _stateLock.WaitAsync().ConfigureAwait(false);
-        List<RetryOperationInfo> exhaustedOperations = new();
-        try
-        {
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
-            {
-                if (operation.IsExhausted)
-                {
-                    exhaustedOperations.Add(operation);
-                }
-            }
-        }
-        finally
-        {
-            _stateLock.Release();
-        }
-
-        if (exhaustedOperations.Count == 0)
-        {
-            Log.Debug("🔄 MANUAL RETRY: No exhausted operations to retry");
-            return false;
-        }
-
-        Log.Information("🔄 MANUAL RETRY: Found {Count} exhausted operations, clearing for fresh retry",
-            exhaustedOperations.Count);
-
-        foreach (RetryOperationInfo operation in exhaustedOperations)
-        {
-            operation.IsExhausted = false;
-            operation.CurrentRetryCount = 0;
-            StopTrackingOperation(operation.UniqueKey, "Manual retry cleared");
-        }
-
-        Log.Information("🔄 MANUAL RETRY: Cleared {Count} exhausted operations for fresh retry",
-            exhaustedOperations.Count);
-        return true;
-    }
-
     private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey,
         RpcServiceType? serviceType)
     {
@@ -521,13 +476,10 @@ public sealed class RetryStrategy : IRetryStrategy
 
             foreach (string key in abandonedKeys)
             {
-                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation))
+                if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
-                    if (Serilog.Log.IsEnabled(LogEventLevel.Debug))
-                    {
-                        Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
-                            operation.OperationName, OperationTimeoutMinutes);
-                    }
+                    Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
+                        operation.OperationName, OperationTimeoutMinutes);
                 }
             }
 
@@ -551,18 +503,15 @@ public sealed class RetryStrategy : IRetryStrategy
     {
         string cacheKey = CreateDelaysCacheKey(maxRetries);
 
-        if (_pipelineCache.TryGetValue(cacheKey, out object? cachedDelays))
+        if (_pipelineCache.TryGetValue(cacheKey, out object? cachedDelays) && cachedDelays is TimeSpan[] delays)
         {
-            if (cachedDelays is TimeSpan[] delays)
+            if (Log.IsEnabled(LogEventLevel.Debug))
             {
-                if (Log.IsEnabled(LogEventLevel.Debug))
-                {
-                    Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
-                        maxRetries);
-                }
-
-                return delays;
+                Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
+                    maxRetries);
             }
+
+            return delays;
         }
 
         if (Log.IsEnabled(LogEventLevel.Debug))
@@ -827,7 +776,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
             if (restoreResult.IsOk && restoreResult.Unwrap())
             {
-                //TODO: Connection successfully restored.
+                Log.Information("Connection successfully restored for ConnectId {ConnectId}", connectId);
             }
             else if (restoreResult.IsErr)
             {

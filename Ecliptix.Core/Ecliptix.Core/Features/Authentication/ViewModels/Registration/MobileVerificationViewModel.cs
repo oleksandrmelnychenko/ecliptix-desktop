@@ -33,7 +33,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 {
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IOpaqueRegistrationService _registrationService;
-    private readonly IAuthenticationService _authenticationService;
     private readonly ISecureKeyRecoveryService? _secureKeyRecoveryService;
     private readonly AuthenticationFlowContext _flowContext;
     private readonly IConnectivityService _connectivityService;
@@ -50,13 +49,12 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IAuthenticationService authenticationService,
+        IAuthenticationService _,
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
         connectivityService)
     {
         _registrationService = registrationService;
-        _authenticationService = authenticationService;
         _secureKeyRecoveryService = secureKeyRecoveryService;
         _connectivityService = connectivityService;
         _flowContext = flowContext;
@@ -370,7 +368,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         ShowError(statusResult.UnwrapErr());
                     }
                 }
-                else if (!_isDisposed)
+                else
                 {
                     ShowError(result.UnwrapErr());
                 }
@@ -396,13 +394,13 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
                         mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
                         _flowContext, _secureKeyRecoveryService);
 
-                    if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+                    if (HostScreen is AuthenticationViewModel hostWindow)
                     {
                         hostWindow.RecoveryMobileNumber = MobileNumber;
                         hostWindow.NavigateToViewModel(vm);
                     }
                 }
-                else if (!_isDisposed)
+                else
                 {
                     ShowError(result.UnwrapErr());
                 }
@@ -442,7 +440,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
             mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService);
 
-        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+        if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.NavigateToViewModel(vm);
@@ -458,7 +456,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return Task.CompletedTask;
         }
 
-        if (!_isDisposed && HostScreen is AuthenticationViewModel hostWindow)
+        if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
             hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
@@ -470,7 +468,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public new void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
     }
 
     protected override void Dispose(bool disposing)

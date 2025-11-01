@@ -355,8 +355,9 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 munlock(handle, (UIntPtr)Length);
             }
         }
-        catch
+        catch (Exception)
         {
+            // munlock may fail if memory wasn't locked or already unlocked - safe to ignore
         }
         finally
         {
