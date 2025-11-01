@@ -456,7 +456,10 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             {
                 try
                 { File.Delete(tempPath); }
-                catch { }
+                catch (Exception)
+                {
+                    // Best-effort cleanup - temp file deletion failure is non-critical
+                }
             }
             throw;
         }

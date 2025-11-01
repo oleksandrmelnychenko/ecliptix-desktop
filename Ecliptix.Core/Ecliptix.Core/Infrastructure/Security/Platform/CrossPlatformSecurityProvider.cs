@@ -499,8 +499,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 }
             }
         }
-        catch
+        catch (Exception)
         {
+            // Hardware random enhancement is best-effort - fallback to software RNG is acceptable
         }
     }
 
