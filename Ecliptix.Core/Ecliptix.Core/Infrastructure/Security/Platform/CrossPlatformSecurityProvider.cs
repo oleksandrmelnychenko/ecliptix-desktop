@@ -104,11 +104,19 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         });
     }
 
-    private Result<Unit, SecureStorageFailure> GetPlatformStore(string identifier, byte[] key) =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreInWindowsCredentialManager(identifier, key) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? StoreInMacOsKeychain(identifier, key) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? StoreInLinuxSecretService(identifier, key) :
-        StoreInEncryptedFile(identifier, key);
+    private Result<Unit, SecureStorageFailure> GetPlatformStore(string identifier, byte[] key)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return StoreInWindowsCredentialManager(identifier, key);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return StoreInMacOsKeychain(identifier, key);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return StoreInLinuxSecretService(identifier, key);
+
+        return StoreInEncryptedFile(identifier, key);
+    }
 
     public async Task<byte[]?> GetKeyFromKeychainAsync(string identifier)
     {
@@ -136,11 +144,19 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         });
     }
 
-    private Result<byte[], SecureStorageFailure> GetPlatformRetrieve(string identifier) =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? GetFromWindowsCredentialManager(identifier) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? GetFromMacOsKeychain(identifier) :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? GetFromLinuxSecretService(identifier) :
-        GetFromEncryptedFile(identifier);
+    private Result<byte[], SecureStorageFailure> GetPlatformRetrieve(string identifier)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return GetFromWindowsCredentialManager(identifier);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return GetFromMacOsKeychain(identifier);
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return GetFromLinuxSecretService(identifier);
+
+        return GetFromEncryptedFile(identifier);
+    }
 
     public async Task DeleteKeyFromKeychainAsync(string identifier)
     {
@@ -198,10 +214,19 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         return hmacKey;
     }
 
-    public bool IsHardwareSecurityAvailable() =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? CheckWindowsTpm() :
-        RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? CheckMacOsSecureEnclave() :
-        RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && CheckLinuxTpm();
+    public bool IsHardwareSecurityAvailable()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return CheckWindowsTpm();
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return CheckMacOsSecureEnclave();
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return CheckLinuxTpm();
+
+        return false;
+    }
 
     public async Task<byte[]> HardwareEncryptAsync(byte[] data)
     {
