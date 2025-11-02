@@ -49,6 +49,7 @@ detect_platform_appdata() {
         echo "ERROR: Unsupported platform: $OSTYPE" >&2
         exit 1
     fi
+    return 0
 }
 
 calculate_directory_size() {
@@ -309,6 +310,7 @@ main() {
         exit 1
     fi
     echo "$SEPARATOR_LINE"
+    return 0
 }
 
 main "$@"
