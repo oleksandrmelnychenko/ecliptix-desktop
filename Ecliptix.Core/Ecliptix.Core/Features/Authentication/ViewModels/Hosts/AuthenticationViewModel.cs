@@ -553,7 +553,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             return cachedViewModel;
         }
 
-        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel> factory))
+        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory found for view type: {viewType}");
         }
