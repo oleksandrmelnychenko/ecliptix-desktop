@@ -58,7 +58,7 @@ function Write-Banner {
 }
 
 function Get-AppDataDirectory {
-    string appDataPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
+    $appDataPath = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
     return Join-Path $appDataPath "Ecliptix"
 }
 
@@ -70,7 +70,7 @@ function Get-DirectorySize {
     }
 
     try {
-        long totalBytes = (Get-ChildItem $Path -Recurse -File -ErrorAction SilentlyContinue |
+        $totalBytes = (Get-ChildItem $Path -Recurse -File -ErrorAction SilentlyContinue |
             Measure-Object -Property Length -Sum).Sum
 
         if ($totalBytes -eq 0) { return "0 B" }
@@ -106,8 +106,8 @@ function Write-DirectoryInfo {
     )
 
     if (Test-Path $Path) {
-        string size = Get-DirectorySize -Path $Path
-        int fileCount = Get-FileCount -Path $Path
+        $size = Get-DirectorySize -Path $Path
+        $fileCount = Get-FileCount -Path $Path
 
         Write-Host "  ✓ $Label" -ForegroundColor Green
         Write-Host "    Path: $Path" -ForegroundColor Gray
@@ -161,7 +161,7 @@ function Remove-DirectorySafe {
 try {
     Write-Banner
 
-    string appData = Get-AppDataDirectory
+    $appData = Get-AppDataDirectory
     Write-Host "Platform: Windows" -ForegroundColor Cyan
     Write-Host "Application data directory: $appData" -ForegroundColor Cyan
     Write-Host
@@ -177,8 +177,8 @@ try {
     Write-DirectoryInfo -Path "$appData\Storage\state" -Label "Secure Storage (settings, keys, membership)"
     Write-DirectoryInfo -Path "$appData\.keychain" -Label "Keychain (encryption keys, machine key)"
 
-    int masterCount = (Get-ChildItem "$appData\master_*.ecliptix" -ErrorAction SilentlyContinue | Measure-Object).Count
-    int ecliptixCount = (Get-ChildItem "$appData\*.ecliptix" -ErrorAction SilentlyContinue | Measure-Object).Count
+    $masterCount = (Get-ChildItem "$appData\master_*.ecliptix" -ErrorAction SilentlyContinue | Measure-Object).Count
+    $ecliptixCount = (Get-ChildItem "$appData\*.ecliptix" -ErrorAction SilentlyContinue | Measure-Object).Count
 
     if ($masterCount -gt 0) {
         Write-Host "  ✓ Master Key Files" -ForegroundColor Green
@@ -190,7 +190,7 @@ try {
     }
 
     if ($ecliptixCount -gt $masterCount) {
-        int otherCount = $ecliptixCount - $masterCount
+        $otherCount = $ecliptixCount - $masterCount
         Write-Host "  ✓ Other Ecliptix Files" -ForegroundColor Green
         Write-Host "    Path: $appData\*.ecliptix" -ForegroundColor Gray
         Write-Host "    Count: $otherCount files" -ForegroundColor Gray
@@ -218,7 +218,7 @@ try {
         }
         Write-Host
 
-        string confirmation = Read-Host "Are you sure you want to continue? (yes/no)"
+        $confirmation = Read-Host "Are you sure you want to continue? (yes/no)"
         if ($confirmation -ne "yes") {
             Write-Host "Cleanup cancelled." -ForegroundColor Yellow
             exit 0
@@ -228,7 +228,7 @@ try {
     Write-Host "Starting cleanup..." -ForegroundColor Cyan
     Write-Host
 
-    int errors = 0
+    $errors = 0
 
     if (-not (Remove-DirectorySafe -Path "$appData\Storage\DataProtection-Keys" -IsDryRun $DryRun)) {
         $errors++
@@ -243,7 +243,7 @@ try {
     }
 
     # Remove master key files
-    string[] masterFiles = Get-ChildItem "$appData\master_*.ecliptix" -ErrorAction SilentlyContinue
+    $masterFiles = Get-ChildItem "$appData\master_*.ecliptix" -ErrorAction SilentlyContinue
     if ($masterFiles) {
         if ($DryRun) {
             Write-Host "  [DRY-RUN] Would delete: $appData\master_*.ecliptix" -ForegroundColor Yellow
@@ -262,7 +262,7 @@ try {
     }
 
     # Remove numbered ecliptix files (but not master_*.ecliptix)
-    string[] ecliptixFiles = Get-ChildItem "$appData\[0-9]*.ecliptix" -ErrorAction SilentlyContinue
+    $ecliptixFiles = Get-ChildItem "$appData\[0-9]*.ecliptix" -ErrorAction SilentlyContinue
     if ($ecliptixFiles) {
         if ($DryRun) {
             Write-Host "  [DRY-RUN] Would delete: $appData\*.ecliptix (numbered files)" -ForegroundColor Yellow
@@ -291,7 +291,7 @@ try {
 
     # Clean up empty Storage directory
     if (Test-Path "$appData\Storage") {
-        int remaining = (Get-ChildItem "$appData\Storage" -ErrorAction SilentlyContinue | Measure-Object).Count
+        $remaining = (Get-ChildItem "$appData\Storage" -ErrorAction SilentlyContinue | Measure-Object).Count
         if ($remaining -eq 0 -and -not $DryRun) {
             Write-Host
             Write-Host "  Removing empty Storage directory" -ForegroundColor Gray

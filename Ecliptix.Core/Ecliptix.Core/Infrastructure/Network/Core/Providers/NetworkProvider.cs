@@ -385,9 +385,16 @@ public sealed class NetworkProvider(
         {
             tokenRegistration = cancellationToken.Register(() =>
             {
-                if (!cancellationTokenSource.IsCancellationRequested)
+                try
                 {
-                    cancellationTokenSource.Cancel();
+                    if (!cancellationTokenSource.IsCancellationRequested)
+                    {
+                        cancellationTokenSource.Cancel();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // CTS disposed in outer scope - safe to ignore as cancellation is complete
                 }
             });
         }
