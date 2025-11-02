@@ -105,7 +105,8 @@ jobs:
     - name: Check for crypto best practices
       run: |
         # Check for hardcoded secrets - look for string literals containing sensitive values
-        if grep -r '".*password.*=\|".*secret.*=\|".*key.*=' --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "//"; then
+        # Exclude DllImport EntryPoint patterns which are legitimate native library entry points
+        if grep -r '".*password.*=\|".*secret.*=\|".*key.*=' --include="*.cs" --exclude-dir=obj --exclude-dir=bin . | grep -v "//" | grep -v "EntryPoint"; then
           echo "⚠️ Potential hardcoded secrets found"
           exit 1
         fi
