@@ -466,6 +466,8 @@ public sealed class NetworkProvider(
             }
             catch (Exception ex)
             {
+                // Catch all unexpected exceptions and convert to network failure
+                // Exception message is propagated to allow diagnosis of underlying issues
                 return Result<Unit, NetworkFailure>.Err(NetworkFailure.DataCenterNotResponding(ex.Message));
             }
         }
