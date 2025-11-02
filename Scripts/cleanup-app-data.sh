@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SEPARATOR_LINE="═══════════════════════════════════════════════════════════"
 
 print_banner() {
     echo "╔════════════════════════════════════════════════════════════╗"
@@ -11,6 +12,7 @@ print_banner() {
     echo "║  Removes all persisted application data for fresh init    ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo
+    return 0
 }
 
 print_usage() {
@@ -35,6 +37,7 @@ Examples:
   $SCRIPT_NAME --keep-logs      # Delete keys/settings but keep logs
 
 EOF
+    return 0
 }
 
 detect_platform_appdata() {
@@ -59,6 +62,7 @@ calculate_directory_size() {
     else
         echo "0B"
     fi
+    return 0
 }
 
 count_files_recursive() {
@@ -68,6 +72,7 @@ count_files_recursive() {
     else
         echo "0"
     fi
+    return 0
 }
 
 print_directory_info() {
@@ -83,6 +88,7 @@ print_directory_info() {
     else
         echo "  ✗ $label (not found)"
     fi
+    return 0
 }
 
 count_pattern_files() {
@@ -93,17 +99,22 @@ count_pattern_files() {
     else
         echo "0"
     fi
+    return 0
 }
 
 check_data_exists() {
     local appdata="$1"
 
-    [[ -d "$appdata/Storage/DataProtection-Keys" ]] || \
-    [[ -d "$appdata/Storage/state" ]] || \
-    [[ -d "$appdata/Storage/logs" ]] || \
-    [[ -d "$appdata/.keychain" ]] || \
-    [[ -n "$(find "$appdata" -maxdepth 1 -name "master_*.ecliptix" -type f 2>/dev/null)" ]] || \
-    [[ -n "$(find "$appdata" -maxdepth 1 -name "*.ecliptix" -type f 2>/dev/null)" ]]
+    if [[ -d "$appdata/Storage/DataProtection-Keys" ]] || \
+       [[ -d "$appdata/Storage/state" ]] || \
+       [[ -d "$appdata/Storage/logs" ]] || \
+       [[ -d "$appdata/.keychain" ]] || \
+       [[ -n "$(find "$appdata" -maxdepth 1 -name "master_*.ecliptix" -type f 2>/dev/null)" ]] || \
+       [[ -n "$(find "$appdata" -maxdepth 1 -name "*.ecliptix" -type f 2>/dev/null)" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 remove_directory_safe() {
@@ -116,11 +127,13 @@ remove_directory_safe() {
 
     if [[ "$dry_run" == "true" ]]; then
         echo "  [DRY-RUN] Would delete: $dir"
+        return 0
     else
         echo "  Deleting: $dir"
         rm -rf "$dir"
         if [[ $? -eq 0 ]]; then
             echo "    ✓ Deleted successfully"
+            return 0
         else
             echo "    ✗ Failed to delete" >&2
             return 1
@@ -129,30 +142,32 @@ remove_directory_safe() {
 }
 
 main() {
+    local args=("$@")
     local dry_run=false
     local keep_logs=false
     local force=false
 
-    while [[ $# -gt 0 ]]; do
-        case $1 in
+    while [[ ${#args[@]} -gt 0 ]]; do
+        local current_arg="${args[0]}"
+        case $current_arg in
             --dry-run)
                 dry_run=true
-                shift
+                args=("${args[@]:1}")
                 ;;
             --keep-logs)
                 keep_logs=true
-                shift
+                args=("${args[@]:1}")
                 ;;
             --force)
                 force=true
-                shift
+                args=("${args[@]:1}")
                 ;;
             -h|--help)
                 print_usage
                 exit 0
                 ;;
             *)
-                echo "ERROR: Unknown option: $1" >&2
+                echo "ERROR: Unknown option: $current_arg" >&2
                 print_usage
                 exit 1
                 ;;
@@ -161,7 +176,9 @@ main() {
 
     print_banner
 
-    APPDATA=$(detect_platform_appdata)
+    local appdata
+    appdata=$(detect_platform_appdata)
+    APPDATA="$appdata"
     echo "Platform: $(uname -s)"
     echo "Application data directory: $APPDATA"
     echo
@@ -198,9 +215,9 @@ main() {
     echo
 
     if [[ "$dry_run" == "true" ]]; then
-        echo "═══════════════════════════════════════════════════════════"
+        echo "$SEPARATOR_LINE"
         echo "DRY-RUN MODE: No files will be deleted"
-        echo "═══════════════════════════════════════════════════════════"
+        echo "$SEPARATOR_LINE"
         echo
     fi
 
@@ -280,7 +297,7 @@ main() {
     fi
 
     echo
-    echo "═══════════════════════════════════════════════════════════"
+    echo "$SEPARATOR_LINE"
     if [[ "$dry_run" == "true" ]]; then
         echo "✓ Dry-run completed. No files were deleted."
     elif [[ $errors -eq 0 ]]; then
@@ -288,10 +305,10 @@ main() {
         echo
         echo "The application will initialize with fresh settings on next launch."
     else
-        echo "⚠️  Cleanup completed with $errors error(s)."
+        echo "⚠️  Cleanup completed with $errors error(s)." >&2
         exit 1
     fi
-    echo "═══════════════════════════════════════════════════════════"
+    echo "$SEPARATOR_LINE"
 }
 
 main "$@"

@@ -109,7 +109,7 @@ internal class ParallelModuleLoader : IDisposable
         return loadedModules.AsReadOnly();
     }
 
-    private Task<IModule> LoadModuleWithContextAsync(IModule module, CancellationToken _)
+    private Task<IModule> LoadModuleWithContextAsync(IModule module, CancellationToken cancellationToken)
     {
         return _loadingContext.GetOrCreateLoadingTask(module.Id.ToName(), async () =>
         {

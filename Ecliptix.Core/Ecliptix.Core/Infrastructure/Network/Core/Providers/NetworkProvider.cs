@@ -35,19 +35,51 @@ using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Infrastructure.Network.Core.Providers;
 
-public sealed class NetworkProvider(
-    IRpcServiceManager rpcServiceManager,
-    IApplicationSecureStorageProvider applicationSecureStorageProvider,
-    ISecureProtocolStateStorage secureProtocolStateStorage,
-    IRpcMetaDataProvider rpcMetaDataProvider,
-    IConnectivityService connectivityService,
-    IRetryStrategy retryStrategy,
-    IPendingRequestManager pendingRequestManager,
-    ICertificatePinningServiceFactory certificatePinningServiceFactory,
-    IRsaChunkEncryptor rsaChunkEncryptor,
-    IRetryPolicyProvider retryPolicyProvider)
-    : INetworkProvider, IDisposable, IProtocolEventHandler
+public sealed record NetworkProviderDependencies(
+    IRpcServiceManager RpcServiceManager,
+    IApplicationSecureStorageProvider ApplicationSecureStorageProvider,
+    ISecureProtocolStateStorage SecureProtocolStateStorage,
+    IRpcMetaDataProvider RpcMetaDataProvider);
+
+public sealed record NetworkProviderServices(
+    IConnectivityService ConnectivityService,
+    IRetryStrategy RetryStrategy,
+    IPendingRequestManager PendingRequestManager);
+
+public sealed record NetworkProviderSecurity(
+    ICertificatePinningServiceFactory CertificatePinningServiceFactory,
+    IRsaChunkEncryptor RsaChunkEncryptor,
+    IRetryPolicyProvider RetryPolicyProvider);
+
+public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEventHandler
 {
+    private readonly IRpcServiceManager rpcServiceManager;
+    private readonly IApplicationSecureStorageProvider applicationSecureStorageProvider;
+    private readonly ISecureProtocolStateStorage secureProtocolStateStorage;
+    private readonly IRpcMetaDataProvider rpcMetaDataProvider;
+    private readonly IConnectivityService connectivityService;
+    private readonly IRetryStrategy retryStrategy;
+    private readonly IPendingRequestManager pendingRequestManager;
+    private readonly ICertificatePinningServiceFactory certificatePinningServiceFactory;
+    private readonly IRsaChunkEncryptor rsaChunkEncryptor;
+    private readonly IRetryPolicyProvider retryPolicyProvider;
+
+    public NetworkProvider(
+        NetworkProviderDependencies dependencies,
+        NetworkProviderServices services,
+        NetworkProviderSecurity security)
+    {
+        rpcServiceManager = dependencies.RpcServiceManager;
+        applicationSecureStorageProvider = dependencies.ApplicationSecureStorageProvider;
+        secureProtocolStateStorage = dependencies.SecureProtocolStateStorage;
+        rpcMetaDataProvider = dependencies.RpcMetaDataProvider;
+        connectivityService = services.ConnectivityService;
+        retryStrategy = services.RetryStrategy;
+        pendingRequestManager = services.PendingRequestManager;
+        certificatePinningServiceFactory = security.CertificatePinningServiceFactory;
+        rsaChunkEncryptor = security.RsaChunkEncryptor;
+        retryPolicyProvider = security.RetryPolicyProvider;
+    }
     private static TaskCompletionSource<bool> CreateOutageTcs() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -1585,51 +1617,62 @@ public sealed class NetworkProvider(
         {
             try
             {
-                if (_disposed || _shutdownCancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
-                {
-                    EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
-                    EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
-                    if (connection == null)
-                    {
-                        return;
-                    }
-
-                    if (connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
-                    {
-                        return;
-                    }
-
-                    Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
-                    Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
-
-                    if (idKeysStateResult.IsOk && ratchetStateResult.IsOk)
-                    {
-                        EcliptixSessionState state = new()
-                        {
-                            ConnectId = connectId,
-                            IdentityKeys = idKeysStateResult.Unwrap(),
-                            RatchetState = ratchetStateResult.Unwrap()
-                        };
-
-                        await PersistSessionStateAsync(state, connectId).ConfigureAwait(false);
-                    }
-                }
+                await TryPersistProtocolStateAsync(connectId).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                if (_disposed)
+                if (!_disposed)
                 {
-                    return;
+                    Log.Error(ex, "[CLIENT-PROTOCOL-PERSIST] Failed to persist session state in background");
                 }
-
-                Log.Error(ex, "[CLIENT-PROTOCOL-PERSIST] Failed to persist session state in background");
             }
         }, _shutdownCancellationToken.Token);
+    }
+
+    private async Task TryPersistProtocolStateAsync(uint connectId)
+    {
+        if (_disposed || _shutdownCancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        {
+            return;
+        }
+
+        EcliptixProtocolConnection? connection = protocolSystem.GetConnection();
+        if (connection == null || connection.ExchangeType == PubKeyExchangeType.ServerStreaming)
+        {
+            return;
+        }
+
+        Option<EcliptixSessionState> sessionStateOption = BuildSessionState(connectId, protocolSystem, connection);
+        if (sessionStateOption.IsSome)
+        {
+            await PersistSessionStateAsync(sessionStateOption.Value!, connectId).ConfigureAwait(false);
+        }
+    }
+
+    private static Option<EcliptixSessionState> BuildSessionState(uint connectId, EcliptixProtocolSystem protocolSystem, EcliptixProtocolConnection connection)
+    {
+        EcliptixSystemIdentityKeys idKeys = protocolSystem.GetIdentityKeys();
+        Result<IdentityKeysState, EcliptixProtocolFailure> idKeysStateResult = idKeys.ToProtoState();
+        Result<RatchetState, EcliptixProtocolFailure> ratchetStateResult = connection.ToProtoState();
+
+        if (!idKeysStateResult.IsOk || !ratchetStateResult.IsOk)
+        {
+            return Option<EcliptixSessionState>.None;
+        }
+
+        EcliptixSessionState state = new()
+        {
+            ConnectId = connectId,
+            IdentityKeys = idKeysStateResult.Unwrap(),
+            RatchetState = ratchetStateResult.Unwrap()
+        };
+
+        return Option<EcliptixSessionState>.Some(state);
     }
 
     public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex) =>

@@ -222,7 +222,7 @@ public static class Program
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
     }
 
-    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration _)
+    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
         {
@@ -251,8 +251,25 @@ public static class Program
         });
 
         services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
-        services.AddSingleton<NetworkProvider>();
         services.AddSingleton<IPendingRequestManager, PendingRequestManager>();
+
+        services.AddSingleton<NetworkProviderDependencies>(sp => new NetworkProviderDependencies(
+            sp.GetRequiredService<IRpcServiceManager>(),
+            sp.GetRequiredService<IApplicationSecureStorageProvider>(),
+            sp.GetRequiredService<ISecureProtocolStateStorage>(),
+            sp.GetRequiredService<IRpcMetaDataProvider>()));
+
+        services.AddSingleton<NetworkProviderServices>(sp => new NetworkProviderServices(
+            sp.GetRequiredService<IConnectivityService>(),
+            sp.GetRequiredService<IRetryStrategy>(),
+            sp.GetRequiredService<IPendingRequestManager>()));
+
+        services.AddSingleton<NetworkProviderSecurity>(sp => new NetworkProviderSecurity(
+            sp.GetRequiredService<ICertificatePinningServiceFactory>(),
+            sp.GetRequiredService<IRsaChunkEncryptor>(),
+            sp.GetRequiredService<IRetryPolicyProvider>()));
+
+        services.AddSingleton<NetworkProvider>();
         services.AddSingleton<InternetConnectivityBridge>();
     }
 
