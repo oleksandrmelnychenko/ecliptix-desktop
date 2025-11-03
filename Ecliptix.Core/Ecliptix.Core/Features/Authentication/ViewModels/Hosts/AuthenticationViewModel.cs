@@ -37,34 +37,39 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
-public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDisposable
+public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
     private static readonly FrozenDictionary<MembershipViewType, Func<IConnectivityService,
-        NetworkProvider,
-        ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-        IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>> ViewModelFactories =
-        new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
-            ILocalizationService,
-            IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
+            NetworkProvider,
+            ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
             IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
-        {
-            [MembershipViewType.SignIn] = (netEvents, netProvider, loc, auth, _, host, _, _,_) =>
-                new SignInViewModel(netEvents, netProvider, loc, auth, host),
-            [MembershipViewType.Welcome] =
-                (_, netProvider, loc, _, _, host, _, _, _) =>
-                    new WelcomeViewModel(host, loc, netProvider),
-            [MembershipViewType.MobileVerification] =
-                (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
-                    new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth, pwdRecovery, flowContext),
-            [MembershipViewType.ConfirmSecureKey] =
-                (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
-                    new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth, pwdRecovery, flowContext),
-            [MembershipViewType.PassPhase] =
-                (netEvents, netProvider, loc, _, _, host, _, _, _) =>
-                    new PassPhaseViewModel(loc, host, netProvider),
-        }.ToFrozenDictionary();
+        ViewModelFactories =
+            new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
+                ILocalizationService,
+                IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
+                IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
+            {
+                [MembershipViewType.SignInView] = (netEvents, netProvider, loc, auth, _, host, _, _, _) =>
+                    new SignInViewModel(netEvents, netProvider, loc, auth, host),
+                [MembershipViewType.WelcomeView] =
+                    (_, netProvider, loc, _, _, host, _, _, _) =>
+                        new WelcomeViewModel(host, loc, netProvider),
+                [MembershipViewType.MobileVerificationView] =
+                    (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
+                        new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth,
+                            pwdRecovery,
+                            flowContext),
+                [MembershipViewType.SecureKeyConfirmationView] =
+                    (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
+                        new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth,
+                            pwdRecovery,
+                            flowContext),
+                [MembershipViewType.PinSetView] =
+                    (netEvents, netProvider, loc, _, _, host, _, _, _) =>
+                        new PassPhaseViewModel(loc, host, netProvider),
+            }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IConnectivityService _connectivityService;
@@ -76,7 +81,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly IApplicationRouter _router;
-    private readonly Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext), WeakReference<IRoutableViewModel>> _viewModelCache = new();
+
+    private readonly
+        Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext),
+            WeakReference<IRoutableViewModel>> _viewModelCache = new();
+
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
     private readonly CompositeDisposable _disposables = new();
 
@@ -181,7 +190,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 return;
             }
 
-            await moduleManager.LoadModuleAsync("Main");
+            Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
+            if (!mainModuleOption.IsSome)
+            {
+                Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
+                return;
+            }
 
             CleanupAuthenticationFlow();
             await _router.NavigateToMainAsync();
@@ -214,7 +228,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
                 .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
-            Navigate.Execute(MembershipViewType.Welcome)
+            Navigate.Execute(MembershipViewType.WelcomeView)
                 .Subscribe(_ => { })
                 .DisposeWith(disposables);
         });
@@ -279,7 +293,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             try
             {
                 IRoutableViewModel welcomeView = GetOrCreateViewModelForView(
-                    MembershipViewType.Welcome,
+                    MembershipViewType.WelcomeView,
                     resetState: true);
                 _navigationStack.Push(welcomeView);
             }
@@ -311,8 +325,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     }
 
 
-
-
     public void NavigateToViewModel(IRoutableViewModel viewModel)
     {
         if (_currentView != null)
@@ -332,7 +344,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         ClearNavigationStack(true);
         CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
-        Navigate.Execute(MembershipViewType.MobileVerification).Subscribe();
+        Navigate.Execute(MembershipViewType.MobileVerificationView).Subscribe();
     }
 
     public async Task ShowBottomSheet(BottomSheetComponentType componentType, UserControl redirectView,
@@ -408,10 +420,12 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
     {
         ClearNavigationStack();
 
-        List<KeyValuePair< (MembershipViewType viewType, AuthenticationFlowContext actualFlowContext), WeakReference<IRoutableViewModel>>> cachedItems =
+        List<KeyValuePair<(MembershipViewType viewType, AuthenticationFlowContext actualFlowContext),
+            WeakReference<IRoutableViewModel>>> cachedItems =
             _viewModelCache.ToList();
 
-        foreach (KeyValuePair< (MembershipViewType viewType, AuthenticationFlowContext actualFlowContext), WeakReference<IRoutableViewModel>> item in cachedItems)
+        foreach (KeyValuePair<(MembershipViewType viewType, AuthenticationFlowContext actualFlowContext),
+                     WeakReference<IRoutableViewModel>> item in cachedItems)
         {
             if (!item.Value.TryGetTarget(out IRoutableViewModel? viewModel))
             {
@@ -535,9 +549,9 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
 
     private static readonly FrozenSet<MembershipViewType> FlowSpecificViews = new HashSet<MembershipViewType>
     {
-        MembershipViewType.MobileVerification,
-        MembershipViewType.VerifyOtp,
-        MembershipViewType.ConfirmSecureKey,
+        MembershipViewType.MobileVerificationView,
+        MembershipViewType.OtpVerificationView,
+        MembershipViewType.SecureKeyConfirmationView,
     }.ToFrozenSet();
 
 
@@ -558,10 +572,14 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             {
                 resettable.ResetState();
             }
+
             return cachedViewModel;
         }
 
-        if (!ViewModelFactories.TryGetValue(viewType, out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>? factory))
+        if (!ViewModelFactories.TryGetValue(viewType,
+                out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService,
+                    IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
+                    ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory found for view type: {viewType}");
         }

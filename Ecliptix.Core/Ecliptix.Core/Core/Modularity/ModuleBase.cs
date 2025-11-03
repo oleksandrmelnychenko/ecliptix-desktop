@@ -7,19 +7,16 @@ namespace Ecliptix.Core.Core.Modularity;
 
 public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TManifest : IModuleManifest
 {
-    private bool _isLoaded;
-
     public abstract ModuleIdentifier Id { get; }
     public abstract TManifest Manifest { get; }
     IModuleManifest IModule.Manifest => Manifest;
-    public bool IsLoaded => _isLoaded;
+    public bool IsLoaded { get; private set; }
     public IModuleScope? ServiceScope { get; private set; }
-
     public virtual Task<bool> CanLoadAsync() => Task.FromResult(true);
 
     public async Task LoadAsync(IServiceProvider serviceProvider)
     {
-        if (_isLoaded)
+        if (IsLoaded)
         {
             return;
         }
@@ -34,7 +31,7 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
             await OnLoadAsync();
 
-            _isLoaded = true;
+            IsLoaded = true;
         }
         catch
         {
@@ -45,7 +42,7 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
 
     public async Task UnloadAsync()
     {
-        if (!_isLoaded)
+        if (!IsLoaded)
         {
             return;
         }
@@ -55,7 +52,7 @@ public abstract class ModuleBase<TManifest> : ITypedModule<TManifest> where TMan
         ServiceScope?.Dispose();
         ServiceScope = null;
 
-        _isLoaded = false;
+        IsLoaded = false;
     }
 
     public virtual Task SetupMessageHandlersAsync(IModuleMessageBus messageBus) => Task.CompletedTask;

@@ -20,8 +20,8 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
         {
-            [CreateAccountKey] = MembershipViewType.MobileVerification,
-            [SignInKey] = MembershipViewType.SignIn
+            [CreateAccountKey] = MembershipViewType.MobileVerificationView,
+            [SignInKey] = MembershipViewType.SignInView
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();

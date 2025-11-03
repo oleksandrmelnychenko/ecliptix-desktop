@@ -78,7 +78,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         NavToSecureKeyConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            return hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey);
+            return hostWindow.Navigate.Execute(MembershipViewType.SecureKeyConfirmationView);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(
@@ -421,7 +421,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private void NavigateToNextStep(AuthenticationViewModel hostWindow)
     {
-        hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerification);
+        hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerificationView);
         NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
     }
 
@@ -545,7 +545,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             if (IsServerUnavailableError(error))
             {
                 ErrorMessage = error;
-                _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
+                _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error);
                 HasError = true;
                 HasValidSession = false;
             }
@@ -620,29 +620,29 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView);
         return 0;
     }
 
     private uint HandleNotFoundStatus()
     {
         string message = _localizationService[AuthenticationConstants.SessionNotFoundKey];
-        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, message);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message);
         return 0;
     }
 
     private uint HandleSessionExpiredStatus()
     {
         string message = _localizationService[AuthenticationConstants.VerificationSessionExpiredKey];
-        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, message);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message);
         return 0;
     }
 
     private uint HandleFailedStatus(string? error)
     {
         _ = !string.IsNullOrEmpty(error)
-            ? StartAutoRedirectAsync(5, MembershipViewType.Welcome, error)
-            : StartAutoRedirectAsync(5, MembershipViewType.Welcome);
+            ? StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error)
+            : StartAutoRedirectAsync(5, MembershipViewType.WelcomeView);
 
         HasError = true;
         HasValidSession = false;
@@ -655,7 +655,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             ? message
             : _localizationService["error.server_unavailable"];
 
-        _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, errorMessage);
+        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, errorMessage);
         HasError = true;
         HasValidSession = false;
         _ = Task.Run(async () =>

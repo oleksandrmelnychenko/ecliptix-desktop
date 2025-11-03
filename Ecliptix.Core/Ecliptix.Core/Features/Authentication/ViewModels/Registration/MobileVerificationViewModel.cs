@@ -476,7 +476,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.Navigate.Execute(MembershipViewType.ConfirmSecureKey).Subscribe();
+            hostWindow.Navigate.Execute(MembershipViewType.SecureKeyConfirmationView).Subscribe();
         }
 
         return Task.CompletedTask;

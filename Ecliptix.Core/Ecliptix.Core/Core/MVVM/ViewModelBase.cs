@@ -24,7 +24,7 @@ namespace Ecliptix.Core.Core.MVVM;
 public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableViewModel
 {
     private bool _disposedValue;
-    private IDisposable? _connectivitySubscription;
+    private ObservableAsPropertyHelper<bool>? _connectivitySubscription;
 
     protected ViewModelBase(NetworkProvider networkProvider,
         ILocalizationService localizationService,
@@ -224,20 +224,23 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposedValue)
+        if (_disposedValue)
         {
-            if (disposing)
-            {
-                _connectivitySubscription?.Dispose();
-                _connectivitySubscription = null;
-            }
-
-            _disposedValue = true;
+            return;
         }
+
+        if (disposing)
+        {
+            _connectivitySubscription?.Dispose();
+            _connectivitySubscription = null;
+        }
+
+        _disposedValue = true;
     }
 
     public void Dispose()
     {
         Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

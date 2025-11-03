@@ -141,14 +141,14 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                         }
 
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WelcomeView);
                     },
                     error =>
                     {
                         IsMembershipLoading = false;
                         Log.Error(error, "[SECUREKEYVERIFIER-VM] Unexpected error loading membership");
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.Welcome);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WelcomeView);
                     })
                 .DisposeWith(disposables);
 
@@ -170,7 +170,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Subscribe(_ =>
                 {
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
-                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PassPhase);
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PinSetView);
                 })
                 .DisposeWith(disposables);
         });

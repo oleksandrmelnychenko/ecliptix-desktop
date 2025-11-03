@@ -40,7 +40,14 @@ public sealed class ApplicationRouter(
 
     public async Task NavigateToAuthenticationAsync()
     {
-        IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+        Option<IModule> authModuleOption = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+
+        if (!authModuleOption.IsSome)
+        {
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
+        }
+
+        IModule authModule = authModuleOption.Value!;
 
         if (authModule.ServiceScope?.ServiceProvider == null)
         {
@@ -65,7 +72,15 @@ public sealed class ApplicationRouter(
     {
         Log.Debug("[ROUTER-NAV] Starting navigation to Main content");
 
-        IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
+        Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
+
+        if (!mainModuleOption.IsSome)
+        {
+            Log.Error("[ROUTER-NAV] Failed to load Main module");
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModule);
+        }
+
+        IModule mainModule = mainModuleOption.Value!;
 
         if (mainModule.ServiceScope?.ServiceProvider == null)
         {
@@ -100,13 +115,15 @@ public sealed class ApplicationRouter(
 
         if (isAuthenticated)
         {
-            IModule mainModule = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
+            Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main").ConfigureAwait(false);
 
-            if (mainModule.ServiceScope?.ServiceProvider == null)
+            if (!mainModuleOption.IsSome || mainModuleOption.Value!.ServiceScope?.ServiceProvider == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
                     .FailedToLoadMainModuleFromSplash);
             }
+
+            IModule mainModule = mainModuleOption.Value!;
 
             MasterViewModel? mainViewModel =
                 mainModule.ServiceScope.ServiceProvider.GetService<MasterViewModel>();
@@ -121,13 +138,15 @@ public sealed class ApplicationRouter(
         }
         else
         {
-            IModule authModule = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
+            Option<IModule> authModuleOption = await moduleManager.LoadModuleAsync("Authentication").ConfigureAwait(false);
 
-            if (authModule.ServiceScope?.ServiceProvider == null)
+            if (!authModuleOption.IsSome || authModuleOption.Value!.ServiceScope?.ServiceProvider == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
                     .FailedToLoadAuthModuleFromSplash);
             }
+
+            IModule authModule = authModuleOption.Value!;
 
             AuthenticationViewModel? membershipViewModel =
                 authModule.ServiceScope.ServiceProvider.GetService<AuthenticationViewModel>();
