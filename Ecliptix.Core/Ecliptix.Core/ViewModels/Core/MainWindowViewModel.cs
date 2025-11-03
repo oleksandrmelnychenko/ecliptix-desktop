@@ -81,7 +81,15 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 
         ConnectivityNotification = connectivityNotification;
 
-        _ = SetupHandlersAsync();
+        SetupHandlersAsync().ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Log.Error(task.Exception, "[MAIN-WINDOW-VM] Unhandled exception in setup handlers");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     public async Task SetAuthenticationContentAsync(object content)

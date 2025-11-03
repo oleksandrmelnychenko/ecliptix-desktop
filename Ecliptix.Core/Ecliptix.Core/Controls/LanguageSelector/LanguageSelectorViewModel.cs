@@ -102,7 +102,7 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                     _localizationService.SetCulture(item.Code,
                         () =>
                         {
-                            _ = System.Threading.Tasks.Task.Run(async () =>
+                            System.Threading.Tasks.Task.Run(async () =>
                             {
                                 try
                                 {
@@ -121,7 +121,15 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                                     Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. Culture: {Culture}",
                                         item.Code);
                                 }
-                            });
+                            }).ContinueWith(
+                                task =>
+                                {
+                                    if (task.IsFaulted && task.Exception != null)
+                                    {
+                                        Serilog.Log.Error(task.Exception, "[LANGUAGE-SELECTOR] Unhandled exception in culture persistence");
+                                    }
+                                },
+                                System.Threading.Tasks.TaskScheduler.Default);
                             _rpcMetaDataProvider.SetCulture(item.Code);
                         });
                 })

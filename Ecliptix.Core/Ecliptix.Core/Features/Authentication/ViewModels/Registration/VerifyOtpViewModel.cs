@@ -553,7 +553,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             if (IsServerUnavailableError(error))
             {
                 ErrorMessage = error;
-                _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error);
+                StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in auto-redirect");
+                        }
+                    },
+                    TaskScheduler.Default);
                 HasError = true;
                 HasValidSession = false;
             }
@@ -628,29 +636,63 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView);
+        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in max attempts auto-redirect");
+                }
+            },
+            TaskScheduler.Default);
         return 0;
     }
 
     private uint HandleNotFoundStatus()
     {
         string message = _localizationService[AuthenticationConstants.SessionNotFoundKey];
-        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message);
+        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in not found auto-redirect");
+                }
+            },
+            TaskScheduler.Default);
         return 0;
     }
 
     private uint HandleSessionExpiredStatus()
     {
         string message = _localizationService[AuthenticationConstants.VerificationSessionExpiredKey];
-        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message);
+        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in session expired auto-redirect");
+                }
+            },
+            TaskScheduler.Default);
         return 0;
     }
 
     private uint HandleFailedStatus(string? error)
     {
-        _ = !string.IsNullOrEmpty(error)
+        Task redirectTask = !string.IsNullOrEmpty(error)
             ? StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error)
             : StartAutoRedirectAsync(5, MembershipViewType.WelcomeView);
+
+        redirectTask.ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in failed status auto-redirect");
+                }
+            },
+            TaskScheduler.Default);
 
         HasError = true;
         HasValidSession = false;
@@ -749,8 +791,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             {
                 if (!_isDisposed)
                 {
-                    _ = CleanupAndNavigateAsync(targetView);
-
+                    CleanupAndNavigateAsync(targetView).ContinueWith(
+                        task =>
+                        {
+                            if (task.IsFaulted && task.Exception != null)
+                            {
+                                Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
+                            }
+                        },
+                        TaskScheduler.Default);
                 }
             });
         }

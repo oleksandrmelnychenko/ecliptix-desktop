@@ -286,7 +286,10 @@ public static class Program
                     ApplicationConstants.ConfigurationKeys.DataCenterConnectionString),
                 CountryCodeApi = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CountryCodeApi),
                 DomainName = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DomainName),
-                Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Culture)
+                Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Culture),
+                PrivacyPolicyUrl = GetSectionValue(section, "PrivacyPolicyUrl"),
+                TermsOfServiceUrl = GetSectionValue(section, "TermsOfServiceUrl"),
+                SupportUrl = GetSectionValue(section, "SupportUrl")
             };
             return Options.Create(settings);
         });

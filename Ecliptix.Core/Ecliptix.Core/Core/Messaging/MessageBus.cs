@@ -66,7 +66,7 @@ public sealed class MessageBus : IMessageBus
             ((Subject<TMessage>)wrapper.Subject).OnNext(message);
         }
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -77,7 +77,15 @@ public sealed class MessageBus : IMessageBus
                 Serilog.Log.Error(ex, "[MESSAGE-BUS] Exception during fire-and-forget message publication. MessageType: {MessageType}",
                     typeof(TMessage).Name);
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[MESSAGE-BUS] Unhandled exception in message publication");
+                }
+            },
+            TaskScheduler.Default);
 
         Interlocked.Increment(ref _totalMessagesPublished);
     }

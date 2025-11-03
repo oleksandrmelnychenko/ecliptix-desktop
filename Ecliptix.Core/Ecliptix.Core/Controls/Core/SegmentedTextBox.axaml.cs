@@ -389,7 +389,15 @@ public partial class SegmentedTextBox : UserControl
 
         if (e is { Key: Key.V, KeyModifiers: KeyModifiers.Control })
         {
-            _ = HandlePasteAsync();
+            HandlePasteAsync().ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[SEGMENTED-TEXTBOX] Unhandled exception during paste operation");
+                    }
+                },
+                TaskScheduler.Default);
             e.Handled = true;
             return;
         }

@@ -36,6 +36,21 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
+public readonly struct AuthenticationViewModelDependencies
+{
+    public required IConnectivityService ConnectivityService { get; init; }
+    public required NetworkProvider NetworkProvider { get; init; }
+    public required ILocalizationService LocalizationService { get; init; }
+    public required IApplicationSecureStorageProvider StorageProvider { get; init; }
+    public required IAuthenticationService AuthenticationService { get; init; }
+    public required IOpaqueRegistrationService RegistrationService { get; init; }
+    public required ISecureKeyRecoveryService RecoveryService { get; init; }
+    public required ILanguageDetectionService LanguageDetectionService { get; init; }
+    public required IApplicationRouter Router { get; init; }
+    public required MainWindowViewModel MainWindowViewModel { get; init; }
+    public required DefaultSystemSettings Settings { get; init; }
+}
+
 public readonly struct ViewModelFactoryContext
 {
     public required IConnectivityService ConnectivityService { get; init; }
@@ -82,7 +97,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly IAuthenticationService _authenticationService;
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
-    private readonly IApplicationRouter _router;
     private readonly DefaultSystemSettings _settings;
 
     private readonly
@@ -98,34 +112,22 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     public AuthenticationFlowContext CurrentFlowContext { get; set; } = AuthenticationFlowContext.Registration;
 
-    public AuthenticationViewModel(
-        IConnectivityService connectivityService,
-        NetworkProvider networkProvider,
-        ILocalizationService localizationService,
-        IApplicationSecureStorageProvider applicationSecureStorageProvider,
-        IAuthenticationService authenticationService,
-        IOpaqueRegistrationService opaqueRegistrationService,
-        ISecureKeyRecoveryService secureKeyRecoveryService,
-        ILanguageDetectionService languageDetectionService,
-        IApplicationRouter router,
-        MainWindowViewModel mainWindowViewModel,
-        DefaultSystemSettings settings)
-        : base(networkProvider, localizationService)
+    public AuthenticationViewModel(AuthenticationViewModelDependencies dependencies)
+        : base(dependencies.NetworkProvider, dependencies.LocalizationService)
     {
-        _localizationService = localizationService;
-        _connectivityService = connectivityService;
-        _applicationSecureStorageProvider = applicationSecureStorageProvider;
-        _networkProvider = networkProvider;
-        _authenticationService = authenticationService;
-        _opaqueRegistrationService = opaqueRegistrationService;
-        _secureKeyRecoveryService = secureKeyRecoveryService;
-        _languageDetectionService = languageDetectionService;
-        _router = router;
-        _mainWindowViewModel = mainWindowViewModel;
-        _settings = settings;
+        _localizationService = dependencies.LocalizationService;
+        _connectivityService = dependencies.ConnectivityService;
+        _applicationSecureStorageProvider = dependencies.StorageProvider;
+        _networkProvider = dependencies.NetworkProvider;
+        _authenticationService = dependencies.AuthenticationService;
+        _opaqueRegistrationService = dependencies.RegistrationService;
+        _secureKeyRecoveryService = dependencies.RecoveryService;
+        _languageDetectionService = dependencies.LanguageDetectionService;
+        _mainWindowViewModel = dependencies.MainWindowViewModel;
+        _settings = dependencies.Settings;
 
         InitializeVersionInfo();
-        InitializeCommands();
+        InitializeCommands(dependencies.Router);
         SetupActivationBehavior();
     }
 
@@ -518,7 +520,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             VersionHelper.GetDisplayVersion);
     }
 
-    private void InitializeCommands()
+    private void InitializeCommands(IApplicationRouter router)
     {
         Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(ExecuteNavigate);
         NavigateBack = ReactiveCommand.Create(ExecuteNavigateBack);
@@ -527,7 +529,25 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             await CheckCountryCultureMismatchAsync();
             return Unit.Default;
         });
-        SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(ExecuteSwitchToMainWindowAsync);
+        SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
+            if (moduleManager == null)
+            {
+                Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
+                return;
+            }
+
+            Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
+            if (!mainModuleOption.IsSome)
+            {
+                Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
+                return;
+            }
+
+            CleanupAuthenticationFlow();
+            await router.NavigateToMainAsync();
+        });
         OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
         OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
         OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl(_settings.SupportUrl));
@@ -571,26 +591,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         }
 
         return null;
-    }
-
-    private async Task ExecuteSwitchToMainWindowAsync()
-    {
-        IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
-        if (moduleManager == null)
-        {
-            Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
-            return;
-        }
-
-        Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
-        if (!mainModuleOption.IsSome)
-        {
-            Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
-            return;
-        }
-
-        CleanupAuthenticationFlow();
-        await _router.NavigateToMainAsync();
     }
 
     private void SetupActivationBehavior()

@@ -39,7 +39,7 @@ public class App : Application
         {
             Locator.CurrentMutable.RegisterConstant(desktop, typeof(IClassicDesktopStyleApplicationLifetime));
 
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
@@ -64,7 +64,16 @@ public class App : Application
                     Serilog.Log.Fatal(ex, "[APP-STARTUP] Critical failure during module initialization");
                     Environment.Exit(1);
                 }
-            });
+            }).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Serilog.Log.Fatal(task.Exception, "[APP-STARTUP] Unhandled exception in application initialization");
+                        Environment.Exit(1);
+                    }
+                },
+                TaskScheduler.Default);
         }
 
         base.OnFrameworkInitializationCompleted();
