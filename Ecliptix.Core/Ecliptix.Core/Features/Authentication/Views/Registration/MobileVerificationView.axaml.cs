@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -77,7 +78,15 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
             return;
         }
 
-        _ = vm.HandleEnterKeyPressAsync();
+        vm.HandleEnterKeyPressAsync().ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[MOBILE-VERIFICATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                }
+            },
+            TaskScheduler.Default);
         e.Handled = true;
     }
 }
