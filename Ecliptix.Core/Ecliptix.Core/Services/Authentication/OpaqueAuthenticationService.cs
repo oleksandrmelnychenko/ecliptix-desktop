@@ -81,7 +81,7 @@ internal sealed class OpaqueAuthenticationService(
 
             if (createResult == null || createResult.Value.IsErr)
             {
-                string errorMessage = createResult?.IsErr == true
+                string errorMessage = createResult?.IsErr is true
                     ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
                     : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
                 return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(errorMessage));

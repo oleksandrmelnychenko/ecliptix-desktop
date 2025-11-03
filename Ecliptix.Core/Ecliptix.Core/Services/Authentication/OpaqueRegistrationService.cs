@@ -300,7 +300,7 @@ internal sealed class OpaqueRegistrationService(
 
             if (createResult == null || createResult.Value.IsErr)
             {
-                string errorMessage = createResult?.IsErr == true
+                string errorMessage = createResult?.IsErr is true
                     ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
                     : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
                 return Result<Unit, string>.Err(errorMessage);
