@@ -262,7 +262,7 @@ internal sealed class LogoutService(
 
         if (shouldRetryPendingLogout)
         {
-            _ = Task.Run(async () =>
+            Task.Run(async () =>
             {
                 try
                 {
@@ -291,7 +291,15 @@ internal sealed class LogoutService(
                 {
                     Log.Warning(ex, "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
                 }
-            });
+            }).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[LOGOUT-RETRY] Unhandled exception in pending logout retry");
+                    }
+                },
+                TaskScheduler.Default);
         }
     }
 

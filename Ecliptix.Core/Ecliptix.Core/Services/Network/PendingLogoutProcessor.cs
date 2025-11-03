@@ -63,7 +63,7 @@ internal sealed class PendingLogoutProcessor(
                 Log.Warning("[PENDING-LOGOUT-RETRY] Failed to send pending logout request: {Error}. Deleting corrupted expired pending logout",
                     networkResult.UnwrapErr().Message);
                 pendingLogoutStorage.ClearPendingLogout();
-                _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -73,7 +73,15 @@ internal sealed class PendingLogoutProcessor(
                     {
                         Log.Warning(ex, "[VERIFY-OTP] Background secrecy channel establishment failed");
                     }
-                });
+                }).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "[PENDING-LOGOUT-RETRY] Unhandled exception ensuring protocol");
+                        }
+                    },
+                    TaskScheduler.Default);
             }
         }
         catch (Exception ex)

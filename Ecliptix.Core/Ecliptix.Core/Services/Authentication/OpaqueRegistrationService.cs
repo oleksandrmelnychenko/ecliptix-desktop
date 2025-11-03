@@ -876,7 +876,7 @@ internal sealed class OpaqueRegistrationService(
         {
             if (verificationIdentifier != Guid.Empty)
             {
-                _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -894,7 +894,15 @@ internal sealed class OpaqueRegistrationService(
                         Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Exception during stream cleanup. SessionIdentifier: {SessionIdentifier}",
                             verificationIdentifier);
                     }
-                }, CancellationToken.None);
+                }, CancellationToken.None).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Serilog.Log.Error(task.Exception, "[VERIFICATION-CLEANUP] Unhandled exception in cleanup task");
+                        }
+                    },
+                    TaskScheduler.Default);
             }
         }
 
