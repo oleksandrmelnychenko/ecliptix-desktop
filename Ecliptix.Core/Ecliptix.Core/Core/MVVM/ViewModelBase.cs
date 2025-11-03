@@ -103,7 +103,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         UserRequestErrorViewModel errorViewModel = new(errorMessage, LocalizationService);
         UserRequestErrorView errorView = new() { DataContext = errorViewModel };
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -117,7 +117,15 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             {
                 Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowServerErrorNotification background task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected void ShowRedirectNotification(AuthenticationViewModel hostWindow, string message, int seconds,
@@ -132,7 +140,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         RedirectNotificationViewModel redirectViewModel = new(message, seconds, onComplete, LocalizationService);
         RedirectNotificationView redirectView = new() { DataContext = redirectViewModel };
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -151,7 +159,16 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
                 Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in ShowRedirectNotification background task");
+                    onComplete();
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected static void CleanupAndNavigate(AuthenticationViewModel membershipHostWindow, MembershipViewType targetView)
@@ -159,7 +176,7 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         membershipHostWindow.ClearNavigationStack();
         membershipHostWindow.Navigate.Execute(targetView).Subscribe();
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -169,7 +186,15 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             {
                 Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VIEWMODEL-BASE] Unhandled exception in CleanupAndNavigate background task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected string GetSecureKeyLocalization(AuthenticationFlowContext flowContext, string registrationKey, string recoveryKey) => flowContext switch
