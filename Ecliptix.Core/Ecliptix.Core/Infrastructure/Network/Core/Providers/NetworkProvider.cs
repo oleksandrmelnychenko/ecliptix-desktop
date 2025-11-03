@@ -126,7 +126,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                _ = connectivityService.PublishAsync(ConnectivityIntent.Connecting(connectId));
+                connectivityService.PublishAsync(ConnectivityIntent.Connecting(connectId)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connecting event");
+                        }
+                    },
+                    TaskScheduler.Default);
             });
         }
 
@@ -449,8 +457,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                     "Connection unavailable - server may be recovering");
-                _ = connectivityService.PublishAsync(
-                    ConnectivityIntent.ServerShutdown(noConnectionFailure));
+                connectivityService.PublishAsync(
+                    ConnectivityIntent.ServerShutdown(noConnectionFailure)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing server shutdown event");
+                        }
+                    },
+                    TaskScheduler.Default);
                 return Result<Unit, NetworkFailure>.Err(noConnectionFailure);
             }
 
@@ -1268,8 +1284,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
-                        _ = connectivityService.PublishAsync(
-                            ConnectivityIntent.Disconnected(failure, connectId));
+                        connectivityService.PublishAsync(
+                            ConnectivityIntent.Disconnected(failure, connectId)).ContinueWith(
+                            task =>
+                            {
+                                if (task.IsFaulted && task.Exception != null)
+                                {
+                                    Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing disconnected event");
+                                }
+                            },
+                            TaskScheduler.Default);
                     });
 
                     return Result<Unit, NetworkFailure>.Err(failure);
@@ -1313,8 +1337,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _ = connectivityService.PublishAsync(
-                ConnectivityIntent.Connected(connectId));
+            connectivityService.PublishAsync(
+                ConnectivityIntent.Connected(connectId)).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event");
+                    }
+                },
+                TaskScheduler.Default);
         });
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
@@ -1500,8 +1532,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _ = connectivityService.PublishAsync(
-                ConnectivityIntent.Connected());
+            connectivityService.PublishAsync(
+                ConnectivityIntent.Connected()).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event");
+                    }
+                },
+                TaskScheduler.Default);
         });
     }
 
@@ -1546,9 +1586,17 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
             }
 
-            _ = connectivityService.PublishAsync(
+            connectivityService.PublishAsync(
                 ConnectivityIntent.Recovering(
-                    NetworkFailure.DataCenterNotResponding("Recovering secrecy channel")));
+                    NetworkFailure.DataCenterNotResponding("Recovering secrecy channel"))).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing recovering event");
+                    }
+                },
+                TaskScheduler.Default);
         }
 
         EnsureConnectionRecoveryToken();
@@ -1617,7 +1665,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private void PersistProtocolStateInBackground(uint connectId)
     {
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -1630,7 +1678,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     Log.Error(ex, "[CLIENT-PROTOCOL-PERSIST] Failed to persist session state in background");
                 }
             }
-        }, _shutdownCancellationToken.Token);
+        }, _shutdownCancellationToken.Token).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception in protocol state persistence");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     private async Task TryPersistProtocolStateAsync(uint connectId)
@@ -1896,8 +1952,16 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    _ = connectivityService.PublishAsync(
-                        ConnectivityIntent.Connected(connectId));
+                    connectivityService.PublishAsync(
+                        ConnectivityIntent.Connected(connectId)).ContinueWith(
+                        task =>
+                        {
+                            if (task.IsFaulted && task.Exception != null)
+                            {
+                                Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event after restoration");
+                            }
+                        },
+                        TaskScheduler.Default);
                 });
             }
         }

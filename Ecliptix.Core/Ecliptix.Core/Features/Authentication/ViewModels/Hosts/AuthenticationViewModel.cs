@@ -9,7 +9,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
-using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.Modals;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Messaging;
@@ -37,39 +36,42 @@ using Unit = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
 
+public readonly struct ViewModelFactoryContext
+{
+    public required IConnectivityService ConnectivityService { get; init; }
+    public required NetworkProvider NetworkProvider { get; init; }
+    public required ILocalizationService LocalizationService { get; init; }
+    public required IAuthenticationService AuthenticationService { get; init; }
+    public required IApplicationSecureStorageProvider StorageProvider { get; init; }
+    public required AuthenticationViewModel HostViewModel { get; init; }
+    public required IOpaqueRegistrationService RegistrationService { get; init; }
+    public required ISecureKeyRecoveryService RecoveryService { get; init; }
+    public required AuthenticationFlowContext FlowContext { get; init; }
+}
+
 public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 {
     private static readonly AppCultureSettings LanguageConfig = AppCultureSettings.Default;
 
-    private static readonly FrozenDictionary<MembershipViewType, Func<IConnectivityService,
-            NetworkProvider,
-            ILocalizationService, IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-            IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
-        ViewModelFactories =
-            new Dictionary<MembershipViewType, Func<IConnectivityService, NetworkProvider,
-                ILocalizationService,
-                IAuthenticationService, IApplicationSecureStorageProvider, AuthenticationViewModel,
-                IOpaqueRegistrationService, ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>>
-            {
-                [MembershipViewType.SignInView] = (netEvents, netProvider, loc, auth, _, host, _, _, _) =>
-                    new SignInViewModel(netEvents, netProvider, loc, auth, host),
-                [MembershipViewType.WelcomeView] =
-                    (_, netProvider, loc, _, _, host, _, _, _) =>
-                        new WelcomeViewModel(host, loc, netProvider),
-                [MembershipViewType.MobileVerificationView] =
-                    (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
-                        new MobileVerificationViewModel(netEvents, netProvider, loc, host, storage, reg, auth,
-                            pwdRecovery,
-                            flowContext),
-                [MembershipViewType.SecureKeyConfirmationView] =
-                    (netEvents, netProvider, loc, auth, storage, host, reg, pwdRecovery, flowContext) =>
-                        new SecureKeyVerifierViewModel(netEvents, netProvider, loc, host, storage, reg, auth,
-                            pwdRecovery,
-                            flowContext),
-                [MembershipViewType.PinSetView] =
-                    (netEvents, netProvider, loc, _, _, host, _, _, _) =>
-                        new PassPhaseViewModel(loc, host, netProvider),
-            }.ToFrozenDictionary();
+    private static readonly FrozenDictionary<MembershipViewType, Func<ViewModelFactoryContext, IRoutableViewModel>>
+        ViewModelFactories = new Dictionary<MembershipViewType, Func<ViewModelFactoryContext, IRoutableViewModel>>
+        {
+            [MembershipViewType.SignInView] = ctx =>
+                new SignInViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                    ctx.AuthenticationService, ctx.HostViewModel),
+            [MembershipViewType.WelcomeView] = ctx =>
+                new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider),
+            [MembershipViewType.MobileVerificationView] = ctx =>
+                new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                    ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
+                    ctx.RecoveryService, ctx.FlowContext),
+            [MembershipViewType.SecureKeyConfirmationView] = ctx =>
+                new SecureKeyVerifierViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
+                    ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
+                    ctx.RecoveryService, ctx.FlowContext),
+            [MembershipViewType.PinSetView] = ctx =>
+                new PassPhaseViewModel(ctx.LocalizationService, ctx.HostViewModel, ctx.NetworkProvider),
+        }.ToFrozenDictionary();
 
     private readonly IApplicationSecureStorageProvider _applicationSecureStorageProvider;
     private readonly IConnectivityService _connectivityService;
@@ -81,13 +83,13 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
     private readonly IOpaqueRegistrationService _opaqueRegistrationService;
     private readonly ISecureKeyRecoveryService _secureKeyRecoveryService;
     private readonly IApplicationRouter _router;
+    private readonly DefaultSystemSettings _settings;
 
     private readonly
         Dictionary<(MembershipViewType ViewType, AuthenticationFlowContext FlowContext),
             WeakReference<IRoutableViewModel>> _viewModelCache = new();
 
     private readonly Stack<IRoutableViewModel> _navigationStack = new();
-    private readonly CompositeDisposable _disposables = new();
 
     private bool _canNavigateBack;
     private IDisposable? _languageSubscription;
@@ -106,8 +108,9 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         ISecureKeyRecoveryService secureKeyRecoveryService,
         ILanguageDetectionService languageDetectionService,
         IApplicationRouter router,
-        MainWindowViewModel mainWindowViewModel)
-        : base(networkProvider, localizationService, null)
+        MainWindowViewModel mainWindowViewModel,
+        DefaultSystemSettings settings)
+        : base(networkProvider, localizationService)
     {
         _localizationService = localizationService;
         _connectivityService = connectivityService;
@@ -119,119 +122,11 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         _languageDetectionService = languageDetectionService;
         _router = router;
         _mainWindowViewModel = mainWindowViewModel;
+        _settings = settings;
 
-        ConnectivityNotification = mainWindowViewModel.ConnectivityNotification;
-
-        AppVersion = VersionHelper.GetApplicationVersion();
-        Option<BuildInfo> buildInfo = VersionHelper.GetBuildInfo();
-        BuildInfo = buildInfo.Select(bi => bi.BuildNumber).GetValueOrDefault("development");
-
-        FullVersionInfo = buildInfo.Match(
-            bi => string.Concat(
-                VersionHelper.GetDisplayVersion(),
-                "\nBuild: ", bi.BuildNumber,
-                "\nCommit: ", bi.GitCommit.Substring(0, 8),
-                "\nBranch: ", bi.GitBranch),
-            () => VersionHelper.GetDisplayVersion());
-
-        Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(viewType =>
-        {
-            IRoutableViewModel viewModel = GetOrCreateViewModelForView(viewType);
-
-            if (_currentView != null)
-            {
-                _navigationStack.Push(_currentView);
-            }
-
-            CurrentView = viewModel;
-
-            return viewModel;
-        });
-
-        NavigateBack = ReactiveCommand.Create(() =>
-        {
-            if (_navigationStack.Count > 0)
-            {
-                if (_currentView is IResettable resettable)
-                {
-                    resettable.ResetState();
-                }
-
-                IRoutableViewModel previousView = _navigationStack.Pop();
-
-                if (previousView is IResettable previousResettable)
-                {
-                    previousResettable.ResetState();
-                }
-
-                _currentView = previousView;
-                this.RaisePropertyChanged(nameof(CurrentView));
-                CanNavigateBack = _navigationStack.Count > 0;
-
-                return previousView;
-            }
-
-            return null;
-        });
-
-
-        CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
-        {
-            await CheckCountryCultureMismatchAsync();
-            return Unit.Default;
-        });
-
-        SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(async () =>
-        {
-            IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
-            if (moduleManager == null)
-            {
-                Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
-                return;
-            }
-
-            Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
-            if (!mainModuleOption.IsSome)
-            {
-                Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
-                return;
-            }
-
-            CleanupAuthenticationFlow();
-            await _router.NavigateToMainAsync();
-        });
-
-        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/privacy"));
-        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/terms"));
-        OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl("https://ecliptix.com/support"));
-
-        this.WhenActivated(disposables =>
-        {
-            _connectivityService.OnManualRetryRequested(async e =>
-                {
-                    Result<Utilities.Unit, NetworkFailure> recoveryResult =
-                        await _networkProvider.ForceFreshConnectionAsync();
-
-                    if (recoveryResult.IsOk)
-                    {
-                        ConnectivityIntent intent =
-                            ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
-                                with
-                                {
-                                    Source = ConnectivitySource.ManualAction
-                                };
-                        await _connectivityService.PublishAsync(intent);
-                    }
-                })
-                .DisposeWith(disposables);
-            Observable.Timer(TimeSpan.FromSeconds(2), RxApp.MainThreadScheduler)
-                .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
-                .Subscribe(_ => { })
-                .DisposeWith(disposables);
-            Navigate.Execute(MembershipViewType.WelcomeView)
-                .Subscribe(_ => { })
-                .DisposeWith(disposables);
-        });
+        InitializeVersionInfo();
+        InitializeCommands();
+        SetupActivationBehavior();
     }
 
     public IRoutableViewModel? CurrentView
@@ -253,31 +148,27 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
     public RoutingState Router => new();
 
-    public ConnectivityNotificationViewModel ConnectivityNotification { get; }
+    public string AppVersion { get; private set; } = string.Empty;
 
-    public string AppVersion { get; }
-
-    public string BuildInfo { get; }
-
-    public string FullVersionInfo { get; }
+    public string FullVersionInfo { get; private set; } = string.Empty;
 
     public string? RegistrationMobileNumber { get; set; }
 
     public string? RecoveryMobileNumber { get; set; }
 
-    public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; }
+    public ReactiveCommand<MembershipViewType, IRoutableViewModel> Navigate { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel?> NavigateBack { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; }
+    public ReactiveCommand<Unit, Unit> SwitchToMainWindowCommand { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenPrivacyPolicyCommand { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenTermsOfServiceCommand { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenSupportCommand { get; private set; } = null!;
 
-    public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; }
+    public ReactiveCommand<Unit, Unit> CheckCountryCultureMismatchCommand { get; private set; } = null!;
 
     public void ClearNavigationStack(bool preserveInitialWelcome = false, MembershipViewType? preserveViewType = null)
     {
@@ -385,8 +276,6 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         if (disposing)
         {
             CleanupAuthenticationFlow();
-
-            _disposables.Dispose();
         }
 
         base.Dispose(disposing);
@@ -497,7 +386,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                 }).ContinueWith(
                     task =>
                     {
-                        if (task.IsFaulted && task.Exception != null)
+                        if (task is { IsFaulted: true, Exception: not null })
                         {
                             Log.Error(task.Exception, "[LANGUAGE-CHANGE] Unhandled exception persisting culture");
                         }
@@ -584,18 +473,25 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             return cachedViewModel;
         }
 
-        if (!ViewModelFactories.TryGetValue(viewType,
-                out Func<IConnectivityService, NetworkProvider, ILocalizationService, IAuthenticationService,
-                    IApplicationSecureStorageProvider, AuthenticationViewModel, IOpaqueRegistrationService,
-                    ISecureKeyRecoveryService, AuthenticationFlowContext, IRoutableViewModel>? factory))
+        if (!ViewModelFactories.TryGetValue(viewType, out Func<ViewModelFactoryContext, IRoutableViewModel>? factory))
         {
             throw new InvalidOperationException($"No factory found for view type: {viewType}");
         }
 
-        IRoutableViewModel newViewModel = factory(_connectivityService, _networkProvider,
-            LocalizationService,
-            _authenticationService, _applicationSecureStorageProvider, this, _opaqueRegistrationService,
-            _secureKeyRecoveryService, flowContext);
+        ViewModelFactoryContext context = new()
+        {
+            ConnectivityService = _connectivityService,
+            NetworkProvider = _networkProvider,
+            LocalizationService = LocalizationService,
+            AuthenticationService = _authenticationService,
+            StorageProvider = _applicationSecureStorageProvider,
+            HostViewModel = this,
+            RegistrationService = _opaqueRegistrationService,
+            RecoveryService = _secureKeyRecoveryService,
+            FlowContext = flowContext
+        };
+
+        IRoutableViewModel newViewModel = factory(context);
 
         _viewModelCache[cacheKey] = new WeakReference<IRoutableViewModel>(newViewModel);
 
@@ -605,5 +501,128 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         }
 
         return newViewModel;
+    }
+
+    private void InitializeVersionInfo()
+    {
+        AppVersion = VersionHelper.GetApplicationVersion();
+        Option<BuildInfo> buildInfo = VersionHelper.GetBuildInfo();
+        buildInfo.Select(bi => bi.BuildNumber).GetValueOrDefault("development");
+
+        FullVersionInfo = buildInfo.Match(
+            bi => string.Concat(
+                VersionHelper.GetDisplayVersion(),
+                "\nBuild: ", bi.BuildNumber,
+                "\nCommit: ", bi.GitCommit[..8],
+                "\nBranch: ", bi.GitBranch),
+            VersionHelper.GetDisplayVersion);
+    }
+
+    private void InitializeCommands()
+    {
+        Navigate = ReactiveCommand.Create<MembershipViewType, IRoutableViewModel>(ExecuteNavigate);
+        NavigateBack = ReactiveCommand.Create(ExecuteNavigateBack);
+        CheckCountryCultureMismatchCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await CheckCountryCultureMismatchAsync();
+            return Unit.Default;
+        });
+        SwitchToMainWindowCommand = ReactiveCommand.CreateFromTask(ExecuteSwitchToMainWindowAsync);
+        OpenPrivacyPolicyCommand = ReactiveCommand.Create(() => OpenUrl(_settings.PrivacyPolicyUrl));
+        OpenTermsOfServiceCommand = ReactiveCommand.Create(() => OpenUrl(_settings.TermsOfServiceUrl));
+        OpenSupportCommand = ReactiveCommand.Create(() => OpenUrl(_settings.SupportUrl));
+    }
+
+    private IRoutableViewModel ExecuteNavigate(MembershipViewType viewType)
+    {
+        IRoutableViewModel viewModel = GetOrCreateViewModelForView(viewType);
+
+        if (_currentView != null)
+        {
+            _navigationStack.Push(_currentView);
+        }
+
+        CurrentView = viewModel;
+
+        return viewModel;
+    }
+
+    private IRoutableViewModel? ExecuteNavigateBack()
+    {
+        if (_navigationStack.Count > 0)
+        {
+            if (_currentView is IResettable resettable)
+            {
+                resettable.ResetState();
+            }
+
+            IRoutableViewModel previousView = _navigationStack.Pop();
+
+            if (previousView is IResettable previousResettable)
+            {
+                previousResettable.ResetState();
+            }
+
+            _currentView = previousView;
+            this.RaisePropertyChanged(nameof(CurrentView));
+            CanNavigateBack = _navigationStack.Count > 0;
+
+            return previousView;
+        }
+
+        return null;
+    }
+
+    private async Task ExecuteSwitchToMainWindowAsync()
+    {
+        IModuleManager? moduleManager = Locator.Current.GetService<IModuleManager>();
+        if (moduleManager == null)
+        {
+            Log.Error("[MEMBERSHIP-HOST] Failed to get IModuleManager");
+            return;
+        }
+
+        Option<IModule> mainModuleOption = await moduleManager.LoadModuleAsync("Main");
+        if (!mainModuleOption.IsSome)
+        {
+            Log.Error("[MEMBERSHIP-HOST] Failed to load Main module");
+            return;
+        }
+
+        CleanupAuthenticationFlow();
+        await _router.NavigateToMainAsync();
+    }
+
+    private void SetupActivationBehavior()
+    {
+        this.WhenActivated(disposables =>
+        {
+            _connectivityService.OnManualRetryRequested(HandleManualRetryRequestedAsync)
+                .DisposeWith(disposables);
+            Observable.Timer(TimeSpan.FromSeconds(2), RxApp.MainThreadScheduler)
+                .SelectMany(_ => CheckCountryCultureMismatchCommand.Execute())
+                .Subscribe(_ => { })
+                .DisposeWith(disposables);
+            Navigate.Execute(MembershipViewType.WelcomeView)
+                .Subscribe(_ => { })
+                .DisposeWith(disposables);
+        });
+    }
+
+    private async Task HandleManualRetryRequestedAsync(ManualRetryRequestedEvent e)
+    {
+        Result<Utilities.Unit, NetworkFailure> recoveryResult =
+            await _networkProvider.ForceFreshConnectionAsync();
+
+        if (recoveryResult.IsOk)
+        {
+            ConnectivityIntent intent =
+                ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
+                    with
+                    {
+                        Source = ConnectivitySource.ManualAction
+                    };
+            await _connectivityService.PublishAsync(intent);
+        }
     }
 }
