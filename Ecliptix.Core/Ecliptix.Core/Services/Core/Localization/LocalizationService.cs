@@ -85,7 +85,7 @@ internal sealed class LocalizationService : ILocalizationService
             }
 
             _currentCultureInfo = newCultureInfo;
-            _currentLanguageStrings = GetLanguageStrings(Option<string>.Some(cultureName))
+            _currentLanguageStrings = GetLanguageStrings(cultureName.ToOption())
                 .ValueOr(_defaultLanguageStrings);
         }
 
