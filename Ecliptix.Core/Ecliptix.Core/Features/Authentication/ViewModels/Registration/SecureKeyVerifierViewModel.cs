@@ -589,6 +589,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
         }
         catch (ObjectDisposedException)
         {
+            // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
         }
         finally
         {

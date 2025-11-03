@@ -263,6 +263,7 @@ public sealed class PendingRequestManager : IPendingRequestManager
             }
             catch (ObjectDisposedException)
             {
+                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
             }
             finally
             {

@@ -134,6 +134,7 @@ public sealed class MasterViewModel : Core.MVVM.ViewModelBase
         }
         catch (ObjectDisposedException)
         {
+            // Intentionally suppressed: Logout cancellation token source already disposed
         }
         finally
         {

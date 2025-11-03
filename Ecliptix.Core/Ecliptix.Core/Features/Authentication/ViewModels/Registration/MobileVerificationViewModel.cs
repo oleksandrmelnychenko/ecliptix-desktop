@@ -501,6 +501,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             }
             catch (ObjectDisposedException)
             {
+                // Intentionally suppressed: CancellationTokenSource already disposed during cleanup
             }
             finally
             {

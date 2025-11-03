@@ -766,6 +766,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             catch (ObjectDisposedException)
             {
+                // Intentionally suppressed: CancellationTokenSource already disposed during connection cleanup
             }
         }
     }
@@ -1571,6 +1572,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             catch (ObjectDisposedException)
             {
+                // Intentionally suppressed: Recovery cancellation token source already disposed
             }
             finally
             {
@@ -1745,6 +1747,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     }
                     catch (ObjectDisposedException)
                     {
+                        // Intentionally suppressed: Operation cancellation token source already disposed
                     }
                 }
 
@@ -1762,6 +1765,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     }
                     catch (ObjectDisposedException)
                     {
+                        // Intentionally suppressed: Stream cancellation token source already disposed
                     }
                 }
 
