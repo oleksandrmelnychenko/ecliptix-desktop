@@ -41,7 +41,8 @@ public static class FailureClassification
 
     public static bool IsChainRotationMismatch(NetworkFailure failure)
     {
-        return failure.FailureType == NetworkFailureType.ProtocolStateMismatch;
+        // Chain rotation mismatches are a type of protocol state mismatch
+        return IsProtocolStateMismatch(failure);
     }
 
     public static bool IsCancellation(NetworkFailure failure)

@@ -45,14 +45,8 @@ internal sealed class PendingLogoutProcessor(
                 {
                     AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
 
-                    if (logoutResponse.Result == AnonymousLogoutResponse.Types.Result.Succeeded)
-                    {
-                        responseCompletionSource.TrySetResult(true);
-                    }
-                    else
-                    {
-                        responseCompletionSource.TrySetResult(true);
-                    }
+                    // Complete the response regardless of logout result (both success and failure handled the same)
+                    responseCompletionSource.TrySetResult(true);
 
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 },

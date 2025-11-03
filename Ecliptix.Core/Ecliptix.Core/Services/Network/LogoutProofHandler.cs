@@ -343,12 +343,7 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
 
             Option<byte[]> proofOption = getResult.Unwrap();
 
-            if (proofOption.IsSome)
-            {
-                return true;
-            }
-
-            return false;
+            return proofOption.IsSome;
         }
         catch (Exception ex)
         {
