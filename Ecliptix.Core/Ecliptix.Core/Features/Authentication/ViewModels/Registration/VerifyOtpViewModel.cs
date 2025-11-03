@@ -443,98 +443,115 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (HasValidSession)
         {
-            ErrorMessage = string.Empty;
-            HasError = false;
+            ExecuteResendOperation();
+        }
+        else
+        {
+            HandleNoActiveSession();
+        }
 
-            CancellationTokenSource? oldCts = _cancellationTokenSource;
-            CancellationTokenSource newCts = new CancellationTokenSource();
-            _cancellationTokenSource = newCts;
-            _disposables.Add(newCts);
+        return Task.CompletedTask;
+    }
 
-            oldCts?.Dispose();
+    private void ExecuteResendOperation()
+    {
+        ErrorMessage = string.Empty;
+        HasError = false;
 
-            Task.Run(async () =>
+        CancellationTokenSource newCts = CreateNewCancellationToken();
+
+        Task.Run(async () =>
+        {
+            try
             {
-                try
+                if (_isDisposed || newCts.Token.IsCancellationRequested)
                 {
-                    if (_isDisposed || newCts.Token.IsCancellationRequested)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    newCts.Token.ThrowIfCancellationRequested();
+                newCts.Token.ThrowIfCancellationRequested();
 
-                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask =
-                    _flowContext == AuthenticationFlowContext.Registration
-                        ? _registrationService.ResendOtpVerificationAsync(
-                            VerificationSessionIdentifier!.Value,
-                            _mobileNumberIdentifier,
-                            onCountdownUpdate: (seconds, identifier, status, message) =>
-                                RxApp.MainThreadScheduler.Schedule(() =>
-                                {
-                                    if (!_isDisposed)
-                                    {
-                                        HandleCountdownUpdate(seconds, identifier, status, message);
-                                    }
-                                }),
-                            cancellationToken: newCts.Token)
-                        : _secureKeyRecoveryService!.ResendSecureKeyResetOtpAsync(
-                            VerificationSessionIdentifier!.Value,
-                            _mobileNumberIdentifier,
-                            onCountdownUpdate: (seconds, identifier, status, message) =>
-                                RxApp.MainThreadScheduler.Schedule(() =>
-                                {
-                                    if (!_isDisposed)
-                                    {
-                                        HandleCountdownUpdate(seconds, identifier, status, message);
-                                    }
-                                }),
-                            cancellationToken: newCts.Token);
-
+                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = CreateResendTask(newCts.Token);
                 Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
                 if (result.IsErr && !_isDisposed)
                 {
-                    RxApp.MainThreadScheduler.Schedule(() =>
-                    {
-                        if (_isDisposed)
-                        {
-                            return;
-                        }
-
-                        string error = result.UnwrapErr();
-
-                        if (IsServerUnavailableError(error))
-                        {
-                            ErrorMessage = error;
-                            _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
-                            HasError = true;
-                            HasValidSession = false;
-                        }
-                        else
-                        {
-                            ErrorMessage = error;
-                            HasError = true;
-                            SecondsRemaining = 0;
-                        }
-                    });
+                    HandleResendError(result.UnwrapErr());
                 }
-                }
-                catch (Exception ex)
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during OTP resend operation");
+            }
+        }, newCts.Token);
+    }
+
+    private CancellationTokenSource CreateNewCancellationToken()
+    {
+        CancellationTokenSource? oldCts = _cancellationTokenSource;
+        CancellationTokenSource newCts = new();
+        _cancellationTokenSource = newCts;
+        _disposables.Add(newCts);
+        oldCts?.Dispose();
+        return newCts;
+    }
+
+    private Task<Result<Ecliptix.Utilities.Unit, string>> CreateResendTask(CancellationToken cancellationToken)
+    {
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> countdownCallback =
+            (seconds, identifier, status, message) =>
+                RxApp.MainThreadScheduler.Schedule(() =>
                 {
-                    Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during OTP resend operation");
-                }
-            }, newCts.Token);
-        }
-        else
-        {
-            SecondsRemaining = 0;
-            ErrorMessage = _localizationService[AuthenticationConstants.NoActiveVerificationSessionKey];
-            HasError = true;
-            HasValidSession = false;
-        }
+                    if (!_isDisposed)
+                    {
+                        HandleCountdownUpdate(seconds, identifier, status, message);
+                    }
+                });
 
-        return Task.CompletedTask;
+        return _flowContext == AuthenticationFlowContext.Registration
+            ? _registrationService.ResendOtpVerificationAsync(
+                VerificationSessionIdentifier!.Value,
+                _mobileNumberIdentifier,
+                onCountdownUpdate: countdownCallback,
+                cancellationToken: cancellationToken)
+            : _secureKeyRecoveryService!.ResendSecureKeyResetOtpAsync(
+                VerificationSessionIdentifier!.Value,
+                _mobileNumberIdentifier,
+                onCountdownUpdate: countdownCallback,
+                cancellationToken: cancellationToken);
+    }
+
+    private void HandleResendError(string error)
+    {
+        RxApp.MainThreadScheduler.Schedule(() =>
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            if (IsServerUnavailableError(error))
+            {
+                ErrorMessage = error;
+                _ = StartAutoRedirectAsync(5, MembershipViewType.Welcome, error);
+                HasError = true;
+                HasValidSession = false;
+            }
+            else
+            {
+                ErrorMessage = error;
+                HasError = true;
+                SecondsRemaining = 0;
+            }
+        });
+    }
+
+    private void HandleNoActiveSession()
+    {
+        SecondsRemaining = 0;
+        ErrorMessage = _localizationService[AuthenticationConstants.NoActiveVerificationSessionKey];
+        HasError = true;
+        HasValidSession = false;
     }
 
     private uint HandleResendCooldown(string? message, uint seconds)
