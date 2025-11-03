@@ -155,7 +155,7 @@ public sealed class ApplicationInitializer(
             NetworkProvider.ComputeUniqueConnectId(applicationInstanceSettings,
                 PubKeyExchangeType.DataCenterEphemeralConnect);
 
-        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty == false
+        string? membershipId = applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty is false
             ? Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString()
             : null;
 

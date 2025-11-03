@@ -403,7 +403,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _rootGrid.IsVisible = true;
         _sheetBorder.IsVisible = true;
 
-        if (ViewModel?.ShowScrim == true && _scrimBorder is not null)
+        if (ViewModel?.ShowScrim is true && _scrimBorder is not null)
         {
             _scrimBorder.IsVisible = true;
         }
@@ -415,7 +415,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 _showAnimation.RunAsync(_sheetBorder, CancellationToken.None)
             };
 
-            if (ViewModel?.ShowScrim == true && _scrimShowAnimation is not null && _scrimBorder is not null)
+            if (ViewModel?.ShowScrim is true && _scrimShowAnimation is not null && _scrimBorder is not null)
             {
                 showTasks.Add(_scrimShowAnimation.RunAsync(_scrimBorder, CancellationToken.None));
             }
@@ -446,7 +446,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                 _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)
             };
 
-            if (ViewModel?.ShowScrim == true && _scrimHideAnimation is not null && _scrimBorder is not null)
+            if (ViewModel?.ShowScrim is true && _scrimHideAnimation is not null && _scrimBorder is not null)
             {
                 hideTasks.Add(_scrimHideAnimation.RunAsync(_scrimBorder, CancellationToken.None));
             }
@@ -498,7 +498,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             }
         };
 
-        if (ViewModel?.ShowScrim == true)
+        if (ViewModel?.ShowScrim is true)
         {
             _scrimShowAnimation = new Animation
             {

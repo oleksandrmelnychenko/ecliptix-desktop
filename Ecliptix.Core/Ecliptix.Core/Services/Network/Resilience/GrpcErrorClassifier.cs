@@ -59,15 +59,15 @@ public static class GrpcErrorClassifier
 
     public static bool IsServerShutdown(RpcException ex) =>
         ex.StatusCode == StatusCode.Unavailable &&
-        (ex.Status.Detail?.Contains("shutdown", StringComparison.OrdinalIgnoreCase) == true ||
-         ex.Status.Detail?.Contains("maintenance", StringComparison.OrdinalIgnoreCase) == true);
+        (ex.Status.Detail?.Contains("shutdown", StringComparison.OrdinalIgnoreCase) is true ||
+         ex.Status.Detail?.Contains("maintenance", StringComparison.OrdinalIgnoreCase) is true);
 
     public static bool IsCancelled(RpcException ex) =>
         ex.StatusCode == StatusCode.Cancelled;
 
     public static bool IsIdentityKeyDerivationFailure(RpcException ex) =>
         ex.StatusCode == StatusCode.Unauthenticated &&
-        (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", System.StringComparison.Ordinal) == true);
+        (ex.Status.Detail?.Contains("IDENTITY_KEY_DERIVATION_FAILED", System.StringComparison.Ordinal) is true);
 
     public static bool IsAuthFlowMissing(RpcException ex)
     {
