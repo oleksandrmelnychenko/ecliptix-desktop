@@ -737,25 +737,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        if (identifier != Guid.Empty)
+        if (!ValidateAndUpdateSessionIdentifier(identifier))
         {
-            lock (_sessionLock)
-            {
-                if (_isDisposed)
-                {
-                    return;
-                }
-
-                if (_verificationSessionIdentifier == Guid.Empty)
-                {
-                    _verificationSessionIdentifier = identifier;
-                    HasValidSession = true;
-                }
-                else if (_verificationSessionIdentifier != identifier)
-                {
-                    return;
-                }
-            }
+            return;
         }
 
         SecondsRemaining = status switch
@@ -772,6 +756,31 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _ => Math.Min(seconds, SecondsRemaining)
         };
         CurrentStatus = status;
+    }
+
+    private bool ValidateAndUpdateSessionIdentifier(Guid identifier)
+    {
+        if (identifier == Guid.Empty)
+        {
+            return true;
+        }
+
+        lock (_sessionLock)
+        {
+            if (_isDisposed)
+            {
+                return false;
+            }
+
+            if (_verificationSessionIdentifier == Guid.Empty)
+            {
+                _verificationSessionIdentifier = identifier;
+                HasValidSession = true;
+                return true;
+            }
+
+            return _verificationSessionIdentifier == identifier;
+        }
     }
 
     private async Task CleanupAndNavigateAsync(MembershipViewType targetView)
