@@ -360,28 +360,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (!HasValidSession)
         {
-            IsSent = false;
-            HasError = true;
-            ErrorMessage = _localizationService[AuthenticationConstants.NoVerificationSessionKey];
+            HandleNoValidSession();
             return;
         }
 
         uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
-
         CancellationToken operationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
 
-        Task<Result<Membership, string>> verifyTask = _flowContext == AuthenticationFlowContext.Registration
-            ? _registrationService.VerifyOtpAsync(
-                VerificationSessionIdentifier!.Value,
-                VerificationCode,
-                connectId,
-                operationToken)
-            : _secureKeyRecoveryService!.VerifySecureKeyResetOtpAsync(
-                VerificationSessionIdentifier!.Value,
-                VerificationCode,
-                connectId,
-                operationToken);
-
+        Task<Result<Membership, string>> verifyTask = CreateVerifyTask(connectId, operationToken);
         Result<Membership, string> result = await verifyTask;
 
         if (_isDisposed)
@@ -391,47 +377,91 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         if (result.IsOk)
         {
-            Membership membership = result.Unwrap();
-
-            if (HostScreen is AuthenticationViewModel hostWindow)
-            {
-                await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-
-                if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
-                {
-                    await _applicationSecureStorageProvider
-                        .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
-                        .ConfigureAwait(false);
-                    Log.Information(
-                        "[OTP-VERIFY-ACCOUNT] Active account stored from OTP verification. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                        Helpers.FromByteStringToGuid(membership.UniqueIdentifier),
-                        Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
-                }
-
-                hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerification);
-                NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
-            }
-
-            if (HasValidSession)
-            {
-                if (_flowContext == AuthenticationFlowContext.Registration)
-                {
-                    await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
-                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
-                }
-                else if (_secureKeyRecoveryService != null)
-                {
-                    await _secureKeyRecoveryService
-                        .CleanupSecureKeyResetSessionAsync(VerificationSessionIdentifier!.Value)
-                        .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, operationToken);
-                }
-            }
+            await HandleSuccessfulVerification(result.Unwrap(), operationToken);
         }
         else
         {
-            ErrorMessage = result.UnwrapErr();
-            IsSent = false;
+            HandleVerificationError(result.UnwrapErr());
         }
+    }
+
+    private void HandleNoValidSession()
+    {
+        IsSent = false;
+        HasError = true;
+        ErrorMessage = _localizationService[AuthenticationConstants.NoVerificationSessionKey];
+    }
+
+    private Task<Result<Membership, string>> CreateVerifyTask(uint connectId, CancellationToken cancellationToken)
+    {
+        return _flowContext == AuthenticationFlowContext.Registration
+            ? _registrationService.VerifyOtpAsync(
+                VerificationSessionIdentifier!.Value,
+                VerificationCode,
+                connectId,
+                cancellationToken)
+            : _secureKeyRecoveryService!.VerifySecureKeyResetOtpAsync(
+                VerificationSessionIdentifier!.Value,
+                VerificationCode,
+                connectId,
+                cancellationToken);
+    }
+
+    private async Task HandleSuccessfulVerification(Membership membership, CancellationToken operationToken)
+    {
+        if (HostScreen is AuthenticationViewModel hostWindow)
+        {
+            await StoreMembershipData(membership);
+            NavigateToNextStep(hostWindow);
+        }
+
+        if (HasValidSession)
+        {
+            await CleanupVerificationSession(operationToken);
+        }
+    }
+
+    private async Task StoreMembershipData(Membership membership)
+    {
+        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+        if (membership.AccountUniqueIdentifier != null && membership.AccountUniqueIdentifier.Length > 0)
+        {
+            await _applicationSecureStorageProvider
+                .SetCurrentAccountIdAsync(membership.AccountUniqueIdentifier)
+                .ConfigureAwait(false);
+            Log.Information(
+                "[OTP-VERIFY-ACCOUNT] Active account stored from OTP verification. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                Helpers.FromByteStringToGuid(membership.UniqueIdentifier),
+                Helpers.FromByteStringToGuid(membership.AccountUniqueIdentifier));
+        }
+    }
+
+    private void NavigateToNextStep(AuthenticationViewModel hostWindow)
+    {
+        hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerification);
+        NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
+    }
+
+    private async Task CleanupVerificationSession(CancellationToken cancellationToken)
+    {
+        if (_flowContext == AuthenticationFlowContext.Registration)
+        {
+            await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
+                .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, cancellationToken);
+        }
+        else if (_secureKeyRecoveryService != null)
+        {
+            await _secureKeyRecoveryService
+                .CleanupSecureKeyResetSessionAsync(VerificationSessionIdentifier!.Value)
+                .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, cancellationToken);
+        }
+    }
+
+    private void HandleVerificationError(string error)
+    {
+        ErrorMessage = error;
+        IsSent = false;
     }
 
     private Task ReSendVerificationCode()
