@@ -92,7 +92,7 @@ internal class ModuleLoadingContext
         };
     }
 
-    public void Dispose()
+    public void Release()
     {
         _loadingSemaphore?.Dispose();
     }

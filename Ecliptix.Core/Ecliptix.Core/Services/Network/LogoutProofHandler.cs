@@ -207,7 +207,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         ParsedProof parsed,
         byte[] revocationProof)
     {
-        SodiumSecureMemoryHandle? masterKeyHandle = null;
         byte[]? proofKey = null;
 
         try
@@ -240,7 +239,6 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         }
         finally
         {
-            masterKeyHandle?.Dispose();
             if (proofKey != null)
             {
                 CryptographicOperations.ZeroMemory(proofKey);

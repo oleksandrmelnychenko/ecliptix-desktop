@@ -607,8 +607,6 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
                 return Result<byte[], EcliptixProtocolFailure>.Err(materialsResult.UnwrapErr());
             }
 
-            DecryptionMaterials materials = materialsResult.Unwrap();
-
             Result<EnvelopeMetadata, EcliptixProtocolFailure> metadataResult =
                 EnvelopeBuilder.DecryptMetadata(encryptedMetadata!, metadataKey!, headerNonce!, ad!);
             if (metadataResult.IsErr)

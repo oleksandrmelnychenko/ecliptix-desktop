@@ -166,7 +166,7 @@ internal class ParallelModuleLoader : IDisposable
 
     public void Dispose()
     {
-        _loadingContext?.Dispose();
+        _loadingContext?.Release();
         _batchSemaphore?.Dispose();
     }
 }

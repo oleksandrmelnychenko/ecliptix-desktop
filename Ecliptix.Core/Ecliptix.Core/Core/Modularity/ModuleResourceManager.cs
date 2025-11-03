@@ -54,7 +54,7 @@ internal class ModuleResourceManager(IServiceProvider serviceProvider) : IDispos
         return moduleScope;
     }
 
-    private void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
+    private static void AutoForwardCoreServices(IServiceCollection moduleServices, ModuleServiceContext context)
     {
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IConnectivityService>());
         moduleServices.AddSingleton(context.GetParentService<Core.Messaging.Services.IBottomSheetService>());
