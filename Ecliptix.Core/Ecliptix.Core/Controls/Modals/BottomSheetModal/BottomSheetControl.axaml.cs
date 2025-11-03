@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -104,6 +105,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
         if (_disposed)
         {
             return;
@@ -122,7 +129,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _disposed = true;
     }
 
-
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -136,24 +142,21 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         Dispose();
     }
 
-    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    private static void EnsureTransform<T>(Visual visual) where T : Transform, new()
     {
         ITransform? existingTransform = visual.RenderTransform;
         if (existingTransform is TransformGroup existingGroup)
         {
-            foreach (Transform? child in existingGroup.Children)
+            if (existingGroup.Children.OfType<T>().Any())
             {
-                if (child is T specificTransform)
-                {
-                    return specificTransform;
-                }
+                return;
             }
             T newTransformFromGroup = new T();
             existingGroup.Children.Add(newTransformFromGroup);
-            return newTransformFromGroup;
+            return;
         }
 
-        TransformGroup group = new TransformGroup();
+        TransformGroup group = new();
         if (existingTransform is Transform singleTransform)
         {
             group.Children.Add(singleTransform);
@@ -162,7 +165,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         T newTransform = new T();
         group.Children.Add(newTransform);
         visual.RenderTransform = group;
-        return newTransform;
     }
 
     private void InitializeDefaults()
@@ -190,13 +192,15 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         _scrimBorder = this.FindControl<Border>("ScrimBorder");
         _contentControl = this.FindControl<ContentControl>("ContentControl");
 
-        if (_sheetBorder != null && _scrimBorder != null && _rootGrid != null)
+        if (_sheetBorder == null || _scrimBorder == null || _rootGrid == null)
         {
-            EnsureTransform<TranslateTransform>(_sheetBorder);
-            _rootGrid.IsVisible = false;
-            _sheetBorder.IsVisible = false;
-            _scrimBorder.IsVisible = false;
+            return;
         }
+
+        EnsureTransform<TranslateTransform>(_sheetBorder);
+        _rootGrid.IsVisible = false;
+        _sheetBorder.IsVisible = false;
+        _scrimBorder.IsVisible = false;
     }
 
     private void SetupReactiveBindings()
@@ -259,7 +263,6 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     private async Task OnVisibilityChanged(bool isVisible)
     {
         Log.Debug("[BottomSheetControl] Visibility changed: {IsVisible}", isVisible);
-        Log.Debug("[BottomSheetControl] IsAnimating: {IsAnimating}", _isAnimating);
 
         if (_rootGrid is null)
         {
@@ -267,78 +270,114 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             return;
         }
 
-        if (_isAnimating)
-        {
-            Log.Debug("[BottomSheetControl] Animation in progress, waiting for completion...");
-
-            DateTime timeout = DateTime.UtcNow.AddSeconds(3);
-            while (_isAnimating && DateTime.UtcNow < timeout)
-            {
-                await Task.Delay(50);
-            }
-
-            if (_isAnimating)
-            {
-                Log.Warning("[BottomSheetControl] Animation timeout reached, forcing continue");
-                _isAnimating = false;
-            }
-
-            Log.Debug("[BottomSheetControl] Animation wait complete, proceeding with visibility change");
-        }
+        await WaitForAnimationToComplete();
 
         if (isVisible)
         {
-            Log.Information("Sheet is showing. Storing previous focus.");
-            try
-            {
-                TopLevel? visualRoot = _rootGrid.GetVisualRoot() as TopLevel;
-                _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
-                Log.Information("Stored previous focused element: {Element}", _previousFocusedElement?.GetType().Name ?? "null"); // Added
-            }
-            catch
-            {
-                Log.Information("Exception while getting previous focus. Setting to null.");
-                _previousFocusedElement = null;
-            }
-            UpdateSheetHeight();
-            await ShowBottomSheet();
-            Focus();
+            await HandleShowAsync();
         }
         else
         {
-            Log.Information("Sheet is hiding. Restoring previous focus.");
-            await HideBottomSheet();
-            try
+            await HandleHideAsync();
+        }
+    }
+
+    private async Task WaitForAnimationToComplete()
+    {
+        if (!_isAnimating)
+        {
+            return;
+        }
+
+        Log.Debug("[BottomSheetControl] Animation in progress, waiting for completion...");
+
+        DateTime timeout = DateTime.UtcNow.AddSeconds(3);
+        while (_isAnimating && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(50);
+        }
+
+        if (_isAnimating)
+        {
+            Log.Warning("[BottomSheetControl] Animation timeout reached, forcing continue");
+            _isAnimating = false;
+        }
+
+        Log.Debug("[BottomSheetControl] Animation wait complete");
+    }
+
+    private async Task HandleShowAsync()
+    {
+        Log.Debug("Sheet is showing. Storing previous focus.");
+        SavePreviousFocus();
+
+        UpdateSheetHeight();
+        await ShowBottomSheet();
+        Focus();
+    }
+
+    private async Task HandleHideAsync()
+    {
+        Log.Debug("Sheet is hiding. Restoring previous focus.");
+        await HideBottomSheet();
+        RestorePreviousFocus();
+    }
+
+    private void SavePreviousFocus()
+    {
+        try
+        {
+            if (_rootGrid != null)
             {
-                if (_previousFocusedElement is { } previous)
-                {
-                    Log.Information("Restoring focus to previous element: {Element}", previous.GetType().Name);
-                     previous.Focus();
-                    _previousFocusedElement = null;
-                }
-                else if (Parent is Control parentControl)
-                {
-                    Log.Information("No previous element found. Falling back to focus parent: {Element}", parentControl.GetType().Name);
-                    parentControl.Focus();
-                }
-                else
-                {
-                    Log.Information("No previous element and no parent to focus.");
-                }
+                TopLevel? visualRoot = _rootGrid.GetVisualRoot() as TopLevel;
+                _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
             }
-            catch
+
+            Log.Debug("Stored previous focused element: {Element}", _previousFocusedElement?.GetType().Name ?? "null");
+        }
+        catch(Exception ex)
+        {
+            Log.Debug(ex,"Exception while getting previous focus. Setting to null.");
+            _previousFocusedElement = null;
+        }
+    }
+
+    private void RestorePreviousFocus()
+    {
+        try
+        {
+            if (_previousFocusedElement is { } previous)
             {
-                Log.Information("Exception while restoring focus. Attempting fallback to parent.");
-                if (Parent is Control fallbackParent)
-                {
-                    Log.Information("Restoring focus to fallback parent: {Element}", fallbackParent.GetType().Name);
-                    fallbackParent.Focus();
-                }
-                else
-                {
-                    Log.Information("Fallback focus failed. No parent found.");
-                }
+                Log.Debug("Restoring focus to previous element: {Element}", previous.GetType().Name);
+                previous.Focus();
             }
+            else
+            {
+                Log.Debug("No previous element found.");
+                TryFocusFallback();
+            }
+        }
+        catch(Exception ex)
+        {
+            Log.Debug(ex, "Exception while restoring focus. Attempting fallback.");
+            TryFocusFallback();
+        }
+        finally
+        {
+            _previousFocusedElement = null;
+        }
+    }
+
+    private void TryFocusFallback()
+    {
+        if (Parent is Control parentControl)
+        {
+            Log.Debug("Restoring focus to fallback parent: {Element}", parentControl.GetType().Name);
+            parentControl.Focus();
+        }
+        else
+        {
+            Log.Debug("Fallback focus failed. No parent found.");
         }
     }
 
@@ -410,10 +449,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         try
         {
-            List<Task> showTasks = new()
-            {
-                _showAnimation.RunAsync(_sheetBorder, CancellationToken.None)
-            };
+            List<Task> showTasks = [_showAnimation.RunAsync(_sheetBorder, CancellationToken.None)];
 
             if (ViewModel?.ShowScrim == true && _scrimShowAnimation is not null && _scrimBorder is not null)
             {
@@ -441,10 +477,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         try
         {
-            List<Task> hideTasks = new()
-            {
-                _hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)
-            };
+            List<Task> hideTasks = [_hideAnimation.RunAsync(_sheetBorder, CancellationToken.None)];
 
             if (ViewModel?.ShowScrim == true && _scrimHideAnimation is not null && _scrimBorder is not null)
             {
@@ -498,43 +531,52 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
             }
         };
 
-        if (ViewModel?.ShowScrim == true)
+        if (ViewModel?.ShowScrim != true)
         {
-            _scrimShowAnimation = new Animation
-            {
-                Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Both,
-                Children =
-                {
-                    new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } },
-                    new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } }
-                }
-            };
-
-            _scrimHideAnimation = new Animation
-            {
-                Duration = BottomSheetAnimationConstants.HideAnimationDuration,
-                Easing = new CubicEaseInOut(),
-                FillMode = FillMode.Both,
-                Children =
-                {
-                    new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } },
-                    new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } }
-                }
-            };
+            return;
         }
+
+        _scrimShowAnimation = new Animation
+        {
+            Duration = BottomSheetAnimationConstants.ShowAnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.0) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.5) } }
+            }
+        };
+
+        _scrimHideAnimation = new Animation
+        {
+            Duration = BottomSheetAnimationConstants.HideAnimationDuration,
+            Easing = new CubicEaseInOut(),
+            FillMode = FillMode.Both,
+            Children =
+            {
+                new KeyFrame { Cue = new Cue(0.0), Setters = { new Setter(OpacityProperty, 0.5) } },
+                new KeyFrame { Cue = new Cue(1.0), Setters = { new Setter(OpacityProperty, 0.0) } }
+            }
+        };
     }
 
     private async void OnScrimPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (IsDismissableOnScrimClick && ViewModel is not null && !_isAnimating)
+        try
         {
-            ViewModel.IsVisible = false;
+            if (IsDismissableOnScrimClick && ViewModel is not null && !_isAnimating)
+            {
+                ViewModel.IsVisible = false;
 
-            await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
+                await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
 
-            ViewModel.BottomSheetDismissed();
+                ViewModel.BottomSheetDismissed();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "[BottomSheetControl] Exception in OnScrimPointerPressed");
         }
     }
 
@@ -548,17 +590,26 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
     private async void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (DismissKeys.TryGetValue(e.Key, out Func<BottomSheetControl, bool>? shouldDismiss) &&
-            shouldDismiss(this) &&
-            ViewModel is not null &&
-            !_isAnimating)
+        try
         {
+            if (!DismissKeys.TryGetValue(e.Key, out Func<BottomSheetControl, bool>? shouldDismiss) ||
+                !shouldDismiss(this) ||
+                ViewModel is null ||
+                _isAnimating)
+            {
+                return;
+            }
+
             ViewModel.IsVisible = false;
 
             await Task.Delay(BottomSheetAnimationConstants.HideAnimationDuration);
 
             ViewModel.BottomSheetDismissed();
             e.Handled = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Debug(ex, "[BottomSheetControl] Exception in OnKeyDown");
         }
     }
 
