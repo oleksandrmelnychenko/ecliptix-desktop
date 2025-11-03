@@ -111,25 +111,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 x => x.CurrentStatus,
                 x => x.CooldownBufferSeconds,
                 x => x.IsInNetworkOutage)
-            .Select(tuple =>
-            {
-                if (!tuple.Item2 || tuple.Item5)
-                {
-                    return false;
-                }
-
-                if (tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown)
-                {
-                    return tuple.Item4 == 0;
-                }
-
-                if (tuple.Item1 != 0)
-                {
-                    return false;
-                }
-
-                return tuple.Item3 == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
-            })
+            .Select(tuple => CanResendVerification(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5))
             .DistinctUntilChanged()
             .Catch<bool, Exception>(ex => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
@@ -298,56 +280,54 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             CancellationTokenSource cancellationTokenSource = RecreateCancellationToken(ref _cancellationTokenSource);
             _disposables.Add(cancellationTokenSource);
 
-            Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask =
-                _flowContext == AuthenticationFlowContext.Registration
-                    ? _registrationService.InitiateOtpVerificationAsync(
-                        _mobileNumberIdentifier,
-                        onCountdownUpdate: (seconds, identifier, status, message) =>
-                            RxApp.MainThreadScheduler.Schedule(() =>
-                            {
-                                if (_isDisposed)
-                                {
-                                    return;
-                                }
-
-                                try
-                                {
-                                    HandleCountdownUpdate(seconds, identifier, status, message);
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    // Intentionally suppressed: ViewModel disposed during countdown callback
-                                }
-                            }),
-                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None)
-                    : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(
-                        _mobileNumberIdentifier,
-                        onCountdownUpdate: (seconds, identifier, status, message) =>
-                            RxApp.MainThreadScheduler.Schedule(() =>
-                            {
-                                if (_isDisposed)
-                                {
-                                    return;
-                                }
-
-                                try
-                                {
-                                    HandleCountdownUpdate(seconds, identifier, status, message);
-                                }
-                                catch (ObjectDisposedException)
-                                {
-                                    // Intentionally suppressed: ViewModel disposed during countdown callback
-                                }
-                            }),
-                        cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None);
-
+            Task<Result<Ecliptix.Utilities.Unit, string>> initiateTask = CreateInitiateTask();
             Result<Ecliptix.Utilities.Unit, string> result = await initiateTask;
 
-            if (result.IsErr && !_isDisposed && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable)
-            {
-                ErrorMessage = result.UnwrapErr();
-            }
+            HandleInitiateResult(result);
         });
+    }
+
+    private Task<Result<Ecliptix.Utilities.Unit, string>> CreateInitiateTask()
+    {
+        CancellationToken cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> callback = CreateCountdownCallback();
+
+        return _flowContext == AuthenticationFlowContext.Registration
+            ? _registrationService.InitiateOtpVerificationAsync(_mobileNumberIdentifier, VerificationPurpose.Registration, callback, cancellationToken)
+            : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(_mobileNumberIdentifier, callback, cancellationToken);
+    }
+
+    private Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> CreateCountdownCallback()
+    {
+        return (seconds, identifier, status, message) =>
+            RxApp.MainThreadScheduler.Schedule(() =>
+            {
+                if (_isDisposed)
+                {
+                    return;
+                }
+
+                try
+                {
+                    HandleCountdownUpdate(seconds, identifier, status, message);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Intentionally suppressed: ViewModel disposed during countdown callback
+                }
+            });
+    }
+
+    private void HandleInitiateResult(Result<Ecliptix.Utilities.Unit, string> result)
+    {
+        bool shouldSetError = result.IsErr
+            && !_isDisposed
+            && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable;
+
+        if (shouldSetError)
+        {
+            ErrorMessage = result.UnwrapErr();
+        }
     }
 
     private async Task SendVerificationCode()
@@ -887,5 +867,30 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 HasValidSession = false;
             }
         });
+    }
+
+    private static bool CanResendVerification(
+        uint secondsRemaining,
+        bool hasValidSession,
+        VerificationCountdownUpdate.Types.CountdownUpdateStatus status,
+        uint cooldownBufferSeconds,
+        bool isInNetworkOutage)
+    {
+        if (!hasValidSession || isInNetworkOutage)
+        {
+            return false;
+        }
+
+        if (status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown)
+        {
+            return cooldownBufferSeconds == 0;
+        }
+
+        if (secondsRemaining != 0)
+        {
+            return false;
+        }
+
+        return status == VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired;
     }
 }

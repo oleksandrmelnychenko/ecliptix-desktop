@@ -118,8 +118,6 @@ public static class Program
             {
                 Environment.Exit(ApplicationConstants.ExitCodes.FatalError);
             }
-
-            throw;
         }
         finally
         {
@@ -191,7 +189,7 @@ public static class Program
         ServiceCollection services = new();
 
         ConfigureCoreServices(services, configuration);
-        ConfigureNetworkServices(services, configuration);
+        ConfigureNetworkServices(services);
         ConfigureSecurityServices(services, configuration);
         ConfigureMessagingServices(services);
         ConfigureAuthenticationServices(services);
@@ -222,7 +220,7 @@ public static class Program
         services.AddSingleton<IScheduler>(AvaloniaScheduler.Instance);
     }
 
-    private static void ConfigureNetworkServices(IServiceCollection services, IConfiguration configuration)
+    private static void ConfigureNetworkServices(IServiceCollection services)
     {
         services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
         {
@@ -491,17 +489,23 @@ public static class Program
 
     private static string GetPlatformAppDataDirectory()
     {
-        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-                ? Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ApplicationConstants.Storage.LocalShareDirectory
-                )
-                : Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ApplicationConstants.Storage.ApplicationSupportDirectory
-                );
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ApplicationConstants.Storage.LocalShareDirectory
+            );
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ApplicationConstants.Storage.ApplicationSupportDirectory
+        );
     }
 
     private static void SetSecurePermissionsIfUnix(string directory)
