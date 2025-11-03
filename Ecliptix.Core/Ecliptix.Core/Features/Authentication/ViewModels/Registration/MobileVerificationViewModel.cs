@@ -208,202 +208,11 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
             if (_flowContext == AuthenticationFlowContext.Registration)
             {
-                Task<Result<ValidateMobileNumberResponse, string>> validationTask =
-                    _registrationService.ValidateMobileNumberAsync(
-                        MobileNumber,
-                        connectId,
-                        operationToken);
-
-                Result<ValidateMobileNumberResponse, string> result = await validationTask;
-
-                if (_isDisposed)
-                {
-                    return Unit.Default;
-                }
-
-                if (result.IsOk)
-                {
-                    ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
-
-                    if (validateMobileNumberResponse.Result == VerificationResult.InvalidMobile)
-                    {
-                        ShowError(validateMobileNumberResponse.Message);
-                        return Unit.Default;
-                    }
-
-                    Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
-                        await _registrationService.CheckMobileNumberAvailabilityAsync(
-                            validateMobileNumberResponse.MobileNumberIdentifier,
-                            connectId,
-                            operationToken);
-
-                    if (_isDisposed)
-                    {
-                        return Unit.Default;
-                    }
-
-                    if (statusResult.IsOk)
-                    {
-                        CheckMobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
-
-                        switch (statusResponse.Status)
-                        {
-                            case MobileAvailabilityStatus.Available:
-                                Serilog.Log.Information("[MOBILE-VERIFICATION] Mobile available, starting OTP verification");
-                                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
-                                break;
-
-                            case MobileAvailabilityStatus.RegistrationExpired:
-                                Serilog.Log.Information(
-                                    "[MOBILE-VERIFICATION] Registration window expired (1 hour), starting fresh OTP verification");
-                                await NavigateToOtpVerificationAsync(validateMobileNumberResponse.MobileNumberIdentifier);
-                                break;
-
-                            case MobileAvailabilityStatus.IncompleteRegistration:
-                                string membershipIdStr = statusResponse.ExistingMembershipId != null &&
-                                                         !statusResponse.ExistingMembershipId.IsEmpty
-                                    ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
-                                    : "Unknown";
-
-                                if (statusResponse.HasCreationStatus &&
-                                    statusResponse.CreationStatus ==
-                                    Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified)
-                                {
-                                    Protobuf.Membership.Membership membership = new Protobuf.Membership.Membership
-                                    {
-                                        UniqueIdentifier = statusResponse.ExistingMembershipId,
-                                        Status = statusResponse.HasActivityStatus
-                                            ? statusResponse.ActivityStatus
-                                            : Protobuf.Membership.Membership.Types.ActivityStatus.Active,
-                                        CreationStatus = statusResponse.CreationStatus
-                                    };
-
-                                    if (statusResponse.AccountUniqueIdentifier != null &&
-                                        !statusResponse.AccountUniqueIdentifier.IsEmpty)
-                                    {
-                                        membership.AccountUniqueIdentifier = statusResponse.AccountUniqueIdentifier;
-                                    }
-
-                                    await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
-
-                                    if (statusResponse.AccountUniqueIdentifier != null &&
-                                        !statusResponse.AccountUniqueIdentifier.IsEmpty)
-                                    {
-                                        await _applicationSecureStorageProvider
-                                            .SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier)
-                                            .ConfigureAwait(false);
-                                        Serilog.Log.Information(
-                                            "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                                            membershipIdStr,
-                                            Helpers.FromByteStringToGuid(statusResponse.AccountUniqueIdentifier));
-                                    }
-                                    else
-                                    {
-                                        Serilog.Log.Information(
-                                            "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}",
-                                            membershipIdStr);
-                                    }
-
-                                    await NavigateToSecureKeyAsync();
-                                }
-                                else
-                                {
-                                    Serilog.Log.Information(
-                                        "[MOBILE-VERIFICATION] Incomplete registration - navigating to OTP. MembershipId: {MembershipId}, CreationStatus: {CreationStatus}",
-                                        membershipIdStr,
-                                        statusResponse.HasCreationStatus
-                                            ? statusResponse.CreationStatus.ToString()
-                                            : "Not Set");
-                                    await NavigateToOtpVerificationAsync(validateMobileNumberResponse
-                                        .MobileNumberIdentifier);
-                                }
-
-                                break;
-
-                            case MobileAvailabilityStatus.DataCorruption:
-                                string corruptedMembershipId = statusResponse.ExistingMembershipId != null &&
-                                                               !statusResponse.ExistingMembershipId.IsEmpty
-                                    ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
-                                    : "Unknown";
-
-                                Serilog.Log.Warning(
-                                    "[MOBILE-VERIFICATION] Data corruption detected. MembershipId: {MembershipId}",
-                                    corruptedMembershipId);
-
-                                string corruptionError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
-                                    ? LocalizationService[statusResponse.LocalizationKey]
-                                    : LocalizationService["MobileVerification.Error.DataCorruption"];
-                                ShowError(corruptionError);
-                                break;
-
-                            case MobileAvailabilityStatus.TakenActive:
-                            case MobileAvailabilityStatus.TakenInactive:
-                                if (statusResponse.RegisteredDeviceId != null &&
-                                    !statusResponse.RegisteredDeviceId.IsEmpty)
-                                {
-                                    Guid registeredDevice = Helpers.FromByteStringToGuid(statusResponse.RegisteredDeviceId);
-                                    Serilog.Log.Information(
-                                        "[MOBILE-VERIFICATION] Mobile taken on device: {DeviceId}, Status: {Status}",
-                                        registeredDevice, statusResponse.Status);
-                                }
-
-                                string takenError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
-                                    ? LocalizationService[statusResponse.LocalizationKey]
-                                    : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
-                                ShowError(takenError);
-                                break;
-
-                            default:
-                                Serilog.Log.Warning(
-                                    "[MOBILE-VERIFICATION] Unexpected status: {Status}", statusResponse.Status);
-                                string defaultError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
-                                    ? LocalizationService[statusResponse.LocalizationKey]
-                                    : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
-                                ShowError(defaultError);
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        ShowError(statusResult.UnwrapErr());
-                    }
-                }
-                else
-                {
-                    ShowError(result.UnwrapErr());
-                }
+                await ExecuteRegistrationFlowAsync(connectId, operationToken);
             }
             else
             {
-                Task<Result<ByteString, string>> recoveryValidationTask =
-                    _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber,
-                        connectId, operationToken);
-
-                Result<ByteString, string> result = await recoveryValidationTask;
-
-                if (_isDisposed)
-                {
-                    return Unit.Default;
-                }
-
-                if (result.IsOk)
-                {
-                    ByteString mobileNumberIdentifier = result.Unwrap();
-
-                    VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
-                        mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
-                        _flowContext, _secureKeyRecoveryService);
-
-                    if (HostScreen is AuthenticationViewModel hostWindow)
-                    {
-                        hostWindow.RecoveryMobileNumber = MobileNumber;
-                        hostWindow.NavigateToViewModel(vm);
-                    }
-                }
-                else
-                {
-                    ShowError(result.UnwrapErr());
-                }
+                await ExecuteRecoveryFlowAsync(connectId, operationToken);
             }
         }
         catch (OperationCanceledException)
@@ -419,6 +228,214 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         }
 
         return Unit.Default;
+    }
+
+    private async Task ExecuteRegistrationFlowAsync(uint connectId, CancellationToken operationToken)
+    {
+        Task<Result<ValidateMobileNumberResponse, string>> validationTask =
+            _registrationService.ValidateMobileNumberAsync(MobileNumber, connectId, operationToken);
+
+        Result<ValidateMobileNumberResponse, string> result = await validationTask;
+
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (result.IsErr)
+        {
+            ShowError(result.UnwrapErr());
+            return;
+        }
+
+        ValidateMobileNumberResponse validateMobileNumberResponse = result.Unwrap();
+
+        if (validateMobileNumberResponse.Result == VerificationResult.InvalidMobile)
+        {
+            ShowError(validateMobileNumberResponse.Message);
+            return;
+        }
+
+        await HandleMobileAvailabilityCheckAsync(validateMobileNumberResponse.MobileNumberIdentifier, connectId, operationToken);
+    }
+
+    private async Task HandleMobileAvailabilityCheckAsync(ByteString mobileNumberIdentifier, uint connectId, CancellationToken operationToken)
+    {
+        Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
+            await _registrationService.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId, operationToken);
+
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (statusResult.IsErr)
+        {
+            ShowError(statusResult.UnwrapErr());
+            return;
+        }
+
+        CheckMobileNumberAvailabilityResponse statusResponse = statusResult.Unwrap();
+        await HandleAvailabilityStatusAsync(statusResponse, mobileNumberIdentifier);
+    }
+
+    private async Task HandleAvailabilityStatusAsync(CheckMobileNumberAvailabilityResponse statusResponse, ByteString mobileNumberIdentifier)
+    {
+        switch (statusResponse.Status)
+        {
+            case MobileAvailabilityStatus.Available:
+                Serilog.Log.Information("[MOBILE-VERIFICATION] Mobile available, starting OTP verification");
+                await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
+                break;
+
+            case MobileAvailabilityStatus.RegistrationExpired:
+                Serilog.Log.Information("[MOBILE-VERIFICATION] Registration window expired (1 hour), starting fresh OTP verification");
+                await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
+                break;
+
+            case MobileAvailabilityStatus.IncompleteRegistration:
+                await HandleIncompleteRegistrationAsync(statusResponse, mobileNumberIdentifier);
+                break;
+
+            case MobileAvailabilityStatus.DataCorruption:
+                HandleDataCorruptionStatus(statusResponse);
+                break;
+
+            case MobileAvailabilityStatus.TakenActive:
+            case MobileAvailabilityStatus.TakenInactive:
+                HandleMobileTakenStatus(statusResponse);
+                break;
+
+            default:
+                HandleUnexpectedStatus(statusResponse);
+                break;
+        }
+    }
+
+    private async Task HandleIncompleteRegistrationAsync(CheckMobileNumberAvailabilityResponse statusResponse, ByteString mobileNumberIdentifier)
+    {
+        string membershipIdStr = statusResponse.ExistingMembershipId != null && !statusResponse.ExistingMembershipId.IsEmpty
+            ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
+            : "Unknown";
+
+        if (statusResponse.HasCreationStatus && statusResponse.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified)
+        {
+            await StoreIncompleteMembershipAndNavigateAsync(statusResponse, membershipIdStr);
+        }
+        else
+        {
+            Serilog.Log.Information(
+                "[MOBILE-VERIFICATION] Incomplete registration - navigating to OTP. MembershipId: {MembershipId}, CreationStatus: {CreationStatus}",
+                membershipIdStr,
+                statusResponse.HasCreationStatus ? statusResponse.CreationStatus.ToString() : "Not Set");
+            await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
+        }
+    }
+
+    private async Task StoreIncompleteMembershipAndNavigateAsync(CheckMobileNumberAvailabilityResponse statusResponse, string membershipIdStr)
+    {
+        Protobuf.Membership.Membership membership = new Protobuf.Membership.Membership
+        {
+            UniqueIdentifier = statusResponse.ExistingMembershipId,
+            Status = statusResponse.HasActivityStatus
+                ? statusResponse.ActivityStatus
+                : Protobuf.Membership.Membership.Types.ActivityStatus.Active,
+            CreationStatus = statusResponse.CreationStatus
+        };
+
+        if (statusResponse.AccountUniqueIdentifier != null && !statusResponse.AccountUniqueIdentifier.IsEmpty)
+        {
+            membership.AccountUniqueIdentifier = statusResponse.AccountUniqueIdentifier;
+        }
+
+        await _applicationSecureStorageProvider.SetApplicationMembershipAsync(membership);
+
+        if (statusResponse.AccountUniqueIdentifier != null && !statusResponse.AccountUniqueIdentifier.IsEmpty)
+        {
+            await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier).ConfigureAwait(false);
+            Serilog.Log.Information(
+                "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}, AccountId: {AccountId}",
+                membershipIdStr,
+                Helpers.FromByteStringToGuid(statusResponse.AccountUniqueIdentifier));
+        }
+        else
+        {
+            Serilog.Log.Information(
+                "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}",
+                membershipIdStr);
+        }
+
+        await NavigateToSecureKeyAsync();
+    }
+
+    private void HandleDataCorruptionStatus(CheckMobileNumberAvailabilityResponse statusResponse)
+    {
+        string corruptedMembershipId = statusResponse.ExistingMembershipId != null && !statusResponse.ExistingMembershipId.IsEmpty
+            ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
+            : "Unknown";
+
+        Serilog.Log.Warning("[MOBILE-VERIFICATION] Data corruption detected. MembershipId: {MembershipId}", corruptedMembershipId);
+
+        string corruptionError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+            ? LocalizationService[statusResponse.LocalizationKey]
+            : LocalizationService["MobileVerification.Error.DataCorruption"];
+        ShowError(corruptionError);
+    }
+
+    private void HandleMobileTakenStatus(CheckMobileNumberAvailabilityResponse statusResponse)
+    {
+        if (statusResponse.RegisteredDeviceId != null && !statusResponse.RegisteredDeviceId.IsEmpty)
+        {
+            Guid registeredDevice = Helpers.FromByteStringToGuid(statusResponse.RegisteredDeviceId);
+            Serilog.Log.Information(
+                "[MOBILE-VERIFICATION] Mobile taken on device: {DeviceId}, Status: {Status}",
+                registeredDevice, statusResponse.Status);
+        }
+
+        string takenError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+            ? LocalizationService[statusResponse.LocalizationKey]
+            : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+        ShowError(takenError);
+    }
+
+    private void HandleUnexpectedStatus(CheckMobileNumberAvailabilityResponse statusResponse)
+    {
+        Serilog.Log.Warning("[MOBILE-VERIFICATION] Unexpected status: {Status}", statusResponse.Status);
+        string defaultError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
+            ? LocalizationService[statusResponse.LocalizationKey]
+            : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+        ShowError(defaultError);
+    }
+
+    private async Task ExecuteRecoveryFlowAsync(uint connectId, CancellationToken operationToken)
+    {
+        Task<Result<ByteString, string>> recoveryValidationTask =
+            _secureKeyRecoveryService!.ValidateMobileForRecoveryAsync(MobileNumber, connectId, operationToken);
+
+        Result<ByteString, string> result = await recoveryValidationTask;
+
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        if (result.IsErr)
+        {
+            ShowError(result.UnwrapErr());
+            return;
+        }
+
+        ByteString mobileNumberIdentifier = result.Unwrap();
+
+        VerifyOtpViewModel vm = new(_connectivityService, NetworkProvider, LocalizationService, HostScreen,
+            mobileNumberIdentifier, _applicationSecureStorageProvider, _registrationService,
+            _flowContext, _secureKeyRecoveryService);
+
+        if (HostScreen is AuthenticationViewModel hostWindow)
+        {
+            hostWindow.RecoveryMobileNumber = MobileNumber;
+            hostWindow.NavigateToViewModel(vm);
+        }
     }
 
     private void ShowError(string errorMessage)
