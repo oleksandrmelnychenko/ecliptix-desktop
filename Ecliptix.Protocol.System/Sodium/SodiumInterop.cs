@@ -37,6 +37,10 @@ internal static partial class SodiumInterop
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial int sodium_memcmp(byte[] b1, byte[] b2, nuint length);
 
+    [LibraryImport(LibSodium, EntryPoint = "sodium_memcmp")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static unsafe partial int sodium_memcmp(void* b1, void* b2, nuint length);
+
     private static Result<Unit, SodiumFailure> InitializeSodium()
     {
         return Result<Unit, SodiumFailure>.Try(
@@ -178,8 +182,15 @@ internal static partial class SodiumInterop
 
         try
         {
-            int result = sodium_memcmp(a.ToArray(), b.ToArray(), (UIntPtr)a.Length);
-            return Result<bool, SodiumFailure>.Ok(result == ProtocolSystemConstants.Numeric.ZeroValue);
+            unsafe
+            {
+                fixed (byte* ptrA = a)
+                fixed (byte* ptrB = b)
+                {
+                    int result = sodium_memcmp(ptrA, ptrB, (nuint)a.Length);
+                    return Result<bool, SodiumFailure>.Ok(result == ProtocolSystemConstants.Numeric.ZeroValue);
+                }
+            }
         }
         catch (Exception ex)
         {

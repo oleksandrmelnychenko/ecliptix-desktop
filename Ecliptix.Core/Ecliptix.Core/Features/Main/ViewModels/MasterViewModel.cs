@@ -22,7 +22,7 @@ using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Main.ViewModels;
 
-public sealed class MasterViewModel : Core.MVVM.ViewModelBase, IDisposable
+public sealed class MasterViewModel : Core.MVVM.ViewModelBase
 {
     private readonly ILogoutService _logoutService;
     private readonly CompositeDisposable _disposables = new();

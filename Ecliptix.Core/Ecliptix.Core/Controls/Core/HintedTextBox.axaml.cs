@@ -568,8 +568,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             return count;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[HINTED-TEXTBOX] Failed to get text element count, using fallback: {ex.Message}");
             int fallbackCount = text.Length;
             if (TextElementCountCache.Count < MaxTextElementCacheSize)
             {
@@ -600,16 +601,18 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
             int actualLength = Math.Min(length, textElementCount - startIndex);
             return actualLength <= 0 ? string.Empty : stringInfo.SubstringByTextElements(startIndex, actualLength);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[HINTED-TEXTBOX] Failed to substring by text elements, using character fallback: {ex.Message}");
             try
             {
                 int safeStart = Math.Min(startIndex, text.Length);
                 int safeLength = Math.Min(length, text.Length - safeStart);
                 return safeLength > 0 ? text.Substring(safeStart, safeLength) : string.Empty;
             }
-            catch (Exception)
+            catch (Exception ex2)
             {
+                System.Diagnostics.Debug.WriteLine($"[HINTED-TEXTBOX] Failed to substring, returning empty: {ex2.Message}");
                 return string.Empty;
             }
         }
@@ -640,8 +643,9 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
 
             return SafeSubstring(currentText, insertPos, addedCount);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[HINTED-TEXTBOX] Failed to get added text elements, using character fallback: {ex.Message}");
             int addedCount = currentText.Length - lastText.Length;
             if (addedCount <= 0)
             {

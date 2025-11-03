@@ -152,10 +152,10 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
             {
                 await ProcessSingleMessageAsync(message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Swallow exceptions to prevent message processing loop from crashing
-                // Individual message processing errors should not stop the entire message bus
+                Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Failed to process message. Type: {MessageType}",
+                    message?.GetType().Name ?? "Unknown");
             }
             finally
             {
@@ -188,9 +188,10 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
                     Task handlerTask = subscription.HandleAsync(message);
                     handlerTasks.Add(handlerTask);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Swallow handler registration exceptions to allow other handlers to run
+                    Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Handler threw exception during registration. MessageType: {MessageType}",
+                        messageType.Name);
                 }
             }
         }
@@ -220,9 +221,17 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         {
             _messageProcessingTask.Wait(TimeSpan.FromSeconds(5));
         }
-        catch (Exception)
+        catch (TimeoutException)
         {
-            // Expected during disposal if task is cancelled or times out
+            Serilog.Log.Warning("[MODULE-MESSAGE-BUS] Message processing task did not complete within timeout during disposal");
+        }
+        catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
+        {
+            // Expected during cancellation
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[MODULE-MESSAGE-BUS] Unexpected exception during disposal wait");
         }
 
         _cancellationTokenSource.Dispose();

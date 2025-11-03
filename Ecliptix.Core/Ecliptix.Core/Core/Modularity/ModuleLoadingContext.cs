@@ -28,11 +28,11 @@ internal class ModuleLoadingContext
             return Task.FromResult(cached.Module);
         }
 
-        TaskCompletionSource<IModule> tcs = _loadingTasks.GetOrAdd(moduleName, _ =>
+        TaskCompletionSource<IModule> tcs = _loadingTasks.GetOrAdd(moduleName, key =>
         {
             TaskCompletionSource<IModule> newTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            ExecuteModuleLoad(moduleName, loadFactory, newTcs);
+            _ = ExecuteModuleLoadAsync(key, loadFactory, newTcs);
 
             return newTcs;
         });
@@ -40,7 +40,7 @@ internal class ModuleLoadingContext
         return tcs.Task;
     }
 
-    private async void ExecuteModuleLoad(string moduleName, Func<Task<IModule>> loadFactory, TaskCompletionSource<IModule> tcs)
+    private async Task ExecuteModuleLoadAsync(string moduleName, Func<Task<IModule>> loadFactory, TaskCompletionSource<IModule> tcs)
     {
         try
         {

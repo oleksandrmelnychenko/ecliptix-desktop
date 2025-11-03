@@ -227,7 +227,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 try
                 {
                     int resetCount = 0;
-                    foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+                    foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
                     {
                         if (operation.ConnectId == connectId && operation.IsExhausted)
                         {
@@ -315,7 +315,7 @@ public sealed class RetryStrategy : IRetryStrategy
         try
         {
             bool hasAnyOperationsForService = false;
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
             {
                 if (serviceType.HasValue && operation.ServiceType != serviceType.Value)
                 {
@@ -466,7 +466,7 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             DateTime cutoff = DateTime.UtcNow.AddMinutes(-OperationTimeoutMinutes);
             List<string> abandonedKeys = new();
-            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+            foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
             {
                 if (operation.StartTime < cutoff)
                 {
@@ -648,7 +648,7 @@ public sealed class RetryStrategy : IRetryStrategy
                         else
                         {
                             int exhaustedCount = 0;
-                            foreach (RetryOperationInfo operation in _activeRetryOperations.Values)
+                            foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
                             {
                                 if (operation.IsExhausted)
                                 {
@@ -792,7 +792,11 @@ public sealed class RetryStrategy : IRetryStrategy
 
     private NetworkProvider GetNetworkProvider()
     {
-        return _lazyNetworkProvider!.Value;
+        if (_lazyNetworkProvider == null || !_lazyNetworkProvider.IsValueCreated)
+        {
+            throw new InvalidOperationException("NetworkProvider has not been initialized");
+        }
+        return _lazyNetworkProvider.Value;
     }
 
     private static string CreateOperationKey(string operationName, uint connectId, DateTime startTime)

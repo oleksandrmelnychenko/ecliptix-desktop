@@ -105,11 +105,18 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
         _ = Task.Run(async () =>
         {
-            await hostWindow.ShowBottomSheet(
-                BottomSheetComponentType.UserRequestError,
-                errorView,
-                showScrim: false,
-                isDismissable: true);
+            try
+            {
+                await hostWindow.ShowBottomSheet(
+                    BottomSheetComponentType.UserRequestError,
+                    errorView,
+                    showScrim: false,
+                    isDismissable: true);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing user request error bottom sheet");
+            }
         });
     }
 
@@ -127,13 +134,21 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
         _ = Task.Run(async () =>
         {
-            if (!_disposedValue)
+            try
             {
-                await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
-                    showScrim: true, isDismissable: false);
+                if (!_disposedValue)
+                {
+                    await hostWindow.ShowBottomSheet(BottomSheetComponentType.RedirectNotification, redirectView,
+                        showScrim: true, isDismissable: false);
+                }
+                else
+                {
+                    onComplete();
+                }
             }
-            else
+            catch (Exception ex)
             {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception showing redirect notification bottom sheet");
                 onComplete();
             }
         });
@@ -146,7 +161,14 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
 
         _ = Task.Run(async () =>
         {
-            await membershipHostWindow.HideBottomSheetAsync();
+            try
+            {
+                await membershipHostWindow.HideBottomSheetAsync();
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VIEWMODEL-BASE] Exception hiding bottom sheet during cleanup");
+            }
         });
     }
 
@@ -170,9 +192,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
         {
             cts?.Cancel();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
-            // CTS already disposed - safe to ignore during cleanup
+            System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation: {ex.Message}");
         }
 
         cts?.Dispose();
@@ -188,9 +210,9 @@ public abstract class ViewModelBase : ReactiveObject, IDisposable, IActivatableV
             {
                 cts.Cancel();
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
-                // CTS already disposed - safe to ignore during cleanup
+                System.Diagnostics.Debug.WriteLine($"[VIEWMODEL-BASE] CTS already disposed during recreation (Option): {ex.Message}");
             }
             cts.Dispose();
         });

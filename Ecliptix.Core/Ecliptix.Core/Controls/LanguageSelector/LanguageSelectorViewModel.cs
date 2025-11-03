@@ -104,14 +104,22 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                         {
                             _ = System.Threading.Tasks.Task.Run(async () =>
                             {
-                                Result<Utilities.Unit, InternalServiceApiFailure> result =
-                                    await _applicationSecureStorageProvider
-                                        .SetApplicationSettingsCultureAsync(item.Code).ConfigureAwait(false);
-                                if (result.IsErr)
+                                try
                                 {
-                                    Serilog.Log.Warning(
-                                        "[LANGUAGE-SELECTOR] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
-                                        item.Code, result.UnwrapErr().Message);
+                                    Result<Utilities.Unit, InternalServiceApiFailure> result =
+                                        await _applicationSecureStorageProvider
+                                            .SetApplicationSettingsCultureAsync(item.Code).ConfigureAwait(false);
+                                    if (result.IsErr)
+                                    {
+                                        Serilog.Log.Warning(
+                                            "[LANGUAGE-SELECTOR] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                                            item.Code, result.UnwrapErr().Message);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. Culture: {Culture}",
+                                        item.Code);
                                 }
                             });
                             _rpcMetaDataProvider.SetCulture(item.Code);

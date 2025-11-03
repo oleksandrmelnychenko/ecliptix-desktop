@@ -66,7 +66,18 @@ public sealed class MessageBus : IMessageBus
             ((Subject<TMessage>)wrapper.Subject).OnNext(message);
         }
 
-        _ = Task.Run(async () => { await _subscriptionManager.PublishAsync(message, CancellationToken.None); });
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _subscriptionManager.PublishAsync(message, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[MESSAGE-BUS] Exception during fire-and-forget message publication. MessageType: {MessageType}",
+                    typeof(TMessage).Name);
+            }
+        });
 
         Interlocked.Increment(ref _totalMessagesPublished);
     }
@@ -164,12 +175,10 @@ public sealed class MessageBus : IMessageBus
 
         foreach (KeyValuePair<Type, ReactiveSubjectWrapper> kvp in _reactiveSubjects.ToArray())
         {
-            if (kvp.Value.ReferenceCount == 0 && kvp.Value.IsExpired)
+            if (kvp.Value.ReferenceCount == 0 && kvp.Value.IsExpired &&
+                _reactiveSubjects.TryRemove(kvp.Key, out ReactiveSubjectWrapper? removed))
             {
-                if (_reactiveSubjects.TryRemove(kvp.Key, out ReactiveSubjectWrapper? removed))
-                {
-                    removed.Dispose();
-                }
+                removed.Dispose();
             }
         }
     }
@@ -227,10 +236,10 @@ internal sealed class ReactiveSubjectWrapper(object subject) : IDisposable
         if (!_disposed)
         {
             _disposed = true;
-            if (Subject is Subject<object> subject)
+            if (Subject is Subject<object> typedSubject)
             {
-                subject.OnCompleted();
-                subject.Dispose();
+                typedSubject.OnCompleted();
+                typedSubject.Dispose();
             }
         }
     }

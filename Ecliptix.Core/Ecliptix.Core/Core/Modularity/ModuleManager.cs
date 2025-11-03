@@ -67,12 +67,25 @@ public class ModuleManager : IModuleManager
 
         IModule module = moduleOption.Value!;
 
-        if (IsModuleLoaded(moduleName))
+        if (!_moduleStates.TryGetValue(moduleName, out ModuleState currentState))
+        {
+            throw new InvalidOperationException($"Module '{moduleName}' state not initialized");
+        }
+
+        if (currentState == ModuleState.Loaded)
         {
             return module;
         }
 
-        _moduleStates[moduleName] = ModuleState.Loading;
+        if (!_moduleStates.TryUpdate(moduleName, ModuleState.Loading, currentState))
+        {
+            if (_moduleStates.TryGetValue(moduleName, out ModuleState updatedState) && updatedState == ModuleState.Loaded)
+            {
+                return module;
+            }
+            throw new InvalidOperationException($"Module '{moduleName}' is already being loaded or in an invalid state");
+        }
+
         ModuleLoading?.Invoke(this, new ModuleLoadingEventArgs { ModuleName = moduleName });
 
         try

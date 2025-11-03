@@ -22,7 +22,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IObservable<bool> _connectivityObservable;
     private readonly CompositeDisposable _disposables = new();
-    private readonly CancellationTokenSource _probeCancellationCts = new();
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Subject<Unit> _manualProbeTrigger = new();
     private readonly InternetConnectivityObserverOptions _options;
 
@@ -61,7 +61,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
             .Select(_ => Unit.Default)
             .Merge(_manualProbeTrigger)
             .Merge(networkChangeObservable)
-            .SelectMany(_ => ProbeConnectivityAsync(_options, _probeCancellationCts.Token));
+            .SelectMany(_ => ProbeConnectivityAsync(_options, _cancellationTokenSource.Token));
 
         _connectivityObservable = probeObservable
             .Scan(
@@ -114,7 +114,8 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 linkedCts.CancelAfter(options.ProbeTimeout);
 
                 using HttpRequestMessage request = new(HttpMethod.Head, url);
-                HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                HttpResponseMessage response = await httpClient.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -135,18 +136,12 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
 
     public void Dispose()
     {
-        if (!_probeCancellationCts.IsCancellationRequested)
+        if (!_cancellationTokenSource.IsCancellationRequested)
         {
-            try
-            {
-                _probeCancellationCts.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
+            _cancellationTokenSource.Cancel();
         }
 
-        _probeCancellationCts.Dispose();
+        _cancellationTokenSource.Dispose();
         _manualProbeTrigger.Dispose();
         _disposables.Dispose();
     }

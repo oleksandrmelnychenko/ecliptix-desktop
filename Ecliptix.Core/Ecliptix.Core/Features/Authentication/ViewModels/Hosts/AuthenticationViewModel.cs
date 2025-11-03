@@ -463,14 +463,22 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen, IDispos
             {
                 _ = Task.Run(async () =>
                 {
-                    Result<Utilities.Unit, InternalServiceApiFailure> result =
-                        await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture)
-                            .ConfigureAwait(false);
-                    if (result.IsErr)
+                    try
                     {
-                        Log.Warning(
-                            "[LANGUAGE-CHANGE] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
-                            targetCulture, result.UnwrapErr().Message);
+                        Result<Utilities.Unit, InternalServiceApiFailure> result =
+                            await _applicationSecureStorageProvider.SetApplicationSettingsCultureAsync(targetCulture)
+                                .ConfigureAwait(false);
+                        if (result.IsErr)
+                        {
+                            Log.Warning(
+                                "[LANGUAGE-CHANGE] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                                targetCulture, result.UnwrapErr().Message);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "[LANGUAGE-CHANGE] Exception persisting culture setting. Culture: {Culture}",
+                            targetCulture);
                     }
                 });
             });

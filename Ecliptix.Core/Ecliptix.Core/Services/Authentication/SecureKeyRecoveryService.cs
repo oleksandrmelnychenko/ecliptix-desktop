@@ -11,7 +11,6 @@ using Ecliptix.Core.Services.Authentication.Constants;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
-using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
@@ -126,7 +125,7 @@ internal sealed class SecureKeyRecoveryService(
             OpaqueRecoverySecureKeyInitResponse initResponse = initResult.Unwrap();
 
             Result<Unit, string> processResult =
-                await ProcessSecureKeyRecoveryInitResponse(initResponse, membershipIdentifier).ConfigureAwait(false);
+                await ProcessSecureKeyRecoveryInitResponse(initResponse).ConfigureAwait(false);
 
             if (processResult.IsErr)
             {
@@ -180,33 +179,34 @@ internal sealed class SecureKeyRecoveryService(
         OpaqueClient opaqueClient,
         SecureTextBuffer newSecureKey)
     {
-        RegistrationResult? registrationResult = null;
+        RegistrationResult registrationResult = null!;
 
-        newSecureKey.WithSecureBytes(secureKeyBytes =>
+        try
         {
-            byte[] secureKeyCopy = secureKeyBytes.ToArray();
-            try
+            newSecureKey.WithSecureBytes(secureKeyBytes =>
             {
-                registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(secureKeyCopy);
-            }
-        });
+                byte[] secureKeyCopy = secureKeyBytes.ToArray();
+                try
+                {
+                    registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(secureKeyCopy);
+                }
+            });
 
-        if (registrationResult == null)
+            return Result<RegistrationResult, string>.Ok(registrationResult);
+        }
+        catch (Exception ex)
         {
             return Result<RegistrationResult, string>.Err(
-                localizationService[AuthenticationConstants.RegistrationFailedKey]);
+                $"{localizationService[AuthenticationConstants.RegistrationFailedKey]}: {ex.Message}");
         }
-
-        return Result<RegistrationResult, string>.Ok(registrationResult);
     }
 
     private async Task<Result<Unit, string>> ProcessSecureKeyRecoveryInitResponse(
-        OpaqueRecoverySecureKeyInitResponse initResponse,
-        ByteString membershipIdentifier)
+        OpaqueRecoverySecureKeyInitResponse initResponse)
     {
         if (initResponse.Result != OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.Succeeded)
         {
@@ -225,10 +225,6 @@ internal sealed class SecureKeyRecoveryService(
             await applicationSecureStorageProvider
                 .SetCurrentAccountIdAsync(initResponse.Membership.AccountUniqueIdentifier)
                 .ConfigureAwait(false);
-            Serilog.Log.Information(
-                "[SECUREKEY-RECOVERY-ACCOUNT] Active account stored from recovery response. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                Helpers.FromByteStringToGuid(membershipIdentifier),
-                Helpers.FromByteStringToGuid(initResponse.Membership.AccountUniqueIdentifier));
         }
 
         return Result<Unit, string>.Ok(Unit.Value);
@@ -271,18 +267,9 @@ internal sealed class SecureKeyRecoveryService(
                 SecureByteStringInterop.WithByteStringAsSpan(completeRequest.ToByteString(), span => span.ToArray()),
                 payload =>
                 {
-                    try
-                    {
-                        OpaqueRecoverySecretKeyCompleteResponse response =
-                            Helpers.ParseFromBytes<OpaqueRecoverySecretKeyCompleteResponse>(payload);
-                        responseSource.TrySetResult(response);
-                    }
-                    catch (Exception ex)
-                    {
-                        Serilog.Log.Error(ex,
-                            "[SECUREKEY-RECOVERY-COMPLETE] Failed to parse secure key recovery complete response");
-                        responseSource.TrySetException(ex);
-                    }
+                    OpaqueRecoverySecretKeyCompleteResponse response =
+                        Helpers.ParseFromBytes<OpaqueRecoverySecretKeyCompleteResponse>(payload);
+                    responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true, cancellationToken).ConfigureAwait(false);
@@ -324,13 +311,13 @@ internal sealed class SecureKeyRecoveryService(
         lock (_opaqueClientLock)
         {
             if (_opaqueClient.IsSome && _cachedServerPublicKey != null &&
-                serverPublicKey.AsSpan().SequenceEqual(_cachedServerPublicKey.AsSpan()))
+                CryptographicOperations.FixedTimeEquals(serverPublicKey, _cachedServerPublicKey))
             {
                 return _opaqueClient.Value!;
             }
 
             _opaqueClient.Do(client => client.Dispose());
-            OpaqueClient newClient = new OpaqueClient(serverPublicKey);
+            OpaqueClient newClient = new(serverPublicKey);
             _opaqueClient = Option<OpaqueClient>.Some(newClient);
             _cachedServerPublicKey = (byte[])serverPublicKey.Clone();
 
@@ -364,18 +351,9 @@ internal sealed class SecureKeyRecoveryService(
                 RpcServiceType.RecoverySecretKeyInit,
                 SecureByteStringInterop.WithByteStringAsSpan(request.ToByteString(), span => span.ToArray()), payload =>
                 {
-                    try
-                    {
-                        OpaqueRecoverySecureKeyInitResponse response =
-                            Helpers.ParseFromBytes<OpaqueRecoverySecureKeyInitResponse>(payload);
-                        responseSource.TrySetResult(response);
-                    }
-                    catch (Exception ex)
-                    {
-                        Serilog.Log.Error(ex,
-                            "[SECUREKEY-RECOVERY-INIT] Failed to parse secure key recovery init response");
-                        responseSource.TrySetException(ex);
-                    }
+                    OpaqueRecoverySecureKeyInitResponse response =
+                        Helpers.ParseFromBytes<OpaqueRecoverySecureKeyInitResponse>(payload);
+                    responseSource.TrySetResult(response);
 
                     return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
                 }, true, cancellationToken).ConfigureAwait(false);

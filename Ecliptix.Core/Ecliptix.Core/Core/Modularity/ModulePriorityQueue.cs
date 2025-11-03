@@ -43,7 +43,10 @@ internal class ModulePriorityQueue
     {
         foreach (int priority in _priorityQueues.Keys.OrderByDescending(p => p))
         {
-            Queue<IModule> queue = _priorityQueues[priority];
+            if (!_priorityQueues.TryGetValue(priority, out Queue<IModule>? queue))
+            {
+                continue;
+            }
 
             if (queue.Count == 0)
             {

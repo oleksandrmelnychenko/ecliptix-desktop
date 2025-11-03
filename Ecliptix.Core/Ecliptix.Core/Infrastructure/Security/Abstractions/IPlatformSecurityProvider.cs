@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Ecliptix.Utilities;
 
 namespace Ecliptix.Core.Infrastructure.Security.Abstractions;
 
@@ -16,7 +17,7 @@ public interface IPlatformSecurityProvider
 
     bool IsHardwareSecurityAvailable();
 
-    Task<byte[]> HardwareEncryptAsync(byte[] data);
+    Task<Option<byte[]>> HardwareEncryptAsync(byte[] data);
 
-    Task<byte[]> HardwareDecryptAsync(byte[] data);
+    Task<Option<byte[]>> HardwareDecryptAsync(byte[] data);
 }

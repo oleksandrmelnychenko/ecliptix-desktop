@@ -9,8 +9,7 @@ using ReactiveUI;
 
 namespace Ecliptix.Core.Features.Authentication.Views.Registration;
 
-public partial class MobileVerificationView : ReactiveUserControl<MobileVerificationViewModel>,
-    IViewFor<MobileVerificationViewModel>
+public partial class MobileVerificationView : ReactiveUserControl<MobileVerificationViewModel>
 {
     private const string MobileTextBoxControlName = "MobileTextBox";
 

@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using Ecliptix.Opaque.Protocol.NativeLibraries;
 using Ecliptix.Utilities;
 
@@ -169,7 +170,7 @@ public sealed class OpaqueClient : IDisposable
 
     private static void ClearSecureKey(byte[] secureKey)
     {
-        Array.Clear(secureKey, 0, secureKey.Length);
+        CryptographicOperations.ZeroMemory(secureKey);
     }
 
     public void Dispose()

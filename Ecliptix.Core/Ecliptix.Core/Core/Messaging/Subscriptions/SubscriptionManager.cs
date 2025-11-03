@@ -16,7 +16,7 @@ internal sealed class SubscriptionManager : IDisposable
     private readonly Lock _cleanupLock = new();
     private long _totalSubscriptions;
     private long _deadReferencesCleanedUp;
-    private bool _disposed;
+    private volatile bool _disposed;
 
     public SubscriptionManager()
     {

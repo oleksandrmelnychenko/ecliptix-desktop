@@ -340,9 +340,10 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 return Marshal.PtrToStringUTF8((IntPtr)errorPtr) ?? FormattableString.Invariant($"Unknown error: {result}");
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Error message retrieval failed - return error code instead
+            Serilog.Log.Warning(ex, "[CERTIFICATE-PINNING] Failed to retrieve native error message. Result: {Result}",
+                result);
         }
 
         return FormattableString.Invariant($"Error code: {result}");
@@ -363,9 +364,9 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 {
                     CertificatePinningNativeLibrary.Cleanup();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Native cleanup failure during disposal is non-critical
+                    Serilog.Log.Warning(ex, "[CERTIFICATE-PINNING] Native cleanup failed during disposal");
                 }
             }).ConfigureAwait(false);
         }

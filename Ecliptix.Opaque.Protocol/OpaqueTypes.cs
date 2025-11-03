@@ -44,11 +44,33 @@ public sealed class RegistrationResult : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed && StateHandle != IntPtr.Zero)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (StateHandle != IntPtr.Zero)
         {
             NativeLibraries.OpaqueNative.opaque_client_state_destroy(StateHandle);
-            _disposed = true;
         }
+
+        if (disposing)
+        {
+            // No managed resources to dispose in this class
+        }
+
+        _disposed = true;
+    }
+
+    ~RegistrationResult()
+    {
+        Dispose(false);
     }
 }
 
@@ -70,11 +92,33 @@ public sealed class KeyExchangeResult : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed && StateHandle != IntPtr.Zero)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (StateHandle != IntPtr.Zero)
         {
             NativeLibraries.OpaqueNative.opaque_client_state_destroy(StateHandle);
-            _disposed = true;
         }
+
+        if (disposing)
+        {
+            // No managed resources to dispose in this class
+        }
+
+        _disposed = true;
+    }
+
+    ~KeyExchangeResult()
+    {
+        Dispose(false);
     }
 }
 

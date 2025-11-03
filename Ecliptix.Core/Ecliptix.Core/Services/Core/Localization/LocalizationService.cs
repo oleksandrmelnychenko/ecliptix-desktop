@@ -58,7 +58,7 @@ internal sealed class LocalizationService : ILocalizationService
     {
         string formatString = this[key];
 
-        if (formatString.StartsWith("!") && formatString.EndsWith("!") || args.Length == 0)
+        if (formatString.StartsWith('!') && formatString.EndsWith('!') || args.Length == 0)
         {
             return formatString;
         }
@@ -75,8 +75,6 @@ internal sealed class LocalizationService : ILocalizationService
 
     public void SetCulture(string? cultureName, Action? onCultureChanged = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(cultureName, nameof(cultureName));
-
         CultureInfo newCultureInfo = CreateCultureInfo(cultureName);
 
         lock (_cultureChangeLock)

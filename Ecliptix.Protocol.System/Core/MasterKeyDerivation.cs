@@ -17,6 +17,12 @@ internal static class MasterKeyDerivation
     private const int KEY_SIZE = 32;
     private const int CURRENT_VERSION = 1;
 
+    private static readonly byte[] CachedDomainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
+    private static readonly byte[] CachedMasterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
+    private static readonly byte[] CachedEd25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.Ed25519Context);
+    private static readonly byte[] CachedX25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.X25519Context);
+    private static readonly byte[] CachedSignedPreKeyContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.SignedPreKeyContext);
+
     public static byte[] DeriveMasterKey(byte[] exportKey, ByteString membershipId)
     {
         Span<byte> membershipBytes = membershipId.Length <= 256
@@ -29,12 +35,12 @@ internal static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
+        ReadOnlySpan<byte> domainBytes = CachedDomainBytes;
 
         byte[] argonSalt = CreateArgonSalt(membershipBytes, versionBytes, domainBytes);
         byte[]? stretchedKey = null;
 
-        ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
+        ReadOnlySpan<byte> masterSaltBytes = CachedMasterSaltBytes;
 
         try
         {
@@ -94,12 +100,12 @@ internal static class MasterKeyDerivation
             Span<byte> versionBytes = stackalloc byte[sizeof(int)];
             BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-            ReadOnlySpan<byte> domainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
+            ReadOnlySpan<byte> domainBytes = CachedDomainBytes;
 
             byte[] argonSalt = CreateArgonSalt(membershipBytes, versionBytes, domainBytes);
             byte[]? stretchedKey = null;
 
-            ReadOnlySpan<byte> masterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
+            ReadOnlySpan<byte> masterSaltBytes = CachedMasterSaltBytes;
 
             try
             {
@@ -241,7 +247,7 @@ internal static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.Ed25519Context);
+        ReadOnlySpan<byte> contextBytes = CachedEd25519ContextBytes;
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
@@ -280,7 +286,7 @@ internal static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.X25519Context);
+        ReadOnlySpan<byte> contextBytes = CachedX25519ContextBytes;
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
@@ -319,7 +325,7 @@ internal static class MasterKeyDerivation
         Span<byte> versionBytes = stackalloc byte[sizeof(int)];
         BitConverter.TryWriteBytes(versionBytes, CURRENT_VERSION);
 
-        ReadOnlySpan<byte> contextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.SignedPreKeyContext);
+        ReadOnlySpan<byte> contextBytes = CachedSignedPreKeyContextBytes;
 
         int memberBytesLength = Encoding.UTF8.GetByteCount(membershipId);
         Span<byte> memberBytes = memberBytesLength <= 256
@@ -355,7 +361,7 @@ internal static class MasterKeyDerivation
 
     private static byte[] ComputeHashFromSpan(ReadOnlySpan<byte> data)
     {
-        return SHA256.HashData(data.ToArray());
+        return SHA256.HashData(data);
     }
 
     private static byte[] HashWithGenericHashFromSpan(byte[] key, ReadOnlySpan<byte> data, int outputSize)

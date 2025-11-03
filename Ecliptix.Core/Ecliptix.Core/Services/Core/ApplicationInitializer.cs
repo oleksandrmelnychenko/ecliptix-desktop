@@ -69,7 +69,15 @@ public sealed class ApplicationInitializer(
 
         _ = Task.Run(async () =>
         {
-            await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
+            try
+            {
+                await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "[APPLICATION-INITIALIZER] Failed to persist application instance state. IsNewInstance: {IsNewInstance}",
+                    isNewInstance);
+            }
         });
 
         string culture = string.IsNullOrEmpty(settings.Culture)
@@ -193,7 +201,13 @@ public sealed class ApplicationInitializer(
         {
             if (shouldUseAuthenticatedProtocol && masterKeyHandle.IsSome)
             {
-                ByteString membershipByteString = applicationInstanceSettings.Membership!.UniqueIdentifier!;
+                if (applicationInstanceSettings.Membership?.UniqueIdentifier == null)
+                {
+                    return Result<uint, NetworkFailure>.Err(
+                        NetworkFailure.InvalidRequestType("Membership information is missing for authenticated protocol"));
+                }
+
+                ByteString membershipByteString = applicationInstanceSettings.Membership.UniqueIdentifier;
 
                 Result<Unit, NetworkFailure> recreateResult =
                     await networkProvider.RecreateProtocolWithMasterKeyAsync(

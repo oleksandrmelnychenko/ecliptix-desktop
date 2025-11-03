@@ -295,9 +295,12 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         lock (_appInstanceSetterLock)
         {
-            if (_applicationInstanceSettings.Value != null)
+            if (_applicationInstanceSettings.IsSome)
             {
-                _applicationInstanceSettings.Value.Country = country;
+                ApplicationInstanceSettings current = _applicationInstanceSettings.Value!;
+                ApplicationInstanceSettings updated = current.Clone();
+                updated.Country = country;
+                _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(updated);
             }
         }
     }
@@ -721,9 +724,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
         uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
 
-        if (_connections.TryGetValue(connectId, out EcliptixProtocolSystem? existingConnection))
+        if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? existingConnection))
         {
-            _connections.TryRemove(connectId, out _);
             existingConnection.Dispose();
         }
 
@@ -1675,15 +1677,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return Option<EcliptixSessionState>.Some(state);
     }
 
-    public void OnDhRatchetPerformed(uint connectId, bool isSending, uint newIndex) =>
+    public void OnProtocolStateChanged(uint connectId) =>
         PersistProtocolStateInBackground(connectId);
-
-    public void OnChainSynchronized(uint connectId, uint localLength, uint remoteLength) =>
-        PersistProtocolStateInBackground(connectId);
-
-    public void OnMessageProcessed(uint connectId, uint messageIndex, bool hasSkippedKeys)
-    {
-    }
 
     public static uint ComputeUniqueConnectId(ApplicationInstanceSettings? applicationInstanceSettings,
         PubKeyExchangeType pubKeyExchangeType)

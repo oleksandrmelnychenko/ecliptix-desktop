@@ -264,159 +264,19 @@ internal sealed class OpaqueAuthenticationService(
 
         for (int attempt = 1; attempt <= MaxSignInFlowAttempts; attempt++)
         {
-            RpcRequestContext requestContext = RpcRequestContext.CreateNew();
-            bool allowReinit = true;
+            Result<SignInFlowResult, AuthenticationFailure> attemptResult =
+                await ExecuteSingleSignInAttemptAsync(mobileNumber, secureKey, connectId, cancellationToken)
+                    .ConfigureAwait(false);
 
-            while (true)
+            if (attemptResult.IsOk)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
-
-                byte[]? secureKeyCopy = null;
-                byte[]? ke2Data = null;
-                byte[]? ke3Data = null;
-                SodiumSecureMemoryHandle? masterKeyHandle = null;
-                bool ownershipTransferred = false;
-
-                try
-                {
-                    Result<byte[], AuthenticationFailure> secureKeyResult = ValidateAndCopySecureKey(secureKey);
-                    if (secureKeyResult.IsErr)
-                    {
-                        lastError = secureKeyResult.UnwrapErr();
-                        break;
-                    }
-
-                    secureKeyCopy = secureKeyResult.Unwrap();
-
-                    using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(secureKeyCopy);
-
-                    OpaqueSignInInitRequest initRequest = new()
-                    {
-                        MobileNumber = mobileNumber,
-                        PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
-                    };
-
-                    Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
-                        await SendInitRequestAsync(initRequest, connectId, requestContext, cancellationToken)
-                            .ConfigureAwait(false);
-                    if (initResult.IsErr)
-                    {
-                        lastError = MapNetworkFailure(initResult.UnwrapErr());
-                        break;
-                    }
-
-                    OpaqueSignInInitResponse initResponse = initResult.Unwrap();
-
-                    Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
-                    if (validationResult.IsErr)
-                    {
-                        ValidationFailure validation = validationResult.UnwrapErr();
-                        AuthenticationFailure authFailure = validation.FailureType switch
-                        {
-                            ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation
-                                .Message),
-                            ValidationFailureType.LoginAttemptExceeded =>
-                                AuthenticationFailure.LoginAttemptExceeded(validation.Message),
-                            _ => AuthenticationFailure.UnexpectedError(validation.Message)
-                        };
-                        return Result<SignInFlowResult, AuthenticationFailure>.Err(authFailure);
-                    }
-
-                    ke2Data = initResponse.ServerStateToken.ToByteArray();
-
-                    Result<byte[], AuthenticationFailure> ke3Result =
-                        PerformOpaqueKe3Exchange(opaqueClient, ke2Data, ke1Result);
-                    if (ke3Result.IsErr)
-                    {
-                        return Result<SignInFlowResult, AuthenticationFailure>.Err(ke3Result.UnwrapErr());
-                    }
-
-                    ke3Data = ke3Result.Unwrap();
-
-                    Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyResult =
-                        ExtractMasterKeyFromOpaque(opaqueClient, ke1Result);
-                    if (masterKeyResult.IsErr)
-                    {
-                        return Result<SignInFlowResult, AuthenticationFailure>.Err(masterKeyResult.UnwrapErr());
-                    }
-
-                    masterKeyHandle = masterKeyResult.Unwrap();
-
-                    OpaqueSignInFinalizeRequest finalizeRequest = new()
-                    {
-                        MobileNumber = mobileNumber, ClientMac = ByteString.CopyFrom(ke3Data),
-                    };
-
-                    Result<SignInResult, NetworkFailure> finalResult =
-                        await SendFinalizeRequestAndVerifyAsync(finalizeRequest, connectId,
-                            requestContext, cancellationToken).ConfigureAwait(false);
-
-                    if (finalResult.IsOk)
-                    {
-                        SignInResult signInResult = finalResult.Unwrap();
-
-                        if (signInResult.Membership == null)
-                        {
-                            ownershipTransferred = true;
-                            return Result<SignInFlowResult, AuthenticationFailure>.Ok(
-                                new(masterKeyHandle, ByteString.Empty, Guid.Empty));
-                        }
-
-                        ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
-
-                        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
-                            DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
-
-                        if (masterKeyValidationResult.IsErr)
-                        {
-                            return Result<SignInFlowResult, AuthenticationFailure>.Err(masterKeyValidationResult
-                                .UnwrapErr());
-                        }
-
-                        Result<Unit, AuthenticationFailure> storeResult =
-                            await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult)
-                                .ConfigureAwait(false);
-
-                        if (storeResult.IsErr)
-                        {
-                            return Result<SignInFlowResult, AuthenticationFailure>.Err(storeResult.UnwrapErr());
-                        }
-
-                        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
-
-                        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier, membershipId);
-                        ownershipTransferred = true;
-
-                        return Result<SignInFlowResult, AuthenticationFailure>.Ok(flowResult);
-                    }
-
-                    NetworkFailure finalizeFailure = finalResult.UnwrapErr();
-
-                    if (allowReinit && ShouldReinit(finalizeFailure))
-                    {
-                        allowReinit = false;
-                        requestContext.MarkReinitAttempted();
-                        continue;
-                    }
-
-                    lastError = MapNetworkFailure(finalizeFailure);
-                    break;
-                }
-                finally
-                {
-                    if (masterKeyHandle != null && !ownershipTransferred)
-                    {
-                        masterKeyHandle.Dispose();
-                    }
-                    SecureCleanup(secureKeyCopy, ke2Data, ke3Data);
-                }
+                networkProvider.ExitOutage();
+                return attemptResult;
             }
 
-            bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+            lastError = attemptResult.UnwrapErr();
 
-            if (!isRetryableError || attempt >= MaxSignInFlowAttempts)
+            if (!ShouldRetrySignInAttempt(lastError, attempt))
             {
                 networkProvider.ExitOutage();
                 return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError);
@@ -431,9 +291,268 @@ internal sealed class OpaqueAuthenticationService(
 
         networkProvider.ExitOutage();
         return Result<SignInFlowResult, AuthenticationFailure>.Err(lastError ??
-                                                                   AuthenticationFailure.UnexpectedError(
-                                                                       "Sign-in flow failed"));
+            AuthenticationFailure.UnexpectedError("Sign-in flow failed"));
     }
+
+    private async Task<Result<SignInFlowResult, AuthenticationFailure>> ExecuteSingleSignInAttemptAsync(
+        string mobileNumber,
+        SensitiveBytes secureKey,
+        uint connectId,
+        CancellationToken cancellationToken)
+    {
+        RpcRequestContext requestContext = RpcRequestContext.CreateNew();
+        bool allowReinit = true;
+
+        while (true)
+        {
+            Result<SignInFlowResult, AuthenticationFailure> result =
+                await PerformOpaqueSignInExchangeAsync(mobileNumber, secureKey, connectId, requestContext,
+                    cancellationToken).ConfigureAwait(false);
+
+            if (result.IsOk)
+            {
+                return result;
+            }
+
+            AuthenticationFailure failure = result.UnwrapErr();
+
+            if (ShouldAttemptReinit(failure, allowReinit))
+            {
+                allowReinit = false;
+                requestContext.MarkReinitAttempted();
+                continue;
+            }
+
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(failure);
+        }
+    }
+
+    private async Task<Result<SignInFlowResult, AuthenticationFailure>> PerformOpaqueSignInExchangeAsync(
+        string mobileNumber,
+        SensitiveBytes secureKey,
+        uint connectId,
+        RpcRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
+
+        byte[]? secureKeyCopy = null;
+        byte[]? ke2Data = null;
+        byte[]? ke3Data = null;
+        SodiumSecureMemoryHandle? masterKeyHandle = null;
+        bool ownershipTransferred = false;
+
+        try
+        {
+            Result<byte[], AuthenticationFailure> secureKeyResult = ValidateAndCopySecureKey(secureKey);
+            if (secureKeyResult.IsErr)
+            {
+                return Result<SignInFlowResult, AuthenticationFailure>.Err(secureKeyResult.UnwrapErr());
+            }
+
+            secureKeyCopy = secureKeyResult.Unwrap();
+
+            using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(secureKeyCopy);
+
+            Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
+                await PerformSignInInitPhaseAsync(mobileNumber, ke1Result, connectId, requestContext, cancellationToken)
+                    .ConfigureAwait(false);
+
+            if (initResult.IsErr)
+            {
+                return Result<SignInFlowResult, AuthenticationFailure>.Err(initResult.UnwrapErr());
+            }
+
+            OpaqueSignInInitResponse initResponse = initResult.Unwrap();
+            ke2Data = initResponse.ServerStateToken.ToByteArray();
+
+            Result<OpaqueExchangeData, AuthenticationFailure> exchangeResult =
+                CompleteOpaqueKeyExchange(opaqueClient, ke2Data, ke1Result);
+
+            if (exchangeResult.IsErr)
+            {
+                return Result<SignInFlowResult, AuthenticationFailure>.Err(exchangeResult.UnwrapErr());
+            }
+
+            OpaqueExchangeData exchangeData = exchangeResult.Unwrap();
+            ke3Data = exchangeData.Ke3Data;
+            masterKeyHandle = exchangeData.MasterKeyHandle;
+
+            Result<SignInFlowResult, AuthenticationFailure> finalizeResult =
+                await PerformSignInFinalizePhaseAsync(mobileNumber, ke3Data, masterKeyHandle, connectId, requestContext,
+                    cancellationToken).ConfigureAwait(false);
+
+            if (finalizeResult.IsOk)
+            {
+                ownershipTransferred = true;
+            }
+
+            return finalizeResult;
+        }
+        finally
+        {
+            if (masterKeyHandle != null && !ownershipTransferred)
+            {
+                masterKeyHandle.Dispose();
+            }
+            SecureCleanup(secureKeyCopy, ke2Data, ke3Data);
+        }
+    }
+
+    private async Task<Result<OpaqueSignInInitResponse, AuthenticationFailure>> PerformSignInInitPhaseAsync(
+        string mobileNumber,
+        KeyExchangeResult ke1Result,
+        uint connectId,
+        RpcRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        OpaqueSignInInitRequest initRequest = new()
+        {
+            MobileNumber = mobileNumber,
+            PeerOprf = ByteString.CopyFrom(ke1Result.GetKeyExchangeDataCopy()),
+        };
+
+        Result<OpaqueSignInInitResponse, NetworkFailure> initResult =
+            await SendInitRequestAsync(initRequest, connectId, requestContext, cancellationToken)
+                .ConfigureAwait(false);
+
+        if (initResult.IsErr)
+        {
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                MapNetworkFailure(initResult.UnwrapErr()));
+        }
+
+        OpaqueSignInInitResponse initResponse = initResult.Unwrap();
+
+        Result<Unit, ValidationFailure> validationResult = ValidateInitResponse(initResponse);
+        if (validationResult.IsErr)
+        {
+            return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Err(
+                MapValidationFailure(validationResult.UnwrapErr()));
+        }
+
+        return Result<OpaqueSignInInitResponse, AuthenticationFailure>.Ok(initResponse);
+    }
+
+    private Result<OpaqueExchangeData, AuthenticationFailure> CompleteOpaqueKeyExchange(
+        OpaqueClient opaqueClient,
+        byte[] ke2Data,
+        KeyExchangeResult ke1Result)
+    {
+        Result<byte[], AuthenticationFailure> ke3Result = PerformOpaqueKe3Exchange(opaqueClient, ke2Data, ke1Result);
+        if (ke3Result.IsErr)
+        {
+            return Result<OpaqueExchangeData, AuthenticationFailure>.Err(ke3Result.UnwrapErr());
+        }
+
+        byte[] ke3Data = ke3Result.Unwrap();
+
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyResult =
+            ExtractMasterKeyFromOpaque(opaqueClient, ke1Result);
+
+        if (masterKeyResult.IsErr)
+        {
+            return Result<OpaqueExchangeData, AuthenticationFailure>.Err(masterKeyResult.UnwrapErr());
+        }
+
+        SodiumSecureMemoryHandle masterKeyHandle = masterKeyResult.Unwrap();
+
+        return Result<OpaqueExchangeData, AuthenticationFailure>.Ok(
+            new OpaqueExchangeData(ke3Data, masterKeyHandle));
+    }
+
+    private async Task<Result<SignInFlowResult, AuthenticationFailure>> PerformSignInFinalizePhaseAsync(
+        string mobileNumber,
+        byte[] ke3Data,
+        SodiumSecureMemoryHandle masterKeyHandle,
+        uint connectId,
+        RpcRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        OpaqueSignInFinalizeRequest finalizeRequest = new()
+        {
+            MobileNumber = mobileNumber,
+            ClientMac = ByteString.CopyFrom(ke3Data),
+        };
+
+        Result<SignInResult, NetworkFailure> finalResult =
+            await SendFinalizeRequestAndVerifyAsync(finalizeRequest, connectId, requestContext, cancellationToken)
+                .ConfigureAwait(false);
+
+        if (finalResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(
+                MapNetworkFailure(finalResult.UnwrapErr()));
+        }
+
+        SignInResult signInResult = finalResult.Unwrap();
+
+        return await ProcessSignInResultAsync(masterKeyHandle, signInResult).ConfigureAwait(false);
+    }
+
+    private async Task<Result<SignInFlowResult, AuthenticationFailure>> ProcessSignInResultAsync(
+        SodiumSecureMemoryHandle masterKeyHandle,
+        SignInResult signInResult)
+    {
+        if (signInResult.Membership == null)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Ok(
+                new SignInFlowResult(masterKeyHandle, ByteString.Empty, Guid.Empty));
+        }
+
+        ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+
+        Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
+            DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
+
+        if (masterKeyValidationResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(masterKeyValidationResult.UnwrapErr());
+        }
+
+        Result<Unit, AuthenticationFailure> storeResult =
+            await StoreIdentityAndMembershipAsync(masterKeyHandle, signInResult).ConfigureAwait(false);
+
+        if (storeResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(storeResult.UnwrapErr());
+        }
+
+        Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
+        SignInFlowResult flowResult = new(masterKeyHandle, membershipIdentifier, membershipId);
+
+        return Result<SignInFlowResult, AuthenticationFailure>.Ok(flowResult);
+    }
+
+    private bool ShouldRetrySignInAttempt(AuthenticationFailure failure, int attempt)
+    {
+        bool isRetryableError = failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+        return isRetryableError && attempt < MaxSignInFlowAttempts;
+    }
+
+    private bool ShouldAttemptReinit(AuthenticationFailure failure, bool allowReinit)
+    {
+        if (!allowReinit)
+        {
+            return false;
+        }
+
+        return failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+    }
+
+    private AuthenticationFailure MapValidationFailure(ValidationFailure validation)
+    {
+        return validation.FailureType switch
+        {
+            ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation.Message),
+            ValidationFailureType.LoginAttemptExceeded => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+            _ => AuthenticationFailure.UnexpectedError(validation.Message)
+        };
+    }
+
+    private readonly record struct OpaqueExchangeData(byte[] Ke3Data, SodiumSecureMemoryHandle MasterKeyHandle);
 
     private string GetOpaqueErrorMessage(OpaqueResult error)
     {

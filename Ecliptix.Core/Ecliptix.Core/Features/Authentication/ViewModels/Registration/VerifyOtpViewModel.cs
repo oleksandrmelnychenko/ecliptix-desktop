@@ -262,8 +262,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
         _ = Task.Run(async () =>
         {
-            await ResetUiState();
-            await CleanupSessionAsync();
+            try
+            {
+                await ResetUiState();
+                await CleanupSessionAsync();
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during cleanup on navigation");
+            }
         });
     }
 
@@ -455,12 +462,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
             Task.Run(async () =>
             {
-                if (_isDisposed || newCts.Token.IsCancellationRequested)
+                try
                 {
-                    return;
-                }
+                    if (_isDisposed || newCts.Token.IsCancellationRequested)
+                    {
+                        return;
+                    }
 
-                newCts.Token.ThrowIfCancellationRequested();
+                    newCts.Token.ThrowIfCancellationRequested();
 
                 Task<Result<Ecliptix.Utilities.Unit, string>> resendTask =
                     _flowContext == AuthenticationFlowContext.Registration
@@ -516,6 +525,11 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                             SecondsRemaining = 0;
                         }
                     });
+                }
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during OTP resend operation");
                 }
             }, newCts.Token);
         }

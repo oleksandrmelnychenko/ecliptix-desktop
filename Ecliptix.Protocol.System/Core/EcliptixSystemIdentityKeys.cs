@@ -50,6 +50,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
     public void Dispose()
     {
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     public Result<IdentityKeysState, EcliptixProtocolFailure> ToProtoState()
@@ -742,7 +743,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                         dh3.AsSpan().CopyTo(dhResultsSpan[dhOffset..(dhOffset + Constants.X25519KeySize)]);
                         dhOffset += Constants.X25519KeySize;
 
-                        if (useOpk)
+                        if (useOpk && remoteBundle.OneTimePreKeys.Count > 0)
                         {
                             byte[]? dh4 = null;
                             try

@@ -41,13 +41,29 @@ public class App : Application
 
             _ = Task.Run(async () =>
             {
-                await InitializeModulesAsync();
-
-                Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                try
                 {
-                    ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
-                    await applicationStartup.RunAsync(defaultSystemSettings);
-                });
+                    await InitializeModulesAsync();
+
+                    Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                    {
+                        try
+                        {
+                            ApplicationStartup applicationStartup = Locator.Current.GetService<ApplicationStartup>()!;
+                            await applicationStartup.RunAsync(defaultSystemSettings);
+                        }
+                        catch (Exception ex)
+                        {
+                            Serilog.Log.Fatal(ex, "[APP-STARTUP] Critical failure during application startup execution");
+                            Environment.Exit(1);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Serilog.Log.Fatal(ex, "[APP-STARTUP] Critical failure during module initialization");
+                    Environment.Exit(1);
+                }
             });
         }
 

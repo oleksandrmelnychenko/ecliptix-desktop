@@ -6,7 +6,7 @@ namespace Ecliptix.Protocol.System.Core;
 
 internal sealed class ReplayProtection : IDisposable
 {
-    private readonly ConcurrentDictionary<string, DateTime> _processedNonces;
+    private readonly ConcurrentDictionary<NonceKey, DateTime> _processedNonces;
     private readonly ConcurrentDictionary<ulong, MessageWindow> _messageWindows;
     private readonly TimeSpan _nonceLifetime;
     private ulong _maxOutOfOrderWindow;
@@ -23,7 +23,7 @@ internal sealed class ReplayProtection : IDisposable
         ulong maxOutOfOrderWindow = 1000,
         ulong maxWindow = 5000)
     {
-        _processedNonces = new ConcurrentDictionary<string, DateTime>();
+        _processedNonces = new ConcurrentDictionary<NonceKey, DateTime>();
         _messageWindows = new ConcurrentDictionary<ulong, MessageWindow>();
         _nonceLifetime = nonceLifetime == TimeSpan.Zero ? ProtocolSystemConstants.Timeouts.NonceLifetime : nonceLifetime;
         _baseWindow = maxOutOfOrderWindow;
@@ -61,7 +61,7 @@ internal sealed class ReplayProtection : IDisposable
 
         lock (_lock)
         {
-            string nonceKey = Convert.ToBase64String(nonce);
+            NonceKey nonceKey = new(nonce);
 
             if (_processedNonces.ContainsKey(nonceKey))
             {
@@ -133,10 +133,10 @@ internal sealed class ReplayProtection : IDisposable
 
         lock (_lock)
         {
-            List<string> expiredKeys = new(_processedNonces.Count);
+            List<NonceKey> expiredKeys = new(_processedNonces.Count);
             expiredKeys.AddRange(from kvp in _processedNonces where kvp.Value < cutoff select kvp.Key);
 
-            foreach (string expiredKey in expiredKeys)
+            foreach (NonceKey expiredKey in expiredKeys)
             {
                 _processedNonces.TryRemove(expiredKey, out _);
             }
@@ -244,5 +244,36 @@ internal sealed class ReplayProtection : IDisposable
                 _processedIndices.RemoveWhere(idx => idx < keepFromIndex);
             }
         }
+    }
+
+    private readonly struct NonceKey : IEquatable<NonceKey>
+    {
+        private readonly byte[] _nonce;
+        private readonly int _hashCode;
+
+        public NonceKey(byte[] nonce)
+        {
+            _nonce = (byte[])nonce.Clone();
+            _hashCode = ComputeHashCode(nonce);
+        }
+
+        private static int ComputeHashCode(ReadOnlySpan<byte> nonce)
+        {
+            HashCode hash = new();
+            hash.AddBytes(nonce);
+            return hash.ToHashCode();
+        }
+
+        public bool Equals(NonceKey other)
+        {
+            return _nonce.AsSpan().SequenceEqual(other._nonce);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is NonceKey other && Equals(other);
+        }
+
+        public override int GetHashCode() => _hashCode;
     }
 }

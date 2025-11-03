@@ -61,12 +61,9 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
         {
             TE error = errorMapper(ex);
-            if (error == null)
-            {
-                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
-            }
-
-            return Err(error);
+            return error == null
+                ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull)
+                : Err(error);
         }
     }
 

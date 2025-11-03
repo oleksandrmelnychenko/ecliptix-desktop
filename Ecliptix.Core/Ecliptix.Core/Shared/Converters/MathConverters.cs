@@ -4,7 +4,6 @@ using Avalonia.Data.Converters;
 
 namespace Ecliptix.Core.Shared.Converters;
 
-
 public static class MathConverters
 {
     public static readonly IValueConverter Add = new AddConverter();
@@ -17,17 +16,14 @@ public class AddConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param))
+        return value switch
         {
-            return doubleValue + param;
-        }
-
-        if (value is int intValue && parameter is string paramStr2 && int.TryParse(paramStr2, out int param2))
-        {
-            return intValue + param2;
-        }
-
-        return value;
+            double doubleValue when parameter is string paramStr && double.TryParse(paramStr, out double param) =>
+                doubleValue + param,
+            int intValue when parameter is string paramStr2 && int.TryParse(paramStr2, out int param2) => intValue +
+                param2,
+            _ => value
+        };
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -76,7 +72,8 @@ public class DivideConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        if (value is double doubleValue && parameter is string paramStr && double.TryParse(paramStr, out double param) && param != 0)
+        if (value is double doubleValue && parameter is string paramStr &&
+            double.TryParse(paramStr, out double param) && Math.Abs(param) > double.Epsilon)
         {
             return doubleValue / param;
         }

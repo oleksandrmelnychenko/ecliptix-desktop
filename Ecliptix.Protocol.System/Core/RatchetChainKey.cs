@@ -1,3 +1,4 @@
+using System.Buffers;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.EcliptixProtocol;
@@ -31,7 +32,7 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
         return Index == other.Index && ReferenceEquals(_keyProvider, other._keyProvider);
     }
 
-    public Result<T, EcliptixProtocolFailure> WithKeyMaterial<T>(Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
+    private Result<T, EcliptixProtocolFailure> WithKeyMaterial<T>(Func<ReadOnlySpan<byte>, Result<T, EcliptixProtocolFailure>> operation)
     {
         return _keyProvider.ExecuteWithKey(Index, operation);
     }
@@ -45,7 +46,7 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
                     $"Destination buffer must be at least {Constants.X25519KeySize} bytes, but was {destination.Length}."));
         }
 
-        byte[] buffer = new byte[Constants.X25519KeySize];
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Constants.X25519KeySize);
         try
         {
             Result<Unit, EcliptixProtocolFailure> result = WithKeyMaterial<Unit>(keyMaterial =>
@@ -56,14 +57,15 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 
             if (result.IsOk)
             {
-                buffer.CopyTo(destination);
+                buffer.AsSpan(0, Constants.X25519KeySize).CopyTo(destination);
             }
 
             return result;
         }
         finally
         {
-            SodiumInterop.SecureWipe(buffer);
+            Array.Clear(buffer, 0, Constants.X25519KeySize);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 

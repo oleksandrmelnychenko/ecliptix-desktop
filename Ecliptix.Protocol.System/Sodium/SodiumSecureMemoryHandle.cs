@@ -281,7 +281,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
 
     protected override bool ReleaseHandle()
     {
-        _lock.EnterWriteLock();
+        try
+        {
+            _lock.EnterWriteLock();
+        }
+        catch
+        {
+            return false;
+        }
+
         try
         {
             if (IsInvalid)
@@ -301,7 +309,15 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
         finally
         {
             _lock.ExitWriteLock();
-            _lock.Dispose();
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing)
+        {
+            _lock?.Dispose();
         }
     }
 
@@ -320,6 +336,11 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 {
                     _isLocked = true;
                 }
+                else
+                {
+                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with VirtualLock. Address: {Address}, Size: {Size}",
+                        handle, Length);
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
                      RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -328,11 +349,18 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 {
                     _isLocked = true;
                 }
+                else
+                {
+                    Serilog.Log.Warning("[SODIUM-MEMORY] Failed to lock memory with mlock. Address: {Address}, Size: {Size}",
+                        handle, Length);
+                }
             }
         }
-        catch
+        catch (Exception ex)
         {
             _isLocked = false;
+            Serilog.Log.Error(ex, "[SODIUM-MEMORY] Exception during memory locking. Address: {Address}, Size: {Size}",
+                handle, Length);
         }
     }
 
@@ -355,9 +383,10 @@ public sealed class SodiumSecureMemoryHandle : SafeHandle
                 munlock(handle, (UIntPtr)Length);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // munlock may fail if memory wasn't locked or already unlocked - safe to ignore
+            Serilog.Log.Debug(ex, "[SODIUM-MEMORY] Exception during memory unlocking (may be expected). Address: {Address}, Size: {Size}",
+                handle, Length);
         }
         finally
         {

@@ -382,7 +382,7 @@ internal sealed class OpaqueRegistrationService(
     private static string GetNetworkFailureMessage(NetworkFailure failure) =>
         failure.UserError?.Message ?? failure.Message;
 
-    private void HandleVerificationStreamFailure(
+    private static void HandleVerificationStreamFailure(
         NetworkFailure failure,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
@@ -491,7 +491,7 @@ internal sealed class OpaqueRegistrationService(
             CreateAttemptFailure(errorMessage, false, requestContext));
     }
 
-    private void CleanupSensitiveRegistrationData(
+    private static void CleanupSensitiveRegistrationData(
         byte[]? secureKeyCopy,
         byte[]? serverRegistrationResponse,
         byte[]? registrationRecord,
@@ -780,7 +780,7 @@ internal sealed class OpaqueRegistrationService(
         }
     }
 
-    private async Task<Result<Unit, string>> RetryAsync(
+    private static async Task<Result<Unit, string>> RetryAsync(
         int maxAttempts,
         Func<int, CancellationToken, Task<RegistrationAttemptResult>> attemptFactory,
         CancellationToken cancellationToken)
@@ -818,7 +818,7 @@ internal sealed class OpaqueRegistrationService(
         return lastResult.Outcome;
     }
 
-    private string FormatNetworkFailure(NetworkFailure failure) =>
+    private static string FormatNetworkFailure(NetworkFailure failure) =>
         $"{AuthenticationConstants.RegistrationFailurePrefix}{(failure.UserError?.Message ?? failure.Message)}";
 
     private async Task<Result<OpaqueRegistrationInitResponse, NetworkFailure>> InitiateOpaqueRegistrationAsync(
@@ -878,13 +878,21 @@ internal sealed class OpaqueRegistrationService(
             {
                 _ = Task.Run(async () =>
                 {
-                    Result<Unit, string> cleanupResult =
-                        await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
-                    if (cleanupResult.IsErr)
+                    try
                     {
-                        Serilog.Log.Warning(
-                            "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, Error: {Error}",
-                            verificationIdentifier, cleanupResult.UnwrapErr());
+                        Result<Unit, string> cleanupResult =
+                            await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
+                        if (cleanupResult.IsErr)
+                        {
+                            Serilog.Log.Warning(
+                                "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, Error: {Error}",
+                                verificationIdentifier, cleanupResult.UnwrapErr());
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Exception during stream cleanup. SessionIdentifier: {SessionIdentifier}",
+                            verificationIdentifier);
                     }
                 }, CancellationToken.None);
             }

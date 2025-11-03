@@ -50,7 +50,6 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] originalMasterKeyBytes = readResult.Unwrap();
-            string originalFingerprint = Convert.ToHexString(SHA256.HashData(originalMasterKeyBytes))[..16];
 
             await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
 
@@ -76,16 +75,15 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] loadedMasterKeyBytes = loadedReadResult.Unwrap();
-            string loadedFingerprint = Convert.ToHexString(SHA256.HashData(loadedMasterKeyBytes))[..16];
 
-            if (!originalMasterKeyBytes.AsSpan().SequenceEqual(loadedMasterKeyBytes))
+            if (!CryptographicOperations.FixedTimeEquals(originalMasterKeyBytes, loadedMasterKeyBytes))
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}, Original: {Original}, Loaded: {Loaded}",
-                    context.MembershipId, originalFingerprint, loadedFingerprint);
+                Log.Error("[CLIENT-IDENTITY-VERIFY-MISMATCH] Master key verification failed! MembershipId: {MembershipId}",
+                    context.MembershipId);
 
                 CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
                 return Result<Unit, AuthenticationFailure>.Err(
-                    AuthenticationFailure.IdentityStorageFailed($"Master key verification failed - fingerprints don't match! Original: {originalFingerprint}, Loaded: {loadedFingerprint}"));
+                    AuthenticationFailure.IdentityStorageFailed("Master key verification failed"));
             }
 
             CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
@@ -133,12 +131,6 @@ internal sealed class IdentityService : IIdentityService
                 AuthenticationFailure.IdentityStorageFailed($"Failed to clear identity cache: {ex.Message}", ex));
         }
     }
-
-    private static string GetMasterKeyStorageKey(string membershipId) =>
-        string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
-
-    private static string GetKeychainWrapKey(string membershipId) =>
-        string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
 
     private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)
     {
@@ -254,13 +246,14 @@ internal sealed class IdentityService : IIdentityService
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             if (masterKeyBytes == null)
             {
                 throw;
             }
 
+            Log.Warning(ex, "[CLIENT-IDENTITY] Hardware security not available. Falling back to software-only encryption for master key");
             return (masterKeyBytes.AsSpan().ToArray(), null);
         }
         finally
@@ -375,5 +368,11 @@ internal sealed class IdentityService : IIdentityService
         public string KeychainKey { get; } = GetKeychainWrapKey(membershipId);
 
         public byte[] MembershipBytes => _membershipBytes ??= Guid.Parse(MembershipId).ToByteArray();
+
+        private static string GetMasterKeyStorageKey(string membershipId) =>
+            string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
+
+        private static string GetKeychainWrapKey(string membershipId) =>
+            string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
     }
 }

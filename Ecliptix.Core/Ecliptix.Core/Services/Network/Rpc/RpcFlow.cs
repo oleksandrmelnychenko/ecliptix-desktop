@@ -72,17 +72,17 @@ public abstract class RpcFlow
 
 internal sealed class DrainSink : IOutboundSink
 {
-    public Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope payload) =>
+    public Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope envelope) =>
         Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
 }
 
 internal sealed class ChannelSink(ChannelWriter<SecureEnvelope> writer) : IOutboundSink
 {
-    public async Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope payload)
+    public async Task<Result<Unit, NetworkFailure>> SendAsync(SecureEnvelope envelope)
     {
         try
         {
-            await writer.WriteAsync(payload).ConfigureAwait(false);
+            await writer.WriteAsync(envelope).ConfigureAwait(false);
             return Result<Unit, NetworkFailure>.Ok(Unit.Value);
         }
         catch (Exception ex)
