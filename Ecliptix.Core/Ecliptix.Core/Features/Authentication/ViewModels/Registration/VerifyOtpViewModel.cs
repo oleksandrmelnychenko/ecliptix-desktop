@@ -254,11 +254,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         }
 
         CancellationTokenSource? oldCts = Interlocked.Exchange(ref _cancellationTokenSource, null);
-        if (oldCts != null)
-        {
-            oldCts.Cancel();
-            oldCts.Dispose();
-        }
+        oldCts?.Cancel();
+        oldCts?.Dispose();
 
         _ = Task.Run(async () =>
         {
@@ -279,12 +276,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         if (disposing && !_isDisposed)
         {
             _isDisposed = true;
-            if (_cancellationTokenSource != null)
-            {
-                _cancellationTokenSource.Cancel();
-                _cancellationTokenSource.Dispose();
-            }
-
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
             _disposables?.Dispose();
@@ -761,9 +754,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             await _cancellationTokenSource.CancelAsync();
             _cancellationTokenSource.Dispose();
+            _cancellationTokenSource = null;
         }
-
-        _cancellationTokenSource = null;
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -776,8 +768,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         });
     }
 
-    private static string FormatRemainingTime(uint seconds) =>
-        TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
+    private static string FormatRemainingTime(uint seconds) => TimeSpan.FromSeconds(seconds).ToString(@"mm\:ss");
 
     private bool IsServerUnavailableError(string errorMessage)
     {
