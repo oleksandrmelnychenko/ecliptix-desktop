@@ -239,7 +239,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         oldCts?.Cancel();
         oldCts?.Dispose();
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -250,7 +250,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             {
                 Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during cleanup on navigation");
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in cleanup background task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     protected override void Dispose(bool disposing)
@@ -655,10 +663,20 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             ? message
             : _localizationService["error.server_unavailable"];
 
-        _ = StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, errorMessage);
+        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, errorMessage).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in StartAutoRedirectAsync");
+                }
+            },
+            TaskScheduler.Default);
+
         HasError = true;
         HasValidSession = false;
-        _ = Task.Run(async () =>
+
+        Task.Run(async () =>
         {
             try
             {
@@ -668,7 +686,16 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             {
                 Log.Warning(ex, "[VERIFY-OTP] Background secrecy channel establishment failed");
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in EnsureProtocolInBackground");
+                }
+            },
+            TaskScheduler.Default);
+
         return 0;
     }
 

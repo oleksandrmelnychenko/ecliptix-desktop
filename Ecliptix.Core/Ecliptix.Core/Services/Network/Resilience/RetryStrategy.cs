@@ -360,10 +360,18 @@ public sealed class RetryStrategy : IRetryStrategy
                 {
                     try
                     {
-                        _ = _connectivityService.PublishAsync(
+                        _connectivityService.PublishAsync(
                             ConnectivityIntent.Connected(
                                 evt.ConnectId,
-                                ConnectivityReason.ManualRetry));
+                                ConnectivityReason.ManualRetry)).ContinueWith(
+                            task =>
+                            {
+                                if (task.IsFaulted && task.Exception != null)
+                                {
+                                    Log.Error(task.Exception, "Unhandled exception publishing connection restored");
+                                }
+                            },
+                            TaskScheduler.Default);
                     }
                     catch (Exception ex)
                     {
@@ -380,8 +388,16 @@ public sealed class RetryStrategy : IRetryStrategy
                 {
                     try
                     {
-                        _ = _connectivityService.PublishAsync(
-                            ConnectivityIntent.Disconnected(failure, evt.ConnectId));
+                        _connectivityService.PublishAsync(
+                            ConnectivityIntent.Disconnected(failure, evt.ConnectId)).ContinueWith(
+                            task =>
+                            {
+                                if (task.IsFaulted && task.Exception != null)
+                                {
+                                    Log.Error(task.Exception, "Unhandled exception publishing disconnected state");
+                                }
+                            },
+                            TaskScheduler.Default);
                     }
                     catch (Exception ex)
                     {
@@ -632,12 +648,20 @@ public sealed class RetryStrategy : IRetryStrategy
                             {
                                 try
                                 {
-                                    _ = _connectivityService.PublishAsync(
+                                    _connectivityService.PublishAsync(
                                         ConnectivityIntent.RetriesExhausted(
                                             currentFailure ??
                                             NetworkFailure.DataCenterNotResponding("Retries exhausted"),
                                             connectId,
-                                            retryCount));
+                                            retryCount)).ContinueWith(
+                                        task =>
+                                        {
+                                            if (task.IsFaulted && task.Exception != null)
+                                            {
+                                                Log.Error(task.Exception, "Unhandled exception publishing retries exhausted");
+                                            }
+                                        },
+                                        TaskScheduler.Default);
                                 }
                                 catch (Exception ex)
                                 {
@@ -665,11 +689,19 @@ public sealed class RetryStrategy : IRetryStrategy
                                 {
                                     try
                                     {
-                                        _ = _connectivityService.PublishAsync(
+                                        _connectivityService.PublishAsync(
                                             ConnectivityIntent.Disconnected(
                                                 currentFailure ??
                                                 NetworkFailure.DataCenterNotResponding("Connection lost"),
-                                                connectId));
+                                                connectId)).ContinueWith(
+                                            task =>
+                                            {
+                                                if (task.IsFaulted && task.Exception != null)
+                                                {
+                                                    Log.Error(task.Exception, "Unhandled exception publishing disconnected state (first exhausted)");
+                                                }
+                                            },
+                                            TaskScheduler.Default);
                                     }
                                     catch (Exception ex)
                                     {

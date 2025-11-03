@@ -67,7 +67,7 @@ public sealed class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
-        _ = Task.Run(async () =>
+        Task.Run(async () =>
         {
             try
             {
@@ -78,7 +78,15 @@ public sealed class ApplicationInitializer(
                 Serilog.Log.Warning(ex, "[APPLICATION-INITIALIZER] Failed to persist application instance state. IsNewInstance: {IsNewInstance}",
                     isNewInstance);
             }
-        });
+        }).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[APPLICATION-INITIALIZER] Unhandled exception persisting instance state");
+                }
+            },
+            TaskScheduler.Default);
 
         string culture = string.IsNullOrEmpty(settings.Culture)
             ? AppCultureSettingsConstants.DefaultCultureCode
@@ -87,7 +95,15 @@ public sealed class ApplicationInitializer(
 
         if (isNewInstance)
         {
-            _ = FetchIpGeolocationInBackgroundAsync();
+            FetchIpGeolocationInBackgroundAsync().ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Serilog.Log.Error(task.Exception, "[APPLICATION-INITIALIZER] Unhandled exception fetching IP geolocation");
+                    }
+                },
+                TaskScheduler.Default);
         }
 
         Result<uint, NetworkFailure> connectIdResult =

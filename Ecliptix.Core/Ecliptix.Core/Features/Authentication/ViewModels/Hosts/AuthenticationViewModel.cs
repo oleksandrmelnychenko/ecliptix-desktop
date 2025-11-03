@@ -475,7 +475,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
         _localizationService.SetCulture(targetCulture,
             () =>
             {
-                _ = Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     try
                     {
@@ -494,7 +494,15 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                         Log.Error(ex, "[LANGUAGE-CHANGE] Exception persisting culture setting. Culture: {Culture}",
                             targetCulture);
                     }
-                });
+                }).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "[LANGUAGE-CHANGE] Unhandled exception persisting culture");
+                        }
+                    },
+                    TaskScheduler.Default);
             });
     }
 
