@@ -101,7 +101,7 @@ public sealed class SecureTextBuffer : IDisposable
         }
     }
 
-    private byte[]? PrepareInsertBytes(string insertChars)
+    private static byte[]? PrepareInsertBytes(string insertChars)
     {
         if (string.IsNullOrEmpty(insertChars))
         {

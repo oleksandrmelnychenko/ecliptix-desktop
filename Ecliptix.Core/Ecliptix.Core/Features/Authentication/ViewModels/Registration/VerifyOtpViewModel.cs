@@ -316,6 +316,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 }
                                 catch (ObjectDisposedException)
                                 {
+                                    // Intentionally suppressed: ViewModel disposed during countdown callback
                                 }
                             }),
                         cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None)
@@ -335,6 +336,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                                 }
                                 catch (ObjectDisposedException)
                                 {
+                                    // Intentionally suppressed: ViewModel disposed during countdown callback
                                 }
                             }),
                         cancellationToken: _cancellationTokenSource?.Token ?? CancellationToken.None);
@@ -588,9 +590,16 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     {
         if (!string.IsNullOrEmpty(message))
         {
-            string messageWithSeconds = seconds > 0
-                ? $"{message}. {seconds} second{(seconds > 1 ? "s" : "")} remaining"
-                : message;
+            string messageWithSeconds;
+            if (seconds > 0)
+            {
+                string pluralSuffix = seconds > 1 ? "s" : "";
+                messageWithSeconds = $"{message}. {seconds} second{pluralSuffix} remaining";
+            }
+            else
+            {
+                messageWithSeconds = message;
+            }
 
             ErrorMessage = messageWithSeconds;
             HasError = true;
@@ -767,11 +776,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     return;
                 }
             }
-        }
-
-        if (_isDisposed)
-        {
-            return;
         }
 
         SecondsRemaining = status switch
