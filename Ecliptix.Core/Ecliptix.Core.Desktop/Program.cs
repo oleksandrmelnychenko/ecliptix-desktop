@@ -486,7 +486,21 @@ public static class Program
         services.AddSingleton<ConnectivityNotificationViewModel>();
         services.AddSingleton<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>();
         services.AddTransient<SplashWindowViewModel>();
-        services.AddTransient<AuthenticationViewModel>();
+        services.AddTransient<AuthenticationViewModel>(sp => new AuthenticationViewModel(
+            new AuthenticationViewModelDependencies
+            {
+                ConnectivityService = sp.GetRequiredService<IConnectivityService>(),
+                NetworkProvider = sp.GetRequiredService<NetworkProvider>(),
+                LocalizationService = sp.GetRequiredService<ILocalizationService>(),
+                StorageProvider = sp.GetRequiredService<IApplicationSecureStorageProvider>(),
+                AuthenticationService = sp.GetRequiredService<IAuthenticationService>(),
+                RegistrationService = sp.GetRequiredService<IOpaqueRegistrationService>(),
+                RecoveryService = sp.GetRequiredService<ISecureKeyRecoveryService>(),
+                LanguageDetectionService = sp.GetRequiredService<ILanguageDetectionService>(),
+                Router = sp.GetRequiredService<IApplicationRouter>(),
+                MainWindowViewModel = sp.GetRequiredService<Ecliptix.Core.ViewModels.Core.MainWindowViewModel>(),
+                Settings = sp.GetRequiredService<DefaultSystemSettings>()
+            }));
         services.AddTransient<MasterViewModel>();
     }
 

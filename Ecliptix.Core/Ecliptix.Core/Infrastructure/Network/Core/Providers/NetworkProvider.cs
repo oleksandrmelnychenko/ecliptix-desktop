@@ -694,7 +694,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             case RestoreChannelResponse.Types.Status.SessionNotFound:
             {
-                _ = await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
+                Result<EcliptixSessionState, NetworkFailure> establishResult =
+                    await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
+                if (establishResult.IsErr)
+                {
+                    Log.Warning("[NETWORK-PROVIDER] Failed to establish secrecy channel after SessionNotFound: {Error}",
+                        establishResult.UnwrapErr().Message);
+                }
                 break;
             }
             default:
