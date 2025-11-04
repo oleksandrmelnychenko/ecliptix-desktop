@@ -118,7 +118,7 @@ public partial class SignInView : ReactiveUserControl<SignInViewModel>
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
                     Serilog.Log.Error(task.Exception, "[SIGNIN-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
                 }

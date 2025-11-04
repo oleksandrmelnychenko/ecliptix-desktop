@@ -1295,13 +1295,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
-                Result<byte[], NetworkFailure> processResult =
-                    await ProcessStreamItemAsync(streamPayload, protocolSystem, onStreamItem).ConfigureAwait(false);
-
-                if (processResult.IsErr)
-                {
-                    continue;
-                }
+                await ProcessStreamItemAsync(streamPayload, protocolSystem, onStreamItem).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)

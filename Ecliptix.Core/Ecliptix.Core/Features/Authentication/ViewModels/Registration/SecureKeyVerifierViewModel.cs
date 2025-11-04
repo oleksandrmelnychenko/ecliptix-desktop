@@ -86,7 +86,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
     public string VerifySecureKeyHint => Localize(Keys.VERIFY_SECURE_KEY_HINT, Keys.RECOVERY_VERIFY_SECURE_KEY_HINT);
     public string ButtonText => Localize(Keys.REGISTRATION_BUTTON, Keys.RECOVERY_BUTTON);
 
-    public string? UrlPathSegment { get; } = "/secure-key-confirmation";
+    public string UrlPathSegment => "/secure-key-confirmation";
     public IScreen HostScreen { get; }
 
     public int CurrentSecureKeyLength => _secureKeyBuffer.Length;
@@ -141,14 +141,14 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                         }
 
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WelcomeView);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
                     },
                     error =>
                     {
                         IsMembershipLoading = false;
                         Log.Error(error, "[SECUREKEYVERIFIER-VM] Unexpected error loading membership");
                         ((AuthenticationViewModel)HostScreen).ClearNavigationStack();
-                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WelcomeView);
+                        ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.WELCOME_VIEW);
                     })
                 .DisposeWith(disposables);
 
@@ -170,7 +170,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 .Subscribe(_ =>
                 {
                     ((AuthenticationViewModel)HostScreen).ClearNavigationStack(true);
-                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PinSetView);
+                    ((AuthenticationViewModel)HostScreen).Navigate.Execute(MembershipViewType.PIN_SET_VIEW);
                 })
                 .DisposeWith(disposables);
         });
@@ -451,7 +451,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
             {
                 uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
 
-                Task<Result<Unit, string>> completeTask = _flowContext == AuthenticationFlowContext.Registration
+                Task<Result<Unit, string>> completeTask = _flowContext == AuthenticationFlowContext.REGISTRATION
                     ? CompleteRegistrationAsync(connectId, operationToken)
                     : CompleteSecureKeyResetAsync(connectId, operationToken);
 
@@ -468,7 +468,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                     return SystemU.Default;
                 }
 
-                Option<string> mobileNumberOption = _flowContext == AuthenticationFlowContext.Registration
+                Option<string> mobileNumberOption = _flowContext == AuthenticationFlowContext.REGISTRATION
                     ? Option<string>.Some(hostViewModel.RegistrationMobileNumber!)
                     : Option<string>.Some(hostViewModel.RecoveryMobileNumber!);
 
@@ -520,7 +520,7 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
                 LocalizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]);
         }
 
-        return await _secureKeyRecoveryService!.CompleteSecureKeyResetAsync(
+        return await _secureKeyRecoveryService.CompleteSecureKeyResetAsync(
             MembershipUniqueId,
             _secureKeyBuffer,
             connectId,

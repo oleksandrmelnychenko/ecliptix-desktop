@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -408,18 +409,18 @@ public static class Program
         return new RetryStrategyConfiguration
         {
             INITIAL_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.INITIAL_RETRY_DELAY],
-                out TimeSpan initialDelay)
+                CultureInfo.InvariantCulture, out TimeSpan initialDelay)
                 ? initialDelay
                 : ApplicationConstants.Timeouts.DefaultInitialRetryDelay,
             MAX_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRY_DELAY],
-                out TimeSpan maxDelay)
+                CultureInfo.InvariantCulture, out TimeSpan maxDelay)
                 ? maxDelay
                 : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
             MAX_RETRIES = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRIES], out int maxRetries)
                 ? maxRetries
                 : ApplicationConstants.Thresholds.DEFAULT_MAX_RETRIES,
             PER_ATTEMPT_TIMEOUT = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PER_ATTEMPT_TIMEOUT],
-                out TimeSpan perAttemptTimeout)
+                CultureInfo.InvariantCulture, out TimeSpan perAttemptTimeout)
                 ? perAttemptTimeout
                 : TimeSpan.FromSeconds(30),
             USE_ADAPTIVE_RETRY =

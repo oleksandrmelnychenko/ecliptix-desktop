@@ -20,8 +20,8 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
         {
-            [CREATE_ACCOUNT_KEY] = MembershipViewType.MobileVerificationView,
-            [SIGN_IN_KEY] = MembershipViewType.SignInView
+            [CREATE_ACCOUNT_KEY] = MembershipViewType.MOBILE_VERIFICATION_VIEW,
+            [SIGN_IN_KEY] = MembershipViewType.SIGN_IN_VIEW
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
@@ -35,7 +35,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         NavToCreateAccountCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.Registration;
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.REGISTRATION;
             MembershipViewType viewType = NavigationCache[CREATE_ACCOUNT_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });
@@ -43,7 +43,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         NavToSignInCommand = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
+            ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SECURE_KEY_RECOVERY;
             MembershipViewType viewType = NavigationCache[SIGN_IN_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });

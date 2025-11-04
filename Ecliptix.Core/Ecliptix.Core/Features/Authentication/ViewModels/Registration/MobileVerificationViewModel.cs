@@ -19,6 +19,7 @@ using Ecliptix.Utilities;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
+using Serilog;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 using Unit = System.Reactive.Unit;
 
@@ -192,7 +193,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             uint connectId = ComputeConnectId(PubKeyExchangeType.DataCenterEphemeralConnect);
             CancellationToken operationToken = cancellationTokenSource.Token;
 
-            if (_flowContext == AuthenticationFlowContext.Registration)
+            if (_flowContext == AuthenticationFlowContext.REGISTRATION)
             {
                 await ExecuteRegistrationFlowAsync(connectId, operationToken);
             }
@@ -205,13 +206,11 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         {
             // Operation was canceled.
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            if (!_isDisposed)
-            {
-                string errorMessage = LocalizationService[AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY];
-                ShowError(errorMessage);
-            }
+            string errorMessage = LocalizationService[AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY];
+            Log.Error(ex, "[MOBILE-VERIFICATION] Unexpected error during mobile verification");
+            ShowError(errorMessage);
         }
 
         return Unit.Default;
@@ -437,7 +436,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         if (HostScreen is AuthenticationViewModel hostWindow)
         {
             hostWindow.RegistrationMobileNumber = MobileNumber;
-            hostWindow.Navigate.Execute(MembershipViewType.SecureKeyConfirmationView).Subscribe();
+            hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW).Subscribe();
         }
 
         return Task.CompletedTask;

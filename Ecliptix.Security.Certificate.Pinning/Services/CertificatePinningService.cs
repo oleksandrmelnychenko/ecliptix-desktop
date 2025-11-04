@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Ecliptix.Security.Certificate.Pinning.Native;
 using Ecliptix.Utilities.Failures.CertificatePinning;
@@ -346,7 +347,7 @@ public sealed class CertificatePinningService : IAsyncDisposable
                 result);
         }
 
-        return FormattableString.Invariant($"ERROR code: {result}");
+        return string.Create(CultureInfo.InvariantCulture, $"ERROR code: {result}");
     }
 
     public async ValueTask DisposeAsync()

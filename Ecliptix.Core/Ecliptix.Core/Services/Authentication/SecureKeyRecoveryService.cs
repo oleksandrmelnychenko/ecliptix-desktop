@@ -181,7 +181,7 @@ internal sealed class SecureKeyRecoveryService(
     {
         try
         {
-            RegistrationResult? registrationResult = null;
+            RegistrationResult registrationResult = null!;
 
             newSecureKey.WithSecureBytes(secureKeyBytes =>
             {
@@ -195,11 +195,6 @@ internal sealed class SecureKeyRecoveryService(
                     CryptographicOperations.ZeroMemory(secureKeyCopy);
                 }
             });
-
-            if (registrationResult is null)
-            {
-                throw new InvalidOperationException("Registration result was not initialized");
-            }
 
             return Result<RegistrationResult, string>.Ok(registrationResult);
         }

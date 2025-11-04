@@ -1072,14 +1072,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
             WipeIfNotNull(NewDhPrivateKeyBytes);
             NewEphemeralSkHandle?.Dispose();
         }
-
-        /*private static void WipeIfNotNull(byte[]? data)
-        {
-            if (data is not null)
-            {
-                SodiumInterop.SecureWipe(data);
-            }
-        }*/
     }
 
     internal Result<byte[], EcliptixProtocolFailure> GenerateNextNonce()

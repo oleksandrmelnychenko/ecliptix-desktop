@@ -630,7 +630,7 @@ public sealed class RetryStrategy : IRetryStrategy
         return combinedPolicy;
     }
 
-    private void LogRetryAttempt(
+    private static void LogRetryAttempt(
         bool isTimeout,
         string operationName,
         uint connectId,

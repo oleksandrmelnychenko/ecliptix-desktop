@@ -51,7 +51,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         ByteString mobileNumberIdentifier,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        AuthenticationFlowContext flowContext = AuthenticationFlowContext.Registration,
+        AuthenticationFlowContext flowContext = AuthenticationFlowContext.REGISTRATION,
         ISecureKeyRecoveryService? secureKeyRecoveryService = null) : base(networkProvider,
         localizationService, connectivityService)
     {
@@ -62,7 +62,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         _flowContext = flowContext;
         _localizationService = localizationService;
 
-        if (flowContext == AuthenticationFlowContext.SecureKeyRecovery && secureKeyRecoveryService == null)
+        if (flowContext == AuthenticationFlowContext.SECURE_KEY_RECOVERY && secureKeyRecoveryService == null)
         {
             throw new ArgumentNullException(nameof(secureKeyRecoveryService),
                 "Secure key recovery service is required when flow context is SecureKeyRecovery");
@@ -75,7 +75,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         NavToSecureKeyConfirmation = ReactiveCommand.CreateFromObservable(() =>
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
-            return hostWindow.Navigate.Execute(MembershipViewType.SecureKeyConfirmationView);
+            return hostWindow.Navigate.Execute(MembershipViewType.SECURE_KEY_CONFIRMATION_VIEW);
         });
 
         IObservable<bool> canVerify = this.WhenAnyValue(
@@ -289,7 +289,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> callback =
             CreateCountdownCallback();
 
-        return _flowContext == AuthenticationFlowContext.Registration
+        return _flowContext == AuthenticationFlowContext.REGISTRATION
             ? _registrationService.InitiateOtpVerificationAsync(_mobileNumberIdentifier,
                 VerificationPurpose.Registration, callback, cancellationToken)
             : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(_mobileNumberIdentifier, callback,
@@ -375,7 +375,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private Task<Result<Membership, string>> CreateVerifyTask(uint connectId, CancellationToken cancellationToken)
     {
-        return _flowContext == AuthenticationFlowContext.Registration
+        return _flowContext == AuthenticationFlowContext.REGISTRATION
             ? _registrationService.VerifyOtpAsync(
                 VerificationSessionIdentifier!.Value,
                 VerificationCode,
@@ -420,13 +420,13 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private void NavigateToNextStep(AuthenticationViewModel hostWindow)
     {
-        hostWindow.ClearNavigationStack(true, MembershipViewType.MobileVerificationView);
+        hostWindow.ClearNavigationStack(true, MembershipViewType.MOBILE_VERIFICATION_VIEW);
         NavToSecureKeyConfirmation.Execute().Subscribe().DisposeWith(_disposables);
     }
 
     private async Task CleanupVerificationSession(CancellationToken cancellationToken)
     {
-        if (_flowContext == AuthenticationFlowContext.Registration)
+        if (_flowContext == AuthenticationFlowContext.REGISTRATION)
         {
             await _registrationService.CleanupVerificationSessionAsync(VerificationSessionIdentifier!.Value)
                 .WaitAsync(AuthenticationConstants.Timeouts.CleanupTimeout, cancellationToken);
@@ -518,7 +518,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     }
                 });
 
-        return _flowContext == AuthenticationFlowContext.Registration
+        return _flowContext == AuthenticationFlowContext.REGISTRATION
             ? _registrationService.ResendOtpVerificationAsync(
                 VerificationSessionIdentifier!.Value,
                 _mobileNumberIdentifier,
@@ -543,7 +543,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             if (IsServerUnavailableError(error))
             {
                 ErrorMessage = error;
-                StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error).ContinueWith(
+                StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error).ContinueWith(
                     task =>
                     {
                         if (task is { IsFaulted: true, Exception: not null })
@@ -626,7 +626,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleMaxAttemptsStatus()
     {
         IsMaxAttemptsReached = true;
-        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView).ContinueWith(
+        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -641,7 +641,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleNotFoundStatus()
     {
         string message = _localizationService[AuthenticationConstants.SESSION_NOT_FOUND_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
+        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -656,7 +656,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleSessionExpiredStatus()
     {
         string message = _localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY];
-        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
+        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, message).ContinueWith(
             task =>
             {
                 if (task is { IsFaulted: true, Exception: not null })
@@ -672,8 +672,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private uint HandleFailedStatus(string? error)
     {
         Task redirectTask = !string.IsNullOrEmpty(error)
-            ? StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error)
-            : StartAutoRedirectAsync(5, MembershipViewType.WelcomeView);
+            ? StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, error)
+            : StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW);
 
         redirectTask.ContinueWith(
             task =>
@@ -697,7 +697,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             ? message
             : _localizationService["error.server_unavailable"];
 
-        StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, errorMessage).ContinueWith(
+        StartAutoRedirectAsync(5, MembershipViewType.WELCOME_VIEW, errorMessage).ContinueWith(
             task =>
             {
                 if (task.IsFaulted && task.Exception != null)
@@ -896,7 +896,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         {
             Guid sessionId = VerificationSessionIdentifier!.Value;
 
-            if (_flowContext == AuthenticationFlowContext.Registration)
+            if (_flowContext == AuthenticationFlowContext.REGISTRATION)
             {
                 await _registrationService.CleanupVerificationSessionAsync(sessionId);
             }

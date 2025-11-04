@@ -1552,7 +1552,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         {
             _currentTypingAnimation?.Dispose();
 
-            if (!(_focusBorder.Opacity > HintedTextBoxConstants.ZERO_OPACITY))
+            if (_focusBorder.Opacity <= HintedTextBoxConstants.ZERO_OPACITY)
             {
                 return;
             }

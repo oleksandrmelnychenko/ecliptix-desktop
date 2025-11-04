@@ -118,7 +118,7 @@ internal sealed class OpaqueAuthenticationService(
         CancellationToken cancellationToken)
     {
         const int MAX_PROTOCOL_RECREATE_ATTEMPTS = 3;
-        AuthenticationFailure? lastError = null;
+        AuthenticationFailure lastError = AuthenticationFailure.NetworkRequestFailed("Protocol recreation failed");
 
         try
         {
@@ -154,11 +154,8 @@ internal sealed class OpaqueAuthenticationService(
                 networkProvider.ClearExhaustedOperations();
             }
 
-            // This code is unreachable - loop always returns via line 139 or 149
-            // Keeping this as defensive programming in case loop logic changes
             networkProvider.ExitOutage();
-            return Result<Unit, AuthenticationFailure>.Err(
-                lastError ?? AuthenticationFailure.NetworkRequestFailed("Unknown protocol recreation error"));
+            return Result<Unit, AuthenticationFailure>.Err(lastError);
         }
         finally
         {
@@ -391,7 +388,7 @@ internal sealed class OpaqueAuthenticationService(
         return finalizeResult;
     }
 
-    private void CleanupSignInContext(OpaqueSignInContext context)
+    private static void CleanupSignInContext(OpaqueSignInContext context)
     {
         if (context.MasterKeyHandle != null && !context.OwnershipTransferred)
         {

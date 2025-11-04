@@ -43,20 +43,22 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             return;
         }
 
-        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is HintedTextBox secureKeyBox)
+        if (this.FindControl<HintedTextBox>("SecureKeyTextBox") is { } secureKeyBox)
         {
             secureKeyBox.SecureKeyCharactersAdded += OnSecureKeyCharactersAdded;
             secureKeyBox.SecureKeyCharactersRemoved += OnSecureKeyCharactersRemoved;
             secureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected += OnCharacterRejected;
         }
-        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
+
+        if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is { } verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded += OnVerifySecureKeyCharactersAdded;
             verifySecureKeyBox.SecureKeyCharactersRemoved += OnVerifySecureKeyCharactersRemoved;
             verifySecureKeyBox.KeyDown += OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected += OnCharacterRejected;
         }
+
         _handlersAttached = true;
     }
 
@@ -74,6 +76,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             secureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             secureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
+
         if (this.FindControl<HintedTextBox>("VerifySecureKeyTextBox") is HintedTextBox verifySecureKeyBox)
         {
             verifySecureKeyBox.SecureKeyCharactersAdded -= OnVerifySecureKeyCharactersAdded;
@@ -81,6 +84,7 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
             verifySecureKeyBox.KeyDown -= OnSecureKeyTextBoxKeyDown;
             verifySecureKeyBox.CharacterRejected -= OnCharacterRejected;
         }
+
         _handlersAttached = false;
     }
 
@@ -143,9 +147,10 @@ public partial class SecureKeyConfirmationView : ReactiveUserControl<SecureKeyVe
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[SECURE-KEY-CONFIRMATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                    Serilog.Log.Error(task.Exception,
+                        "[SECURE-KEY-CONFIRMATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
                 }
             },
             TaskScheduler.Default);

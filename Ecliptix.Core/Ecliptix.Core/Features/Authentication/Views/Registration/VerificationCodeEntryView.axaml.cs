@@ -60,6 +60,7 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
         {
             segmentedTextBox.KeyDown -= OnSegmentedTextBoxKeyDown;
         }
+
         _handlersAttached = false;
     }
 
@@ -78,9 +79,10 @@ public partial class VerificationCodeEntryView : ReactiveUserControl<VerifyOtpVi
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFICATION-CODE-ENTRY-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
+                    Serilog.Log.Error(task.Exception,
+                        "[VERIFICATION-CODE-ENTRY-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
                 }
             },
             TaskScheduler.Default);

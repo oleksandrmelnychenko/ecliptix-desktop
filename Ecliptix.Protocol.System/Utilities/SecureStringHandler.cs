@@ -31,7 +31,8 @@ internal sealed class SecureStringHandler : IDisposable
         {
             bytes = Encoding.UTF8.GetBytes(input);
 
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(bytes.Length);
+            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
+                SodiumSecureMemoryHandle.Allocate(bytes.Length);
             if (allocResult.IsErr)
             {
                 return Result<SecureStringHandler, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -47,7 +48,6 @@ internal sealed class SecureStringHandler : IDisposable
 
             handle.Dispose();
             return Result<SecureStringHandler, SodiumFailure>.Err(writeResult.UnwrapErr());
-
         }
         finally
         {
@@ -81,10 +81,7 @@ internal sealed class SecureStringHandler : IDisposable
         }
         finally
         {
-            if (tempBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(tempBytes);
-            }
+            CryptographicOperations.ZeroMemory(tempBytes);
         }
     }
 
@@ -111,7 +108,8 @@ internal sealed class SecureStringBuilder : IDisposable
     private int _totalLength;
     private bool _disposed;
 
-    public SecureStringBuilder(int chunkSize = ProtocolSystemConstants.MemoryPool.SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE)
+    public SecureStringBuilder(
+        int chunkSize = ProtocolSystemConstants.MemoryPool.SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE)
     {
         if (chunkSize <= 0)
         {
@@ -174,7 +172,8 @@ internal sealed class SecureStringBuilder : IDisposable
         {
             if (_currentChunk == null || _currentPosition >= _chunkSize)
             {
-                Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_chunkSize);
+                Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
+                    SodiumSecureMemoryHandle.Allocate(_chunkSize);
                 if (allocResult.IsErr)
                 {
                     return Result<Unit, SodiumFailure>.Err(allocResult.UnwrapErr());
@@ -230,8 +229,7 @@ internal sealed class SecureStringBuilder : IDisposable
             for (int i = 0; i < _chunks.Count; i++)
             {
                 SodiumSecureMemoryHandle chunk = _chunks[i];
-                int bytesToRead = (i == _chunks.Count - 1) ?
-                    _currentPosition : _chunkSize;
+                int bytesToRead = (i == _chunks.Count - 1) ? _currentPosition : _chunkSize;
 
                 Result<byte[], SodiumFailure> readResult = chunk.ReadBytes(bytesToRead);
                 if (readResult.IsErr)
@@ -258,14 +256,11 @@ internal sealed class SecureStringBuilder : IDisposable
         }
         finally
         {
-            if (tempBuffer != null)
-            {
-                CryptographicOperations.ZeroMemory(tempBuffer);
-            }
+            CryptographicOperations.ZeroMemory(tempBuffer);
         }
     }
 
-    public void Clear()
+    private void Clear()
     {
         foreach (SodiumSecureMemoryHandle chunk in _chunks)
         {

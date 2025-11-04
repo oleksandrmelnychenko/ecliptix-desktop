@@ -166,13 +166,12 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
-        if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CORRELATION_ID))
+        if (message is ModuleResponse response &&
+            !string.IsNullOrEmpty(response.CORRELATION_ID) &&
+            _pendingRequests.TryGetValue(response.CORRELATION_ID, out TaskCompletionSource<IModuleMessage>? tcs))
         {
-            if (_pendingRequests.TryGetValue(response.CORRELATION_ID, out TaskCompletionSource<IModuleMessage>? tcs))
-            {
-                tcs.SetResult(response);
-                return;
-            }
+            tcs.SetResult(response);
+            return;
         }
 
         Type messageType = typeof(IModuleMessage);

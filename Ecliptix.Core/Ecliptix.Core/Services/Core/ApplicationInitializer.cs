@@ -176,7 +176,7 @@ public sealed class ApplicationInitializer(
 
     private static string? ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings)
     {
-        if (applicationInstanceSettings.Membership?.UniqueIdentifier?.IsEmpty is false)
+        if (applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false })
         {
             return Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString();
         }

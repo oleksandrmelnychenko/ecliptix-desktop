@@ -80,7 +80,7 @@ public partial class MobileVerificationView : ReactiveUserControl<MobileVerifica
         vm.HandleEnterKeyPressAsync().ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
                     Serilog.Log.Error(task.Exception, "[MOBILE-VERIFICATION-VIEW] Unhandled exception in HandleEnterKeyPressAsync");
                 }

@@ -143,10 +143,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         HasServerError = false;
     }
 
-    public new void Dispose()
-    {
-        Dispose(true);
-    }
+    public new void Dispose() => Dispose(true);
 
     protected override void Dispose(bool disposing)
     {
@@ -308,7 +305,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
         SignInCommand?
             .Where(result => result.IsOk)
-            .Subscribe(result =>
+            .Subscribe(_ =>
             {
                 _signInErrorSubject.OnNext(string.Empty);
 

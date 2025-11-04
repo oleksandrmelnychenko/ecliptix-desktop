@@ -458,7 +458,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         return newKey;
     }
 
-    private async Task<Option<byte[]>> ReadSecureFileAsync(string filePath)
+    private static async Task<Option<byte[]>> ReadSecureFileAsync(string filePath)
     {
         return File.Exists(filePath)
             ? Option<byte[]>.Some(await File.ReadAllBytesAsync(filePath).ConfigureAwait(false))

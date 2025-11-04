@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Ecliptix.Core.Core.Messaging.Subscriptions;
@@ -43,9 +42,9 @@ internal sealed class WeakSubscription<T>(Func<T, bool> filter, Func<T, Task> ha
     {
         if (message is T typedMessage &&
             filter(typedMessage) &&
-            _handlerRef.TryGetTarget(out Func<T, Task>? handler))
+            _handlerRef.TryGetTarget(out Func<T, Task>? handlerRef))
         {
-            return handler(typedMessage);
+            return handlerRef(typedMessage);
         }
         return Task.CompletedTask;
     }
@@ -70,20 +69,7 @@ internal sealed class ScopedSubscription<T>(Func<T, bool> filter, Func<T, Task> 
         return Task.CompletedTask;
     }
 
-    public void Dispose()
-    {
-        _disposed = true;
-    }
-}
-
-public static class SubscriptionExtensions
-{
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable DisposeWith(this IDisposable subscription, IDisposableCollection disposables)
-    {
-        disposables.Add(subscription);
-        return subscription;
-    }
+    public void Dispose() => _disposed = true;
 }
 
 public interface IDisposableCollection
