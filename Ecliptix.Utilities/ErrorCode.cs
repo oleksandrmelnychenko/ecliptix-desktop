@@ -1,10 +1,10 @@
 namespace Ecliptix.Utilities;
 
-public enum ERROR_CODE
+public enum ErrorCode
 {
-    ValidationFailed = 0,
-    MaxAttemptsReached = 1,
-    InvalidMobileNumber = 2,
+    VALIDATION_FAILED = 0,
+    MAX_ATTEMPTS_REACHED = 1,
+    INVALID_MOBILE_NUMBER = 2,
     OTP_EXPIRED = 3,
     NOT_FOUND = 4,
     ALREADY_EXISTS = 5,
@@ -17,6 +17,6 @@ public enum ERROR_CODE
     DEPENDENCY_UNAVAILABLE = 12,
     DEADLINE_EXCEEDED = 13,
     CANCELLED = 14,
-    InternalError = 15,
+    INTERNAL_ERROR = 15,
     DATABASE_UNAVAILABLE = 16
 }

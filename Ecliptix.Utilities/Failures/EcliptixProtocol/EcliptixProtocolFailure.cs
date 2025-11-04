@@ -108,5 +108,5 @@ public record EcliptixProtocolFailure(
     }
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
+        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
 }

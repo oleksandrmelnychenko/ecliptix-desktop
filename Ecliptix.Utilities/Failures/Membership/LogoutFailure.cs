@@ -44,18 +44,18 @@ public record LogoutFailure(
         FailureType switch
         {
             LogoutFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
-                ERROR_CODE.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18nKeys.SERVICE_UNAVAILABLE, RETRYABLE: true),
+                ErrorCode.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18nKeys.SERVICE_UNAVAILABLE, RETRYABLE: true),
             LogoutFailureType.AlreadyLoggedOut => new GrpcErrorDescriptor(
-                ERROR_CODE.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18nKeys.PRECONDITION_FAILED),
+                ErrorCode.PRECONDITION_FAILED, StatusCode.FailedPrecondition, ErrorI18nKeys.PRECONDITION_FAILED),
             LogoutFailureType.SESSION_NOT_FOUND => new GrpcErrorDescriptor(
-                ERROR_CODE.NOT_FOUND, StatusCode.NotFound, ErrorI18nKeys.NOT_FOUND),
+                ErrorCode.NOT_FOUND, StatusCode.NotFound, ErrorI18nKeys.NOT_FOUND),
             LogoutFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
-                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             LogoutFailureType.CryptographicOperationFailed => new GrpcErrorDescriptor(
-                ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL),
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL),
             LogoutFailureType.InvalidRevocationProof => new GrpcErrorDescriptor(
-                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             _ => new GrpcErrorDescriptor(
-                ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL)
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL)
         };
 }

@@ -149,7 +149,7 @@ public sealed record KeySplittingFailure : FailureBase
         new(ERROR_CODE.ALLOCATION_FAILED, $"Sodium operation failed: {failure.Message}", failure.InnerException);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(Utilities.ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
+        new(Utilities.ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
 
     public override string ToString() => $"[KeySplittingFailure.{Code}] {Message}";
 }

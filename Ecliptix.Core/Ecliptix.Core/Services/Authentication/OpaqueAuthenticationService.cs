@@ -209,7 +209,7 @@ internal sealed class OpaqueAuthenticationService(
             return true;
         }
 
-        return userError.ERROR_CODE == ERROR_CODE.DEPENDENCY_UNAVAILABLE &&
+        return userError.ERROR_CODE == ErrorCode.DEPENDENCY_UNAVAILABLE &&
                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound };
     }
 

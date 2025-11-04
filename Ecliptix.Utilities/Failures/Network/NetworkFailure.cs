@@ -75,36 +75,36 @@ public record NetworkFailure(
         return FailureType switch
         {
             NetworkFailureType.DataCenterNotResponding => new GrpcErrorDescriptor(
-                ERROR_CODE.SERVICE_UNAVAILABLE,
+                ErrorCode.SERVICE_UNAVAILABLE,
                 StatusCode.Unavailable,
                 ErrorI18nKeys.SERVICE_UNAVAILABLE,
                 RETRYABLE: true),
             NetworkFailureType.DataCenterShutdown => new GrpcErrorDescriptor(
-                ERROR_CODE.SERVICE_UNAVAILABLE,
+                ErrorCode.SERVICE_UNAVAILABLE,
                 StatusCode.Unavailable,
                 ErrorI18nKeys.SERVICE_UNAVAILABLE),
             NetworkFailureType.InvalidRequestType => new GrpcErrorDescriptor(
-                ERROR_CODE.ValidationFailed,
+                ErrorCode.VALIDATION_FAILED,
                 StatusCode.InvalidArgument,
                 ErrorI18nKeys.VALIDATION),
             NetworkFailureType.RsaEncryptionFailure => new GrpcErrorDescriptor(
-                ERROR_CODE.InternalError,
+                ErrorCode.INTERNAL_ERROR,
                 StatusCode.Internal,
                 ErrorI18nKeys.INTERNAL),
             NetworkFailureType.ProtocolStateMismatch => new GrpcErrorDescriptor(
-                ERROR_CODE.PRECONDITION_FAILED,
+                ErrorCode.PRECONDITION_FAILED,
                 StatusCode.FailedPrecondition,
                 ErrorI18nKeys.PRECONDITION_FAILED),
             NetworkFailureType.OperationCancelled => new GrpcErrorDescriptor(
-                ERROR_CODE.CANCELLED,
+                ErrorCode.CANCELLED,
                 StatusCode.Cancelled,
                 ErrorI18nKeys.CANCELLED),
             NetworkFailureType.CriticalAuthenticationFailure => new GrpcErrorDescriptor(
-                ERROR_CODE.UNAUTHENTICATED,
+                ErrorCode.UNAUTHENTICATED,
                 StatusCode.Unauthenticated,
                 ErrorI18nKeys.UNAUTHENTICATED),
             _ => new GrpcErrorDescriptor(
-                ERROR_CODE.InternalError,
+                ErrorCode.INTERNAL_ERROR,
                 StatusCode.Internal,
                 ErrorI18nKeys.INTERNAL)
         };

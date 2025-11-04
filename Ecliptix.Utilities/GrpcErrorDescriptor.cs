@@ -3,7 +3,7 @@ using Grpc.Core;
 namespace Ecliptix.Utilities;
 
 public sealed record GrpcErrorDescriptor(
-    ERROR_CODE ERROR_CODE,
+    ErrorCode ERROR_CODE,
     StatusCode StatusCode,
     string I_18N_KEY,
     bool RETRYABLE = false,

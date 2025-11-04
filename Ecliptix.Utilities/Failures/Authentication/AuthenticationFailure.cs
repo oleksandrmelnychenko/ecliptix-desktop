@@ -77,20 +77,20 @@ public record AuthenticationFailure(
         FailureType switch
         {
             AuthenticationFailureType.InvalidCredentials => new GrpcErrorDescriptor(
-                ERROR_CODE.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
+                ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
             AuthenticationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
-                ERROR_CODE.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MAX_ATTEMPTS),
+                ErrorCode.MAX_ATTEMPTS_REACHED, StatusCode.ResourceExhausted, ErrorI18nKeys.MAX_ATTEMPTS),
             AuthenticationFailureType.MobileNumberRequired => new GrpcErrorDescriptor(
-                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             AuthenticationFailureType.SecureKeyRequired => new GrpcErrorDescriptor(
-                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             AuthenticationFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
-                ERROR_CODE.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18nKeys.SERVICE_UNAVAILABLE, RETRYABLE: true),
+                ErrorCode.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18nKeys.SERVICE_UNAVAILABLE, RETRYABLE: true),
             AuthenticationFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
-                ERROR_CODE.NOT_FOUND, StatusCode.NotFound, ErrorI18nKeys.NOT_FOUND),
+                ErrorCode.NOT_FOUND, StatusCode.NotFound, ErrorI18nKeys.NOT_FOUND),
             AuthenticationFailureType.CriticalAuthenticationError => new GrpcErrorDescriptor(
-                ERROR_CODE.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
+                ErrorCode.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
             _ => new GrpcErrorDescriptor(
-                ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL)
+                ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL)
         };
 }

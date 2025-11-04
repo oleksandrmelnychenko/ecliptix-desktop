@@ -421,7 +421,7 @@ internal sealed class OpaqueRegistrationService(
             return true;
         }
 
-        return userError.ERROR_CODE == ERROR_CODE.NOT_FOUND;
+        return userError.ERROR_CODE == ErrorCode.NOT_FOUND;
     }
 
     private readonly record struct RegistrationAttemptResult(

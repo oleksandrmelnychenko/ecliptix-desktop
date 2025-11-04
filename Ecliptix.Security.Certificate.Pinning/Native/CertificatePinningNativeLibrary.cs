@@ -28,7 +28,6 @@ internal static unsafe class CertificatePinningNativeLibrary
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            extension = ".dll";
             fileName = "ecliptix.client.dll";
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))

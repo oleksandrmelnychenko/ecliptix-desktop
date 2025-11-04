@@ -4,7 +4,7 @@ using Grpc.Core;
 namespace Ecliptix.Utilities.Failures.Network;
 
 public sealed record UserFacingError(
-    ERROR_CODE ERROR_CODE,
+    ErrorCode ERROR_CODE,
     string I_18N_KEY,
     string Message,
     bool? RETRYABLE = null,

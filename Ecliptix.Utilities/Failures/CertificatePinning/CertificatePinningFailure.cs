@@ -134,5 +134,5 @@ public record CertificatePinningFailure(
         new(CertificatePinningFailureType.SERVICE_INVALID_STATE, CertificatePinningFailureMessages.SERVICE_INVALID_STATE);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
+        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
 }
