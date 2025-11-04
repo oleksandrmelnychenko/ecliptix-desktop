@@ -43,9 +43,9 @@ internal sealed class PendingLogoutProcessor(
                 pendingRequest.ToByteArray(),
                 async responsePayload =>
                 {
-                    AnonymousLogoutResponse logoutResponse = AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
-
+                    // Parse response to validate format, but don't inspect contents
                     // Complete the response regardless of logout result (both success and failure handled the same)
+                    AnonymousLogoutResponse.Parser.ParseFrom(responsePayload);
                     responseCompletionSource.TrySetResult(true);
 
                     return await Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));

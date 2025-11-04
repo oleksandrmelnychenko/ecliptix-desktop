@@ -78,7 +78,7 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
                 new WelcomeViewModel(ctx.HostViewModel, ctx.LocalizationService, ctx.NetworkProvider),
             [MembershipViewType.MobileVerificationView] = ctx =>
                 new MobileVerificationViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,
-                    ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService, ctx.AuthenticationService,
+                    ctx.HostViewModel, ctx.StorageProvider, ctx.RegistrationService,
                     ctx.RecoveryService, ctx.FlowContext),
             [MembershipViewType.SecureKeyConfirmationView] = ctx =>
                 new SecureKeyVerifierViewModel(ctx.ConnectivityService, ctx.NetworkProvider, ctx.LocalizationService,

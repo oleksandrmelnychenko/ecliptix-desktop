@@ -3,9 +3,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Ecliptix.Core.Core.Abstractions;
-using Ecliptix.Core.Core.Messaging.Connectivity;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Features.Authentication.Common;
 using Ecliptix.Core.Features.Authentication.ViewModels.Hosts;
@@ -18,12 +16,9 @@ using Ecliptix.Core.Services.Membership;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
-
 using Google.Protobuf;
-
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
-using Serilog;
 using Unit = System.Reactive.Unit;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.MobileVerificationKeys;
 
@@ -49,7 +44,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         IScreen hostScreen,
         IApplicationSecureStorageProvider applicationSecureStorageProvider,
         IOpaqueRegistrationService registrationService,
-        IAuthenticationService _,
         ISecureKeyRecoveryService secureKeyRecoveryService,
         AuthenticationFlowContext flowContext) : base(networkProvider, localizationService,
         connectivityService)
@@ -60,14 +54,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         _flowContext = flowContext;
         HostScreen = hostScreen;
         _applicationSecureStorageProvider = applicationSecureStorageProvider;
-
-        Log.Information("[MOBILE-VERIFICATION-VM] Initialized with flow context: {FlowContext}", flowContext);
-
-        if (_flowContext == AuthenticationFlowContext.SecureKeyRecovery && secureKeyRecoveryService == null)
-        {
-            throw new ArgumentNullException(nameof(secureKeyRecoveryService),
-                "Secure key recovery service is required when flow context is SecureKeyRecovery");
-        }
 
         IObservable<bool> isFormLogicallyValid = SetupValidation();
         SetupCommands(isFormLogicallyValid);
@@ -92,8 +78,8 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
     [Reactive] public string MobileNumber { get; set; } = string.Empty;
-    [Reactive] public string? MobileNumberError { get; set; }
-    [Reactive] public bool HasMobileNumberError { get; set; }
+    [Reactive] public string? MobileNumberError { get; private set; }
+    [Reactive] public bool HasMobileNumberError { get; private set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -217,6 +203,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         }
         catch (OperationCanceledException)
         {
+            // Operation was canceled.
         }
         catch (Exception)
         {
@@ -256,13 +243,16 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
             return;
         }
 
-        await HandleMobileAvailabilityCheckAsync(validateMobileNumberResponse.MobileNumberIdentifier, connectId, operationToken);
+        await HandleMobileAvailabilityCheckAsync(validateMobileNumberResponse.MobileNumberIdentifier, connectId,
+            operationToken);
     }
 
-    private async Task HandleMobileAvailabilityCheckAsync(ByteString mobileNumberIdentifier, uint connectId, CancellationToken operationToken)
+    private async Task HandleMobileAvailabilityCheckAsync(ByteString mobileNumberIdentifier, uint connectId,
+        CancellationToken operationToken)
     {
         Result<CheckMobileNumberAvailabilityResponse, string> statusResult =
-            await _registrationService.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId, operationToken);
+            await _registrationService.CheckMobileNumberAvailabilityAsync(mobileNumberIdentifier, connectId,
+                operationToken);
 
         if (_isDisposed)
         {
@@ -279,17 +269,16 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         await HandleAvailabilityStatusAsync(statusResponse, mobileNumberIdentifier);
     }
 
-    private async Task HandleAvailabilityStatusAsync(CheckMobileNumberAvailabilityResponse statusResponse, ByteString mobileNumberIdentifier)
+    private async Task HandleAvailabilityStatusAsync(CheckMobileNumberAvailabilityResponse statusResponse,
+        ByteString mobileNumberIdentifier)
     {
         switch (statusResponse.Status)
         {
             case MobileAvailabilityStatus.Available:
-                Serilog.Log.Information("[MOBILE-VERIFICATION] Mobile available, starting OTP verification");
                 await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
                 break;
 
             case MobileAvailabilityStatus.RegistrationExpired:
-                Serilog.Log.Information("[MOBILE-VERIFICATION] Registration window expired (1 hour), starting fresh OTP verification");
                 await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
                 break;
 
@@ -312,29 +301,25 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         }
     }
 
-    private async Task HandleIncompleteRegistrationAsync(CheckMobileNumberAvailabilityResponse statusResponse, ByteString mobileNumberIdentifier)
+    private async Task HandleIncompleteRegistrationAsync(CheckMobileNumberAvailabilityResponse statusResponse,
+        ByteString mobileNumberIdentifier)
     {
-        string membershipIdStr = statusResponse.ExistingMembershipId != null && !statusResponse.ExistingMembershipId.IsEmpty
-            ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
-            : "Unknown";
-
-        if (statusResponse.HasCreationStatus && statusResponse.CreationStatus == Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified)
+        if (statusResponse is
+            {
+                HasCreationStatus: true, CreationStatus: Protobuf.Membership.Membership.Types.CreationStatus.OtpVerified
+            })
         {
-            await StoreIncompleteMembershipAndNavigateAsync(statusResponse, membershipIdStr);
+            await StoreIncompleteMembershipAndNavigateAsync(statusResponse);
         }
         else
         {
-            Serilog.Log.Information(
-                "[MOBILE-VERIFICATION] Incomplete registration - navigating to OTP. MembershipId: {MembershipId}, CreationStatus: {CreationStatus}",
-                membershipIdStr,
-                statusResponse.HasCreationStatus ? statusResponse.CreationStatus.ToString() : "Not Set");
             await NavigateToOtpVerificationAsync(mobileNumberIdentifier);
         }
     }
 
-    private async Task StoreIncompleteMembershipAndNavigateAsync(CheckMobileNumberAvailabilityResponse statusResponse, string membershipIdStr)
+    private async Task StoreIncompleteMembershipAndNavigateAsync(CheckMobileNumberAvailabilityResponse statusResponse)
     {
-        Protobuf.Membership.Membership membership = new Protobuf.Membership.Membership
+        Membership membership = new()
         {
             UniqueIdentifier = statusResponse.ExistingMembershipId,
             Status = statusResponse.HasActivityStatus
@@ -352,17 +337,8 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
         if (statusResponse.AccountUniqueIdentifier != null && !statusResponse.AccountUniqueIdentifier.IsEmpty)
         {
-            await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier).ConfigureAwait(false);
-            Serilog.Log.Information(
-                "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}, AccountId: {AccountId}",
-                membershipIdStr,
-                Helpers.FromByteStringToGuid(statusResponse.AccountUniqueIdentifier));
-        }
-        else
-        {
-            Serilog.Log.Information(
-                "[MOBILE-VERIFICATION] Stored incomplete registration membership. MembershipId: {MembershipId}",
-                membershipIdStr);
+            await _applicationSecureStorageProvider.SetCurrentAccountIdAsync(statusResponse.AccountUniqueIdentifier)
+                .ConfigureAwait(false);
         }
 
         await NavigateToSecureKeyAsync();
@@ -370,12 +346,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void HandleDataCorruptionStatus(CheckMobileNumberAvailabilityResponse statusResponse)
     {
-        string corruptedMembershipId = statusResponse.ExistingMembershipId != null && !statusResponse.ExistingMembershipId.IsEmpty
-            ? Helpers.FromByteStringToGuid(statusResponse.ExistingMembershipId).ToString()
-            : "Unknown";
-
-        Serilog.Log.Warning("[MOBILE-VERIFICATION] Data corruption detected. MembershipId: {MembershipId}", corruptedMembershipId);
-
         string corruptionError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
             : LocalizationService["MobileVerification.Error.DataCorruption"];
@@ -384,14 +354,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void HandleMobileTakenStatus(CheckMobileNumberAvailabilityResponse statusResponse)
     {
-        if (statusResponse.RegisteredDeviceId != null && !statusResponse.RegisteredDeviceId.IsEmpty)
-        {
-            Guid registeredDevice = Helpers.FromByteStringToGuid(statusResponse.RegisteredDeviceId);
-            Serilog.Log.Information(
-                "[MOBILE-VERIFICATION] Mobile taken on device: {DeviceId}, Status: {Status}",
-                registeredDevice, statusResponse.Status);
-        }
-
         string takenError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
             : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
@@ -400,7 +362,6 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
 
     private void HandleUnexpectedStatus(CheckMobileNumberAvailabilityResponse statusResponse)
     {
-        Serilog.Log.Warning("[MOBILE-VERIFICATION] Unexpected status: {Status}", statusResponse.Status);
         string defaultError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
             : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
