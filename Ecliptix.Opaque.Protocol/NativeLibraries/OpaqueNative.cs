@@ -19,9 +19,19 @@ internal static partial class OpaqueNative
             return IntPtr.Zero;
         }
 
-        string platformLibrary = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libopaque_client.dll" :
-            RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "libopaque_client.dylib" :
-            "libopaque_client.so";
+        string platformLibrary;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            platformLibrary = "libopaque_client.dll";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            platformLibrary = "libopaque_client.dylib";
+        }
+        else
+        {
+            platformLibrary = "libopaque_client.so";
+        }
 
         if (NativeLibrary.TryLoad(platformLibrary, assembly, searchPath, out IntPtr handle))
         {
