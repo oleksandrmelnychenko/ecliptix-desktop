@@ -29,13 +29,11 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public static Result<T, TE> Err(TE error)
     {
-        ArgumentNullException.ThrowIfNull(error, nameof(error));
         return new Result<T, TE>(error);
     }
 
     public static Result<T, TE> FromValue(T? value, TE errorWhenNull)
     {
-        ArgumentNullException.ThrowIfNull(errorWhenNull, nameof(errorWhenNull));
         return value switch
         {
             not null => Ok(value),
@@ -45,15 +43,11 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public static Result<T, TE> Validate(T value, Func<T, bool> predicate, TE errorWhenInvalid)
     {
-        ArgumentNullException.ThrowIfNull(predicate, nameof(predicate));
-        ArgumentNullException.ThrowIfNull(errorWhenInvalid, nameof(errorWhenInvalid));
         return predicate(value) ? Ok(value) : Err(errorWhenInvalid);
     }
 
     public static Result<T, TE> Try(Func<T> func, Func<Exception, TE> errorMapper)
     {
-        ArgumentNullException.ThrowIfNull(func, nameof(func));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
         try
         {
             return Ok(func());
@@ -61,7 +55,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
         {
             TE error = errorMapper(ex);
-            return error == null
+            return EqualityComparer<TE>.Default.Equals(error, default)
                 ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull)
                 : Err(error);
         }
@@ -69,8 +63,6 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public static Result<Unit, TE> Try(Action action, Func<Exception, TE> errorMapper, Action? cleanup = null)
     {
-        ArgumentNullException.ThrowIfNull(action, nameof(action));
-        ArgumentNullException.ThrowIfNull(errorMapper, nameof(errorMapper));
         try
         {
             action();
@@ -78,8 +70,8 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
         catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
         {
-            TE? error = errorMapper(ex);
-            if (error == null)
+            TE error = errorMapper(ex);
+            if (EqualityComparer<TE>.Default.Equals(error, default))
             {
                 throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
             }
