@@ -1,5 +1,7 @@
+using Ecliptix.Utilities;
+
 namespace Ecliptix.Core.Services.Authentication;
 
 public sealed record SignInResult(
-    Ecliptix.Protobuf.Membership.Membership? Membership,
-    Protobuf.Account.Account? ActiveAccount = null);
+    Option<Ecliptix.Protobuf.Membership.Membership> Membership,
+    Option<Ecliptix.Protobuf.Account.Account> ActiveAccount);

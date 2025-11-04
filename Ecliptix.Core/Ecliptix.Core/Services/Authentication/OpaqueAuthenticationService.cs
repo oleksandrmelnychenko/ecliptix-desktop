@@ -501,13 +501,14 @@ internal sealed class OpaqueAuthenticationService(
         SodiumSecureMemoryHandle masterKeyHandle,
         SignInResult signInResult)
     {
-        if (signInResult.Membership == null)
+        if (!signInResult.Membership.IsSome)
         {
             return Result<SignInFlowResult, AuthenticationFailure>.Ok(
                 new SignInFlowResult(masterKeyHandle, ByteString.Empty, Guid.Empty));
         }
 
-        ByteString membershipIdentifier = signInResult.Membership.UniqueIdentifier;
+        Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
+        ByteString membershipIdentifier = membership.UniqueIdentifier;
 
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> masterKeyValidationResult =
             DeriveMasterKeyForMembership(masterKeyHandle, membershipIdentifier);
@@ -634,7 +635,9 @@ internal sealed class OpaqueAuthenticationService(
                 NetworkFailure.InvalidRequestType(message));
         }
 
-        SignInResult result = new(capturedResponse.Membership, capturedResponse.ActiveAccount);
+        SignInResult result = new(
+            Option<Ecliptix.Protobuf.Membership.Membership>.From(capturedResponse.Membership),
+            Option<Ecliptix.Protobuf.Account.Account>.From(capturedResponse.ActiveAccount));
         return Result<SignInResult, NetworkFailure>.Ok(result);
     }
 
@@ -784,7 +787,8 @@ internal sealed class OpaqueAuthenticationService(
         SodiumSecureMemoryHandle masterKeyHandle,
         SignInResult signInResult)
     {
-        ByteString membershipIdentifier = signInResult.Membership!.UniqueIdentifier;
+        Ecliptix.Protobuf.Membership.Membership membership = signInResult.Membership.Value!;
+        ByteString membershipIdentifier = membership.UniqueIdentifier;
         Guid membershipId = Helpers.FromByteStringToGuid(membershipIdentifier);
 
         Result<Unit, AuthenticationFailure> storeResult = await identityService
@@ -799,18 +803,17 @@ internal sealed class OpaqueAuthenticationService(
         }
 
         await applicationSecureStorageProvider
-            .SetApplicationMembershipAsync(signInResult.Membership)
+            .SetApplicationMembershipAsync(membership)
             .ConfigureAwait(false);
 
-        ByteString? accountIdToStore = null;
-        if (signInResult.ActiveAccount != null && signInResult.ActiveAccount.UniqueIdentifier != null)
+        ByteString? accountIdToStore = signInResult.ActiveAccount.Match(
+            account => account.UniqueIdentifier ?? null,
+            () => null);
+
+        if (accountIdToStore == null && membership.AccountUniqueIdentifier != null &&
+            membership.AccountUniqueIdentifier.Length > 0)
         {
-            accountIdToStore = signInResult.ActiveAccount.UniqueIdentifier;
-        }
-        else if (signInResult.Membership?.AccountUniqueIdentifier != null &&
-                 signInResult.Membership.AccountUniqueIdentifier.Length > 0)
-        {
-            accountIdToStore = signInResult.Membership.AccountUniqueIdentifier;
+            accountIdToStore = membership.AccountUniqueIdentifier;
         }
 
         if (accountIdToStore == null)
