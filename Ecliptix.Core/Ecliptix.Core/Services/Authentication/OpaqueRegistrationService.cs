@@ -14,6 +14,7 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
+using Ecliptix.Core.Services.Authentication.Internal;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
@@ -36,13 +37,8 @@ internal sealed class OpaqueRegistrationService(
     IApplicationSecureStorageProvider applicationSecureStorageProvider)
     : IOpaqueRegistrationService, IDisposable
 {
-    private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
-    private readonly ConcurrentDictionary<Guid, VerificationPurpose> _activeSessionPurposes = new();
-
-    private readonly ConcurrentDictionary<string, RegistrationResult> _opaqueRegistrationState = new();
-
-    private readonly CancellationTokenSource _disposalCts = new();
-    private readonly List<Task> _backgroundCleanupTasks = new();
+    private readonly RegistrationStateManager _stateManager = new();
+    private readonly VerificationStreamManager _streamManager = new(networkProvider);
 
     public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
@@ -183,14 +179,13 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
-        if (!_activeStreams.TryGetValue(sessionIdentifier, out uint streamConnectId))
+        if (!_streamManager.TryGetActiveStream(sessionIdentifier, out uint streamConnectId))
         {
             return Result<Unit, string>.Err(
                 localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY]);
         }
 
-        VerificationPurpose purpose =
-            _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
+        VerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
 
         InitiateVerificationRequest request = new()
         {
@@ -228,14 +223,13 @@ internal sealed class OpaqueRegistrationService(
                 localizationService[AuthenticationConstants.INVALID_OTP_CODE_KEY]);
         }
 
-        if (!_activeStreams.TryGetValue(sessionIdentifier, out uint activeStreamId))
+        if (!_streamManager.TryGetActiveStream(sessionIdentifier, out uint activeStreamId))
         {
             return Result<Protobuf.Membership.Membership, string>.Err(
                 localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY]);
         }
 
-        VerificationPurpose purpose =
-            _activeSessionPurposes.GetValueOrDefault(sessionIdentifier, VerificationPurpose.Registration);
+        VerificationPurpose purpose = _streamManager.GetSessionPurpose(sessionIdentifier);
 
         VerifyCodeRequest request = new() { Code = otpCode, Purpose = purpose, StreamConnectId = activeStreamId };
 
@@ -341,24 +335,9 @@ internal sealed class OpaqueRegistrationService(
 
     public void Dispose()
     {
-        _disposalCts.Cancel();
-
-        Task[] tasksToWait;
-        lock (_backgroundCleanupTasks)
-        {
-            tasksToWait = _backgroundCleanupTasks.Where(t => !t.IsCompleted).ToArray();
-        }
-
-        if (tasksToWait.Length > 0)
-        {
-            Task.WaitAll(tasksToWait, TimeSpan.FromSeconds(5));
-        }
-
-        _disposalCts.Dispose();
+        _streamManager.Dispose();
+        _stateManager.Dispose();
     }
-
-    private static string CreateRegistrationKey(ByteString membershipIdentifier) =>
-        Convert.ToBase64String(membershipIdentifier.Span);
 
     private static RegistrationAttemptResult CreateAttemptSuccess() =>
         new(Result<Unit, string>.Ok(Unit.Value), false);
@@ -458,8 +437,7 @@ internal sealed class OpaqueRegistrationService(
     {
         RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
 
-        string registrationKey = CreateRegistrationKey(membershipIdentifier);
-        if (_opaqueRegistrationState.TryAdd(registrationKey, registrationResult))
+        if (_stateManager.TryAddRegistration(membershipIdentifier, registrationResult))
         {
             return Result<RegistrationResult, RegistrationAttemptResult>.Ok(registrationResult);
         }
@@ -787,22 +765,13 @@ internal sealed class OpaqueRegistrationService(
 
     private void CleanupTrackedRegistration(ByteString membershipIdentifier)
     {
-        string registrationKey = CreateRegistrationKey(membershipIdentifier);
-        if (_opaqueRegistrationState.TryRemove(registrationKey, out RegistrationResult? completedResult))
-        {
-            completedResult.Dispose();
-        }
+        _stateManager.CleanupRegistration(membershipIdentifier);
     }
 
     private void HandleRegistrationException(ByteString membershipIdentifier,
         ref RegistrationResult? registrationResult)
     {
-        string registrationKey = CreateRegistrationKey(membershipIdentifier);
-        if (_opaqueRegistrationState.TryRemove(registrationKey, out RegistrationResult? cachedResult))
-        {
-            cachedResult.Dispose();
-        }
-
+        _stateManager.CleanupRegistration(membershipIdentifier);
         registrationResult?.Dispose();
         registrationResult = null;
     }
@@ -890,20 +859,11 @@ internal sealed class OpaqueRegistrationService(
         VerificationPurpose purpose,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
-        bool shouldCleanup = ShouldCleanupVerificationStream(verificationCountdownUpdate.Status);
-
-        if (shouldCleanup)
-        {
-            if (verificationIdentifier != Guid.Empty)
-            {
-                ScheduleStreamCleanupAsync(verificationIdentifier);
-            }
-        }
-        else if (verificationIdentifier != Guid.Empty)
-        {
-            _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
-            _activeSessionPurposes.TryAdd(verificationIdentifier, purpose);
-        }
+        _streamManager.ProcessVerificationUpdate(
+            verificationIdentifier,
+            streamConnectId,
+            verificationCountdownUpdate.Status,
+            purpose);
 
         RxApp.MainThreadScheduler.Schedule(() =>
             onCountdownUpdate?.Invoke(
@@ -911,33 +871,6 @@ internal sealed class OpaqueRegistrationService(
                 verificationIdentifier,
                 verificationCountdownUpdate.Status,
                 verificationCountdownUpdate.Message));
-    }
-
-    private static bool
-        ShouldCleanupVerificationStream(VerificationCountdownUpdate.Types.CountdownUpdateStatus status) =>
-        status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
-            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound;
-
-    private void ScheduleStreamCleanupAsync(Guid verificationIdentifier)
-    {
-        Task cleanupTask = Task.Run(async () =>
-        {
-            try
-            {
-                await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Failed to cleanup stream {VerificationId}", verificationIdentifier);
-            }
-        }, _disposalCts.Token);
-
-        lock (_backgroundCleanupTasks)
-        {
-            _backgroundCleanupTasks.Add(cleanupTask);
-            _backgroundCleanupTasks.RemoveAll(t => t.IsCompleted);
-        }
     }
 
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
@@ -976,18 +909,6 @@ internal sealed class OpaqueRegistrationService(
 
     private async Task<Result<Unit, string>> CleanupStreamAsync(Guid sessionIdentifier)
     {
-        _activeSessionPurposes.TryRemove(sessionIdentifier, out _);
-
-        if (!_activeStreams.TryRemove(sessionIdentifier, out uint streamConnectId))
-        {
-            return Result<Unit, string>.Ok(Unit.Value);
-        }
-
-        Result<Unit, NetworkFailure> cleanupResult =
-            await networkProvider.CleanupStreamProtocolAsync(streamConnectId).ConfigureAwait(false);
-
-        return !cleanupResult.IsErr
-            ? Result<Unit, string>.Ok(Unit.Value)
-            : Result<Unit, string>.Err(cleanupResult.UnwrapErr().Message);
+        return await _streamManager.CloseStreamAsync(sessionIdentifier).ConfigureAwait(false);
     }
 }
