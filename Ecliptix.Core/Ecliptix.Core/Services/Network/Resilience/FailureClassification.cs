@@ -16,7 +16,7 @@ public static class FailureClassification
             return false;
         }
 
-        if (failure.UserError?.Retryable is bool retryable)
+        if (failure.UserError?.RETRYABLE is bool retryable)
         {
             return retryable;
         }

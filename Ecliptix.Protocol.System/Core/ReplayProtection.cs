@@ -50,13 +50,13 @@ internal sealed class ReplayProtection : IDisposable
         if (_disposed)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.ObjectDisposed(nameof(ReplayProtection)));
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(ReplayProtection)));
         }
 
         if (nonce.Length == 0)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ReplayProtection.NonceCannotBeNullOrEmpty));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.ReplayProtection.NONCE_CANNOT_BE_NULL_OR_EMPTY));
         }
 
         lock (_lock)
@@ -66,7 +66,7 @@ internal sealed class ReplayProtection : IDisposable
             if (_processedNonces.ContainsKey(nonceKey))
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.ReplayProtection.ReplayAttackDetectedNonce));
+                    EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.ReplayProtection.REPLAY_ATTACK_DETECTED_NONCE));
             }
 
             Result<Unit, EcliptixProtocolFailure> windowCheck = CheckMessageWindow(chainIndex, messageIndex);
@@ -96,14 +96,14 @@ internal sealed class ReplayProtection : IDisposable
             if (window.IsProcessed(messageIndex))
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.ReplayAttackDetectedMessageIndex, messageIndex, chainIndex)));
+                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.REPLAY_ATTACK_DETECTED_MESSAGE_INDEX, messageIndex, chainIndex)));
             }
 
             ulong gap = window.HighestProcessedIndex - messageIndex;
             if (gap > _maxOutOfOrderWindow)
             {
                 return Result<Unit, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.MessageIndexTooFarBehind, messageIndex, gap, _maxOutOfOrderWindow)));
+                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.ReplayProtection.MESSAGE_INDEX_TOO_FAR_BEHIND, messageIndex, gap, _maxOutOfOrderWindow)));
             }
         }
 

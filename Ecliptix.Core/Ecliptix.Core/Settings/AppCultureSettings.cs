@@ -20,20 +20,20 @@ public sealed class AppCultureSettings
 
     private AppCultureSettings()
     {
-        List<LanguageItem> supportedLanguages = new(AppCultureSettingsConstants.InitialCapacity)
+        List<LanguageItem> supportedLanguages = new(AppCultureSettingsConstants.INITIAL_CAPACITY)
         {
-            new LanguageItem(AppCultureSettingsConstants.DefaultCultureCode,
-                AppCultureSettingsConstants.UnitedStatesCountryCode,
-                AppCultureSettingsConstants.UnitedStatesFlagPath),
-            new LanguageItem(AppCultureSettingsConstants.UkrainianCultureCode,
-                AppCultureSettingsConstants.UkraineCountryCode,
-                AppCultureSettingsConstants.UkraineFlagPath)
+            new LanguageItem(AppCultureSettingsConstants.DEFAULT_CULTURE_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE,
+                AppCultureSettingsConstants.UNITED_STATES_FLAG_PATH),
+            new LanguageItem(AppCultureSettingsConstants.UKRAINIAN_CULTURE_CODE,
+                AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE,
+                AppCultureSettingsConstants.UKRAINE_FLAG_PATH)
         };
 
-        Dictionary<string, string> countryCultureMap = new(AppCultureSettingsConstants.InitialCapacity)
+        Dictionary<string, string> countryCultureMap = new(AppCultureSettingsConstants.INITIAL_CAPACITY)
         {
-            { AppCultureSettingsConstants.UnitedStatesCountryCode, AppCultureSettingsConstants.DefaultCultureCode },
-            { AppCultureSettingsConstants.UkraineCountryCode, AppCultureSettingsConstants.UkrainianCultureCode },
+            { AppCultureSettingsConstants.UNITED_STATES_COUNTRY_CODE, AppCultureSettingsConstants.DEFAULT_CULTURE_CODE },
+            { AppCultureSettingsConstants.UKRAINE_COUNTRY_CODE, AppCultureSettingsConstants.UKRAINIAN_CULTURE_CODE },
         };
 
         _languagesByCode = supportedLanguages.ToFrozenDictionary(lang => lang.Code, lang => lang);
@@ -57,10 +57,10 @@ public sealed class AppCultureSettings
         _languagesByCode.GetValueOrDefault(cultureCode).ToOption();
 
     public string GetCultureByCountry(string countryCode) =>
-        _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? AppCultureSettingsConstants.EmptyString, AppCultureSettingsConstants.DefaultCultureCode);
+        _countryCultureMap.GetValueOrDefault(countryCode?.ToUpperInvariant() ?? AppCultureSettingsConstants.EmptyString, AppCultureSettingsConstants.DEFAULT_CULTURE_CODE);
 
     public int GetLanguageIndex(string cultureCode) =>
-        _languageIndexMap.GetValueOrDefault(cultureCode, AppCultureSettingsConstants.DefaultLanguageIndex);
+        _languageIndexMap.GetValueOrDefault(cultureCode, AppCultureSettingsConstants.DEFAULT_LANGUAGE_INDEX);
 
     public string GetDisplayName(string cultureCode)
     {
@@ -72,12 +72,12 @@ public sealed class AppCultureSettings
                 {
                     CultureInfo culture = CultureInfo.GetCultureInfo(cultureCode);
                     string englishName = culture.EnglishName;
-                    int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CultureDisplayNameSeparator);
+                    int separatorIndex = englishName.IndexOf(AppCultureSettingsConstants.CULTURE_DISPLAY_NAME_SEPARATOR);
                     return separatorIndex > 0 ? englishName[..separatorIndex].Trim() : englishName.Trim();
                 }
                 catch (CultureNotFoundException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[APP-CULTURE] Culture not found: {cultureCode}, Error: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[APP-CULTURE] CULTURE not found: {cultureCode}, ERROR: {ex.Message}");
                     return cultureCode;
                 }
             });

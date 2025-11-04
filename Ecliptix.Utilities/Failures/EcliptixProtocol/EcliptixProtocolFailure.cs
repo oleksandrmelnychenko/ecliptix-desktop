@@ -39,15 +39,15 @@ public record EcliptixProtocolFailure(
         return new EcliptixProtocolFailure(EcliptixProtocolFailureType.InvalidInput, details);
     }
 
-    public static EcliptixProtocolFailure ObjectDisposed(string resourceName)
+    public static EcliptixProtocolFailure OBJECT_DISPOSED(string resourceName)
     {
         return new EcliptixProtocolFailure(
-            EcliptixProtocolFailureType.ObjectDisposed, $"Cannot access disposed resource '{resourceName}'.");
+            EcliptixProtocolFailureType.OBJECT_DISPOSED, $"Cannot access disposed resource '{resourceName}'.");
     }
 
-    public static EcliptixProtocolFailure AllocationFailed(string details, Exception? inner = null)
+    public static EcliptixProtocolFailure ALLOCATION_FAILED(string details, Exception? inner = null)
     {
-        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.AllocationFailed, details, inner);
+        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.ALLOCATION_FAILED, details, inner);
     }
 
     public static EcliptixProtocolFailure PinningFailure(string details, Exception? inner = null)
@@ -55,14 +55,14 @@ public record EcliptixProtocolFailure(
         return new EcliptixProtocolFailure(EcliptixProtocolFailureType.PinningFailure, details, inner);
     }
 
-    public static EcliptixProtocolFailure BufferTooSmall(string details)
+    public static EcliptixProtocolFailure BUFFER_TOO_SMALL(string details)
     {
-        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.BufferTooSmall, details);
+        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.BUFFER_TOO_SMALL, details);
     }
 
-    public static EcliptixProtocolFailure DataTooLarge(string details)
+    public static EcliptixProtocolFailure DATA_TOO_LARGE(string details)
     {
-        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.DataTooLarge, details);
+        return new EcliptixProtocolFailure(EcliptixProtocolFailureType.DATA_TOO_LARGE, details);
     }
 
     public static EcliptixProtocolFailure KeyGeneration(string details, Exception? inner = null)
@@ -108,5 +108,5 @@ public record EcliptixProtocolFailure(
     }
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
+        new(ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
 }

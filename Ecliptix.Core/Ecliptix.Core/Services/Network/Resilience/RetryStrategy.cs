@@ -23,13 +23,13 @@ namespace Ecliptix.Core.Services.Network.Resilience;
 
 public sealed class RetryStrategy : IRetryStrategy
 {
-    private const int MaxTrackedOperations = 1000;
+    private const int MAX_TRACKED_OPERATIONS = 1000;
 
-    private const int CleanupIntervalMinutes = 5;
+    private const int CLEANUP_INTERVAL_MINUTES = 5;
 
-    private const int OperationTimeoutMinutes = 10;
+    private const int OPERATION_TIMEOUT_MINUTES = 10;
 
-    private const string AttemptKey = "attempt";
+    private const string ATTEMPT_KEY = "attempt";
 
     private readonly RetryStrategyConfiguration _strategyConfiguration;
     private readonly IConnectivityService _connectivityService;
@@ -47,7 +47,7 @@ public sealed class RetryStrategy : IRetryStrategy
         public required string OperationName { get; init; }
         public required uint ConnectId { get; init; }
         public required DateTime StartTime { get; init; }
-        public required int MaxRetries { get; init; }
+        public required int MAX_RETRIES { get; init; }
         public required string UniqueKey { get; init; }
         public required RpcServiceType? ServiceType { get; init; }
 
@@ -78,8 +78,8 @@ public sealed class RetryStrategy : IRetryStrategy
         _cleanupTimer = new Timer(
             CleanupAbandonedOperations,
             null,
-            TimeSpan.FromMinutes(CleanupIntervalMinutes),
-            TimeSpan.FromMinutes(CleanupIntervalMinutes));
+            TimeSpan.FromMinutes(CLEANUP_INTERVAL_MINUTES),
+            TimeSpan.FromMinutes(CLEANUP_INTERVAL_MINUTES));
 
         try
         {
@@ -93,8 +93,8 @@ public sealed class RetryStrategy : IRetryStrategy
         }
 
         Log.Information(
-            "SecrecyChannelRetryStrategy initialized with configuration: MaxRetries={MaxRetries}, InitialDelay={InitialDelay}",
-            _strategyConfiguration.MaxRetries, _strategyConfiguration.InitialRetryDelay);
+            "SecrecyChannelRetryStrategy initialized with configuration: MAX_RETRIES={MAX_RETRIES}, InitialDelay={InitialDelay}",
+            _strategyConfiguration.MAX_RETRIES, _strategyConfiguration.INITIAL_RETRY_DELAY);
     }
 
     public void SetLazyNetworkProvider(Lazy<NetworkProvider> lazyNetworkProvider)
@@ -147,7 +147,7 @@ public sealed class RetryStrategy : IRetryStrategy
         bool bypassExhaustionCheck)
     {
         uint actualConnectId = connectId ?? 0;
-        int actualMaxRetries = maxRetries ?? _strategyConfiguration.MaxRetries;
+        int actualMaxRetries = maxRetries ?? _strategyConfiguration.MAX_RETRIES;
 
         if (!bypassExhaustionCheck && await IsGloballyExhaustedAsync().ConfigureAwait(false))
         {
@@ -169,7 +169,7 @@ public sealed class RetryStrategy : IRetryStrategy
                     serviceType,
                     cancellationToken);
 
-            Context context = new(operationName) { [AttemptKey] = 1 };
+            Context context = new(operationName) { [ATTEMPT_KEY] = 1 };
 
             Result<TResponse, NetworkFailure> result = await retryPolicy.ExecuteAsync(
                 (ctx, ct) => ExecuteOperationWithLogging(ctx, ct, operation, operationName),
@@ -183,7 +183,7 @@ public sealed class RetryStrategy : IRetryStrategy
             else
             {
                 Log.Warning(
-                    "🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {Error}",
+                    "🔴 OPERATION FAILED: Operation {OperationName} failed after all retries with error: {ERROR}",
                     operationName, result.UnwrapErr().Message);
                 Log.Debug("🔴 KEEPING EXHAUSTED: Keeping operation {OperationName} tracked for retry button detection",
                     operationName);
@@ -382,7 +382,7 @@ public sealed class RetryStrategy : IRetryStrategy
             else
             {
                 NetworkFailure failure = retryResult.UnwrapErr();
-                Log.Warning("🔄 MANUAL RETRY: Connection restore failed: {Error}", failure.Message);
+                Log.Warning("🔄 MANUAL RETRY: Connection restore failed: {ERROR}", failure.Message);
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -415,10 +415,10 @@ public sealed class RetryStrategy : IRetryStrategy
     private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey,
         RpcServiceType? serviceType)
     {
-        if (_activeRetryOperations.Count >= MaxTrackedOperations)
+        if (_activeRetryOperations.Count >= MAX_TRACKED_OPERATIONS)
         {
             Log.Warning("Maximum tracked operations limit reached ({MaxOperations}), cleaning up old operations",
-                MaxTrackedOperations);
+                MAX_TRACKED_OPERATIONS);
             CleanupAbandonedOperations(null);
         }
 
@@ -427,7 +427,7 @@ public sealed class RetryStrategy : IRetryStrategy
             OperationName = operationName,
             ConnectId = connectId,
             StartTime = DateTime.UtcNow,
-            MaxRetries = maxRetries,
+            MAX_RETRIES = maxRetries,
             UniqueKey = operationKey,
             ServiceType = serviceType,
             CurrentRetryCount = 1,
@@ -445,8 +445,8 @@ public sealed class RetryStrategy : IRetryStrategy
         if (_activeRetryOperations.TryGetValue(operationKey, out RetryOperationInfo? operation))
         {
             operation.CurrentRetryCount = retryCount;
-            Log.Debug("📊 UPDATED TRACKING: Key {OperationKey} - Retry count: {RetryCount}/{MaxRetries}",
-                operationKey, retryCount, operation.MaxRetries);
+            Log.Debug("📊 UPDATED TRACKING: Key {OperationKey} - Retry count: {RetryCount}/{MAX_RETRIES}",
+                operationKey, retryCount, operation.MAX_RETRIES);
         }
     }
 
@@ -480,7 +480,7 @@ public sealed class RetryStrategy : IRetryStrategy
 
         try
         {
-            DateTime cutoff = DateTime.UtcNow.AddMinutes(-OperationTimeoutMinutes);
+            DateTime cutoff = DateTime.UtcNow.AddMinutes(-OPERATION_TIMEOUT_MINUTES);
             List<string> abandonedKeys = new();
             foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
             {
@@ -495,7 +495,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 if (_activeRetryOperations.TryRemove(key, out RetryOperationInfo? operation) && Serilog.Log.IsEnabled(LogEventLevel.Debug))
                 {
                     Log.Debug("🧹 CLEANUP: Removed abandoned operation {OperationName} after {Minutes} minutes",
-                        operation.OperationName, OperationTimeoutMinutes);
+                        operation.OperationName, OPERATION_TIMEOUT_MINUTES);
                 }
             }
 
@@ -506,7 +506,7 @@ public sealed class RetryStrategy : IRetryStrategy
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error during operation cleanup");
+            Log.Error(ex, "ERROR during operation cleanup");
         }
     }
 
@@ -523,7 +523,7 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             if (Log.IsEnabled(LogEventLevel.Debug))
             {
-                Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MaxRetries}",
+                Log.Debug("📦 RETRY DELAYS CACHE HIT: Reusing cached delays for maxRetries={MAX_RETRIES}",
                     maxRetries);
             }
 
@@ -532,13 +532,13 @@ public sealed class RetryStrategy : IRetryStrategy
 
         if (Log.IsEnabled(LogEventLevel.Debug))
         {
-            Log.Debug("🏗️ RETRY DELAYS CACHE MISS: Calculating new delays for maxRetries={MaxRetries}",
+            Log.Debug("🏗️ RETRY DELAYS CACHE MISS: Calculating new delays for maxRetries={MAX_RETRIES}",
                 maxRetries);
         }
 
-        TimeSpan baseDelay = _strategyConfiguration.InitialRetryDelay;
-        TimeSpan maxDelay = _strategyConfiguration.MaxRetryDelay;
-        bool useJitter = _strategyConfiguration.UseAdaptiveRetry;
+        TimeSpan baseDelay = _strategyConfiguration.INITIAL_RETRY_DELAY;
+        TimeSpan maxDelay = _strategyConfiguration.MAX_RETRY_DELAY;
+        bool useJitter = _strategyConfiguration.USE_ADAPTIVE_RETRY;
 
         IEnumerable<TimeSpan> rawDelays = useJitter
             ? Backoff.DecorrelatedJitterBackoffV2(
@@ -581,7 +581,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 retryDelays,
                 async (outcome, delay, retryCount, context) =>
                 {
-                    context[AttemptKey] = retryCount + 1;
+                    context[ATTEMPT_KEY] = retryCount + 1;
 
                     bool isTimeout = outcome.Exception is TimeoutRejectedException;
                     bool hasResult = outcome.Exception is null;
@@ -590,13 +590,13 @@ public sealed class RetryStrategy : IRetryStrategy
                     if (isTimeout)
                     {
                         Log.Warning(
-                            "⏳ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out - attempt {RetryCount}/{MaxRetries}, retrying after {DelayMs}ms",
+                            "⏳ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out - attempt {RetryCount}/{MAX_RETRIES}, retrying after {DelayMs}ms",
                             operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
                     }
                     else
                     {
                         Log.Information(
-                            "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries}, delay: {DelayMs}ms",
+                            "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES}, delay: {DelayMs}ms",
                             operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
                     }
 
@@ -630,7 +630,7 @@ public sealed class RetryStrategy : IRetryStrategy
                     if (retryCount == retryDelays.Length)
                     {
                         Log.Warning(
-                            "🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MaxRetries} exhausted all retries",
+                            "🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES} exhausted all retries",
                             operationName, connectId, retryCount, retryDelays.Length);
 
                         MarkOperationAsExhausted(operationKey);
@@ -745,7 +745,7 @@ public sealed class RetryStrategy : IRetryStrategy
                 (context) =>
                 {
                     int currentAttempt = GetCurrentAttempt(context);
-                    TimeSpan timeout = _strategyConfiguration.PerAttemptTimeout;
+                    TimeSpan timeout = _strategyConfiguration.PER_ATTEMPT_TIMEOUT;
 
                     if (Log.IsEnabled(LogEventLevel.Debug))
                     {
@@ -812,13 +812,13 @@ public sealed class RetryStrategy : IRetryStrategy
             }
             else if (restoreResult.IsErr)
             {
-                Log.Warning("Failed to restore connection for ConnectId {ConnectId}: {Error}", connectId,
+                Log.Warning("Failed to restore connection for ConnectId {ConnectId}: {ERROR}", connectId,
                     restoreResult.UnwrapErr().Message);
             }
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error attempting to restore connection for ConnectId {ConnectId}", connectId);
+            Log.Warning(ex, "ERROR attempting to restore connection for ConnectId {ConnectId}", connectId);
         }
     }
 
@@ -837,7 +837,7 @@ public sealed class RetryStrategy : IRetryStrategy
     }
 
     private static int GetCurrentAttempt(Context ctx) =>
-        ctx.TryGetValue(AttemptKey, out object? val) && val is int attempt ? attempt : 1;
+        ctx.TryGetValue(ATTEMPT_KEY, out object? val) && val is int attempt ? attempt : 1;
 
     private async Task<Result<TResponse, NetworkFailure>> ExecuteOperationWithLogging<TResponse>(
         Context ctx,
@@ -878,7 +878,7 @@ public sealed class RetryStrategy : IRetryStrategy
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error during SecrecyChannelRetryStrategy disposal");
+            Log.Error(ex, "ERROR during SecrecyChannelRetryStrategy disposal");
         }
     }
 }

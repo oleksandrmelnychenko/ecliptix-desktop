@@ -64,32 +64,32 @@ internal sealed class RatchetChainKey : IEquatable<RatchetChainKey>
 
     public static Result<Unit, EcliptixProtocolFailure> ReadKeyMaterial(RatchetChainKey chainKey, Span<byte> destination)
     {
-        if (destination.Length < Constants.X25519KeySize)
+        if (destination.Length < Constants.X_25519_KEY_SIZE)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.BufferTooSmall(
-                    $"Destination buffer must be at least {Constants.X25519KeySize} bytes, but was {destination.Length}."));
+                EcliptixProtocolFailure.BUFFER_TOO_SMALL(
+                    $"Destination buffer must be at least {Constants.X_25519_KEY_SIZE} bytes, but was {destination.Length}."));
         }
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(Constants.X25519KeySize);
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(Constants.X_25519_KEY_SIZE);
         try
         {
             Result<Unit, EcliptixProtocolFailure> result = chainKey.WithKeyMaterial<Unit>(keyMaterial =>
             {
-                keyMaterial[..Constants.X25519KeySize].CopyTo(buffer);
+                keyMaterial[..Constants.X_25519_KEY_SIZE].CopyTo(buffer);
                 return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
             });
 
             if (result.IsOk)
             {
-                buffer.AsSpan(0, Constants.X25519KeySize).CopyTo(destination);
+                buffer.AsSpan(0, Constants.X_25519_KEY_SIZE).CopyTo(destination);
             }
 
             return result;
         }
         finally
         {
-            Array.Clear(buffer, 0, Constants.X25519KeySize);
+            Array.Clear(buffer, 0, Constants.X_25519_KEY_SIZE);
             ArrayPool<byte>.Shared.Return(buffer);
         }
     }

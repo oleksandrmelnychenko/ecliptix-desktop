@@ -112,13 +112,13 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                                     if (result.IsErr)
                                     {
                                         Serilog.Log.Warning(
-                                            "[LANGUAGE-SELECTOR] Failed to persist culture setting. Culture: {Culture}, Error: {Error}",
+                                            "[LANGUAGE-SELECTOR] Failed to persist culture setting. CULTURE: {CULTURE}, ERROR: {ERROR}",
                                             item.Code, result.UnwrapErr().Message);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. Culture: {Culture}",
+                                    Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. CULTURE: {CULTURE}",
                                         item.Code);
                                 }
                             }).ContinueWith(

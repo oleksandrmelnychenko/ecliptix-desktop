@@ -34,17 +34,17 @@ internal sealed class OpaqueAuthenticationService(
     IServerPublicKeyProvider serverPublicKeyProvider)
     : IAuthenticationService, IDisposable
 {
-    private const int MaxAllowedZeroBytes = 12;
-    private const int MaxSignInFlowAttempts = 3;
+    private const int MAX_ALLOWED_ZERO_BYTES = 12;
+    private const int MAX_SIGN_IN_FLOW_ATTEMPTS = 3;
 
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
-        { OpaqueResult.INVALID_INPUT, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.CRYPTO_ERROR, AuthenticationConstants.CommonUnexpectedErrorKey },
-        { OpaqueResult.MEMORY_ERROR, AuthenticationConstants.CommonUnexpectedErrorKey },
-        { OpaqueResult.VALIDATION_ERROR, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.AUTHENTICATION_ERROR, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.INVALID_PUBLIC_KEY, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.INVALID_INPUT, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.CRYPTO_ERROR, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
+        { OpaqueResult.MEMORY_ERROR, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
+        { OpaqueResult.VALIDATION_ERROR, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.AUTHENTICATION_ERROR, AuthenticationConstants.INVALID_CREDENTIALS_KEY },
+        { OpaqueResult.INVALID_PUBLIC_KEY, AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY },
     };
 
     private readonly Lock _opaqueClientLock = new();
@@ -67,7 +67,7 @@ internal sealed class OpaqueAuthenticationService(
     {
         if (string.IsNullOrEmpty(mobileNumber))
         {
-            string mobileRequiredError = localizationService[AuthenticationConstants.MobileNumberRequiredKey];
+            string mobileRequiredError = localizationService[AuthenticationConstants.MOBILE_NUMBER_REQUIRED_KEY];
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.MobileNumberRequired(mobileRequiredError));
         }
@@ -83,7 +83,7 @@ internal sealed class OpaqueAuthenticationService(
             {
                 string errorMessage = createResult?.IsErr is true
                     ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
-                    : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+                    : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
                 return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(errorMessage));
             }
 
@@ -105,7 +105,7 @@ internal sealed class OpaqueAuthenticationService(
                     .ConfigureAwait(false);
             }
 
-            string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+            string requiredError = localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
             return Result<Unit, AuthenticationFailure>.Err(AuthenticationFailure.SecureKeyRequired(requiredError));
         }
         finally
@@ -119,12 +119,12 @@ internal sealed class OpaqueAuthenticationService(
         uint connectId,
         CancellationToken cancellationToken)
     {
-        const int maxProtocolRecreateAttempts = 3;
+        const int MAX_PROTOCOL_RECREATE_ATTEMPTS = 3;
         AuthenticationFailure? lastError = null;
 
         try
         {
-            for (int attempt = 1; attempt <= maxProtocolRecreateAttempts; attempt++)
+            for (int attempt = 1; attempt <= MAX_PROTOCOL_RECREATE_ATTEMPTS; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -143,15 +143,15 @@ internal sealed class OpaqueAuthenticationService(
 
                 bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
 
-                if (!isRetryableError || attempt >= maxProtocolRecreateAttempts)
+                if (!isRetryableError || attempt >= MAX_PROTOCOL_RECREATE_ATTEMPTS)
                 {
                     networkProvider.ExitOutage();
                     return Result<Unit, AuthenticationFailure>.Err(lastError);
                 }
 
                 Serilog.Log.Warning(
-                    "[PROTOCOL-RECREATE-RETRY] Failed to recreate authenticated protocol, retrying. Attempt {Attempt}/{MaxAttempts}, MembershipId: {MembershipId}",
-                    attempt + 1, maxProtocolRecreateAttempts, signInFlowResult.MembershipId);
+                    "[PROTOCOL-RECREATE-RETRY] Failed to recreate authenticated protocol, retrying. Attempt {Attempt}/{MAX_ATTEMPTS}, MembershipId: {MembershipId}",
+                    attempt + 1, MAX_PROTOCOL_RECREATE_ATTEMPTS, signInFlowResult.MembershipId);
 
                 networkProvider.ClearExhaustedOperations();
             }
@@ -181,8 +181,8 @@ internal sealed class OpaqueAuthenticationService(
             return false;
         }
 
-        return !string.IsNullOrWhiteSpace(failure.UserError.I18nKey) &&
-               string.Equals(failure.UserError.I18nKey, AuthenticationConstants.InvalidCredentialsKey,
+        return !string.IsNullOrWhiteSpace(failure.UserError.I_18N_KEY) &&
+               string.Equals(failure.UserError.I_18N_KEY, AuthenticationConstants.INVALID_CREDENTIALS_KEY,
                    StringComparison.OrdinalIgnoreCase);
     }
 
@@ -203,13 +203,13 @@ internal sealed class OpaqueAuthenticationService(
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-            string.Equals(userError.I18nKey, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(userError.I_18N_KEY) &&
+            string.Equals(userError.I_18N_KEY, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        return userError.ErrorCode == ErrorCode.DependencyUnavailable &&
+        return userError.ERROR_CODE == ERROR_CODE.DEPENDENCY_UNAVAILABLE &&
                failure.InnerException is RpcException { StatusCode: StatusCode.NotFound };
     }
 
@@ -231,7 +231,7 @@ internal sealed class OpaqueAuthenticationService(
 
     private static bool ValidateMembershipIdentifier(ByteString identifier)
     {
-        if (identifier.Length != CryptographicConstants.GuidByteLength)
+        if (identifier.Length != CryptographicConstants.GUID_BYTE_LENGTH)
         {
             return false;
         }
@@ -253,7 +253,7 @@ internal sealed class OpaqueAuthenticationService(
             }
         }
 
-        return hasNonZero && zeroCount <= MaxAllowedZeroBytes;
+        return hasNonZero && zeroCount <= MAX_ALLOWED_ZERO_BYTES;
     }
 
     private async Task<Result<SignInFlowResult, AuthenticationFailure>> ExecuteSignInFlowAsync(string mobileNumber,
@@ -262,7 +262,7 @@ internal sealed class OpaqueAuthenticationService(
     {
         AuthenticationFailure? lastError = null;
 
-        for (int attempt = 1; attempt <= MaxSignInFlowAttempts; attempt++)
+        for (int attempt = 1; attempt <= MAX_SIGN_IN_FLOW_ATTEMPTS; attempt++)
         {
             Result<SignInFlowResult, AuthenticationFailure> attemptResult =
                 await ExecuteSingleSignInAttemptAsync(mobileNumber, secureKey, connectId, cancellationToken)
@@ -283,8 +283,8 @@ internal sealed class OpaqueAuthenticationService(
             }
 
             Serilog.Log.Warning(
-                "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MaxAttempts}",
-                attempt + 1, MaxSignInFlowAttempts);
+                "[SIGNIN-FLOW-RETRY] Server state lost, restarting sign-in flow. Attempt {Attempt}/{MAX_ATTEMPTS}",
+                attempt + 1, MAX_SIGN_IN_FLOW_ATTEMPTS);
 
             networkProvider.ClearExhaustedOperations();
         }
@@ -529,7 +529,7 @@ internal sealed class OpaqueAuthenticationService(
     private bool ShouldRetrySignInAttempt(AuthenticationFailure failure, int attempt)
     {
         bool isRetryableError = failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
-        return isRetryableError && attempt < MaxSignInFlowAttempts;
+        return isRetryableError && attempt < MAX_SIGN_IN_FLOW_ATTEMPTS;
     }
 
     private bool ShouldAttemptReinit(AuthenticationFailure failure, bool allowReinit)
@@ -558,7 +558,7 @@ internal sealed class OpaqueAuthenticationService(
     {
         return OpaqueErrorMessages.TryGetValue(error, out string? key)
             ? localizationService[key]
-            : localizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+            : localizationService[AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY];
     }
 
     private async Task<Result<OpaqueSignInInitResponse, NetworkFailure>> SendInitRequestAsync(
@@ -624,7 +624,7 @@ internal sealed class OpaqueAuthenticationService(
         {
             string message = capturedResponse.HasMessage
                 ? capturedResponse.Message
-                : localizationService[AuthenticationConstants.InvalidCredentialsKey];
+                : localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY];
             return Result<SignInResult, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType(message));
         }
@@ -654,7 +654,7 @@ internal sealed class OpaqueAuthenticationService(
             return Result<byte[], AuthenticationFailure>.Ok(secureKeyCopy);
         }
 
-        string requiredError = localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+        string requiredError = localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
         return Result<byte[], AuthenticationFailure>.Err(
             AuthenticationFailure.SecureKeyRequired(requiredError));
     }
@@ -689,7 +689,7 @@ internal sealed class OpaqueAuthenticationService(
             if (masterKeyHandleResult.IsErr)
             {
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryAllocationFailed(masterKeyHandleResult.UnwrapErr().Message));
+                    AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED(masterKeyHandleResult.UnwrapErr().Message));
             }
 
             SodiumSecureMemoryHandle masterKeyHandle = masterKeyHandleResult.Unwrap();
@@ -702,7 +702,7 @@ internal sealed class OpaqueAuthenticationService(
 
             masterKeyHandle.Dispose();
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                AuthenticationFailure.SecureMemoryWriteFailed(writeResult.UnwrapErr().Message));
+                AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED(writeResult.UnwrapErr().Message));
         }
         finally
         {
@@ -728,7 +728,7 @@ internal sealed class OpaqueAuthenticationService(
             if (networkFailure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
             {
                 Serilog.Log.Error(
-                    "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, Error: {Error}",
+                    "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, ERROR: {ERROR}",
                     membershipId, networkFailure.Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.CriticalAuthenticationError(
@@ -736,7 +736,7 @@ internal sealed class OpaqueAuthenticationService(
             }
 
             Serilog.Log.Error(
-                "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, Error: {Error}",
+                "[LOGIN-PROTOCOL-RECREATE] Failed to recreate authenticated protocol. MembershipId: {MembershipId}, ERROR: {ERROR}",
                 membershipId, networkFailure.Message);
             return Result<Unit, AuthenticationFailure>.Err(
                 AuthenticationFailure.NetworkRequestFailed(
@@ -759,7 +759,7 @@ internal sealed class OpaqueAuthenticationService(
                 membershipId);
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
                 AuthenticationFailure.InvalidMembershipIdentifier(
-                    localizationService[AuthenticationConstants.InvalidCredentialsKey]));
+                    localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY]));
         }
 
         Result<byte[], SodiumFailure> masterKeyBytesResult =
@@ -788,7 +788,7 @@ internal sealed class OpaqueAuthenticationService(
         if (storeResult.IsErr)
         {
             Serilog.Log.Error(
-                "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, Error: {Error}",
+                "[LOGIN-IDENTITY-STORE-ERROR] Failed to store/verify master key. MembershipId: {MembershipId}, ERROR: {ERROR}",
                 membershipId, storeResult.UnwrapErr().Message);
             return Result<Unit, AuthenticationFailure>.Err(storeResult.UnwrapErr());
         }

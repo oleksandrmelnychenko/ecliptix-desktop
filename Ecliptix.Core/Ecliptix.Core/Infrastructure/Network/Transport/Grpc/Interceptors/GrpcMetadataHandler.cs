@@ -11,25 +11,25 @@ namespace Ecliptix.Core.Infrastructure.Network.Transport.Grpc.Interceptors;
 
 public static class GrpcMetadataHandler
 {
-    private const string RequestIdKey = "request-id";
-    private const string DateTimeKey = "request-date";
-    private const string LocalIpAddressKey = "local-ip-address";
-    private const string PublicIpAddressKey = "public-ip-address";
-    private const string LocaleKey = "lang";
-    private const string LinkIdKey = "fetch-link";
-    private const string ApplicationInstanceIdKey = "application-identifier";
-    private const string AppDeviceId = "d-identifier";
-    private const string PlatformKey = "platform";
-    private const string KeyExchangeContextTypeKey = "oiwfT6c5kOQsZozxhTBg";
-    private const string KeyExchangeContextTypeValue = "JmTGdGilMka07zyg5hz6Q";
-    private const string ConnectionContextId = "c-context-id";
-    private const string OperationContextId = "o-context-id";
+    private const string REQUEST_ID_KEY = "request-id";
+    private const string DATE_TIME_KEY = "request-date";
+    private const string LOCAL_IP_ADDRESS_KEY = "local-ip-address";
+    private const string PUBLIC_IP_ADDRESS_KEY = "public-ip-address";
+    private const string LOCALE_KEY = "lang";
+    private const string LINK_ID_KEY = "fetch-link";
+    private const string APPLICATION_INSTANCE_ID_KEY = "application-identifier";
+    private const string APP_DEVICE_ID = "d-identifier";
+    private const string PLATFORM_KEY = "platform";
+    private const string KEY_EXCHANGE_CONTEXT_TYPE_KEY = "oiwfT6c5kOQsZozxhTBg";
+    private const string KEY_EXCHANGE_CONTEXT_TYPE_VALUE = "JmTGdGilMka07zyg5hz6Q";
+    private const string CONNECTION_CONTEXT_ID = "c-context-id";
+    private const string OPERATION_CONTEXT_ID = "o-context-id";
 
     public static Metadata GenerateMetadata(
         string appInstanceId,
         string appDeviceId,
         string? culture,
-        PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect,
+        PubKeyExchangeType EXCHANGE_TYPE = PubKeyExchangeType.DataCenterEphemeralConnect,
         string? localIpAddress = null,
         string? publicIpAddress = null,
         string? platform = null,
@@ -37,18 +37,18 @@ public static class GrpcMetadataHandler
     {
         Metadata metadata = new()
         {
-            { RequestIdKey, Guid.NewGuid().ToString() },
-            { DateTimeKey, DateTimeOffset.UtcNow.ToString("O") },
-            { LocalIpAddressKey, localIpAddress ?? GetLocalIpAddress() },
-            { PublicIpAddressKey, publicIpAddress ?? GetPublicIpAddress() },
-            { LocaleKey, culture ?? "en-US" },
-            { LinkIdKey, GenerateLinkId() },
-            { ApplicationInstanceIdKey, appInstanceId },
-            { AppDeviceId, appDeviceId },
-            { PlatformKey, platform ?? GetPlatform() },
-            { KeyExchangeContextTypeKey, KeyExchangeContextTypeValue },
-            { ConnectionContextId, exchangeType.ToString() },
-            { OperationContextId, string.Empty }
+            { REQUEST_ID_KEY, Guid.NewGuid().ToString() },
+            { DATE_TIME_KEY, DateTimeOffset.UtcNow.ToString("O") },
+            { LOCAL_IP_ADDRESS_KEY, localIpAddress ?? GetLocalIpAddress() },
+            { PUBLIC_IP_ADDRESS_KEY, publicIpAddress ?? GetPublicIpAddress() },
+            { LOCALE_KEY, culture ?? "en-US" },
+            { LINK_ID_KEY, GenerateLinkId() },
+            { APPLICATION_INSTANCE_ID_KEY, appInstanceId },
+            { APP_DEVICE_ID, appDeviceId },
+            { PLATFORM_KEY, platform ?? GetPlatform() },
+            { KEY_EXCHANGE_CONTEXT_TYPE_KEY, KEY_EXCHANGE_CONTEXT_TYPE_VALUE },
+            { CONNECTION_CONTEXT_ID, EXCHANGE_TYPE.ToString() },
+            { OPERATION_CONTEXT_ID, string.Empty }
         };
 
         return metadata;

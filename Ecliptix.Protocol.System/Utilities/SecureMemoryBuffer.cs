@@ -25,7 +25,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
         Result<SodiumSecureMemoryHandle, SodiumFailure> result = SodiumSecureMemoryHandle.Allocate(allocatedSize);
         if (result.IsErr)
         {
-            throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToAllocateSecureMemory + result.UnwrapErr());
+            throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FAILED_TO_ALLOCATE_SECURE_MEMORY + result.UnwrapErr());
         }
 
         _handle = result.Unwrap();
@@ -35,7 +35,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
     {
         if (requestedSize > _allocatedSize)
         {
-            throw new ArgumentException(string.Format(ProtocolSystemConstants.ErrorMessages.RequestedSizeExceedsAllocated, requestedSize, _allocatedSize));
+            throw new ArgumentException(string.Format(ProtocolSystemConstants.ErrorMessages.REQUESTED_SIZE_EXCEEDS_ALLOCATED, requestedSize, _allocatedSize));
         }
 
         _requestedSize = requestedSize;
@@ -49,7 +49,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
             Result<Unit, SodiumFailure> readResult = _handle.Read(tempBuffer.AsSpan());
             if (readResult.IsErr)
             {
-                throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FailedToReadSecureMemory + readResult.UnwrapErr());
+                throw new InvalidOperationException(ProtocolSystemConstants.ErrorMessages.FAILED_TO_READ_SECURE_MEMORY + readResult.UnwrapErr());
             }
 
             byte[] result = new byte[Length];
@@ -65,7 +65,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
         if (_disposed)
         {
             return Result<int, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BUFFER_DISPOSED));
         }
 
         int bytesToRead = Math.Min(destination.Length, Length);
@@ -86,7 +86,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
         if (_disposed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BufferDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.BUFFER_DISPOSED));
         }
 
         return _handle.Read(destination);
@@ -99,7 +99,7 @@ internal sealed class SecureMemoryBuffer : IDisposable
             return;
         }
 
-        Span<byte> zeros = stackalloc byte[Math.Min(AllocatedSize, ProtocolSystemConstants.MemoryPool.SecureWipeChunkSize)];
+        Span<byte> zeros = stackalloc byte[Math.Min(AllocatedSize, ProtocolSystemConstants.MemoryPool.SECURE_WIPE_CHUNK_SIZE)];
         zeros.Clear();
 
         for (int offset = 0; offset < AllocatedSize; offset += zeros.Length)

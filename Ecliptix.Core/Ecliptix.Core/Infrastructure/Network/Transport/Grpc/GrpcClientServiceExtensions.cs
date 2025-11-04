@@ -27,11 +27,11 @@ public static class GrpcClientServiceExtensions
     {
         DefaultSystemSettings settings = serviceProvider.GetRequiredService<IOptions<DefaultSystemSettings>>().Value;
 
-        string endpoint = settings.DataCenterConnectionString;
+        string endpoint = settings.DATA_CENTER_CONNECTION_STRING;
 
         if (string.IsNullOrEmpty(endpoint))
         {
-            throw new InvalidOperationException("gRPC DataCenterConnectionString is not configured.");
+            throw new InvalidOperationException("gRPC DATA_CENTER_CONNECTION_STRING is not configured.");
         }
 
         options.Address = new Uri(endpoint);

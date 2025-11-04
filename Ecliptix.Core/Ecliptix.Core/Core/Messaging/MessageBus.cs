@@ -141,7 +141,7 @@ public sealed class MessageBus : IMessageBus
             timeoutCts.CancelAfter(timeout);
 
             IDisposable responseSubscription = Subscribe<TResponse>(
-                response => response.CorrelationId == request.MessageId,
+                response => response.CORRELATION_ID == request.MessageId,
                 response =>
                 {
                     tcs.SetResult(response);

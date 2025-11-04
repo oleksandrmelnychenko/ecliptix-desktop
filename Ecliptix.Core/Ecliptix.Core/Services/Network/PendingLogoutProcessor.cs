@@ -56,13 +56,13 @@ internal sealed class PendingLogoutProcessor(
             if (networkResult.IsOk)
             {
                 await responseCompletionSource.Task.ConfigureAwait(false);
-                pendingLogoutStorage.ClearPendingLogout();
+                pendingLogoutStorage.CLEAR_PENDING_LOGOUT();
             }
             else
             {
-                Log.Warning("[PENDING-LOGOUT-RETRY] Failed to send pending logout request: {Error}. Deleting corrupted expired pending logout",
+                Log.Warning("[PENDING-LOGOUT-RETRY] Failed to send pending logout request: {ERROR}. Deleting corrupted expired pending logout",
                     networkResult.UnwrapErr().Message);
-                pendingLogoutStorage.ClearPendingLogout();
+                pendingLogoutStorage.CLEAR_PENDING_LOGOUT();
                 Task.Run(async () =>
                 {
                     try
@@ -97,7 +97,7 @@ internal sealed class PendingLogoutProcessor(
 
         if (ensureResult.IsErr)
         {
-            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
+            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {ERROR}",
                 ensureResult.UnwrapErr().Message);
         }
     }

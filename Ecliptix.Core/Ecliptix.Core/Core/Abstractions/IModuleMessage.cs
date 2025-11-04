@@ -14,7 +14,7 @@ public interface IModuleMessage
 
     string MessageType { get; }
 
-    string? CorrelationId { get; }
+    string? CORRELATION_ID { get; }
 }
 
 public abstract record ModuleMessage : IModuleMessage
@@ -24,7 +24,7 @@ public abstract record ModuleMessage : IModuleMessage
     public string? TargetModule { get; init; }
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
     public abstract string MessageType { get; }
-    public string? CorrelationId { get; init; }
+    public string? CORRELATION_ID { get; init; }
 }
 public abstract record ModuleRequest : ModuleMessage
 {

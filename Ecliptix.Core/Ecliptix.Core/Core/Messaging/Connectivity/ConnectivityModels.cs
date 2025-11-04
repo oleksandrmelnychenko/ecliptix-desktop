@@ -11,7 +11,7 @@ public readonly record struct ConnectivitySnapshot(
     uint? ConnectId,
     int? RetryAttempt,
     TimeSpan? RetryBackoff,
-    Guid CorrelationId,
+    Guid CORRELATION_ID,
     DateTime OccurredAt)
 {
     public static readonly ConnectivitySnapshot Initial = new(
@@ -34,7 +34,7 @@ public readonly record struct ConnectivityIntent(
     uint? ConnectId = null,
     int? RetryAttempt = null,
     TimeSpan? RetryBackoff = null,
-    Guid? CorrelationId = null)
+    Guid? CORRELATION_ID = null)
 {
     public static ConnectivityIntent Connected(uint? connectId = null, ConnectivityReason reason = ConnectivityReason.HandshakeSucceeded) =>
         new(ConnectivityStatus.Connected, reason, ConnectivitySource.DataCenter, null, connectId);

@@ -34,9 +34,9 @@ public sealed class ApplicationRouter(
     IApplicationSecureStorageProvider applicationSecureStorageProvider,
     MainWindowViewModel mainWindowViewModel) : IApplicationRouter
 {
-    private const int FadeDurationMs = 500;
-    private const int WindowShowDelayMs = 50;
-    private const int FrameDelayMs = 16;
+    private const int FADE_DURATION_MS = 500;
+    private const int WINDOW_SHOW_DELAY_MS = 50;
+    private const int FRAME_DELAY_MS = 16;
 
     public async Task NavigateToAuthenticationAsync()
     {
@@ -44,14 +44,14 @@ public sealed class ApplicationRouter(
 
         if (!authModuleOption.IsSome)
         {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE);
         }
 
         IModule authModule = authModuleOption.Value!;
 
         if (authModule.ServiceScope?.ServiceProvider == null)
         {
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadAuthModule);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_AUTH_MODULE);
         }
 
         AuthenticationViewModel? membershipViewModel =
@@ -60,7 +60,7 @@ public sealed class ApplicationRouter(
         if (membershipViewModel == null)
         {
             throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                .FailedToCreateMembershipViewModel);
+                .FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
         }
 
         await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
@@ -77,7 +77,7 @@ public sealed class ApplicationRouter(
         if (!mainModuleOption.IsSome)
         {
             Log.Error("[ROUTER-NAV] Failed to load Main module");
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModule);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
         }
 
         IModule mainModule = mainModuleOption.Value!;
@@ -85,7 +85,7 @@ public sealed class ApplicationRouter(
         if (mainModule.ServiceScope?.ServiceProvider == null)
         {
             Log.Error("[ROUTER-NAV] Failed to load Main module");
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToLoadMainModule);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_LOAD_MAIN_MODULE);
         }
 
         MasterViewModel? mainViewModel =
@@ -94,7 +94,7 @@ public sealed class ApplicationRouter(
         if (mainViewModel == null)
         {
             Log.Error("[ROUTER-NAV] Failed to create MasterViewModel");
-            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FailedToCreateMainViewModel);
+            throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter.FAILED_TO_CREATE_MAIN_VIEW_MODEL);
         }
 
         Log.Debug("[ROUTER-NAV] Setting main content in MainWindow");
@@ -120,7 +120,7 @@ public sealed class ApplicationRouter(
             if (!mainModuleOption.IsSome || mainModuleOption.Value!.ServiceScope?.ServiceProvider == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FailedToLoadMainModuleFromSplash);
+                    .FAILED_TO_LOAD_MAIN_MODULE_FROM_SPLASH);
             }
 
             IModule mainModule = mainModuleOption.Value!;
@@ -131,7 +131,7 @@ public sealed class ApplicationRouter(
             if (mainViewModel == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FailedToCreateMainViewModel);
+                    .FAILED_TO_CREATE_MAIN_VIEW_MODEL);
             }
 
             await mainWindowViewModel.SetMainContentAsync(mainViewModel).ConfigureAwait(false);
@@ -143,7 +143,7 @@ public sealed class ApplicationRouter(
             if (!authModuleOption.IsSome || authModuleOption.Value!.ServiceScope?.ServiceProvider == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FailedToLoadAuthModuleFromSplash);
+                    .FAILED_TO_LOAD_AUTH_MODULE_FROM_SPLASH);
             }
 
             IModule authModule = authModuleOption.Value!;
@@ -154,7 +154,7 @@ public sealed class ApplicationRouter(
             if (membershipViewModel == null)
             {
                 throw new InvalidOperationException(ApplicationErrorMessages.ApplicationRouter
-                    .FailedToCreateMembershipViewModel);
+                    .FAILED_TO_CREATE_MEMBERSHIP_VIEW_MODEL);
             }
 
             await mainWindowViewModel.SetAuthenticationContentAsync(membershipViewModel).ConfigureAwait(false);
@@ -173,23 +173,23 @@ public sealed class ApplicationRouter(
             window.Opacity = 0;
             window.Show();
         });
-        await Task.Delay(WindowShowDelayMs).ConfigureAwait(false);
+        await Task.Delay(WINDOW_SHOW_DELAY_MS).ConfigureAwait(false);
     }
 
     private async Task PerformFadeTransitionAsync(Window fromWindow, Window toWindow)
     {
-        TimeSpan duration = TimeSpan.FromMilliseconds(FadeDurationMs);
+        TimeSpan duration = TimeSpan.FromMilliseconds(FADE_DURATION_MS);
         DateTime start = DateTime.UtcNow;
 
         while (DateTime.UtcNow - start < duration)
         {
-            double progress = (DateTime.UtcNow - start).TotalMilliseconds / FadeDurationMs;
+            double progress = (DateTime.UtcNow - start).TotalMilliseconds / FADE_DURATION_MS;
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 fromWindow.Opacity = 1 - progress;
                 toWindow.Opacity = progress;
             });
-            await Task.Delay(FrameDelayMs).ConfigureAwait(false);
+            await Task.Delay(FRAME_DELAY_MS).ConfigureAwait(false);
         }
 
         await Dispatcher.UIThread.InvokeAsync(() =>

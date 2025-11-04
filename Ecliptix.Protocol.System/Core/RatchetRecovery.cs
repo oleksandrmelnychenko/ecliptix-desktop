@@ -18,7 +18,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
         if (_disposed)
         {
             return Result<T, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.ObjectDisposed(nameof(RatchetRecovery)));
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(RatchetRecovery)));
         }
 
         lock (_lock)
@@ -48,7 +48,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
         if (_disposed)
         {
             return Result<Option<RatchetChainKey>, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.ObjectDisposed(nameof(RatchetRecovery)));
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(RatchetRecovery)));
         }
 
         lock (_lock)
@@ -73,7 +73,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
         if (_disposed)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.ObjectDisposed(nameof(RatchetRecovery)));
+                EcliptixProtocolFailure.OBJECT_DISPOSED(nameof(RatchetRecovery)));
         }
 
         if (toIndex <= fromIndex)
@@ -92,7 +92,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
             }
 
             using ScopedSecureMemoryCollection secureMemory = new();
-            ScopedSecureMemory chainKeyMemory = secureMemory.Allocate(Constants.X25519KeySize);
+            ScopedSecureMemory chainKeyMemory = secureMemory.Allocate(Constants.X_25519_KEY_SIZE);
             currentChainKey.CopyTo(chainKeyMemory.AsSpan());
 
             for (uint i = fromIndex; i < toIndex; i++)
@@ -121,7 +121,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
         uint messageIndex)
     {
         Result<SodiumSecureMemoryHandle, SodiumFailure> secureHandleResult =
-            SodiumSecureMemoryHandle.Allocate(Constants.X25519KeySize);
+            SodiumSecureMemoryHandle.Allocate(Constants.X_25519_KEY_SIZE);
 
         if (secureHandleResult.IsErr)
         {
@@ -131,7 +131,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
 
         SodiumSecureMemoryHandle secureHandle = secureHandleResult.Unwrap();
 
-        using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
+        using SecurePooledArray<byte> msgKey = SecureArrayPool.Rent<byte>(Constants.X_25519_KEY_SIZE);
 
         HKDF.DeriveKey(
             HashAlgorithmName.SHA256,
@@ -154,7 +154,7 @@ internal sealed class RatchetRecovery(uint maxSkippedMessages = 1000) : IKeyProv
 
     private static Result<Unit, EcliptixProtocolFailure> AdvanceChainKey(Span<byte> chainKey)
     {
-        using SecurePooledArray<byte> nextChainKey = SecureArrayPool.Rent<byte>(Constants.X25519KeySize);
+        using SecurePooledArray<byte> nextChainKey = SecureArrayPool.Rent<byte>(Constants.X_25519_KEY_SIZE);
 
         HKDF.DeriveKey(
             HashAlgorithmName.SHA256,

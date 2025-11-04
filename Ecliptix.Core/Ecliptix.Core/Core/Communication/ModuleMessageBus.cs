@@ -13,7 +13,7 @@ namespace Ecliptix.Core.Core.Communication;
 
 public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 {
-    private const int MaxProcessingTimesSamples = 1000;
+    private const int MAX_PROCESSING_TIMES_SAMPLES = 1000;
 
     private readonly ConcurrentDictionary<Type, ConcurrentBag<IMessageSubscription>> _subscriptions = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<IModuleMessage>> _pendingRequests = new();
@@ -167,9 +167,9 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
 
     private async Task ProcessSingleMessageAsync(IModuleMessage message)
     {
-        if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CorrelationId))
+        if (message is ModuleResponse response && !string.IsNullOrEmpty(response.CORRELATION_ID))
         {
-            if (_pendingRequests.TryGetValue(response.CorrelationId, out TaskCompletionSource<IModuleMessage>? tcs))
+            if (_pendingRequests.TryGetValue(response.CORRELATION_ID, out TaskCompletionSource<IModuleMessage>? tcs))
             {
                 tcs.SetResult(response);
                 return;
@@ -206,7 +206,7 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
     {
         _processingTimes.Enqueue(processingTimeMs);
 
-        while (_processingTimes.Count > MaxProcessingTimesSamples)
+        while (_processingTimes.Count > MAX_PROCESSING_TIMES_SAMPLES)
         {
             _processingTimes.TryDequeue(out _);
         }

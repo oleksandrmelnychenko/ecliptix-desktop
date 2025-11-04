@@ -7,7 +7,7 @@ namespace Ecliptix.Security.Certificate.Pinning.Native;
 
 internal static unsafe class CertificatePinningNativeLibrary
 {
-    private const string LibraryName = CertificatePinningConstants.LibraryNames.SslPinning;
+    private const string LIBRARY_NAME = CertificatePinningConstants.LibraryNames.SSL_PINNING;
 
     static CertificatePinningNativeLibrary()
     {
@@ -18,7 +18,7 @@ internal static unsafe class CertificatePinningNativeLibrary
     [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with RequiresUnreferencedCodeAttribute require dynamic access otherwise can break when trimming application code", Justification = "Assembly.GetExecutingAssembly is AOT-safe")]
     private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName != LibraryName)
+        if (libraryName != LIBRARY_NAME)
         {
             return IntPtr.Zero;
         }
@@ -34,12 +34,12 @@ internal static unsafe class CertificatePinningNativeLibrary
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             extension = ".dylib";
-            fileName = $"{LibraryName}{extension}";
+            fileName = $"{LIBRARY_NAME}{extension}";
         }
         else
         {
             extension = ".so";
-            fileName = $"{LibraryName}{extension}";
+            fileName = $"{LIBRARY_NAME}{extension}";
         }
 
         string[] searchPaths =
@@ -80,31 +80,31 @@ internal static unsafe class CertificatePinningNativeLibrary
         return "linux-x64";
     }
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_init", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_init", CallingConvention = CallingConvention.Cdecl)]
     public static extern CertificatePinningNativeResult Initialize();
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_cleanup", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_cleanup", CallingConvention = CallingConvention.Cdecl)]
     public static extern void Cleanup();
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_verify", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_verify", CallingConvention = CallingConvention.Cdecl)]
     public static extern CertificatePinningNativeResult VerifySignature(
         byte* data, nuint dataLen,
         byte* signature, nuint signatureLen);
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_encrypt", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_encrypt", CallingConvention = CallingConvention.Cdecl)]
     public static extern CertificatePinningNativeResult Encrypt(
         byte* plaintext, nuint plaintextLen,
         byte* ciphertext, nuint* ciphertextLen);
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_decrypt", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_decrypt", CallingConvention = CallingConvention.Cdecl)]
     public static extern CertificatePinningNativeResult Decrypt(
         byte* ciphertext, nuint ciphertextLen,
         byte* plaintext, nuint* plaintextLen);
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_get_public_key", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_get_public_key", CallingConvention = CallingConvention.Cdecl)]
     public static extern CertificatePinningNativeResult GetPublicKey(
         byte* publicKeyDer, nuint* publicKeyLen);
 
-    [DllImport(LibraryName, EntryPoint = "ecliptix_client_get_error", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY_NAME, EntryPoint = "ecliptix_client_get_error", CallingConvention = CallingConvention.Cdecl)]
     public static extern byte* GetErrorMessage();
 }

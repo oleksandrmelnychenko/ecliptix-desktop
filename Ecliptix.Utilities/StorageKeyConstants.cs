@@ -4,12 +4,12 @@ internal static class StorageKeyConstants
 {
     internal static class SessionContext
     {
-        public const string SignInSession = "ecliptix-signin-session";
-        public const string SessionKeyPrefix = "ecliptix-session-key";
-        public const string MasterSalt = "ECLIPTIX_MSTR_V1";
-        public const string DomainContext = "ECLIPTIX_MASTER_KEY";
-        public const string Ed25519Context = "ED25519";
-        public const string X25519Context = "X25519";
-        public const string SignedPreKeyContext = "SPK_X25519";
+        public const string SIGN_IN_SESSION = "ecliptix-signin-session";
+        public const string SESSION_KEY_PREFIX = "ecliptix-session-key";
+        public const string MASTER_SALT = "ECLIPTIX_MSTR_V1";
+        public const string DOMAIN_CONTEXT = "ECLIPTIX_MASTER_KEY";
+        public const string ED_25519_CONTEXT = "ED25519";
+        public const string X_25519_CONTEXT = "X25519";
+        public const string SIGNED_PRE_KEY_CONTEXT = "SPK_X25519";
     }
 }

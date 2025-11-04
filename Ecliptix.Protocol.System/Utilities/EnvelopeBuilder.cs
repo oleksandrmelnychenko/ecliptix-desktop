@@ -149,10 +149,10 @@ internal static class EnvelopeBuilder
             metadataBytes = metadata.ToByteArray();
 
             ciphertext = new byte[metadataBytes.Length];
-            tag = new byte[Constants.AesGcmTagSize];
+            tag = new byte[Constants.AES_GCM_TAG_SIZE];
 
             using (global::System.Security.Cryptography.AesGcm aesGcm =
-                new(headerEncryptionKey, Constants.AesGcmTagSize))
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
             {
                 aesGcm.Encrypt(headerNonce, metadataBytes, ciphertext, tag, associatedData);
             }
@@ -196,11 +196,11 @@ internal static class EnvelopeBuilder
         byte[]? plaintext = null;
         try
         {
-            int cipherLength = encryptedMetadata.Length - Constants.AesGcmTagSize;
+            int cipherLength = encryptedMetadata.Length - Constants.AES_GCM_TAG_SIZE;
             if (cipherLength < 0)
             {
                 return Result<EnvelopeMetadata, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.BufferTooSmall("Encrypted metadata too small"));
+                    EcliptixProtocolFailure.BUFFER_TOO_SMALL("Encrypted metadata too small"));
             }
 
             ReadOnlySpan<byte> ciphertextSpan = encryptedMetadata.AsSpan(0, cipherLength);
@@ -209,7 +209,7 @@ internal static class EnvelopeBuilder
             plaintext = new byte[cipherLength];
 
             using (global::System.Security.Cryptography.AesGcm aesGcm =
-                new(headerEncryptionKey, Constants.AesGcmTagSize))
+                new(headerEncryptionKey, Constants.AES_GCM_TAG_SIZE))
             {
                 aesGcm.Decrypt(headerNonce, ciphertextSpan, tagSpan, plaintext, associatedData);
             }

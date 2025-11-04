@@ -13,9 +13,9 @@ public sealed class SodiumFailure
     public string Message { get; }
     public Exception? InnerException { get; }
 
-    public static SodiumFailure InitializationFailed(string details, Exception? inner = null)
+    public static SodiumFailure INITIALIZATION_FAILED(string details, Exception? inner = null)
     {
-        return new SodiumFailure(SodiumFailureType.InitializationFailed, details, inner);
+        return new SodiumFailure(SodiumFailureType.INITIALIZATION_FAILED, details, inner);
     }
 
     public static SodiumFailure ComparisonFailed(string details, Exception? inner = null)
@@ -28,9 +28,9 @@ public sealed class SodiumFailure
         return new SodiumFailure(SodiumFailureType.LibraryNotFound, details, inner);
     }
 
-    public static SodiumFailure AllocationFailed(string details, Exception? inner = null)
+    public static SodiumFailure ALLOCATION_FAILED(string details, Exception? inner = null)
     {
-        return new SodiumFailure(SodiumFailureType.AllocationFailed, details, inner);
+        return new SodiumFailure(SodiumFailureType.ALLOCATION_FAILED, details, inner);
     }
 
     public static SodiumFailure MemoryPinningFailed(string details, Exception? inner = null)
@@ -38,9 +38,9 @@ public sealed class SodiumFailure
         return new SodiumFailure(SodiumFailureType.MemoryPinningFailed, details, inner);
     }
 
-    public static SodiumFailure SecureWipeFailed(string details, Exception? inner = null)
+    public static SodiumFailure SECURE_WIPE_FAILED(string details, Exception? inner = null)
     {
-        return new SodiumFailure(SodiumFailureType.SecureWipeFailed, details, inner);
+        return new SodiumFailure(SodiumFailureType.SECURE_WIPE_FAILED, details, inner);
     }
 
     public static SodiumFailure MemoryProtectionFailed(string details, Exception? inner = null)
@@ -58,14 +58,14 @@ public sealed class SodiumFailure
         return new SodiumFailure(SodiumFailureType.InvalidBufferSize, details);
     }
 
-    public static SodiumFailure BufferTooSmall(string details)
+    public static SodiumFailure BUFFER_TOO_SMALL(string details)
     {
-        return new SodiumFailure(SodiumFailureType.BufferTooSmall, details);
+        return new SodiumFailure(SodiumFailureType.BUFFER_TOO_SMALL, details);
     }
 
-    public static SodiumFailure BufferTooLarge(string details)
+    public static SodiumFailure BUFFER_TOO_LARGE(string details)
     {
-        return new SodiumFailure(SodiumFailureType.BufferTooLarge, details);
+        return new SodiumFailure(SodiumFailureType.BUFFER_TOO_LARGE, details);
     }
 
     public static SodiumFailure InvalidOperation(string details)
@@ -73,7 +73,7 @@ public sealed class SodiumFailure
         return new SodiumFailure(SodiumFailureType.InvalidBufferSize, details);
     }
 
-    public static SodiumFailure ObjectDisposed(string details)
+    public static SodiumFailure OBJECT_DISPOSED(string details)
     {
         return new SodiumFailure(SodiumFailureType.NullPointer, details);
     }

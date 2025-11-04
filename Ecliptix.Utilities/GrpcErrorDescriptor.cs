@@ -3,11 +3,11 @@ using Grpc.Core;
 namespace Ecliptix.Utilities;
 
 public sealed record GrpcErrorDescriptor(
-    ErrorCode ErrorCode,
+    ERROR_CODE ERROR_CODE,
     StatusCode StatusCode,
-    string I18nKey,
-    bool Retryable = false,
-    int? RetryAfterMilliseconds = null)
+    string I_18N_KEY,
+    bool RETRYABLE = false,
+    int? RETRY_AFTER_MILLISECONDS = null)
 {
     public Status CreateStatus(string message) => new(StatusCode, message);
 }

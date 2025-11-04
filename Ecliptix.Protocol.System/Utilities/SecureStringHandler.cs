@@ -64,7 +64,7 @@ internal sealed class SecureStringHandler : IDisposable
         if (_disposed)
         {
             return Result<T, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringHandlerDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_HANDLER_DISPOSED));
         }
 
         byte[]? tempBytes = null;
@@ -112,11 +112,11 @@ internal sealed class SecureStringBuilder : IDisposable
     private int _totalLength;
     private bool _disposed;
 
-    public SecureStringBuilder(int chunkSize = ProtocolSystemConstants.MemoryPool.SecureStringBuilderDefaultChunkSize)
+    public SecureStringBuilder(int chunkSize = ProtocolSystemConstants.MemoryPool.SECURE_STRING_BUILDER_DEFAULT_CHUNK_SIZE)
     {
         if (chunkSize <= 0)
         {
-            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.ChunkSizePositive, nameof(chunkSize));
+            throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.CHUNK_SIZE_POSITIVE, nameof(chunkSize));
         }
 
         _chunks = new List<SodiumSecureMemoryHandle>();
@@ -130,7 +130,7 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         Span<byte> bytes = stackalloc byte[4];
@@ -144,7 +144,7 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<Unit, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         if (string.IsNullOrEmpty(str))
@@ -205,13 +205,13 @@ internal sealed class SecureStringBuilder : IDisposable
         if (_disposed)
         {
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderDisposed));
+                SodiumFailure.NullPointer(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_DISPOSED));
         }
 
         if (_totalLength == 0)
         {
             return Result<SecureStringHandler, SodiumFailure>.Err(
-                SodiumFailure.InvalidBufferSize(ProtocolSystemConstants.ErrorMessages.SecureStringBuilderNoData));
+                SodiumFailure.InvalidBufferSize(ProtocolSystemConstants.ErrorMessages.SECURE_STRING_BUILDER_NO_DATA));
         }
 
         Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult = SodiumSecureMemoryHandle.Allocate(_totalLength);

@@ -115,7 +115,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[SIGNIN-ENTERKEY] Error handling enter key press");
+            Log.Error(ex, "[SIGNIN-ENTERKEY] ERROR handling enter key press");
         }
     }
 
@@ -322,7 +322,7 @@ public sealed class SignInViewModel : Core.MVVM.ViewModelBase, IRoutableViewMode
 
     private string ValidateSecureKey() =>
         _secureKeyBuffer.Length == 0
-            ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.Required]
+            ? LocalizationService[SecureKeyValidatorConstants.LocalizationKeys.REQUIRED]
             : string.Empty;
 
     private void CancelSignInOperation()

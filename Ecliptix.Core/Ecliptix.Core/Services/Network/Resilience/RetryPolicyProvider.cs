@@ -38,7 +38,7 @@ public sealed class RetryPolicyProvider(RetryStrategyConfiguration retryStrategy
         return new RetryBehavior
         {
             ShouldRetry = config.ShouldRetry,
-            MaxAttempts = retryStrategyConfiguration.MaxRetries,
+            MAX_ATTEMPTS = retryStrategyConfiguration.MAX_RETRIES,
             ReinitOnCompleteFailure = config.ReinitOnCompleteFailure
         };
     }

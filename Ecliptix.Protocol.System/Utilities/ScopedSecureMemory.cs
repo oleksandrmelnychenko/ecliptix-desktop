@@ -16,7 +16,7 @@ internal sealed class ScopedSecureMemory : IDisposable
 
     public static ScopedSecureMemory Allocate(int size)
     {
-        return size <= 0 ? throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.SizePositive, nameof(size)) : new ScopedSecureMemory(new byte[size]);
+        return size <= 0 ? throw new ArgumentException(ProtocolSystemConstants.ErrorMessages.SIZE_POSITIVE, nameof(size)) : new ScopedSecureMemory(new byte[size]);
     }
 
     public static ScopedSecureMemory Wrap(byte[] data, bool clearOnDispose = true)

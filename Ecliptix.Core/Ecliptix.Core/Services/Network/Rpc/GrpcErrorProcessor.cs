@@ -42,9 +42,9 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
     {
         Metadata trailers = rpcException.Trailers;
 
-        ErrorCode errorCode = ParseErrorCode(rpcException, trailers);
+        ERROR_CODE errorCode = ParseErrorCode(rpcException, trailers);
         (string message, string keyUsed) = ResolveMessage(
-            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I18nKey),
+            GetMetadataValue(trailers, GrpcErrorMetadataKeys.I_18N_KEY),
             errorCode,
             rpcException.Status.Detail);
 
@@ -56,8 +56,8 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         }
 
         int? retryAfter = ParseRetryAfter(trailers);
-        string? correlationId = GetMetadataValue(trailers, GrpcErrorMetadataKeys.CorrelationId);
-        string? locale = GetMetadataValue(trailers, GrpcErrorMetadataKeys.Locale);
+        string? correlationId = GetMetadataValue(trailers, GrpcErrorMetadataKeys.CORRELATION_ID);
+        string? locale = GetMetadataValue(trailers, GrpcErrorMetadataKeys.LOCALE);
 
         return new UserFacingError(
             errorCode,
@@ -70,16 +70,16 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             rpcException.StatusCode);
     }
 
-    private ErrorCode ParseErrorCode(RpcException rpcException, Metadata trailers)
+    private ERROR_CODE ParseErrorCode(RpcException rpcException, Metadata trailers)
     {
         if (GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return ErrorCode.DependencyUnavailable;
+            return ERROR_CODE.DEPENDENCY_UNAVAILABLE;
         }
 
-        string? rawCode = GetMetadataValue(trailers, GrpcErrorMetadataKeys.ErrorCode);
+        string? rawCode = GetMetadataValue(trailers, GrpcErrorMetadataKeys.ERROR_CODE);
         if (!string.IsNullOrWhiteSpace(rawCode) &&
-            Enum.TryParse(rawCode, ignoreCase: true, out ErrorCode parsed))
+            Enum.TryParse(rawCode, ignoreCase: true, out ERROR_CODE parsed))
         {
             return parsed;
         }
@@ -87,7 +87,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
         return MapStatusCode(rpcException.StatusCode);
     }
 
-    private (string Message, string KeyUsed) ResolveMessage(string? requestedKey, ErrorCode errorCode,
+    private (string Message, string KeyUsed) ResolveMessage(string? requestedKey, ERROR_CODE errorCode,
         string statusDetail)
     {
         if (!string.IsNullOrWhiteSpace(requestedKey))
@@ -111,13 +111,13 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             return (statusDetail, fallbackKey);
         }
 
-        string internalMessage = Localize(ErrorI18nKeys.Internal);
+        string internalMessage = Localize(ErrorI18nKeys.INTERNAL);
         if (IsMissing(internalMessage))
         {
             internalMessage = "An unexpected error occurred";
         }
 
-        return (internalMessage, ErrorI18nKeys.Internal);
+        return (internalMessage, ErrorI18nKeys.INTERNAL);
     }
 
     private string Localize(string key)
@@ -140,7 +140,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static bool? ParseRetryable(Metadata trailers)
     {
-        string? retryableValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.Retryable);
+        string? retryableValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RETRYABLE);
         if (string.IsNullOrWhiteSpace(retryableValue))
         {
             return null;
@@ -151,7 +151,7 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
     private static int? ParseRetryAfter(Metadata trailers)
     {
-        string? retryAfterValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RetryAfterMilliseconds);
+        string? retryAfterValue = GetMetadataValue(trailers, GrpcErrorMetadataKeys.RETRY_AFTER_MILLISECONDS);
         if (string.IsNullOrWhiteSpace(retryAfterValue))
         {
             return null;
@@ -178,50 +178,50 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
     private static bool IsTransientStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;
 
-    private static ErrorCode MapStatusCode(StatusCode statusCode) =>
+    private static ERROR_CODE MapStatusCode(StatusCode statusCode) =>
         statusCode switch
         {
-            StatusCode.InvalidArgument or StatusCode.OutOfRange => ErrorCode.ValidationFailed,
-            StatusCode.NotFound => ErrorCode.NotFound,
-            StatusCode.AlreadyExists => ErrorCode.AlreadyExists,
-            StatusCode.PermissionDenied => ErrorCode.PermissionDenied,
-            StatusCode.Unauthenticated => ErrorCode.Unauthenticated,
-            StatusCode.FailedPrecondition => ErrorCode.PreconditionFailed,
-            StatusCode.Aborted => ErrorCode.Conflict,
-            StatusCode.ResourceExhausted => ErrorCode.ResourceExhausted,
-            StatusCode.Unavailable => ErrorCode.ServiceUnavailable,
-            StatusCode.DeadlineExceeded => ErrorCode.DeadlineExceeded,
-            StatusCode.Cancelled => ErrorCode.Cancelled,
-            _ => ErrorCode.InternalError
+            StatusCode.InvalidArgument or StatusCode.OutOfRange => ERROR_CODE.ValidationFailed,
+            StatusCode.NotFound => ERROR_CODE.NOT_FOUND,
+            StatusCode.AlreadyExists => ERROR_CODE.ALREADY_EXISTS,
+            StatusCode.PermissionDenied => ERROR_CODE.PERMISSION_DENIED,
+            StatusCode.Unauthenticated => ERROR_CODE.UNAUTHENTICATED,
+            StatusCode.FailedPrecondition => ERROR_CODE.PRECONDITION_FAILED,
+            StatusCode.Aborted => ERROR_CODE.CONFLICT,
+            StatusCode.ResourceExhausted => ERROR_CODE.RESOURCE_EXHAUSTED,
+            StatusCode.Unavailable => ERROR_CODE.SERVICE_UNAVAILABLE,
+            StatusCode.DeadlineExceeded => ERROR_CODE.DEADLINE_EXCEEDED,
+            StatusCode.Cancelled => ERROR_CODE.CANCELLED,
+            _ => ERROR_CODE.InternalError
         };
 
-    private static string GetFallbackKey(ErrorCode errorCode) =>
+    private static string GetFallbackKey(ERROR_CODE errorCode) =>
         errorCode switch
         {
-            ErrorCode.ValidationFailed => ErrorI18nKeys.Validation,
-            ErrorCode.MaxAttemptsReached => ErrorI18nKeys.MaxAttempts,
-            ErrorCode.InvalidMobileNumber => ErrorI18nKeys.InvalidMobile,
-            ErrorCode.OtpExpired => ErrorI18nKeys.OtpExpired,
-            ErrorCode.NotFound => ErrorI18nKeys.NotFound,
-            ErrorCode.AlreadyExists => ErrorI18nKeys.AlreadyExists,
-            ErrorCode.Unauthenticated => ErrorI18nKeys.Unauthenticated,
-            ErrorCode.PermissionDenied => ErrorI18nKeys.PermissionDenied,
-            ErrorCode.PreconditionFailed => ErrorI18nKeys.PreconditionFailed,
-            ErrorCode.Conflict => ErrorI18nKeys.Conflict,
-            ErrorCode.ResourceExhausted => ErrorI18nKeys.ResourceExhausted,
-            ErrorCode.ServiceUnavailable => ErrorI18nKeys.ServiceUnavailable,
-            ErrorCode.DependencyUnavailable => ErrorI18nKeys.DependencyUnavailable,
-            ErrorCode.DeadlineExceeded => ErrorI18nKeys.DeadlineExceeded,
-            ErrorCode.Cancelled => ErrorI18nKeys.Cancelled,
-            ErrorCode.DatabaseUnavailable => ErrorI18nKeys.DatabaseUnavailable,
-            _ => ErrorI18nKeys.Internal
+            ERROR_CODE.ValidationFailed => ErrorI18nKeys.VALIDATION,
+            ERROR_CODE.MaxAttemptsReached => ErrorI18nKeys.MAX_ATTEMPTS,
+            ERROR_CODE.InvalidMobileNumber => ErrorI18nKeys.INVALID_MOBILE,
+            ERROR_CODE.OTP_EXPIRED => ErrorI18nKeys.OTP_EXPIRED,
+            ERROR_CODE.NOT_FOUND => ErrorI18nKeys.NOT_FOUND,
+            ERROR_CODE.ALREADY_EXISTS => ErrorI18nKeys.ALREADY_EXISTS,
+            ERROR_CODE.UNAUTHENTICATED => ErrorI18nKeys.UNAUTHENTICATED,
+            ERROR_CODE.PERMISSION_DENIED => ErrorI18nKeys.PERMISSION_DENIED,
+            ERROR_CODE.PRECONDITION_FAILED => ErrorI18nKeys.PRECONDITION_FAILED,
+            ERROR_CODE.CONFLICT => ErrorI18nKeys.CONFLICT,
+            ERROR_CODE.RESOURCE_EXHAUSTED => ErrorI18nKeys.RESOURCE_EXHAUSTED,
+            ERROR_CODE.SERVICE_UNAVAILABLE => ErrorI18nKeys.SERVICE_UNAVAILABLE,
+            ERROR_CODE.DEPENDENCY_UNAVAILABLE => ErrorI18nKeys.DEPENDENCY_UNAVAILABLE,
+            ERROR_CODE.DEADLINE_EXCEEDED => ErrorI18nKeys.DEADLINE_EXCEEDED,
+            ERROR_CODE.CANCELLED => ErrorI18nKeys.CANCELLED,
+            ERROR_CODE.DATABASE_UNAVAILABLE => ErrorI18nKeys.DATABASE_UNAVAILABLE,
+            _ => ErrorI18nKeys.INTERNAL
         };
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)
     {
         if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcException) ||
             GrpcErrorClassifier.IsAuthenticationError(rpcException) ||
-            userError.ErrorCode == ErrorCode.Unauthenticated)
+            userError.ERROR_CODE == ERROR_CODE.UNAUTHENTICATED)
         {
             return NetworkFailureType.CriticalAuthenticationFailure;
         }

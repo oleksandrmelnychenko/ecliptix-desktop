@@ -4,7 +4,7 @@ public static class NetworkServiceMessages
 {
     public static class RpcService
     {
-        public const string UnsupportedServiceMethod = "Unsupported service method";
-        public const string ReceivedNullResponseFromStream = "Received null response from stream";
+        public const string UNSUPPORTED_SERVICE_METHOD = "Unsupported service method";
+        public const string RECEIVED_NULL_RESPONSE_FROM_STREAM = "Received null response from stream";
     }
 }

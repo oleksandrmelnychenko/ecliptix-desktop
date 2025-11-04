@@ -15,12 +15,9 @@ using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Authentication.Constants;
-using Ecliptix.Core.Services.Common;
-using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Membership;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
-using Ecliptix.Utilities.Failures.Network;
 using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
@@ -71,7 +68,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 "Secure key recovery service is required when flow context is SecureKeyRecovery");
         }
 
-        Log.Information("[VERIFYOTP-VM] Initialized with flow context: {FlowContext}", flowContext);
+        Log.Information("[VERIFYOTP-VM] INITIALIZED with flow context: {FlowContext}", flowContext);
 
         HostScreen = hostScreen;
 
@@ -86,7 +83,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             x => x.RemainingTime,
             x => x.IsInNetworkOutage,
             (code, time, isInOutage) => code.Length == 6 && code.All(char.IsDigit) &&
-                                        time != AuthenticationConstants.ExpiredRemainingTime && !isInOutage
+                                        time != AuthenticationConstants.EXPIRED_REMAINING_TIME && !isInOutage
         );
         SendVerificationCodeCommand = ReactiveCommand.CreateFromTask(SendVerificationCode, canVerify);
 
@@ -100,7 +97,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 }
 
                 ErrorMessage = ex.Message;
-                IsSent = false;
                 HasError = true;
             })
             .DisposeWith(_disposables);
@@ -113,7 +109,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 x => x.IsInNetworkOutage)
             .Select(tuple => CanResendVerification(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5))
             .DistinctUntilChanged()
-            .Catch<bool, Exception>(ex => Observable.Return(false));
+            .Catch<bool, Exception>(_ => Observable.Return(false));
         ResendSendVerificationCodeCommand = ReactiveCommand.CreateFromTask(ReSendVerificationCode, canResend);
 
         ResendSendVerificationCodeCommand.ThrownExceptions
@@ -174,31 +170,23 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     [Reactive] public string VerificationCode { get; set; } = string.Empty;
 
-    [Reactive] public bool IsSent { get; private set; }
-
     [Reactive] public string ErrorMessage { get; private set; } = string.Empty;
 
-    [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.InitialRemainingTime;
+    [Reactive] public string RemainingTime { get; private set; } = AuthenticationConstants.INITIAL_REMAINING_TIME;
 
-    [Reactive] public uint SecondsRemaining { get; private set; }
+    [Reactive] private uint SecondsRemaining { get; set; }
 
     [Reactive] public bool HasError { get; private set; }
 
-    [Reactive] public uint CooldownBufferSeconds { get; private set; }
+    [Reactive] private uint CooldownBufferSeconds { get; set; }
 
     [Reactive]
-    public VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; private set; } =
+    private VerificationCountdownUpdate.Types.CountdownUpdateStatus CurrentStatus { get; set; } =
         VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
 
-    [Reactive] public bool IsMaxAttemptsReached { get; private set; }
+    [Reactive] private bool IsMaxAttemptsReached { get; set; }
 
-    [Reactive] public int AutoRedirectCountdown { get; private set; }
-
-    [Reactive] public string AutoRedirectMessage { get; private set; } = string.Empty;
-
-    [Reactive] public bool IsUiLocked { get; private set; }
-
-    [Reactive] public bool HasValidSession { get; private set; }
+    [Reactive] private bool HasValidSession { get; set; }
 
     [ObservableAsProperty] public bool IsBusy { get; }
 
@@ -235,9 +223,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        CancellationTokenSource? oldCts = Interlocked.Exchange(ref _cancellationTokenSource, null);
-        oldCts?.Cancel();
-        oldCts?.Dispose();
+        CancellationTokenSource? cancellationTokenSource = Interlocked.Exchange(ref _cancellationTokenSource, null);
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
 
         Task.Run(async () =>
         {
@@ -248,14 +236,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during cleanup on navigation");
+                Log.Error(ex, "[VERIFY-OTP] Exception during cleanup on navigation");
             }
         }).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in cleanup background task");
+                    Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in cleanup background task");
                 }
             },
             TaskScheduler.Default);
@@ -270,7 +258,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _cancellationTokenSource?.Dispose();
             _autoRedirectTimer?.Dispose();
             _cooldownTimer?.Dispose();
-            _disposables?.Dispose();
+            _disposables.Dispose();
         }
 
         base.Dispose(disposing);
@@ -298,14 +286,18 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private Task<Result<Ecliptix.Utilities.Unit, string>> CreateInitiateTask()
     {
         CancellationToken cancellationToken = _cancellationTokenSource?.Token ?? CancellationToken.None;
-        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> callback = CreateCountdownCallback();
+        Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> callback =
+            CreateCountdownCallback();
 
         return _flowContext == AuthenticationFlowContext.Registration
-            ? _registrationService.InitiateOtpVerificationAsync(_mobileNumberIdentifier, VerificationPurpose.Registration, callback, cancellationToken)
-            : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(_mobileNumberIdentifier, callback, cancellationToken);
+            ? _registrationService.InitiateOtpVerificationAsync(_mobileNumberIdentifier,
+                VerificationPurpose.Registration, callback, cancellationToken)
+            : _secureKeyRecoveryService!.InitiateSecureKeyResetOtpAsync(_mobileNumberIdentifier, callback,
+                cancellationToken);
     }
 
-    private Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?> CreateCountdownCallback()
+    private Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>
+        CreateCountdownCallback()
     {
         return (seconds, identifier, status, message) =>
             RxApp.MainThreadScheduler.Schedule(() =>
@@ -329,8 +321,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private void HandleInitiateResult(Result<Ecliptix.Utilities.Unit, string> result)
     {
         bool shouldSetError = result.IsErr
-            && !_isDisposed
-            && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable;
+                              && !_isDisposed
+                              && CurrentStatus != VerificationCountdownUpdate.Types.CountdownUpdateStatus
+                                  .ServerUnavailable;
 
         if (shouldSetError)
         {
@@ -345,7 +338,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        IsSent = true;
         ErrorMessage = string.Empty;
 
         if (!HasValidSession)
@@ -377,9 +369,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private void HandleNoValidSession()
     {
-        IsSent = false;
         HasError = true;
-        ErrorMessage = _localizationService[AuthenticationConstants.NoVerificationSessionKey];
+        ErrorMessage = _localizationService[AuthenticationConstants.NO_VERIFICATION_SESSION_KEY];
     }
 
     private Task<Result<Membership, string>> CreateVerifyTask(uint connectId, CancellationToken cancellationToken)
@@ -451,7 +442,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private void HandleVerificationError(string error)
     {
         ErrorMessage = error;
-        IsSent = false;
     }
 
     private Task ReSendVerificationCode()
@@ -478,20 +468,20 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         ErrorMessage = string.Empty;
         HasError = false;
 
-        CancellationTokenSource newCts = CreateNewCancellationToken();
+        CancellationTokenSource cancellationToken = CreateNewCancellationToken();
 
         Task.Run(async () =>
         {
             try
             {
-                if (_isDisposed || newCts.Token.IsCancellationRequested)
+                if (_isDisposed || cancellationToken.Token.IsCancellationRequested)
                 {
                     return;
                 }
 
-                newCts.Token.ThrowIfCancellationRequested();
+                cancellationToken.Token.ThrowIfCancellationRequested();
 
-                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = CreateResendTask(newCts.Token);
+                Task<Result<Ecliptix.Utilities.Unit, string>> resendTask = CreateResendTask(cancellationToken.Token);
                 Result<Ecliptix.Utilities.Unit, string> result = await resendTask;
 
                 if (result.IsErr && !_isDisposed)
@@ -501,9 +491,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "[VERIFY-OTP] Exception during OTP resend operation");
+                Log.Error(ex, "[VERIFY-OTP] Exception during OTP resend operation");
             }
-        }, newCts.Token);
+        }, cancellationToken.Token);
     }
 
     private CancellationTokenSource CreateNewCancellationToken()
@@ -556,9 +546,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, error).ContinueWith(
                     task =>
                     {
-                        if (task.IsFaulted && task.Exception != null)
+                        if (task is { IsFaulted: true, Exception: not null })
                         {
-                            Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in auto-redirect");
+                            Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in auto-redirect");
                         }
                     },
                     TaskScheduler.Default);
@@ -577,7 +567,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private void HandleNoActiveSession()
     {
         SecondsRemaining = 0;
-        ErrorMessage = _localizationService[AuthenticationConstants.NoActiveVerificationSessionKey];
+        ErrorMessage = _localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY];
         HasError = true;
         HasValidSession = false;
     }
@@ -639,9 +629,9 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         StartAutoRedirectAsync(5, MembershipViewType.WelcomeView).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in max attempts auto-redirect");
+                    Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in max attempts auto-redirect");
                 }
             },
             TaskScheduler.Default);
@@ -650,13 +640,13 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private uint HandleNotFoundStatus()
     {
-        string message = _localizationService[AuthenticationConstants.SessionNotFoundKey];
+        string message = _localizationService[AuthenticationConstants.SESSION_NOT_FOUND_KEY];
         StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in not found auto-redirect");
+                    Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in not found auto-redirect");
                 }
             },
             TaskScheduler.Default);
@@ -665,13 +655,14 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private uint HandleSessionExpiredStatus()
     {
-        string message = _localizationService[AuthenticationConstants.VerificationSessionExpiredKey];
+        string message = _localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY];
         StartAutoRedirectAsync(5, MembershipViewType.WelcomeView, message).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in session expired auto-redirect");
+                    Log.Error(task.Exception,
+                        "[VERIFY-OTP] Unhandled exception in session expired auto-redirect");
                 }
             },
             TaskScheduler.Default);
@@ -687,9 +678,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         redirectTask.ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
-                    Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in failed status auto-redirect");
+                    Log.Error(task.Exception,
+                        "[VERIFY-OTP] Unhandled exception in failed status auto-redirect");
                 }
             },
             TaskScheduler.Default);
@@ -743,14 +735,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
 
     private async Task EnsureProtocolInBackground()
     {
-        Result<uint, NetworkFailure> ensureResult = await NetworkProvider.EnsureProtocolForTypeAsync(
+        await NetworkProvider.EnsureProtocolForTypeAsync(
             PubKeyExchangeType.DataCenterEphemeralConnect);
-
-        if (ensureResult.IsErr)
-        {
-            Log.Error("[VERIFY-OTP] Failed to ensure protocol: {Error}",
-                ensureResult.UnwrapErr().Message);
-        }
     }
 
     private async Task StartAutoRedirectAsync(int seconds, MembershipViewType targetView, string localizedMessage = "")
@@ -765,8 +751,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _autoRedirectTimer?.Dispose();
             _autoRedirectTimer = null;
 
-            AutoRedirectCountdown = seconds;
-            IsUiLocked = true;
             return Task.CompletedTask;
         });
 
@@ -779,8 +763,8 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
         else
         {
             string key = IsMaxAttemptsReached
-                ? AuthenticationConstants.MaxAttemptsReachedKey
-                : AuthenticationConstants.SessionNotFoundKey;
+                ? AuthenticationConstants.MAX_ATTEMPTS_REACHED_KEY
+                : AuthenticationConstants.SESSION_NOT_FOUND_KEY;
 
             message = _localizationService.GetString(key);
         }
@@ -794,9 +778,10 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                     CleanupAndNavigateAsync(targetView).ContinueWith(
                         task =>
                         {
-                            if (task.IsFaulted && task.Exception != null)
+                            if (task is { IsFaulted: true, Exception: not null })
                             {
-                                Serilog.Log.Error(task.Exception, "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
+                                Log.Error(task.Exception,
+                                    "[VERIFY-OTP] Unhandled exception in cleanup and navigate");
                             }
                         },
                         TaskScheduler.Default);
@@ -848,14 +833,15 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
                 return false;
             }
 
-            if (_verificationSessionIdentifier == Guid.Empty)
+            if (_verificationSessionIdentifier != Guid.Empty)
             {
-                _verificationSessionIdentifier = identifier;
-                HasValidSession = true;
-                return true;
+                return _verificationSessionIdentifier == identifier;
             }
 
-            return _verificationSessionIdentifier == identifier;
+            _verificationSessionIdentifier = identifier;
+            HasValidSession = true;
+            return true;
+
         }
     }
 
@@ -889,7 +875,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private bool IsServerUnavailableError(string errorMessage)
     {
         string serverUnavailableText = _localizationService["error.server_unavailable"];
-        string serviceUnavailableText = _localizationService[ErrorI18nKeys.ServiceUnavailable];
+        string serviceUnavailableText = _localizationService[ErrorI18nKeys.SERVICE_UNAVAILABLE];
 
         return errorMessage.Contains(serverUnavailableText, StringComparison.OrdinalIgnoreCase) ||
                errorMessage.Contains(serviceUnavailableText, StringComparison.OrdinalIgnoreCase) ||
@@ -929,22 +915,17 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             _cooldownTimer?.Dispose();
             _cooldownTimer = null;
 
-            IsUiLocked = false;
-
             if (HostScreen is AuthenticationViewModel hostWindow)
             {
                 await hostWindow.HideBottomSheetAsync();
             }
 
             VerificationCode = "";
-            IsSent = false;
             ErrorMessage = string.Empty;
             HasError = false;
             SecondsRemaining = 0;
-            RemainingTime = AuthenticationConstants.InitialRemainingTime;
+            RemainingTime = AuthenticationConstants.INITIAL_REMAINING_TIME;
             IsMaxAttemptsReached = false;
-            AutoRedirectMessage = string.Empty;
-            AutoRedirectCountdown = 0;
             CurrentStatus = VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active;
             lock (_sessionLock)
             {

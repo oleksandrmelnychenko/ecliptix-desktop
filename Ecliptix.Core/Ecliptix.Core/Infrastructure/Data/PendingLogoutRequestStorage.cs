@@ -12,7 +12,7 @@ namespace Ecliptix.Core.Infrastructure.Data;
 
 internal sealed class PendingLogoutRequestStorage
 {
-    private const string StorageKey = "PendingLogout";
+    private const string STORAGE_KEY = "PendingLogout";
     private readonly IApplicationSecureStorageProvider _storageProvider;
 
     public PendingLogoutRequestStorage(IApplicationSecureStorageProvider storageProvider)
@@ -27,7 +27,7 @@ internal sealed class PendingLogoutRequestStorage
             byte[] requestData = request.ToByteArray();
 
             Result<Unit, InternalServiceApiFailure> storeResult =
-                await _storageProvider.StoreAsync(StorageKey, requestData).ConfigureAwait(false);
+                await _storageProvider.StoreAsync(STORAGE_KEY, requestData).ConfigureAwait(false);
 
             if (storeResult.IsErr)
             {
@@ -51,7 +51,7 @@ internal sealed class PendingLogoutRequestStorage
         try
         {
             Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                await _storageProvider.TryGetByKeyAsync(StorageKey).ConfigureAwait(false);
+                await _storageProvider.TryGetByKeyAsync(STORAGE_KEY).ConfigureAwait(false);
 
             if (getResult.IsErr)
             {
@@ -72,7 +72,7 @@ internal sealed class PendingLogoutRequestStorage
         catch (InvalidProtocolBufferException ex)
         {
             Log.Error(ex, "[PENDING-LOGOUT] Failed to parse stored logout request");
-            ClearPendingLogout();
+            CLEAR_PENDING_LOGOUT();
             return Result<Option<LogoutRequest>, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError($"Failed to parse stored request: {ex.Message}", ex));
         }
@@ -84,11 +84,11 @@ internal sealed class PendingLogoutRequestStorage
         }
     }
 
-    public void ClearPendingLogout()
+    public void CLEAR_PENDING_LOGOUT()
     {
         try
         {
-            _storageProvider.Delete(StorageKey);
+            _storageProvider.Delete(STORAGE_KEY);
         }
         catch (Exception ex)
         {

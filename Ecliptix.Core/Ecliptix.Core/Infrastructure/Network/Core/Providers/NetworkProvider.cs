@@ -116,13 +116,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelInternalAsync(
         uint connectId,
-        PubKeyExchangeType exchangeType,
+        PubKeyExchangeType EXCHANGE_TYPE,
         int? maxRetries = null,
         bool saveState = true,
         CancellationToken cancellationToken = default,
         bool enablePendingRegistration = true)
     {
-        if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
+        if (EXCHANGE_TYPE == PubKeyExchangeType.DataCenterEphemeralConnect)
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -145,7 +145,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         Result<PubKeyExchange, EcliptixProtocolFailure> pubKeyExchangeRequest =
-            protocolSystem.BeginDataCenterPubKeyExchange(connectId, exchangeType);
+            protocolSystem.BeginDataCenterPubKeyExchange(connectId, EXCHANGE_TYPE);
 
         if (pubKeyExchangeRequest.IsErr)
         {
@@ -194,7 +194,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             establishAppDeviceSecrecyChannelResult = await retryStrategy.ExecuteRpcOperationAsync(
                 (_, ct) => rpcServiceManager.EstablishSecrecyChannelAsync(connectivityService, envelope,
-                    exchangeType,
+                    EXCHANGE_TYPE,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
                 connectId,
@@ -206,7 +206,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             establishAppDeviceSecrecyChannelResult = await retryStrategy.ExecuteRpcOperationAsync(
                 (_, ct) => rpcServiceManager.EstablishSecrecyChannelAsync(connectivityService, envelope,
-                    exchangeType,
+                    EXCHANGE_TYPE,
                     cancellationToken: ct),
                 "EstablishSecrecyChannel",
                 connectId,
@@ -219,7 +219,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             NetworkFailure failure = establishAppDeviceSecrecyChannelResult.UnwrapErr();
             if (enablePendingRegistration && ShouldQueueSecrecyChannelRetry(failure))
             {
-                QueueSecrecyChannelEstablishRetry(connectId, exchangeType, maxRetries, saveState);
+                QueueSecrecyChannelEstablishRetry(connectId, EXCHANGE_TYPE, maxRetries, saveState);
             }
 
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(failure);
@@ -227,7 +227,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         SecureEnvelope responseEnvelope = establishAppDeviceSecrecyChannelResult.Unwrap();
 
-        if (exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect)
+        if (EXCHANGE_TYPE == PubKeyExchangeType.DataCenterEphemeralConnect)
         {
             CertificatePinningBoolResult certificatePinningBoolResult =
                 certificatePinningService.Value!.VerifyServerSignature(
@@ -238,7 +238,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
                     NetworkFailure.RsaEncryption(
-                        $"Server signature verification failed: {certificatePinningBoolResult.Error?.Message}"));
+                        $"Server signature verification failed: {certificatePinningBoolResult.ERROR?.Message}"));
             }
         }
 
@@ -261,7 +261,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 completeResult.UnwrapErr().ToNetworkFailure());
         }
 
-        if (!saveState || exchangeType != PubKeyExchangeType.DataCenterEphemeralConnect)
+        if (!saveState || EXCHANGE_TYPE != PubKeyExchangeType.DataCenterEphemeralConnect)
         {
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Ok(Option<EcliptixSessionState>.None);
         }
@@ -292,7 +292,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (enablePendingRegistration && mappedResult.IsOk)
         {
-            pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, exchangeType));
+            pendingRequestManager.RemovePendingRequest(BuildSecrecyChannelPendingKey(connectId, EXCHANGE_TYPE));
             ExitOutage();
         }
 
@@ -321,7 +321,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         _applicationInstanceSettings = Option<ApplicationInstanceSettings>.Some(applicationInstanceSettings);
 
         EcliptixSystemIdentityKeys identityKeys =
-            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
+            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT).Unwrap();
 
         DetermineExchangeTypeFromConnectId(applicationInstanceSettings, connectId);
 
@@ -334,7 +334,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         Guid appInstanceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.AppInstanceId);
         Guid deviceId = Helpers.FromByteStringToGuid(applicationInstanceSettings.DeviceId);
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? AppCultureSettingsConstants.DefaultCultureCode
+            ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
             : applicationInstanceSettings.Culture;
 
         rpcMetaDataProvider.SetAppInfo(appInstanceId, deviceId, culture);
@@ -406,8 +406,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         else
         {
-            int bytesToHash = Math.Min(plainBuffer.Length, NetworkConstants.Protocol.RequestKeyHexPrefixLength / 2);
-            Span<char> hexBuffer = stackalloc char[NetworkConstants.Protocol.RequestKeyHexPrefixLength];
+            int bytesToHash = Math.Min(plainBuffer.Length, NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH / 2);
+            Span<char> hexBuffer = stackalloc char[NetworkConstants.Protocol.REQUEST_KEY_HEX_PREFIX_LENGTH];
             bool success = Convert.TryToHexString(plainBuffer.AsSpan(0, bytesToHash), hexBuffer, out int charsWritten);
             requestKey = success
                 ? $"{connectId}_{serviceType}_{hexBuffer[..charsWritten].ToString()}"
@@ -583,7 +583,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         string? culture = string.IsNullOrEmpty(applicationInstanceSettings.Culture)
-            ? AppCultureSettingsConstants.DefaultCultureCode
+            ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
             : applicationInstanceSettings.Culture;
 
         rpcMetaDataProvider.SetAppInfo(
@@ -698,7 +698,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                     await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
                 if (establishResult.IsErr)
                 {
-                    Log.Warning("[NETWORK-PROVIDER] Failed to establish secrecy channel after SessionNotFound: {Error}",
+                    Log.Warning("[NETWORK-PROVIDER] Failed to establish secrecy channel after SESSION_NOT_FOUND: {ERROR}",
                         establishResult.UnwrapErr().Message);
                 }
                 break;
@@ -735,7 +735,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     public async Task<Result<uint, NetworkFailure>> EnsureProtocolForTypeAsync(
-        PubKeyExchangeType exchangeType)
+        PubKeyExchangeType EXCHANGE_TYPE)
     {
         if (!_applicationInstanceSettings.IsSome)
         {
@@ -744,7 +744,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
 
         ApplicationInstanceSettings appSettings = _applicationInstanceSettings.Value!;
-        uint connectId = ComputeUniqueConnectId(appSettings, exchangeType);
+        uint connectId = ComputeUniqueConnectId(appSettings, EXCHANGE_TYPE);
 
         if (_connections.TryRemove(connectId, out EcliptixProtocolSystem? existingConnection))
         {
@@ -754,7 +754,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         InitiateEcliptixProtocolSystemForType(connectId);
 
         Result<Option<EcliptixSessionState>, NetworkFailure> establishOptionResult =
-            await EstablishSecrecyChannelForTypeAsync(connectId, exchangeType).ConfigureAwait(false);
+            await EstablishSecrecyChannelForTypeAsync(connectId, EXCHANGE_TYPE).ConfigureAwait(false);
 
         if (!establishOptionResult.IsErr)
         {
@@ -813,9 +813,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
-    private static RatchetConfig GetRatchetConfigForExchangeType(PubKeyExchangeType exchangeType)
+    private static RatchetConfig GetRatchetConfigForExchangeType(PubKeyExchangeType EXCHANGE_TYPE)
     {
-        RatchetConfig config = exchangeType switch
+        RatchetConfig config = EXCHANGE_TYPE switch
         {
             PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
@@ -836,15 +836,15 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             PubKeyExchangeType.ServerStreaming
         ];
 
-        foreach (PubKeyExchangeType exchangeType in knownTypes)
+        foreach (PubKeyExchangeType EXCHANGE_TYPE in knownTypes)
         {
-            uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, exchangeType);
+            uint computedConnectId = ComputeUniqueConnectId(applicationInstanceSettings, EXCHANGE_TYPE);
             if (computedConnectId != connectId)
             {
                 continue;
             }
 
-            return exchangeType;
+            return EXCHANGE_TYPE;
         }
 
         return PubKeyExchangeType.DataCenterEphemeralConnect;
@@ -854,7 +854,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     )
     {
         EcliptixSystemIdentityKeys identityKeys =
-            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DefaultOneTimeKeyCount).Unwrap();
+            EcliptixSystemIdentityKeys.Create(NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT).Unwrap();
 
         EcliptixProtocolSystem protocolSystem = new(identityKeys);
         protocolSystem.SetEventHandler(this);
@@ -864,13 +864,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private async Task<Result<Option<EcliptixSessionState>, NetworkFailure>> EstablishSecrecyChannelForTypeAsync(
         uint connectId,
-        PubKeyExchangeType exchangeType)
+        PubKeyExchangeType EXCHANGE_TYPE)
     {
         return await EstablishSecrecyChannelInternalAsync(
             connectId,
-            exchangeType,
+            EXCHANGE_TYPE,
             maxRetries: 15,
-            saveState: exchangeType == PubKeyExchangeType.DataCenterEphemeralConnect).ConfigureAwait(false);
+            saveState: EXCHANGE_TYPE == PubKeyExchangeType.DataCenterEphemeralConnect).ConfigureAwait(false);
     }
 
     private Result<Unit, EcliptixProtocolFailure> SyncSecrecyChannel(
@@ -921,14 +921,14 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<EcliptixProtocolSystem, EcliptixProtocolFailure>.Err(idKeysResult.UnwrapErr());
         }
 
-        PubKeyExchangeType exchangeType = _applicationInstanceSettings.IsSome
+        PubKeyExchangeType EXCHANGE_TYPE = _applicationInstanceSettings.IsSome
             ? DetermineExchangeTypeFromConnectId(_applicationInstanceSettings.Value!, state.ConnectId)
             : PubKeyExchangeType.DataCenterEphemeralConnect;
 
-        RatchetConfig config = GetRatchetConfigForExchangeType(exchangeType);
+        RatchetConfig config = GetRatchetConfigForExchangeType(EXCHANGE_TYPE);
 
         Result<EcliptixProtocolConnection, EcliptixProtocolFailure> connResult =
-            EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState, config, exchangeType);
+            EcliptixProtocolConnection.FromProtoState(state.ConnectId, state.RatchetState, config, EXCHANGE_TYPE);
 
         if (connResult.IsErr)
         {
@@ -941,7 +941,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private static uint GenerateLogicalOperationId(uint connectId, RpcServiceType serviceType, byte[] plainBuffer)
     {
-        Span<byte> hashBuffer = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+        Span<byte> hashBuffer = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
 
         switch (serviceType.ToString())
         {
@@ -961,7 +961,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             case "InitiateVerification":
             {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
                 SHA256.HashData(plainBuffer, payloadHash);
 
                 string semantic =
@@ -973,7 +973,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
             default:
             {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.Sha256HashSize];
+                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
                 SHA256.HashData(plainBuffer, payloadHash);
 
                 string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
@@ -984,11 +984,11 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             }
         }
 
-        const int hashLength = NetworkConstants.Cryptography.Sha256HashSize;
+        const int HASH_LENGTH = NetworkConstants.Cryptography.SHA_256_HASH_SIZE;
 
-        uint rawId = BitConverter.ToUInt32(hashBuffer[..hashLength]);
-        uint finalId = Math.Max(rawId % (uint.MaxValue - NetworkConstants.Protocol.OperationIdReservedRange),
-            NetworkConstants.Protocol.OperationIdMinValue);
+        uint rawId = BitConverter.ToUInt32(hashBuffer[..HASH_LENGTH]);
+        uint finalId = Math.Max(rawId % (uint.MaxValue - NetworkConstants.Protocol.OPERATION_ID_RESERVED_RANGE),
+            NetworkConstants.Protocol.OPERATION_ID_MIN_VALUE);
 
         return finalId;
     }
@@ -1081,7 +1081,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 $"UnaryRequest_{serviceType}",
                 connectId,
                 serviceType: serviceType,
-                maxRetries: Math.Max(0, retryBehavior.MaxAttempts - 1),
+                maxRetries: Math.Max(0, retryBehavior.MAX_ATTEMPTS - 1),
                 cancellationToken: token).ConfigureAwait(false);
         }
         else
@@ -1129,7 +1129,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             protocolSystem.ProcessInboundEnvelope(inboundPayload);
         if (decryptedData.IsErr)
         {
-            Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. Error: {Error}", decryptedData.UnwrapErr().Message);
+            Log.Error("[CLIENT-DECRYPT-ERROR] Decryption failed. ERROR: {ERROR}", decryptedData.UnwrapErr().Message);
             NetworkFailure decryptFailure = decryptedData.UnwrapErr().ToNetworkFailure();
             decryptFailure = ApplyReinitIfNeeded(decryptFailure, serviceType, retryBehavior);
             return Result<Unit, NetworkFailure>.Err(decryptFailure);
@@ -1146,9 +1146,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return failure;
         }
 
-        if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CorrelationId))
+        if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CORRELATION_ID))
         {
-            return failure with { UserError = userError with { CorrelationId = context.CorrelationId } };
+            return failure with { UserError = userError with { CORRELATION_ID = context.CORRELATION_ID } };
         }
 
         return failure;
@@ -1232,7 +1232,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 $"StreamRequest_{serviceType}",
                 connectId,
                 serviceType: serviceType,
-                maxRetries: Math.Max(0, retryBehavior.MaxAttempts - 1),
+                maxRetries: Math.Max(0, retryBehavior.MAX_ATTEMPTS - 1),
                 cancellationToken: token).ConfigureAwait(false);
         }
 
@@ -1871,7 +1871,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             catch (Exception ex)
             {
                 // Final safety catch for any disposal errors
-                Log.Warning(ex, "[NETWORK-PROVIDER] Error during final disposal cleanup");
+                Log.Warning(ex, "[NETWORK-PROVIDER] ERROR during final disposal cleanup");
             }
         }
     }
@@ -1903,7 +1903,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         return await PerformRecoveryWithStateRestorationAsync(
             RestoreRetryMode.DirectNoRetry,
-            NetworkConstants.ErrorMessages.SessionNotFoundOnServer,
+            NetworkConstants.ErrorMessages.SESSION_NOT_FOUND_ON_SERVER,
             failOnMissingState: true).ConfigureAwait(false);
     }
 
@@ -2003,8 +2003,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
     }
 
-    private static string BuildSecrecyChannelPendingKey(uint connectId, PubKeyExchangeType exchangeType) =>
-        $"secrecy-channel:{connectId}:{exchangeType}";
+    private static string BuildSecrecyChannelPendingKey(uint connectId, PubKeyExchangeType EXCHANGE_TYPE) =>
+        $"secrecy-channel:{connectId}:{EXCHANGE_TYPE}";
 
     private static string BuildSecrecyChannelRestoreKey(uint connectId) =>
         $"secrecy-channel-restore:{connectId}";
@@ -2017,7 +2017,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             or NetworkFailureType.RsaEncryptionFailure;
     }
 
-    private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType exchangeType, int? maxRetries,
+    private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType EXCHANGE_TYPE, int? maxRetries,
         bool saveState)
     {
         if (_disposed)
@@ -2027,7 +2027,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         BeginSecrecyChannelEstablishRecovery();
 
-        string pendingKey = BuildSecrecyChannelPendingKey(connectId, exchangeType);
+        string pendingKey = BuildSecrecyChannelPendingKey(connectId, EXCHANGE_TYPE);
 
         pendingRequestManager.RegisterPendingRequest(pendingKey, async ct =>
         {
@@ -2037,7 +2037,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             await EstablishSecrecyChannelInternalAsync(
                     connectId,
-                    exchangeType,
+                    EXCHANGE_TYPE,
                     maxRetries,
                     saveState,
                     cancellationToken: linkedCts.Token,
@@ -2106,7 +2106,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (saveResult.IsErr)
         {
-            Log.Warning("[CLIENT-STATE-PERSIST] Failed to save session state. ConnectId: {ConnectId}, Error: {Error}",
+            Log.Warning("[CLIENT-STATE-PERSIST] Failed to save session state. ConnectId: {ConnectId}, ERROR: {ERROR}",
                 connectId, saveResult.UnwrapErr().Message);
         }
 
@@ -2195,7 +2195,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             "RecreateProtocolWithMasterKey",
             connectId,
             serviceType: RpcServiceType.EstablishAuthenticatedSecureChannel,
-            maxRetries: retryBehavior.MaxAttempts - 1,
+            maxRetries: retryBehavior.MAX_ATTEMPTS - 1,
             cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
         if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
@@ -2227,7 +2227,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             masterKeyBytes = readResult.Unwrap();
             string membershipId = Helpers.FromByteStringToGuid(membershipIdentifier).ToString();
 
-            rootKeyBytes = new byte[CryptographicConstants.AesKeySize];
+            rootKeyBytes = new byte[CryptographicConstants.AES_KEY_SIZE];
             HKDF.DeriveKey(
                 HashAlgorithmName.SHA256,
                 ikm: masterKeyBytes,
@@ -2238,7 +2238,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> identityKeysResult =
                 EcliptixSystemIdentityKeys.CreateFromMasterKey(masterKeyBytes, membershipId,
-                    NetworkConstants.Protocol.DefaultOneTimeKeyCount);
+                    NetworkConstants.Protocol.DEFAULT_ONE_TIME_KEY_COUNT);
 
             if (identityKeysResult.IsErr)
             {
@@ -2254,7 +2254,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 oldProtocol.Dispose();
             }
 
-            const PubKeyExchangeType exchangeType = PubKeyExchangeType.DataCenterEphemeralConnect;
+            const PubKeyExchangeType EXCHANGE_TYPE = PubKeyExchangeType.DataCenterEphemeralConnect;
             EcliptixProtocolSystem? newProtocol = new(identityKeys);
 
             try
@@ -2262,7 +2262,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 newProtocol.SetEventHandler(this);
 
                 Result<PubKeyExchange, EcliptixProtocolFailure> clientExchangeResult =
-                    newProtocol.BeginDataCenterPubKeyExchange(connectId, exchangeType);
+                    newProtocol.BeginDataCenterPubKeyExchange(connectId, EXCHANGE_TYPE);
 
                 if (clientExchangeResult.IsErr)
                 {
@@ -2384,7 +2384,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (deleteResult.IsErr)
         {
             Log.Warning(
-                "[CLIENT-AUTH-CLEANUP] Failed to delete protocol state during authentication cleanup. ConnectId: {ConnectId}, Error: {Error}",
+                "[CLIENT-AUTH-CLEANUP] Failed to delete protocol state during authentication cleanup. ConnectId: {ConnectId}, ERROR: {ERROR}",
                 connectId, deleteResult.UnwrapErr().Message);
         }
     }

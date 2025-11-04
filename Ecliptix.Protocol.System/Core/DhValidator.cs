@@ -7,23 +7,23 @@ internal static class DhValidator
 {
     public static Result<Unit, EcliptixProtocolFailure> ValidateX25519PublicKey(byte[] publicKey)
     {
-        if (publicKey.Length != Constants.X25519PublicKeySize)
+        if (publicKey.Length != Constants.X_25519_PUBLIC_KEY_SIZE)
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.InvalidInput(
-                    string.Format(EcliptixProtocolFailureMessages.DhValidator.InvalidPublicKeySize, Constants.X25519PublicKeySize, publicKey.Length)));
+                    string.Format(EcliptixProtocolFailureMessages.DhValidator.INVALID_PUBLIC_KEY_SIZE, Constants.X_25519_PUBLIC_KEY_SIZE, publicKey.Length)));
         }
 
         if (HasSmallOrder(publicKey))
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyHasSmallOrder));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PUBLIC_KEY_HAS_SMALL_ORDER));
         }
 
         if (!IsValidCurve25519Point(publicKey))
         {
             return Result<Unit, EcliptixProtocolFailure>.Err(
-                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PublicKeyNotValidCurve25519Point));
+                EcliptixProtocolFailure.InvalidInput(EcliptixProtocolFailureMessages.DhValidator.PUBLIC_KEY_NOT_VALID_CURVE_25519_POINT));
         }
 
         return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
@@ -31,7 +31,7 @@ internal static class DhValidator
 
     private static bool IsValidCurve25519Point(ReadOnlySpan<byte> publicKey)
     {
-        if (publicKey.Length != Constants.Curve25519FieldElementSize)
+        if (publicKey.Length != Constants.CURVE_25519_FIELD_ELEMENT_SIZE)
         {
             return false;
         }
@@ -41,19 +41,19 @@ internal static class DhValidator
 
     private static bool IsValidFieldElement(ReadOnlySpan<byte> element)
     {
-        Span<byte> reduced = stackalloc byte[Constants.Curve25519FieldElementSize];
+        Span<byte> reduced = stackalloc byte[Constants.CURVE_25519_FIELD_ELEMENT_SIZE];
         element.CopyTo(reduced);
 
-        Span<uint> words = stackalloc uint[Constants.Field256WordCount];
-        for (int i = 0; i < Constants.Field256WordCount; i++)
+        Span<uint> words = stackalloc uint[Constants.FIELD_256_WORD_COUNT];
+        for (int i = 0; i < Constants.FIELD_256_WORD_COUNT; i++)
         {
-            words[i] = (uint)(reduced[i * Constants.WordSize] |
-                              (reduced[i * Constants.WordSize + 1] << 8) |
-                              (reduced[i * Constants.WordSize + 2] << 16) |
-                              (reduced[i * Constants.WordSize + 3] << 24));
+            words[i] = (uint)(reduced[i * Constants.WORD_SIZE] |
+                              (reduced[i * Constants.WORD_SIZE + 1] << 8) |
+                              (reduced[i * Constants.WORD_SIZE + 2] << 16) |
+                              (reduced[i * Constants.WORD_SIZE + 3] << 24));
         }
 
-        words[7] &= Constants.FieldElementMask;
+        words[7] &= Constants.FIELD_ELEMENT_MASK;
 
         return CompareToFieldPrime(words) < 0;
     }

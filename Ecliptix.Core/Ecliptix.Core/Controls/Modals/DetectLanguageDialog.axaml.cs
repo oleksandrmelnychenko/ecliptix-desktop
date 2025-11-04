@@ -10,19 +10,19 @@ public partial class DetectLanguageDialog : ReactiveUserControl<DetectLanguageDi
 {
     private static class ResourceKeys
     {
-        public const string ButtonHeight = nameof(ButtonHeight);
-        public const string TitleFontSize = nameof(TitleFontSize);
-        public const string SubtitleFontSize = nameof(SubtitleFontSize);
-        public const string ButtonTransitionDuration = nameof(ButtonTransitionDuration);
+        public const string BUTTON_HEIGHT = nameof(BUTTON_HEIGHT);
+        public const string TITLE_FONT_SIZE = nameof(TITLE_FONT_SIZE);
+        public const string SUBTITLE_FONT_SIZE = nameof(SUBTITLE_FONT_SIZE);
+        public const string BUTTON_TRANSITION_DURATION = nameof(BUTTON_TRANSITION_DURATION);
     }
 
     private static readonly FrozenDictionary<string, object> PrecompiledResources =
         new Dictionary<string, object>
         {
-            [ResourceKeys.ButtonHeight] = 44.0,
-            [ResourceKeys.TitleFontSize] = 22.0,
-            [ResourceKeys.SubtitleFontSize] = 17.0,
-            [ResourceKeys.ButtonTransitionDuration] = TimeSpan.FromMilliseconds(250)
+            [ResourceKeys.BUTTON_HEIGHT] = 44.0,
+            [ResourceKeys.TITLE_FONT_SIZE] = 22.0,
+            [ResourceKeys.SUBTITLE_FONT_SIZE] = 17.0,
+            [ResourceKeys.BUTTON_TRANSITION_DURATION] = TimeSpan.FromMilliseconds(250)
         }.ToFrozenDictionary();
 
     public DetectLanguageDialog()

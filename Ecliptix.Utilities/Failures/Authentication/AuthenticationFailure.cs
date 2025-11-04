@@ -34,11 +34,11 @@ public record AuthenticationFailure(
     public static AuthenticationFailure UnexpectedError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.UnexpectedError, details, inner);
 
-    public static AuthenticationFailure SecureMemoryAllocationFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.SecureMemoryAllocationFailed, details, inner);
+    public static AuthenticationFailure SECURE_MEMORY_ALLOCATION_FAILED(string details, Exception? inner = null) =>
+        new(AuthenticationFailureType.SECURE_MEMORY_ALLOCATION_FAILED, details, inner);
 
-    public static AuthenticationFailure SecureMemoryWriteFailed(string details, Exception? inner = null) =>
-        new(AuthenticationFailureType.SecureMemoryWriteFailed, details, inner);
+    public static AuthenticationFailure SECURE_MEMORY_WRITE_FAILED(string details, Exception? inner = null) =>
+        new(AuthenticationFailureType.SECURE_MEMORY_WRITE_FAILED, details, inner);
 
     public static AuthenticationFailure KeyDerivationFailed(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.KeyDerivationFailed, details, inner);
@@ -77,20 +77,20 @@ public record AuthenticationFailure(
         FailureType switch
         {
             AuthenticationFailureType.InvalidCredentials => new GrpcErrorDescriptor(
-                ErrorCode.Unauthenticated, StatusCode.Unauthenticated, ErrorI18nKeys.Unauthenticated),
+                ERROR_CODE.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
             AuthenticationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
-                ErrorCode.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MaxAttempts),
+                ERROR_CODE.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MAX_ATTEMPTS),
             AuthenticationFailureType.MobileNumberRequired => new GrpcErrorDescriptor(
-                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             AuthenticationFailureType.SecureKeyRequired => new GrpcErrorDescriptor(
-                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation),
+                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION),
             AuthenticationFailureType.NetworkRequestFailed => new GrpcErrorDescriptor(
-                ErrorCode.ServiceUnavailable, StatusCode.Unavailable, ErrorI18nKeys.ServiceUnavailable, Retryable: true),
+                ERROR_CODE.SERVICE_UNAVAILABLE, StatusCode.Unavailable, ErrorI18nKeys.SERVICE_UNAVAILABLE, RETRYABLE: true),
             AuthenticationFailureType.InvalidMembershipIdentifier => new GrpcErrorDescriptor(
-                ErrorCode.NotFound, StatusCode.NotFound, ErrorI18nKeys.NotFound),
+                ERROR_CODE.NOT_FOUND, StatusCode.NotFound, ErrorI18nKeys.NOT_FOUND),
             AuthenticationFailureType.CriticalAuthenticationError => new GrpcErrorDescriptor(
-                ErrorCode.Unauthenticated, StatusCode.Unauthenticated, ErrorI18nKeys.Unauthenticated),
+                ERROR_CODE.UNAUTHENTICATED, StatusCode.Unauthenticated, ErrorI18nKeys.UNAUTHENTICATED),
             _ => new GrpcErrorDescriptor(
-                ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal)
+                ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL)
         };
 }

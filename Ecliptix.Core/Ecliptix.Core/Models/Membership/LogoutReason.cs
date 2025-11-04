@@ -3,7 +3,7 @@ namespace Ecliptix.Core.Models.Membership;
 public enum LogoutReason
 {
     UserInitiated,
-    SessionExpired,
+    SESSION_EXPIRED,
     SessionTimeout,
     DeviceRemoved,
     SecurityViolation,

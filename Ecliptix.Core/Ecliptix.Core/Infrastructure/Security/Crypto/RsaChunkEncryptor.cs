@@ -9,8 +9,8 @@ namespace Ecliptix.Core.Infrastructure.Security.Crypto;
 
 public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
 {
-    private const int RsaMaxChunkSize = 120;
-    private const int RsaEncryptedChunkSize = 256;
+    private const int RSA_MAX_CHUNK_SIZE = 120;
+    private const int RSA_ENCRYPTED_CHUNK_SIZE = 256;
 
     public Result<byte[], NetworkFailure> EncryptInChunks(
         CertificatePinningService certificatePinningService,
@@ -19,26 +19,26 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         ArgumentNullException.ThrowIfNull(certificatePinningService);
         ArgumentNullException.ThrowIfNull(originalData);
 
-        int chunkCount = (originalData.Length + RsaMaxChunkSize - 1) / RsaMaxChunkSize;
-        int estimatedSize = chunkCount * RsaEncryptedChunkSize;
+        int chunkCount = (originalData.Length + RSA_MAX_CHUNK_SIZE - 1) / RSA_MAX_CHUNK_SIZE;
+        int estimatedSize = chunkCount * RSA_ENCRYPTED_CHUNK_SIZE;
         byte[] rentedBuffer = ArrayPool<byte>.Shared.Rent(estimatedSize);
 
         try
         {
             int currentOffset = 0;
 
-            for (int offset = 0; offset < originalData.Length; offset += RsaMaxChunkSize)
+            for (int offset = 0; offset < originalData.Length; offset += RSA_MAX_CHUNK_SIZE)
             {
-                int chunkSize = Math.Min(RsaMaxChunkSize, originalData.Length - offset);
+                int chunkSize = Math.Min(RSA_MAX_CHUNK_SIZE, originalData.Length - offset);
                 Memory<byte> chunk = originalData.AsMemory(offset, chunkSize);
 
                 CertificatePinningByteArrayResult chunkResult =
                     certificatePinningService.Encrypt(chunk);
 
-                if (chunkResult.Error != null)
+                if (chunkResult.ERROR != null)
                 {
                     return Result<byte[], NetworkFailure>.Err(
-                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.Error.Message}"));
+                        NetworkFailure.RsaEncryption($"RSA encryption failed: {chunkResult.ERROR.Message}"));
                 }
 
                 if (chunkResult.Value == null)
@@ -96,17 +96,17 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
         ArgumentNullException.ThrowIfNull(certificatePinningService);
         ArgumentNullException.ThrowIfNull(combinedEncryptedData);
 
-        int chunkCount = (combinedEncryptedData.Length + RsaEncryptedChunkSize - 1) / RsaEncryptedChunkSize;
-        int estimatedSize = chunkCount * RsaMaxChunkSize;
+        int chunkCount = (combinedEncryptedData.Length + RSA_ENCRYPTED_CHUNK_SIZE - 1) / RSA_ENCRYPTED_CHUNK_SIZE;
+        int estimatedSize = chunkCount * RSA_MAX_CHUNK_SIZE;
         byte[] rentedBuffer = ArrayPool<byte>.Shared.Rent(estimatedSize);
 
         try
         {
             int currentOffset = 0;
 
-            for (int offset = 0; offset < combinedEncryptedData.Length; offset += RsaEncryptedChunkSize)
+            for (int offset = 0; offset < combinedEncryptedData.Length; offset += RSA_ENCRYPTED_CHUNK_SIZE)
             {
-                int chunkSize = Math.Min(RsaEncryptedChunkSize, combinedEncryptedData.Length - offset);
+                int chunkSize = Math.Min(RSA_ENCRYPTED_CHUNK_SIZE, combinedEncryptedData.Length - offset);
                 Memory<byte> encryptedChunk = combinedEncryptedData.AsMemory(offset, chunkSize);
 
                 CertificatePinningByteArrayResult chunkDecryptResult =
@@ -116,7 +116,7 @@ public sealed class RsaChunkEncryptor : IRsaChunkEncryptor
                 {
                     return Result<byte[], NetworkFailure>.Err(
                         NetworkFailure.DataCenterNotResponding(
-                            $"Failed to decrypt response chunk {(offset / RsaEncryptedChunkSize) + 1}: {chunkDecryptResult.Error?.Message}"));
+                            $"Failed to decrypt response chunk {(offset / RSA_ENCRYPTED_CHUNK_SIZE) + 1}: {chunkDecryptResult.ERROR?.Message}"));
                 }
 
                 if (chunkDecryptResult.Value == null)

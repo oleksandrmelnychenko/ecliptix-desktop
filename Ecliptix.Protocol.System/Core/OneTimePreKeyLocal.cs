@@ -39,7 +39,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
         try
         {
             Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =
-                SodiumSecureMemoryHandle.Allocate(Constants.X25519PrivateKeySize)
+                SodiumSecureMemoryHandle.Allocate(Constants.X_25519_PRIVATE_KEY_SIZE)
                     .MapSodiumFailure();
 
             if (allocResult.IsErr)
@@ -49,7 +49,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
 
             securePrivateKey = allocResult.Unwrap();
 
-            tempPrivateKeyBytes = SodiumCore.GetRandomBytes(Constants.X25519PrivateKeySize);
+            tempPrivateKeyBytes = SodiumCore.GetRandomBytes(Constants.X_25519_PRIVATE_KEY_SIZE);
 
             Result<Unit, EcliptixProtocolFailure> writeResult =
                 securePrivateKey.Write(tempPrivateKeyBytes).MapSodiumFailure();
@@ -63,7 +63,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
             SodiumInterop.SecureWipe(tempPrivateKeyBytes);
             tempPrivateKeyBytes = null;
 
-            tempPrivKeyCopy = new byte[Constants.X25519PrivateKeySize];
+            tempPrivKeyCopy = new byte[Constants.X_25519_PRIVATE_KEY_SIZE];
             Result<Unit, EcliptixProtocolFailure> readResult = securePrivateKey.Read(tempPrivKeyCopy)
                 .MapSodiumFailure();
             if (readResult.IsErr)
@@ -92,7 +92,7 @@ public readonly struct OneTimePreKeyLocal : IDisposable
 
             byte[] publicKeyBytes = deriveResult.Unwrap();
 
-            if (publicKeyBytes.Length != Constants.X25519PublicKeySize)
+            if (publicKeyBytes.Length != Constants.X_25519_PUBLIC_KEY_SIZE)
             {
                 securePrivateKey.Dispose();
                 SodiumInterop.SecureWipe(publicKeyBytes);

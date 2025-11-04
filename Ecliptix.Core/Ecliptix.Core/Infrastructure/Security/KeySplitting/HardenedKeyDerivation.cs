@@ -81,8 +81,8 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 {
                     Salt = salt,
                     DegreeOfParallelism = options.DegreeOfParallelism,
-                    Iterations = options.Iterations,
-                    MemorySize = options.MemorySize
+                    Iterations = options.ITERATIONS,
+                    MemorySize = options.MEMORY_SIZE
                 };
 
                 byte[] hash = argon2.GetBytes(outputLength);
@@ -97,7 +97,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
 
     private static byte[] GenerateContextSalt(string context)
     {
-        string saltInput = $"{StorageKeyConstants.SessionContext.SessionKeyPrefix}:{context}";
+        string saltInput = $"{StorageKeyConstants.SessionContext.SESSION_KEY_PREFIX}:{context}";
         byte[] saltBytes = SHA256.HashData(Encoding.UTF8.GetBytes(saltInput));
         return saltBytes;
     }
@@ -106,8 +106,8 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
     {
         return await Task.Run(() =>
         {
-            Span<byte> infoBuffer = stackalloc byte[CryptographicConstants.Buffer.MaxInfoSize];
-            int infoLength = Encoding.UTF8.GetBytes($"{StorageKeyConstants.SessionContext.SessionKeyPrefix}-{context}", infoBuffer);
+            Span<byte> infoBuffer = stackalloc byte[CryptographicConstants.Buffer.MAX_INFO_SIZE];
+            int infoLength = Encoding.UTF8.GetBytes($"{StorageKeyConstants.SessionContext.SESSION_KEY_PREFIX}-{context}", infoBuffer);
             ReadOnlySpan<byte> info = infoBuffer[..infoLength];
 
             byte[] salt = SHA256.HashData(Encoding.UTF8.GetBytes(context));
@@ -124,7 +124,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
             using HMACSHA512 expandHmac = new(pseudoRandomKey);
             byte[] previousBlock = [];
 
-            int maxDataToHashSize = CryptographicConstants.Buffer.MaxPreviousBlockSize + CryptographicConstants.Buffer.MaxInfoSize + 1;
+            int maxDataToHashSize = CryptographicConstants.Buffer.MAX_PREVIOUS_BLOCK_SIZE + CryptographicConstants.Buffer.MAX_INFO_SIZE + 1;
             byte[] dataToHashBuffer = ArrayPool<byte>.Shared.Rent(maxDataToHashSize);
 
             try
@@ -164,12 +164,12 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
         {
             byte[] result = (byte[])key.Clone();
 
-            Span<byte> roundBuffer = stackalloc byte[CryptographicConstants.Buffer.MaxRoundSize];
+            Span<byte> roundBuffer = stackalloc byte[CryptographicConstants.Buffer.MAX_ROUND_SIZE];
 
-            for (int round = 0; round < CryptographicConstants.KeyDerivation.AdditionalRoundsCount; round++)
+            for (int round = 0; round < CryptographicConstants.KeyDerivation.ADDITIONAL_ROUNDS_COUNT; round++)
             {
                 using HMACSHA512 hmac = new(result);
-                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(CryptographicConstants.KeyDerivation.RoundKeyFormat, round), roundBuffer);
+                int roundInputLength = Encoding.UTF8.GetBytes(string.Format(CryptographicConstants.KeyDerivation.ROUND_KEY_FORMAT, round), roundBuffer);
                 byte[] roundKey = hmac.ComputeHash(roundBuffer[..roundInputLength].ToArray());
 
                 for (int i = 0; i < result.Length && i < roundKey.Length; i++)
@@ -220,7 +220,7 @@ public sealed class HardenedKeyDerivation(IPlatformSecurityProvider platformSecu
                 if (allocateResult.IsErr)
                 {
                     return Result<SodiumSecureMemoryHandle, KeySplittingFailure>.Err(
-                        KeySplittingFailure.AllocationFailed(allocateResult.UnwrapErr().Message));
+                        KeySplittingFailure.ALLOCATION_FAILED(allocateResult.UnwrapErr().Message));
                 }
 
                 SodiumSecureMemoryHandle handle = allocateResult.Unwrap();

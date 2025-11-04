@@ -44,7 +44,7 @@ public sealed class ApplicationInitializer(
 {
     #region Constants & Fields
 
-    private const int IpGeolocationTimeoutSeconds = 10;
+    private const int IP_GEOLOCATION_TIMEOUT_SECONDS = 10;
 
     private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
         networkProvider,
@@ -57,7 +57,7 @@ public sealed class ApplicationInitializer(
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
         Result<InstanceSettingsResult, InternalServiceApiFailure> settingsResult =
-            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.Culture)
+            await applicationSecureStorageProvider.InitApplicationInstanceSettingsAsync(defaultSystemSettings.CULTURE)
                 .ConfigureAwait(false);
 
         if (settingsResult.IsErr)
@@ -89,7 +89,7 @@ public sealed class ApplicationInitializer(
             TaskScheduler.Default);
 
         string culture = string.IsNullOrEmpty(settings.Culture)
-            ? AppCultureSettingsConstants.DefaultCultureCode
+            ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
             : settings.Culture;
         localizationService.SetCulture(culture);
 
@@ -119,7 +119,7 @@ public sealed class ApplicationInitializer(
             await RegisterDeviceAsync(connectId, settings).ConfigureAwait(false);
         if (registrationResult.IsErr)
         {
-            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, Error: {Error}",
+            Log.Error("[CLIENT-REGISTER] RegisterDevice failed. ConnectId: {ConnectId}, ERROR: {ERROR}",
                 connectId, registrationResult.UnwrapErr().Message);
             return false;
         }
@@ -148,7 +148,7 @@ public sealed class ApplicationInitializer(
     private Task FetchIpGeolocationInBackgroundAsync() =>
         Task.Run(async () =>
         {
-            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IpGeolocationTimeoutSeconds));
+            using CancellationTokenSource cts = new(TimeSpan.FromSeconds(IP_GEOLOCATION_TIMEOUT_SECONDS));
             Result<IpCountry, InternalServiceApiFailure> countryResult =
                 await ipGeolocationService.GetIpCountryAsync(cts.Token).ConfigureAwait(false);
 
@@ -341,7 +341,7 @@ public sealed class ApplicationInitializer(
             if (deleteSecureStateResult.IsErr)
             {
                 Log.Warning(ex,
-                    "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, Error: {Error}",
+                    "[CLIENT-RESTORE-CLEANUP] Failed to delete corrupted state. ConnectId: {ConnectId}, ERROR: {ERROR}",
                     connectId, deleteSecureStateResult.UnwrapErr().Message);
             }
 

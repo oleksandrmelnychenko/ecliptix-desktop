@@ -14,7 +14,7 @@ public interface ISecrecyChannelRpcServices
     Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         IConnectivityService connectivityService,
         SecureEnvelope request,
-        PubKeyExchangeType? exchangeType = null,
+        PubKeyExchangeType? EXCHANGE_TYPE = null,
         CancellationToken cancellationToken = default);
 
     Task<Result<RestoreChannelResponse, NetworkFailure>> RestoreAppDeviceSecrecyChannelAsync(

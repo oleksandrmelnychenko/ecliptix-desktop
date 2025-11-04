@@ -70,10 +70,10 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
     private TranslateTransform? _sharedTranslateTransform;
 
     public TimeSpan AppearDuration { get; set; } =
-        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultAppearDurationMs);
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_APPEAR_DURATION_MS);
 
     public TimeSpan DisappearDuration { get; set; } =
-        TimeSpan.FromMilliseconds(NetworkStatusConstants.DefaultDisappearDurationMs);
+        TimeSpan.FromMilliseconds(NetworkStatusConstants.DEFAULT_DISAPPEAR_DURATION_MS);
 
     private readonly ObservableAsPropertyHelper<string> _retryButtonText;
     public string RetryButtonText => _retryButtonText.Value;
@@ -226,7 +226,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                 ConnectivityStatus.Connected when snapshot.Source == ConnectivitySource.InternetProbe => Observable
                     .Return(false),
                 ConnectivityStatus.Connected => Observable.Return(true)
-                    .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AutoHideDelayMs))
+                    .Delay(TimeSpan.FromMilliseconds(NetworkStatusConstants.AUTO_HIDE_DELAY_MS))
                     .Select(_ => false),
                 ConnectivityStatus.RetriesExhausted or
                     ConnectivityStatus.Disconnected or
@@ -269,7 +269,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "Error during manual retry operation");
+                    Log.Error(ex, "ERROR during manual retry operation");
                 }
             },
             showRetryButtonObservable
@@ -328,7 +328,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error changing notification visibility");
+                Log.Error(ex, "ERROR changing notification visibility");
             }
             finally
             {
@@ -443,7 +443,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error showing notification popup");
+            Log.Warning(ex, "ERROR showing notification popup");
         }
     }
 
@@ -469,7 +469,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Error hiding notification popup");
+            Log.Warning(ex, "ERROR hiding notification popup");
         }
     }
 
@@ -480,9 +480,9 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             return category switch
             {
                 ConnectivityIssueCategory.ServerUnreachable => _cachedServerUnreachableIcon ??=
-                    LoadBitmapFromUri(NetworkStatusConstants.ServerNotRespondingIconUri),
+                    LoadBitmapFromUri(NetworkStatusConstants.SERVER_NOT_RESPONDING_ICON_URI),
                 _ => _cachedInternetUnavailableIcon ??=
-                    LoadBitmapFromUri(NetworkStatusConstants.NoInternetIconUri)
+                    LoadBitmapFromUri(NetworkStatusConstants.NO_INTERNET_ICON_URI)
             };
         }
         catch (Exception ex)

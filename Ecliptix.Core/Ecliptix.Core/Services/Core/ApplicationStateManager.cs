@@ -9,7 +9,7 @@ namespace Ecliptix.Core.Services.Core;
 
 public sealed class ApplicationStateManager : IApplicationStateManager, IDisposable
 {
-    private readonly BehaviorSubject<ApplicationState> _stateSubject = new(ApplicationState.Initializing);
+    private readonly BehaviorSubject<ApplicationState> _stateSubject = new(ApplicationState.INITIALIZING);
     private Option<string> _currentMembershipId = Option<string>.None;
     private bool _disposed;
 

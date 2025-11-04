@@ -26,7 +26,7 @@ internal sealed class ConnectivityPublisher : IDisposable
         await _publishGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            Guid correlation = intent.CorrelationId ?? Guid.NewGuid();
+            Guid correlation = intent.CORRELATION_ID ?? Guid.NewGuid();
 
             ConnectivityReason reason;
             if (intent.Reason == ConnectivityReason.None)

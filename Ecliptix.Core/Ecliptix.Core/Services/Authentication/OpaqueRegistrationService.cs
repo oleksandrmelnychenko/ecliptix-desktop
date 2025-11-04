@@ -52,7 +52,7 @@ internal sealed class OpaqueRegistrationService(
         if (string.IsNullOrEmpty(mobileNumber))
         {
             return Result<ValidateMobileNumberResponse, string>.Err(
-                localizationService[AuthenticationConstants.MobileNumberRequiredKey]);
+                localizationService[AuthenticationConstants.MOBILE_NUMBER_REQUIRED_KEY]);
         }
 
         ValidateMobileNumberRequest request = new()
@@ -91,7 +91,7 @@ internal sealed class OpaqueRegistrationService(
         if (mobileNumberIdentifier.IsEmpty)
         {
             return Result<CheckMobileNumberAvailabilityResponse, string>.Err(
-                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
         CheckMobileNumberAvailabilityRequest request = new()
@@ -130,7 +130,7 @@ internal sealed class OpaqueRegistrationService(
         if (mobileNumberIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
         Result<uint, NetworkFailure> protocolResult =
@@ -140,7 +140,7 @@ internal sealed class OpaqueRegistrationService(
         if (protocolResult.IsErr)
         {
             return Result<Unit, string>.Err(
-                $"{AuthenticationConstants.VerificationFailurePrefix}{protocolResult.UnwrapErr().Message}");
+                $"{AuthenticationConstants.VERIFICATION_FAILURE_PREFIX}{protocolResult.UnwrapErr().Message}");
         }
 
         uint streamConnectId = protocolResult.Unwrap();
@@ -178,18 +178,18 @@ internal sealed class OpaqueRegistrationService(
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.SESSION_IDENTIFIER_REQUIRED_KEY]);
         }
 
         if (mobileNumberIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.MobileNumberIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MOBILE_NUMBER_IDENTIFIER_REQUIRED_KEY]);
         }
 
         if (!_activeStreams.TryGetValue(sessionIdentifier, out uint streamConnectId))
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VerificationSessionExpiredKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY]);
         }
 
         VerificationPurpose purpose =
@@ -228,13 +228,13 @@ internal sealed class OpaqueRegistrationService(
         if (string.IsNullOrEmpty(otpCode) || otpCode.Length != 6)
         {
             return Result<Protobuf.Membership.Membership, string>.Err(
-                localizationService[AuthenticationConstants.InvalidOtpCodeKey]);
+                localizationService[AuthenticationConstants.INVALID_OTP_CODE_KEY]);
         }
 
         if (!_activeStreams.TryGetValue(sessionIdentifier, out uint activeStreamId))
         {
             return Result<Protobuf.Membership.Membership, string>.Err(
-                localizationService[AuthenticationConstants.NoActiveVerificationSessionKey]);
+                localizationService[AuthenticationConstants.NO_ACTIVE_VERIFICATION_SESSION_KEY]);
         }
 
         VerificationPurpose purpose =
@@ -263,7 +263,7 @@ internal sealed class OpaqueRegistrationService(
                 else
                 {
                     responseSource.TrySetResult(Result<Protobuf.Membership.Membership, string>.Err(
-                        localizationService[AuthenticationConstants.InvalidOtpCodeKey]));
+                        localizationService[AuthenticationConstants.INVALID_OTP_CODE_KEY]));
                 }
 
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
@@ -283,12 +283,12 @@ internal sealed class OpaqueRegistrationService(
         if (membershipIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]);
         }
 
         if (secureKey.Length == 0)
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY]);
         }
 
         SensitiveBytes? secureKeyBytes = null;
@@ -302,7 +302,7 @@ internal sealed class OpaqueRegistrationService(
             {
                 string errorMessage = createResult?.IsErr is true
                     ? $"Failed to create secure key buffer: {createResult.Value.UnwrapErr().Message}"
-                    : localizationService[AuthenticationConstants.SecureKeyRequiredKey];
+                    : localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY];
                 return Result<Unit, string>.Err(errorMessage);
             }
 
@@ -310,13 +310,13 @@ internal sealed class OpaqueRegistrationService(
 
             if (secureKeyBytes.Length == 0)
             {
-                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
+                return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY]);
             }
 
-            const int maxFlowAttempts = 3;
+            const int MAX_FLOW_ATTEMPTS = 3;
 
             return await RetryAsync(
-                    maxFlowAttempts,
+                    MAX_FLOW_ATTEMPTS,
                     (attempt, attemptCancellationToken) =>
                         ExecuteCompleteRegistrationAttemptAsync(
                             membershipIdentifier,
@@ -337,7 +337,7 @@ internal sealed class OpaqueRegistrationService(
     {
         if (sessionIdentifier == AuthenticationConstants.EmptyGuid)
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SessionIdentifierRequiredKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SESSION_IDENTIFIER_REQUIRED_KEY]);
         }
 
         return await CleanupStreamAsync(sessionIdentifier).ConfigureAwait(false);
@@ -353,11 +353,11 @@ internal sealed class OpaqueRegistrationService(
     }
 
     private static RegistrationAttemptResult CreateAttemptSuccess(RpcRequestContext context) =>
-        new(Result<Unit, string>.Ok(Unit.Value), false, context.CorrelationId, context.IdempotencyKey, string.Empty);
+        new(Result<Unit, string>.Ok(Unit.Value), false, context.CORRELATION_ID, context.IdempotencyKey, string.Empty);
 
     private static RegistrationAttemptResult CreateAttemptFailure(string error, bool isTransient,
         RpcRequestContext context) =>
-        new(Result<Unit, string>.Err(error), isTransient, context.CorrelationId, context.IdempotencyKey, error);
+        new(Result<Unit, string>.Err(error), isTransient, context.CORRELATION_ID, context.IdempotencyKey, error);
 
     private static bool IsTransientRpcStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;
@@ -391,7 +391,7 @@ internal sealed class OpaqueRegistrationService(
             RxApp.MainThreadScheduler.Schedule(() =>
                 onCountdownUpdate?.Invoke(0, Guid.Empty,
                     VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound,
-                    AuthenticationConstants.ErrorMessages.SessionExpiredStartOver));
+                    AuthenticationConstants.ErrorMessages.SESSION_EXPIRED_START_OVER));
         }
 
         if (failure.FailureType is NetworkFailureType.DataCenterNotResponding
@@ -412,22 +412,22 @@ internal sealed class OpaqueRegistrationService(
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(userError.I18nKey) &&
-            (string.Equals(userError.I18nKey, AuthenticationConstants.SessionNotFoundKey,
+        if (!string.IsNullOrWhiteSpace(userError.I_18N_KEY) &&
+            (string.Equals(userError.I_18N_KEY, AuthenticationConstants.SESSION_NOT_FOUND_KEY,
                  StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(userError.I18nKey, AuthenticationConstants.VerificationSessionExpiredKey,
+             string.Equals(userError.I_18N_KEY, AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY,
                  StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
 
-        return userError.ErrorCode == ErrorCode.NotFound;
+        return userError.ERROR_CODE == ERROR_CODE.NOT_FOUND;
     }
 
     private readonly record struct RegistrationAttemptResult(
         Result<Unit, string> Outcome,
         bool IsTransient,
-        string CorrelationId,
+        string CORRELATION_ID,
         string IdempotencyKey,
         string FailureMessage);
 
@@ -439,7 +439,7 @@ internal sealed class OpaqueRegistrationService(
         {
             return Result<byte[], RegistrationAttemptResult>.Err(
                 CreateAttemptFailure(
-                    localizationService[AuthenticationConstants.SecureKeyRequiredKey],
+                    localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY],
                     false,
                     requestContext));
         }
@@ -463,7 +463,7 @@ internal sealed class OpaqueRegistrationService(
         registrationResult.Dispose();
         return Result<RegistrationResult, RegistrationAttemptResult>.Err(
             CreateAttemptFailure(
-                localizationService[AuthenticationConstants.RegistrationFailedKey],
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
                 true,
                 requestContext));
     }
@@ -483,8 +483,8 @@ internal sealed class OpaqueRegistrationService(
         string errorMessage = initResponse.Result switch
         {
             OpaqueRegistrationInitResponse.Types.UpdateResult.InvalidCredentials =>
-                localizationService[AuthenticationConstants.InvalidCredentialsKey],
-            _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
+                localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY],
+            _ => localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]
         };
 
         return Result<Unit, RegistrationAttemptResult>.Err(
@@ -585,7 +585,7 @@ internal sealed class OpaqueRegistrationService(
             {
                 return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Err(
                     CreateAttemptFailure(
-                        localizationService[AuthenticationConstants.RegistrationFailedKey],
+                        localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
                         false,
                         requestContext));
             }
@@ -729,8 +729,8 @@ internal sealed class OpaqueRegistrationService(
                 allowReinit = false;
                 requestContext.MarkReinitAttempted();
                 Serilog.Log.Information(
-                    "[REGISTRATION-FLOW-REINIT] Registration complete failed, retrying with reinit. CorrelationId: {CorrelationId}, IdempotencyKey: {IdempotencyKey}",
-                    requestContext.CorrelationId,
+                    "[REGISTRATION-FLOW-REINIT] Registration complete failed, retrying with reinit. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
+                    requestContext.CORRELATION_ID,
                     requestContext.IdempotencyKey);
                 continue;
             }
@@ -750,22 +750,22 @@ internal sealed class OpaqueRegistrationService(
                 registrationResult?.Dispose();
                 registrationResult = null;
 
-                string message = $"{AuthenticationConstants.RegistrationFailurePrefix}{ex.Message}";
+                string message = $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{ex.Message}";
                 bool isTransient = IsTransientException(ex);
 
                 if (isTransient)
                 {
                     Serilog.Log.Warning(ex,
-                        "[REGISTRATION-FLOW-RETRY] Exception during registration attempt {Attempt}, transient classification applied. CorrelationId: {CorrelationId}, IdempotencyKey: {IdempotencyKey}",
+                        "[REGISTRATION-FLOW-RETRY] Exception during registration attempt {Attempt}, transient classification applied. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
                         attempt,
-                        requestContext.CorrelationId,
+                        requestContext.CORRELATION_ID,
                         requestContext.IdempotencyKey);
                 }
                 else
                 {
                     Serilog.Log.Error(ex,
-                        "[REGISTRATION-FLOW-FAILURE] Non-transient exception during registration. CorrelationId: {CorrelationId}, IdempotencyKey: {IdempotencyKey}",
-                        requestContext.CorrelationId,
+                        "[REGISTRATION-FLOW-FAILURE] Non-transient exception during registration. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
+                        requestContext.CORRELATION_ID,
                         requestContext.IdempotencyKey);
                 }
 
@@ -807,10 +807,10 @@ internal sealed class OpaqueRegistrationService(
             }
 
             Serilog.Log.Warning(
-                "[REGISTRATION-FLOW-RETRY] Transient failure during registration. Retrying attempt {NextAttempt}/{MaxAttempts}. CorrelationId: {CorrelationId}, IdempotencyKey: {IdempotencyKey}, Failure: {Failure}",
+                "[REGISTRATION-FLOW-RETRY] Transient failure during registration. Retrying attempt {NextAttempt}/{MAX_ATTEMPTS}. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}, Failure: {Failure}",
                 attempt + 1,
                 maxAttempts,
-                attemptResult.CorrelationId,
+                attemptResult.CORRELATION_ID,
                 attemptResult.IdempotencyKey,
                 attemptResult.FailureMessage);
         }
@@ -819,7 +819,7 @@ internal sealed class OpaqueRegistrationService(
     }
 
     private static string FormatNetworkFailure(NetworkFailure failure) =>
-        $"{AuthenticationConstants.RegistrationFailurePrefix}{(failure.UserError?.Message ?? failure.Message)}";
+        $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{(failure.UserError?.Message ?? failure.Message)}";
 
     private async Task<Result<OpaqueRegistrationInitResponse, NetworkFailure>> InitiateOpaqueRegistrationAsync(
         ByteString membershipIdentifier,
@@ -832,7 +832,7 @@ internal sealed class OpaqueRegistrationService(
         {
             return Result<OpaqueRegistrationInitResponse, NetworkFailure>.Err(
                 NetworkFailure.InvalidRequestType(
-                    localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]));
+                    localizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]));
         }
 
         OpaqueRegistrationInitRequest request = new()
@@ -885,7 +885,7 @@ internal sealed class OpaqueRegistrationService(
                         if (cleanupResult.IsErr)
                         {
                             Serilog.Log.Warning(
-                                "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, Error: {Error}",
+                                "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, ERROR: {ERROR}",
                                 verificationIdentifier, cleanupResult.UnwrapErr());
                         }
                     }
@@ -950,7 +950,7 @@ internal sealed class OpaqueRegistrationService(
         {
             return Task.FromResult(Result<Unit, NetworkFailure>.Err(
                 NetworkFailure.DataCenterNotResponding(
-                    $"{AuthenticationConstants.NetworkFailurePrefix}{ex.Message}")));
+                    $"{AuthenticationConstants.NETWORK_FAILURE_PREFIX}{ex.Message}")));
         }
     }
 

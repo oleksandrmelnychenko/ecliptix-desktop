@@ -28,7 +28,7 @@ internal sealed class GrpcCallOptionsFactory(IGrpcDeadlineProvider deadlineProvi
 
         Metadata headers = new()
         {
-            { "x-correlation-id", requestContext.CorrelationId },
+            { "x-correlation-id", requestContext.CORRELATION_ID },
             { "x-idempotency-key", requestContext.IdempotencyKey },
             { "x-attempt", requestContext.Attempt.ToString(CultureInfo.InvariantCulture) }
         };

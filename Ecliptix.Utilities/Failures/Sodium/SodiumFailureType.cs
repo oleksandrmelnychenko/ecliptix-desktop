@@ -2,14 +2,14 @@ namespace Ecliptix.Utilities.Failures.Sodium;
 
 public enum SodiumFailureType
 {
-    InitializationFailed,
+    INITIALIZATION_FAILED,
     LibraryNotFound,
-    AllocationFailed,
+    ALLOCATION_FAILED,
     MemoryPinningFailed,
-    SecureWipeFailed,
+    SECURE_WIPE_FAILED,
     InvalidBufferSize,
-    BufferTooSmall,
-    BufferTooLarge,
+    BUFFER_TOO_SMALL,
+    BUFFER_TOO_LARGE,
     NullPointer,
     MemoryProtectionFailed,
     ComparisonFailed,

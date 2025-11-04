@@ -4,7 +4,7 @@ public enum LogoutFailureType
 {
     NetworkRequestFailed,
     AlreadyLoggedOut,
-    SessionNotFound,
+    SESSION_NOT_FOUND,
     InvalidMembershipIdentifier,
     CryptographicOperationFailed,
     InvalidRevocationProof,

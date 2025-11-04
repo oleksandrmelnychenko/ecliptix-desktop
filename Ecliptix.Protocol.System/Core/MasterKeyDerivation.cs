@@ -17,11 +17,11 @@ internal static class MasterKeyDerivation
     private const int KEY_SIZE = 32;
     private const int CURRENT_VERSION = 1;
 
-    private static readonly byte[] CachedDomainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DomainContext);
-    private static readonly byte[] CachedMasterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MasterSalt);
-    private static readonly byte[] CachedEd25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.Ed25519Context);
-    private static readonly byte[] CachedX25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.X25519Context);
-    private static readonly byte[] CachedSignedPreKeyContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.SignedPreKeyContext);
+    private static readonly byte[] CachedDomainBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.DOMAIN_CONTEXT);
+    private static readonly byte[] CachedMasterSaltBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.MASTER_SALT);
+    private static readonly byte[] CachedEd25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.ED_25519_CONTEXT);
+    private static readonly byte[] CachedX25519ContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.X_25519_CONTEXT);
+    private static readonly byte[] CachedSignedPreKeyContextBytes = Encoding.UTF8.GetBytes(StorageKeyConstants.SessionContext.SIGNED_PRE_KEY_CONTEXT);
 
     public static byte[] DeriveMasterKey(byte[] exportKey, ByteString membershipId)
     {
@@ -49,17 +49,17 @@ internal static class MasterKeyDerivation
             byte[] salt16 = masterSaltBytes.ToArray();
             byte[] personal16 = membershipBytes.ToArray();
 
-            if (salt16.Length != CryptographicConstants.Blake2BSaltSize)
+            if (salt16.Length != CryptographicConstants.BLAKE_2_B_SALT_SIZE)
             {
-                byte[] adjustedSalt = new byte[CryptographicConstants.Blake2BSaltSize];
-                int copyLength = Math.Min(salt16.Length, CryptographicConstants.Blake2BSaltSize);
+                byte[] adjustedSalt = new byte[CryptographicConstants.BLAKE_2_B_SALT_SIZE];
+                int copyLength = Math.Min(salt16.Length, CryptographicConstants.BLAKE_2_B_SALT_SIZE);
                 Array.Copy(salt16, 0, adjustedSalt, 0, copyLength);
                 salt16 = adjustedSalt;
             }
 
-            if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
+            if (personal16.Length != CryptographicConstants.BLAKE_2_B_PERSONAL_SIZE)
             {
-                throw new InvalidOperationException(string.Format(ProtocolSystemConstants.ErrorMessages.PersonalParameterInvalidSize, CryptographicConstants.Blake2BPersonalSize, personal16.Length));
+                throw new InvalidOperationException(string.Format(ProtocolSystemConstants.ErrorMessages.PERSONAL_PARAMETER_INVALID_SIZE, CryptographicConstants.BLAKE_2_B_PERSONAL_SIZE, personal16.Length));
             }
 
             byte[] masterKey = GenericHash.HashSaltPersonal(
@@ -114,18 +114,18 @@ internal static class MasterKeyDerivation
                 byte[] salt16 = masterSaltBytes.ToArray();
                 byte[] personal16 = membershipBytes.ToArray();
 
-                if (salt16.Length != CryptographicConstants.Blake2BSaltSize)
+                if (salt16.Length != CryptographicConstants.BLAKE_2_B_SALT_SIZE)
                 {
-                    byte[] adjustedSalt = new byte[CryptographicConstants.Blake2BSaltSize];
-                    int copyLength = Math.Min(salt16.Length, CryptographicConstants.Blake2BSaltSize);
+                    byte[] adjustedSalt = new byte[CryptographicConstants.BLAKE_2_B_SALT_SIZE];
+                    int copyLength = Math.Min(salt16.Length, CryptographicConstants.BLAKE_2_B_SALT_SIZE);
                     Array.Copy(salt16, 0, adjustedSalt, 0, copyLength);
                     salt16 = adjustedSalt;
                 }
 
-                if (personal16.Length != CryptographicConstants.Blake2BPersonalSize)
+                if (personal16.Length != CryptographicConstants.BLAKE_2_B_PERSONAL_SIZE)
                 {
                     return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                        SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.PersonalParameterInvalidSize, CryptographicConstants.Blake2BPersonalSize, personal16.Length)));
+                        SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.PERSONAL_PARAMETER_INVALID_SIZE, CryptographicConstants.BLAKE_2_B_PERSONAL_SIZE, personal16.Length)));
                 }
 
                 byte[] masterKeyBytes = GenericHash.HashSaltPersonal(
@@ -159,7 +159,7 @@ internal static class MasterKeyDerivation
             catch (Exception ex)
             {
                 return Result<SodiumSecureMemoryHandle, SodiumFailure>.Err(
-                    SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.FailedToDeriveMasterKey, ex.Message)));
+                    SodiumFailure.InvalidOperation(string.Format(ProtocolSystemConstants.ErrorMessages.FAILED_TO_DERIVE_MASTER_KEY, ex.Message)));
             }
             finally
             {
@@ -210,9 +210,9 @@ internal static class MasterKeyDerivation
         using Argon2id argon2 = new(exportKey)
         {
             Salt = salt,
-            DegreeOfParallelism = CryptographicConstants.Argon2.DefaultParallelism,
-            Iterations = CryptographicConstants.Argon2.DefaultIterations,
-            MemorySize = CryptographicConstants.Argon2.DefaultMemorySize
+            DegreeOfParallelism = CryptographicConstants.Argon2.DEFAULT_PARALLELISM,
+            Iterations = CryptographicConstants.Argon2.DEFAULT_ITERATIONS,
+            MemorySize = CryptographicConstants.Argon2.DEFAULT_MEMORY_SIZE
         };
 
         return argon2.GetBytes(KEY_SIZE);
@@ -228,9 +228,9 @@ internal static class MasterKeyDerivation
             using Argon2id argon2 = new(exportKeyBuffer.AsSpan(0, exportKeySpan.Length).ToArray())
             {
                 Salt = salt,
-                DegreeOfParallelism = CryptographicConstants.Argon2.DefaultParallelism,
-                Iterations = CryptographicConstants.Argon2.DefaultIterations,
-                MemorySize = CryptographicConstants.Argon2.DefaultMemorySize
+                DegreeOfParallelism = CryptographicConstants.Argon2.DEFAULT_PARALLELISM,
+                Iterations = CryptographicConstants.Argon2.DEFAULT_ITERATIONS,
+                MemorySize = CryptographicConstants.Argon2.DEFAULT_MEMORY_SIZE
             };
 
             return argon2.GetBytes(KEY_SIZE);

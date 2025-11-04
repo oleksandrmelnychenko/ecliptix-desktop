@@ -14,14 +14,14 @@ namespace Ecliptix.Core.Features.Authentication.ViewModels.Welcome;
 
 public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewModel, IResettable
 {
-    private const string CreateAccountKey = "CreateAccount";
-    private const string SignInKey = "SignIn";
+    private const string CREATE_ACCOUNT_KEY = "CreateAccount";
+    private const string SIGN_IN_KEY = "SignIn";
 
     private static readonly FrozenDictionary<string, MembershipViewType> NavigationCache =
         new Dictionary<string, MembershipViewType>
         {
-            [CreateAccountKey] = MembershipViewType.MobileVerificationView,
-            [SignInKey] = MembershipViewType.SignInView
+            [CREATE_ACCOUNT_KEY] = MembershipViewType.MobileVerificationView,
+            [SIGN_IN_KEY] = MembershipViewType.SignInView
         }.ToFrozenDictionary();
 
     private readonly CompositeDisposable _disposables = new();
@@ -36,7 +36,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.Registration;
-            MembershipViewType viewType = NavigationCache[CreateAccountKey];
+            MembershipViewType viewType = NavigationCache[CREATE_ACCOUNT_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });
 
@@ -44,7 +44,7 @@ public sealed class WelcomeViewModel : Core.MVVM.ViewModelBase, IRoutableViewMod
         {
             AuthenticationViewModel hostWindow = (AuthenticationViewModel)HostScreen;
             ((AuthenticationViewModel)HostScreen).CurrentFlowContext = AuthenticationFlowContext.SecureKeyRecovery;
-            MembershipViewType viewType = NavigationCache[SignInKey];
+            MembershipViewType viewType = NavigationCache[SIGN_IN_KEY];
             return hostWindow.Navigate.Execute(viewType);
         });
 

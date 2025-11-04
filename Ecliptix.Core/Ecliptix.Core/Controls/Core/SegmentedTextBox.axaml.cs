@@ -20,15 +20,15 @@ public partial class SegmentedTextBox : UserControl
 {
     public static readonly StyledProperty<int> SegmentCountProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(SegmentCount),
-            SegmentedTextBoxConstants.DefaultSegmentCount, validate: value => value > 0);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_COUNT, validate: value => value > 0);
 
     public static readonly StyledProperty<bool> AllowOnlyNumbersProperty =
         AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers),
-            SegmentedTextBoxConstants.DefaultAllowOnlyNumbers);
+            SegmentedTextBoxConstants.DEFAULT_ALLOW_ONLY_NUMBERS);
 
     public static readonly StyledProperty<bool> IsPointerInteractionEnabledProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsPointerInteractionEnabled),
-            SegmentedTextBoxConstants.IsPointerInteractionEnabled);
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IS_POINTER_INTERACTION_ENABLED),
+            SegmentedTextBoxConstants.IS_POINTER_INTERACTION_ENABLED);
 
     public static readonly StyledProperty<IBrush> SegmentBackgroundProperty =
         AvaloniaProperty.Register<SegmentedTextBox, IBrush>(nameof(SegmentBackground), Brushes.Transparent);
@@ -46,11 +46,11 @@ public partial class SegmentedTextBox : UserControl
 
     public static readonly StyledProperty<double> SegmentSpacingProperty =
         AvaloniaProperty.Register<SegmentedTextBox, double>(nameof(SegmentSpacing),
-            SegmentedTextBoxConstants.DefaultSegmentSpacing);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_SPACING);
 
     public static readonly StyledProperty<double> SegmentWidthProperty =
         AvaloniaProperty.Register<SegmentedTextBox, double>(nameof(SegmentWidth),
-            SegmentedTextBoxConstants.DefaultSegmentWidth);
+            SegmentedTextBoxConstants.DEFAULT_SEGMENT_WIDTH);
 
     public static readonly StyledProperty<int> BaseTabIndexProperty =
         AvaloniaProperty.Register<SegmentedTextBox, int>(nameof(BaseTabIndex), int.MaxValue);
@@ -123,7 +123,7 @@ public partial class SegmentedTextBox : UserControl
         set => SetValue(AllowOnlyNumbersProperty, value);
     }
 
-    public bool IsPointerInteractionEnabled
+    public bool IS_POINTER_INTERACTION_ENABLED
     {
         get => GetValue(IsPointerInteractionEnabledProperty);
         set => SetValue(IsPointerInteractionEnabledProperty, value);
@@ -277,7 +277,7 @@ public partial class SegmentedTextBox : UserControl
             TextBox tb = new()
             {
                 TabIndex = i == 0 ? 0 : -1,
-                Classes = { SegmentedTextBoxConstants.SegmentStyleClass },
+                Classes = { SegmentedTextBoxConstants.SEGMENT_STYLE_CLASS },
                 Width = SegmentWidth,
             };
 
@@ -343,7 +343,7 @@ public partial class SegmentedTextBox : UserControl
     {
         foreach (TextBox tb in _segments)
         {
-            tb.Classes.Remove(SegmentedTextBoxConstants.ActiveStyleClass);
+            tb.Classes.Remove(SegmentedTextBoxConstants.ACTIVE_STYLE_CLASS);
         }
     }
 
@@ -421,7 +421,7 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        if (!IsPointerInteractionEnabled && index != _currentActiveIndex)
+        if (!IS_POINTER_INTERACTION_ENABLED && index != _currentActiveIndex)
         {
             e.Handled = true;
             return;
@@ -510,7 +510,7 @@ public partial class SegmentedTextBox : UserControl
         for (int i = 0; i < _segments.Count; i++)
         {
             TextBox tb = _segments[i];
-            tb.Classes.Set(SegmentedTextBoxConstants.ActiveStyleClass, i == _currentActiveIndex);
+            tb.Classes.Set(SegmentedTextBoxConstants.ACTIVE_STYLE_CLASS, i == _currentActiveIndex);
         }
 
         FocusCurrentSegment();

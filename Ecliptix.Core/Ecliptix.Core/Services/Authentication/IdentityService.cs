@@ -30,7 +30,7 @@ internal sealed class IdentityService : IIdentityService
         IdentityContext context = new(membershipId);
 
         Result<byte[], SecureStorageFailure> result =
-            await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
+            await _storage.LoadStateAsync(context.STORAGE_KEY, context.MembershipBytes).ConfigureAwait(false);
         bool exists = result.IsOk;
 
         return exists;
@@ -57,7 +57,7 @@ internal sealed class IdentityService : IIdentityService
 
             if (loadResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to load master key for verification. MembershipId: {MembershipId}, Error: {Error}",
+                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to load master key for verification. MembershipId: {MembershipId}, ERROR: {ERROR}",
                     context.MembershipId, loadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not load stored master key: {loadResult.UnwrapErr().Message}"));
@@ -68,7 +68,7 @@ internal sealed class IdentityService : IIdentityService
 
             if (loadedReadResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to read loaded master key. MembershipId: {MembershipId}, Error: {Error}",
+                Log.Error("[CLIENT-IDENTITY-VERIFY-FAIL] Failed to read loaded master key. MembershipId: {MembershipId}, ERROR: {ERROR}",
                     context.MembershipId, loadedReadResult.UnwrapErr().Message);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed($"Verification failed - could not read loaded master key: {loadedReadResult.UnwrapErr().Message}"));
@@ -110,7 +110,7 @@ internal sealed class IdentityService : IIdentityService
         try
         {
             Result<Unit, SecureStorageFailure> deleteStorageResult =
-                await _storage.DeleteStateAsync(context.StorageKey).ConfigureAwait(false);
+                await _storage.DeleteStateAsync(context.STORAGE_KEY).ConfigureAwait(false);
 
             if (deleteStorageResult.IsErr)
             {
@@ -135,7 +135,7 @@ internal sealed class IdentityService : IIdentityService
     private async Task StoreIdentityInternalAsync(SodiumSecureMemoryHandle masterKeyHandle, IdentityContext context)
     {
         byte[]? wrappingKey = null;
-        string storageKey = context.StorageKey;
+        string storageKey = context.STORAGE_KEY;
         bool hardwareAvailable = IsHardwareSecurityAvailable();
 
         try
@@ -147,7 +147,7 @@ internal sealed class IdentityService : IIdentityService
 
             if (saveResult.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-STORE-ERROR] Failed to save master key to storage. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
+                Log.Error("[CLIENT-IDENTITY-STORE-ERROR] Failed to save master key to storage. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}, ERROR: {ERROR}",
                     context.MembershipId, storageKey, saveResult.UnwrapErr().Message);
                 throw new InvalidOperationException($"Failed to save master key to storage: {saveResult.UnwrapErr().Message}");
             }
@@ -169,7 +169,7 @@ internal sealed class IdentityService : IIdentityService
 
     private async Task<Result<SodiumSecureMemoryHandle, AuthenticationFailure>> LoadMasterKeyAsync(IdentityContext context)
     {
-        string storageKey = context.StorageKey;
+        string storageKey = context.STORAGE_KEY;
 
         try
         {
@@ -178,7 +178,7 @@ internal sealed class IdentityService : IIdentityService
 
             if (result.IsErr)
             {
-                Log.Error("[CLIENT-IDENTITY-LOAD-ERROR] Failed to load protected key. MembershipId: {MembershipId}, StorageKey: {StorageKey}, Error: {Error}",
+                Log.Error("[CLIENT-IDENTITY-LOAD-ERROR] Failed to load protected key. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}, ERROR: {ERROR}",
                     context.MembershipId, storageKey, result.UnwrapErr().Message);
 
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
@@ -192,7 +192,7 @@ internal sealed class IdentityService : IIdentityService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "[CLIENT-IDENTITY-LOAD-EXCEPTION] Exception loading master key. MembershipId: {MembershipId}, StorageKey: {StorageKey}",
+            Log.Error(ex, "[CLIENT-IDENTITY-LOAD-EXCEPTION] Exception loading master key. MembershipId: {MembershipId}, STORAGE_KEY: {STORAGE_KEY}",
                 context.MembershipId, storageKey);
 
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
@@ -296,8 +296,8 @@ internal sealed class IdentityService : IIdentityService
                     aes.Key = wrappingKey;
 
                     ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
-                    iv = protectedSpan[..SecureStorageConstants.Identity.AesIvSize].ToArray();
-                    encryptedKey = protectedSpan[SecureStorageConstants.Identity.AesIvSize..].ToArray();
+                    iv = protectedSpan[..SecureStorageConstants.Identity.AES_IV_SIZE].ToArray();
+                    encryptedKey = protectedSpan[SecureStorageConstants.Identity.AES_IV_SIZE..].ToArray();
 
                     aes.IV = iv;
                     masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
@@ -309,7 +309,7 @@ internal sealed class IdentityService : IIdentityService
             if (allocResult.IsErr)
             {
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryAllocationFailed($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
+                    AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
             }
 
             SodiumSecureMemoryHandle handle = allocResult.Unwrap();
@@ -318,7 +318,7 @@ internal sealed class IdentityService : IIdentityService
             {
                 handle.Dispose();
                 return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SecureMemoryWriteFailed($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
+                    AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
             }
 
             return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
@@ -354,7 +354,7 @@ internal sealed class IdentityService : IIdentityService
 
     private async Task<byte[]> GenerateWrappingKeyAsync()
     {
-        return await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AesKeySize).ConfigureAwait(false);
+        return await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AES_KEY_SIZE).ConfigureAwait(false);
     }
 
     private bool IsHardwareSecurityAvailable() => _hardwareSecurityAvailable.Value;
@@ -364,15 +364,15 @@ internal sealed class IdentityService : IIdentityService
         private byte[]? _membershipBytes;
 
         public string MembershipId { get; } = membershipId;
-        public string StorageKey { get; } = GetMasterKeyStorageKey(membershipId);
+        public string STORAGE_KEY { get; } = GetMasterKeyStorageKey(membershipId);
         public string KeychainKey { get; } = GetKeychainWrapKey(membershipId);
 
         public byte[] MembershipBytes => _membershipBytes ??= Guid.Parse(MembershipId).ToByteArray();
 
         private static string GetMasterKeyStorageKey(string membershipId) =>
-            string.Concat(SecureStorageConstants.Identity.MasterKeyStoragePrefix, membershipId);
+            string.Concat(SecureStorageConstants.Identity.MASTER_KEY_STORAGE_PREFIX, membershipId);
 
         private static string GetKeychainWrapKey(string membershipId) =>
-            string.Concat(SecureStorageConstants.Identity.KeychainWrapKeyPrefix, membershipId);
+            string.Concat(SecureStorageConstants.Identity.KEYCHAIN_WRAP_KEY_PREFIX, membershipId);
     }
 }

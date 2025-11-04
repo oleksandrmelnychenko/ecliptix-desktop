@@ -65,15 +65,15 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     private string Localize(string registrationKey, string recoveryKey) =>
         GetSecureKeyLocalization(_flowContext, registrationKey, recoveryKey);
 
-    public string Title => Localize(Keys.RegistrationTitle, Keys.RecoveryTitle);
+    public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
 
-    public string Description => Localize(Keys.RegistrationDescription, Keys.RecoveryDescription);
+    public string Description => Localize(Keys.REGISTRATION_DESCRIPTION, Keys.RECOVERY_DESCRIPTION);
 
-    public string Hint => Localize(Keys.RegistrationHint, Keys.RecoveryHint);
+    public string Hint => Localize(Keys.REGISTRATION_HINT, Keys.RECOVERY_HINT);
 
-    public string Watermark => Localize(Keys.RegistrationWatermark, Keys.RecoveryWatermark);
+    public string Watermark => Localize(Keys.REGISTRATION_WATERMARK, Keys.RECOVERY_WATERMARK);
 
-    public string ButtonText => Localize(Keys.RegistrationButton, Keys.RecoveryButton);
+    public string ButtonText => Localize(Keys.REGISTRATION_BUTTON, Keys.RECOVERY_BUTTON);
 
     public ReactiveCommand<Unit, Unit>? VerifyMobileNumberCommand { get; private set; }
 
@@ -209,7 +209,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
         {
             if (!_isDisposed)
             {
-                string errorMessage = LocalizationService[AuthenticationConstants.CommonUnexpectedErrorKey];
+                string errorMessage = LocalizationService[AuthenticationConstants.COMMON_UNEXPECTED_ERROR_KEY];
                 ShowError(errorMessage);
             }
         }
@@ -348,7 +348,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         string corruptionError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
-            : LocalizationService["MobileVerification.Error.DataCorruption"];
+            : LocalizationService["MobileVerification.ERROR.DataCorruption"];
         ShowError(corruptionError);
     }
 
@@ -356,7 +356,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         string takenError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
-            : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+            : LocalizationService["MobileVerification.ERROR.MobileAlreadyRegistered"];
         ShowError(takenError);
     }
 
@@ -364,7 +364,7 @@ public sealed class MobileVerificationViewModel : Core.MVVM.ViewModelBase, IRout
     {
         string defaultError = !string.IsNullOrEmpty(statusResponse.LocalizationKey)
             ? LocalizationService[statusResponse.LocalizationKey]
-            : LocalizationService["MobileVerification.Error.MobileAlreadyRegistered"];
+            : LocalizationService["MobileVerification.ERROR.MobileAlreadyRegistered"];
         ShowError(defaultError);
     }
 

@@ -14,12 +14,12 @@ namespace Ecliptix.Core.Services.External.IpGeolocation;
 
 internal sealed class IpGeolocationService(HttpClient http) : IIpGeolocationService
 {
-    private const string BaseUrl = "https://api.country.is";
+    private const string BASE_URL = "https://api.country.is";
 
     public async Task<Result<IpCountry, InternalServiceApiFailure>> GetIpCountryAsync(
         CancellationToken cancellationToken = default)
     {
-        using HttpRequestMessage req = new(HttpMethod.Get, BaseUrl);
+        using HttpRequestMessage req = new(HttpMethod.Get, BASE_URL);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         try

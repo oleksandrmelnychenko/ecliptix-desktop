@@ -6,7 +6,7 @@ namespace Ecliptix.Core.Services.Abstractions.Core;
 
 public enum ApplicationState
 {
-    Initializing,
+    INITIALIZING,
     Anonymous,
     Authenticated
 }

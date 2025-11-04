@@ -35,8 +35,8 @@ public record ValidationFailure(
         FailureType switch
         {
             ValidationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
-                ErrorCode.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MaxAttempts),
+                ERROR_CODE.MaxAttemptsReached, StatusCode.ResourceExhausted, ErrorI18nKeys.MAX_ATTEMPTS),
             _ => new GrpcErrorDescriptor(
-                ErrorCode.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.Validation)
+                ERROR_CODE.ValidationFailed, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION)
         };
 }

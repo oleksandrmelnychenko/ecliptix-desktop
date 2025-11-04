@@ -89,12 +89,12 @@ internal sealed class SecureKeyRecoveryService(
         if (membershipIdentifier.IsEmpty)
         {
             return Result<Unit, string>.Err(
-                localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]);
         }
 
         if (newSecureKey.Length == 0)
         {
-            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SecureKeyRequiredKey]);
+            return Result<Unit, string>.Err(localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY]);
         }
 
         RegistrationResult? registrationResult = null;
@@ -201,7 +201,7 @@ internal sealed class SecureKeyRecoveryService(
         catch (Exception ex)
         {
             return Result<RegistrationResult, string>.Err(
-                $"{localizationService[AuthenticationConstants.RegistrationFailedKey]}: {ex.Message}");
+                $"{localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]}: {ex.Message}");
         }
     }
 
@@ -213,8 +213,8 @@ internal sealed class SecureKeyRecoveryService(
             string errorMessage = initResponse.Result switch
             {
                 OpaqueRecoverySecureKeyInitResponse.Types.RecoveryResult.InvalidCredentials =>
-                    localizationService[AuthenticationConstants.InvalidCredentialsKey],
-                _ => localizationService[AuthenticationConstants.RegistrationFailedKey]
+                    localizationService[AuthenticationConstants.INVALID_CREDENTIALS_KEY],
+                _ => localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY]
             };
             return Result<Unit, string>.Err(errorMessage);
         }
@@ -334,7 +334,7 @@ internal sealed class SecureKeyRecoveryService(
         if (membershipIdentifier.IsEmpty)
         {
             return Result<OpaqueRecoverySecureKeyInitResponse, string>.Err(
-                localizationService[AuthenticationConstants.MembershipIdentifierRequiredKey]);
+                localizationService[AuthenticationConstants.MEMBERSHIP_IDENTIFIER_REQUIRED_KEY]);
         }
 
         try

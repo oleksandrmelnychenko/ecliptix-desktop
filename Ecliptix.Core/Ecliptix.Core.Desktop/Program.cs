@@ -85,7 +85,7 @@ public static class Program
     public static async Task Main(string[] args)
     {
         string mutexName =
-            string.Format(ApplicationConstants.ApplicationSettings.MutexNameFormat, Environment.UserName);
+            string.Format(ApplicationConstants.ApplicationSettings.MUTEX_NAME_FORMAT, Environment.UserName);
         using Mutex mutex = new(true, mutexName, out bool createdNew);
 
         if (!createdNew)
@@ -99,7 +99,7 @@ public static class Program
 
         try
         {
-            Log.Information(ApplicationConstants.Logging.StartupMessage);
+            Log.Information(ApplicationConstants.Logging.STARTUP_MESSAGE);
             IServiceCollection services = ConfigureServices(configuration);
 
             services.UseMicrosoftDependencyResolver();
@@ -112,33 +112,33 @@ public static class Program
         }
         catch (Exception ex)
         {
-            Log.Fatal(ex, ApplicationConstants.Logging.FatalErrorMessage);
-            if (configuration[ApplicationConstants.ApplicationSettings.EnvironmentKey] !=
-                ApplicationConstants.ApplicationSettings.DevelopmentEnvironment)
+            Log.Fatal(ex, ApplicationConstants.Logging.FATAL_ERROR_MESSAGE);
+            if (configuration[ApplicationConstants.ApplicationSettings.ENVIRONMENT_KEY] !=
+                ApplicationConstants.ApplicationSettings.DEVELOPMENT_ENVIRONMENT)
             {
-                Environment.Exit(ApplicationConstants.ExitCodes.FatalError);
+                Environment.Exit(ApplicationConstants.ExitCodes.FATAL_ERROR);
             }
         }
         finally
         {
-            Log.Information(ApplicationConstants.Logging.ShutdownMessage);
+            Log.Information(ApplicationConstants.Logging.SHUTDOWN_MESSAGE);
             await Log.CloseAndFlushAsync();
         }
     }
 
     private static IConfiguration BuildConfiguration()
     {
-        string? environment = Env.GetString(ApplicationConstants.ApplicationSettings.DotNetEnvironmentKey);
+        string? environment = Env.GetString(ApplicationConstants.ApplicationSettings.DOT_NET_ENVIRONMENT_KEY);
 #if DEBUG
-        environment ??= ApplicationConstants.ApplicationSettings.DevelopmentEnvironment;
+        environment ??= ApplicationConstants.ApplicationSettings.DEVELOPMENT_ENVIRONMENT;
 #else
-        environment ??= ApplicationConstants.ApplicationSettings.ProductionEnvironment;
+        environment ??= ApplicationConstants.ApplicationSettings.PRODUCTION_ENVIRONMENT;
 #endif
 
         return new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile(ApplicationConstants.Configuration.AppSettingsFile, optional: false, reloadOnChange: true)
-            .AddJsonFile(string.Format(ApplicationConstants.Configuration.EnvironmentAppSettingsPattern, environment),
+            .AddJsonFile(ApplicationConstants.Configuration.APP_SETTINGS_FILE, optional: false, reloadOnChange: true)
+            .AddJsonFile(string.Format(ApplicationConstants.Configuration.ENVIRONMENT_APP_SETTINGS_PATTERN, environment),
                 optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
@@ -151,24 +151,24 @@ public static class Program
             LoggerConfiguration loggerConfig = new();
 
             IConfigurationSection serilogSection =
-                configuration.GetSection(ApplicationConstants.Configuration.SerilogSection);
+                configuration.GetSection(ApplicationConstants.Configuration.SERILOG_SECTION);
 
-            string minLevel = serilogSection[ApplicationConstants.Configuration.MinimumLevelDefaultKey] ??
-                              ApplicationConstants.LogLevels.Information;
+            string minLevel = serilogSection[ApplicationConstants.Configuration.MINIMUM_LEVEL_DEFAULT_KEY] ??
+                              ApplicationConstants.LogLevels.INFORMATION;
             loggerConfig = minLevel switch
             {
-                ApplicationConstants.LogLevels.Debug => loggerConfig.MinimumLevel.Debug(),
-                ApplicationConstants.LogLevels.Information => loggerConfig.MinimumLevel.Information(),
-                ApplicationConstants.LogLevels.Warning => loggerConfig.MinimumLevel.Warning(),
-                ApplicationConstants.LogLevels.Error => loggerConfig.MinimumLevel.Error(),
-                ApplicationConstants.LogLevels.Fatal => loggerConfig.MinimumLevel.Fatal(),
+                ApplicationConstants.LogLevels.DEBUG => loggerConfig.MinimumLevel.Debug(),
+                ApplicationConstants.LogLevels.INFORMATION => loggerConfig.MinimumLevel.Information(),
+                ApplicationConstants.LogLevels.WARNING => loggerConfig.MinimumLevel.Warning(),
+                ApplicationConstants.LogLevels.ERROR => loggerConfig.MinimumLevel.Error(),
+                ApplicationConstants.LogLevels.FATAL => loggerConfig.MinimumLevel.Fatal(),
                 _ => loggerConfig.MinimumLevel.Information()
             };
 
             loggerConfig = loggerConfig.WriteTo.Console();
 
-            string logPath = Path.Combine(ApplicationConstants.Storage.LogsDirectory,
-                ApplicationConstants.Storage.LogFilePattern);
+            string logPath = Path.Combine(ApplicationConstants.Storage.LOGS_DIRECTORY,
+                ApplicationConstants.Storage.LOG_FILE_PATTERN);
             loggerConfig = loggerConfig.WriteTo.File(logPath, rollingInterval: RollingInterval.Day);
 
             return loggerConfig.CreateLogger();
@@ -178,8 +178,8 @@ public static class Program
             return new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.File(
-                    Path.Combine(ApplicationConstants.Storage.LogsDirectory,
-                        ApplicationConstants.Storage.LogFilePattern), rollingInterval: RollingInterval.Day)
+                    Path.Combine(ApplicationConstants.Storage.LOGS_DIRECTORY,
+                        ApplicationConstants.Storage.LOG_FILE_PATTERN), rollingInterval: RollingInterval.Day)
                 .CreateLogger();
         }
     }
@@ -210,9 +210,9 @@ public static class Program
 
         services
             .AddDataProtection()
-            .SetApplicationName(ApplicationConstants.ApplicationSettings.ApplicationName)
+            .SetApplicationName(ApplicationConstants.ApplicationSettings.APPLICATION_NAME)
             .PersistKeysToFileSystem(
-                new DirectoryInfo(ResolvePath(ApplicationConstants.Storage.DataProtectionKeysPath))
+                new DirectoryInfo(ResolvePath(ApplicationConstants.Storage.DATA_PROTECTION_KEYS_PATH))
             )
             .SetDefaultKeyLifetime(ApplicationConstants.Timeouts.DefaultKeyLifetime);
 
@@ -222,7 +222,7 @@ public static class Program
 
     private static void ConfigureNetworkServices(IServiceCollection services)
     {
-        services.AddHttpClient(InternetConnectivityObserver.HttpClientName, client =>
+        services.AddHttpClient(InternetConnectivityObserver.HTTP_CLIENT_NAME, client =>
         {
             InternetConnectivityObserverOptions options = InternetConnectivityObserverOptions.Default;
             client.Timeout = options.ProbeTimeout;
@@ -234,9 +234,9 @@ public static class Program
                 .HandleTransientHttpError()
                 .OrResult(msg => msg.StatusCode == HttpStatusCode.TooManyRequests)
                 .WaitAndRetryAsync(
-                    retryCount: ApplicationConstants.Thresholds.RetryAttempts,
+                    retryCount: ApplicationConstants.Thresholds.RETRY_ATTEMPTS,
                     sleepDurationProvider: attempt =>
-                        TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.ExponentialBackoffBase,
+                        TimeSpan.FromSeconds(Math.Pow(ApplicationConstants.Thresholds.EXPONENTIAL_BACKOFF_BASE,
                             attempt))))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(ApplicationConstants.Timeouts.HttpTimeout));
 
@@ -244,8 +244,8 @@ public static class Program
         services.AddSingleton(new InternetConnectivityObserverOptions
         {
             PollingInterval = ApplicationConstants.Timeouts.DefaultPollingInterval,
-            FailureThreshold = ApplicationConstants.Thresholds.DefaultFailureThreshold,
-            SuccessThreshold = ApplicationConstants.Thresholds.DefaultSuccessThreshold
+            FailureThreshold = ApplicationConstants.Thresholds.DEFAULT_FAILURE_THRESHOLD,
+            SuccessThreshold = ApplicationConstants.Thresholds.DEFAULT_SUCCESS_THRESHOLD
         });
 
         services.AddSingleton<IRsaChunkEncryptor, RsaChunkEncryptor>();
@@ -276,17 +276,17 @@ public static class Program
         services.AddSingleton<IOptions<DefaultSystemSettings>>(_ =>
         {
             IConfigurationSection section =
-                configuration.GetSection(ApplicationConstants.Configuration.DefaultAppSettingsSection);
+                configuration.GetSection(ApplicationConstants.Configuration.DEFAULT_APP_SETTINGS_SECTION);
             DefaultSystemSettings settings = new()
             {
-                DefaultTheme = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DefaultTheme),
-                Environment = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Environment,
-                    ApplicationConstants.ApplicationSettings.ProductionEnvironment),
-                DataCenterConnectionString = GetSectionValue(section,
-                    ApplicationConstants.ConfigurationKeys.DataCenterConnectionString),
-                CountryCodeApi = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CountryCodeApi),
-                DomainName = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DomainName),
-                Culture = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.Culture),
+                DEFAULT_THEME = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DEFAULT_THEME),
+                ENVIRONMENT = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.ENVIRONMENT,
+                    ApplicationConstants.ApplicationSettings.PRODUCTION_ENVIRONMENT),
+                DATA_CENTER_CONNECTION_STRING = GetSectionValue(section,
+                    ApplicationConstants.ConfigurationKeys.DATA_CENTER_CONNECTION_STRING),
+                COUNTRY_CODE_API = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.COUNTRY_CODE_API),
+                DOMAIN_NAME = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.DOMAIN_NAME),
+                CULTURE = GetSectionValue(section, ApplicationConstants.ConfigurationKeys.CULTURE),
                 PrivacyPolicyUrl = GetSectionValue(section, "PrivacyPolicyUrl"),
                 TermsOfServiceUrl = GetSectionValue(section, "TermsOfServiceUrl"),
                 SupportUrl = GetSectionValue(section, "SupportUrl")
@@ -297,12 +297,12 @@ public static class Program
         services.AddSingleton<IOptions<SecureStoreOptions>>(_ =>
         {
             IConfigurationSection section =
-                configuration.GetSection(ApplicationConstants.Configuration.SecureStoreOptionsSection);
+                configuration.GetSection(ApplicationConstants.Configuration.SECURE_STORE_OPTIONS_SECTION);
             SecureStoreOptions options = new()
             {
-                EncryptedStatePath = ResolvePath(
-                    GetSectionValue(section, ApplicationConstants.ConfigurationKeys.EncryptedStatePath,
-                        ApplicationConstants.Storage.DefaultStatePath)
+                ENCRYPTED_STATE_PATH = ResolvePath(
+                    GetSectionValue(section, ApplicationConstants.ConfigurationKeys.ENCRYPTED_STATE_PATH,
+                        ApplicationConstants.Storage.DEFAULT_STATE_PATH)
                 )
             };
             return Options.Create(options);
@@ -319,7 +319,7 @@ public static class Program
         {
             string appDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                ApplicationConstants.Storage.EcliptixDirectoryName);
+                ApplicationConstants.Storage.ECLIPTIX_DIRECTORY_NAME);
             return new CrossPlatformSecurityProvider(appDataPath);
         });
 
@@ -330,10 +330,10 @@ public static class Program
 
             string storageDirectory =
                 config[
-                    ApplicationConstants.Configuration.SecureStorageSection +
-                    ApplicationConstants.Configuration.PathSeparator + ApplicationConstants.ConfigurationKeys.StatePath]
+                    ApplicationConstants.Configuration.SECURE_STORAGE_SECTION +
+                    ApplicationConstants.Configuration.PATH_SEPARATOR + ApplicationConstants.ConfigurationKeys.STATE_PATH]
                 ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    ApplicationConstants.Storage.EcliptixDirectoryName);
+                    ApplicationConstants.Storage.ECLIPTIX_DIRECTORY_NAME);
 
             byte[] deviceId = Encoding.UTF8.GetBytes(Environment.MachineName + Environment.UserName);
 
@@ -375,7 +375,7 @@ public static class Program
         {
             IConfiguration config = sp.GetRequiredService<IConfiguration>();
             IConfigurationSection section =
-                config.GetSection(ApplicationConstants.Configuration.SecrecyChannelRetryPolicySection);
+                config.GetSection(ApplicationConstants.Configuration.SECRECY_CHANNEL_RETRY_POLICY_SECTION);
             return CreateRetryConfiguration(section);
         });
 
@@ -413,23 +413,23 @@ public static class Program
     {
         return new RetryStrategyConfiguration
         {
-            InitialRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.InitialRetryDelay],
+            INITIAL_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.INITIAL_RETRY_DELAY],
                 out TimeSpan initialDelay)
                 ? initialDelay
                 : ApplicationConstants.Timeouts.DefaultInitialRetryDelay,
-            MaxRetryDelay = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetryDelay],
+            MAX_RETRY_DELAY = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRY_DELAY],
                 out TimeSpan maxDelay)
                 ? maxDelay
                 : ApplicationConstants.Timeouts.DefaultMaxRetryDelay,
-            MaxRetries = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MaxRetries], out int maxRetries)
+            MAX_RETRIES = int.TryParse(section[ApplicationConstants.ConfigurationKeys.MAX_RETRIES], out int maxRetries)
                 ? maxRetries
-                : ApplicationConstants.Thresholds.DefaultMaxRetries,
-            PerAttemptTimeout = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PerAttemptTimeout],
+                : ApplicationConstants.Thresholds.DEFAULT_MAX_RETRIES,
+            PER_ATTEMPT_TIMEOUT = TimeSpan.TryParse(section[ApplicationConstants.ConfigurationKeys.PER_ATTEMPT_TIMEOUT],
                 out TimeSpan perAttemptTimeout)
                 ? perAttemptTimeout
                 : TimeSpan.FromSeconds(30),
-            UseAdaptiveRetry =
-                !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.UseAdaptiveRetry], out bool adaptive) ||
+            USE_ADAPTIVE_RETRY =
+                !bool.TryParse(section[ApplicationConstants.ConfigurationKeys.USE_ADAPTIVE_RETRY], out bool adaptive) ||
                 adaptive
         };
     }
@@ -445,14 +445,14 @@ public static class Program
             DefaultSystemSettings settings = services.BuildServiceProvider()
                 .GetRequiredService<DefaultSystemSettings>();
             string endpoint =
-                settings.Environment.Equals(ApplicationConstants.ApplicationSettings.DevelopmentEnvironment,
+                settings.ENVIRONMENT.Equals(ApplicationConstants.ApplicationSettings.DEVELOPMENT_ENVIRONMENT,
                     StringComparison.OrdinalIgnoreCase)
-                    ? settings.DataCenterConnectionString
+                    ? settings.DATA_CENTER_CONNECTION_STRING
                     : string.Empty;
 
             if (string.IsNullOrEmpty(endpoint))
             {
-                throw new InvalidOperationException(ApplicationConstants.Logging.GrpcEndpointErrorMessage);
+                throw new InvalidOperationException(ApplicationConstants.Logging.GRPC_ENDPOINT_ERROR_MESSAGE);
             }
 
             options.Address = new Uri(endpoint);
@@ -515,13 +515,13 @@ public static class Program
         {
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                ApplicationConstants.Storage.LocalShareDirectory
+                ApplicationConstants.Storage.LOCAL_SHARE_DIRECTORY
             );
         }
 
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ApplicationConstants.Storage.ApplicationSupportDirectory
+            ApplicationConstants.Storage.APPLICATION_SUPPORT_DIRECTORY
         );
     }
 
@@ -535,12 +535,12 @@ public static class Program
 
         try
         {
-            File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SecureDirectoryMode);
-            Log.Debug(ApplicationConstants.Logging.PermissionsSetMessage, directory);
+            File.SetUnixFileMode(directory, ApplicationConstants.FilePermissions.SECURE_DIRECTORY_MODE);
+            Log.Debug(ApplicationConstants.Logging.PERMISSIONS_SET_MESSAGE, directory);
         }
         catch (IOException ex)
         {
-            Log.Warning(ex, ApplicationConstants.Logging.PermissionsFailMessage, directory);
+            Log.Warning(ex, ApplicationConstants.Logging.PERMISSIONS_FAIL_MESSAGE, directory);
         }
     }
 
@@ -548,14 +548,14 @@ public static class Program
     {
         if (string.IsNullOrEmpty(path))
         {
-            throw new ArgumentException(ApplicationConstants.Logging.PathEmptyErrorMessage, nameof(path));
+            throw new ArgumentException(ApplicationConstants.Logging.PATH_EMPTY_ERROR_MESSAGE, nameof(path));
         }
 
         string appDataDir = GetPlatformAppDataDirectory();
 
         path = Environment.ExpandEnvironmentVariables(
-            path.Replace(ApplicationConstants.Storage.AppDataEnvironmentVariable,
-                Path.Combine(appDataDir, ApplicationConstants.Storage.EcliptixDirectoryName))
+            path.Replace(ApplicationConstants.Storage.APP_DATA_ENVIRONMENT_VARIABLE,
+                Path.Combine(appDataDir, ApplicationConstants.Storage.ECLIPTIX_DIRECTORY_NAME))
         );
 
         string? directory = Path.GetDirectoryName(path);

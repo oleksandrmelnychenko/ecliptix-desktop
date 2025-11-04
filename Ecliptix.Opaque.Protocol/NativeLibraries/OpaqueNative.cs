@@ -5,7 +5,7 @@ namespace Ecliptix.Opaque.Protocol.NativeLibraries;
 
 internal static partial class OpaqueNative
 {
-    private const string Library = "libopaque_client";
+    private const string LIBRARY = "libopaque_client";
 
     static OpaqueNative()
     {
@@ -14,7 +14,7 @@ internal static partial class OpaqueNative
 
     private static IntPtr DllImportResolver(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName == Library)
+        if (libraryName == LIBRARY)
         {
             string platformLibrary = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libopaque_client.dll" :
                                    RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "libopaque_client.dylib" :
@@ -28,45 +28,45 @@ internal static partial class OpaqueNative
         return IntPtr.Zero;
     }
 
-    [LibraryImport(Library, EntryPoint = "opaque_client_create")]
+    [LibraryImport(LIBRARY, EntryPoint = "opaque_client_create")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     internal static partial int opaque_client_create(byte[] serverPublicKey, nuint keyLength, out IntPtr handle);
 
-    [LibraryImport(Library, EntryPoint = "opaque_client_destroy")]
+    [LibraryImport(LIBRARY, EntryPoint = "opaque_client_destroy")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     internal static partial void opaque_client_destroy(IntPtr handle);
 
-    [LibraryImport(Library, EntryPoint = "opaque_client_state_create")]
+    [LibraryImport(LIBRARY, EntryPoint = "opaque_client_state_create")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     internal static partial int opaque_client_state_create(out IntPtr handle);
 
-    [LibraryImport(Library, EntryPoint = "opaque_client_state_destroy")]
+    [LibraryImport(LIBRARY, EntryPoint = "opaque_client_state_destroy")]
     [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvCdecl) })]
     internal static partial void opaque_client_state_destroy(IntPtr handle);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_create_registration_request(
         IntPtr clientHandle, byte[] password, UIntPtr passwordLength, IntPtr stateHandle, byte[] requestData, UIntPtr requestBufferSize);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finalize_registration(
         IntPtr clientHandle, byte[] responseData, UIntPtr responseLength, byte[] masterKey, UIntPtr masterKeyLength, IntPtr stateHandle, byte[] recordData, UIntPtr recordBufferSize);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_generate_ke1(
         IntPtr clientHandle, byte[] password, UIntPtr passwordLength, IntPtr stateHandle, byte[] ke1Data, UIntPtr ke1BufferSize);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_generate_ke3(
         IntPtr clientHandle, byte[] ke2Data, UIntPtr ke2Length, IntPtr stateHandle, byte[] ke3Data, UIntPtr ke3BufferSize);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finish(
         IntPtr clientHandle, IntPtr stateHandle, byte[] sessionKey, UIntPtr sessionKeyBufferSize, byte[] masterKey, UIntPtr masterKeyBufferSize);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_create_default(out IntPtr handle);
 
-    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern IntPtr opaque_client_get_version();
 }

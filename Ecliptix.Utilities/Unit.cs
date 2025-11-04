@@ -16,7 +16,7 @@ public readonly struct Unit : IEquatable<Unit>
 
     public override int GetHashCode()
     {
-        return UtilityConstants.UnitType.HashCode;
+        return UtilityConstants.UnitType.HASH_CODE;
     }
 
     public static bool operator ==(Unit left, Unit right)
@@ -35,6 +35,6 @@ public readonly struct Unit : IEquatable<Unit>
 
     public override string ToString()
     {
-        return UtilityConstants.UnitType.StringRepresentation;
+        return UtilityConstants.UnitType.STRING_REPRESENTATION;
     }
 }

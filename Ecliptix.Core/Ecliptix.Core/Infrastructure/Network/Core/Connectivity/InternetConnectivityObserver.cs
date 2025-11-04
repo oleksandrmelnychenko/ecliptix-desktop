@@ -15,9 +15,9 @@ namespace Ecliptix.Core.Infrastructure.Network.Core.Connectivity;
 
 internal sealed class InternetConnectivityObserver : IInternetConnectivityObserver
 {
-    public const string HttpClientName = "InternetConnectivityProbeClient";
-    private const int NetworkChangeThrottleMs = 500;
-    private const int FailurePollingSeconds = 1;
+    public const string HTTP_CLIENT_NAME = "InternetConnectivityProbeClient";
+    private const int NETWORK_CHANGE_THROTTLE_MS = 500;
+    private const int FAILURE_POLLING_SECONDS = 1;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IObservable<bool> _connectivityObservable;
@@ -51,7 +51,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
                 handler => (sender, e) => handler(new EventPattern<EventArgs>(sender, e)),
                 h => NetworkChange.NetworkAddressChanged += new NetworkAddressChangedEventHandler((s, e) => h(s, e)),
                 h => NetworkChange.NetworkAddressChanged -= new NetworkAddressChangedEventHandler((s, e) => h(s, e)))
-            .Throttle(TimeSpan.FromMilliseconds(NetworkChangeThrottleMs))
+            .Throttle(TimeSpan.FromMilliseconds(NETWORK_CHANGE_THROTTLE_MS))
             .Select(_ => Unit.Default);
 
         IObservable<bool> probeObservable = pollingIntervalSubject
@@ -74,7 +74,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
             {
                 TimeSpan currentInterval = pollingIntervalSubject.Value;
                 TimeSpan desiredInterval = !acc.state
-                    ? TimeSpan.FromSeconds(FailurePollingSeconds)
+                    ? TimeSpan.FromSeconds(FAILURE_POLLING_SECONDS)
                     : currentOptions.PollingInterval;
 
                 if (currentInterval != desiredInterval)
@@ -99,7 +99,7 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
         InternetConnectivityObserverOptions options,
         CancellationToken ct)
     {
-        HttpClient httpClient = _httpClientFactory.CreateClient(HttpClientName);
+        HttpClient httpClient = _httpClientFactory.CreateClient(HTTP_CLIENT_NAME);
 
         foreach (string url in options.ProbeUrls)
         {

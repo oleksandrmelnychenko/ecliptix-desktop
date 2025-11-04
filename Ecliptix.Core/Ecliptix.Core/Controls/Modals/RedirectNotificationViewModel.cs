@@ -94,7 +94,7 @@ public sealed class RedirectNotificationViewModel : ReactiveObject, IDisposable,
 
     private string GetCachedRedirectingText(int seconds)
     {
-        _cachedRedirectingTemplate ??= _localizationService[AuthenticationConstants.RedirectingInSecondsKey];
+        _cachedRedirectingTemplate ??= _localizationService[AuthenticationConstants.REDIRECTING_IN_SECONDS_KEY];
         return string.Format(_cachedRedirectingTemplate, seconds);
     }
 

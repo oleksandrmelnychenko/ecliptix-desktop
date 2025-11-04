@@ -56,7 +56,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         {
             TE error = errorMapper(ex);
             return EqualityComparer<TE>.Default.Equals(error, default)
-                ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull)
+                ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.ERROR_MAPPER_RETURNED_NULL)
                 : Err(error);
         }
     }
@@ -73,7 +73,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
             TE error = errorMapper(ex);
             if (EqualityComparer<TE>.Default.Equals(error, default))
             {
-                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ErrorMapperReturnedNull);
+                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ERROR_MAPPER_RETURNED_NULL);
             }
 
             return Result<Unit, TE>.Err(error);
@@ -94,12 +94,12 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public T Unwrap()
     {
-        return IsOk ? _value! : throw new InvalidOperationException(UtilityConstants.ErrorMessages.CannotUnwrapErr);
+        return IsOk ? _value! : throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_ERR);
     }
 
     public TE UnwrapErr()
     {
-        return IsOk ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.CannotUnwrapOk) : _error!;
+        return IsOk ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_OK) : _error!;
     }
 
     public T? UnwrapOr(T? defaultValue)
@@ -129,7 +129,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
 
     public override string ToString()
     {
-        return IsOk ? UtilityConstants.ResultType.OkString : UtilityConstants.ResultType.ErrString;
+        return IsOk ? UtilityConstants.ResultType.OK_STRING : UtilityConstants.ResultType.ERR_STRING;
     }
 
     public bool Equals(Result<T, TE> other)
@@ -149,9 +149,9 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     {
         unchecked
         {
-            int hash = UtilityConstants.Hash.InitialHashSeed;
-            hash = hash * UtilityConstants.Hash.HashMultiplier + IsOk.GetHashCode();
-            hash = hash * UtilityConstants.Hash.HashMultiplier + (IsOk
+            int hash = UtilityConstants.Hash.INITIAL_HASH_SEED;
+            hash = hash * UtilityConstants.Hash.HASH_MULTIPLIER + IsOk.GetHashCode();
+            hash = hash * UtilityConstants.Hash.HASH_MULTIPLIER + (IsOk
                 ? EqualityComparer<T?>.Default.GetHashCode(_value)
                 : EqualityComparer<TE>.Default.GetHashCode(_error!));
             return hash;

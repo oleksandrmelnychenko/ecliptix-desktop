@@ -25,7 +25,7 @@ internal sealed class StateCleanupService(
 
             if (deleteResult.IsErr)
             {
-                Log.Warning("[STATE-CLEANUP-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, Error: {Error}",
+                Log.Warning("[STATE-CLEANUP-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
                     connectId, deleteResult.UnwrapErr().Message);
             }
 
@@ -50,7 +50,7 @@ internal sealed class StateCleanupService(
 
             if (deleteResult.IsErr)
             {
-                Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, Error: {Error}",
+                Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
                     connectId, deleteResult.UnwrapErr().Message);
             }
 
@@ -59,7 +59,7 @@ internal sealed class StateCleanupService(
 
             if (clearResult.IsErr)
             {
-                Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {Error}",
+                Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {ERROR}",
                     clearResult.UnwrapErr().Message);
             }
 

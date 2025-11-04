@@ -76,11 +76,11 @@ public static class GrpcErrorClassifier
             return false;
         }
 
-        return GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.ErrorCode)
+        return GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.ERROR_CODE)
                    .Where(code => string.Equals(code, "AuthFlowMissing", StringComparison.OrdinalIgnoreCase))
                    .IsSome
                ||
-               GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I18nKey)
+               GetMetadataValue(ex.Trailers, GrpcErrorMetadataKeys.I_18N_KEY)
                    .Where(key => string.Equals(key, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
                    .IsSome;
     }

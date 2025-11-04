@@ -40,8 +40,8 @@ internal sealed class LogoutService(
     private readonly PendingLogoutProcessor _pendingLogoutProcessor =
         new(networkProvider, new PendingLogoutRequestStorage(applicationSecureStorageProvider));
 
-    private const bool KeepPendingLogout = true;
-    private const bool ClearPendingLogout = false;
+    private const bool KEEP_PENDING_LOGOUT = true;
+    private const bool CLEAR_PENDING_LOGOUT = false;
 
     public async Task<Result<Unit, LogoutFailure>> LogoutAsync(LogoutReason reason,
         CancellationToken cancellationToken = default)
@@ -92,7 +92,7 @@ internal sealed class LogoutService(
 
         if (storeResult.IsErr)
         {
-            Log.Warning("[LOGOUT] Failed to store pending logout request: {Error}",
+            Log.Warning("[LOGOUT] Failed to store pending logout request: {ERROR}",
                 storeResult.UnwrapErr().Message);
         }
     }
@@ -106,7 +106,7 @@ internal sealed class LogoutService(
     {
         await TryStorePendingLogoutAsync(logoutRequest).ConfigureAwait(false);
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KeepPendingLogout, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, KEEP_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -168,7 +168,7 @@ internal sealed class LogoutService(
 
         if (hmacResult.IsErr)
         {
-            Log.Warning("[LOGOUT] Failed to generate HMAC proof: {Error}", hmacResult.UnwrapErr().Message);
+            Log.Warning("[LOGOUT] Failed to generate HMAC proof: {ERROR}", hmacResult.UnwrapErr().Message);
             return Result<(LogoutRequest, uint), LogoutFailure>.Err(hmacResult.UnwrapErr());
         }
 
@@ -210,7 +210,7 @@ internal sealed class LogoutService(
         if (networkResult.IsErr)
         {
             NetworkFailure failure = networkResult.UnwrapErr();
-            Log.Warning("[LOGOUT] Network request failed: {Error}", failure.Message);
+            Log.Warning("[LOGOUT] Network request failed: {ERROR}", failure.Message);
             return Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.NetworkRequestFailed("Network request failed", new Exception(failure.Message)));
         }
@@ -221,7 +221,7 @@ internal sealed class LogoutService(
         if (responseResult.IsErr)
         {
             LogoutFailure serverFailure = responseResult.UnwrapErr();
-            Log.Warning("[LOGOUT] Server returned error: {Error}", serverFailure.Message);
+            Log.Warning("[LOGOUT] Server returned error: {ERROR}", serverFailure.Message);
             return Result<LogoutResponse, LogoutFailure>.Err(serverFailure);
         }
 
@@ -244,7 +244,7 @@ internal sealed class LogoutService(
                 membershipId);
         }
 
-        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, ClearPendingLogout, cancellationToken)
+        await CompleteLogoutWithCleanupAsync(membershipId, reason, connectId, CLEAR_PENDING_LOGOUT, cancellationToken)
             .ConfigureAwait(false);
 
         return Result<Unit, LogoutFailure>.Ok(Unit.Value);
@@ -283,7 +283,7 @@ internal sealed class LogoutService(
                     else
                     {
                         Log.Warning(
-                            "[LOGOUT-RETRY] Failed to get settings for immediate retry: {Error}, will retry on next startup",
+                            "[LOGOUT-RETRY] Failed to get settings for immediate retry: {ERROR}, will retry on next startup",
                             settingsResult.UnwrapErr().Message);
                     }
                 }
@@ -311,7 +311,7 @@ internal sealed class LogoutService(
             LogoutResponse.Types.Result.AlreadyLoggedOut => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.AlreadyLoggedOut("Session is already logged out on the server")),
             LogoutResponse.Types.Result.SessionNotFound => Result<LogoutResponse, LogoutFailure>.Err(
-                LogoutFailure.SessionNotFound("Active session was not found on the server")),
+                LogoutFailure.SESSION_NOT_FOUND("Active session was not found on the server")),
             LogoutResponse.Types.Result.InvalidTimestamp => Result<LogoutResponse, LogoutFailure>.Err(
                 LogoutFailure.UnexpectedError("Server rejected logout due to timestamp mismatch")),
             LogoutResponse.Types.Result.InvalidHmac => Result<LogoutResponse, LogoutFailure>.Err(
@@ -331,7 +331,7 @@ internal sealed class LogoutService(
                 .ConfigureAwait(false);
         if (cleanupResult.IsErr)
         {
-            Log.Warning("[LOGOUT-CLEANUP] State cleanup with keys failed. MembershipId: {MembershipId}, Error: {Error}",
+            Log.Warning("[LOGOUT-CLEANUP] State cleanup with keys failed. MembershipId: {MembershipId}, ERROR: {ERROR}",
                 membershipId, cleanupResult.UnwrapErr().Message);
         }
 
@@ -339,7 +339,7 @@ internal sealed class LogoutService(
 
         if (!keepPendingLogout)
         {
-            _pendingLogoutRequestStorage.ClearPendingLogout();
+            _pendingLogoutRequestStorage.CLEAR_PENDING_LOGOUT();
         }
 
         await FinalizeLogoutAsync(membershipId, reason, keepPendingLogout, cancellationToken).ConfigureAwait(false);

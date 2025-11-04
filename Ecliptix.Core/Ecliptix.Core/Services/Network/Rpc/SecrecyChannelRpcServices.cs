@@ -34,15 +34,15 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
     public async Task<Result<SecureEnvelope, NetworkFailure>> EstablishAppDeviceSecrecyChannelAsync(
         IConnectivityService connectivityService,
         SecureEnvelope request,
-        PubKeyExchangeType? exchangeType = null,
+        PubKeyExchangeType? EXCHANGE_TYPE = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         Metadata headers = new();
-        if (exchangeType.HasValue)
+        if (EXCHANGE_TYPE.HasValue)
         {
-            headers.Add("exchange-type", exchangeType.Value.ToString());
+            headers.Add("exchange-type", EXCHANGE_TYPE.Value.ToString());
         }
 
         return await ExecuteSecureEnvelopeAsync(
@@ -104,8 +104,8 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
             {
                 UserFacingError userError = failure.UserError ??
                                             new UserFacingError(
-                                                ErrorCode.Unauthenticated,
-                                                ErrorI18nKeys.Unauthenticated,
+                                                ERROR_CODE.UNAUTHENTICATED,
+                                                ErrorI18nKeys.UNAUTHENTICATED,
                                                 failure.Message);
 
                 failure = new NetworkFailure(

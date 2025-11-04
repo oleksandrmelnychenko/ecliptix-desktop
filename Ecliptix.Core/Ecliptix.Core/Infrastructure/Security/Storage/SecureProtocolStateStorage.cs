@@ -1,8 +1,11 @@
 using System;
+using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Ecliptix.Core.Constants;
 using Ecliptix.Core.Infrastructure.Security.Abstractions;
@@ -10,41 +13,230 @@ using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures;
 using Grpc.Core;
 using Konscious.Security.Cryptography;
-using Serilog;
 
 namespace Ecliptix.Core.Infrastructure.Security.Storage;
 
 public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
+    private const string KeychainPrefix = "ecliptix_key_";
+
+    private static readonly Encoding Utf8 = Encoding.UTF8;
+    private static readonly Encoding Ascii = Encoding.ASCII;
+    private static readonly byte[] MagicHeaderBytes = Ascii.GetBytes(SecureStorageConstants.Header.MAGIC_HEADER);
+    private static readonly char[] InvalidFileNameChars = Path.GetInvalidFileNameChars();
+    private static readonly HashSet<char> InvalidFileNameCharacterSet = new(InvalidFileNameChars);
 
     private readonly IPlatformSecurityProvider _platformProvider;
     private readonly string _storageDirectory;
     private readonly byte[] _deviceId;
-    private byte[]? _masterKey;
+
+    private byte[]? _cachedHmacKey;
     private bool _disposed;
 
-    public SecureProtocolStateStorage(IPlatformSecurityProvider platformProvider, string storageDirectory, byte[] deviceId)
+    public SecureProtocolStateStorage(IPlatformSecurityProvider platformProvider, string storageDirectory,
+        byte[] deviceId)
     {
         _platformProvider = platformProvider;
         _storageDirectory = storageDirectory;
         _deviceId = deviceId;
 
-        InitializeSecureStorage();
+        EnsureSecureDirectoryExists();
     }
 
-    private void InitializeSecureStorage()
+    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(
+        byte[] protocolState,
+        string connectId,
+        byte[] membershipId)
     {
-        if (!Directory.Exists(_storageDirectory))
+        if (!TryEnsureNotDisposed(out SecureStorageFailure? failure))
         {
-            Directory.CreateDirectory(_storageDirectory);
+            return Result<Unit, SecureStorageFailure>.Err(failure!);
+        }
 
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                File.SetUnixFileMode(_storageDirectory,
-                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            }
+        string storagePath = GetStorageFilePath(connectId);
+        string keychainKey = BuildKeychainKey(connectId);
+
+        byte[]? encryptionKey = null;
+        byte[]? salt = null;
+        byte[]? nonce = null;
+        byte[]? tag = null;
+        byte[]? ciphertext = null;
+        byte[]? containerBytes = null;
+        byte[]? protectedContainer = null;
+        byte[]? associatedData = null;
+
+        try
+        {
+            (encryptionKey, salt) = await DeriveKeyAsync(membershipId).ConfigureAwait(false);
+            nonce = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.NONCE_SIZE)
+                .ConfigureAwait(false);
+
+            associatedData = CreateAssociatedData(connectId, _deviceId);
+
+            (ciphertext, tag) = EncryptState(protocolState, encryptionKey, nonce, associatedData);
+
+            containerBytes = SerializeContainer(new SecureContainer(salt, nonce, tag, ciphertext, associatedData));
+            protectedContainer = await AddTamperProtectionAsync(containerBytes).ConfigureAwait(false);
+
+            await WriteSecureFileAsync(protectedContainer, storagePath).ConfigureAwait(false);
+
+            await _platformProvider.StoreKeyInKeychainAsync(keychainKey, encryptionKey).ConfigureAwait(false);
+
+            return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            await CleanupFailedSaveAsync(storagePath, keychainKey).ConfigureAwait(false);
+
+            return Result<Unit, SecureStorageFailure>.Err(
+                new SecureStorageFailure(
+                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.SAVE_FAILED, ex.Message)));
+        }
+        finally
+        {
+            ZeroBuffer(encryptionKey);
+            ZeroBuffer(salt);
+            ZeroBuffer(nonce);
+            ZeroBuffer(tag);
+            ZeroBuffer(ciphertext);
+            ZeroBuffer(containerBytes);
+            ZeroBuffer(protectedContainer);
+            ZeroBuffer(associatedData);
+            ZeroBuffer(protocolState);
         }
     }
+
+    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId)
+    {
+        if (!TryEnsureNotDisposed(out SecureStorageFailure? failure))
+        {
+            return Result<byte[], SecureStorageFailure>.Err(failure!);
+        }
+
+        string storagePath = GetStorageFilePath(connectId);
+        string keychainKey = BuildKeychainKey(connectId);
+
+        byte[]? protectedContainer = null;
+        byte[]? containerBytes = null;
+        SecureContainer container = default;
+        bool containerInitialized = false;
+        byte[]? encryptionKey = null;
+        byte[]? expectedAssociatedData = null;
+
+        try
+        {
+            Option<byte[]> protectedContainerOption = await ReadSecureFileAsync(storagePath).ConfigureAwait(false);
+            if (!protectedContainerOption.IsSome)
+            {
+                return Result<byte[], SecureStorageFailure>.Err(
+                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.STATE_FILE_NOT_FOUND));
+            }
+
+            protectedContainer = protectedContainerOption.Value!;
+
+            Result<byte[], SecureStorageFailure> verifiedResult =
+                await VerifyTamperProtectionAsync(protectedContainer).ConfigureAwait(false);
+
+            if (verifiedResult.IsErr)
+            {
+                return Result<byte[], SecureStorageFailure>.Err(verifiedResult.UnwrapErr());
+            }
+
+            containerBytes = verifiedResult.Unwrap();
+            container = ParseSecureContainer(containerBytes);
+            containerInitialized = true;
+
+            expectedAssociatedData = CreateAssociatedData(connectId, _deviceId);
+            if (!CryptographicOperations.FixedTimeEquals(container.AssociatedData, expectedAssociatedData))
+            {
+                return Result<byte[], SecureStorageFailure>.Err(
+                    new SecureStorageFailure(
+                        ApplicationErrorMessages.SecureProtocolStateStorage.ASSOCIATED_DATA_MISMATCH));
+            }
+
+            Option<byte[]> storedKeyOption = await TryGetStoredKeyAsync(keychainKey).ConfigureAwait(false);
+            if (storedKeyOption.IsSome)
+            {
+                encryptionKey = storedKeyOption.Value!;
+            }
+            else
+            {
+                (encryptionKey, _) = await DeriveKeyWithSaltAsync(membershipId, container.Salt).ConfigureAwait(false);
+            }
+
+            byte[] plaintext =
+                DecryptState(container.Ciphertext, encryptionKey, container.Nonce, container.Tag,
+                    container.AssociatedData);
+
+            return Result<byte[], SecureStorageFailure>.Ok(plaintext);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return Result<byte[], SecureStorageFailure>.Err(
+                new SecureStorageFailure(
+                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.LOAD_FAILED, ex.Message)));
+        }
+        finally
+        {
+            ZeroBuffer(protectedContainer);
+            ZeroBuffer(containerBytes);
+            ZeroBuffer(expectedAssociatedData);
+
+            if (containerInitialized)
+            {
+                ZeroBuffer(container.Salt);
+                ZeroBuffer(container.Nonce);
+                ZeroBuffer(container.Tag);
+                ZeroBuffer(container.Ciphertext);
+                ZeroBuffer(container.AssociatedData);
+            }
+
+            ZeroBuffer(encryptionKey);
+        }
+    }
+
+    public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key)
+    {
+        if (!TryEnsureNotDisposed(out SecureStorageFailure? failure))
+        {
+            return Result<Unit, SecureStorageFailure>.Err(failure!);
+        }
+
+        string storagePath = GetStorageFilePath(key);
+        string keychainKey = BuildKeychainKey(key);
+
+        try
+        {
+            await DeleteFileIfExistsAsync(storagePath).ConfigureAwait(false);
+            await _platformProvider.DeleteKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+
+            return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return Result<Unit, SecureStorageFailure>.Err(
+                new SecureStorageFailure(
+                    string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.DELETE_FAILED, ex.Message)));
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        byte[]? cachedHmacKey = Interlocked.Exchange(ref _cachedHmacKey, null);
+        if (cachedHmacKey != null)
+        {
+            ZeroBuffer(cachedHmacKey);
+        }
+
+        _disposed = true;
+    }
+
+    private static string BuildKeychainKey(string connectId) => $"{KeychainPrefix}{connectId}";
 
     private string GetStorageFilePath(string connectId)
     {
@@ -54,383 +246,229 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
 
     private static string SanitizeFilename(string key)
     {
-        string invalid = new(Path.GetInvalidFileNameChars());
-        foreach (char c in invalid)
+        if (string.IsNullOrEmpty(key))
         {
-            key = key.Replace(c, '_');
-        }
-        return key;
-    }
-
-    public async Task<Result<Unit, SecureStorageFailure>> SaveStateAsync(byte[] protocolState, string connectId, byte[] membershipId)
-    {
-        if (_disposed)
-        {
-            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
+            return "_";
         }
 
-        try
+        if (key.IndexOfAny(InvalidFileNameChars) < 0)
         {
-            (byte[] encryptionKey, byte[] salt) = await DeriveKeyAsync(membershipId).ConfigureAwait(false);
-
-            byte[] nonce = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.NonceSize).ConfigureAwait(false);
-
-            byte[] associatedData = CreateAssociatedData(connectId, _deviceId);
-
-            (byte[] ciphertext, byte[] tag) = EncryptState(protocolState, encryptionKey, nonce, associatedData);
-
-            byte[] container = CreateSecureContainer(salt, nonce, tag, ciphertext, associatedData);
-
-            byte[] protectedContainer = await AddTamperProtectionAsync(container).ConfigureAwait(false);
-
-            string storagePath = GetStorageFilePath(connectId);
-            await WriteSecureFileAsync(protectedContainer, storagePath).ConfigureAwait(false);
-
-            await _platformProvider.StoreKeyInKeychainAsync($"ecliptix_key_{connectId}", encryptionKey).ConfigureAwait(false);
-
-            CryptographicOperations.ZeroMemory(encryptionKey);
-            CryptographicOperations.ZeroMemory(protocolState);
-
-            return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.SaveFailed, ex.Message)));
-        }
-    }
-
-    public async Task<Result<byte[], SecureStorageFailure>> LoadStateAsync(string connectId, byte[] membershipId)
-    {
-        if (_disposed)
-        {
-            return Result<byte[], SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
+            return key;
         }
 
-        try
+        char[] characters = key.ToCharArray();
+        for (int i = 0; i < characters.Length; i++)
         {
-            string storagePath = GetStorageFilePath(connectId);
-            byte[]? protectedContainer = await ReadSecureFileAsync(storagePath).ConfigureAwait(false);
-            if (protectedContainer == null)
+            if (InvalidFileNameCharacterSet.Contains(characters[i]))
             {
-                return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StateFileNotFound));
-            }
-
-            byte[]? container = await VerifyTamperProtectionAsync(protectedContainer).ConfigureAwait(false);
-            if (container == null)
-            {
-                return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.TamperedStateDetected));
-            }
-
-            (byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData) =
-                ParseSecureContainer(container);
-
-            byte[] expectedAd = CreateAssociatedData(connectId, _deviceId);
-            if (!CryptographicOperations.FixedTimeEquals(associatedData, expectedAd))
-            {
-                return Result<byte[], SecureStorageFailure>.Err(
-                    new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.AssociatedDataMismatch));
-            }
-
-            byte[]? storedKey = await _platformProvider.GetKeyFromKeychainAsync($"ecliptix_key_{connectId}").ConfigureAwait(false);
-            byte[] encryptionKey;
-
-            if (storedKey != null)
-            {
-                encryptionKey = storedKey;
-            }
-            else
-            {
-                (byte[] derivedKey, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
-                encryptionKey = derivedKey;
-            }
-
-            try
-            {
-                byte[] plaintext = DecryptState(ciphertext, encryptionKey, nonce, tag, associatedData);
-
-                return Result<byte[], SecureStorageFailure>.Ok(plaintext);
-            }
-            catch (CryptographicException) when (storedKey == null)
-            {
-                CryptographicOperations.ZeroMemory(encryptionKey);
-
-                (byte[] legacyKey, byte[] _) = await DeriveKeyWithSaltAsync(Encoding.UTF8.GetBytes(connectId), salt).ConfigureAwait(false);
-
-                try
-                {
-                    byte[] plaintext = DecryptState(ciphertext, legacyKey, nonce, tag, associatedData);
-
-                    await SaveStateAsync(plaintext, connectId, membershipId).ConfigureAwait(false);
-
-                    CryptographicOperations.ZeroMemory(legacyKey);
-                    return Result<byte[], SecureStorageFailure>.Ok(plaintext);
-                }
-                finally
-                {
-                    CryptographicOperations.ZeroMemory(legacyKey);
-                }
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(encryptionKey);
+                characters[i] = '_';
             }
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[CLIENT-STATE-LOAD-ERROR] Failed to load secure state. ConnectId: {ConnectId}, FilePath: {FilePath}",
-                connectId, GetStorageFilePath(connectId));
-            return Result<byte[], SecureStorageFailure>.Err(
-                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.LoadFailed, ex.Message)));
-        }
-    }
 
-    public async Task<Result<Unit, SecureStorageFailure>> DeleteStateAsync(string key)
-    {
-        if (_disposed)
-        {
-            return Result<Unit, SecureStorageFailure>.Err(new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.StorageDisposed));
-        }
-
-        try
-        {
-            string storagePath = GetStorageFilePath(key);
-            await DeleteFileWithRetryAsync(storagePath).ConfigureAwait(false);
-            await _platformProvider.DeleteKeyFromKeychainAsync($"ecliptix_key_{key}").ConfigureAwait(false);
-
-            return Result<Unit, SecureStorageFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[CLIENT-STATE-DELETE-ERROR] Failed to delete secure state. Key: {Key}, FilePath: {FilePath}",
-                key, GetStorageFilePath(key));
-            return Result<Unit, SecureStorageFailure>.Err(
-                new SecureStorageFailure(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.DeleteFailed, ex.Message)));
-        }
-    }
-
-    private static async Task DeleteFileWithRetryAsync(string filePath, int maxRetries = 3)
-    {
-        if (!File.Exists(filePath))
-        {
-            return;
-        }
-
-        for (int attempt = 0; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                if (File.GetAttributes(filePath).HasFlag(FileAttributes.ReadOnly))
-                {
-                    File.SetAttributes(filePath, File.GetAttributes(filePath) & ~FileAttributes.ReadOnly);
-                }
-
-                File.Delete(filePath);
-                return;
-            }
-            catch (UnauthorizedAccessException) when (attempt < maxRetries)
-            {
-                await Task.Delay(100 * (attempt + 1)).ConfigureAwait(false);
-            }
-            catch (IOException) when (attempt < maxRetries)
-            {
-                await Task.Delay(100 * (attempt + 1)).ConfigureAwait(false);
-            }
-            catch (FileNotFoundException)
-            {
-                return;
-            }
-        }
-        File.Delete(filePath);
-    }
-
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyAsync(byte[] membershipId)
-    {
-        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.SaltSize).ConfigureAwait(false);
-        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
-        return (key, salt);
-    }
-
-    private async Task<(byte[] key, byte[] salt)> DeriveKeyWithSaltAsync(byte[] membershipId, byte[] salt)
-    {
-        using Argon2id argon2 = new(membershipId)
-        {
-            Salt = salt,
-            DegreeOfParallelism = SecureStorageConstants.Argon2.Parallelism,
-            Iterations = SecureStorageConstants.Argon2.Iterations,
-            MemorySize = SecureStorageConstants.Argon2.MemorySize
-        };
-
-        argon2.AssociatedData = _deviceId;
-
-        byte[] key = await argon2.GetBytesAsync(SecureStorageConstants.Encryption.KeySize).ConfigureAwait(false);
-        return (key, salt);
-    }
-
-    private static (byte[] ciphertext, byte[] tag) EncryptState(
-        byte[] plaintext, byte[] key, byte[] nonce, byte[] associatedData)
-    {
-        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TagSize);
-        byte[] ciphertext = new byte[plaintext.Length];
-        byte[] tag = new byte[SecureStorageConstants.Encryption.TagSize];
-
-        aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
-        return (ciphertext, tag);
-    }
-
-    private static byte[] DecryptState(
-        byte[] ciphertext, byte[] key, byte[] nonce, byte[] tag, byte[] associatedData)
-    {
-        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TagSize);
-        byte[] plaintext = new byte[ciphertext.Length];
-
-        aesGcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
-        return plaintext;
+        return new string(characters);
     }
 
     private static byte[] CreateAssociatedData(string connectId, byte[] deviceId)
     {
-        byte[] connectIdBytes = Encoding.UTF8.GetBytes(connectId);
-        byte[] ad = new byte[connectIdBytes.Length + deviceId.Length + 4];
+        byte[] connectIdBytes = Utf8.GetBytes(connectId);
+        byte[] associatedData = new byte[sizeof(int) + connectIdBytes.Length + deviceId.Length];
 
-        BitConverter.GetBytes(SecureStorageConstants.Header.CurrentVersion).CopyTo(ad, 0);
-        connectIdBytes.CopyTo(ad, 4);
-        deviceId.CopyTo(ad, 4 + connectIdBytes.Length);
+        BinaryPrimitives.WriteInt32LittleEndian(associatedData.AsSpan(0, sizeof(int)),
+            SecureStorageConstants.Header.CURRENT_VERSION);
+        connectIdBytes.CopyTo(associatedData.AsSpan(sizeof(int)));
+        deviceId.CopyTo(associatedData.AsSpan(sizeof(int) + connectIdBytes.Length));
 
-        return ad;
+        return associatedData;
     }
 
-    private static byte[] CreateSecureContainer(
-        byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData)
+    private static (byte[] Ciphertext, byte[] Tag) EncryptState(
+        byte[] plaintext,
+        byte[] key,
+        byte[] nonce,
+        byte[] associatedData)
     {
-        byte[] magicBytes = Encoding.ASCII.GetBytes(SecureStorageConstants.Header.MagicHeader);
+        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TAG_SIZE);
+        byte[] ciphertext = new byte[plaintext.Length];
+        byte[] tag = new byte[SecureStorageConstants.Encryption.TAG_SIZE];
 
-        int totalSize = magicBytes.Length + 4 +
-                       4 + salt.Length +
-                       4 + nonce.Length +
-                       4 + tag.Length +
-                       4 + associatedData.Length +
-                       4 + ciphertext.Length;
+        aesGcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
 
-        byte[] container = new byte[totalSize];
-        int offset = 0;
-
-        magicBytes.CopyTo(container, offset);
-        offset += magicBytes.Length;
-
-        BitConverter.GetBytes(SecureStorageConstants.Header.CurrentVersion).CopyTo(container, offset);
-        offset += 4;
-
-        BitConverter.GetBytes(salt.Length).CopyTo(container, offset);
-        offset += 4;
-        salt.CopyTo(container, offset);
-        offset += salt.Length;
-
-        BitConverter.GetBytes(nonce.Length).CopyTo(container, offset);
-        offset += 4;
-        nonce.CopyTo(container, offset);
-        offset += nonce.Length;
-
-        BitConverter.GetBytes(tag.Length).CopyTo(container, offset);
-        offset += 4;
-        tag.CopyTo(container, offset);
-        offset += tag.Length;
-
-        BitConverter.GetBytes(associatedData.Length).CopyTo(container, offset);
-        offset += 4;
-        associatedData.CopyTo(container, offset);
-        offset += associatedData.Length;
-
-        BitConverter.GetBytes(ciphertext.Length).CopyTo(container, offset);
-        offset += 4;
-        ciphertext.CopyTo(container, offset);
-
-        return container;
+        return (ciphertext, tag);
     }
 
-    private static (byte[] salt, byte[] nonce, byte[] tag, byte[] ciphertext, byte[] associatedData)
-        ParseSecureContainer(byte[] container)
+    private static byte[] DecryptState(
+        byte[] ciphertext,
+        byte[] key,
+        byte[] nonce,
+        byte[] tag,
+        byte[] associatedData)
     {
-        using MemoryStream ms = new(container);
-        using BinaryReader reader = new(ms);
+        using AesGcm aesGcm = new(key, SecureStorageConstants.Encryption.TAG_SIZE);
+        byte[] plaintext = new byte[ciphertext.Length];
 
-        string magic = Encoding.ASCII.GetString(reader.ReadBytes(SecureStorageConstants.Header.MagicHeader.Length));
-        if (magic != SecureStorageConstants.Header.MagicHeader)
+        aesGcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
+
+        return plaintext;
+    }
+
+    private static byte[] SerializeContainer(SecureContainer container)
+    {
+        int totalSize = MagicHeaderBytes.Length + sizeof(int) +
+                        SegmentSize(container.Salt.Length) +
+                        SegmentSize(container.Nonce.Length) +
+                        SegmentSize(container.Tag.Length) +
+                        SegmentSize(container.AssociatedData.Length) +
+                        SegmentSize(container.Ciphertext.Length);
+
+        byte[] buffer = new byte[totalSize];
+        Span<byte> writeSpan = buffer.AsSpan();
+
+        MagicHeaderBytes.CopyTo(writeSpan);
+        writeSpan = writeSpan[MagicHeaderBytes.Length..];
+
+        BinaryPrimitives.WriteInt32LittleEndian(writeSpan, SecureStorageConstants.Header.CURRENT_VERSION);
+        writeSpan = writeSpan[sizeof(int)..];
+
+        WriteSegment(container.Salt, ref writeSpan);
+        WriteSegment(container.Nonce, ref writeSpan);
+        WriteSegment(container.Tag, ref writeSpan);
+        WriteSegment(container.AssociatedData, ref writeSpan);
+        WriteSegment(container.Ciphertext, ref writeSpan);
+
+        return buffer;
+    }
+
+    private static SecureContainer ParseSecureContainer(byte[] containerBytes)
+    {
+        ReadOnlySpan<byte> readSpan = containerBytes.AsSpan();
+
+        if (readSpan.Length < MagicHeaderBytes.Length + sizeof(int))
         {
-            throw new InvalidOperationException(ApplicationErrorMessages.SecureProtocolStateStorage.InvalidContainerFormat);
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
         }
 
-        int version = reader.ReadInt32();
-        if (version != SecureStorageConstants.Header.CurrentVersion)
+        if (!readSpan[..MagicHeaderBytes.Length].SequenceEqual(MagicHeaderBytes))
         {
-            throw new InvalidOperationException(string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.UnsupportedVersion, version));
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
         }
 
-        int saltLength = reader.ReadInt32();
-        byte[] salt = reader.ReadBytes(saltLength);
+        readSpan = readSpan[MagicHeaderBytes.Length..];
 
-        int nonceLength = reader.ReadInt32();
-        byte[] nonce = reader.ReadBytes(nonceLength);
+        int version = BinaryPrimitives.ReadInt32LittleEndian(readSpan);
+        if (version != SecureStorageConstants.Header.CURRENT_VERSION)
+        {
+            throw new InvalidOperationException(
+                string.Format(ApplicationErrorMessages.SecureProtocolStateStorage.UNSUPPORTED_VERSION, version));
+        }
 
-        int tagLength = reader.ReadInt32();
-        byte[] tag = reader.ReadBytes(tagLength);
+        readSpan = readSpan[sizeof(int)..];
 
-        int adLength = reader.ReadInt32();
-        byte[] associatedData = reader.ReadBytes(adLength);
+        byte[] salt = ReadSegment(ref readSpan);
+        byte[] nonce = ReadSegment(ref readSpan);
+        byte[] tag = ReadSegment(ref readSpan);
+        byte[] associatedData = ReadSegment(ref readSpan);
+        byte[] ciphertext = ReadSegment(ref readSpan);
 
-        int ciphertextLength = reader.ReadInt32();
-        byte[] ciphertext = reader.ReadBytes(ciphertextLength);
+        if (!readSpan.IsEmpty)
+        {
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+        }
 
-        return (salt, nonce, tag, ciphertext, associatedData);
+        return new SecureContainer(salt, nonce, tag, ciphertext, associatedData);
     }
 
     private async Task<byte[]> AddTamperProtectionAsync(byte[] data)
     {
-        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
+        byte[] hmacKey = await GetHmacKeyAsync().ConfigureAwait(false);
         using HMACSHA512 hmac = new(hmacKey);
         byte[] mac = hmac.ComputeHash(data);
 
         byte[] result = new byte[data.Length + mac.Length];
-        data.CopyTo(result, 0);
-        mac.CopyTo(result, data.Length);
+        Buffer.BlockCopy(data, 0, result, 0, data.Length);
+        Buffer.BlockCopy(mac, 0, result, data.Length, mac.Length);
 
+        ZeroBuffer(mac);
         return result;
     }
 
-    private async Task<byte[]?> VerifyTamperProtectionAsync(byte[] protectedData)
+    private async Task<Result<byte[], SecureStorageFailure>> VerifyTamperProtectionAsync(byte[] protectedData)
     {
-        if (protectedData.Length < SecureStorageConstants.Encryption.HmacSha512Size)
+        if (protectedData.Length < SecureStorageConstants.Encryption.HMAC_SHA_512_SIZE)
         {
-            return null;
+            return Result<byte[], SecureStorageFailure>.Err(
+                new SecureStorageFailure(
+                    ApplicationErrorMessages.SecureProtocolStateStorage.TAMPERED_STATE_DETECTED));
         }
 
-        byte[] data = protectedData[..^SecureStorageConstants.Encryption.HmacSha512Size];
-        byte[] mac = protectedData[^SecureStorageConstants.Encryption.HmacSha512Size..];
+        int macSize = SecureStorageConstants.Encryption.HMAC_SHA_512_SIZE;
+        int dataLength = protectedData.Length - macSize;
 
-        byte[] hmacKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
+        byte[] data = new byte[dataLength];
+        byte[] mac = new byte[macSize];
+
+        Buffer.BlockCopy(protectedData, 0, data, 0, dataLength);
+        Buffer.BlockCopy(protectedData, dataLength, mac, 0, macSize);
+
+        byte[] hmacKey = await GetHmacKeyAsync().ConfigureAwait(false);
         using HMACSHA512 hmac = new(hmacKey);
         byte[] expectedMac = hmac.ComputeHash(data);
 
-        if (!CryptographicOperations.FixedTimeEquals(mac, expectedMac))
+        bool matches = CryptographicOperations.FixedTimeEquals(mac, expectedMac);
+
+        ZeroBuffer(mac);
+        ZeroBuffer(expectedMac);
+
+        if (matches)
         {
-            return null;
+            return Result<byte[], SecureStorageFailure>.Ok(data);
         }
 
-        return data;
+        ZeroBuffer(data);
+        return Result<byte[], SecureStorageFailure>.Err(
+            new SecureStorageFailure(
+                ApplicationErrorMessages.SecureProtocolStateStorage.TAMPERED_STATE_DETECTED));
     }
 
-    private async Task WriteSecureFileAsync(byte[] data, string filePath)
+    private async Task<byte[]> GetHmacKeyAsync()
+    {
+        byte[]? cached = Volatile.Read(ref _cachedHmacKey);
+        if (cached != null)
+        {
+            return cached;
+        }
+
+        byte[] newKey = await _platformProvider.GetOrCreateHmacKeyAsync().ConfigureAwait(false);
+        byte[]? existing = Interlocked.CompareExchange(ref _cachedHmacKey, newKey, null);
+
+        if (existing != null)
+        {
+            ZeroBuffer(newKey);
+            return existing;
+        }
+
+        return newKey;
+    }
+
+    private async Task<Option<byte[]>> ReadSecureFileAsync(string filePath)
+    {
+        return File.Exists(filePath)
+            ? Option<byte[]>.Some(await File.ReadAllBytesAsync(filePath).ConfigureAwait(false))
+            : Option<byte[]>.None;
+    }
+
+    private static async Task WriteSecureFileAsync(byte[] data, string filePath)
     {
         string? directory = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        if (!string.IsNullOrEmpty(directory))
         {
-            Directory.CreateDirectory(directory);
+            DirectoryInfo directoryInfo = Directory.CreateDirectory(directory);
 
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                File.SetUnixFileMode(directory,
+                File.SetUnixFileMode(directoryInfo.FullName,
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
         }
@@ -446,46 +484,200 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
                 File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
-            await DeleteFileWithRetryAsync(filePath).ConfigureAwait(false);
-
-            File.Move(tempPath, filePath);
+            File.Move(tempPath, filePath, overwrite: true);
         }
-        catch (Exception)
+        catch
         {
-            if (!File.Exists(tempPath))
+            if (File.Exists(tempPath))
             {
-                throw;
+                try
+                {
+                    File.Delete(tempPath);
+                }
+                catch
+                {
+                    // best-effort cleanup
+                }
             }
 
-            try
-            {
-                File.Delete(tempPath);
-            }
-            catch (Exception)
-            {
-                // Best-effort cleanup - temp file deletion failure is non-critical
-            }
+            throw;
         }
     }
 
-    private static async Task<byte[]?> ReadSecureFileAsync(string filePath) =>
-        !File.Exists(filePath) ? null : await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
-
-    public void Dispose()
+    private static async Task DeleteFileIfExistsAsync(string filePath, int maxRetries = 3)
     {
-        if (_disposed)
+        if (!File.Exists(filePath))
         {
             return;
         }
 
-        if (_masterKey != null)
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
         {
-            CryptographicOperations.ZeroMemory(_masterKey);
-            _masterKey = null;
+            try
+            {
+                FileAttributes attributes = File.GetAttributes(filePath);
+                if (attributes.HasFlag(FileAttributes.ReadOnly))
+                {
+                    File.SetAttributes(filePath, attributes & ~FileAttributes.ReadOnly);
+                }
+
+                File.Delete(filePath);
+                return;
+            }
+            catch (IOException) when (attempt < maxRetries)
+            {
+                await Task.Delay(RetryDelay(attempt)).ConfigureAwait(false);
+            }
+            catch (UnauthorizedAccessException) when (attempt < maxRetries)
+            {
+                await Task.Delay(RetryDelay(attempt)).ConfigureAwait(false);
+            }
         }
 
-        _disposed = true;
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        FileAttributes finalAttributes = File.GetAttributes(filePath);
+        if (finalAttributes.HasFlag(FileAttributes.ReadOnly))
+        {
+            File.SetAttributes(filePath, finalAttributes & ~FileAttributes.ReadOnly);
+        }
+
+        File.Delete(filePath);
     }
+
+    private async Task<Option<byte[]>> TryGetStoredKeyAsync(string keychainKey)
+    {
+        byte[]? key = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+        return Option<byte[]>.From(key);
+    }
+
+    private async Task CleanupFailedSaveAsync(string storagePath, string keychainKey)
+    {
+        try
+        {
+            await DeleteFileIfExistsAsync(storagePath).ConfigureAwait(false);
+        }
+        catch
+        {
+            // best-effort cleanup
+        }
+
+        try
+        {
+            await _platformProvider.DeleteKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+        }
+        catch
+        {
+            // best-effort cleanup
+        }
+    }
+
+    private async Task<(byte[] Key, byte[] Salt)> DeriveKeyAsync(byte[] membershipId)
+    {
+        byte[] salt = await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Encryption.SALT_SIZE)
+            .ConfigureAwait(false);
+
+        (byte[] key, byte[] _) = await DeriveKeyWithSaltAsync(membershipId, salt).ConfigureAwait(false);
+        return (key, salt);
+    }
+
+    private async Task<(byte[] Key, byte[] Salt)> DeriveKeyWithSaltAsync(byte[] membershipId, byte[] salt)
+    {
+        using Argon2id argon2 = new(membershipId)
+        {
+            Salt = salt,
+            DegreeOfParallelism = SecureStorageConstants.Argon2.PARALLELISM,
+            Iterations = SecureStorageConstants.Argon2.ITERATIONS,
+            MemorySize = SecureStorageConstants.Argon2.MEMORY_SIZE,
+            AssociatedData = _deviceId
+        };
+
+        byte[] key = await argon2.GetBytesAsync(SecureStorageConstants.Encryption.KEY_SIZE).ConfigureAwait(false);
+        return (key, salt);
+    }
+
+    private void EnsureSecureDirectoryExists()
+    {
+        DirectoryInfo directory = Directory.CreateDirectory(_storageDirectory);
+
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            File.SetUnixFileMode(directory.FullName,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+    }
+
+    private bool TryEnsureNotDisposed(out SecureStorageFailure? failure)
+    {
+        if (_disposed)
+        {
+            failure = new SecureStorageFailure(ApplicationErrorMessages.SecureProtocolStateStorage.STORAGE_DISPOSED);
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
+    private static void WriteSegment(ReadOnlySpan<byte> value, ref Span<byte> destination)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(destination, value.Length);
+        destination = destination[sizeof(int)..];
+
+        value.CopyTo(destination);
+        destination = destination[value.Length..];
+    }
+
+    private static byte[] ReadSegment(ref ReadOnlySpan<byte> source)
+    {
+        if (source.Length < sizeof(int))
+        {
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+        }
+
+        int length = BinaryPrimitives.ReadInt32LittleEndian(source);
+        if (length < 0)
+        {
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+        }
+
+        source = source[sizeof(int)..];
+        if (source.Length < length)
+        {
+            throw new InvalidOperationException(
+                ApplicationErrorMessages.SecureProtocolStateStorage.INVALID_CONTAINER_FORMAT);
+        }
+
+        byte[] result = source[..length].ToArray();
+        source = source[length..];
+        return result;
+    }
+
+    private static int SegmentSize(int payloadLength) => sizeof(int) + payloadLength;
+
+    private static TimeSpan RetryDelay(int attempt) => TimeSpan.FromMilliseconds(100 * (attempt + 1));
+
+    private static void ZeroBuffer(byte[]? buffer)
+    {
+        if (buffer is null)
+        {
+            return;
+        }
+
+        CryptographicOperations.ZeroMemory(buffer);
+    }
+
+    private readonly record struct SecureContainer(
+        byte[] Salt,
+        byte[] Nonce,
+        byte[] Tag,
+        byte[] Ciphertext,
+        byte[] AssociatedData);
 }
 
 public record SecureStorageFailure(string Message) : FailureBase(Message)
@@ -493,5 +685,5 @@ public record SecureStorageFailure(string Message) : FailureBase(Message)
     public override object ToStructuredLog() => new { Message, Type = "SecureStorageFailure" };
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.InternalError, StatusCode.Internal, ErrorI18nKeys.Internal);
+        new(ERROR_CODE.InternalError, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
 }

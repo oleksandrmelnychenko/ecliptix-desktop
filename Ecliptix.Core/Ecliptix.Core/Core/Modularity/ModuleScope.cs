@@ -38,7 +38,7 @@ internal class ModuleScope : IModuleScope
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Error disposing module scope for {ModuleName}", ModuleName);
+            Log.Error(ex, "ERROR disposing module scope for {ModuleName}", ModuleName);
         }
     }
 }
