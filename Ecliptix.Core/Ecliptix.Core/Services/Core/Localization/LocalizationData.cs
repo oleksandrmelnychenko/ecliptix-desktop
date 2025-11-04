@@ -26,12 +26,10 @@ public static class LocalizationData
         [ErrorI18NKeys.INTERNAL] = "Something went wrong. Please try again later.",
         [ErrorI18NKeys.DATABASE_UNAVAILABLE] = "Database is unavailable. Please retry later.",
 
-
         ["Authentication.ERROR.NavigationFailure"] = "Failed to navigate to main window",
         ["Authentication.ERROR.MembershipIdentifierRequired"] = "Membership identifier is required",
         ["Authentication.ERROR.SESSION_EXPIRED"] = "Your session has expired. Please start the registration process again.",
         ["Authentication.ERROR.RegistrationIncomplete"] = "Registration data is incomplete. Please restart the registration process.",
-
 
         ["error.server_unavailable"] = "Server is currently unavailable. Please try again later.",
         ["Authentication.SignUp.MobileVerification.Title"] = "Create Account",
@@ -40,13 +38,11 @@ public static class LocalizationData
         ["Authentication.SignUp.MobileVerification.Watermark"] = "Mobile Number",
         ["Authentication.SignUp.MobileVerification.Button"] = "Continue",
 
-
         ["Authentication.SecureKeyRecovery.MobileVerification.Title"] = "Reset Secure Key",
         ["Authentication.SecureKeyRecovery.MobileVerification.Description"] = "Enter your mobile number to receive a verification code.",
         ["Authentication.SecureKeyRecovery.MobileVerification.Hint"] = "Include country code",
         ["Authentication.SecureKeyRecovery.MobileVerification.Watermark"] = "Mobile Number",
         ["Authentication.SecureKeyRecovery.MobileVerification.Button"] = "Continue",
-
 
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Verify Your Number",
         ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Enter the code sent to your mobile.",
@@ -84,7 +80,6 @@ public static class LocalizationData
         ["Authentication.SignUp.PassPhase.Watermark"] = "••••",
         ["Authentication.SignUp.PassPhase.Button"] = "Confirm PIN",
 
-
         ["Authentication.SignIn.Title"] = "Sign In",
         ["Authentication.SignIn.Welcome"] = "Welcome back! Let's get you back to your secure, personalized workspace.",
         ["Authentication.SignIn.MobilePlaceholder"] = "Mobile Number",
@@ -94,7 +89,6 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Forgot key?",
         ["Authentication.SignIn.Continue"] = "Continue",
 
-
         ["MobileVerification.ERROR.MobileAlreadyRegistered"] = "A problem occurred with your registration. If you already have an account, please try logging in or use the account recovery option.",
         ["mobile_available_for_registration"] = "This mobile number is available for registration.",
         ["mobile_incomplete_registration_continue"] = "Continue your registration with this mobile number.",
@@ -102,7 +96,6 @@ public static class LocalizationData
         ["mobile_taken_inactive_account"] = "This mobile number is registered but inactive. Please use secure key recovery to regain access.",
         ["mobile_data_corruption_contact_support"] = "There's an issue with your account data. Please contact support for assistance.",
         ["mobile_available_on_this_device"] = "This mobile number is available for registration on this device.",
-
 
         ["Verification.ERROR.InvalidOtpCode"] = "Invalid verification code",
         ["Registration.ERROR.Failed"] = "Registration failed",
@@ -116,7 +109,6 @@ public static class LocalizationData
         ["Verification.ERROR.GlobalRateLimitExceeded"] = "Too many requests. Please try again later",
         ["Verification.Info.Redirecting"] = "Redirecting...",
         ["Verification.Info.RedirectingInSeconds"] = "Redirecting in {0} seconds...",
-
 
         ["ValidationErrors.MobileNumber.MUST_START_WITH_COUNTRY_CODE"] = "Must start with +",
         ["ValidationErrors.MobileNumber.CONTAINS_NON_DIGITS"] = "Digits only after code",
@@ -132,7 +124,6 @@ public static class LocalizationData
         ["ValidationErrors.DeviceIdentifier.REQUIRED"] = "Device identifier is required",
         ["ValidationErrors.SessionIdentifier.REQUIRED"] = "Session identifier is required",
         ["ValidationErrors.MembershipIdentifier.REQUIRED"] = "Membership identifier is required",
-
 
         ["ValidationErrors.SecureKey.REQUIRED"] = "REQUIRED",
         ["ValidationErrors.SecureKey.MIN_LENGTH"] = "Min {0} characters",
@@ -167,19 +158,16 @@ public static class LocalizationData
         ["Welcome.SignInButton"] = "Sign In",
         ["Welcome.CreateAccountButton"] = "Create Account",
 
-
         ["Footer.PrivacyPolicy"] = "Privacy Policy",
         ["Footer.TermsOfService"] = "Terms of Service",
         ["Footer.Support"] = "Support",
         ["Footer.AgreementText"] = "By continuing, you agree to our Terms and Privacy Policy.",
         ["Footer.Copyright"] = "© 2025 Horizon Dynamics. All rights reserved.",
 
-
         ["Navigation.Back"] = "Back",
         ["Navigation.Close"] = "Close",
         ["Navigation.Minimize"] = "Minimize",
         ["Navigation.Maximize"] = "Maximize",
-
 
         ["Common.Loading"] = "Loading...",
         ["Common.ERROR"] = "ERROR",
@@ -189,7 +177,6 @@ public static class LocalizationData
         ["Common.Ok"] = "OK",
         ["Common.NoInternetConnection"] = "No internet connection",
         ["Common.CheckConnection"] = "Check your internet connection",
-
 
         ["NetworkNotification.NoInternet.Title"] = "No Internet Connection",
         ["NetworkNotification.NoInternet.Description"] = "Check your connection and try again",
@@ -210,7 +197,6 @@ public static class LocalizationData
         ["NetworkNotification.ServerReconnected.Title"] = "Reconnected",
         ["NetworkNotification.ServerReconnected.Description"] = "Successfully reconnected to server",
         ["NetworkNotification.Button.Retry"] = "Retry",
-
 
         ["LanguageDetection.Title"] = "Language Suggestion",
         ["LanguageDetection.Prompt"] = "Switch to {0}?",
@@ -239,12 +225,10 @@ public static class LocalizationData
         [ErrorI18NKeys.DATABASE_UNAVAILABLE] = "База даних недоступна. Повторіть спробу пізніше.",
         ["error.server_unavailable"] = "Сервер наразі недоступний. Будь ласка, спробуйте пізніше.",
 
-
         ["Authentication.ERROR.NavigationFailure"] = "Не вдалося перейти до головного вікна",
         ["Authentication.ERROR.MembershipIdentifierRequired"] = "Ідентифікатор учасника є обов'язковим",
         ["Authentication.ERROR.SESSION_EXPIRED"] = "Ваша сесія закінчилася. Будь ласка, почніть реєстрацію спочатку.",
         ["Authentication.ERROR.RegistrationIncomplete"] = "Дані реєстрації неповні. Будь ласка, почніть процес реєстрації знову.",
-
 
         ["Authentication.SignUp.MobileVerification.Title"] = "Створити акаунт",
         ["Authentication.SignUp.MobileVerification.Description"] = "Підтвердьте номер. Ми надішлемо код в SMS.",
@@ -252,13 +236,11 @@ public static class LocalizationData
         ["Authentication.SignUp.MobileVerification.Watermark"] = "Номер мобільного",
         ["Authentication.SignUp.MobileVerification.Button"] = "Продовжити",
 
-
         ["Authentication.SecureKeyRecovery.MobileVerification.Title"] = "Скинути ключ безпеки",
         ["Authentication.SecureKeyRecovery.MobileVerification.Description"] = "Підтвердьте номер для отримання коду підтвердження.",
         ["Authentication.SecureKeyRecovery.MobileVerification.Hint"] = "Включно з кодом країни",
         ["Authentication.SecureKeyRecovery.MobileVerification.Watermark"] = "Номер мобільного",
         ["Authentication.SecureKeyRecovery.MobileVerification.Button"] = "Продовжити",
-
 
         ["Authentication.SignUp.VerificationCodeEntry.Title"] = "Підтвердження номера",
         ["Authentication.SignUp.VerificationCodeEntry.Description"] = "Введіть код, надісланий на ваш мобільний.",
@@ -296,7 +278,6 @@ public static class LocalizationData
         ["Authentication.SignUp.PassPhase.Watermark"] = "••••",
         ["Authentication.SignUp.PassPhase.Button"] = "Підтвердити PIN",
 
-
         ["Authentication.SignIn.Title"] = "Вхід",
         ["Authentication.SignIn.Welcome"] = "З поверненням! Увійдіть у свій захищений простір.",
         ["Authentication.SignIn.MobilePlaceholder"] = "Номер телефону",
@@ -306,7 +287,6 @@ public static class LocalizationData
         ["Authentication.SignIn.AccountRecovery"] = "Забули ключ?",
         ["Authentication.SignIn.Continue"] = "Продовжити",
 
-
         ["MobileVerification.ERROR.MobileAlreadyRegistered"] = "Під час реєстрації сталася помилка. Якщо у вас вже є акаунт, будь ласка, спробуйте увійти або скористайтеся опцією відновлення доступу.",
         ["mobile_available_for_registration"] = "Цей номер доступний для реєстрації.",
         ["mobile_incomplete_registration_continue"] = "Продовжіть реєстрацію з цим номером.",
@@ -314,7 +294,6 @@ public static class LocalizationData
         ["mobile_taken_inactive_account"] = "Цей номер зареєстровано, але акаунт неактивний. Скористайтеся відновленням ключа безпеки.",
         ["mobile_data_corruption_contact_support"] = "Виникла проблема з даними вашого акаунта. Будь ласка, зверніться до підтримки.",
         ["mobile_available_on_this_device"] = "Цей номер доступний для реєстрації на цьому пристрої.",
-
 
         ["Verification.ERROR.InvalidOtpCode"] = "Неправильний код підтвердження",
         ["Registration.ERROR.Failed"] = "Не вдалося зареєструватися",
@@ -329,12 +308,10 @@ public static class LocalizationData
         ["Verification.Info.Redirecting"] = "Перенаправлення...",
         ["Verification.Info.RedirectingInSeconds"] = "Перенаправлення через {0} секунд...",
 
-
         ["ValidationErrors.MobileNumber.MUST_START_WITH_COUNTRY_CODE"] = "Має починатись із +",
         ["ValidationErrors.MobileNumber.CONTAINS_NON_DIGITS"] = "Лише цифри після коду",
         ["ValidationErrors.MobileNumber.INCORRECT_LENGTH"] = "Потрібно {0}-{1} цифр",
         ["ValidationErrors.MobileNumber.CANNOT_BE_EMPTY"] = "Обов'язкове поле",
-
 
         ["ValidationErrors.MobileNumber.REQUIRED"] = "Номер мобільного телефону є обов'язковим",
         ["ValidationErrors.MobileNumberIdentifier.REQUIRED"] = "Ідентифікатор номера мобільного телефону є обов'язковим",
@@ -345,7 +322,6 @@ public static class LocalizationData
         ["ResponseErrors.MobileNumber.AccountAlreadyRegistered"] = "Акаунт з цим номером вже зареєстровано. Спробуйте увійти або скористайтеся відновленням пароля.",
         ["ResponseErrors.MobileNumber.UnexpectedMembershipStatus"] = "Неочікуваний статус системи. Спробуйте ще раз.",
         ["ResponseErrors.Common.TimeoutExceeded"] = "Операція перевищила час очікування. Спробуйте ще раз.",
-
 
         ["ValidationErrors.SecureKey.REQUIRED"] = "Обов'язкове поле",
         ["ValidationErrors.SecureKey.MIN_LENGTH"] = "Мін. {0} символів",
@@ -377,10 +353,8 @@ public static class LocalizationData
         ["ValidationWarnings.SecureKey.InvalidCharacter"] = "Використано недопустимий символ",
         ["ValidationWarnings.SecureKey.MultipleCharacters"] = "Кілька символів одного типу",
 
-
         ["Welcome.SignInButton"] = "Увійти",
         ["Welcome.CreateAccountButton"] = "Створити акаунт",
-
 
         ["Footer.PrivacyPolicy"] = "Політика конфіденційності",
         ["Footer.TermsOfService"] = "Умови надання послуг",
@@ -388,12 +362,10 @@ public static class LocalizationData
         ["Footer.AgreementText"] = "Продовжуючи, ви погоджуєтесь з нашими Умовами та Політикою конфіденціальності.",
         ["Footer.Copyright"] = "© 2025 Horizon Dynamics. Усі права захищено.",
 
-
         ["Navigation.Back"] = "Назад",
         ["Navigation.Close"] = "Закрити",
         ["Navigation.Minimize"] = "Згорнути",
         ["Navigation.Maximize"] = "Розгорнути",
-
 
         ["Common.Loading"] = "Завантаження...",
         ["Common.ERROR"] = "Помилка",
@@ -403,7 +375,6 @@ public static class LocalizationData
         ["Common.Ok"] = "Гаразд",
         ["Common.NoInternetConnection"] = "Немає підключення до інтернету",
         ["Common.CheckConnection"] = "Перевірте ваше інтернет-з'єднання",
-
 
         ["NetworkNotification.NoInternet.Title"] = "Немає підключення до інтернету",
         ["NetworkNotification.NoInternet.Description"] = "Перевірте з'єднання та спробуйте знову",
@@ -424,7 +395,6 @@ public static class LocalizationData
         ["NetworkNotification.ServerReconnected.Title"] = "Підключено",
         ["NetworkNotification.ServerReconnected.Description"] = "Успішно підключено до сервера",
         ["NetworkNotification.Button.Retry"] = "Повторити",
-
 
         ["LanguageDetection.Title"] = "Пропозиція мови",
         ["LanguageDetection.Prompt"] = "Перемкнутись на {0}?",
