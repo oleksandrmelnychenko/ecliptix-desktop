@@ -77,13 +77,13 @@ public sealed class SecureKeyVerifierViewModel : Core.MVVM.ViewModelBase, IRouta
 
     public string Title => Localize(Keys.REGISTRATION_TITLE, Keys.RECOVERY_TITLE);
     public string Description => Localize(Keys.REGISTRATION_DESCRIPTION, Keys.RECOVERY_DESCRIPTION);
-    public string SECURE_KEY_PLACEHOLDER => Localize(Keys.SECURE_KEY_PLACEHOLDER, Keys.RECOVERY_SECURE_KEY_PLACEHOLDER);
-    public string SECURE_KEY_HINT => Localize(Keys.SECURE_KEY_HINT, Keys.RECOVERY_SECURE_KEY_HINT);
+    public string SecureKeyPlaceholder => Localize(Keys.SECURE_KEY_PLACEHOLDER, Keys.RECOVERY_SECURE_KEY_PLACEHOLDER);
+    public string SecureKeyHint => Localize(Keys.SECURE_KEY_HINT, Keys.RECOVERY_SECURE_KEY_HINT);
 
-    public string VERIFY_SECURE_KEY_PLACEHOLDER =>
+    public string VerifySecureKeyPlaceholder =>
         Localize(Keys.VERIFY_SECURE_KEY_PLACEHOLDER, Keys.RECOVERY_VERIFY_SECURE_KEY_PLACEHOLDER);
 
-    public string VERIFY_SECURE_KEY_HINT => Localize(Keys.VERIFY_SECURE_KEY_HINT, Keys.RECOVERY_VERIFY_SECURE_KEY_HINT);
+    public string VerifySecureKeyHint => Localize(Keys.VERIFY_SECURE_KEY_HINT, Keys.RECOVERY_VERIFY_SECURE_KEY_HINT);
     public string ButtonText => Localize(Keys.REGISTRATION_BUTTON, Keys.RECOVERY_BUTTON);
 
     public string? UrlPathSegment { get; } = "/secure-key-confirmation";

@@ -2,8 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime"
-             xmlns:controls="clr-namespace:Ecliptix.Core.Controls"
              xmlns:core="clr-namespace:Ecliptix.Core.Controls.Core"
              xmlns:converters="clr-namespace:Ecliptix.Core.Shared.Converters"
              mc:Ignorable="d"
@@ -18,7 +16,6 @@
     <UserControl.Resources>
         <x:Double x:Key="MinControlHeight">56</x:Double>
         <x:Double x:Key="MinTextBoxHeight">28</x:Double>
-        <x:Double x:Key="ScrollBarThumbWidth">10</x:Double>
 
         <Thickness x:Key="FocusBorderThickness">1.5</Thickness>
         <Thickness x:Key="MainBorderThickness">0.5</Thickness>
@@ -31,16 +28,7 @@
 
         <SolidColorBrush x:Key="CounterForegroundBrush">Gray</SolidColorBrush>
         <BoxShadows x:Key="DefaultShadow">0 0 10 4 #00000000, 0 2 4 0 #00000000</BoxShadows>
-        <BoxShadows x:Key="FocusShadow">0 0 10 4 #406a5acd, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="ErrorShadow">0 0 10 4 #40de1e31, 0 2 4 0 #20000000</BoxShadows>
-        
-        <BoxShadows x:Key="InvalidStrengthShadow">0 0 10 4 #40ef3a3a, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="VeryWeakStrengthShadow">0 0 10 4 #40ff6b35, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="WeakStrengthShadow">0 0 10 4 #40ffa500, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="GoodStrengthShadow">0 0 10 4 #40f4c20d, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="StrongStrengthShadow">0 0 10 4 #4000bcd4, 0 2 4 0 #20000000</BoxShadows>
-        <BoxShadows x:Key="VeryStrongStrengthShadow">0 0 10 4 #4032cd32, 0 2 4 0 #20000000</BoxShadows>
-        
+
         <converters:BooleanToOpacityConverter x:Key="BooleanToOpacityConverter"
                                                     TrueOpacity="1.0"
                                                     FalseOpacity="0" />
@@ -190,7 +178,7 @@
                 </Transitions>
             </Setter>
         </Style>
-        
+
         <Style Selector="StackPanel.warning-section">
             <Setter Property="Orientation" Value="Horizontal" />
             <Setter Property="HorizontalAlignment" Value="Right" />
@@ -209,7 +197,7 @@
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="{StaticResource CounterMargin}" />
         </Style>
-        
+
         <Style Selector="TextBlock.securekey-mask-overlay">
             <Setter Property="Foreground" Value="{Binding TextForeground, ElementName=control}" />
             <Setter Property="FontSize" Value="{Binding FontSize, ElementName=control}" />
@@ -219,8 +207,8 @@
             <Setter Property="Margin" Value="{StaticResource TextBoxMargin}" />
             <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
-        
-        
+
+
     </UserControl.Styles>
 
     <UserControl.Transitions>
@@ -230,7 +218,7 @@
     </UserControl.Transitions>
 
     <Grid ClipToBounds="False">
-        
+
         <Border x:Name="ShadowBorder"
                 Margin="{StaticResource MainBorderMargin}"
                 CornerRadius="{Binding CornerRadius, ElementName=control}"
@@ -243,7 +231,7 @@
                 </Transitions>
             </Border.Transitions>
         </Border>
-        
+
         <Border x:Name="FocusBorder"
                 BorderThickness="{StaticResource FocusBorderThickness}"
                 BorderBrush="{Binding FocusBorderBrush, ElementName=control}"
@@ -296,7 +284,7 @@
                         <TextBlock x:Name="SecureKeyMaskOverlay"
                                    Classes="securekey-mask-overlay"
                                    IsVisible="{Binding IsSecureKeyMode, ElementName=control}" />
-                        
+
                         <StackPanel Grid.Row="0"
                                     x:Name="CounterPanel"
                                     Classes="counter-section"
@@ -335,7 +323,7 @@
                                    VerticalAlignment="Center"
                                    Classes="error-text" />
                     </StackPanel>
-                    
+
                     <StackPanel Grid.Row="1"
                                 x:Name="SecureKeyStrengthStackPanel"
                                 Classes="hint-section"
@@ -351,7 +339,7 @@
                                    VerticalAlignment="Center"
                                    Classes="hint-text" />
                     </StackPanel>
-                    
+
                     <StackPanel Grid.Row="0"
                                 x:Name="WarningStackPanel"
                                 Classes="warning-section"
@@ -360,7 +348,7 @@
                                    Foreground="{DynamicResource Error}"
                                    VerticalAlignment="Center"
                                    Classes="hint-text" />
-                        <Border 
+                        <Border
                             VerticalAlignment="Center"
                             HorizontalAlignment="Left">
                             <Ellipse
@@ -369,7 +357,7 @@
                                 HorizontalAlignment="Center"
                                 Width="8"
                                 Height="8"
-                                Margin="6,2,0,0" 
+                                Margin="6,2,0,0"
                                 Stretch="UniformToFill"/>
 
                         </Border>

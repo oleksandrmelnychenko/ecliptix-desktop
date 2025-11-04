@@ -27,7 +27,7 @@ public partial class SegmentedTextBox : UserControl
             SegmentedTextBoxConstants.DEFAULT_ALLOW_ONLY_NUMBERS);
 
     public static readonly StyledProperty<bool> IsPointerInteractionEnabledProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IS_POINTER_INTERACTION_ENABLED),
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsPointerInteractionEnabled),
             SegmentedTextBoxConstants.IS_POINTER_INTERACTION_ENABLED);
 
     public static readonly StyledProperty<IBrush> SegmentBackgroundProperty =
@@ -123,7 +123,7 @@ public partial class SegmentedTextBox : UserControl
         set => SetValue(AllowOnlyNumbersProperty, value);
     }
 
-    public bool IS_POINTER_INTERACTION_ENABLED
+    public bool IsPointerInteractionEnabled
     {
         get => GetValue(IsPointerInteractionEnabledProperty);
         set => SetValue(IsPointerInteractionEnabledProperty, value);
@@ -421,7 +421,7 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        if (!IS_POINTER_INTERACTION_ENABLED && index != _currentActiveIndex)
+        if (!IsPointerInteractionEnabled && index != _currentActiveIndex)
         {
             e.Handled = true;
             return;
