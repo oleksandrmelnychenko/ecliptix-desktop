@@ -26,7 +26,7 @@ internal sealed class StrongSubscription<T>(Func<T, bool> filter, Func<T, Task> 
             return handler(typedMessage);
         }
 
-        return null;
+        return Task.CompletedTask;
     }
 }
 
@@ -47,7 +47,7 @@ internal sealed class WeakSubscription<T>(Func<T, bool> filter, Func<T, Task> ha
         {
             return handler(typedMessage);
         }
-        return null;
+        return Task.CompletedTask;
     }
 }
 
@@ -67,7 +67,7 @@ internal sealed class ScopedSubscription<T>(Func<T, bool> filter, Func<T, Task> 
         {
             return handler(typedMessage);
         }
-        return null;
+        return Task.CompletedTask;
     }
 
     public void Dispose()
