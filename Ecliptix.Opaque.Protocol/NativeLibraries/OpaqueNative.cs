@@ -75,10 +75,4 @@ internal static partial class OpaqueNative
     [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int opaque_client_finish(
         IntPtr clientHandle, IntPtr stateHandle, byte[] sessionKey, UIntPtr sessionKeyBufferSize, byte[] masterKey, UIntPtr masterKeyBufferSize);
-
-    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern int opaque_client_create_default(out IntPtr handle);
-
-    [DllImport(LIBRARY, CallingConvention = CallingConvention.Cdecl)]
-    internal static extern IntPtr opaque_client_get_version();
 }

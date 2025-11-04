@@ -6,7 +6,7 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-internal class ModuleScope : IModuleScope
+internal sealed class ModuleScope : IModuleScope
 {
     private readonly IServiceScope _serviceScope;
     private long _disposed;
