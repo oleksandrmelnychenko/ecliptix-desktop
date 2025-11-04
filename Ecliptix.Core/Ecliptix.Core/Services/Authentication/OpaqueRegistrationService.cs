@@ -39,7 +39,7 @@ internal sealed class OpaqueRegistrationService(
     private readonly ConcurrentDictionary<Guid, uint> _activeStreams = new();
     private readonly ConcurrentDictionary<Guid, VerificationPurpose> _activeSessionPurposes = new();
 
-    private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
+    private readonly ConcurrentDictionary<string, RegistrationResult> _opaqueRegistrationState = new();
 
     private readonly CancellationTokenSource _disposalCts = new();
     private readonly List<Task> _backgroundCleanupTasks = new();
@@ -57,7 +57,8 @@ internal sealed class OpaqueRegistrationService(
 
         ValidateMobileNumberRequest request = new() { MobileNumber = mobileNumber };
 
-        TaskCompletionSource<ValidateMobileNumberResponse> responseSource = new();
+        TaskCompletionSource<ValidateMobileNumberResponse> responseSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -93,7 +94,8 @@ internal sealed class OpaqueRegistrationService(
 
         CheckMobileNumberAvailabilityRequest request = new() { MobileNumberId = mobileNumberIdentifier };
 
-        TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource = new();
+        TaskCompletionSource<CheckMobileNumberAvailabilityResponse> responseSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -237,7 +239,8 @@ internal sealed class OpaqueRegistrationService(
 
         VerifyCodeRequest request = new() { Code = otpCode, Purpose = purpose, StreamConnectId = activeStreamId };
 
-        TaskCompletionSource<Result<Protobuf.Membership.Membership, string>> responseSource = new();
+        TaskCompletionSource<Result<Protobuf.Membership.Membership, string>> responseSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
@@ -354,6 +357,9 @@ internal sealed class OpaqueRegistrationService(
         _disposalCts.Dispose();
     }
 
+    private static string CreateRegistrationKey(ByteString membershipIdentifier) =>
+        Convert.ToBase64String(membershipIdentifier.Span);
+
     private static RegistrationAttemptResult CreateAttemptSuccess() =>
         new(Result<Unit, string>.Ok(Unit.Value), false);
 
@@ -452,7 +458,8 @@ internal sealed class OpaqueRegistrationService(
     {
         RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
 
-        if (_opaqueRegistrationState.TryAdd(membershipIdentifier, registrationResult))
+        string registrationKey = CreateRegistrationKey(membershipIdentifier);
+        if (_opaqueRegistrationState.TryAdd(registrationKey, registrationResult))
         {
             return Result<RegistrationResult, RegistrationAttemptResult>.Ok(registrationResult);
         }
@@ -604,9 +611,9 @@ internal sealed class OpaqueRegistrationService(
         CancellationToken cancellationToken)
     {
         RpcRequestContext requestContext = RpcRequestContext.CreateNew(attempt);
-        const int MAX_ITERATIONS = 2;
+        const int maxIterations = 2;
 
-        for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++)
+        for (int iteration = 0; iteration < maxIterations; iteration++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -675,12 +682,6 @@ internal sealed class OpaqueRegistrationService(
                 connectId,
                 requestContext,
                 cancellationToken).ConfigureAwait(false);
-
-            if (!attemptResult.Outcome.IsOk)
-            {
-                CleanupTrackedRegistration(membershipIdentifier);
-                return attemptResult;
-            }
 
             CleanupTrackedRegistration(membershipIdentifier);
             return attemptResult;
@@ -786,7 +787,8 @@ internal sealed class OpaqueRegistrationService(
 
     private void CleanupTrackedRegistration(ByteString membershipIdentifier)
     {
-        if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
+        string registrationKey = CreateRegistrationKey(membershipIdentifier);
+        if (_opaqueRegistrationState.TryRemove(registrationKey, out RegistrationResult? completedResult))
         {
             completedResult.Dispose();
         }
@@ -795,7 +797,8 @@ internal sealed class OpaqueRegistrationService(
     private void HandleRegistrationException(ByteString membershipIdentifier,
         ref RegistrationResult? registrationResult)
     {
-        if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? cachedResult))
+        string registrationKey = CreateRegistrationKey(membershipIdentifier);
+        if (_opaqueRegistrationState.TryRemove(registrationKey, out RegistrationResult? cachedResult))
         {
             cachedResult.Dispose();
         }
@@ -856,7 +859,8 @@ internal sealed class OpaqueRegistrationService(
             PeerOprf = ByteString.CopyFrom(registrationRequest), MembershipIdentifier = membershipIdentifier
         };
 
-        TaskCompletionSource<OpaqueRegistrationInitResponse> responseSource = new();
+        TaskCompletionSource<OpaqueRegistrationInitResponse> responseSource =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         Result<Unit, NetworkFailure> networkResult = await networkProvider.ExecuteUnaryRequestAsync(
             connectId,
