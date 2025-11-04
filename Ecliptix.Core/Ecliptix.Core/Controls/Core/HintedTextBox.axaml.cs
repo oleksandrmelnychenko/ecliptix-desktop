@@ -76,7 +76,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         AvaloniaProperty.Register<HintedTextBox, TextWrapping>(nameof(TextWrapping));
 
     public static readonly StyledProperty<int> MaxLengthProperty =
-        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MAX_LENGTH), int.MaxValue);
+        AvaloniaProperty.Register<HintedTextBox, int>(nameof(MaxLength), int.MaxValue);
 
     public static readonly StyledProperty<int> RemainingCharactersProperty =
         AvaloniaProperty.Register<HintedTextBox, int>(nameof(RemainingCharacters), int.MaxValue);
@@ -283,7 +283,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         set => SetValue(TextWrappingProperty, value);
     }
 
-    public int MAX_LENGTH
+    public int MaxLength
     {
         get => GetValue(MaxLengthProperty);
         set => SetValue(MaxLengthProperty, value);
@@ -1495,7 +1495,7 @@ public sealed partial class HintedTextBox : UserControl, IDisposable
         int currentTextLength = IsSecureKeyMode && _mainTextBox != null
             ? GetTextElementCount(_mainTextBox.Text ?? string.Empty)
             : GetTextElementCount(Text);
-        RemainingCharacters = MAX_LENGTH - currentTextLength;
+        RemainingCharacters = MaxLength - currentTextLength;
     }
 
     private void OnIsSecureKeyModeChanged(bool isSecureKeyMode)
