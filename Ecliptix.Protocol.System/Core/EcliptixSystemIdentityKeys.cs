@@ -190,20 +190,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         }
         catch (Exception ex)
         {
-            edSkHandle?.Dispose();
-            idXSkHandle?.Dispose();
-            spkSkHandle?.Dispose();
-            if (opks == null)
-            {
-                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.IdentityKeys.FAILED_TO_REHYDRATE_FROM_PROTO, ex));
-            }
-
-            foreach (OneTimePreKeyLocal k in opks)
-            {
-                k.Dispose();
-            }
-
+            CleanupKeyHandlesAndOpks(edSkHandle, idXSkHandle, spkSkHandle, opks);
             return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(EcliptixProtocolFailureMessages.IdentityKeys.FAILED_TO_REHYDRATE_FROM_PROTO, ex));
         }
@@ -296,21 +283,7 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
         }
         catch (Exception ex)
         {
-            edSkHandle?.Dispose();
-            idXSkHandle?.Dispose();
-            spkSkHandle?.Dispose();
-            if (opks == null)
-            {
-                return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(
-                    EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.IdentityKeys.UNEXPECTED_ERROR_INITIALIZING_LOCAL_KEY_MATERIAL, ex.Message),
-                        ex));
-            }
-
-            foreach (OneTimePreKeyLocal opk in opks)
-            {
-                opk.Dispose();
-            }
-
+            CleanupKeyHandlesAndOpks(edSkHandle, idXSkHandle, spkSkHandle, opks);
             return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.Generic(string.Format(EcliptixProtocolFailureMessages.IdentityKeys.UNEXPECTED_ERROR_INITIALIZING_LOCAL_KEY_MATERIAL, ex.Message), ex));
         }
@@ -753,64 +726,26 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                             SodiumInterop.SecureWipe(identitySecretArray);
                         }
 
-                        if (dh1 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh1);
-                        }
-
-                        if (dh2 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh2);
-                        }
-
-                        if (dh3 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh3);
-                        }
+                        SecureWipeDhResults(dh1, dh2, dh3);
                     }
 
                     Span<byte> ikmBuildSpan = ikmSpan[..(Constants.X_25519_KEY_SIZE + dhOffset)];
                     ikmBuildSpan[..Constants.X_25519_KEY_SIZE].Fill(0xFF);
                     dhResultsSpan[..dhOffset].CopyTo(ikmBuildSpan[Constants.X_25519_KEY_SIZE..]);
 
-                    byte[]? ikmArray = null;
-                    try
+                    Result<Unit, EcliptixProtocolFailure> hkdfResult = DeriveHkdfKey(ikmBuildSpan, infoArray, hkdfOutputSpan);
+                    if (hkdfResult.IsErr)
                     {
-                        ikmArray = ikmBuildSpan.ToArray();
-
-                        HKDF.DeriveKey(
-                            HashAlgorithmName.SHA256,
-                            ikm: ikmArray,
-                            output: hkdfOutputSpan,
-                            salt: null,
-                            info: infoArray
-                        );
-
-                    }
-                    finally
-                    {
-                        if (ikmArray != null)
-                        {
-                            SodiumInterop.SecureWipe(ikmArray);
-                        }
+                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(hkdfResult.UnwrapErr());
                     }
 
-                    Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =
-                        SodiumSecureMemoryHandle.Allocate(Constants.X_25519_KEY_SIZE).MapSodiumFailure();
-                    if (allocResult.IsErr)
+                    Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> handleResult = AllocateAndWriteSecureHandle(hkdfOutputSpan);
+                    if (handleResult.IsErr)
                     {
-                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(allocResult.UnwrapErr());
+                        return handleResult;
                     }
 
-                    secureOutputHandle = allocResult.Unwrap();
-                    Result<Unit, EcliptixProtocolFailure> writeResult =
-                        secureOutputHandle.Write(hkdfOutputSpan).MapSodiumFailure();
-                    if (writeResult.IsErr)
-                    {
-                        secureOutputHandle.Dispose();
-                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
-                    }
-
+                    secureOutputHandle = handleResult.Unwrap();
                     SodiumSecureMemoryHandle returnHandle = secureOutputHandle;
                     secureOutputHandle = null;
                     return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(returnHandle);
@@ -987,65 +922,27 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
                             SodiumInterop.SecureWipe(oneTimePreKeySecretArray);
                         }
 
-                        if (dh1 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh1);
-                        }
-
-                        if (dh2 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh2);
-                        }
-
-                        if (dh3 != null)
-                        {
-                            SodiumInterop.SecureWipe(dh3);
-                        }
+                        SecureWipeDhResults(dh1, dh2, dh3);
                     }
 
                     Span<byte> ikmBuildSpan = ikmSpan[..(Constants.X_25519_KEY_SIZE + dhOffset)];
                     ikmBuildSpan[..Constants.X_25519_KEY_SIZE].Fill(0xFF);
                     dhResultsSpan[..dhOffset].CopyTo(ikmBuildSpan[Constants.X_25519_KEY_SIZE..]);
 
-                    byte[]? ikmArray = null;
-                    try
+                    Result<Unit, EcliptixProtocolFailure> hkdfResult = DeriveHkdfKey(ikmBuildSpan, infoArray, hkdfOutputSpan);
+                    if (hkdfResult.IsErr)
                     {
-                        ikmArray = ikmBuildSpan.ToArray();
-
-                        HKDF.DeriveKey(
-                            global::System.Security.Cryptography.HashAlgorithmName.SHA256,
-                            ikm: ikmArray,
-                            output: hkdfOutputSpan,
-                            salt: null,
-                            info: infoArray
-                        );
-
-                    }
-                    finally
-                    {
-                        if (ikmArray != null)
-                        {
-                            SodiumInterop.SecureWipe(ikmArray);
-                        }
+                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(hkdfResult.UnwrapErr());
                     }
 
-                    Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =
-                        SodiumSecureMemoryHandle.Allocate(Constants.X_25519_KEY_SIZE).MapSodiumFailure();
-                    if (allocResult.IsErr)
+                    Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> handleResult = AllocateAndWriteSecureHandle(hkdfOutputSpan);
+                    if (handleResult.IsErr)
                     {
-                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(allocResult.UnwrapErr());
+                        return handleResult;
                     }
 
-                    secureOutputHandle = allocResult.Unwrap();
-                    Result<Unit, EcliptixProtocolFailure> writeResult =
-                        secureOutputHandle.Write(hkdfOutputSpan).MapSodiumFailure();
-                    if (writeResult.IsErr)
-                    {
-                        secureOutputHandle.Dispose();
-                        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
-                    }
-
-                    SodiumSecureMemoryHandle? returnHandle = secureOutputHandle;
+                    secureOutputHandle = handleResult.Unwrap();
+                    SodiumSecureMemoryHandle returnHandle = secureOutputHandle;
                     secureOutputHandle = null;
                     return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(returnHandle);
                 });
@@ -1198,6 +1095,89 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
 
         return Result<SodiumSecureMemoryHandle?, EcliptixProtocolFailure>.Err(
             EcliptixProtocolFailure.Handshake(string.Format(EcliptixProtocolFailureMessages.IdentityKeys.LOCAL_OPK_NOT_FOUND, opkId)));
+    }
+
+    private static void CleanupKeyHandlesAndOpks(
+        SodiumSecureMemoryHandle? edSkHandle,
+        SodiumSecureMemoryHandle? idXSkHandle,
+        SodiumSecureMemoryHandle? spkSkHandle,
+        List<OneTimePreKeyLocal>? opks)
+    {
+        edSkHandle?.Dispose();
+        idXSkHandle?.Dispose();
+        spkSkHandle?.Dispose();
+        if (opks != null)
+        {
+            foreach (OneTimePreKeyLocal opk in opks)
+            {
+                opk.Dispose();
+            }
+        }
+    }
+
+    private static void SecureWipeDhResults(byte[]? dh1, byte[]? dh2, byte[]? dh3)
+    {
+        if (dh1 != null)
+        {
+            SodiumInterop.SecureWipe(dh1);
+        }
+        if (dh2 != null)
+        {
+            SodiumInterop.SecureWipe(dh2);
+        }
+        if (dh3 != null)
+        {
+            SodiumInterop.SecureWipe(dh3);
+        }
+    }
+
+    private static Result<Unit, EcliptixProtocolFailure> DeriveHkdfKey(
+        Span<byte> ikmBuildSpan,
+        byte[] infoArray,
+        Span<byte> hkdfOutputSpan)
+    {
+        byte[]? ikmArray = null;
+        try
+        {
+            ikmArray = ikmBuildSpan.ToArray();
+            HKDF.DeriveKey(
+                HashAlgorithmName.SHA256,
+                ikm: ikmArray,
+                output: hkdfOutputSpan,
+                salt: null,
+                info: infoArray
+            );
+            return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
+        }
+        finally
+        {
+            if (ikmArray != null)
+            {
+                SodiumInterop.SecureWipe(ikmArray);
+            }
+        }
+    }
+
+    private static Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> AllocateAndWriteSecureHandle(
+        Span<byte> hkdfOutputSpan)
+    {
+        Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> allocResult =
+            SodiumSecureMemoryHandle.Allocate(Constants.X_25519_KEY_SIZE).MapSodiumFailure();
+        if (allocResult.IsErr)
+        {
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(allocResult.UnwrapErr());
+        }
+
+        SodiumSecureMemoryHandle secureOutputHandle = allocResult.Unwrap();
+        Result<Unit, EcliptixProtocolFailure> writeResult =
+            secureOutputHandle.Write(hkdfOutputSpan).MapSodiumFailure();
+        if (writeResult.IsErr)
+        {
+            secureOutputHandle.Dispose();
+            return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(writeResult.UnwrapErr());
+        }
+
+        return Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(secureOutputHandle);
     }
 
     private void Dispose(bool disposing)
