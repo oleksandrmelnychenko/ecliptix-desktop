@@ -304,7 +304,7 @@ internal sealed class OpaqueRegistrationService(
 
             const int maxFlowAttempts = 3;
 
-            return await RetryAsync(
+            Result<Unit, string> result = await RetryAsync(
                     maxFlowAttempts,
                     (attempt, attemptCancellationToken) =>
                         ExecuteCompleteRegistrationAttemptAsync(
@@ -315,6 +315,8 @@ internal sealed class OpaqueRegistrationService(
                             attemptCancellationToken),
                     cancellationToken)
                 .ConfigureAwait(false);
+
+            return result;
         }
         finally
         {
@@ -342,12 +344,11 @@ internal sealed class OpaqueRegistrationService(
         }
     }
 
-    private static RegistrationAttemptResult CreateAttemptSuccess(RpcRequestContext context) =>
-        new(Result<Unit, string>.Ok(Unit.Value), false, context.CorrelationId, context.IdempotencyKey, string.Empty);
+    private static RegistrationAttemptResult CreateAttemptSuccess() =>
+        new(Result<Unit, string>.Ok(Unit.Value), false);
 
-    private static RegistrationAttemptResult CreateAttemptFailure(string error, bool isTransient,
-        RpcRequestContext context) =>
-        new(Result<Unit, string>.Err(error), isTransient, context.CorrelationId, context.IdempotencyKey, error);
+    private static RegistrationAttemptResult CreateAttemptFailure(string error, bool isTransient) =>
+        new(Result<Unit, string>.Err(error), isTransient);
 
     private static bool IsTransientRpcStatus(StatusCode statusCode) =>
         statusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded or StatusCode.Cancelled;
@@ -418,22 +419,17 @@ internal sealed class OpaqueRegistrationService(
 
     private readonly record struct RegistrationAttemptResult(
         Result<Unit, string> Outcome,
-        bool IsTransient,
-        string CorrelationId,
-        string IdempotencyKey,
-        string FailureMessage);
+        bool IsTransient);
 
     private Result<byte[], RegistrationAttemptResult> ValidateSecureKeyCopy(
-        byte[]? secureKeyCopy,
-        RpcRequestContext requestContext)
+        byte[]? secureKeyCopy)
     {
         if (secureKeyCopy == null || secureKeyCopy.Length == 0)
         {
             return Result<byte[], RegistrationAttemptResult>.Err(
                 CreateAttemptFailure(
                     localizationService[AuthenticationConstants.SECURE_KEY_REQUIRED_KEY],
-                    false,
-                    requestContext));
+                    false));
         }
 
         return Result<byte[], RegistrationAttemptResult>.Ok(secureKeyCopy);
@@ -442,8 +438,7 @@ internal sealed class OpaqueRegistrationService(
     private Result<RegistrationResult, RegistrationAttemptResult> CreateAndTrackRegistrationState(
         OpaqueClient opaqueClient,
         byte[] secureKeyCopy,
-        ByteString membershipIdentifier,
-        RpcRequestContext requestContext)
+        ByteString membershipIdentifier)
     {
         RegistrationResult registrationResult = opaqueClient.CreateRegistrationRequest(secureKeyCopy);
 
@@ -456,14 +451,12 @@ internal sealed class OpaqueRegistrationService(
         return Result<RegistrationResult, RegistrationAttemptResult>.Err(
             CreateAttemptFailure(
                 localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
-                true,
-                requestContext));
+                true));
     }
 
     private Result<Unit, RegistrationAttemptResult> ProcessInitializationResponse(
         OpaqueRegistrationInitResponse initResponse,
-        RegistrationResult registrationState,
-        RpcRequestContext requestContext)
+        RegistrationResult registrationState)
     {
         if (initResponse.Result == OpaqueRegistrationInitResponse.Types.UpdateResult.Succeeded)
         {
@@ -480,7 +473,7 @@ internal sealed class OpaqueRegistrationService(
         };
 
         return Result<Unit, RegistrationAttemptResult>.Err(
-            CreateAttemptFailure(errorMessage, false, requestContext));
+            CreateAttemptFailure(errorMessage, false));
     }
 
     private static void CleanupSensitiveRegistrationData(
@@ -566,8 +559,7 @@ internal sealed class OpaqueRegistrationService(
                 return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Err(
                     CreateAttemptFailure(
                         FormatNetworkFailure(networkResult.UnwrapErr()),
-                        IsTransientRegistrationFailure(networkResult.UnwrapErr()),
-                        requestContext));
+                        IsTransientRegistrationFailure(networkResult.UnwrapErr())));
             }
 
             OpaqueRegistrationCompleteResponse completeResponse =
@@ -578,8 +570,7 @@ internal sealed class OpaqueRegistrationService(
                 return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Err(
                     CreateAttemptFailure(
                         localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
-                        false,
-                        requestContext));
+                        false));
             }
 
             if (completeResponse.ActiveAccount?.UniqueIdentifier != null)
@@ -590,7 +581,7 @@ internal sealed class OpaqueRegistrationService(
             }
 
             return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Ok(
-                CreateAttemptSuccess(requestContext));
+                CreateAttemptSuccess());
         }
         finally
         {
@@ -620,7 +611,6 @@ internal sealed class OpaqueRegistrationService(
                 secureKey,
                 connectId,
                 requestContext,
-                attempt,
                 cancellationToken).ConfigureAwait(false);
 
             if (result.Outcome.IsOk || !allowReinit || !result.IsTransient)
@@ -630,10 +620,6 @@ internal sealed class OpaqueRegistrationService(
 
             allowReinit = false;
             requestContext.MarkReinitAttempted();
-            Serilog.Log.Information(
-                "[REGISTRATION-FLOW-REINIT] Registration complete failed, retrying with reinit. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                requestContext.CorrelationId,
-                requestContext.IdempotencyKey);
         }
     }
 
@@ -643,7 +629,6 @@ internal sealed class OpaqueRegistrationService(
         SensitiveBytes secureKey,
         uint connectId,
         RpcRequestContext requestContext,
-        int attempt,
         CancellationToken cancellationToken)
     {
         byte[]? secureKeyCopy = null;
@@ -653,7 +638,7 @@ internal sealed class OpaqueRegistrationService(
         try
         {
             Result<SecureKeyPreparationResult, RegistrationAttemptResult> prepareResult =
-                PrepareSecureKeyForRegistration(secureKey, requestContext);
+                PrepareSecureKeyForRegistration(secureKey);
 
             if (prepareResult.IsErr)
             {
@@ -663,7 +648,7 @@ internal sealed class OpaqueRegistrationService(
             secureKeyCopy = prepareResult.Unwrap().SecureKeyCopy;
 
             Result<RegistrationResult, RegistrationAttemptResult> stateResult =
-                CreateAndTrackRegistrationState(opaqueClient, secureKeyCopy, membershipIdentifier, requestContext);
+                CreateAndTrackRegistrationState(opaqueClient, secureKeyCopy, membershipIdentifier);
 
             if (stateResult.IsErr)
             {
@@ -685,7 +670,6 @@ internal sealed class OpaqueRegistrationService(
                 return attemptResult;
             }
 
-            trackedRegistrationResult = registrationResult;
             registrationResult = null;
             CleanupTrackedRegistration(membershipIdentifier, out trackedRegistrationResult);
 
@@ -697,12 +681,11 @@ internal sealed class OpaqueRegistrationService(
         }
         catch (Exception ex)
         {
-            HandleRegistrationException(ex, membershipIdentifier, attempt, requestContext,
+            HandleRegistrationException(membershipIdentifier,
                 ref trackedRegistrationResult, ref registrationResult);
             return CreateAttemptFailure(
                 $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{ex.Message}",
-                IsTransientException(ex),
-                requestContext);
+                IsTransientException(ex));
         }
         finally
         {
@@ -713,8 +696,7 @@ internal sealed class OpaqueRegistrationService(
     }
 
     private Result<SecureKeyPreparationResult, RegistrationAttemptResult> PrepareSecureKeyForRegistration(
-        SensitiveBytes secureKey,
-        RpcRequestContext requestContext)
+        SensitiveBytes secureKey)
     {
         byte[]? secureKeyCopy = null;
 
@@ -729,12 +711,11 @@ internal sealed class OpaqueRegistrationService(
             return Result<SecureKeyPreparationResult, RegistrationAttemptResult>.Err(
                 CreateAttemptFailure(
                     $"Failed to read secure key: {readSecureKeyResult.UnwrapErr().Message}",
-                    false,
-                    requestContext));
+                    false));
         }
 
         Result<byte[], RegistrationAttemptResult> validationResult =
-            ValidateSecureKeyCopy(secureKeyCopy, requestContext);
+            ValidateSecureKeyCopy(secureKeyCopy);
 
         if (validationResult.IsErr)
         {
@@ -770,14 +751,13 @@ internal sealed class OpaqueRegistrationService(
             registrationState.Dispose();
             return CreateAttemptFailure(
                 FormatNetworkFailure(failure),
-                IsTransientRegistrationFailure(failure),
-                requestContext);
+                IsTransientRegistrationFailure(failure));
         }
 
         OpaqueRegistrationInitResponse initResponse = initResult.Unwrap();
 
         Result<Unit, RegistrationAttemptResult> initProcessing =
-            ProcessInitializationResponse(initResponse, registrationState, requestContext);
+            ProcessInitializationResponse(initResponse, registrationState);
 
         if (initProcessing.IsErr)
         {
@@ -807,11 +787,7 @@ internal sealed class OpaqueRegistrationService(
         trackedResult = null;
     }
 
-    private void HandleRegistrationException(
-        Exception ex,
-        ByteString membershipIdentifier,
-        int attempt,
-        RpcRequestContext requestContext,
+    private void HandleRegistrationException(ByteString membershipIdentifier,
         ref RegistrationResult? trackedResult,
         ref RegistrationResult? registrationResult)
     {
@@ -824,24 +800,6 @@ internal sealed class OpaqueRegistrationService(
 
         registrationResult?.Dispose();
         registrationResult = null;
-
-        bool isTransient = IsTransientException(ex);
-
-        if (isTransient)
-        {
-            Serilog.Log.Warning(ex,
-                "[REGISTRATION-FLOW-RETRY] Exception during registration attempt {Attempt}, transient classification applied. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                attempt,
-                requestContext.CorrelationId,
-                requestContext.IdempotencyKey);
-        }
-        else
-        {
-            Serilog.Log.Error(ex,
-                "[REGISTRATION-FLOW-FAILURE] Non-transient exception during registration. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                requestContext.CorrelationId,
-                requestContext.IdempotencyKey);
-        }
     }
 
     private static async Task<Result<Unit, string>> RetryAsync(
@@ -869,14 +827,6 @@ internal sealed class OpaqueRegistrationService(
             {
                 return attemptResult.Outcome;
             }
-
-            Serilog.Log.Warning(
-                "[REGISTRATION-FLOW-RETRY] Transient failure during registration. Retrying attempt {NextAttempt}/{MAX_ATTEMPTS}. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}, Failure: {Failure}",
-                attempt + 1,
-                maxAttempts,
-                attemptResult.CorrelationId,
-                attemptResult.IdempotencyKey,
-                attemptResult.FailureMessage);
         }
 
         return lastResult.Outcome;
@@ -966,27 +916,11 @@ internal sealed class OpaqueRegistrationService(
     {
         _ = Task.Run(async () =>
         {
-            try
-            {
-                Result<Unit, string> cleanupResult =
-                    await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
-                if (cleanupResult.IsErr)
-                {
-                    Serilog.Log.Warning(
-                        "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, ERROR: {ERROR}",
-                        verificationIdentifier, cleanupResult.UnwrapErr());
-                }
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Error(ex,
-                    "[VERIFICATION-CLEANUP] Exception during stream cleanup. SessionIdentifier: {SessionIdentifier}",
-                    verificationIdentifier);
-            }
+            await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
         }, CancellationToken.None).ContinueWith(
             task =>
             {
-                if (task.IsFaulted && task.Exception != null)
+                if (task is { IsFaulted: true, Exception: not null })
                 {
                     Serilog.Log.Error(task.Exception, "[VERIFICATION-CLEANUP] Unhandled exception in cleanup task");
                 }
