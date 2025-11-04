@@ -79,7 +79,7 @@ public sealed class ApplicationInitializer(
 
         if (isNewInstance)
         {
-            FetchIpGeolocationInBackgroundAsync().ContinueWith(
+            _ = FetchIpGeolocationInBackgroundAsync().ContinueWith(
                 task =>
                 {
                     if (task.IsFaulted && task.Exception != null)

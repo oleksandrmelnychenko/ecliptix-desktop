@@ -262,7 +262,7 @@ internal sealed class LogoutService(
 
         if (shouldRetryPendingLogout)
         {
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 try
                 {

@@ -18,7 +18,7 @@ namespace Ecliptix.Core.Infrastructure.Security.Storage;
 
 public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, IDisposable
 {
-    private const string KEYCHAIN_PREFIX = "ecliptix_key_";
+    private const string KeychainPrefix = "ecliptix_key_";
 
     private static readonly Encoding Utf8 = Encoding.UTF8;
     private static readonly Encoding Ascii = Encoding.ASCII;
@@ -242,7 +242,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         _disposed = true;
     }
 
-    private static string BuildKeychainKey(string connectId) => $"{KEYCHAIN_PREFIX}{connectId}";
+    private static string BuildKeychainKey(string connectId) => $"{KeychainPrefix}{connectId}";
 
     private string GetStorageFilePath(string connectId)
     {

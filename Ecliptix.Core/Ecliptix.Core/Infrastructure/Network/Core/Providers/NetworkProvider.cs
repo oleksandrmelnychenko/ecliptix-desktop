@@ -457,7 +457,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             {
                 NetworkFailure noConnectionFailure = NetworkFailure.DataCenterNotResponding(
                     "Connection unavailable - server may be recovering");
-                connectivityService.PublishAsync(
+                _ = connectivityService.PublishAsync(
                     ConnectivityIntent.ServerShutdown(noConnectionFailure)).ContinueWith(
                     task =>
                     {
