@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
@@ -136,21 +137,19 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         Dispose();
     }
 
-    private static T EnsureTransform<T>(Visual visual) where T : Transform, new()
+    private static void EnsureTransform<T>(Visual visual) where T : Transform, new()
     {
         ITransform? existingTransform = visual.RenderTransform;
         if (existingTransform is TransformGroup existingGroup)
         {
-            foreach (Transform? child in existingGroup.Children)
+            if (existingGroup.Children.OfType<T>().Any())
             {
-                if (child is T specificTransform)
-                {
-                    return specificTransform;
-                }
+                return;
             }
+
             T newTransformFromGroup = new();
             existingGroup.Children.Add(newTransformFromGroup);
-            return newTransformFromGroup;
+            return;
         }
 
         TransformGroup group = new();
@@ -162,7 +161,6 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
         T newTransform = new();
         group.Children.Add(newTransform);
         visual.RenderTransform = group;
-        return newTransform;
     }
 
     private void InitializeDefaults()
@@ -263,57 +261,89 @@ public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheet
             return;
         }
 
-        if (_isAnimating)
-        {
-            DateTime timeout = DateTime.UtcNow.AddSeconds(3);
-            while (_isAnimating && DateTime.UtcNow < timeout)
-            {
-                await Task.Delay(50);
-            }
-
-            if (_isAnimating)
-            {
-                _isAnimating = false;
-            }
-        }
+        await WaitForAnimationToCompleteAsync();
 
         if (isVisible)
         {
-            try
-            {
-                TopLevel? visualRoot = _rootGrid.GetVisualRoot() as TopLevel;
-                _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
-            }
-            catch (Exception ex)
-            {
-                _previousFocusedElement = null;
-            }
-            UpdateSheetHeight();
-            await ShowBottomSheet();
-            Focus();
+            await ShowBottomSheetWithFocusAsync();
         }
         else
         {
-            await HideBottomSheet();
-            try
+            await HideBottomSheetWithFocusRestoreAsync();
+        }
+    }
+
+    private async Task WaitForAnimationToCompleteAsync()
+    {
+        if (!_isAnimating)
+        {
+            return;
+        }
+
+        DateTime timeout = DateTime.UtcNow.AddSeconds(3);
+        while (_isAnimating && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(50);
+        }
+
+        if (_isAnimating)
+        {
+            _isAnimating = false;
+        }
+    }
+
+    private async Task ShowBottomSheetWithFocusAsync()
+    {
+        SavePreviousFocusedElement();
+        UpdateSheetHeight();
+        await ShowBottomSheet();
+        Focus();
+    }
+
+    private void SavePreviousFocusedElement()
+    {
+        try
+        {
+            TopLevel? visualRoot = _rootGrid?.GetVisualRoot() as TopLevel;
+            _previousFocusedElement = visualRoot?.FocusManager?.GetFocusedElement();
+        }
+        catch (Exception)
+        {
+            _previousFocusedElement = null;
+        }
+    }
+
+    private async Task HideBottomSheetWithFocusRestoreAsync()
+    {
+        await HideBottomSheet();
+        RestorePreviousFocus();
+    }
+
+    private void RestorePreviousFocus()
+    {
+        try
+        {
+            if (_previousFocusedElement is { } previous)
             {
-                if (_previousFocusedElement is { } previous)
-                {
-                     previous.Focus();
-                    _previousFocusedElement = null;
-                }
-                else if (Parent is Control parentControl)
-                {
-                    parentControl.Focus();
-                }
+                previous.Focus();
+                _previousFocusedElement = null;
             }
-            catch (Exception)
+            else if (Parent is Control parentControl)
             {
-                if (Parent is Control fallbackParent)
-                {
-                    fallbackParent.Focus();
-                }
+                parentControl.Focus();
             }
+        }
+        catch (Exception)
+        {
+            TryFocusParentControl();
+        }
+    }
+
+    private void TryFocusParentControl()
+    {
+        if (Parent is Control fallbackParent)
+        {
+            fallbackParent.Focus();
         }
     }
 
