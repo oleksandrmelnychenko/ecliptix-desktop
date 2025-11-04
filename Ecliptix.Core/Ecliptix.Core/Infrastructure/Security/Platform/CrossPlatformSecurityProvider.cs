@@ -589,7 +589,13 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill();
+                machineId.Append("NoUUID-Timeout");
+                return;
+            }
 
             Match match = Regex.Match(output, MACOS_UUID_PATTERN);
             machineId.Append(match.Success ? match.Groups[1].Value : "NoUUID");
@@ -651,7 +657,12 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
             process.Start();
             string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill();
+                return false;
+            }
 
             return output.Trim() == "1";
         }
