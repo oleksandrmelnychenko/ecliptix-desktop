@@ -555,10 +555,7 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
         }
         finally
         {
-            if (chainKeyBytes != null)
-            {
-                SodiumInterop.SecureWipe(chainKeyBytes);
-            }
+            SodiumInterop.SecureWipe(chainKeyBytes);
 
             if (dhPrivKeyBytes != null)
             {

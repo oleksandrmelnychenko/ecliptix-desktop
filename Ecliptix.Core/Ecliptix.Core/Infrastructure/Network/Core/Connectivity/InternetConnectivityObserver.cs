@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Reactive;
 using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -21,7 +20,6 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IObservable<bool> _connectivityObservable;
-    private readonly CompositeDisposable _disposables = new();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Subject<Unit> _manualProbeTrigger = new();
     private readonly InternetConnectivityObserverOptions _options;
@@ -143,6 +141,5 @@ internal sealed class InternetConnectivityObserver : IInternetConnectivityObserv
 
         _cancellationTokenSource.Dispose();
         _manualProbeTrigger.Dispose();
-        _disposables.Dispose();
     }
 }

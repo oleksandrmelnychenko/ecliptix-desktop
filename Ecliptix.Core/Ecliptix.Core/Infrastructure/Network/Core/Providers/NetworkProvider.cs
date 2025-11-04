@@ -598,42 +598,42 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (retryMode)
         {
             case RestoreRetryMode.AutoRetry:
-            {
-                BeginSecrecyChannelEstablishRecovery();
-                CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                using CancellationTokenSource combinedCancellationTokenSource =
-                    cancellationToken.CanBeCanceled
-                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                {
+                    BeginSecrecyChannelEstablishRecovery();
+                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                    using CancellationTokenSource combinedCancellationTokenSource =
+                        cancellationToken.CanBeCanceled
+                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteRpcOperationAsync(
-                    (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
-                        request,
-                        cancellationToken: ct),
-                    "RestoreSecrecyChannel",
-                    ecliptixSecrecyChannelState.ConnectId,
-                    serviceType: RpcServiceType.RestoreSecrecyChannel,
-                    cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
-                break;
-            }
+                    restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteRpcOperationAsync(
+                        (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
+                            request,
+                            cancellationToken: ct),
+                        "RestoreSecrecyChannel",
+                        ecliptixSecrecyChannelState.ConnectId,
+                        serviceType: RpcServiceType.RestoreSecrecyChannel,
+                        cancellationToken: combinedCancellationTokenSource.Token).ConfigureAwait(false);
+                    break;
+                }
             case RestoreRetryMode.ManualRetry:
-            {
-                BeginSecrecyChannelEstablishRecovery();
-                CancellationToken recoveryToken = GetConnectionRecoveryToken();
-                using CancellationTokenSource combinedCts =
-                    cancellationToken.CanBeCanceled
-                        ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
-                        : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
+                {
+                    BeginSecrecyChannelEstablishRecovery();
+                    CancellationToken recoveryToken = GetConnectionRecoveryToken();
+                    using CancellationTokenSource combinedCts =
+                        cancellationToken.CanBeCanceled
+                            ? CancellationTokenSource.CreateLinkedTokenSource(recoveryToken, cancellationToken)
+                            : CancellationTokenSource.CreateLinkedTokenSource(recoveryToken);
 
-                restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteManualRetryRpcOperationAsync(
-                    (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
-                        request,
-                        cancellationToken: ct),
-                    "RestoreSecrecyChannel",
-                    ecliptixSecrecyChannelState.ConnectId,
-                    cancellationToken: combinedCts.Token).ConfigureAwait(false);
-                break;
-            }
+                    restoreAppDeviceSecrecyChannelResponse = await retryStrategy.ExecuteManualRetryRpcOperationAsync(
+                        (_, ct) => rpcServiceManager.RestoreSecrecyChannelAsync(connectivityService,
+                            request,
+                            cancellationToken: ct),
+                        "RestoreSecrecyChannel",
+                        ecliptixSecrecyChannelState.ConnectId,
+                        cancellationToken: combinedCts.Token).ConfigureAwait(false);
+                    break;
+                }
             case RestoreRetryMode.DirectNoRetry:
                 try
                 {
@@ -670,39 +670,39 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (response.Status)
         {
             case RestoreChannelResponse.Types.Status.SessionRestored:
-            {
-                Result<Unit, EcliptixProtocolFailure>
-                    syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
-
-                if (syncResult.IsErr)
                 {
-                    EcliptixProtocolFailure error = syncResult.UnwrapErr();
-                    return error.Message.Contains("Session validation failed")
-                        ? Result<bool, NetworkFailure>.Ok(false)
-                        : Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
+                    Result<Unit, EcliptixProtocolFailure>
+                        syncResult = SyncSecrecyChannel(ecliptixSecrecyChannelState, response);
+
+                    if (syncResult.IsErr)
+                    {
+                        EcliptixProtocolFailure error = syncResult.UnwrapErr();
+                        return error.Message.Contains("Session validation failed")
+                            ? Result<bool, NetworkFailure>.Ok(false)
+                            : Result<bool, NetworkFailure>.Err(error.ToNetworkFailure());
+                    }
+
+                    if (enablePendingRegistration)
+                    {
+                        pendingRequestManager.RemovePendingRequest(
+                            BuildSecrecyChannelRestoreKey(ecliptixSecrecyChannelState.ConnectId));
+                    }
+
+                    ExitOutage();
+
+                    return Result<bool, NetworkFailure>.Ok(true);
                 }
-
-                if (enablePendingRegistration)
-                {
-                    pendingRequestManager.RemovePendingRequest(
-                        BuildSecrecyChannelRestoreKey(ecliptixSecrecyChannelState.ConnectId));
-                }
-
-                ExitOutage();
-
-                return Result<bool, NetworkFailure>.Ok(true);
-            }
             case RestoreChannelResponse.Types.Status.SessionNotFound:
-            {
-                Result<EcliptixSessionState, NetworkFailure> establishResult =
-                    await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
-                if (establishResult.IsErr)
                 {
-                    Log.Warning("[NETWORK-PROVIDER] Failed to establish secrecy channel after SESSION_NOT_FOUND: {ERROR}",
-                        establishResult.UnwrapErr().Message);
+                    Result<EcliptixSessionState, NetworkFailure> establishResult =
+                        await EstablishSecrecyChannelAsync(ecliptixSecrecyChannelState.ConnectId);
+                    if (establishResult.IsErr)
+                    {
+                        Log.Warning("[NETWORK-PROVIDER] Failed to establish secrecy channel after SESSION_NOT_FOUND: {ERROR}",
+                            establishResult.UnwrapErr().Message);
+                    }
+                    break;
                 }
-                break;
-            }
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -819,7 +819,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         {
             PubKeyExchangeType.ServerStreaming => new RatchetConfig
             {
-                DhRatchetEveryNMessages = 20, MaxChainAge = TimeSpan.FromMinutes(5), MaxMessagesWithoutRatchet = 100
+                DhRatchetEveryNMessages = 20,
+                MaxChainAge = TimeSpan.FromMinutes(5),
+                MaxMessagesWithoutRatchet = 100
             },
             _ => RatchetConfig.Default
         };
@@ -946,42 +948,42 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         switch (serviceType.ToString())
         {
             case "OpaqueSignInInitRequest" or "OpaqueSignInFinalizeRequest":
-            {
-                Span<byte> semanticBuffer = stackalloc byte[256];
-                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                break;
-            }
+                {
+                    Span<byte> semanticBuffer = stackalloc byte[256];
+                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signin:{connectId}", semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    break;
+                }
             case "OpaqueSignUpInitRequest" or "OpaqueSignUpFinalizeRequest":
-            {
-                Span<byte> semanticBuffer = stackalloc byte[256];
-                int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                break;
-            }
+                {
+                    Span<byte> semanticBuffer = stackalloc byte[256];
+                    int written = System.Text.Encoding.UTF8.GetBytes($"auth:signup:{connectId}", semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    break;
+                }
             case "InitiateVerification":
-            {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
-                SHA256.HashData(plainBuffer, payloadHash);
+                {
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
+                    SHA256.HashData(plainBuffer, payloadHash);
 
-                string semantic =
-                    $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
-                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                break;
-            }
+                    string semantic =
+                        $"stream:{serviceType}:{connectId}:{DateTime.UtcNow.Ticks}:{Convert.ToHexString(payloadHash)}";
+                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    break;
+                }
             default:
-            {
-                Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
-                SHA256.HashData(plainBuffer, payloadHash);
+                {
+                    Span<byte> payloadHash = stackalloc byte[NetworkConstants.Cryptography.SHA_256_HASH_SIZE];
+                    SHA256.HashData(plainBuffer, payloadHash);
 
-                string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
-                Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
-                int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
-                SHA256.HashData(semanticBuffer[..written], hashBuffer);
-                break;
-            }
+                    string semantic = $"data:{serviceType}:{connectId}:{Convert.ToHexString(payloadHash)}";
+                    Span<byte> semanticBuffer = stackalloc byte[System.Text.Encoding.UTF8.GetByteCount(semantic)];
+                    int written = System.Text.Encoding.UTF8.GetBytes(semantic, semanticBuffer);
+                    SHA256.HashData(semanticBuffer[..written], hashBuffer);
+                    break;
+                }
         }
 
         const int HASH_LENGTH = NetworkConstants.Cryptography.SHA_256_HASH_SIZE;
@@ -2364,7 +2366,8 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
                 AuthenticatedEstablishRequest authenticatedRequest = new()
                 {
-                    MembershipUniqueId = membershipIdentifier, ClientPubKeyExchange = clientExchange
+                    MembershipUniqueId = membershipIdentifier,
+                    ClientPubKeyExchange = clientExchange
                 };
 
                 Result<SecureEnvelope, NetworkFailure> serverResponseResult =

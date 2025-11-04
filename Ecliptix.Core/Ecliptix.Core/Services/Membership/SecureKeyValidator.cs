@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Membership.Constants;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Membership;
 

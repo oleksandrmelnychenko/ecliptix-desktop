@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals.BottomSheetModal;
 using Ecliptix.Core.Services.Core;
 using Ecliptix.Core.ViewModels.Core;
 using ReactiveUI;

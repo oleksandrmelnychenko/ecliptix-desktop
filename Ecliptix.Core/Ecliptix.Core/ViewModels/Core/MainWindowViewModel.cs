@@ -1,41 +1,27 @@
 using System;
-using System.Reactive;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 
-using Avalonia;
 using Avalonia.Controls;
 
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.LanguageSelector;
-using Ecliptix.Core.Controls.Modals;
-using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Data.Abstractions;
 using Ecliptix.Core.Infrastructure.Network.Abstractions.Transport;
 using Ecliptix.Core.Services.Abstractions.Core;
-using Ecliptix.Core.Services.Abstractions.Network;
 
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
 using Serilog;
 
-using IMessageBus = Ecliptix.Core.Core.Messaging.IMessageBus;
-
 namespace Ecliptix.Core.ViewModels.Core;
 
 public sealed class MainWindowViewModel : ReactiveObject, IDisposable
 {
     private readonly IBottomSheetService _bottomSheetService;
-    private readonly ILocalizationService _localizationService;
-    private readonly IApplicationSecureStorageProvider _storageProvider;
-    private readonly IRpcMetaDataProvider _rpcMetaDataProvider;
-    private readonly IMessageBus _messageBus;
-    private readonly CompositeDisposable _disposables = new();
     private bool _isDisposed;
 
     [Reactive] public object? CurrentContent { get; private set; }
@@ -45,8 +31,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
     [Reactive] public double WindowHeight { get; private set; }
 
     [Reactive] public bool CanResize { get; private set; }
-
-    [Reactive] public bool IsAuthenticated { get; private set; }
 
     [Reactive] public string WindowTitle { get; set; }
 
@@ -59,19 +43,13 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         ILocalizationService localizationService,
         IApplicationSecureStorageProvider storageProvider,
         IRpcMetaDataProvider rpcMetaDataProvider,
-        ConnectivityNotificationViewModel connectivityNotification,
-        IMessageBus messageBus)
+        ConnectivityNotificationViewModel connectivityNotification)
     {
         _bottomSheetService = bottomSheetService;
-        _localizationService = localizationService;
-        _storageProvider = storageProvider;
-        _rpcMetaDataProvider = rpcMetaDataProvider;
-        _messageBus = messageBus;
 
         WindowWidth = 480;
         WindowHeight = 720;
         CanResize = false;
-        IsAuthenticated = false;
         WindowTitle = string.Empty;
 
         LanguageSelector = new LanguageSelectorViewModel(
@@ -97,7 +75,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         await AnimateWindowResizeAsync(480, 720, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = false;
-        IsAuthenticated = false;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }
@@ -107,7 +84,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
         await AnimateWindowResizeAsync(1200, 800, TimeSpan.FromMilliseconds(300)).ConfigureAwait(false);
 
         CanResize = true;
-        IsAuthenticated = true;
 
         await SetContentWithFadeAsync(content).ConfigureAwait(false);
     }
@@ -138,7 +114,6 @@ public sealed class MainWindowViewModel : ReactiveObject, IDisposable
             return;
         }
 
-        _disposables.Dispose();
         LanguageSelector.Dispose();
         ConnectivityNotification.Dispose();
 

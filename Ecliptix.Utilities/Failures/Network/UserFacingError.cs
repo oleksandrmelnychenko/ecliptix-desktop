@@ -1,4 +1,3 @@
-using Ecliptix.Utilities;
 using Grpc.Core;
 
 namespace Ecliptix.Utilities.Failures.Network;

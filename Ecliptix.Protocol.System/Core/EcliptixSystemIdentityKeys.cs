@@ -291,28 +291,8 @@ public sealed class EcliptixSystemIdentityKeys : IDisposable
             idXSkHandle = null;
             spkSkHandle = null;
             opks = null;
-            Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure> overallResult =
-                Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Ok(material);
 
-            if (!overallResult.IsErr)
-            {
-                return overallResult;
-            }
-
-            edSkHandle?.Dispose();
-            idXSkHandle?.Dispose();
-            spkSkHandle?.Dispose();
-            if (opks == null)
-            {
-                return overallResult;
-            }
-
-            foreach (OneTimePreKeyLocal opk in opks)
-            {
-                opk.Dispose();
-            }
-
-            return overallResult;
+            return Result<EcliptixSystemIdentityKeys, EcliptixProtocolFailure>.Ok(material);
         }
         catch (Exception ex)
         {

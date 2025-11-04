@@ -1,8 +1,6 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using Ecliptix.Utilities;
 using ReactiveUI;
-using Serilog;
 
 namespace Ecliptix.Core.Core.MVVM;
 

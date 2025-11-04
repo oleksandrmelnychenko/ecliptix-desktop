@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using Ecliptix.Core.Core.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
@@ -20,13 +19,6 @@ internal sealed class ModuleScope(string moduleName, IServiceScope serviceScope)
             return;
         }
 
-        try
-        {
-            serviceScope.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "ERROR disposing module scope for {ModuleName}", ModuleName);
-        }
+        serviceScope.Dispose();
     }
 }

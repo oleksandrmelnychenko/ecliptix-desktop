@@ -1,5 +1,3 @@
-using System;
-
 namespace Ecliptix.Opaque.Protocol;
 
 public static class OpaqueConstants

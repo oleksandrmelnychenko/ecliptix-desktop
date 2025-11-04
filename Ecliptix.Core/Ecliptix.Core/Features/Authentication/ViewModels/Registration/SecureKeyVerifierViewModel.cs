@@ -27,8 +27,8 @@ using Google.Protobuf;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 using Serilog;
-using SystemU = System.Reactive.Unit;
 using Keys = Ecliptix.Core.Services.Authentication.Constants.AuthenticationConstants.SecureKeyConfirmationKeys;
+using SystemU = System.Reactive.Unit;
 
 namespace Ecliptix.Core.Features.Authentication.ViewModels.Registration;
 

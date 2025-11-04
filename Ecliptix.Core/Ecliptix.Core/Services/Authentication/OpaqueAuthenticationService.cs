@@ -9,7 +9,6 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
-using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
@@ -21,7 +20,6 @@ using Ecliptix.Utilities.Failures.Network;
 using Ecliptix.Utilities.Failures.Sodium;
 using Ecliptix.Utilities.Failures.Validations;
 using Google.Protobuf;
-using Grpc.Core;
 using Unit = Ecliptix.Utilities.Unit;
 
 namespace Ecliptix.Core.Services.Authentication;
@@ -156,8 +154,11 @@ internal sealed class OpaqueAuthenticationService(
                 networkProvider.ClearExhaustedOperations();
             }
 
+            // This code is unreachable - loop always returns via line 139 or 149
+            // Keeping this as defensive programming in case loop logic changes
             networkProvider.ExitOutage();
-            return Result<Unit, AuthenticationFailure>.Err(lastError!);
+            return Result<Unit, AuthenticationFailure>.Err(
+                lastError ?? AuthenticationFailure.NetworkRequestFailed("Unknown protocol recreation error"));
         }
         finally
         {
@@ -184,33 +185,6 @@ internal sealed class OpaqueAuthenticationService(
         return !string.IsNullOrWhiteSpace(failure.UserError.I_18N_KEY) &&
                string.Equals(failure.UserError.I_18N_KEY, AuthenticationConstants.INVALID_CREDENTIALS_KEY,
                    StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool ShouldReinit(NetworkFailure failure)
-    {
-        if (failure.RequiresReinit)
-        {
-            return true;
-        }
-
-        if (failure.InnerException is RpcException rpcEx && GrpcErrorClassifier.IsAuthFlowMissing(rpcEx))
-        {
-            return true;
-        }
-
-        if (failure.UserError is not { } userError)
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(userError.I_18N_KEY) &&
-            string.Equals(userError.I_18N_KEY, "error.auth_flow_missing", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return userError.ERROR_CODE == ErrorCode.DEPENDENCY_UNAVAILABLE &&
-               failure.InnerException is RpcException { StatusCode: StatusCode.NotFound };
     }
 
     private static Result<Unit, ValidationFailure> ValidateInitResponse(OpaqueSignInInitResponse initResponse)
@@ -338,11 +312,7 @@ internal sealed class OpaqueAuthenticationService(
 
         using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
-        byte[]? secureKeyCopy = null;
-        byte[]? ke2Data = null;
-        byte[]? ke3Data = null;
-        SodiumSecureMemoryHandle? masterKeyHandle = null;
-        bool ownershipTransferred = false;
+        OpaqueSignInContext signInContext = new();
 
         try
         {
@@ -352,53 +322,91 @@ internal sealed class OpaqueAuthenticationService(
                 return Result<SignInFlowResult, AuthenticationFailure>.Err(secureKeyResult.UnwrapErr());
             }
 
-            secureKeyCopy = secureKeyResult.Unwrap();
+            signInContext.SecureKeyCopy = secureKeyResult.Unwrap();
 
-            using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(secureKeyCopy);
+            Result<SignInFlowResult, AuthenticationFailure> result = await ExecuteOpaqueSignInStepsAsync(
+                opaqueClient,
+                mobileNumber,
+                signInContext,
+                connectId,
+                requestContext,
+                cancellationToken).ConfigureAwait(false);
 
-            Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
-                await PerformSignInInitPhaseAsync(mobileNumber, ke1Result, connectId, requestContext, cancellationToken)
-                    .ConfigureAwait(false);
-
-            if (initResult.IsErr)
-            {
-                return Result<SignInFlowResult, AuthenticationFailure>.Err(initResult.UnwrapErr());
-            }
-
-            OpaqueSignInInitResponse initResponse = initResult.Unwrap();
-            ke2Data = initResponse.ServerStateToken.ToByteArray();
-
-            Result<OpaqueExchangeData, AuthenticationFailure> exchangeResult =
-                CompleteOpaqueKeyExchange(opaqueClient, ke2Data, ke1Result);
-
-            if (exchangeResult.IsErr)
-            {
-                return Result<SignInFlowResult, AuthenticationFailure>.Err(exchangeResult.UnwrapErr());
-            }
-
-            OpaqueExchangeData exchangeData = exchangeResult.Unwrap();
-            ke3Data = exchangeData.Ke3Data;
-            masterKeyHandle = exchangeData.MasterKeyHandle;
-
-            Result<SignInFlowResult, AuthenticationFailure> finalizeResult =
-                await PerformSignInFinalizePhaseAsync(mobileNumber, ke3Data, masterKeyHandle, connectId, requestContext,
-                    cancellationToken).ConfigureAwait(false);
-
-            if (finalizeResult.IsOk)
-            {
-                ownershipTransferred = true;
-            }
-
-            return finalizeResult;
+            return result;
         }
         finally
         {
-            if (masterKeyHandle != null && !ownershipTransferred)
-            {
-                masterKeyHandle.Dispose();
-            }
-            SecureCleanup(secureKeyCopy, ke2Data, ke3Data);
+            CleanupSignInContext(signInContext);
         }
+    }
+
+    private async Task<Result<SignInFlowResult, AuthenticationFailure>> ExecuteOpaqueSignInStepsAsync(
+        OpaqueClient opaqueClient,
+        string mobileNumber,
+        OpaqueSignInContext signInContext,
+        uint connectId,
+        RpcRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        using KeyExchangeResult ke1Result = opaqueClient.GenerateKE1(signInContext.SecureKeyCopy!);
+
+        Result<OpaqueSignInInitResponse, AuthenticationFailure> initResult =
+            await PerformSignInInitPhaseAsync(mobileNumber, ke1Result, connectId, requestContext, cancellationToken)
+                .ConfigureAwait(false);
+
+        if (initResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(initResult.UnwrapErr());
+        }
+
+        OpaqueSignInInitResponse initResponse = initResult.Unwrap();
+        signInContext.Ke2Data = initResponse.ServerStateToken.ToByteArray();
+
+        Result<OpaqueExchangeData, AuthenticationFailure> exchangeResult =
+            CompleteOpaqueKeyExchange(opaqueClient, signInContext.Ke2Data, ke1Result);
+
+        if (exchangeResult.IsErr)
+        {
+            return Result<SignInFlowResult, AuthenticationFailure>.Err(exchangeResult.UnwrapErr());
+        }
+
+        OpaqueExchangeData exchangeData = exchangeResult.Unwrap();
+        signInContext.Ke3Data = exchangeData.Ke3Data;
+        signInContext.MasterKeyHandle = exchangeData.MasterKeyHandle;
+
+        Result<SignInFlowResult, AuthenticationFailure> finalizeResult =
+            await PerformSignInFinalizePhaseAsync(
+                mobileNumber,
+                signInContext.Ke3Data,
+                signInContext.MasterKeyHandle,
+                connectId,
+                requestContext,
+                cancellationToken).ConfigureAwait(false);
+
+        if (finalizeResult.IsOk)
+        {
+            signInContext.OwnershipTransferred = true;
+        }
+
+        return finalizeResult;
+    }
+
+    private void CleanupSignInContext(OpaqueSignInContext context)
+    {
+        if (context.MasterKeyHandle != null && !context.OwnershipTransferred)
+        {
+            context.MasterKeyHandle.Dispose();
+        }
+        SecureCleanup(context.SecureKeyCopy, context.Ke2Data, context.Ke3Data);
+    }
+
+    private sealed class OpaqueSignInContext
+    {
+        public byte[]? SecureKeyCopy { get; set; }
+        public byte[]? Ke2Data { get; set; }
+        public byte[]? Ke3Data { get; set; }
+        public SodiumSecureMemoryHandle? MasterKeyHandle { get; set; }
+        public bool OwnershipTransferred { get; set; }
     }
 
     private async Task<Result<OpaqueSignInInitResponse, AuthenticationFailure>> PerformSignInInitPhaseAsync(

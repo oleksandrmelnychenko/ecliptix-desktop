@@ -10,7 +10,6 @@ using Ecliptix.Protobuf.Device;
 using Ecliptix.Protobuf.Protocol;
 using Ecliptix.Utilities;
 using Ecliptix.Utilities.Failures.Network;
-using Google.Protobuf;
 using Grpc.Core;
 
 namespace Ecliptix.Core.Services.Network.Rpc;

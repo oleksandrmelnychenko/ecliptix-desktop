@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
-using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
 using Google.Protobuf;
 

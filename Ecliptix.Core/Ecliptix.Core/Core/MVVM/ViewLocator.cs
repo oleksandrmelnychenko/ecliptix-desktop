@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Utilities;
 using ReactiveUI;
 using IViewLocator = Ecliptix.Core.Core.Abstractions.IViewLocator;

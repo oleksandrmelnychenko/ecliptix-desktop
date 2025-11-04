@@ -3,7 +3,6 @@ using System.Reactive.Subjects;
 using System.Threading.Tasks;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Utilities;
-using Serilog;
 
 namespace Ecliptix.Core.Services.Core;
 

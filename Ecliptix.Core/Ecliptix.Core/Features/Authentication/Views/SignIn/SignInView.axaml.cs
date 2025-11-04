@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using Ecliptix.Core.Controls.Common;
 using Ecliptix.Core.Controls.Core;
 using Ecliptix.Core.Controls.EventArgs;
 using Ecliptix.Core.Features.Authentication.ViewModels.SignIn;

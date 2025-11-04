@@ -56,13 +56,11 @@ internal sealed class PendingLogoutProcessor(
             if (networkResult.IsOk)
             {
                 await responseCompletionSource.Task.ConfigureAwait(false);
-                pendingLogoutStorage.CLEAR_PENDING_LOGOUT();
             }
             else
             {
                 Log.Warning("[PENDING-LOGOUT-RETRY] Failed to send pending logout request: {ERROR}. Deleting corrupted expired pending logout",
                     networkResult.UnwrapErr().Message);
-                pendingLogoutStorage.CLEAR_PENDING_LOGOUT();
                 _ = Task.Run(async () =>
                 {
                     try
@@ -83,6 +81,9 @@ internal sealed class PendingLogoutProcessor(
                     },
                     TaskScheduler.Default);
             }
+
+            // Clear pending logout regardless of success or failure
+            pendingLogoutStorage.ClearPendingLogout();
         }
         catch (Exception ex)
         {

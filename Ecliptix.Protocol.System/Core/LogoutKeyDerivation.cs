@@ -1,4 +1,3 @@
-using System;
 using System.Security.Cryptography;
 using System.Text;
 using Ecliptix.Protocol.System.Sodium;

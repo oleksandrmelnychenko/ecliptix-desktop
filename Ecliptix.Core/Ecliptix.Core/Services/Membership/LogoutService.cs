@@ -339,7 +339,7 @@ internal sealed class LogoutService(
 
         if (!keepPendingLogout)
         {
-            _pendingLogoutRequestStorage.CLEAR_PENDING_LOGOUT();
+            _pendingLogoutRequestStorage.ClearPendingLogout();
         }
 
         await FinalizeLogoutAsync(membershipId, reason, keepPendingLogout, cancellationToken).ConfigureAwait(false);

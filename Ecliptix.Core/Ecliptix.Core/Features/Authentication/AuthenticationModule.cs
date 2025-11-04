@@ -2,7 +2,6 @@ using System.Threading.Tasks;
 using Ecliptix.Core.Core.Abstractions;
 using Ecliptix.Core.Core.Communication;
 using Ecliptix.Core.Core.Modularity;
-using Serilog;
 
 namespace Ecliptix.Core.Features.Authentication;
 

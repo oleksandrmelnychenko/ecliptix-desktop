@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Ecliptix.Core.Core.Messaging;
 using Ecliptix.Core.Core.Messaging.Events;
 
 namespace Ecliptix.Core.Core.Messaging.Services;

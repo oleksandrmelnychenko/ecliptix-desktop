@@ -590,9 +590,9 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
             ConnectivityIntent intent =
                 ConnectivityIntent.Connected(e.ConnectId, ConnectivityReason.ManualRetry)
                     with
-                    {
-                        Source = ConnectivitySource.ManualAction
-                    };
+                {
+                    Source = ConnectivitySource.ManualAction
+                };
             await _connectivityService.PublishAsync(intent);
         }
     }

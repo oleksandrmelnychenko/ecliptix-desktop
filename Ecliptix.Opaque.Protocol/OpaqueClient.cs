@@ -1,4 +1,3 @@
-using System;
 using System.Security.Cryptography;
 using Ecliptix.Opaque.Protocol.NativeLibraries;
 using Ecliptix.Utilities;

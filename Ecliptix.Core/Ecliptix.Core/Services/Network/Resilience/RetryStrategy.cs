@@ -280,8 +280,8 @@ public sealed class RetryStrategy : IRetryStrategy
         {
             List<string> exhaustedKeys = [];
             exhaustedKeys.AddRange(from operation in _activeRetryOperations.Values
-                where operation.IsExhausted
-                select operation.UniqueKey);
+                                   where operation.IsExhausted
+                                   select operation.UniqueKey);
 
             foreach (string key in exhaustedKeys)
             {
@@ -595,160 +595,240 @@ public sealed class RetryStrategy : IRetryStrategy
                     bool hasResult = outcome.Exception is null;
                     Result<TResponse, NetworkFailure> result = hasResult ? outcome.Result : default;
 
-                    if (isTimeout)
-                    {
-                        Log.Warning(
-                            "⏳ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out - attempt {RetryCount}/{MAX_RETRIES}, retrying after {DelayMs}ms",
-                            operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
-                    }
-                    else
-                    {
-                        Log.Information(
-                            "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES}, delay: {DelayMs}ms",
-                            operationName, connectId, retryCount, retryDelays.Length, delay.TotalMilliseconds);
-                    }
+                    LogRetryAttempt(isTimeout, operationName, connectId, retryCount, retryDelays.Length, delay);
 
-                    if (retryCount == 1)
-                    {
-                        StartTrackingOperation(operationName, connectId, retryDelays.Length, operationKey, serviceType);
-                    }
-                    else
-                    {
-                        UpdateOperationRetryCount(operationKey, retryCount);
-                    }
+                    TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey, serviceType);
 
-                    NetworkFailure? currentFailure = null;
-                    if (hasResult && result.IsErr)
-                    {
-                        currentFailure = result.UnwrapErr();
-                    }
-
-                    if (isTimeout && currentFailure == null)
-                    {
-                        currentFailure = NetworkFailure.DataCenterNotResponding("Operation timeout");
-                    }
-
-                    NetworkFailure recoveringFailure = currentFailure ??
-                                                       NetworkFailure.DataCenterNotResponding("Retrying operation");
+                    NetworkFailure? currentFailure = ExtractCurrentFailure(isTimeout, hasResult, result);
 
                     await _connectivityService.PublishAsync(
-                            ConnectivityIntent.Recovering(recoveringFailure, connectId, retryCount + 1, delay))
+                            ConnectivityIntent.Recovering(
+                                currentFailure ?? NetworkFailure.DataCenterNotResponding("Retrying operation"),
+                                connectId, retryCount + 1, delay))
                         .ConfigureAwait(false);
 
                     if (retryCount == retryDelays.Length)
                     {
-                        Log.Warning(
-                            "🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES} exhausted all retries",
-                            operationName, connectId, retryCount, retryDelays.Length);
-
-                        MarkOperationAsExhausted(operationKey);
-
-                        NetworkProvider? networkProvider = GetNetworkProvider();
-                        networkProvider?.BeginSecrecyChannelEstablishRecovery();
-
-                        bool allExhausted = await IsGloballyExhaustedAsync().ConfigureAwait(false);
-                        if (allExhausted)
-                        {
-                            Log.Warning(
-                                "🔴 ALL OPERATIONS EXHAUSTED: All retry operations are exhausted. Recovery will handle retry button display");
-
-                            Dispatcher.UIThread.Post(() =>
-                            {
-                                try
-                                {
-                                    _connectivityService.PublishAsync(
-                                        ConnectivityIntent.RetriesExhausted(
-                                            currentFailure ??
-                                            NetworkFailure.DataCenterNotResponding("Retries exhausted"),
-                                            connectId,
-                                            retryCount)).ContinueWith(
-                                        task =>
-                                        {
-                                            if (task.IsFaulted && task.Exception != null)
-                                            {
-                                                Log.Error(task.Exception, "Unhandled exception publishing retries exhausted");
-                                            }
-                                        },
-                                        TaskScheduler.Default);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error(ex, "Failed to notify UI of exhausted state");
-                                }
-                            });
-                        }
-                        else
-                        {
-                            int exhaustedCount = 0;
-                            foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
-                            {
-                                if (operation.IsExhausted)
-                                {
-                                    exhaustedCount++;
-                                }
-                            }
-
-                            if (exhaustedCount == 1)
-                            {
-                                Log.Information(
-                                    "🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
-
-                                Dispatcher.UIThread.Post(() =>
-                                {
-                                    try
-                                    {
-                                        _connectivityService.PublishAsync(
-                                            ConnectivityIntent.Disconnected(
-                                                currentFailure ??
-                                                NetworkFailure.DataCenterNotResponding("Connection lost"),
-                                                connectId)).ContinueWith(
-                                            task =>
-                                            {
-                                                if (task.IsFaulted && task.Exception != null)
-                                                {
-                                                    Log.Error(task.Exception, "Unhandled exception publishing disconnected state (first exhausted)");
-                                                }
-                                            },
-                                            TaskScheduler.Default);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Error(ex, "Failed to notify UI of disconnected state");
-                                    }
-                                });
-                            }
-
-                            if (Log.IsEnabled(LogEventLevel.Debug))
-                            {
-                                Log.Debug(
-                                    "⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}",
-                                    exhaustedCount);
-                            }
-                        }
+                        await HandleRetriesExhaustedAsync(
+                            operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
+                            .ConfigureAwait(false);
                     }
 
-                    bool requiresRecovery = false;
-                    if (isTimeout)
-                    {
-                        requiresRecovery = true;
-                    }
-                    else if (hasResult)
-                    {
-                        requiresRecovery = connectionRecoveryDelegate(result);
-                    }
+                    bool requiresRecovery = DetermineIfRecoveryRequired(isTimeout, hasResult, result, connectionRecoveryDelegate);
 
-                    if (requiresRecovery)
+                    if (requiresRecovery && !_isDisposed && !cancellationToken.IsCancellationRequested)
                     {
-                        if (_isDisposed || cancellationToken.IsCancellationRequested)
-                        {
-                            return;
-                        }
-
                         await EnsureSecrecyChannelAsync(connectId, cancellationToken).ConfigureAwait(false);
                     }
                 });
 
-        IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy = Policy
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy = CreateTimeoutPolicy<TResponse>(operationName, connectId);
+
+        IAsyncPolicy<Result<TResponse, NetworkFailure>> combinedPolicy =
+            Policy.WrapAsync(retryPolicy, timeoutPolicy);
+
+        return combinedPolicy;
+    }
+
+    private void LogRetryAttempt(
+        bool isTimeout,
+        string operationName,
+        uint connectId,
+        int retryCount,
+        int maxRetries,
+        TimeSpan delay)
+    {
+        if (isTimeout)
+        {
+            Log.Warning(
+                "⏳ TIMEOUT: Operation {OperationName} on ConnectId {ConnectId} timed out - attempt {RetryCount}/{MAX_RETRIES}, retrying after {DelayMs}ms",
+                operationName, connectId, retryCount, maxRetries, delay.TotalMilliseconds);
+        }
+        else
+        {
+            Log.Information(
+                "🔄 RETRY ATTEMPT: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES}, delay: {DelayMs}ms",
+                operationName, connectId, retryCount, maxRetries, delay.TotalMilliseconds);
+        }
+    }
+
+    private void TrackRetryOperation(
+        int retryCount,
+        string operationName,
+        uint connectId,
+        int maxRetries,
+        string operationKey,
+        RpcServiceType? serviceType)
+    {
+        if (retryCount == 1)
+        {
+            StartTrackingOperation(operationName, connectId, maxRetries, operationKey, serviceType);
+        }
+        else
+        {
+            UpdateOperationRetryCount(operationKey, retryCount);
+        }
+    }
+
+    private static NetworkFailure? ExtractCurrentFailure<TResponse>(
+        bool isTimeout,
+        bool hasResult,
+        Result<TResponse, NetworkFailure> result)
+    {
+        if (hasResult && result.IsErr)
+        {
+            return result.UnwrapErr();
+        }
+
+        if (isTimeout)
+        {
+            return NetworkFailure.DataCenterNotResponding("Operation timeout");
+        }
+
+        return null;
+    }
+
+    private async Task HandleRetriesExhaustedAsync(
+        string operationKey,
+        string operationName,
+        uint connectId,
+        int retryCount,
+        int maxRetries,
+        NetworkFailure? currentFailure)
+    {
+        Log.Warning(
+            "🔴 RETRY DELAYS EXHAUSTED: Operation {OperationName} on ConnectId {ConnectId} - Attempt {RetryCount}/{MAX_RETRIES} exhausted all retries",
+            operationName, connectId, retryCount, maxRetries);
+
+        MarkOperationAsExhausted(operationKey);
+
+        NetworkProvider? networkProvider = GetNetworkProvider();
+        networkProvider?.BeginSecrecyChannelEstablishRecovery();
+
+        bool allExhausted = await IsGloballyExhaustedAsync().ConfigureAwait(false);
+        if (allExhausted)
+        {
+            PublishAllRetriesExhausted(connectId, retryCount, currentFailure);
+        }
+        else
+        {
+            HandlePartialExhaustion(connectId, currentFailure);
+        }
+    }
+
+    private void PublishAllRetriesExhausted(uint connectId, int retryCount, NetworkFailure? currentFailure)
+    {
+        Log.Warning(
+            "🔴 ALL OPERATIONS EXHAUSTED: All retry operations are exhausted. Recovery will handle retry button display");
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                _connectivityService.PublishAsync(
+                    ConnectivityIntent.RetriesExhausted(
+                        currentFailure ?? NetworkFailure.DataCenterNotResponding("Retries exhausted"),
+                        connectId,
+                        retryCount)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "Unhandled exception publishing retries exhausted");
+                        }
+                    },
+                    TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to notify UI of exhausted state");
+            }
+        });
+    }
+
+    private void HandlePartialExhaustion(uint connectId, NetworkFailure? currentFailure)
+    {
+        int exhaustedCount = CountExhaustedOperations();
+
+        if (exhaustedCount == 1)
+        {
+            Log.Information(
+                "🔴 FIRST OPERATION EXHAUSTED: Showing notification window without retry button");
+
+            PublishDisconnectedState(connectId, currentFailure);
+        }
+
+        if (Log.IsEnabled(LogEventLevel.Debug))
+        {
+            Log.Debug(
+                "⏳ OTHER OPERATIONS STILL RETRYING: Not showing retry button yet. Exhausted operations: {ExhaustedCount}",
+                exhaustedCount);
+        }
+    }
+
+    private int CountExhaustedOperations()
+    {
+        int exhaustedCount = 0;
+        foreach (RetryOperationInfo operation in _activeRetryOperations.Values.ToArray())
+        {
+            if (operation.IsExhausted)
+            {
+                exhaustedCount++;
+            }
+        }
+        return exhaustedCount;
+    }
+
+    private void PublishDisconnectedState(uint connectId, NetworkFailure? currentFailure)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                _connectivityService.PublishAsync(
+                    ConnectivityIntent.Disconnected(
+                        currentFailure ?? NetworkFailure.DataCenterNotResponding("Connection lost"),
+                        connectId)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "Unhandled exception publishing disconnected state (first exhausted)");
+                        }
+                    },
+                    TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to notify UI of disconnected state");
+            }
+        });
+    }
+
+    private static bool DetermineIfRecoveryRequired<TResponse>(
+        bool isTimeout,
+        bool hasResult,
+        Result<TResponse, NetworkFailure> result,
+        RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate)
+    {
+        if (isTimeout)
+        {
+            return true;
+        }
+
+        if (hasResult)
+        {
+            return connectionRecoveryDelegate(result);
+        }
+
+        return false;
+    }
+
+    private IAsyncPolicy<Result<TResponse, NetworkFailure>> CreateTimeoutPolicy<TResponse>(
+        string operationName,
+        uint connectId)
+    {
+        return Policy
             .TimeoutAsync<Result<TResponse, NetworkFailure>>(
                 (context) =>
                 {
@@ -773,11 +853,6 @@ public sealed class RetryStrategy : IRetryStrategy
                         operationName, connectId, currentAttempt, timespan.TotalSeconds);
                     return Task.CompletedTask;
                 });
-
-        IAsyncPolicy<Result<TResponse, NetworkFailure>> combinedPolicy =
-            Policy.WrapAsync(retryPolicy, timeoutPolicy);
-
-        return combinedPolicy;
     }
 
     private async Task EnsureSecrecyChannelAsync(uint connectId, CancellationToken cancellationToken)

@@ -13,7 +13,6 @@ using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
 using Ecliptix.Core.Services.Abstractions.Security;
 using Ecliptix.Core.Services.Authentication.Constants;
-using Ecliptix.Core.Services.Network.Resilience;
 using Ecliptix.Core.Services.Network.Rpc;
 using Ecliptix.Opaque.Protocol;
 using Ecliptix.Protobuf.Membership;
@@ -622,161 +621,228 @@ internal sealed class OpaqueRegistrationService(
 
             using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
-            byte[]? secureKeyCopy = null;
-            RegistrationResult? registrationResult = null;
-            RegistrationResult? trackedRegistrationResult = null;
+            RegistrationAttemptResult result = await TryExecuteRegistrationCycleAsync(
+                opaqueClient,
+                membershipIdentifier,
+                secureKey,
+                connectId,
+                requestContext,
+                attempt,
+                cancellationToken).ConfigureAwait(false);
 
-            try
+            if (result.Outcome.IsOk || !allowReinit || !result.IsTransient)
             {
-                Result<Unit, SodiumFailure> readSecureKeyResult = secureKey.WithReadAccess(span =>
-                {
-                    secureKeyCopy = span.ToArray();
-                    return Result<Unit, SodiumFailure>.Ok(Unit.Value);
-                });
+                return result;
+            }
 
-                if (readSecureKeyResult.IsErr)
-                {
-                    return CreateAttemptFailure(
-                        $"Failed to read secure key: {readSecureKeyResult.UnwrapErr().Message}",
-                        false,
-                        requestContext);
-                }
+            allowReinit = false;
+            requestContext.MarkReinitAttempted();
+            Serilog.Log.Information(
+                "[REGISTRATION-FLOW-REINIT] Registration complete failed, retrying with reinit. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
+                requestContext.CORRELATION_ID,
+                requestContext.IdempotencyKey);
+        }
+    }
 
-                Result<byte[], RegistrationAttemptResult> secureKeyValidation =
-                    ValidateSecureKeyCopy(secureKeyCopy, requestContext);
+    private async Task<RegistrationAttemptResult> TryExecuteRegistrationCycleAsync(
+        OpaqueClient opaqueClient,
+        ByteString membershipIdentifier,
+        SensitiveBytes secureKey,
+        uint connectId,
+        RpcRequestContext requestContext,
+        int attempt,
+        CancellationToken cancellationToken)
+    {
+        byte[]? secureKeyCopy = null;
+        RegistrationResult? registrationResult = null;
+        RegistrationResult? trackedRegistrationResult = null;
 
-                if (secureKeyValidation.IsErr)
-                {
-                    return secureKeyValidation.UnwrapErr();
-                }
+        try
+        {
+            Result<SecureKeyPreparationResult, RegistrationAttemptResult> prepareResult =
+                PrepareSecureKeyForRegistration(secureKey, requestContext);
 
-                Result<RegistrationResult, RegistrationAttemptResult> stateResult =
-                    CreateAndTrackRegistrationState(opaqueClient, secureKeyValidation.Unwrap(), membershipIdentifier,
-                        requestContext);
+            if (prepareResult.IsErr)
+            {
+                return prepareResult.UnwrapErr();
+            }
 
-                if (stateResult.IsErr)
-                {
-                    return stateResult.UnwrapErr();
-                }
+            secureKeyCopy = prepareResult.Unwrap().SecureKeyCopy;
 
-                RegistrationResult registrationState = stateResult.Unwrap();
-                registrationResult = registrationState;
+            Result<RegistrationResult, RegistrationAttemptResult> stateResult =
+                CreateAndTrackRegistrationState(opaqueClient, secureKeyCopy, membershipIdentifier, requestContext);
 
-                Result<OpaqueRegistrationInitResponse, NetworkFailure> initResult =
-                    await InitiateOpaqueRegistrationAsync(
-                            membershipIdentifier,
-                            registrationState.GetRequestCopy(),
-                            connectId,
-                            requestContext,
-                            cancellationToken)
-                        .ConfigureAwait(false);
+            if (stateResult.IsErr)
+            {
+                return stateResult.UnwrapErr();
+            }
 
-                if (initResult.IsErr)
-                {
-                    NetworkFailure failure = initResult.UnwrapErr();
-                    registrationState.Dispose();
-                    registrationResult = null;
-                    return CreateAttemptFailure(
-                        FormatNetworkFailure(failure),
-                        IsTransientRegistrationFailure(failure),
-                        requestContext);
-                }
+            registrationResult = stateResult.Unwrap();
 
-                OpaqueRegistrationInitResponse initResponse = initResult.Unwrap();
+            RegistrationAttemptResult attemptResult = await ExecuteRegistrationWorkflowAsync(
+                opaqueClient,
+                membershipIdentifier,
+                registrationResult,
+                connectId,
+                requestContext,
+                cancellationToken).ConfigureAwait(false);
 
-                Result<Unit, RegistrationAttemptResult> initProcessing =
-                    ProcessInitializationResponse(initResponse, registrationState, requestContext);
-
-                if (initProcessing.IsErr)
-                {
-                    registrationResult = null;
-                    return initProcessing.UnwrapErr();
-                }
-
-                trackedRegistrationResult = registrationState;
+            if (attemptResult.Outcome.IsOk)
+            {
+                trackedRegistrationResult = registrationResult;
                 registrationResult = null;
-
-                Result<RegistrationAttemptResult, RegistrationAttemptResult> finalizeResult =
-                    await FinalizeAndCompleteRegistrationAsync(
-                        opaqueClient,
-                        initResponse,
-                        trackedRegistrationResult,
-                        membershipIdentifier,
-                        connectId,
-                        requestContext,
-                        cancellationToken).ConfigureAwait(false);
-
-                if (_opaqueRegistrationState.TryRemove(membershipIdentifier,
-                        out RegistrationResult? completedResult))
-                {
-                    completedResult.Dispose();
-                }
-
-                trackedRegistrationResult = null;
-
-                if (finalizeResult.IsOk)
-                {
-                    return finalizeResult.Unwrap();
-                }
-
-                RegistrationAttemptResult failureResult = finalizeResult.UnwrapErr();
-
-                if (!allowReinit || !failureResult.IsTransient)
-                {
-                    return failureResult;
-                }
-
-                allowReinit = false;
-                requestContext.MarkReinitAttempted();
-                Serilog.Log.Information(
-                    "[REGISTRATION-FLOW-REINIT] Registration complete failed, retrying with reinit. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                    requestContext.CORRELATION_ID,
-                    requestContext.IdempotencyKey);
-                continue;
+                CleanupTrackedRegistration(membershipIdentifier, ref trackedRegistrationResult);
             }
-            catch (Exception ex) when (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                if (trackedRegistrationResult != null &&
-                    _opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? cachedResult))
-                {
-                    cachedResult.Dispose();
-                    trackedRegistrationResult = null;
-                }
 
-                registrationResult?.Dispose();
-                registrationResult = null;
+            return attemptResult;
+        }
+        catch (Exception ex) when (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            HandleRegistrationException(ex, membershipIdentifier, attempt, requestContext, ref trackedRegistrationResult, ref registrationResult);
+            return CreateAttemptFailure(
+                $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{ex.Message}",
+                IsTransientException(ex),
+                requestContext);
+        }
+        finally
+        {
+            registrationResult?.Dispose();
+            trackedRegistrationResult?.Dispose();
+            CleanupSensitiveRegistrationData(secureKeyCopy, null, null, null);
+        }
+    }
 
-                string message = $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{ex.Message}";
-                bool isTransient = IsTransientException(ex);
+    private Result<SecureKeyPreparationResult, RegistrationAttemptResult> PrepareSecureKeyForRegistration(
+        SensitiveBytes secureKey,
+        RpcRequestContext requestContext)
+    {
+        byte[]? secureKeyCopy = null;
 
-                if (isTransient)
-                {
-                    Serilog.Log.Warning(ex,
-                        "[REGISTRATION-FLOW-RETRY] Exception during registration attempt {Attempt}, transient classification applied. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                        attempt,
-                        requestContext.CORRELATION_ID,
-                        requestContext.IdempotencyKey);
-                }
-                else
-                {
-                    Serilog.Log.Error(ex,
-                        "[REGISTRATION-FLOW-FAILURE] Non-transient exception during registration. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
-                        requestContext.CORRELATION_ID,
-                        requestContext.IdempotencyKey);
-                }
+        Result<Unit, SodiumFailure> readSecureKeyResult = secureKey.WithReadAccess(span =>
+        {
+            secureKeyCopy = span.ToArray();
+            return Result<Unit, SodiumFailure>.Ok(Unit.Value);
+        });
 
-                return CreateAttemptFailure(message, isTransient, requestContext);
-            }
-            finally
-            {
-                registrationResult?.Dispose();
-                trackedRegistrationResult?.Dispose();
-                CleanupSensitiveRegistrationData(secureKeyCopy, null, null, null);
-            }
+        if (readSecureKeyResult.IsErr)
+        {
+            return Result<SecureKeyPreparationResult, RegistrationAttemptResult>.Err(
+                CreateAttemptFailure(
+                    $"Failed to read secure key: {readSecureKeyResult.UnwrapErr().Message}",
+                    false,
+                    requestContext));
+        }
+
+        Result<byte[], RegistrationAttemptResult> validationResult = ValidateSecureKeyCopy(secureKeyCopy, requestContext);
+
+        if (validationResult.IsErr)
+        {
+            return Result<SecureKeyPreparationResult, RegistrationAttemptResult>.Err(validationResult.UnwrapErr());
+        }
+
+        return Result<SecureKeyPreparationResult, RegistrationAttemptResult>.Ok(
+            new SecureKeyPreparationResult(secureKeyCopy!));
+    }
+
+    private readonly record struct SecureKeyPreparationResult(byte[] SecureKeyCopy);
+
+    private async Task<RegistrationAttemptResult> ExecuteRegistrationWorkflowAsync(
+        OpaqueClient opaqueClient,
+        ByteString membershipIdentifier,
+        RegistrationResult registrationState,
+        uint connectId,
+        RpcRequestContext requestContext,
+        CancellationToken cancellationToken)
+    {
+        Result<OpaqueRegistrationInitResponse, NetworkFailure> initResult =
+            await InitiateOpaqueRegistrationAsync(
+                    membershipIdentifier,
+                    registrationState.GetRequestCopy(),
+                    connectId,
+                    requestContext,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+        if (initResult.IsErr)
+        {
+            NetworkFailure failure = initResult.UnwrapErr();
+            registrationState.Dispose();
+            return CreateAttemptFailure(
+                FormatNetworkFailure(failure),
+                IsTransientRegistrationFailure(failure),
+                requestContext);
+        }
+
+        OpaqueRegistrationInitResponse initResponse = initResult.Unwrap();
+
+        Result<Unit, RegistrationAttemptResult> initProcessing =
+            ProcessInitializationResponse(initResponse, registrationState, requestContext);
+
+        if (initProcessing.IsErr)
+        {
+            return initProcessing.UnwrapErr();
+        }
+
+        Result<RegistrationAttemptResult, RegistrationAttemptResult> finalizeResult =
+            await FinalizeAndCompleteRegistrationAsync(
+                opaqueClient,
+                initResponse,
+                registrationState,
+                membershipIdentifier,
+                connectId,
+                requestContext,
+                cancellationToken).ConfigureAwait(false);
+
+        return finalizeResult.IsOk ? finalizeResult.Unwrap() : finalizeResult.UnwrapErr();
+    }
+
+    private void CleanupTrackedRegistration(ByteString membershipIdentifier, ref RegistrationResult? trackedResult)
+    {
+        if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
+        {
+            completedResult.Dispose();
+        }
+        trackedResult = null;
+    }
+
+    private void HandleRegistrationException(
+        Exception ex,
+        ByteString membershipIdentifier,
+        int attempt,
+        RpcRequestContext requestContext,
+        ref RegistrationResult? trackedResult,
+        ref RegistrationResult? registrationResult)
+    {
+        if (trackedResult != null &&
+            _opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? cachedResult))
+        {
+            cachedResult.Dispose();
+            trackedResult = null;
+        }
+
+        registrationResult?.Dispose();
+        registrationResult = null;
+
+        bool isTransient = IsTransientException(ex);
+
+        if (isTransient)
+        {
+            Serilog.Log.Warning(ex,
+                "[REGISTRATION-FLOW-RETRY] Exception during registration attempt {Attempt}, transient classification applied. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
+                attempt,
+                requestContext.CORRELATION_ID,
+                requestContext.IdempotencyKey);
+        }
+        else
+        {
+            Serilog.Log.Error(ex,
+                "[REGISTRATION-FLOW-FAILURE] Non-transient exception during registration. CORRELATION_ID: {CORRELATION_ID}, IdempotencyKey: {IdempotencyKey}",
+                requestContext.CORRELATION_ID,
+                requestContext.IdempotencyKey);
         }
     }
 
@@ -837,7 +903,8 @@ internal sealed class OpaqueRegistrationService(
 
         OpaqueRegistrationInitRequest request = new()
         {
-            PeerOprf = ByteString.CopyFrom(registrationRequest), MembershipIdentifier = membershipIdentifier
+            PeerOprf = ByteString.CopyFrom(registrationRequest),
+            MembershipIdentifier = membershipIdentifier
         };
 
         TaskCompletionSource<OpaqueRegistrationInitResponse> responseSource = new();

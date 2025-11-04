@@ -4,7 +4,6 @@ using System.Reactive.Linq;
 using System.Threading;
 
 using Ecliptix.Core.Controls.Core;
-using Ecliptix.Core.Core.Messaging.Services;
 using Ecliptix.Core.Infrastructure.Network.Core.Providers;
 using Ecliptix.Core.Models.Membership;
 using Ecliptix.Core.Services.Abstractions.Core;

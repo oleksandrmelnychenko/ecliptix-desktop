@@ -803,12 +803,20 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             return;
         }
 
-        SecondsRemaining = status switch
+        SecondsRemaining = ProcessCountdownStatus(status, seconds, message);
+        CurrentStatus = status;
+    }
+
+    private uint ProcessCountdownStatus(
+        VerificationCountdownUpdate.Types.CountdownUpdateStatus status,
+        uint seconds,
+        string? message)
+    {
+        return status switch
         {
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Active => seconds,
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Expired => 0,
-            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message,
-                seconds),
+            VerificationCountdownUpdate.Types.CountdownUpdateStatus.ResendCooldown => HandleResendCooldown(message, seconds),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed => HandleFailedStatus(message),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound => HandleNotFoundStatus(),
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached => HandleMaxAttemptsStatus(),
@@ -816,7 +824,6 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
             VerificationCountdownUpdate.Types.CountdownUpdateStatus.ServerUnavailable => HandleUnavailable(message),
             _ => Math.Min(seconds, SecondsRemaining)
         };
-        CurrentStatus = status;
     }
 
     private bool ValidateAndUpdateSessionIdentifier(Guid identifier)

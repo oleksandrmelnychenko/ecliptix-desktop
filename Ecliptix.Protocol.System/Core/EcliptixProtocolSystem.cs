@@ -1,8 +1,6 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using Ecliptix.Protobuf.Common;
 using Ecliptix.Protobuf.Protocol;
-using Ecliptix.Protobuf.ProtocolState;
 using Ecliptix.Protocol.System.Sodium;
 using Ecliptix.Protocol.System.Utilities;
 using Ecliptix.Utilities;
@@ -223,10 +221,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (dhKeyBytes != null)
-            {
-                SodiumInterop.SecureWipe(dhKeyBytes);
-            }
+            SodiumInterop.SecureWipe(dhKeyBytes);
         }
     }
 
@@ -349,12 +344,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
     private Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> DeriveSharedSecretKey(LocalPublicKeyBundle peerBundle)
     {
-        Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> secretResult =
-            ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X_3DH_INFO);
-
-        return secretResult.IsErr
-            ? Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Err(secretResult.UnwrapErr())
-            : Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure>.Ok(secretResult.Unwrap());
+        return ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X_3DH_INFO);
     }
 
     private Result<Unit, EcliptixProtocolFailure> FinalizeExchange(
@@ -406,10 +396,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         finally
         {
             SodiumInterop.SecureWipe(rootKeyBytes);
-            if (dhKeyBytes != null)
-            {
-                SodiumInterop.SecureWipe(dhKeyBytes);
-            }
+            SodiumInterop.SecureWipe(dhKeyBytes);
         }
     }
 
@@ -909,10 +896,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         }
         finally
         {
-            if (ad != null)
-            {
-                SodiumInterop.SecureWipe(ad);
-            }
+            SodiumInterop.SecureWipe(ad);
         }
     }
 
