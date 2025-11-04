@@ -597,7 +597,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                 return;
             }
 
-            Match match = Regex.Match(output, MACOS_UUID_PATTERN);
+            Match match = Regex.Match(output, MACOS_UUID_PATTERN, RegexOptions.None, TimeSpan.FromSeconds(1));
             machineId.Append(match.Success ? match.Groups[1].Value : "NoUUID");
         }
         catch
