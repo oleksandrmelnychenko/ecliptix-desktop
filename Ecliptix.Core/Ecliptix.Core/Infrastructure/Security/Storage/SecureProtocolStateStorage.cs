@@ -452,20 +452,23 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
         }
         catch (Exception)
         {
-            if (File.Exists(tempPath))
+            if (!File.Exists(tempPath))
             {
-                try
-                { File.Delete(tempPath); }
-                catch (Exception)
-                {
-                    // Best-effort cleanup - temp file deletion failure is non-critical
-                }
+                throw;
             }
-            throw;
+
+            try
+            {
+                File.Delete(tempPath);
+            }
+            catch (Exception)
+            {
+                // Best-effort cleanup - temp file deletion failure is non-critical
+            }
         }
     }
 
-    private async Task<byte[]?> ReadSecureFileAsync(string filePath) =>
+    private static async Task<byte[]?> ReadSecureFileAsync(string filePath) =>
         !File.Exists(filePath) ? null : await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
 
     public void Dispose()

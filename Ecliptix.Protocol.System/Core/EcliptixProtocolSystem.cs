@@ -820,7 +820,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         try
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
-            Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
+            Result<Unit, EcliptixProtocolFailure> readResult = RatchetChainKey.ReadKeyMaterial(key, keySpan);
             if (readResult.IsErr)
             {
                 return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());
@@ -938,7 +938,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
         try
         {
             Span<byte> keySpan = keyMaterial.AsSpan();
-            Result<Unit, EcliptixProtocolFailure> readResult = key.ReadKeyMaterial(keySpan);
+            Result<Unit, EcliptixProtocolFailure> readResult = RatchetChainKey.ReadKeyMaterial(key, keySpan);
             if (readResult.IsErr)
             {
                 return Result<byte[], EcliptixProtocolFailure>.Err(readResult.UnwrapErr());

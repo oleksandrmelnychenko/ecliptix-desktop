@@ -39,12 +39,12 @@ internal sealed class OpaqueAuthenticationService(
 
     private static readonly Dictionary<OpaqueResult, string> OpaqueErrorMessages = new()
     {
-        { OpaqueResult.InvalidInput, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.CryptoError, AuthenticationConstants.CommonUnexpectedErrorKey },
-        { OpaqueResult.MemoryError, AuthenticationConstants.CommonUnexpectedErrorKey },
-        { OpaqueResult.ValidationError, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.AuthenticationError, AuthenticationConstants.InvalidCredentialsKey },
-        { OpaqueResult.InvalidPublicKey, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.INVALID_INPUT, AuthenticationConstants.InvalidCredentialsKey },
+        { OpaqueResult.CRYPTO_ERROR, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.MEMORY_ERROR, AuthenticationConstants.CommonUnexpectedErrorKey },
+        { OpaqueResult.VALIDATION_ERROR, AuthenticationConstants.InvalidCredentialsKey },
+        { OpaqueResult.AUTHENTICATION_ERROR, AuthenticationConstants.InvalidCredentialsKey },
+        { OpaqueResult.INVALID_PUBLIC_KEY, AuthenticationConstants.CommonUnexpectedErrorKey },
     };
 
     private readonly Lock _opaqueClientLock = new();
