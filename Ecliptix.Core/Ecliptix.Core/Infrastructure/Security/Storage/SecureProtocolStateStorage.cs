@@ -155,6 +155,7 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             }
 
             Option<byte[]> storedKeyOption = await TryGetStoredKeyAsync(keychainKey).ConfigureAwait(false);
+            bool derivedKey = !storedKeyOption.IsSome;
             if (storedKeyOption.IsSome)
             {
                 encryptionKey = storedKeyOption.Value!;
@@ -167,6 +168,11 @@ public sealed class SecureProtocolStateStorage : ISecureProtocolStateStorage, ID
             byte[] plaintext =
                 DecryptState(container.Ciphertext, encryptionKey, container.Nonce, container.Tag,
                     container.AssociatedData);
+
+            if (derivedKey)
+            {
+                await _platformProvider.StoreKeyInKeychainAsync(keychainKey, encryptionKey!).ConfigureAwait(false);
+            }
 
             return Result<byte[], SecureStorageFailure>.Ok(plaintext);
         }
