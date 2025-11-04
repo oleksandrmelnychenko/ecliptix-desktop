@@ -24,10 +24,10 @@ namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
 {
     public new static readonly StyledProperty<double> MinHeightProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MIN_HEIGHT), DefaultBottomSheetVariables.MIN_HEIGHT);
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MIN_HEIGHT);
 
     public new static readonly StyledProperty<double> MaxHeightProperty =
-        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MAX_HEIGHT), DefaultBottomSheetVariables.MAX_HEIGHT);
+        AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MaxHeight), DefaultBottomSheetVariables.MAX_HEIGHT);
 
     public static readonly StyledProperty<IBrush> ScrimColorProperty =
         AvaloniaProperty.Register<BottomSheetControl, IBrush>(nameof(ScrimColor),
@@ -78,13 +78,13 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         set => SetValue(UnDismissableScrimColorProperty, value);
     }
 
-    public new double MIN_HEIGHT
+    public new double MinHeight
     {
         get => GetValue(MinHeightProperty);
         set => SetValue(MinHeightProperty, value);
     }
 
-    public new double MAX_HEIGHT
+    public new double MaxHeight
     {
         get => GetValue(MaxHeightProperty);
         set => SetValue(MaxHeightProperty, value);
@@ -148,18 +148,18 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
                     return specificTransform;
                 }
             }
-            T newTransformFromGroup = new T();
+            T newTransformFromGroup = new();
             existingGroup.Children.Add(newTransformFromGroup);
             return newTransformFromGroup;
         }
 
-        TransformGroup group = new TransformGroup();
+        TransformGroup group = new();
         if (existingTransform is Transform singleTransform)
         {
             group.Children.Add(singleTransform);
         }
 
-        T newTransform = new T();
+        T newTransform = new();
         group.Children.Add(newTransform);
         visual.RenderTransform = group;
         return newTransform;
@@ -321,7 +321,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
     {
         if (_contentControl == null || _sheetBorder == null)
         {
-            _sheetHeight = MIN_HEIGHT;
+            _sheetHeight = MinHeight;
             return;
         }
 
@@ -338,7 +338,7 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
         double horizontalExtras = padding.Left + padding.Right + borderThickness.Left + borderThickness.Right;
 
         double availableWidth = sheetWidth - horizontalExtras;
-        double availableHeight = MAX_HEIGHT - verticalExtras;
+        double availableHeight = MaxHeight - verticalExtras;
 
         Size availableSize = new(availableWidth, double.PositiveInfinity);
         _contentControl.Measure(availableSize);
@@ -347,12 +347,12 @@ public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewMod
 
         if (double.IsNaN(contentHeight) || contentHeight <= 0)
         {
-            contentHeight = MIN_HEIGHT;
+            contentHeight = MinHeight;
         }
 
-        double maxContentHeight = Math.Max(MIN_HEIGHT, availableHeight);
+        double maxContentHeight = Math.Max(MinHeight, availableHeight);
 
-        _sheetHeight = Math.Clamp(contentHeight, MIN_HEIGHT, maxContentHeight);
+        _sheetHeight = Math.Clamp(contentHeight, MinHeight, maxContentHeight);
         _sheetBorder.Height = _sheetHeight;
     }
 

@@ -67,26 +67,10 @@ public sealed class ApplicationInitializer(
 
         (ApplicationInstanceSettings settings, bool isNewInstance) = settingsResult.Unwrap();
 
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
-            try
-            {
-                await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Serilog.Log.Warning(ex, "[APPLICATION-INITIALIZER] Failed to persist application instance state. IsNewInstance: {IsNewInstance}",
-                    isNewInstance);
-            }
-        }).ContinueWith(
-            task =>
-            {
-                if (task.IsFaulted && task.Exception != null)
-                {
-                    Serilog.Log.Error(task.Exception, "[APPLICATION-INITIALIZER] Unhandled exception persisting instance state");
-                }
-            },
-            TaskScheduler.Default);
+            await applicationSecureStorageProvider.SetApplicationInstanceAsync(isNewInstance).ConfigureAwait(false);
+        });
 
         string culture = string.IsNullOrEmpty(settings.Culture)
             ? AppCultureSettingsConstants.DEFAULT_CULTURE_CODE
@@ -100,7 +84,8 @@ public sealed class ApplicationInitializer(
                 {
                     if (task.IsFaulted && task.Exception != null)
                     {
-                        Serilog.Log.Error(task.Exception, "[APPLICATION-INITIALIZER] Unhandled exception fetching IP geolocation");
+                        Serilog.Log.Error(task.Exception,
+                            "[APPLICATION-INITIALIZER] Unhandled exception fetching IP geolocation");
                     }
                 },
                 TaskScheduler.Default);
@@ -220,7 +205,8 @@ public sealed class ApplicationInitializer(
                 if (applicationInstanceSettings.Membership?.UniqueIdentifier == null)
                 {
                     return Result<uint, NetworkFailure>.Err(
-                        NetworkFailure.InvalidRequestType("Membership information is missing for authenticated protocol"));
+                        NetworkFailure.InvalidRequestType(
+                            "Membership information is missing for authenticated protocol"));
                 }
 
                 ByteString membershipByteString = applicationInstanceSettings.Membership.UniqueIdentifier;

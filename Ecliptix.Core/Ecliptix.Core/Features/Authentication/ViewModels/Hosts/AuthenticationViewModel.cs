@@ -183,32 +183,18 @@ public class AuthenticationViewModel : Core.MVVM.ViewModelBase, IScreen
 
         if (preserveInitialWelcome)
         {
-            try
-            {
-                IRoutableViewModel welcomeView = GetOrCreateViewModelForView(
-                    MembershipViewType.WelcomeView,
-                    resetState: true);
-                _navigationStack.Push(welcomeView);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to preserve welcome view in navigation stack");
-            }
+            IRoutableViewModel welcomeView = GetOrCreateViewModelForView(
+                MembershipViewType.WelcomeView,
+                resetState: true);
+            _navigationStack.Push(welcomeView);
         }
 
         if (preserveViewType.HasValue)
         {
-            try
-            {
-                IRoutableViewModel preservedView = GetOrCreateViewModelForView(
-                    preserveViewType.Value,
-                    resetState: true);
-                _navigationStack.Push(preservedView);
-            }
-            catch (Exception ex)
-            {
-                Log.Warning(ex, "Failed to preserve {ViewType} view in navigation stack", preserveViewType.Value);
-            }
+            IRoutableViewModel preservedView = GetOrCreateViewModelForView(
+                preserveViewType.Value,
+                resetState: true);
+            _navigationStack.Push(preservedView);
         }
 
         _currentView = null;

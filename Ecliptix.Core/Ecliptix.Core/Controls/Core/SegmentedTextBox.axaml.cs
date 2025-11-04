@@ -23,8 +23,7 @@ public partial class SegmentedTextBox : UserControl
             SegmentedTextBoxConstants.DEFAULT_SEGMENT_COUNT, validate: value => value > 0);
 
     public static readonly StyledProperty<bool> AllowOnlyNumbersProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers),
-            SegmentedTextBoxConstants.DEFAULT_ALLOW_ONLY_NUMBERS);
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(AllowOnlyNumbers));
 
     public static readonly StyledProperty<bool> IsPointerInteractionEnabledProperty =
         AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsPointerInteractionEnabled),
@@ -41,7 +40,7 @@ public partial class SegmentedTextBox : UserControl
             defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
     public static readonly StyledProperty<bool> IsCompleteProperty =
-        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsComplete), false,
+        AvaloniaProperty.Register<SegmentedTextBox, bool>(nameof(IsComplete),
             defaultBindingMode: Avalonia.Data.BindingMode.OneWayToSource);
 
     public static readonly StyledProperty<double> SegmentSpacingProperty =
@@ -60,7 +59,7 @@ public partial class SegmentedTextBox : UserControl
     private readonly List<TextBox> _segments = [];
 
     private int _currentActiveIndex;
-    private bool _isInternalUpdate = false;
+    private bool _isInternalUpdate;
 
     static SegmentedTextBox()
     {
@@ -392,7 +391,7 @@ public partial class SegmentedTextBox : UserControl
             HandlePasteAsync().ContinueWith(
                 task =>
                 {
-                    if (task.IsFaulted && task.Exception != null)
+                    if (task is { IsFaulted: true, Exception: not null })
                     {
                         Log.Error(task.Exception, "[SEGMENTED-TEXTBOX] Unhandled exception during paste operation");
                     }
@@ -402,23 +401,18 @@ public partial class SegmentedTextBox : UserControl
             return;
         }
 
-        if (e.Key == Key.Back)
+        switch (e.Key)
         {
-            HandleBackspaceKey(index);
-            e.Handled = true;
-            OnSegmentChanged();
-            return;
-        }
-
-        if (e.Key is Key.Right or Key.Left)
-        {
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key == Key.Tab)
-        {
-            return;
+            case Key.Back:
+                HandleBackspaceKey(index);
+                e.Handled = true;
+                OnSegmentChanged();
+                return;
+            case Key.Right or Key.Left:
+                e.Handled = true;
+                return;
+            case Key.Tab:
+                return;
         }
 
         if (!IsPointerInteractionEnabled && index != _currentActiveIndex)
@@ -450,7 +444,7 @@ public partial class SegmentedTextBox : UserControl
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, "Failed to access clipboard for pasting.");
+            Log.Warning(ex, "Failed to access clipboard for pasting");
         }
     }
 
@@ -467,7 +461,6 @@ public partial class SegmentedTextBox : UserControl
 
         if (AllowOnlyNumbers && !validText.All(char.IsDigit))
         {
-            Log.Warning("Pasted text contains non-numeric characters when only numbers are allowed.");
             return;
         }
 
