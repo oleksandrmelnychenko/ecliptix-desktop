@@ -14,16 +14,18 @@ internal static partial class OpaqueNative
 
     private static IntPtr DllImportResolver(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (libraryName == LIBRARY)
+        if (libraryName != LIBRARY)
         {
-            string platformLibrary = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libopaque_client.dll" :
-                                   RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "libopaque_client.dylib" :
-                                   "libopaque_client.so";
+            return IntPtr.Zero;
+        }
 
-            if (NativeLibrary.TryLoad(platformLibrary, assembly, searchPath, out IntPtr handle))
-            {
-                return handle;
-            }
+        string platformLibrary = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "libopaque_client.dll" :
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "libopaque_client.dylib" :
+            "libopaque_client.so";
+
+        if (NativeLibrary.TryLoad(platformLibrary, assembly, searchPath, out IntPtr handle))
+        {
+            return handle;
         }
         return IntPtr.Zero;
     }

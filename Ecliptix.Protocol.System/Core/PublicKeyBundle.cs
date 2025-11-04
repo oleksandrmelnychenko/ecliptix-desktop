@@ -67,78 +67,12 @@ internal record LocalPublicKeyBundle(
         return Result<LocalPublicKeyBundle, EcliptixProtocolFailure>.Try(
             () =>
             {
-                SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
-                SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[] identityX25519);
-                SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeyPublicKey, out byte[] signedPreKeyPublic);
-                SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[] signedPreKeySignature);
-
-                if (identityEd25519.Length != Constants.ED_25519_KEY_SIZE)
-                {
-                    throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.IDENTITY_ED_25519_INVALID_SIZE, Constants.ED_25519_KEY_SIZE));
-                }
-
-                if (identityX25519.Length != Constants.X_25519_KEY_SIZE)
-                {
-                    throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.IDENTITY_X_25519_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
-                }
-
-                Result<Unit, EcliptixProtocolFailure> identityX25519ValidationResult = DhValidator.ValidateX25519PublicKey(identityX25519);
-                if (identityX25519ValidationResult.IsErr)
-                {
-                    throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_IDENTITY_X_25519_KEY, identityX25519ValidationResult.UnwrapErr().Message));
-                }
-
-                if (signedPreKeyPublic.Length != Constants.X_25519_KEY_SIZE)
-                {
-                    throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.SIGNED_PRE_KEY_PUBLIC_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
-                }
-
-                Result<Unit, EcliptixProtocolFailure> signedPreKeyValidationResult = DhValidator.ValidateX25519PublicKey(signedPreKeyPublic);
-                if (signedPreKeyValidationResult.IsErr)
-                {
-                    throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_SIGNED_PRE_KEY_PUBLIC_KEY, signedPreKeyValidationResult.UnwrapErr().Message));
-                }
-
-                if (signedPreKeySignature.Length != Constants.ED_25519_SIGNATURE_SIZE)
-                {
-                    throw new ArgumentException(
-                        string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.SIGNED_PRE_KEY_SIGNATURE_INVALID_SIZE, Constants.ED_25519_SIGNATURE_SIZE));
-                }
-
-                byte[]? ephemeralX25519 = null;
-                if (!proto.EphemeralX25519PublicKey.IsEmpty)
-                {
-                    SecureByteStringInterop.SecureCopyWithCleanup(proto.EphemeralX25519PublicKey, out ephemeralX25519);
-                }
-                if (ephemeralX25519 != null && ephemeralX25519.Length != Constants.X_25519_KEY_SIZE)
-                {
-                    throw new ArgumentException(
-                        string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.EPHEMERAL_X_25519_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
-                }
-
-                if (ephemeralX25519 != null)
-                {
-                    Result<Unit, EcliptixProtocolFailure> ephemeralValidationResult = DhValidator.ValidateX25519PublicKey(ephemeralX25519);
-                    if (ephemeralValidationResult.IsErr)
-                    {
-                        throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_EPHEMERAL_X_25519_KEY, ephemeralValidationResult.UnwrapErr().Message));
-                    }
-                }
-
-                List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
-                foreach (PublicKeyBundle.Types.OneTimePreKey pOpk in proto.OneTimePreKeys)
-                {
-                    SecureByteStringInterop.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
-                    Result<OneTimePreKeyRecord, EcliptixProtocolFailure> opkResult =
-                        OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
-                    if (opkResult.IsErr)
-                    {
-                        throw new ArgumentException(
-                            string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_ONE_TIME_PRE_KEY, pOpk.PreKeyId, opkResult.UnwrapErr().Message));
-                    }
-
-                    opkRecords.Add(opkResult.Unwrap());
-                }
+                byte[] identityEd25519 = ExtractAndValidateIdentityEd25519(proto);
+                byte[] identityX25519 = ExtractAndValidateIdentityX25519(proto);
+                byte[] signedPreKeyPublic = ExtractAndValidateSignedPreKey(proto);
+                byte[] signedPreKeySignature = ExtractAndValidateSignature(proto);
+                byte[]? ephemeralX25519 = ExtractAndValidateEphemeral(proto);
+                List<OneTimePreKeyRecord> opkRecords = ExtractAndValidateOneTimePreKeys(proto);
 
                 InternalBundleData internalData = new()
                 {
@@ -161,6 +95,110 @@ internal record LocalPublicKeyBundle(
                     ex)
             }
         );
+    }
+
+    private static byte[] ExtractAndValidateIdentityEd25519(PublicKeyBundle proto)
+    {
+        SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityPublicKey, out byte[] identityEd25519);
+
+        if (identityEd25519.Length != Constants.ED_25519_KEY_SIZE)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.IDENTITY_ED_25519_INVALID_SIZE, Constants.ED_25519_KEY_SIZE));
+        }
+
+        return identityEd25519;
+    }
+
+    private static byte[] ExtractAndValidateIdentityX25519(PublicKeyBundle proto)
+    {
+        SecureByteStringInterop.SecureCopyWithCleanup(proto.IdentityX25519PublicKey, out byte[] identityX25519);
+
+        if (identityX25519.Length != Constants.X_25519_KEY_SIZE)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.IDENTITY_X_25519_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
+        }
+
+        Result<Unit, EcliptixProtocolFailure> validationResult = DhValidator.ValidateX25519PublicKey(identityX25519);
+        if (validationResult.IsErr)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_IDENTITY_X_25519_KEY, validationResult.UnwrapErr().Message));
+        }
+
+        return identityX25519;
+    }
+
+    private static byte[] ExtractAndValidateSignedPreKey(PublicKeyBundle proto)
+    {
+        SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeyPublicKey, out byte[] signedPreKeyPublic);
+
+        if (signedPreKeyPublic.Length != Constants.X_25519_KEY_SIZE)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.SIGNED_PRE_KEY_PUBLIC_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
+        }
+
+        Result<Unit, EcliptixProtocolFailure> validationResult = DhValidator.ValidateX25519PublicKey(signedPreKeyPublic);
+        if (validationResult.IsErr)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_SIGNED_PRE_KEY_PUBLIC_KEY, validationResult.UnwrapErr().Message));
+        }
+
+        return signedPreKeyPublic;
+    }
+
+    private static byte[] ExtractAndValidateSignature(PublicKeyBundle proto)
+    {
+        SecureByteStringInterop.SecureCopyWithCleanup(proto.SignedPreKeySignature, out byte[] signedPreKeySignature);
+
+        if (signedPreKeySignature.Length != Constants.ED_25519_SIGNATURE_SIZE)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.SIGNED_PRE_KEY_SIGNATURE_INVALID_SIZE, Constants.ED_25519_SIGNATURE_SIZE));
+        }
+
+        return signedPreKeySignature;
+    }
+
+    private static byte[]? ExtractAndValidateEphemeral(PublicKeyBundle proto)
+    {
+        if (proto.EphemeralX25519PublicKey.IsEmpty)
+        {
+            return null;
+        }
+
+        SecureByteStringInterop.SecureCopyWithCleanup(proto.EphemeralX25519PublicKey, out byte[] ephemeralX25519);
+
+        if (ephemeralX25519.Length != Constants.X_25519_KEY_SIZE)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.EPHEMERAL_X_25519_INVALID_SIZE, Constants.X_25519_KEY_SIZE));
+        }
+
+        Result<Unit, EcliptixProtocolFailure> validationResult = DhValidator.ValidateX25519PublicKey(ephemeralX25519);
+        if (validationResult.IsErr)
+        {
+            throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_EPHEMERAL_X_25519_KEY, validationResult.UnwrapErr().Message));
+        }
+
+        return ephemeralX25519;
+    }
+
+    private static List<OneTimePreKeyRecord> ExtractAndValidateOneTimePreKeys(PublicKeyBundle proto)
+    {
+        List<OneTimePreKeyRecord> opkRecords = new(proto.OneTimePreKeys.Count);
+
+        foreach (PublicKeyBundle.Types.OneTimePreKey pOpk in proto.OneTimePreKeys)
+        {
+            SecureByteStringInterop.SecureCopyWithCleanup(pOpk.PublicKey, out byte[] opkPublicKey);
+            Result<OneTimePreKeyRecord, EcliptixProtocolFailure> opkResult =
+                OneTimePreKeyRecord.Create(pOpk.PreKeyId, opkPublicKey);
+
+            if (opkResult.IsErr)
+            {
+                throw new ArgumentException(string.Format(EcliptixProtocolFailureMessages.PublicKeyBundle.INVALID_ONE_TIME_PRE_KEY, pOpk.PreKeyId, opkResult.UnwrapErr().Message));
+            }
+
+            opkRecords.Add(opkResult.Unwrap());
+        }
+
+        return opkRecords;
     }
 
     private readonly struct InternalBundleData
