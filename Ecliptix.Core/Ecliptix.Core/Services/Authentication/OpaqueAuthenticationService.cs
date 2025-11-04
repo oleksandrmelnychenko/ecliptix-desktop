@@ -526,13 +526,13 @@ internal sealed class OpaqueAuthenticationService(
         return Result<SignInFlowResult, AuthenticationFailure>.Ok(flowResult);
     }
 
-    private bool ShouldRetrySignInAttempt(AuthenticationFailure failure, int attempt)
+    private static bool ShouldRetrySignInAttempt(AuthenticationFailure failure, int attempt)
     {
         bool isRetryableError = failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
         return isRetryableError && attempt < MAX_SIGN_IN_FLOW_ATTEMPTS;
     }
 
-    private bool ShouldAttemptReinit(AuthenticationFailure failure, bool allowReinit)
+    private static bool ShouldAttemptReinit(AuthenticationFailure failure, bool allowReinit)
     {
         if (!allowReinit)
         {
@@ -542,7 +542,7 @@ internal sealed class OpaqueAuthenticationService(
         return failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
     }
 
-    private AuthenticationFailure MapValidationFailure(ValidationFailure validation)
+    private static AuthenticationFailure MapValidationFailure(ValidationFailure validation)
     {
         return validation.FailureType switch
         {

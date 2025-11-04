@@ -99,42 +99,47 @@ public sealed class LanguageSelectorViewModel : ReactiveObject, IActivatableView
                 .Where(item => item.Code != _localizationService.CurrentCultureName)
                 .Subscribe(item =>
                 {
-                    _localizationService.SetCulture(item.Code,
-                        () =>
-                        {
-                            System.Threading.Tasks.Task.Run(async () =>
-                            {
-                                try
-                                {
-                                    Result<Utilities.Unit, InternalServiceApiFailure> result =
-                                        await _applicationSecureStorageProvider
-                                            .SetApplicationSettingsCultureAsync(item.Code).ConfigureAwait(false);
-                                    if (result.IsErr)
-                                    {
-                                        Serilog.Log.Warning(
-                                            "[LANGUAGE-SELECTOR] Failed to persist culture setting. CULTURE: {CULTURE}, ERROR: {ERROR}",
-                                            item.Code, result.UnwrapErr().Message);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. CULTURE: {CULTURE}",
-                                        item.Code);
-                                }
-                            }).ContinueWith(
-                                task =>
-                                {
-                                    if (task.IsFaulted && task.Exception != null)
-                                    {
-                                        Serilog.Log.Error(task.Exception, "[LANGUAGE-SELECTOR] Unhandled exception in culture persistence");
-                                    }
-                                },
-                                System.Threading.Tasks.TaskScheduler.Default);
-                            _rpcMetaDataProvider.SetCulture(item.Code);
-                        });
+                    _localizationService.SetCulture(item.Code, () => HandleCultureChange(item.Code));
                 })
                 .DisposeWith(disposables);
         });
+    }
+
+    private void HandleCultureChange(string cultureCode)
+    {
+        _ = PersistCultureSettingAsync(cultureCode).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[LANGUAGE-SELECTOR] Unhandled exception in culture persistence");
+                }
+            },
+            System.Threading.Tasks.TaskScheduler.Default);
+
+        _rpcMetaDataProvider.SetCulture(cultureCode);
+    }
+
+    private async System.Threading.Tasks.Task PersistCultureSettingAsync(string cultureCode)
+    {
+        try
+        {
+            Result<Utilities.Unit, InternalServiceApiFailure> result =
+                await _applicationSecureStorageProvider
+                    .SetApplicationSettingsCultureAsync(cultureCode).ConfigureAwait(false);
+
+            if (result.IsErr)
+            {
+                Serilog.Log.Warning(
+                    "[LANGUAGE-SELECTOR] Failed to persist culture setting. CULTURE: {CULTURE}, ERROR: {ERROR}",
+                    cultureCode, result.UnwrapErr().Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "[LANGUAGE-SELECTOR] Exception persisting culture setting. CULTURE: {CULTURE}",
+                cultureCode);
+        }
     }
 
     public void Dispose()

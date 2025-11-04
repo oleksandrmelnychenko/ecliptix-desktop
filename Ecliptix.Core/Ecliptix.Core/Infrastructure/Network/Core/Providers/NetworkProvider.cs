@@ -1272,12 +1272,13 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return Result<Unit, NetworkFailure>.Err(invokeResult.UnwrapErr());
         }
 
-        RpcFlow flow = invokeResult.Unwrap();
-        if (flow is not RpcFlow.InboundStream inboundStream)
+        Result<RpcFlow.InboundStream, NetworkFailure> streamResult = ValidateStreamFlow(invokeResult.Unwrap());
+        if (streamResult.IsErr)
         {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
+            return Result<Unit, NetworkFailure>.Err(streamResult.UnwrapErr());
         }
+
+        RpcFlow.InboundStream inboundStream = streamResult.Unwrap();
 
         try
         {
@@ -1287,33 +1288,18 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 if (streamItem.IsErr)
                 {
                     NetworkFailure failure = streamItem.UnwrapErr();
-
-                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                    {
-                        connectivityService.PublishAsync(
-                            ConnectivityIntent.Disconnected(failure, connectId)).ContinueWith(
-                            task =>
-                            {
-                                if (task.IsFaulted && task.Exception != null)
-                                {
-                                    Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing disconnected event");
-                                }
-                            },
-                            TaskScheduler.Default);
-                    });
-
+                    NotifyStreamError(failure, connectId);
                     return Result<Unit, NetworkFailure>.Err(failure);
                 }
 
                 SecureEnvelope streamPayload = streamItem.Unwrap();
-                Result<byte[], EcliptixProtocolFailure> streamDecryptedData =
-                    protocolSystem.ProcessInboundEnvelope(streamPayload);
-                if (streamDecryptedData.IsErr)
+                Result<byte[], NetworkFailure> processResult =
+                    await ProcessStreamItemAsync(streamPayload, protocolSystem, onStreamItem).ConfigureAwait(false);
+
+                if (processResult.IsErr)
                 {
                     continue;
                 }
-
-                await onStreamItem(streamDecryptedData.Unwrap()).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (linkedTokenSource.Token.IsCancellationRequested)
@@ -1321,16 +1307,79 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         }
         finally
         {
-            if (_activeStreams.TryRemove(connectId, out _))
-            {
-            }
+            CleanupActiveStream(connectId);
         }
 
+        NotifyStreamSuccess(connectId);
+
+        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private static Result<RpcFlow.InboundStream, NetworkFailure> ValidateStreamFlow(RpcFlow flow)
+    {
+        if (flow is not RpcFlow.InboundStream inboundStream)
+        {
+            return Result<RpcFlow.InboundStream, NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType($"Expected InboundStream flow but received {flow.GetType().Name}"));
+        }
+
+        return Result<RpcFlow.InboundStream, NetworkFailure>.Ok(inboundStream);
+    }
+
+    private void NotifyStreamError(NetworkFailure failure, uint connectId)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _ = connectivityService.PublishAsync(
+                ConnectivityIntent.Disconnected(failure, connectId)).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing disconnected event");
+                    }
+                },
+                TaskScheduler.Default);
+        });
+    }
+
+    private static async Task<Result<byte[], NetworkFailure>> ProcessStreamItemAsync(
+        SecureEnvelope envelope,
+        EcliptixProtocolSystem protocolSystem,
+        Func<byte[], Task<Result<Unit, NetworkFailure>>> onStreamItem)
+    {
+        Result<byte[], EcliptixProtocolFailure> decryptResult =
+            protocolSystem.ProcessInboundEnvelope(envelope);
+
+        if (decryptResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Failed to decrypt stream item"));
+        }
+
+        byte[] decryptedData = decryptResult.Unwrap();
+        Result<Unit, NetworkFailure> itemResult = await onStreamItem(decryptedData).ConfigureAwait(false);
+
+        if (itemResult.IsErr)
+        {
+            return Result<byte[], NetworkFailure>.Err(itemResult.UnwrapErr());
+        }
+
+        return Result<byte[], NetworkFailure>.Ok(decryptedData);
+    }
+
+    private void CleanupActiveStream(uint connectId)
+    {
+        _activeStreams.TryRemove(connectId, out _);
+    }
+
+    private void NotifyStreamSuccess(uint connectId)
+    {
         bool exitedOutage = Interlocked.CompareExchange(ref _outageState, 0, 1) == 1;
 
         if (!exitedOutage)
         {
-            return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+            return;
         }
 
         lock (_outageLock)
@@ -1343,7 +1392,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            connectivityService.PublishAsync(
+            _ = connectivityService.PublishAsync(
                 ConnectivityIntent.Connected(connectId)).ContinueWith(
                 task =>
                 {
@@ -1354,8 +1403,6 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
                 },
                 TaskScheduler.Default);
         });
-
-        return Result<Unit, NetworkFailure>.Ok(Unit.Value);
     }
 
     private async Task<Result<Unit, NetworkFailure>> ProcessStreamDirectly(
@@ -1912,42 +1959,27 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         string failureMessage,
         bool failOnMissingState = false)
     {
-        if (!_applicationInstanceSettings.IsSome)
+        Result<(uint connectId, byte[] membershipId), NetworkFailure> prerequisitesResult = ValidateRecoveryPrerequisites();
+        if (prerequisitesResult.IsErr)
         {
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType("Application instance settings not available"));
+            return Result<Unit, NetworkFailure>.Err(prerequisitesResult.UnwrapErr());
         }
 
-        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
-            PubKeyExchangeType.DataCenterEphemeralConnect);
-
+        (uint connectId, byte[] membershipId) = prerequisitesResult.Unwrap();
         _connections.TryRemove(connectId, out _);
 
-        byte[]? membershipId = GetMembershipIdBytes();
-        if (membershipId == null)
-        {
-            Log.Warning("[CLIENT-RECOVERY-STATE] Cannot load state: membershipId not available. ConnectId: {ConnectId}",
-                connectId);
-            return Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.DataCenterNotResponding("MembershipId not available for state restoration"));
-        }
-
-        Result<byte[], SecureStorageFailure> stateResult =
-            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
+        Result<EcliptixSessionState, NetworkFailure> stateResult =
+            await LoadAndParseStoredState(connectId, membershipId, failOnMissingState, failureMessage).ConfigureAwait(false);
 
         if (stateResult.IsErr)
         {
-            return Result<Unit, NetworkFailure>.Err(failOnMissingState
-                ? NetworkFailure.DataCenterNotResponding("No stored state for immediate recovery")
-                : NetworkFailure.DataCenterNotResponding(failureMessage));
+            return Result<Unit, NetworkFailure>.Err(stateResult.UnwrapErr());
         }
 
         bool restorationSucceeded;
         try
         {
-            byte[] stateBytes = stateResult.Unwrap();
-            EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
-
+            EcliptixSessionState state = stateResult.Unwrap();
             Result<bool, NetworkFailure> restoreResult =
                 await RestoreSecrecyChannelAsync(state, _applicationInstanceSettings.Value!, retryMode)
                     .ConfigureAwait(false);
@@ -1956,19 +1988,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
             if (restorationSucceeded)
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    connectivityService.PublishAsync(
-                        ConnectivityIntent.Connected(connectId)).ContinueWith(
-                        task =>
-                        {
-                            if (task.IsFaulted && task.Exception != null)
-                            {
-                                Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event after restoration");
-                            }
-                        },
-                        TaskScheduler.Default);
-                });
+                PublishConnectionRestored(connectId);
             }
         }
         catch (Exception ex)
@@ -1993,6 +2013,75 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         await RetryPendingRequestsAfterRecovery().ConfigureAwait(false);
 
         return Result<Unit, NetworkFailure>.Ok(Unit.Value);
+    }
+
+    private Result<(uint connectId, byte[] membershipId), NetworkFailure> ValidateRecoveryPrerequisites()
+    {
+        if (!_applicationInstanceSettings.IsSome)
+        {
+            return Result<(uint, byte[]), NetworkFailure>.Err(
+                NetworkFailure.InvalidRequestType("Application instance settings not available"));
+        }
+
+        uint connectId = ComputeUniqueConnectId(_applicationInstanceSettings.Value!,
+            PubKeyExchangeType.DataCenterEphemeralConnect);
+
+        byte[]? membershipId = GetMembershipIdBytes();
+        if (membershipId == null)
+        {
+            Log.Warning("[CLIENT-RECOVERY-STATE] Cannot load state: membershipId not available. ConnectId: {ConnectId}",
+                connectId);
+            return Result<(uint, byte[]), NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding("MembershipId not available for state restoration"));
+        }
+
+        return Result<(uint, byte[]), NetworkFailure>.Ok((connectId, membershipId));
+    }
+
+    private async Task<Result<EcliptixSessionState, NetworkFailure>> LoadAndParseStoredState(
+        uint connectId,
+        byte[] membershipId,
+        bool failOnMissingState,
+        string failureMessage)
+    {
+        Result<byte[], SecureStorageFailure> stateResult =
+            await secureProtocolStateStorage.LoadStateAsync(connectId.ToString(), membershipId).ConfigureAwait(false);
+
+        if (stateResult.IsErr)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(failOnMissingState
+                ? NetworkFailure.DataCenterNotResponding("No stored state for immediate recovery")
+                : NetworkFailure.DataCenterNotResponding(failureMessage));
+        }
+
+        try
+        {
+            byte[] stateBytes = stateResult.Unwrap();
+            EcliptixSessionState state = EcliptixSessionState.Parser.ParseFrom(stateBytes);
+            return Result<EcliptixSessionState, NetworkFailure>.Ok(state);
+        }
+        catch (Exception ex)
+        {
+            return Result<EcliptixSessionState, NetworkFailure>.Err(
+                NetworkFailure.DataCenterNotResponding($"Failed to parse stored state: {ex.Message}"));
+        }
+    }
+
+    private void PublishConnectionRestored(uint connectId)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _ = connectivityService.PublishAsync(
+                ConnectivityIntent.Connected(connectId)).ContinueWith(
+                task =>
+                {
+                    if (task.IsFaulted && task.Exception != null)
+                    {
+                        Log.Error(task.Exception, "[NETWORK-PROVIDER] Unhandled exception publishing connected event after restoration");
+                    }
+                },
+                TaskScheduler.Default);
+        });
     }
 
     private void ResetRetryStrategyAfterOutage()

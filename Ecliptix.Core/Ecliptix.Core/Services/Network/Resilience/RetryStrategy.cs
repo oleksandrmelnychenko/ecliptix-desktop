@@ -355,61 +355,69 @@ public sealed class RetryStrategy : IRetryStrategy
             if (retryResult.IsOk)
             {
                 Log.Information("🔄 MANUAL RETRY: Connection restored successfully");
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    try
-                    {
-                        _connectivityService.PublishAsync(
-                            ConnectivityIntent.Connected(
-                                evt.ConnectId,
-                                ConnectivityReason.ManualRetry)).ContinueWith(
-                            task =>
-                            {
-                                if (task.IsFaulted && task.Exception != null)
-                                {
-                                    Log.Error(task.Exception, "Unhandled exception publishing connection restored");
-                                }
-                            },
-                            TaskScheduler.Default);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Failed to notify UI of connection restored state");
-                    }
-                });
+                NotifyConnectionRestored(evt.ConnectId);
             }
             else
             {
                 NetworkFailure failure = retryResult.UnwrapErr();
                 Log.Warning("🔄 MANUAL RETRY: Connection restore failed: {ERROR}", failure.Message);
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    try
-                    {
-                        _connectivityService.PublishAsync(
-                            ConnectivityIntent.Disconnected(failure, evt.ConnectId)).ContinueWith(
-                            task =>
-                            {
-                                if (task.IsFaulted && task.Exception != null)
-                                {
-                                    Log.Error(task.Exception, "Unhandled exception publishing disconnected state");
-                                }
-                            },
-                            TaskScheduler.Default);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Failed to notify UI of disconnected state");
-                    }
-                });
+                NotifyConnectionFailed(failure, evt.ConnectId);
             }
         }
         catch (Exception ex)
         {
             Log.Error(ex, "🚨 MANUAL RETRY ERROR: Failed to handle manual retry request");
         }
+    }
+
+    private void NotifyConnectionRestored(uint? connectId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                _ = _connectivityService.PublishAsync(
+                    ConnectivityIntent.Connected(
+                        connectId,
+                        ConnectivityReason.ManualRetry)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "Unhandled exception publishing connection restored");
+                        }
+                    },
+                    TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to notify UI of connection restored state");
+            }
+        });
+    }
+
+    private void NotifyConnectionFailed(NetworkFailure failure, uint? connectId)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                _ = _connectivityService.PublishAsync(
+                    ConnectivityIntent.Disconnected(failure, connectId)).ContinueWith(
+                    task =>
+                    {
+                        if (task.IsFaulted && task.Exception != null)
+                        {
+                            Log.Error(task.Exception, "Unhandled exception publishing disconnected state");
+                        }
+                    },
+                    TaskScheduler.Default);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to notify UI of disconnected state");
+            }
+        });
     }
 
     private void StartTrackingOperation(string operationName, uint connectId, int maxRetries, string operationKey,

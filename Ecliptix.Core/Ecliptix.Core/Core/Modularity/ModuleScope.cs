@@ -6,22 +6,12 @@ using Serilog;
 
 namespace Ecliptix.Core.Core.Modularity;
 
-internal sealed class ModuleScope : IModuleScope
+internal sealed class ModuleScope(string moduleName, IServiceScope serviceScope) : IModuleScope
 {
-    private readonly IServiceScope _serviceScope;
     private long _disposed;
 
-    public ModuleScope(string moduleName, IServiceScope serviceScope)
-    {
-        ModuleName = moduleName;
-        _serviceScope = serviceScope;
-        ServiceProvider = serviceScope.ServiceProvider;
-
-        Log.Debug("Module scope created for {ModuleName}", ModuleName);
-    }
-
-    public IServiceProvider ServiceProvider { get; }
-    public string ModuleName { get; }
+    public IServiceProvider ServiceProvider { get; } = serviceScope.ServiceProvider;
+    public string ModuleName { get; } = moduleName;
 
     public void Dispose()
     {
@@ -32,9 +22,7 @@ internal sealed class ModuleScope : IModuleScope
 
         try
         {
-            Log.Debug("Disposing module scope for {ModuleName}", ModuleName);
-            _serviceScope.Dispose();
-            Log.Debug("Module scope disposed for {ModuleName}", ModuleName);
+            serviceScope.Dispose();
         }
         catch (Exception ex)
         {

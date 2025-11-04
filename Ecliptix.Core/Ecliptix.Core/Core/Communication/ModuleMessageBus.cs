@@ -221,9 +221,9 @@ public sealed class ModuleMessageBus : IModuleMessageBus, IDisposable
         {
             _messageProcessingTask.Wait(TimeSpan.FromSeconds(5));
         }
-        catch (TimeoutException)
+        catch (TimeoutException ex)
         {
-            Serilog.Log.Warning("[MODULE-MESSAGE-BUS] Message processing task did not complete within timeout during disposal");
+            Serilog.Log.Warning(ex, "[MODULE-MESSAGE-BUS] Message processing task did not complete within timeout during disposal");
         }
         catch (AggregateException ex) when (ex.InnerException is OperationCanceledException)
         {

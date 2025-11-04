@@ -870,39 +870,11 @@ internal sealed class OpaqueRegistrationService(
         VerificationPurpose purpose,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
-        if (verificationCountdownUpdate.Status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
-            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
-            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound)
+        if (ShouldCleanupVerificationStream(verificationCountdownUpdate.Status))
         {
             if (verificationIdentifier != Guid.Empty)
             {
-                Task.Run(async () =>
-                {
-                    try
-                    {
-                        Result<Unit, string> cleanupResult =
-                            await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
-                        if (cleanupResult.IsErr)
-                        {
-                            Serilog.Log.Warning(
-                                "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, ERROR: {ERROR}",
-                                verificationIdentifier, cleanupResult.UnwrapErr());
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Exception during stream cleanup. SessionIdentifier: {SessionIdentifier}",
-                            verificationIdentifier);
-                    }
-                }, CancellationToken.None).ContinueWith(
-                    task =>
-                    {
-                        if (task.IsFaulted && task.Exception != null)
-                        {
-                            Serilog.Log.Error(task.Exception, "[VERIFICATION-CLEANUP] Unhandled exception in cleanup task");
-                        }
-                    },
-                    TaskScheduler.Default);
+                ScheduleStreamCleanupAsync(verificationIdentifier);
             }
         }
 
@@ -918,6 +890,42 @@ internal sealed class OpaqueRegistrationService(
                 verificationIdentifier,
                 verificationCountdownUpdate.Status,
                 verificationCountdownUpdate.Message));
+    }
+
+    private static bool ShouldCleanupVerificationStream(VerificationCountdownUpdate.Types.CountdownUpdateStatus status) =>
+        status is VerificationCountdownUpdate.Types.CountdownUpdateStatus.Failed
+            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.MaxAttemptsReached
+            or VerificationCountdownUpdate.Types.CountdownUpdateStatus.NotFound;
+
+    private void ScheduleStreamCleanupAsync(Guid verificationIdentifier)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                Result<Unit, string> cleanupResult =
+                    await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
+                if (cleanupResult.IsErr)
+                {
+                    Serilog.Log.Warning(
+                        "[VERIFICATION-CLEANUP] Failed to cleanup verification stream. SessionIdentifier: {SessionIdentifier}, ERROR: {ERROR}",
+                        verificationIdentifier, cleanupResult.UnwrapErr());
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Exception during stream cleanup. SessionIdentifier: {SessionIdentifier}",
+                    verificationIdentifier);
+            }
+        }, CancellationToken.None).ContinueWith(
+            task =>
+            {
+                if (task.IsFaulted && task.Exception != null)
+                {
+                    Serilog.Log.Error(task.Exception, "[VERIFICATION-CLEANUP] Unhandled exception in cleanup task");
+                }
+            },
+            TaskScheduler.Default);
     }
 
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(
