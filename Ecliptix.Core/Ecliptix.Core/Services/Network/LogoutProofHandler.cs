@@ -24,6 +24,19 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
     public async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofAsync(
         LogoutResponse response,
         string membershipId,
+        uint connectId) =>
+        await VerifyRevocationProofInternalAsync(
+            identityService,
+            applicationSecureStorageProvider,
+            response,
+            membershipId,
+            connectId);
+
+    private static async Task<Result<Unit, LogoutFailure>> VerifyRevocationProofInternalAsync(
+        IIdentityService identityService,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
+        LogoutResponse response,
+        string membershipId,
         uint connectId)
     {
         Result<byte[], LogoutFailure> proofValidation = ValidateRevocationProofFormat(response);
@@ -42,7 +55,14 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
 
         ParsedProof parsed = parseResult.Unwrap();
 
-        return await VerifyAndStoreProofAsync(membershipId, connectId, response.ServerTimestamp, parsed, revocationProof);
+        return await VerifyAndStoreProofAsync(
+            identityService,
+            applicationSecureStorageProvider,
+            membershipId,
+            connectId,
+            response.ServerTimestamp,
+            parsed,
+            revocationProof);
     }
 
     private static Result<byte[], LogoutFailure> ValidateRevocationProofFormat(LogoutResponse response)
@@ -200,7 +220,9 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         return Result<byte[], LogoutFailure>.Ok(hmacProof);
     }
 
-    private async Task<Result<Unit, LogoutFailure>> VerifyAndStoreProofAsync(
+    private static async Task<Result<Unit, LogoutFailure>> VerifyAndStoreProofAsync(
+        IIdentityService identityService,
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
         string membershipId,
         uint connectId,
         long serverTimestamp,
@@ -211,7 +233,7 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
 
         try
         {
-            Result<byte[], LogoutFailure> proofKeyResult = await LoadProofKeyAsync(membershipId);
+            Result<byte[], LogoutFailure> proofKeyResult = await LoadProofKeyAsync(identityService, membershipId);
             if (proofKeyResult.IsErr)
             {
                 return Result<Unit, LogoutFailure>.Err(proofKeyResult.UnwrapErr());
@@ -229,7 +251,7 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
                     LogoutFailure.InvalidRevocationProof("Server revocation proof HMAC verification failed"));
             }
 
-            Result<Unit, LogoutFailure> storeResult = await StoreRevocationProofAsync(membershipId, revocationProof);
+            Result<Unit, LogoutFailure> storeResult = await StoreRevocationProofAsync(applicationSecureStorageProvider, membershipId, revocationProof);
             if (storeResult.IsErr)
             {
                 Log.Warning("[LOGOUT-PROOF] Failed to store revocation proof: {ERROR}", storeResult.UnwrapErr().Message);
@@ -246,7 +268,9 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         }
     }
 
-    private async Task<Result<byte[], LogoutFailure>> LoadProofKeyAsync(string membershipId)
+    private static async Task<Result<byte[], LogoutFailure>> LoadProofKeyAsync(
+        IIdentityService identityService,
+        string membershipId)
     {
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> handleResult =
             await identityService.LoadMasterKeyHandleAsync(membershipId).ConfigureAwait(false);
@@ -292,7 +316,8 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         return ms.ToArray();
     }
 
-    private async Task<Result<Unit, LogoutFailure>> StoreRevocationProofAsync(
+    private static async Task<Result<Unit, LogoutFailure>> StoreRevocationProofAsync(
+        IApplicationSecureStorageProvider applicationSecureStorageProvider,
         string membershipId,
         byte[] revocationProof)
     {
