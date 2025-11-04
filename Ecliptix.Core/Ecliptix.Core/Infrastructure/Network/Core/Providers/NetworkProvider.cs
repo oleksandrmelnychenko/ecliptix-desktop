@@ -1150,7 +1150,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CORRELATION_ID))
         {
-            return failure with { UserError = userError with { CORRELATION_ID = context.CORRELATION_ID } };
+            return failure with { UserError = userError with { CORRELATION_ID = context.CorrelationId } };
         }
 
         return failure;

@@ -1,0 +1,805 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "4.12.0.0",
+        "fileVersion": "4.12.0-3.24570.6 (913fb4ec)",
+        "semanticVersion": "4.12.0",
+        "language": "en-UA"
+      },
+      "results": [
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningBoolResult should override Equals",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningBoolResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningBoolResult should override the equality (==) and inequality (!=) operators",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningBoolResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningOperationResult should override Equals",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningOperationResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningOperationResult should override the equality (==) and inequality (!=) operators",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningOperationResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningByteArrayResult should override Equals",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1815",
+          "level": "note",
+          "message": "CertificatePinningByteArrayResult should override the equality (==) and inequality (!=) operators",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs",
+                "region": {
+                  "startLine": 5,
+                  "startColumn": 24,
+                  "endLine": 5,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 8,
+                  "startColumn": 17,
+                  "endLine": 8,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method Initialize didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 83,
+                  "startColumn": 57,
+                  "endLine": 83,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method Cleanup didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 86,
+                  "startColumn": 31,
+                  "endLine": 86,
+                  "endColumn": 38
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Cleanup' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 86,
+                  "startColumn": 31,
+                  "endLine": 86,
+                  "endColumn": 38
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Initialize' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 83,
+                  "startColumn": 57,
+                  "endLine": 83,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method VerifySignature didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 57,
+                  "endLine": 89,
+                  "endColumn": 72
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'VerifySignature' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 57,
+                  "endLine": 89,
+                  "endColumn": 72
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method Decrypt didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 99,
+                  "startColumn": 57,
+                  "endLine": 99,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Decrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 99,
+                  "startColumn": 57,
+                  "endLine": 99,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method Encrypt didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 94,
+                  "startColumn": 57,
+                  "endLine": 94,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method GetPublicKey didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 57,
+                  "endLine": 104,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'GetPublicKey' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 57,
+                  "endLine": 104,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'Encrypt' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 94,
+                  "startColumn": 57,
+                  "endLine": 94,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method GetErrorMessage didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 108,
+                  "startColumn": 32,
+                  "endLine": 108,
+                  "endColumn": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'GetErrorMessage' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 108,
+                  "startColumn": 32,
+                  "endLine": 108,
+                  "endColumn": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "S3267",
+          "level": "warning",
+          "message": "Loops should be simplified using the \"Where\" LINQ method",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 51,
+                  "startColumn": 36,
+                  "endLine": 51,
+                  "endColumn": 47
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 53,
+                  "startColumn": 17,
+                  "endLine": 53,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "0": null
+            }
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 13,
+                  "endLine": 104,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 289,
+                  "startColumn": 13,
+                  "endLine": 289,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "IL3000",
+          "level": "warning",
+          "message": "'System.Reflection.Assembly.Location.get' always returns an empty string for assemblies embedded in a single-file app. If the path to the app directory is needed, consider calling 'System.AppContext.BaseDirectory'.",
+          "suppressionStates": [
+            "suppressedInSource"
+          ],
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs",
+                "region": {
+                  "startLine": 48,
+                  "startColumn": 48,
+                  "endLine": 48,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 237,
+                  "startColumn": 13,
+                  "endLine": 237,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 151,
+                  "startColumn": 13,
+                  "endLine": 151,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6640",
+          "level": "warning",
+          "message": "Make sure that using \"unsafe\" is safe here.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 333,
+                  "startColumn": 20,
+                  "endLine": 333,
+                  "endColumn": 26
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6618",
+          "level": "warning",
+          "message": "Use \"string.Create\" instead of \"FormattableString\".",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 340,
+                  "startColumn": 87,
+                  "endLine": 340,
+                  "endColumn": 96
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6618",
+          "level": "warning",
+          "message": "Use \"string.Create\" instead of \"FormattableString\".",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs",
+                "region": {
+                  "startLine": 349,
+                  "startColumn": 34,
+                  "endLine": 349,
+                  "endColumn": 43
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1815": {
+          "id": "CA1815",
+          "shortDescription": "Override equals and operator equals on value types",
+          "fullDescription": "For value types, the inherited implementation of Equals uses the Reflection library and compares the contents of all fields. Reflection is computationally expensive, and comparing every field for equality might be unnecessary. If you expect users to compare or sort instances, or to use instances as hash table keys, your value type should implement Equals.",
+          "defaultLevel": "warning",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1815",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": false,
+            "tags": [
+              "PortedFromFxCop",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA5392": {
+          "id": "CA5392",
+          "shortDescription": "Use DefaultDllImportSearchPaths attribute for P/Invokes",
+          "fullDescription": "By default, P/Invokes using DllImportAttribute probe a number of directories, including the current working directory for the library to load. This can be a security issue for certain applications, leading to DLL hijacking.",
+          "defaultLevel": "warning",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca5392",
+          "properties": {
+            "category": "Security",
+            "isEnabledByDefault": false,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "IL3000": {
+          "id": "IL3000",
+          "shortDescription": "Avoid accessing Assembly file path when publishing as a single file",
+          "fullDescription": "https://learn.microsoft.com/dotnet/core/deploying/single-file/warnings/il3000",
+          "defaultLevel": "warning",
+          "properties": {
+            "category": "SingleFile",
+            "isEnabledByDefault": true
+          }
+        },
+        "S3267": {
+          "id": "S3267",
+          "shortDescription": "Loops should be simplified with \"LINQ\" expressions",
+          "fullDescription": "Using explicit loops for filtering, selecting, or aggregating elements can make code more verbose and harder to read. LINQ expressions provide a more concise and expressive way to perform these operations, improving code clarity and maintainability.",
+          "defaultLevel": "warning",
+          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-3267",
+          "properties": {
+            "category": "Minor Code Smell",
+            "isEnabledByDefault": true,
+            "tags": [
+              "C#",
+              "MainSourceScope",
+              "SonarWay"
+            ]
+          }
+        },
+        "S6618": {
+          "id": "S6618",
+          "shortDescription": "\"string.Create\" should be used instead of \"FormattableString\"",
+          "fullDescription": "In order to produce a formatted string, both string.Create and either FormattableString.Invariant or FormattableString.CurrentCulture can be used. However, string.Create rents array buffers from ArrayPool<char> making it more performant, as well as preventing unnecessary allocations and future stress on the Garbage Collector.",
+          "defaultLevel": "warning",
+          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6618",
+          "properties": {
+            "category": "Minor Code Smell",
+            "isEnabledByDefault": true,
+            "tags": [
+              "C#",
+              "MainSourceScope",
+              "TestSourceScope",
+              "SonarWay"
+            ]
+          }
+        },
+        "S6640": {
+          "id": "S6640",
+          "shortDescription": "Using unsafe code blocks is security-sensitive",
+          "fullDescription": "Using unsafe code blocks can lead to unintended security or stability risks.",
+          "defaultLevel": "warning",
+          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6640",
+          "properties": {
+            "category": "Major Security Hotspot",
+            "isEnabledByDefault": true,
+            "tags": [
+              "C#",
+              "MainSourceScope",
+              "TestSourceScope",
+              "SonarWay"
+            ]
+          }
+        },
+        "SYSLIB1054": {
+          "id": "SYSLIB1054",
+          "shortDescription": "Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "fullDescription": "Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/syslib-diagnostics/syslib1054",
+          "properties": {
+            "category": "Interoperability",
+            "isEnabledByDefault": true
+          }
+        }
+      }
+    }
+  ]
+}

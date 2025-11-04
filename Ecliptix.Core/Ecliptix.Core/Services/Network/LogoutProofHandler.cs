@@ -296,80 +296,56 @@ public class LogoutProofHandler(IIdentityService identityService, IApplicationSe
         string membershipId,
         byte[] revocationProof)
     {
-        try
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+
+        Result<Unit, InternalServiceApiFailure> storeResult =
+            await applicationSecureStorageProvider.StoreAsync(storageKey, revocationProof)
+                .ConfigureAwait(false);
+
+        if (storeResult.IsErr)
         {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-
-            Result<Unit, InternalServiceApiFailure> storeResult =
-                await applicationSecureStorageProvider.StoreAsync(storageKey, revocationProof)
-                    .ConfigureAwait(false);
-
-            if (storeResult.IsErr)
-            {
-                Log.Error("[LOGOUT-PROOF-STORE] Failed to store revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-                return Result<Unit, LogoutFailure>.Err(
-                    LogoutFailure.UnexpectedError(
-                        $"Revocation proof storage failed: {storeResult.UnwrapErr().Message}"));
-            }
-
-            return Result<Unit, LogoutFailure>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[LOGOUT-PROOF-STORE] Unexpected error storing revocation proof");
+            Log.Error("[LOGOUT-PROOF-STORE] Failed to store revocation proof for MembershipId: {MembershipId}",
+                membershipId);
             return Result<Unit, LogoutFailure>.Err(
-                LogoutFailure.UnexpectedError($"Unexpected error: {ex.Message}", ex));
+                LogoutFailure.UnexpectedError(
+                    $"Revocation proof storage failed: {storeResult.UnwrapErr().Message}"));
         }
+
+        return Result<Unit, LogoutFailure>.Ok(Unit.Value);
     }
 
     public static async Task<bool> HasRevocationProofAsync(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
     {
-        try
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+
+        Result<Option<byte[]>, InternalServiceApiFailure> getResult =
+            await storageProvider.TryGetByKeyAsync(storageKey).ConfigureAwait(false);
+
+        if (getResult.IsErr)
         {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-
-            Result<Option<byte[]>, InternalServiceApiFailure> getResult =
-                await storageProvider.TryGetByKeyAsync(storageKey).ConfigureAwait(false);
-
-            if (getResult.IsErr)
-            {
-                Log.Warning("[LOGOUT-PROOF-CHECK] Failed to check revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-                return false;
-            }
-
-            Option<byte[]> proofOption = getResult.Unwrap();
-
-            return proofOption.IsSome;
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[LOGOUT-PROOF-CHECK] Unexpected error checking revocation proof");
+            Log.Warning("[LOGOUT-PROOF-CHECK] Failed to check revocation proof for MembershipId: {MembershipId}",
+                membershipId);
             return false;
         }
+
+        Option<byte[]> proofOption = getResult.Unwrap();
+
+        return proofOption.IsSome;
     }
 
     public static void ClearRevocationProof(
         IApplicationSecureStorageProvider storageProvider,
         string membershipId)
     {
-        try
-        {
-            string storageKey = GetRevocationProofStorageKey(membershipId);
-            Result<Unit, InternalServiceApiFailure> deleteResult = storageProvider.Delete(storageKey);
+        string storageKey = GetRevocationProofStorageKey(membershipId);
+        Result<Unit, InternalServiceApiFailure> deleteResult = storageProvider.Delete(storageKey);
 
-            if (deleteResult.IsErr)
-            {
-                Log.Warning("[LOGOUT-PROOF-CLEAR] Failed to clear revocation proof for MembershipId: {MembershipId}",
-                    membershipId);
-            }
-        }
-        catch (Exception ex)
+        if (deleteResult.IsErr)
         {
-            Log.Error(ex, "[LOGOUT-PROOF-CLEAR] Unexpected error clearing revocation proof");
+            Log.Warning("[LOGOUT-PROOF-CLEAR] Failed to clear revocation proof for MembershipId: {MembershipId}",
+                membershipId);
         }
     }
 

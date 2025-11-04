@@ -1,0 +1,1 @@
+}Rg/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Ecliptix.Protobufs.csproj¢net9.0òCSharp13

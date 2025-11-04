@@ -264,39 +264,33 @@ internal sealed class LogoutService(
         {
             _ = Task.Run(async () =>
             {
-                try
+                Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
+                    await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync()
+                        .ConfigureAwait(false);
+
+                if (settingsResult.IsOk)
                 {
-                    Result<ApplicationInstanceSettings, InternalServiceApiFailure> settingsResult =
-                        await applicationSecureStorageProvider.GetApplicationInstanceSettingsAsync()
-                            .ConfigureAwait(false);
+                    ApplicationInstanceSettings settings = settingsResult.Unwrap();
+                    uint anonymousConnectId = NetworkProvider.ComputeUniqueConnectId(
+                        settings,
+                        PubKeyExchangeType.DataCenterEphemeralConnect);
 
-                    if (settingsResult.IsOk)
-                    {
-                        ApplicationInstanceSettings settings = settingsResult.Unwrap();
-                        uint anonymousConnectId = NetworkProvider.ComputeUniqueConnectId(
-                            settings,
-                            PubKeyExchangeType.DataCenterEphemeralConnect);
-
-                        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId)
-                            .ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        Log.Warning(
-                            "[LOGOUT-RETRY] Failed to get settings for immediate retry: {ERROR}, will retry on next startup",
-                            settingsResult.UnwrapErr().Message);
-                    }
+                    await _pendingLogoutProcessor.ProcessPendingLogoutAsync(anonymousConnectId)
+                        .ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log.Warning(ex, "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
+                    Log.Warning(
+                        "[LOGOUT-RETRY] Failed to get settings for immediate retry: {ERROR}, will retry on next startup",
+                        settingsResult.UnwrapErr().Message);
                 }
             }).ContinueWith(
                 task =>
                 {
                     if (task.IsFaulted && task.Exception != null)
                     {
-                        Log.Error(task.Exception, "[LOGOUT-RETRY] Unhandled exception in pending logout retry");
+                        Log.Warning(task.Exception,
+                            "[LOGOUT-RETRY] Immediate pending logout retry failed, will retry on next startup");
                     }
                 },
                 TaskScheduler.Default);

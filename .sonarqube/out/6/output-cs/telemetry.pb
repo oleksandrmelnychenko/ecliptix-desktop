@@ -1,0 +1,1 @@
+‘R{/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Ecliptix.Core.Desktop.csproj¢net9.0òCSharp13

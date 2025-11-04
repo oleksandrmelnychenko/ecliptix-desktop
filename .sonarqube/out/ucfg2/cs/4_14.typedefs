@@ -1,0 +1,45 @@
+á
+KEcliptix.Security.Certificate.Pinning.Native.CertificatePinningNativeResultSystem.EnumSystem.ValueTypeobjectê
+ CertificatePinningNativeResult()lEcliptix.Security.Certificate.Pinning.Native.CertificatePinningNativeResult.CertificatePinningNativeResult()ò	
+KEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResultSystem.ValueTypeobject∑
+sCertificatePinningBoolResult(bool, bool, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)øEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.CertificatePinningBoolResult(bool, bool, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)å
+CertificatePinningBoolResult()jEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.CertificatePinningBoolResult()j
+IsSuccess.getYEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.IsSuccess.getj
+IsSuccess.setYEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.IsSuccess.setb
+	Value.getUEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.Value.getb
+	Value.setUEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.Value.setb
+	ERROR.getUEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.ERROR.getb
+	ERROR.setUEcliptix.Security.Certificate.Pinning.Services.CertificatePinningBoolResult.ERROR.set˚
+PEcliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResultSystem.ValueTypeobject∫
+rCertificatePinningOperationResult(bool, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)√Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.CertificatePinningOperationResult(bool, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)õ
+#CertificatePinningOperationResult()tEcliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.CertificatePinningOperationResult()o
+IsSuccess.get^Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.IsSuccess.geto
+IsSuccess.set^Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.IsSuccess.setg
+	ERROR.getZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.ERROR.getg
+	ERROR.setZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningOperationResult.ERROR.setﬂ	
+PEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResultSystem.ValueTypeobjectÃ
+{CertificatePinningByteArrayResult(bool, byte[]?, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)ÃEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.CertificatePinningByteArrayResult(bool, byte[]?, Ecliptix.Utilities.Failures.CertificatePinning.CertificatePinningFailure?)õ
+#CertificatePinningByteArrayResult()tEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.CertificatePinningByteArrayResult()o
+IsSuccess.get^Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.IsSuccess.geto
+IsSuccess.set^Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.IsSuccess.setg
+	Value.getZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.Value.getg
+	Value.setZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.Value.setg
+	ERROR.getZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.ERROR.getg
+	ERROR.setZEcliptix.Security.Certificate.Pinning.Services.CertificatePinningByteArrayResult.ERROR.setk
+PEcliptix.Security.Certificate.Pinning.Services.ICertificatePinningServiceFactorySystem.IAsyncDisposableë
+
+HEcliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceobjectSystem.IAsyncDisposable©
+.Initialize(System.Threading.CancellationToken)wEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.Initialize(System.Threading.CancellationToken)Ï
+OVerifyServerSignature(System.ReadOnlyMemory<byte>, System.ReadOnlyMemory<byte>)òEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.VerifyServerSignature(System.ReadOnlyMemory<byte>, System.ReadOnlyMemory<byte>)ï
+$Encrypt(System.ReadOnlyMemory<byte>)mEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.Encrypt(System.ReadOnlyMemory<byte>)ï
+$Decrypt(System.ReadOnlyMemory<byte>)mEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.Decrypt(System.ReadOnlyMemory<byte>)i
+GetPublicKey()WEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.GetPublicKey()}
+ValidateOperationState()aEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.ValidateOperationState()i
+DisposeAsync()WEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.DisposeAsync()É
+CertificatePinningService()dEcliptix.Security.Certificate.Pinning.Services.CertificatePinningService.CertificatePinningService()˝
+OEcliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactoryobjectPEcliptix.Security.Certificate.Pinning.Services.ICertificatePinningServiceFactoryé
+GetOrInitializeServiceAsync()mEcliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactory.GetOrInitializeServiceAsync()Ä
+TryInitializeService()fEcliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactory.TryInitializeService()Æ
+-OnProcessExitAsync(object?, System.EventArgs)}Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactory.OnProcessExitAsync(object?, System.EventArgs)p
+DisposeAsync()^Ecliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactory.DisposeAsync()ò
+"CertificatePinningServiceFactory()rEcliptix.Security.Certificate.Pinning.Services.CertificatePinningServiceFactory.CertificatePinningServiceFactory()

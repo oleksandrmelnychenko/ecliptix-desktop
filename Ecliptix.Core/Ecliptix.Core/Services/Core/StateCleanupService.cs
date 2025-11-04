@@ -6,6 +6,7 @@ using Ecliptix.Core.Infrastructure.Security.Abstractions;
 using Ecliptix.Core.Infrastructure.Security.Storage;
 using Ecliptix.Core.Services.Abstractions.Authentication;
 using Ecliptix.Core.Services.Abstractions.Core;
+using Ecliptix.Core.Services.Common;
 using Ecliptix.Utilities;
 using Serilog;
 
@@ -19,60 +20,58 @@ internal sealed class StateCleanupService(
 {
     public async Task<Result<Unit, Exception>> CleanupMembershipStateAsync(string membershipId, uint connectId)
     {
-        try
+        Result<Unit, SecureStorageFailure> deleteResult =
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+
+        if (deleteResult.IsErr)
         {
-            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            Log.Warning("[STATE-CLEANUP-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
+                connectId, deleteResult.UnwrapErr().Message);
+        }
 
-            if (deleteResult.IsErr)
-            {
-                Log.Warning("[STATE-CLEANUP-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
-                    connectId, deleteResult.UnwrapErr().Message);
-            }
-
+        Result<Unit, InternalServiceApiFailure> membershipClearResult =
             await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
-
-            networkProvider.ClearConnection(connectId);
-
-            return Result<Unit, Exception>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
+        if (membershipClearResult.IsErr)
         {
-            Log.Error(ex, "[STATE-CLEANUP] Cleanup failed for MembershipId: {MembershipId}", membershipId);
-            return Result<Unit, Exception>.Err(ex);
+            Log.Warning("[STATE-CLEANUP] Failed to clear membership state: {ERROR}",
+                membershipClearResult.UnwrapErr().Message);
         }
+
+        networkProvider.ClearConnection(connectId);
+
+        return Result<Unit, Exception>.Ok(Unit.Value);
     }
 
     public async Task<Result<Unit, Exception>> CleanupMembershipStateWithKeysAsync(string membershipId, uint connectId)
     {
-        try
+        Result<Unit, SecureStorageFailure> deleteResult =
+            await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+
+        if (deleteResult.IsErr)
         {
-            Result<Unit, SecureStorageFailure> deleteResult = await secureProtocolStateStorage.DeleteStateAsync(connectId.ToString()).ConfigureAwait(false);
+            Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
+                connectId, deleteResult.UnwrapErr().Message);
+        }
 
-            if (deleteResult.IsErr)
-            {
-                Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
-                    connectId, deleteResult.UnwrapErr().Message);
-            }
+        Result<Unit, Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure> clearResult =
+            await identityService.ClearAllCacheAsync(membershipId).ConfigureAwait(false);
 
-            Result<Unit, Ecliptix.Utilities.Failures.Authentication.AuthenticationFailure> clearResult =
-                await identityService.ClearAllCacheAsync(membershipId).ConfigureAwait(false);
+        if (clearResult.IsErr)
+        {
+            Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {ERROR}",
+                clearResult.UnwrapErr().Message);
+        }
 
-            if (clearResult.IsErr)
-            {
-                Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {ERROR}",
-                    clearResult.UnwrapErr().Message);
-            }
-
+        Result<Unit, InternalServiceApiFailure> membershipClearResult =
             await applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
-
-            networkProvider.ClearConnection(connectId);
-
-            return Result<Unit, Exception>.Ok(Unit.Value);
-        }
-        catch (Exception ex)
+        if (membershipClearResult.IsErr)
         {
-            Log.Error(ex, "[STATE-CLEANUP-FULL] Full cleanup failed for MembershipId: {MembershipId}", membershipId);
-            return Result<Unit, Exception>.Err(ex);
+            Log.Warning("[STATE-CLEANUP-FULL] Failed to clear membership state: {ERROR}",
+                membershipClearResult.UnwrapErr().Message);
         }
+
+        networkProvider.ClearConnection(connectId);
+
+        return Result<Unit, Exception>.Ok(Unit.Value);
     }
 }

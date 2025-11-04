@@ -1,0 +1,316 @@
+§
++Ecliptix.Protocol.System.Core.ChainStepTypeSystem.EnumSystem.ValueTypeobjectN
+ChainStepType();Ecliptix.Protocol.System.Core.ChainStepType.ChainStepType()È
+5Ecliptix.Protocol.System.Utilities.ScopedSecureMemoryobjectSystem.IDisposablez
+ ScopedSecureMemory(byte[], bool)VEcliptix.Protocol.System.Utilities.ScopedSecureMemory.ScopedSecureMemory(byte[], bool)J
+AsSpan()>Ecliptix.Protocol.System.Utilities.ScopedSecureMemory.AsSpan()L
+	Dispose()?Ecliptix.Protocol.System.Utilities.ScopedSecureMemory.Dispose()ò
+?Ecliptix.Protocol.System.Utilities.ScopedSecureMemoryCollectionobjectSystem.IDisposable^
+Allocate(int)MEcliptix.Protocol.System.Utilities.ScopedSecureMemoryCollection.Allocate(int)V
+	Dispose()IEcliptix.Protocol.System.Utilities.ScopedSecureMemoryCollection.Dispose()Ä
+ScopedSecureMemoryCollection()^Ecliptix.Protocol.System.Utilities.ScopedSecureMemoryCollection.ScopedSecureMemoryCollection()Ω
+IEcliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContextobjectSystem.IDisposable`
+	Dispose()SEcliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext.Dispose()r
+DhRatchetContext()\Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext.DhRatchetContext()ª
+8Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle)System.Runtime.InteropServices.SafeHandle;System.Runtime.ConstrainedExecution.CriticalFinalizerObjectobjectè
+)SodiumSecureMemoryHandle(nint, int, bool)bEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.SodiumSecureMemoryHandle(nint, int, bool)}
+ Write(System.ReadOnlySpan<byte>)YEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.Write(System.ReadOnlySpan<byte>)k
+Read(System.Span<byte>)PEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.Read(System.Span<byte>)Y
+ReadBytes(int)GEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.ReadBytes(int)[
+ReleaseHandle()HEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.ReleaseHandle()W
+Dispose(bool)FEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.Dispose(bool)[
+TryLockMemory()HEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.TryLockMemory()_
+TryUnlockMemory()JEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.TryUnlockMemory()È
+ïWithReadAccess<TResult>(System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<TResult, Ecliptix.Utilities.Failures.Sodium.SodiumFailure>>)ŒEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.WithReadAccess<TResult>(System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<TResult, Ecliptix.Utilities.Failures.Sodium.SodiumFailure>>)Q
+
+Length.getCEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.Length.getQ
+
+Length.setCEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.Length.setW
+IsInvalid.getFEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.IsInvalid.getW
+IsInvalid.setFEcliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle.IsInvalid.setÔ
+7Ecliptix.Protocol.System.Core.EcliptixProtocolChainStepobject*Ecliptix.Protocol.System.Core.IKeyProviderSystem.IDisposable“
+ EcliptixProtocolChainStep(Ecliptix.Protocol.System.Core.ChainStepType, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle?, byte[]?, uint)ÇEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.EcliptixProtocolChainStep(Ecliptix.Protocol.System.Core.ChainStepType, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle?, byte[]?, uint)Ñ
+£ExecuteWithKey<T>(uint, System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)€Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep.ExecuteWithKey<T>(uint, System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)N
+	Dispose()AEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.Dispose()^
+GetCurrentIndex()IEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.GetCurrentIndex()d
+GetCurrentChainKey()LEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.GetCurrentChainKey()f
+SetCurrentIndex(uint)MEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.SetCurrentIndex(uint)j
+GetOrDeriveKeyFor(uint)OEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.GetOrDeriveKeyFor(uint)à
+&DeriveKeysToTarget(byte[], uint, uint)^Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep.DeriveKeysToTarget(byte[], uint, uint)≤
+;StoreMessageKey(System.Span<byte>, System.Span<byte>, uint)sEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.StoreMessageKey(System.Span<byte>, System.Span<byte>, uint)b
+SkipKeysUntil(uint)KEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.SkipKeysUntil(uint)j
+GetDhPrivateKeyHandle()OEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.GetDhPrivateKeyHandle()X
+ToProtoState()FEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.ToProtoState()†
+2UpdateKeysAfterDhRatchet(byte[], byte[]?, byte[]?)jEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.UpdateKeysAfterDhRatchet(byte[], byte[]?, byte[]?)Z
+CheckDisposed()GEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.CheckDisposed()Ç
+#HandleDhKeyUpdate(byte[]?, byte[]?)[Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep.HandleDhKeyUpdate(byte[]?, byte[]?)^
+ReadDhPublicKey()IEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.ReadDhPublicKey()X
+PruneOldKeys()FEcliptix.Protocol.System.Core.EcliptixProtocolChainStep.PruneOldKeys()5
+3Ecliptix.Protocol.System.Core.IProtocolEventHandlerﬁ
+0Ecliptix.Protocol.System.Core.OneTimePreKeyLocalSystem.ValueTypeobjectSystem.IDisposableY
+GetPublicKeyCopy()CEcliptix.Protocol.System.Core.OneTimePreKeyLocal.GetPublicKeyCopy()Í
+ZOneTimePreKeyLocal(uint, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[])ãEcliptix.Protocol.System.Core.OneTimePreKeyLocal.OneTimePreKeyLocal(uint, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[])G
+	Dispose():Ecliptix.Protocol.System.Core.OneTimePreKeyLocal.Dispose()]
+OneTimePreKeyLocal()EEcliptix.Protocol.System.Core.OneTimePreKeyLocal.OneTimePreKeyLocal()M
+PreKeyId.get=Ecliptix.Protocol.System.Core.OneTimePreKeyLocal.PreKeyId.getM
+PreKeyId.set=Ecliptix.Protocol.System.Core.OneTimePreKeyLocal.PreKeyId.set]
+PrivateKeyHandle.getEEcliptix.Protocol.System.Core.OneTimePreKeyLocal.PrivateKeyHandle.get]
+PrivateKeyHandle.setEEcliptix.Protocol.System.Core.OneTimePreKeyLocal.PrivateKeyHandle.setW
+PublicKeySpan.getBEcliptix.Protocol.System.Core.OneTimePreKeyLocal.PublicKeySpan.getW
+PublicKeySpan.setBEcliptix.Protocol.System.Core.OneTimePreKeyLocal.PublicKeySpan.set≈
+8Ecliptix.Protocol.System.Core.EcliptixSystemIdentityKeysobjectSystem.IDisposable¡
+¡EcliptixSystemIdentityKeys(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], uint, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], byte[], System.Collections.Generic.List<Ecliptix.Protocol.System.Core.OneTimePreKeyLocal>)˙Ecliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.EcliptixSystemIdentityKeys(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], uint, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], byte[], System.Collections.Generic.List<Ecliptix.Protocol.System.Core.OneTimePreKeyLocal>)}
+ GetIdentityX25519PublicKeyCopy()YEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.GetIdentityX25519PublicKeyCopy()O
+	Dispose()BEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.Dispose()Y
+ToProtoState()GEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.ToProtoState()e
+CreatePublicBundle()MEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.CreatePublicBundle()q
+GenerateEphemeralKeyPair()SEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.GenerateEphemeralKeyPair()à
+eX3dhDeriveSharedSecret(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle, System.ReadOnlySpan<byte>)ûEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.X3dhDeriveSharedSecret(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle, System.ReadOnlySpan<byte>)Æ
+xCalculateSharedSecretAsRecipient(System.ReadOnlySpan<byte>, System.ReadOnlySpan<byte>, uint?, System.ReadOnlySpan<byte>)±Ecliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.CalculateSharedSecretAsRecipient(System.ReadOnlySpan<byte>, System.ReadOnlySpan<byte>, uint?, System.ReadOnlySpan<byte>)[
+CheckDisposed()HEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.CheckDisposed()i
+EnsureLocalKeysValid()OEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.EnsureLocalKeysValid()m
+FindLocalOpkHandle(uint)QEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.FindLocalOpkHandle(uint)W
+Dispose(bool)FEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.Dispose(bool)e
+SecureCleanupLogic()MEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.SecureCleanupLogic()w
+~EcliptixSystemIdentityKeys()VEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.~EcliptixSystemIdentityKeys(){
+IdentityX25519PublicKeySpan.getXEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.IdentityX25519PublicKeySpan.get{
+IdentityX25519PublicKeySpan.setXEcliptix.Protocol.System.Core.EcliptixSystemIdentityKeys.IdentityX25519PublicKeySpan.set,
+*Ecliptix.Protocol.System.Core.IKeyProviderÈ
+
+5Ecliptix.Protocol.System.Utilities.SecureMemoryBufferobjectSystem.IDisposableﬂ
+RSecureMemoryBuffer(int, int, Ecliptix.Protocol.System.Utilities.SecureMemoryPool?)àEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.SecureMemoryBuffer(int, int, Ecliptix.Protocol.System.Utilities.SecureMemoryPool?)d
+SetRequestedSize(int)KEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.SetRequestedSize(int)L
+	GetSpan()?Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer.GetSpan()p
+ReadInto(System.Span<byte>)QEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.ReadInto(System.Span<byte>)h
+Read(System.Span<byte>)MEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.Read(System.Span<byte>)H
+Clear()=Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer.Clear()L
+	Dispose()?Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer.Dispose()N
+
+Length.get@Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer.Length.getN
+
+Length.set@Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer.Length.set\
+AllocatedSize.getGEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.AllocatedSize.get\
+AllocatedSize.setGEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.AllocatedSize.setV
+IsDisposed.getDEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.IsDisposed.getV
+IsDisposed.setDEcliptix.Protocol.System.Utilities.SecureMemoryBuffer.IsDisposed.setÛ"
+4Ecliptix.Protocol.System.Core.EcliptixProtocolSystemobjectSystem.IDisposable⁄
+PEcliptixProtocolSystem(Ecliptix.Protocol.System.Core.EcliptixSystemIdentityKeys)ÖEcliptix.Protocol.System.Core.EcliptixProtocolSystem.EcliptixProtocolSystem(Ecliptix.Protocol.System.Core.EcliptixSystemIdentityKeys)[
+GetIdentityKeys()FEcliptix.Protocol.System.Core.EcliptixProtocolSystem.GetIdentityKeys()√
+ESetEventHandler(Ecliptix.Protocol.System.Core.IProtocolEventHandler?)zEcliptix.Protocol.System.Core.EcliptixProtocolSystem.SetEventHandler(Ecliptix.Protocol.System.Core.IProtocolEventHandler?)K
+	Dispose()>Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.Dispose()_
+GetConnectionSafe()HEcliptix.Protocol.System.Core.EcliptixProtocolSystem.GetConnectionSafe()ﬁ
+RBeginDataCenterPubKeyExchange(uint, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)áEcliptix.Protocol.System.Core.EcliptixProtocolSystem.BeginDataCenterPubKeyExchange(uint, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)Ê
+VCompleteAuthenticatedPubKeyExchange(Ecliptix.Protobuf.Protocol.PubKeyExchange, byte[])ãEcliptix.Protocol.System.Core.EcliptixProtocolSystem.CompleteAuthenticatedPubKeyExchange(Ecliptix.Protobuf.Protocol.PubKeyExchange, byte[])–
+KCompleteDataCenterPubKeyExchange(Ecliptix.Protobuf.Protocol.PubKeyExchange)ÄEcliptix.Protocol.System.Core.EcliptixProtocolSystem.CompleteDataCenterPubKeyExchange(Ecliptix.Protobuf.Protocol.PubKeyExchange)π
+@CheckReflectionAttack(Ecliptix.Protobuf.Protocol.PubKeyExchange)uEcliptix.Protocol.System.Core.EcliptixProtocolSystem.CheckReflectionAttack(Ecliptix.Protobuf.Protocol.PubKeyExchange)À
+IDeriveSharedSecretKey(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)~Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.DeriveSharedSecretKey(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)Ô
+öFinalizeExchange(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Google.Protobuf.ByteString, Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)œEcliptix.Protocol.System.Core.EcliptixProtocolSystem.FinalizeExchange(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Google.Protobuf.ByteString, Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)w
+ProduceOutboundEnvelope(byte[])TEcliptix.Protocol.System.Core.EcliptixProtocolSystem.ProduceOutboundEnvelope(byte[])Ë
+WProduceSingleEnvelope(byte[], Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)åEcliptix.Protocol.System.Core.EcliptixProtocolSystem.ProduceSingleEnvelope(byte[], Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)∑
+?ProcessInboundEnvelope(Ecliptix.Protobuf.Common.SecureEnvelope)tEcliptix.Protocol.System.Core.EcliptixProtocolSystem.ProcessInboundEnvelope(Ecliptix.Protobuf.Common.SecureEnvelope)Ω
+ÅProcessInboundEnvelopeInternal(Ecliptix.Protobuf.Common.SecureEnvelope, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)∂Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.ProcessInboundEnvelopeInternal(Ecliptix.Protobuf.Common.SecureEnvelope, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)√
+EHandleDhRatchet(Ecliptix.Protobuf.Common.SecureEnvelope, out byte[]?)zEcliptix.Protocol.System.Core.EcliptixProtocolSystem.HandleDhRatchet(Ecliptix.Protobuf.Common.SecureEnvelope, out byte[]?)ù
+±ExtractDecryptionMaterials(Ecliptix.Protobuf.Common.SecureEnvelope, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection, out byte[]?, out byte[]?, out byte[]?, out byte[]?)ÊEcliptix.Protocol.System.Core.EcliptixProtocolSystem.ExtractDecryptionMaterials(Ecliptix.Protobuf.Common.SecureEnvelope, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection, out byte[]?, out byte[]?, out byte[]?, out byte[]?)w
+PerformRatchetIfNeeded(byte[]?)TEcliptix.Protocol.System.Core.EcliptixProtocolSystem.PerformRatchetIfNeeded(byte[]?)q
+PerformAtomicRatchet(byte[])QEcliptix.Protocol.System.Core.EcliptixProtocolSystem.PerformAtomicRatchet(byte[])q
+GetOptionalSenderDhKey(bool)QEcliptix.Protocol.System.Core.EcliptixProtocolSystem.GetOptionalSenderDhKey(bool)W
+GetConnection()DEcliptix.Protocol.System.Core.EcliptixProtocolSystem.GetConnection()€
+êProcessInboundEnvelopeFromMaterials(Ecliptix.Protobuf.Common.EnvelopeMetadata, byte[], Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)≈Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.ProcessInboundEnvelopeFromMaterials(Ecliptix.Protobuf.Common.EnvelopeMetadata, byte[], Ecliptix.Protocol.System.Core.EcliptixProtocolConnection)å
+3Ecliptix.Protocol.System.Utilities.SecureMemoryPoolobjectSystem.IDisposablel
+SecureMemoryPool(int, int)NEcliptix.Protocol.System.Utilities.SecureMemoryPool.SecureMemoryPool(int, int)J
+	Rent(int)=Ecliptix.Protocol.System.Utilities.SecureMemoryPool.Rent(int)≤
+=Return(Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer)qEcliptix.Protocol.System.Utilities.SecureMemoryPool.Return(Ecliptix.Protocol.System.Utilities.SecureMemoryBuffer)J
+	Dispose()=Ecliptix.Protocol.System.Utilities.SecureMemoryPool.Dispose()˘
+HEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterialsSystem.ValueTypeobjectSystem.IEquatable<T>ì
+#DecryptionMaterials(byte[], byte[])lEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.DecryptionMaterials(byte[], byte[])a
+
+ToString()SEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.ToString()õ
+'PrintMembers(System.Text.StringBuilder)pEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.PrintMembers(System.Text.StringBuilder)g
+GetHashCode()VEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.GetHashCode()i
+Equals(object)WEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.Equals(object)Ó
+PEquals(Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials)ôEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.Equals(Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials)ì
+#Deconstruct(out byte[], out byte[])lEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.Deconstruct(out byte[], out byte[])w
+DecryptionMaterials()^Ecliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.DecryptionMaterials()k
+MetadataKey.getXEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.MetadataKey.getm
+MetadataKey.initYEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.MetadataKey.initY
+Ad.getOEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.Ad.get[
+Ad.initPEcliptix.Protocol.System.Core.EcliptixProtocolSystem.DecryptionMaterials.Ad.initƒ
+-Ecliptix.Protocol.System.Core.RatchetChainKeyobjectSystem.IEquatable<T>¥
+ARatchetChainKey(uint, Ecliptix.Protocol.System.Core.IKeyProvider)oEcliptix.Protocol.System.Core.RatchetChainKey.RatchetChainKey(uint, Ecliptix.Protocol.System.Core.IKeyProvider)û
+6Equals(Ecliptix.Protocol.System.Core.RatchetChainKey?)dEcliptix.Protocol.System.Core.RatchetChainKey.Equals(Ecliptix.Protocol.System.Core.RatchetChainKey?)P
+Equals(object?)=Ecliptix.Protocol.System.Core.RatchetChainKey.Equals(object?)L
+GetHashCode();Ecliptix.Protocol.System.Core.RatchetChainKey.GetHashCode()
+ûWithKeyMaterial<T>(System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)ÃEcliptix.Protocol.System.Core.RatchetChainKey.WithKeyMaterial<T>(System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)D
+	Index.get7Ecliptix.Protocol.System.Core.RatchetChainKey.Index.getD
+	Index.set7Ecliptix.Protocol.System.Core.RatchetChainKey.Index.set”
+7Ecliptix.Protocol.System.Utilities.SecurePooledArray<T>System.ValueTypeobjectSystem.IDisposableh
+SecurePooledArray(int)NEcliptix.Protocol.System.Utilities.SecurePooledArray<T>.SecurePooledArray(int)L
+AsSpan()@Ecliptix.Protocol.System.Utilities.SecurePooledArray<T>.AsSpan()N
+	Dispose()AEcliptix.Protocol.System.Utilities.SecurePooledArray<T>.Dispose()b
+SecurePooledArray()KEcliptix.Protocol.System.Utilities.SecurePooledArray<T>.SecurePooledArray()¢
+2Ecliptix.Protocol.System.Core.LocalPublicKeyBundleobjectSystem.IEquatable<T>˘
+†LocalPublicKeyBundle(byte[], byte[], uint, byte[], byte[], System.Collections.Generic.IReadOnlyList<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord>, byte[]?)”Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.LocalPublicKeyBundle(byte[], byte[], uint, byte[], byte[], System.Collections.Generic.IReadOnlyList<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord>, byte[]?)Ó
+[LocalPublicKeyBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData)éEcliptix.Protocol.System.Core.LocalPublicKeyBundle.LocalPublicKeyBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData)_
+ToProtobufExchange()GEcliptix.Protocol.System.Core.LocalPublicKeyBundle.ToProtobufExchange()K
+
+ToString()=Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.ToString()Ö
+'PrintMembers(System.Text.StringBuilder)ZEcliptix.Protocol.System.Core.LocalPublicKeyBundle.PrintMembers(System.Text.StringBuilder)Q
+GetHashCode()@Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.GetHashCode()U
+Equals(object?)BEcliptix.Protocol.System.Core.LocalPublicKeyBundle.Equals(object?)≠
+;Equals(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle?)nEcliptix.Protocol.System.Core.LocalPublicKeyBundle.Equals(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle?)K
+
+<Clone>$()=Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.<Clone>$()«
+HLocalPublicKeyBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle){Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.LocalPublicKeyBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)ü
+≥Deconstruct(out byte[], out byte[], out uint, out byte[], out byte[], out System.Collections.Generic.IReadOnlyList<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord>, out byte[]?)ÊEcliptix.Protocol.System.Core.LocalPublicKeyBundle.Deconstruct(out byte[], out byte[], out uint, out byte[], out byte[], out System.Collections.Generic.IReadOnlyList<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord>, out byte[]?)_
+EqualityContract.getGEcliptix.Protocol.System.Core.LocalPublicKeyBundle.EqualityContract.get_
+EqualityContract.setGEcliptix.Protocol.System.Core.LocalPublicKeyBundle.EqualityContract.set]
+IdentityEd25519.getFEcliptix.Protocol.System.Core.LocalPublicKeyBundle.IdentityEd25519.get_
+IdentityEd25519.initGEcliptix.Protocol.System.Core.LocalPublicKeyBundle.IdentityEd25519.init[
+IdentityX25519.getEEcliptix.Protocol.System.Core.LocalPublicKeyBundle.IdentityX25519.get]
+IdentityX25519.initFEcliptix.Protocol.System.Core.LocalPublicKeyBundle.IdentityX25519.init[
+SignedPreKeyId.getEEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeyId.get]
+SignedPreKeyId.initFEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeyId.initc
+SignedPreKeyPublic.getIEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeyPublic.gete
+SignedPreKeyPublic.initJEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeyPublic.initi
+SignedPreKeySignature.getLEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeySignature.getk
+SignedPreKeySignature.initMEcliptix.Protocol.System.Core.LocalPublicKeyBundle.SignedPreKeySignature.init[
+OneTimePreKeys.getEEcliptix.Protocol.System.Core.LocalPublicKeyBundle.OneTimePreKeys.get]
+OneTimePreKeys.initFEcliptix.Protocol.System.Core.LocalPublicKeyBundle.OneTimePreKeys.init]
+EphemeralX25519.getFEcliptix.Protocol.System.Core.LocalPublicKeyBundle.EphemeralX25519.get_
+EphemeralX25519.initGEcliptix.Protocol.System.Core.LocalPublicKeyBundle.EphemeralX25519.initÜ
+1Ecliptix.Protocol.System.Core.OneTimePreKeyRecordobjectSystem.IEquatable<T>x
+!OneTimePreKeyRecord(uint, byte[])SEcliptix.Protocol.System.Core.OneTimePreKeyRecord.OneTimePreKeyRecord(uint, byte[])J
+
+ToString()<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.ToString()Ñ
+'PrintMembers(System.Text.StringBuilder)YEcliptix.Protocol.System.Core.OneTimePreKeyRecord.PrintMembers(System.Text.StringBuilder)P
+GetHashCode()?Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.GetHashCode()T
+Equals(object?)AEcliptix.Protocol.System.Core.OneTimePreKeyRecord.Equals(object?)™
+:Equals(Ecliptix.Protocol.System.Core.OneTimePreKeyRecord?)lEcliptix.Protocol.System.Core.OneTimePreKeyRecord.Equals(Ecliptix.Protocol.System.Core.OneTimePreKeyRecord?)J
+
+<Clone>$()<Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.<Clone>$()¬
+FOneTimePreKeyRecord(Ecliptix.Protocol.System.Core.OneTimePreKeyRecord)xEcliptix.Protocol.System.Core.OneTimePreKeyRecord.OneTimePreKeyRecord(Ecliptix.Protocol.System.Core.OneTimePreKeyRecord)x
+!Deconstruct(out uint, out byte[])SEcliptix.Protocol.System.Core.OneTimePreKeyRecord.Deconstruct(out uint, out byte[])^
+EqualityContract.getFEcliptix.Protocol.System.Core.OneTimePreKeyRecord.EqualityContract.get^
+EqualityContract.setFEcliptix.Protocol.System.Core.OneTimePreKeyRecord.EqualityContract.setN
+PreKeyId.get>Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.PreKeyId.getP
+PreKeyId.init?Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.PreKeyId.initP
+PublicKey.get?Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.PublicKey.getR
+PublicKey.init@Ecliptix.Protocol.System.Core.OneTimePreKeyRecord.PublicKey.init‚
+6Ecliptix.Protocol.System.Utilities.SecureStringHandlerobjectSystem.IDisposable‡
+RSecureStringHandler(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, int)âEcliptix.Protocol.System.Utilities.SecureStringHandler.SecureStringHandler(Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, int)ß
+6UseBytes<T>(System.Func<System.ReadOnlySpan<byte>, T>)mEcliptix.Protocol.System.Utilities.SecureStringHandler.UseBytes<T>(System.Func<System.ReadOnlySpan<byte>, T>)M
+	Dispose()@Ecliptix.Protocol.System.Utilities.SecureStringHandler.Dispose()W
+ByteLength.getEEcliptix.Protocol.System.Utilities.SecureStringHandler.ByteLength.getW
+ByteLength.setEEcliptix.Protocol.System.Utilities.SecureStringHandler.ByteLength.set∑
+EEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleDataSystem.ValueTypeobjectr
+InternalBundleData()ZEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.InternalBundleData()p
+IdentityEd25519.getYEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.IdentityEd25519.getr
+IdentityEd25519.initZEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.IdentityEd25519.initn
+IdentityX25519.getXEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.IdentityX25519.getp
+IdentityX25519.initYEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.IdentityX25519.initn
+SignedPreKeyId.getXEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeyId.getp
+SignedPreKeyId.initYEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeyId.initv
+SignedPreKeyPublic.get\Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeyPublic.getx
+SignedPreKeyPublic.init]Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeyPublic.init|
+SignedPreKeySignature.get_Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeySignature.get~
+SignedPreKeySignature.init`Ecliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.SignedPreKeySignature.initn
+OneTimePreKeys.getXEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.OneTimePreKeys.getp
+OneTimePreKeys.initYEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.OneTimePreKeys.initp
+EphemeralX25519.getYEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.EphemeralX25519.getr
+EphemeralX25519.initZEcliptix.Protocol.System.Core.LocalPublicKeyBundle.InternalBundleData.EphemeralX25519.init∂
+.Ecliptix.Protocol.System.Core.ReplayProtectionobjectSystem.IDisposableë
+/ReplayProtection(System.TimeSpan, ulong, ulong)^Ecliptix.Protocol.System.Core.ReplayProtection.ReplayProtection(System.TimeSpan, ulong, ulong)â
++CheckAndRecordMessage(byte[], ulong, ulong)ZEcliptix.Protocol.System.Core.ReplayProtection.CheckAndRecordMessage(byte[], ulong, ulong)s
+ CheckMessageWindow(ulong, ulong)OEcliptix.Protocol.System.Core.ReplayProtection.CheckMessageWindow(ulong, ulong)u
+!UpdateMessageWindow(ulong, ulong)PEcliptix.Protocol.System.Core.ReplayProtection.UpdateMessageWindow(ulong, ulong)a
+CleanupExpiredEntries()FEcliptix.Protocol.System.Core.ReplayProtection.CleanupExpiredEntries()W
+AdjustWindowSize()AEcliptix.Protocol.System.Core.ReplayProtection.AdjustWindowSize()Y
+OnRatchetRotation()BEcliptix.Protocol.System.Core.ReplayProtection.OnRatchetRotation()E
+	Dispose()8Ecliptix.Protocol.System.Core.ReplayProtection.Dispose()è
++Ecliptix.Protocol.System.Core.RatchetConfigobject¶
+;ShouldRatchet(uint, System.DateTime, bool, System.DateTime)gEcliptix.Protocol.System.Core.RatchetConfig.ShouldRatchet(uint, System.DateTime, bool, System.DateTime)Ñ
+*ShouldRatchet(uint, System.DateTime, bool)VEcliptix.Protocol.System.Core.RatchetConfig.ShouldRatchet(uint, System.DateTime, bool)N
+RatchetConfig();Ecliptix.Protocol.System.Core.RatchetConfig.RatchetConfig()f
+DhRatchetEveryNMessages.getGEcliptix.Protocol.System.Core.RatchetConfig.DhRatchetEveryNMessages.geth
+DhRatchetEveryNMessages.initHEcliptix.Protocol.System.Core.RatchetConfig.DhRatchetEveryNMessages.initf
+EnablePerMessageRatchet.getGEcliptix.Protocol.System.Core.RatchetConfig.EnablePerMessageRatchet.geth
+EnablePerMessageRatchet.initHEcliptix.Protocol.System.Core.RatchetConfig.EnablePerMessageRatchet.initZ
+RatchetOnNewDhKey.getAEcliptix.Protocol.System.Core.RatchetConfig.RatchetOnNewDhKey.get\
+RatchetOnNewDhKey.initBEcliptix.Protocol.System.Core.RatchetConfig.RatchetOnNewDhKey.initN
+MaxChainAge.get;Ecliptix.Protocol.System.Core.RatchetConfig.MaxChainAge.getP
+MaxChainAge.init<Ecliptix.Protocol.System.Core.RatchetConfig.MaxChainAge.initj
+MaxMessagesWithoutRatchet.getIEcliptix.Protocol.System.Core.RatchetConfig.MaxMessagesWithoutRatchet.getl
+MaxMessagesWithoutRatchet.initJEcliptix.Protocol.System.Core.RatchetConfig.MaxMessagesWithoutRatchet.initı
+<Ecliptix.Protocol.System.Core.ReplayProtection.MessageWindowobjecti
+MessageWindow(ulong)QEcliptix.Protocol.System.Core.ReplayProtection.MessageWindow.MessageWindow(ulong)e
+IsProcessed(ulong)OEcliptix.Protocol.System.Core.ReplayProtection.MessageWindow.IsProcessed(ulong)i
+MarkProcessed(ulong)QEcliptix.Protocol.System.Core.ReplayProtection.MessageWindow.MarkProcessed(ulong)Ö
+"CleanupOldEntries(System.DateTime)_Ecliptix.Protocol.System.Core.ReplayProtection.MessageWindow.CleanupOldEntries(System.DateTime)s
+HighestProcessedIndex.getVEcliptix.Protocol.System.Core.ReplayProtection.MessageWindow.HighestProcessedIndex.gets
+HighestProcessedIndex.setVEcliptix.Protocol.System.Core.ReplayProtection.MessageWindow.HighestProcessedIndex.setﬁ
+6Ecliptix.Protocol.System.Utilities.SecureStringBuilderobjectSystem.IDisposablek
+SecureStringBuilder(int)OEcliptix.Protocol.System.Utilities.SecureStringBuilder.SecureStringBuilder(int)S
+Append(char)CEcliptix.Protocol.System.Utilities.SecureStringBuilder.Append(char)W
+Append(string)EEcliptix.Protocol.System.Utilities.SecureStringBuilder.Append(string)á
+&AppendBytes(System.ReadOnlySpan<byte>)]Ecliptix.Protocol.System.Utilities.SecureStringBuilder.AppendBytes(System.ReadOnlySpan<byte>)I
+Build()>Ecliptix.Protocol.System.Utilities.SecureStringBuilder.Build()I
+Clear()>Ecliptix.Protocol.System.Utilities.SecureStringBuilder.Clear()M
+	Dispose()@Ecliptix.Protocol.System.Utilities.SecureStringBuilder.Dispose()ä
+7Ecliptix.Protocol.System.Core.ReplayProtection.NonceKeySystem.ValueTypeobjectSystem.IEquatable<T>\
+NonceKey(byte[])HEcliptix.Protocol.System.Core.ReplayProtection.NonceKey.NonceKey(byte[])∫
+?Equals(Ecliptix.Protocol.System.Core.ReplayProtection.NonceKey)wEcliptix.Protocol.System.Core.ReplayProtection.NonceKey.Equals(Ecliptix.Protocol.System.Core.ReplayProtection.NonceKey)Z
+Equals(object?)GEcliptix.Protocol.System.Core.ReplayProtection.NonceKey.Equals(object?)V
+GetHashCode()EEcliptix.Protocol.System.Core.ReplayProtection.NonceKey.GetHashCode()P
+
+NonceKey()BEcliptix.Protocol.System.Core.ReplayProtection.NonceKey.NonceKey()Á
+-Ecliptix.Protocol.System.Core.RatchetRecoveryobject*Ecliptix.Protocol.System.Core.IKeyProviderSystem.IDisposable\
+RatchetRecovery(uint)CEcliptix.Protocol.System.Core.RatchetRecovery.RatchetRecovery(uint)˙
+£ExecuteWithKey<T>(uint, System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)—Ecliptix.Protocol.System.Core.RatchetRecovery.ExecuteWithKey<T>(uint, System.Func<System.ReadOnlySpan<byte>, Ecliptix.Utilities.Result<T, Ecliptix.Utilities.Failures.EcliptixProtocol.EcliptixProtocolFailure>>)f
+TryRecoverMessageKey(uint)HEcliptix.Protocol.System.Core.RatchetRecovery.TryRecoverMessageKey(uint)à
++StoreSkippedMessageKeys(byte[], uint, uint)YEcliptix.Protocol.System.Core.RatchetRecovery.StoreSkippedMessageKeys(byte[], uint, uint)Z
+CleanupOldKeys(uint)BEcliptix.Protocol.System.Core.RatchetRecovery.CleanupOldKeys(uint)D
+	Dispose()7Ecliptix.Protocol.System.Core.RatchetRecovery.Dispose()º:
+8Ecliptix.Protocol.System.Core.EcliptixProtocolConnectionobjectSystem.IDisposable≠
+∑EcliptixProtocolConnection(uint, bool, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], Ecliptix.Protocol.System.Core.RatchetConfig, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.EcliptixProtocolConnection(uint, bool, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, byte[], Ecliptix.Protocol.System.Core.RatchetConfig, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)Ì
+◊EcliptixProtocolConnection(uint, Ecliptix.Protobuf.ProtocolState.RatchetState, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep?, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Core.RatchetConfig, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)êEcliptix.Protocol.System.Core.EcliptixProtocolConnection.EcliptixProtocolConnection(uint, Ecliptix.Protobuf.ProtocolState.RatchetState, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep?, Ecliptix.Protocol.System.Sodium.SodiumSecureMemoryHandle, Ecliptix.Protocol.System.Core.RatchetConfig, Ecliptix.Protobuf.Protocol.PubKeyExchangeType)«
+ESetEventHandler(Ecliptix.Protocol.System.Core.IProtocolEventHandler?)~Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.SetEventHandler(Ecliptix.Protocol.System.Core.IProtocolEventHandler?)O
+	Dispose()BEcliptix.Protocol.System.Core.EcliptixProtocolConnection.Dispose()Y
+ToProtoState()GEcliptix.Protocol.System.Core.EcliptixProtocolConnection.ToProtoState()[
+GetPeerBundle()HEcliptix.Protocol.System.Core.EcliptixProtocolConnection.GetPeerBundle()W
+IsInitiator()FEcliptix.Protocol.System.Core.EcliptixProtocolConnection.IsInitiator()ø
+ASetPeerBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)zEcliptix.Protocol.System.Core.EcliptixProtocolConnection.SetPeerBundle(Ecliptix.Protocol.System.Core.LocalPublicKeyBundle)â
+&FinalizeChainAndDhKeys(byte[], byte[])_Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.FinalizeChainAndDhKeys(byte[], byte[])m
+PrepareNextSendMessage()QEcliptix.Protocol.System.Core.EcliptixProtocolConnection.PrepareNextSendMessage()u
+ProcessReceivedMessage(uint)UEcliptix.Protocol.System.Core.EcliptixProtocolConnection.ProcessReceivedMessage(uint)Í
+VHandleSkippedKeys(Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, uint, uint)èEcliptix.Protocol.System.Core.EcliptixProtocolConnection.HandleSkippedKeys(Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep, uint, uint)u
+PerformCleanupIfNeeded(uint)UEcliptix.Protocol.System.Core.EcliptixProtocolConnection.PerformCleanupIfNeeded(uint){
+PerformReceivingRatchet(byte[])XEcliptix.Protocol.System.Core.EcliptixProtocolConnection.PerformReceivingRatchet(byte[]){
+PerformDhRatchet(bool, byte[]?)XEcliptix.Protocol.System.Core.EcliptixProtocolConnection.PerformDhRatchet(bool, byte[]?)ã
+'ValidateDhRatchetPreConditions(byte[]?)`Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.ValidateDhRatchetPreConditions(byte[]?)ê
+iComputeDhSecret(bool, byte[]?, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)¢Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.ComputeDhSecret(bool, byte[]?, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)˛
+`ComputeSenderDhSecret(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)ôEcliptix.Protocol.System.Core.EcliptixProtocolConnection.ComputeSenderDhSecret(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)î
+kComputeReceiverDhSecret(byte[]?, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)§Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.ComputeReceiverDhSecret(byte[]?, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)o
+DeriveRatchetKeys(byte[])REcliptix.Protocol.System.Core.EcliptixProtocolConnection.DeriveRatchetKeys(byte[])®
+uUpdateChainStepAfterRatchet(bool, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext, byte[]?)ÆEcliptix.Protocol.System.Core.EcliptixProtocolConnection.UpdateChainStepAfterRatchet(bool, Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext, byte[]?)Ä
+aUpdateSendingChainStep(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)öEcliptix.Protocol.System.Core.EcliptixProtocolConnection.UpdateSendingChainStep(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext)ñ
+lUpdateReceivingChainStep(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext, byte[]?)•Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.UpdateReceivingChainStep(Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.DhRatchetContext, byte[]?)_
+FinalizeRatchet()JEcliptix.Protocol.System.Core.EcliptixProtocolConnection.FinalizeRatchet()c
+GenerateNextNonce()LEcliptix.Protocol.System.Core.EcliptixProtocolConnection.GenerateNextNonce()s
+GetCurrentPeerDhPublicKey()TEcliptix.Protocol.System.Core.EcliptixProtocolConnection.GetCurrentPeerDhPublicKey()w
+GetCurrentSenderDhPublicKey()VEcliptix.Protocol.System.Core.EcliptixProtocolConnection.GetCurrentSenderDhPublicKey()w
+DeriveMetadataEncryptionKey()VEcliptix.Protocol.System.Core.EcliptixProtocolConnection.DeriveMetadataEncryptionKey()q
+GetMetadataEncryptionKey()SEcliptix.Protocol.System.Core.EcliptixProtocolConnection.GetMetadataEncryptionKey()W
+Dispose(bool)FEcliptix.Protocol.System.Core.EcliptixProtocolConnection.Dispose(bool){
+SyncWithRemoteState(uint, uint)XEcliptix.Protocol.System.Core.EcliptixProtocolConnection.SyncWithRemoteState(uint, uint)k
+NotifyRatchetRotation()PEcliptix.Protocol.System.Core.EcliptixProtocolConnection.NotifyRatchetRotation()w
+~EcliptixProtocolConnection()VEcliptix.Protocol.System.Core.EcliptixProtocolConnection.~EcliptixProtocolConnection()Ö
+$CheckReplayProtection(byte[], ulong)]Ecliptix.Protocol.System.Core.EcliptixProtocolConnection.CheckReplayProtection(byte[], ulong)e
+SecureCleanupLogic()MEcliptix.Protocol.System.Core.EcliptixProtocolConnection.SecureCleanupLogic()[
+CheckDisposed()HEcliptix.Protocol.System.Core.EcliptixProtocolConnection.CheckDisposed()a
+EnsureNotExpired()KEcliptix.Protocol.System.Core.EcliptixProtocolConnection.EnsureNotExpired()y
+EnsureSendingStepInitialized()WEcliptix.Protocol.System.Core.EcliptixProtocolConnection.EnsureSendingStepInitialized()}
+ EnsureReceivingStepInitialized()YEcliptix.Protocol.System.Core.EcliptixProtocolConnection.EnsureReceivingStepInitialized()g
+CheckIfNotFinalized()NEcliptix.Protocol.System.Core.EcliptixProtocolConnection.CheckIfNotFinalized()Ë
+UMaybePerformSendingDhRatchet(Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep)éEcliptix.Protocol.System.Core.EcliptixProtocolConnection.MaybePerformSendingDhRatchet(Ecliptix.Protocol.System.Core.EcliptixProtocolChainStep)]
+ExchangeType.getIEcliptix.Protocol.System.Core.EcliptixProtocolConnection.ExchangeType.get]
+ExchangeType.setIEcliptix.Protocol.System.Core.EcliptixProtocolConnection.ExchangeType.set

@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "4.12.0.0",
+        "fileVersion": "4.12.0-3.24570.6 (913fb4ec)",
+        "semanticVersion": "4.12.0",
+        "language": "en-UA"
+      },
+      "results": [
+        {
+          "ruleId": "S6580",
+          "level": "warning",
+          "message": "Use a format provider when parsing date and time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
+                "region": {
+                  "startLine": 410,
+                  "startColumn": 35,
+                  "endLine": 411,
+                  "endColumn": 43
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6580",
+          "level": "warning",
+          "message": "Use a format provider when parsing date and time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
+                "region": {
+                  "startLine": 414,
+                  "startColumn": 31,
+                  "endLine": 415,
+                  "endColumn": 39
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "S6580",
+          "level": "warning",
+          "message": "Use a format provider when parsing date and time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
+                "region": {
+                  "startLine": 421,
+                  "startColumn": 35,
+                  "endLine": 422,
+                  "endColumn": 48
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1859",
+          "level": "note",
+          "message": "Change return type of method 'ConfigureServices' from 'Microsoft.Extensions.DependencyInjection.IServiceCollection' to 'Microsoft.Extensions.DependencyInjection.ServiceCollection' for improved performance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Core/Ecliptix.Core.Desktop/Program.cs",
+                "region": {
+                  "startLine": 181,
+                  "startColumn": 39,
+                  "endLine": 181,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1859": {
+          "id": "CA1859",
+          "shortDescription": "Use concrete types when possible for improved performance",
+          "fullDescription": "Using concrete types avoids virtual or interface call overhead and enables inlining.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1859",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "S6580": {
+          "id": "S6580",
+          "shortDescription": "Use a format provider when parsing date and time",
+          "fullDescription": "When converting a string representation of a date and time to a DateTime object or any other temporal type with one of the available system parsing methods, you should always provide an IFormatProvider parameter.",
+          "defaultLevel": "warning",
+          "helpUri": "https://rules.sonarsource.com/csharp/RSPEC-6580",
+          "properties": {
+            "category": "Major Code Smell",
+            "isEnabledByDefault": true,
+            "tags": [
+              "C#",
+              "MainSourceScope",
+              "TestSourceScope",
+              "SonarWay"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

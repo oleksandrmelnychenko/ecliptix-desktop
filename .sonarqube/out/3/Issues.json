@@ -1,0 +1,728 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "4.12.0.0",
+        "fileVersion": "4.12.0-3.24570.6 (913fb4ec)",
+        "semanticVersion": "4.12.0",
+        "language": "en-UA"
+      },
+      "results": [
+        {
+          "ruleId": "SYSLIB1092",
+          "level": "note",
+          "message": "The usage of 'LibraryImportAttribute' does not follow recommendations. It is recommended to use explicit '[In]' and '[Out]' attributes on array parameters.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 61,
+                  "endLine": 45,
+                  "endColumn": 76
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_create didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 45,
+                  "startColumn": 33,
+                  "endLine": 45,
+                  "endColumn": 53
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_destroy didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 49,
+                  "startColumn": 34,
+                  "endLine": 49,
+                  "endColumn": 55
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_state_create didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 53,
+                  "startColumn": 33,
+                  "endLine": 53,
+                  "endColumn": 59
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_state_destroy didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 57,
+                  "startColumn": 34,
+                  "endLine": 57,
+                  "endColumn": 61
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.OpaqueClient(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 16,
+                  "startColumn": 41,
+                  "endLine": 16,
+                  "endColumn": 141
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.OpaqueClient(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 23,
+                  "startColumn": 49,
+                  "endLine": 23,
+                  "endColumn": 136
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.CreateRegistrationRequest(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 42,
+                  "startColumn": 53,
+                  "endLine": 42,
+                  "endColumn": 137
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.CreateRegistrationRequest(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 51,
+                  "startColumn": 53,
+                  "endLine": 51,
+                  "endColumn": 147
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_create_registration_request didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 60,
+                  "startColumn": 32,
+                  "endLine": 60,
+                  "endColumn": 73
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'opaque_client_create_registration_request' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 60,
+                  "startColumn": 32,
+                  "endLine": 60,
+                  "endColumn": 73
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_generate_ke1 didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 68,
+                  "startColumn": 32,
+                  "endLine": 68,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_finalize_registration didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 64,
+                  "startColumn": 32,
+                  "endLine": 64,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_generate_ke3 didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 72,
+                  "startColumn": 32,
+                  "endLine": 72,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'opaque_client_generate_ke1' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 68,
+                  "startColumn": 32,
+                  "endLine": 68,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'opaque_client_finalize_registration' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 64,
+                  "startColumn": 32,
+                  "endLine": 64,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'opaque_client_generate_ke3' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 72,
+                  "startColumn": 32,
+                  "endLine": 72,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.FinalizeRegistration(byte[], RegistrationResult)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 68,
+                  "startColumn": 17,
+                  "endLine": 68,
+                  "endColumn": 126
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.FinalizeRegistration(byte[], RegistrationResult)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 83,
+                  "startColumn": 49,
+                  "endLine": 83,
+                  "endColumn": 137
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA5392",
+          "level": "note",
+          "message": "The method opaque_client_finish didn't use DefaultDllImportSearchPaths attribute for P/Invokes.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 76,
+                  "startColumn": 32,
+                  "endLine": 76,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1054",
+          "level": "note",
+          "message": "Mark the method 'opaque_client_finish' with 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/NativeLibraries/OpaqueNative.cs",
+                "region": {
+                  "startLine": 76,
+                  "startColumn": 32,
+                  "endLine": 76,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "CharSet": "None",
+              "ExactSpelling": "False",
+              "MayRequireAdditionalWork": "False"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method '(byte[] Record, byte[] MasterKey) OpaqueClient.FinalizeRegistration(byte[] serverResponse, RegistrationResult registrationState)', validate parameter 'registrationState' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 79,
+                  "startColumn": 13,
+                  "endLine": 79,
+                  "endColumn": 30
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1513",
+          "level": "note",
+          "message": "Use 'ObjectDisposedException.ThrowIf' instead of explicitly throwing a new exception instance",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 164,
+                  "startColumn": 9,
+                  "endLine": 167,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "relatedLocations": [
+            {
+              "physicalLocation": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 164,
+                  "startColumn": 13,
+                  "endLine": 164,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.DeriveBaseMasterKey(KeyExchangeResult)' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 156,
+                  "startColumn": 49,
+                  "endLine": 156,
+                  "endColumn": 134
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method '(byte[] SessionKey, byte[] MasterKey) OpaqueClient.DeriveBaseMasterKey(KeyExchangeResult keyExchangeState)', validate parameter 'keyExchangeState' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 150,
+                  "startColumn": 28,
+                  "endLine": 150,
+                  "endColumn": 44
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1062",
+          "level": "note",
+          "message": "In externally visible method 'Result<byte[], OpaqueResult> OpaqueClient.GenerateKe3(byte[]? ke2, KeyExchangeResult keyExchangeState)', validate parameter 'keyExchangeState' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 135,
+                  "startColumn": 54,
+                  "endLine": 135,
+                  "endColumn": 70
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.GenerateKE1(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 104,
+                  "startColumn": 53,
+                  "endLine": 104,
+                  "endColumn": 137
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1305",
+          "level": "note",
+          "message": "The behavior of 'string.Format(string, object)' could vary based on the current user's locale settings. Replace this call in 'OpaqueClient.GenerateKE1(byte[])' with a call to 'string.Format(IFormatProvider, string, params object[])'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Opaque.Protocol/OpaqueClient.cs",
+                "region": {
+                  "startLine": 113,
+                  "startColumn": 53,
+                  "endLine": 113,
+                  "endColumn": 132
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1062": {
+          "id": "CA1062",
+          "shortDescription": "Validate arguments of public methods",
+          "fullDescription": "An externally visible method dereferences one of its reference arguments without verifying whether that argument is 'null' ('Nothing' in Visual Basic). All reference arguments that are passed to externally visible methods should be checked against 'null'. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'. If the method is designed to be called only by known assemblies, you should make the method internal.",
+          "defaultLevel": "warning",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1062",
+          "properties": {
+            "category": "Design",
+            "isEnabledByDefault": false,
+            "tags": [
+              "PortedFromFxCop",
+              "Dataflow",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1305": {
+          "id": "CA1305",
+          "shortDescription": "Specify IFormatProvider",
+          "fullDescription": "A method or constructor calls one or more members that have overloads that accept a System.IFormatProvider parameter, and the method or constructor does not call the overload that takes the IFormatProvider parameter. When a System.Globalization.CultureInfo or IFormatProvider object is not supplied, the default value that is supplied by the overloaded member might not have the effect that you want in all locales. If the result will be based on the input from/output displayed to the user, specify 'CultureInfo.CurrentCulture' as the 'IFormatProvider'. Otherwise, if the result will be stored and accessed by software, such as when it is loaded from disk/database and when it is persisted to disk/database, specify 'CultureInfo.InvariantCulture'.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1305",
+          "properties": {
+            "category": "Globalization",
+            "isEnabledByDefault": true,
+            "tags": [
+              "PortedFromFxCop",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1513": {
+          "id": "CA1513",
+          "shortDescription": "Use ObjectDisposedException throw helper",
+          "fullDescription": "Throw helpers are simpler and more efficient than an if block constructing a new exception instance.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1513",
+          "properties": {
+            "category": "Maintainability",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA5392": {
+          "id": "CA5392",
+          "shortDescription": "Use DefaultDllImportSearchPaths attribute for P/Invokes",
+          "fullDescription": "By default, P/Invokes using DllImportAttribute probe a number of directories, including the current working directory for the library to load. This can be a security issue for certain applications, leading to DLL hijacking.",
+          "defaultLevel": "warning",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca5392",
+          "properties": {
+            "category": "Security",
+            "isEnabledByDefault": false,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "SYSLIB1054": {
+          "id": "SYSLIB1054",
+          "shortDescription": "Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "fullDescription": "Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/syslib-diagnostics/syslib1054",
+          "properties": {
+            "category": "Interoperability",
+            "isEnabledByDefault": true
+          }
+        },
+        "SYSLIB1092": {
+          "id": "SYSLIB1092",
+          "shortDescription": "The usage of 'LibraryImportAttribute' does not follow recommendations.",
+          "defaultLevel": "note",
+          "properties": {
+            "category": "LibraryImportGenerator",
+            "isEnabledByDefault": true
+          }
+        }
+      }
+    }
+  ]
+}

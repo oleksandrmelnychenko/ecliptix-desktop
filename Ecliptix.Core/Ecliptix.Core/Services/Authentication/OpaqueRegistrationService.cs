@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Sockets;
 using System.Reactive.Concurrency;
 using System.Security.Cryptography;
@@ -40,8 +41,8 @@ internal sealed class OpaqueRegistrationService(
 
     private readonly ConcurrentDictionary<ByteString, RegistrationResult> _opaqueRegistrationState = new();
 
-    private readonly Lock _opaqueClientLock = new();
-    private Option<OpaqueClient> _opaqueClient = Option<OpaqueClient>.None;
+    private readonly CancellationTokenSource _disposalCts = new();
+    private readonly List<Task> _backgroundCleanupTasks = new();
 
     public async Task<Result<ValidateMobileNumberResponse, string>> ValidateMobileNumberAsync(
         string mobileNumber,
@@ -337,11 +338,20 @@ internal sealed class OpaqueRegistrationService(
 
     public void Dispose()
     {
-        lock (_opaqueClientLock)
+        _disposalCts.Cancel();
+
+        Task[] tasksToWait;
+        lock (_backgroundCleanupTasks)
         {
-            _opaqueClient.Do(client => client.Dispose());
-            _opaqueClient = Option<OpaqueClient>.None;
+            tasksToWait = _backgroundCleanupTasks.Where(t => !t.IsCompleted).ToArray();
         }
+
+        if (tasksToWait.Length > 0)
+        {
+            Task.WaitAll(tasksToWait, TimeSpan.FromSeconds(5));
+        }
+
+        _disposalCts.Dispose();
     }
 
     private static RegistrationAttemptResult CreateAttemptSuccess() =>
@@ -503,7 +513,7 @@ internal sealed class OpaqueRegistrationService(
         }
     }
 
-    private async Task<Result<RegistrationAttemptResult, RegistrationAttemptResult>>
+    private async Task<RegistrationAttemptResult>
         FinalizeAndCompleteRegistrationAsync(
             OpaqueClient opaqueClient,
             OpaqueRegistrationInitResponse initResponse,
@@ -556,10 +566,9 @@ internal sealed class OpaqueRegistrationService(
 
             if (networkResult.IsErr)
             {
-                return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Err(
-                    CreateAttemptFailure(
-                        FormatNetworkFailure(networkResult.UnwrapErr()),
-                        IsTransientRegistrationFailure(networkResult.UnwrapErr())));
+                return CreateAttemptFailure(
+                    FormatNetworkFailure(networkResult.UnwrapErr()),
+                    IsTransientRegistrationFailure(networkResult.UnwrapErr()));
             }
 
             OpaqueRegistrationCompleteResponse completeResponse =
@@ -567,10 +576,9 @@ internal sealed class OpaqueRegistrationService(
 
             if (completeResponse.Result != OpaqueRegistrationCompleteResponse.Types.RegistrationResult.Succeeded)
             {
-                return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Err(
-                    CreateAttemptFailure(
-                        localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
-                        false));
+                return CreateAttemptFailure(
+                    localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
+                    false);
             }
 
             if (completeResponse.ActiveAccount?.UniqueIdentifier != null)
@@ -580,8 +588,7 @@ internal sealed class OpaqueRegistrationService(
                     .ConfigureAwait(false);
             }
 
-            return Result<RegistrationAttemptResult, RegistrationAttemptResult>.Ok(
-                CreateAttemptSuccess());
+            return CreateAttemptSuccess();
         }
         finally
         {
@@ -597,11 +604,13 @@ internal sealed class OpaqueRegistrationService(
         CancellationToken cancellationToken)
     {
         RpcRequestContext requestContext = RpcRequestContext.CreateNew(attempt);
-        bool allowReinit = true;
+        const int MAX_ITERATIONS = 2;
 
-        while (true)
+        for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            bool allowReinit = iteration == 0;
 
             using OpaqueClient opaqueClient = new(serverPublicKeyProvider.GetServerPublicKey());
 
@@ -618,9 +627,12 @@ internal sealed class OpaqueRegistrationService(
                 return result;
             }
 
-            allowReinit = false;
             requestContext.MarkReinitAttempted();
         }
+
+        return CreateAttemptFailure(
+            localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
+            false);
     }
 
     private async Task<RegistrationAttemptResult> TryExecuteRegistrationCycleAsync(
@@ -633,7 +645,6 @@ internal sealed class OpaqueRegistrationService(
     {
         byte[]? secureKeyCopy = null;
         RegistrationResult? registrationResult = null;
-        RegistrationResult? trackedRegistrationResult = null;
 
         try
         {
@@ -667,30 +678,29 @@ internal sealed class OpaqueRegistrationService(
 
             if (!attemptResult.Outcome.IsOk)
             {
+                CleanupTrackedRegistration(membershipIdentifier);
                 return attemptResult;
             }
 
-            registrationResult = null;
-            CleanupTrackedRegistration(membershipIdentifier, out trackedRegistrationResult);
-
+            CleanupTrackedRegistration(membershipIdentifier);
             return attemptResult;
         }
-        catch (Exception ex) when (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
         catch (Exception ex)
         {
-            HandleRegistrationException(membershipIdentifier,
-                ref trackedRegistrationResult, ref registrationResult);
+            Serilog.Log.Error(ex, "[REGISTRATION] Unexpected error during registration cycle. MembershipId: {MembershipId}",
+                membershipIdentifier);
+            HandleRegistrationException(membershipIdentifier, ref registrationResult);
             return CreateAttemptFailure(
-                $"{AuthenticationConstants.REGISTRATION_FAILURE_PREFIX}{ex.Message}",
+                localizationService[AuthenticationConstants.REGISTRATION_FAILED_KEY],
                 IsTransientException(ex));
         }
         finally
         {
             registrationResult?.Dispose();
-            trackedRegistrationResult?.Dispose();
             CleanupSensitiveRegistrationData(secureKeyCopy, null, null, null);
         }
     }
@@ -764,38 +774,30 @@ internal sealed class OpaqueRegistrationService(
             return initProcessing.UnwrapErr();
         }
 
-        Result<RegistrationAttemptResult, RegistrationAttemptResult> finalizeResult =
-            await FinalizeAndCompleteRegistrationAsync(
-                opaqueClient,
-                initResponse,
-                registrationState,
-                membershipIdentifier,
-                connectId,
-                requestContext,
-                cancellationToken).ConfigureAwait(false);
-
-        return finalizeResult.IsOk ? finalizeResult.Unwrap() : finalizeResult.UnwrapErr();
+        return await FinalizeAndCompleteRegistrationAsync(
+            opaqueClient,
+            initResponse,
+            registrationState,
+            membershipIdentifier,
+            connectId,
+            requestContext,
+            cancellationToken).ConfigureAwait(false);
     }
 
-    private void CleanupTrackedRegistration(ByteString membershipIdentifier, out RegistrationResult? trackedResult)
+    private void CleanupTrackedRegistration(ByteString membershipIdentifier)
     {
         if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? completedResult))
         {
             completedResult.Dispose();
         }
-
-        trackedResult = null;
     }
 
     private void HandleRegistrationException(ByteString membershipIdentifier,
-        ref RegistrationResult? trackedResult,
         ref RegistrationResult? registrationResult)
     {
-        if (trackedResult != null &&
-            _opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? cachedResult))
+        if (_opaqueRegistrationState.TryRemove(membershipIdentifier, out RegistrationResult? cachedResult))
         {
             cachedResult.Dispose();
-            trackedResult = null;
         }
 
         registrationResult?.Dispose();
@@ -884,15 +886,16 @@ internal sealed class OpaqueRegistrationService(
         VerificationPurpose purpose,
         Action<uint, Guid, VerificationCountdownUpdate.Types.CountdownUpdateStatus, string?>? onCountdownUpdate)
     {
-        if (ShouldCleanupVerificationStream(verificationCountdownUpdate.Status))
+        bool shouldCleanup = ShouldCleanupVerificationStream(verificationCountdownUpdate.Status);
+
+        if (shouldCleanup)
         {
             if (verificationIdentifier != Guid.Empty)
             {
                 ScheduleStreamCleanupAsync(verificationIdentifier);
             }
         }
-
-        if (verificationIdentifier != Guid.Empty)
+        else if (verificationIdentifier != Guid.Empty)
         {
             _activeStreams.TryAdd(verificationIdentifier, streamConnectId);
             _activeSessionPurposes.TryAdd(verificationIdentifier, purpose);
@@ -914,18 +917,23 @@ internal sealed class OpaqueRegistrationService(
 
     private void ScheduleStreamCleanupAsync(Guid verificationIdentifier)
     {
-        _ = Task.Run(async () =>
+        Task cleanupTask = Task.Run(async () =>
         {
-            await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
-        }, CancellationToken.None).ContinueWith(
-            task =>
+            try
             {
-                if (task is { IsFaulted: true, Exception: not null })
-                {
-                    Serilog.Log.Error(task.Exception, "[VERIFICATION-CLEANUP] Unhandled exception in cleanup task");
-                }
-            },
-            TaskScheduler.Default);
+                await CleanupStreamAsync(verificationIdentifier).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "[VERIFICATION-CLEANUP] Failed to cleanup stream {VerificationId}", verificationIdentifier);
+            }
+        }, _disposalCts.Token);
+
+        lock (_backgroundCleanupTasks)
+        {
+            _backgroundCleanupTasks.Add(cleanupTask);
+            _backgroundCleanupTasks.RemoveAll(t => t.IsCompleted);
+        }
     }
 
     private Task<Result<Unit, NetworkFailure>> HandleVerificationStreamResponse(

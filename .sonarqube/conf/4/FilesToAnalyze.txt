@@ -1,0 +1,12 @@
+﻿/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Constants/CertificatePinningConstants.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeLibrary.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/CertificatePinningNativeResult.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningBoolResult.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningByteArrayResult.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningOperationResult.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningService.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/CertificatePinningServiceFactory.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Services/ICertificatePinningServiceFactory.cs
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/Native/macos/libsslpinning.dylib
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/native/windows/ecliptix.client.dll
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Security.Certificate.Pinning/libcrypto-3-x64.dll

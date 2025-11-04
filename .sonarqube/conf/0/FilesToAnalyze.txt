@@ -1,0 +1,16 @@
+﻿/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/account/account_models.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/authentication/auth_services.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/authentication/verification_models.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/common/encryption.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/common/health_check.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/common/secure_envelope.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/common/types.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/device/application_settings.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/device/device_models.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/device/device_services.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/membership/membership_core.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/membership/membership_services.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/membership/opaque_models.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/protocol/key_exchange.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/protocol/key_materials.proto
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/Sources/protocol/protocol_state.proto

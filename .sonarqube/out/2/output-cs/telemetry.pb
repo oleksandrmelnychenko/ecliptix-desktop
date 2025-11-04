@@ -1,0 +1,1 @@
+‰Rs/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protocol.System/Ecliptix.Protocol.System.csproj¢net9.0òCSharp13

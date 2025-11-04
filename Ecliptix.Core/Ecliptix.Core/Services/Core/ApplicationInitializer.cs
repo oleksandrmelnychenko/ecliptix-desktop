@@ -42,17 +42,11 @@ public sealed class ApplicationInitializer(
     IApplicationStateManager stateManager,
     IStateCleanupService stateCleanupService) : IApplicationInitializer
 {
-    #region Constants & Fields
-
     private const int IP_GEOLOCATION_TIMEOUT_SECONDS = 10;
 
     private readonly PendingLogoutProcessor _pendingLogoutProcessor = new(
         networkProvider,
         new PendingLogoutRequestStorage(applicationSecureStorageProvider));
-
-    #endregion
-
-    #region Public API
 
     public async Task<bool> InitializeAsync(DefaultSystemSettings defaultSystemSettings)
     {
@@ -114,21 +108,8 @@ public sealed class ApplicationInitializer(
         return true;
     }
 
-    #endregion
-
-    #region Background Tasks
-
-    private async Task ProcessPendingLogoutRequestsAsync(uint connectId)
-    {
-        try
-        {
-            await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "[INIT-PENDING-LOGOUT] Failed to process pending logout requests");
-        }
-    }
+    private async Task ProcessPendingLogoutRequestsAsync(uint connectId) =>
+        await _pendingLogoutProcessor.ProcessPendingLogoutAsync(connectId).ConfigureAwait(false);
 
     private Task FetchIpGeolocationInBackgroundAsync() =>
         Task.Run(async () =>
@@ -144,10 +125,6 @@ public sealed class ApplicationInitializer(
                 await applicationSecureStorageProvider.SetApplicationIpCountryAsync(country).ConfigureAwait(false);
             }
         });
-
-    #endregion
-
-    #region Protocol & Channel Establishment
 
     private async Task<Result<uint, NetworkFailure>> EnsureSecrecyChannelAsync(
         ApplicationInstanceSettings applicationInstanceSettings, bool isNewInstance)
@@ -216,8 +193,9 @@ public sealed class ApplicationInitializer(
         uint connectId,
         string? membershipId)
     {
-        Option<SodiumSecureMemoryHandle> masterKeyHandle = await PrepareMasterKeyHandleAsync(membershipId, applicationInstanceSettings)
-            .ConfigureAwait(false);
+        Option<SodiumSecureMemoryHandle> masterKeyHandle =
+            await PrepareMasterKeyHandleAsync(membershipId, applicationInstanceSettings)
+                .ConfigureAwait(false);
 
         try
         {
@@ -227,11 +205,11 @@ public sealed class ApplicationInitializer(
             {
                 Result<uint, NetworkFailure>? authenticatedResult =
                     await TryUseAuthenticatedProtocolAsync(
-                        applicationInstanceSettings,
-                        connectId,
-                        membershipId!,
-                        masterKeyHandle.Value!)
-                    .ConfigureAwait(false);
+                            applicationInstanceSettings,
+                            connectId,
+                            membershipId!,
+                            masterKeyHandle.Value!)
+                        .ConfigureAwait(false);
 
                 if (authenticatedResult.HasValue)
                 {
@@ -291,7 +269,8 @@ public sealed class ApplicationInitializer(
 
         if (recreateResult.IsErr)
         {
-            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId, applicationInstanceSettings, connectId)
+            await HandleAuthenticatedProtocolFailureAsync(recreateResult.UnwrapErr(), membershipId,
+                    applicationInstanceSettings, connectId)
                 .ConfigureAwait(false);
             return null;
         }
@@ -356,10 +335,6 @@ public sealed class ApplicationInitializer(
 
         networkProvider.InitiateEcliptixProtocolSystem(applicationInstanceSettings, connectId);
     }
-
-    #endregion
-
-    #region Session State Management
 
     private async Task<Result<bool, NetworkFailure>> TryRestoreSessionStateAsync(
         uint connectId,
@@ -439,10 +414,6 @@ public sealed class ApplicationInitializer(
         return Result<bool, NetworkFailure>.Ok(false);
     }
 
-    #endregion
-
-    #region Identity & Master Key Management
-
     private async Task<Option<SodiumSecureMemoryHandle>> TryLoadMasterKeyFromStorageAsync(string membershipId)
     {
         Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult =
@@ -485,10 +456,6 @@ public sealed class ApplicationInitializer(
         return Option<SodiumSecureMemoryHandle>.None;
     }
 
-    #endregion
-
-    #region Device Registration
-
     private async Task<Result<Unit, NetworkFailure>> RegisterDeviceAsync(uint connectId,
         ApplicationInstanceSettings settings)
     {
@@ -515,10 +482,6 @@ public sealed class ApplicationInitializer(
                 return Task.FromResult(Result<Unit, NetworkFailure>.Ok(Unit.Value));
             }, false, CancellationToken.None).ConfigureAwait(false);
     }
-
-    #endregion
-
-    #region Cleanup & Recovery
 
     private async Task CleanupCorruptedIdentityDataAsync(
         string membershipId,
@@ -547,6 +510,4 @@ public sealed class ApplicationInitializer(
                 membershipId);
         }
     }
-
-    #endregion
 }

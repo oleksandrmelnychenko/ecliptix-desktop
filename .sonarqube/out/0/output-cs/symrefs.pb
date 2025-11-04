@@ -1,0 +1,13 @@
+~
+|/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/protocol/ProtocolStateGrpc.cs}
+{/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/protocol/KeyMaterialsGrpc.cs|
+z/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/protocol/KeyExchangeGrpc.cs
+}/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/membership/OpaqueModelsGrpc.csÅ
+/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/membership/MembershipCoreGrpc.cs{
+y/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/device/DeviceModelsGrpc.csÉ
+Ä/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/device/ApplicationSettingsGrpc.cst
+r/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/common/TypesGrpc.csy
+w/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/common/EncryptionGrpc.cs}
+{/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/common/SecureEnvelopeGrpc.csä
+á/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/authentication/VerificationModelsGrpc.cs}
+{/Users/oleksandrmelnychenko/RiderProjects/ecliptix-desktop/Ecliptix.Protobufs/obj/Debug/net9.0/account/AccountModelsGrpc.cs
