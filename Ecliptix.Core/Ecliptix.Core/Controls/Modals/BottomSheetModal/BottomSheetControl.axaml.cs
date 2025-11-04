@@ -21,7 +21,7 @@ using Splat;
 
 namespace Ecliptix.Core.Controls.Modals.BottomSheetModal;
 
-public partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
+public sealed partial class BottomSheetControl : ReactiveUserControl<BottomSheetViewModel>, IDisposable
 {
     public new static readonly StyledProperty<double> MinHeightProperty =
         AvaloniaProperty.Register<BottomSheetControl, double>(nameof(MinHeight), DefaultBottomSheetVariables.MIN_HEIGHT);
