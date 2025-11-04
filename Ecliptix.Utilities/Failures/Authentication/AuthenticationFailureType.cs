@@ -2,22 +2,22 @@ namespace Ecliptix.Utilities.Failures.Authentication;
 
 public enum AuthenticationFailureType
 {
-    InvalidCredentials,
-    LoginAttemptExceeded,
-    MobileNumberRequired,
-    SecureKeyRequired,
-    UnexpectedError,
+    INVALID_CREDENTIALS,
+    LOGIN_ATTEMPT_EXCEEDED,
+    MOBILE_NUMBER_REQUIRED,
+    SECURE_KEY_REQUIRED,
+    UNEXPECTED_ERROR,
     SECURE_MEMORY_ALLOCATION_FAILED,
     SECURE_MEMORY_WRITE_FAILED,
-    KeyDerivationFailed,
-    MasterKeyDerivationFailed,
-    NetworkRequestFailed,
-    InvalidMembershipIdentifier,
-    HmacKeyGenerationFailed,
-    KeySplittingFailed,
-    KeyStorageFailed,
-    IdentityStorageFailed,
-    IdentityNotFound,
-    IdentityLoadFailed,
-    CriticalAuthenticationError
+    KEY_DERIVATION_FAILED,
+    MASTER_KEY_DERIVATION_FAILED,
+    NETWORK_REQUEST_FAILED,
+    INVALID_MEMBERSHIP_IDENTIFIER,
+    HMAC_KEY_GENERATION_FAILED,
+    KEY_SPLITTING_FAILED,
+    KEY_STORAGE_FAILED,
+    IDENTITY_STORAGE_FAILED,
+    IDENTITY_NOT_FOUND,
+    IDENTITY_LOAD_FAILED,
+    CRITICAL_AUTHENTICATION_ERROR
 }

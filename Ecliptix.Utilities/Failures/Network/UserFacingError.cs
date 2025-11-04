@@ -3,11 +3,11 @@ using Grpc.Core;
 namespace Ecliptix.Utilities.Failures.Network;
 
 public sealed record UserFacingError(
-    ErrorCode ERROR_CODE,
-    string I_18N_KEY,
+    ErrorCode ErrorCode,
+    string I18NKey,
     string Message,
-    bool? RETRYABLE = null,
-    int? RETRY_AFTER_MILLISECONDS = null,
-    string? CORRELATION_ID = null,
-    string? LOCALE = null,
+    bool? Retryable = null,
+    int? RetryAfterMilliseconds = null,
+    string? CorrelationId = null,
+    string? Locale = null,
     StatusCode? GrpcStatusCode = null);

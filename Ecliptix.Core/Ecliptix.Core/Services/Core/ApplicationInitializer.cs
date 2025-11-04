@@ -285,7 +285,7 @@ public sealed class ApplicationInitializer(
         ApplicationInstanceSettings applicationInstanceSettings,
         uint connectId)
     {
-        if (failure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+        if (failure.FailureType == NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE)
         {
             await CleanupCorruptedIdentityDataAsync(membershipId, applicationInstanceSettings)
                 .ConfigureAwait(false);

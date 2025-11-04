@@ -24,15 +24,15 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
 
         return failureType switch
         {
-            NetworkFailureType.InvalidRequestType => NetworkFailure.InvalidRequestType(userError.Message, rpcException,
+            NetworkFailureType.INVALID_REQUEST_TYPE => NetworkFailure.InvalidRequestType(userError.Message, rpcException,
                 userError),
-            NetworkFailureType.DataCenterShutdown => NetworkFailure.DataCenterShutdown(userError.Message, rpcException,
+            NetworkFailureType.DATA_CENTER_SHUTDOWN => NetworkFailure.DataCenterShutdown(userError.Message, rpcException,
                 userError),
-            NetworkFailureType.ProtocolStateMismatch => NetworkFailure.ProtocolStateMismatch(userError.Message,
+            NetworkFailureType.PROTOCOL_STATE_MISMATCH => NetworkFailure.ProtocolStateMismatch(userError.Message,
                 rpcException, userError),
-            NetworkFailureType.CriticalAuthenticationFailure => NetworkFailure.CriticalAuthenticationFailure(
+            NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => NetworkFailure.CriticalAuthenticationFailure(
                 userError.Message, rpcException, userError),
-            NetworkFailureType.OperationCancelled => NetworkFailure.OperationCancelled(userError.Message, rpcException,
+            NetworkFailureType.OPERATION_CANCELLED => NetworkFailure.OperationCancelled(userError.Message, rpcException,
                 userError),
             _ => NetworkFailure.DataCenterNotResponding(userError.Message, rpcException, userError)
         };
@@ -111,13 +111,13 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
             return (statusDetail, fallbackKey);
         }
 
-        string internalMessage = Localize(ErrorI18nKeys.INTERNAL);
+        string internalMessage = Localize(ErrorI18NKeys.INTERNAL);
         if (IsMissing(internalMessage))
         {
             internalMessage = "An unexpected error occurred";
         }
 
-        return (internalMessage, ErrorI18nKeys.INTERNAL);
+        return (internalMessage, ErrorI18NKeys.INTERNAL);
     }
 
     private string Localize(string key)
@@ -198,61 +198,61 @@ internal sealed class GrpcErrorProcessor(ILocalizationService localizationServic
     private static string GetFallbackKey(ErrorCode errorCode) =>
         errorCode switch
         {
-            ErrorCode.VALIDATION_FAILED => ErrorI18nKeys.VALIDATION,
-            ErrorCode.MAX_ATTEMPTS_REACHED => ErrorI18nKeys.MAX_ATTEMPTS,
-            ErrorCode.INVALID_MOBILE_NUMBER => ErrorI18nKeys.INVALID_MOBILE,
-            ErrorCode.OTP_EXPIRED => ErrorI18nKeys.OTP_EXPIRED,
-            ErrorCode.NOT_FOUND => ErrorI18nKeys.NOT_FOUND,
-            ErrorCode.ALREADY_EXISTS => ErrorI18nKeys.ALREADY_EXISTS,
-            ErrorCode.UNAUTHENTICATED => ErrorI18nKeys.UNAUTHENTICATED,
-            ErrorCode.PERMISSION_DENIED => ErrorI18nKeys.PERMISSION_DENIED,
-            ErrorCode.PRECONDITION_FAILED => ErrorI18nKeys.PRECONDITION_FAILED,
-            ErrorCode.CONFLICT => ErrorI18nKeys.CONFLICT,
-            ErrorCode.RESOURCE_EXHAUSTED => ErrorI18nKeys.RESOURCE_EXHAUSTED,
-            ErrorCode.SERVICE_UNAVAILABLE => ErrorI18nKeys.SERVICE_UNAVAILABLE,
-            ErrorCode.DEPENDENCY_UNAVAILABLE => ErrorI18nKeys.DEPENDENCY_UNAVAILABLE,
-            ErrorCode.DEADLINE_EXCEEDED => ErrorI18nKeys.DEADLINE_EXCEEDED,
-            ErrorCode.CANCELLED => ErrorI18nKeys.CANCELLED,
-            ErrorCode.DATABASE_UNAVAILABLE => ErrorI18nKeys.DATABASE_UNAVAILABLE,
-            _ => ErrorI18nKeys.INTERNAL
+            ErrorCode.VALIDATION_FAILED => ErrorI18NKeys.VALIDATION,
+            ErrorCode.MAX_ATTEMPTS_REACHED => ErrorI18NKeys.MAX_ATTEMPTS,
+            ErrorCode.INVALID_MOBILE_NUMBER => ErrorI18NKeys.INVALID_MOBILE,
+            ErrorCode.OTP_EXPIRED => ErrorI18NKeys.OTP_EXPIRED,
+            ErrorCode.NOT_FOUND => ErrorI18NKeys.NOT_FOUND,
+            ErrorCode.ALREADY_EXISTS => ErrorI18NKeys.ALREADY_EXISTS,
+            ErrorCode.UNAUTHENTICATED => ErrorI18NKeys.UNAUTHENTICATED,
+            ErrorCode.PERMISSION_DENIED => ErrorI18NKeys.PERMISSION_DENIED,
+            ErrorCode.PRECONDITION_FAILED => ErrorI18NKeys.PRECONDITION_FAILED,
+            ErrorCode.CONFLICT => ErrorI18NKeys.CONFLICT,
+            ErrorCode.RESOURCE_EXHAUSTED => ErrorI18NKeys.RESOURCE_EXHAUSTED,
+            ErrorCode.SERVICE_UNAVAILABLE => ErrorI18NKeys.SERVICE_UNAVAILABLE,
+            ErrorCode.DEPENDENCY_UNAVAILABLE => ErrorI18NKeys.DEPENDENCY_UNAVAILABLE,
+            ErrorCode.DEADLINE_EXCEEDED => ErrorI18NKeys.DEADLINE_EXCEEDED,
+            ErrorCode.CANCELLED => ErrorI18NKeys.CANCELLED,
+            ErrorCode.DATABASE_UNAVAILABLE => ErrorI18NKeys.DATABASE_UNAVAILABLE,
+            _ => ErrorI18NKeys.INTERNAL
         };
 
     private static NetworkFailureType DetermineFailureType(RpcException rpcException, UserFacingError userError)
     {
         if (GrpcErrorClassifier.IsIdentityKeyDerivationFailure(rpcException) ||
             GrpcErrorClassifier.IsAuthenticationError(rpcException) ||
-            userError.ERROR_CODE == ErrorCode.UNAUTHENTICATED)
+            userError.ErrorCode == ErrorCode.UNAUTHENTICATED)
         {
-            return NetworkFailureType.CriticalAuthenticationFailure;
+            return NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE;
         }
 
         if (GrpcErrorClassifier.IsProtocolStateMismatch(rpcException))
         {
-            return NetworkFailureType.ProtocolStateMismatch;
+            return NetworkFailureType.PROTOCOL_STATE_MISMATCH;
         }
 
         if (GrpcErrorClassifier.IsServerShutdown(rpcException))
         {
-            return NetworkFailureType.DataCenterShutdown;
+            return NetworkFailureType.DATA_CENTER_SHUTDOWN;
         }
 
         if (GrpcErrorClassifier.IsBusinessError(rpcException) &&
             !GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return NetworkFailureType.InvalidRequestType;
+            return NetworkFailureType.INVALID_REQUEST_TYPE;
         }
 
         if (GrpcErrorClassifier.IsTransientInfrastructure(rpcException) ||
             GrpcErrorClassifier.RequiresHandshakeRecovery(rpcException) ||
             GrpcErrorClassifier.IsAuthFlowMissing(rpcException))
         {
-            return NetworkFailureType.DataCenterNotResponding;
+            return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;
         }
 
         if (rpcException.StatusCode == StatusCode.Cancelled)
         {
         }
 
-        return NetworkFailureType.DataCenterNotResponding;
+        return NetworkFailureType.DATA_CENTER_NOT_RESPONDING;
     }
 }

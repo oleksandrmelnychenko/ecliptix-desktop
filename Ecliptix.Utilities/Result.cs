@@ -22,15 +22,9 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     }
 
 
-    public static Result<T, TE> Ok(T value)
-    {
-        return new Result<T, TE>(value, true);
-    }
+    public static Result<T, TE> Ok(T value) => new(value, true);
 
-    public static Result<T, TE> Err(TE error)
-    {
-        return new Result<T, TE>(error);
-    }
+    public static Result<T, TE> Err(TE error) => new(error);
 
     public static Result<T, TE> FromValue(T? value, TE errorWhenNull)
     {
@@ -41,10 +35,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         };
     }
 
-    public static Result<T, TE> Validate(T value, Func<T, bool> predicate, TE errorWhenInvalid)
-    {
-        return predicate(value) ? Ok(value) : Err(errorWhenInvalid);
-    }
+    public static Result<T, TE> Validate(T value, Func<T, bool> predicate, TE errorWhenInvalid) => predicate(value) ? Ok(value) : Err(errorWhenInvalid);
 
     public static Result<T, TE> Try(Func<T> func, Func<Exception, TE> errorMapper)
     {
@@ -71,12 +62,9 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         catch (Exception ex) when (ex is not ThreadAbortException and not StackOverflowException)
         {
             TE error = errorMapper(ex);
-            if (EqualityComparer<TE>.Default.Equals(error, default))
-            {
-                throw new InvalidOperationException(UtilityConstants.ErrorMessages.ERROR_MAPPER_RETURNED_NULL);
-            }
-
-            return Result<Unit, TE>.Err(error);
+            return EqualityComparer<TE>.Default.Equals(error, default)
+                ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.ERROR_MAPPER_RETURNED_NULL)
+                : Result<Unit, TE>.Err(error);
         }
         finally
         {
@@ -92,45 +80,22 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
     [MemberNotNullWhen(true, nameof(_error))]
     public bool IsErr => !IsOk;
 
-    public T Unwrap()
-    {
-        return IsOk ? _value! : throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_ERR);
-    }
+    public T Unwrap() =>
+        IsOk ? _value! : throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_ERR);
 
-    public TE UnwrapErr()
-    {
-        return IsOk ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_OK) : _error!;
-    }
+    public TE UnwrapErr() =>
+        IsOk ? throw new InvalidOperationException(UtilityConstants.ErrorMessages.CANNOT_UNWRAP_OK) : _error!;
 
-    public T? UnwrapOr(T? defaultValue)
-    {
-        return IsOk ? _value : defaultValue;
-    }
+    public Result<TNext, TE> Map<TNext>(Func<T, TNext> mapFn) =>
+        IsOk ? Result<TNext, TE>.Ok(mapFn(_value!)) : Result<TNext, TE>.Err(_error!);
 
-    public Result<TNext, TE> Map<TNext>(Func<T, TNext> mapFn)
-    {
-        return IsOk ? Result<TNext, TE>.Ok(mapFn(_value!)) : Result<TNext, TE>.Err(_error!);
-    }
+    public Result<TNext, TE> Bind<TNext>(Func<T, Result<TNext, TE>> bindFn) =>
+        IsOk ? bindFn(_value!) : Result<TNext, TE>.Err(_error!);
 
-    public Result<T, TENext> MapErr<TENext>(Func<TE, TENext> mapFn) where TENext : notnull
-    {
-        return IsOk ? Result<T, TENext>.Ok(_value!) : Result<T, TENext>.Err(mapFn(_error!));
-    }
+    public Result<TNext, TE> AndThen<TNext>(Func<T, Result<TNext, TE>> bindFn) => Bind(bindFn);
 
-    public Result<TNext, TE> Bind<TNext>(Func<T, Result<TNext, TE>> bindFn)
-    {
-        return IsOk ? bindFn(_value!) : Result<TNext, TE>.Err(_error!);
-    }
-
-    public Result<TNext, TE> AndThen<TNext>(Func<T, Result<TNext, TE>> bindFn)
-    {
-        return Bind(bindFn);
-    }
-
-    public override string ToString()
-    {
-        return IsOk ? UtilityConstants.ResultType.OK_STRING : UtilityConstants.ResultType.ERR_STRING;
-    }
+    public override string ToString() =>
+        IsOk ? UtilityConstants.ResultType.OK_STRING : UtilityConstants.ResultType.ERR_STRING;
 
     public bool Equals(Result<T, TE> other)
     {
@@ -140,10 +105,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
                    : EqualityComparer<TE>.Default.Equals(_error, other._error));
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Result<T, TE> other && Equals(other);
-    }
+    public override bool Equals(object? obj) => obj is Result<T, TE> other && Equals(other);
 
     public override int GetHashCode()
     {
@@ -158,13 +120,7 @@ public readonly struct Result<T, TE> : IEquatable<Result<T, TE>>
         }
     }
 
-    public static bool operator ==(Result<T, TE> left, Result<T, TE> right)
-    {
-        return left.Equals(right);
-    }
+    public static bool operator ==(Result<T, TE> left, Result<T, TE> right) => left.Equals(right);
 
-    public static bool operator !=(Result<T, TE> left, Result<T, TE> right)
-    {
-        return !left.Equals(right);
-    }
+    public static bool operator !=(Result<T, TE> left, Result<T, TE> right) => !left.Equals(right);
 }

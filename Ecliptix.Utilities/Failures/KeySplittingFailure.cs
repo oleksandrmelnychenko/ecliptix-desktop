@@ -6,36 +6,36 @@ public sealed record KeySplittingFailure : FailureBase
 {
     public enum ErrorCode
     {
-        InsufficientShares,
-        ShareValidationFailed,
-        ShareStorageFailed,
-        ShareRetrievalFailed,
-        ShareNotFound,
-        CacheCapacityExceeded,
-        InvalidShareData,
-        InvalidIdentifier,
-        HmacKeyMissing,
-        HmacKeyGenerationFailed,
-        HmacKeyStorageFailed,
-        HmacKeyRetrievalFailed,
-        HmacKeyRemovalFailed,
+        INSUFFICIENT_SHARES,
+        SHARE_VALIDATION_FAILED,
+        SHARE_STORAGE_FAILED,
+        SHARE_RETRIEVAL_FAILED,
+        SHARE_NOT_FOUND,
+        CACHE_CAPACITY_EXCEEDED,
+        INVALID_SHARE_DATA,
+        INVALID_IDENTIFIER,
+        HMAC_KEY_MISSING,
+        HMAC_KEY_GENERATION_FAILED,
+        HMAC_KEY_STORAGE_FAILED,
+        HMAC_KEY_RETRIEVAL_FAILED,
+        HMAC_KEY_REMOVAL_FAILED,
         STORAGE_DISPOSED,
         ALLOCATION_FAILED,
-        MemoryWriteFailed,
-        MemoryReadFailed,
-        EncryptionFailed,
-        DecryptionFailed,
-        InvalidThreshold,
-        InvalidShareCount,
-        KeyDerivationFailed,
-        KeyReconstructionFailed,
-        KeySplittingFailed,
-        HardwareSecurityUnavailable,
-        MinimumSharesNotMet,
-        InvalidKeyLength,
-        InvalidKeyData,
-        InvalidDataFormat,
-        KeyNotFoundInKeychain
+        MEMORY_WRITE_FAILED,
+        MEMORY_READ_FAILED,
+        ENCRYPTION_FAILED,
+        DECRYPTION_FAILED,
+        INVALID_THRESHOLD,
+        INVALID_SHARE_COUNT,
+        KEY_DERIVATION_FAILED,
+        KEY_RECONSTRUCTION_FAILED,
+        KEY_SPLITTING_FAILED,
+        HARDWARE_SECURITY_UNAVAILABLE,
+        MINIMUM_SHARES_NOT_MET,
+        INVALID_KEY_LENGTH,
+        INVALID_KEY_DATA,
+        INVALID_DATA_FORMAT,
+        KEY_NOT_FOUND_IN_KEYCHAIN
     }
 
     public ErrorCode Code { get; }
@@ -54,101 +54,20 @@ public sealed record KeySplittingFailure : FailureBase
         Timestamp
     };
 
-    public static KeySplittingFailure InsufficientShares(int retrieved, int required) =>
-        new(ErrorCode.InsufficientShares, $"Insufficient shares retrieved. Got {retrieved}, need {required}");
-
-    public static KeySplittingFailure ShareValidationFailed(string reason) =>
-        new(ErrorCode.ShareValidationFailed, $"Share validation failed: {reason}");
-
-    public static KeySplittingFailure ShareStorageFailed(int shareIndex, string reason) =>
-        new(ErrorCode.ShareStorageFailed, $"Failed to store share {shareIndex}: {reason}");
-
-    public static KeySplittingFailure ShareRetrievalFailed(int shareIndex, string reason) =>
-        new(ErrorCode.ShareRetrievalFailed, $"Failed to retrieve share {shareIndex}: {reason}");
-
-    public static KeySplittingFailure ShareNotFound(int shareIndex) =>
-        new(ErrorCode.ShareNotFound, $"Share {shareIndex} not found");
-
-    public static KeySplittingFailure CacheCapacityExceeded(int currentCount, int limit) =>
-        new(ErrorCode.CacheCapacityExceeded, $"Cache capacity exceeded: {currentCount}/{limit}");
-
-    public static KeySplittingFailure InvalidShareData(string reason) =>
-        new(ErrorCode.InvalidShareData, $"Invalid share data: {reason}");
-
-    public static KeySplittingFailure InvalidIdentifier(string identifier) =>
-        new(ErrorCode.InvalidIdentifier, $"Invalid identifier: {identifier}");
-
-    public static KeySplittingFailure HmacKeyMissing(string identifier) =>
-        new(ErrorCode.HmacKeyMissing, $"HMAC key not found for identifier: {identifier}");
-
-    public static KeySplittingFailure HmacKeyGenerationFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.HmacKeyGenerationFailed, $"Failed to generate HMAC key: {reason}", ex);
-
-    public static KeySplittingFailure HmacKeyStorageFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.HmacKeyStorageFailed, $"Failed to store HMAC key: {reason}", ex);
-
-    public static KeySplittingFailure HmacKeyRetrievalFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.HmacKeyRetrievalFailed, $"Failed to retrieve HMAC key: {reason}", ex);
-
-    public static KeySplittingFailure STORAGE_DISPOSED() =>
-        new(ErrorCode.STORAGE_DISPOSED, "Storage service is disposed");
-
     public static KeySplittingFailure ALLOCATION_FAILED(string reason) =>
         new(ErrorCode.ALLOCATION_FAILED, $"Failed to allocate secure memory: {reason}");
 
     public static KeySplittingFailure MemoryWriteFailed(string reason) =>
-        new(ErrorCode.MemoryWriteFailed, $"Failed to write to secure memory: {reason}");
+        new(ErrorCode.MEMORY_WRITE_FAILED, $"Failed to write to secure memory: {reason}");
 
     public static KeySplittingFailure MemoryReadFailed(string reason) =>
-        new(ErrorCode.MemoryReadFailed, $"Failed to read from secure memory: {reason}");
-
-    public static KeySplittingFailure EncryptionFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.EncryptionFailed, $"Encryption failed: {reason}", ex);
-
-    public static KeySplittingFailure DecryptionFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.DecryptionFailed, $"Decryption failed: {reason}", ex);
-
-    public static KeySplittingFailure InvalidThreshold(int threshold, int totalShares) =>
-        new(ErrorCode.InvalidThreshold, $"Invalid threshold: {threshold}. Must be between 2 and {totalShares}");
-
-    public static KeySplittingFailure InvalidShareCount(int count) =>
-        new(ErrorCode.InvalidShareCount, $"Invalid share count: {count}. Must be between 2 and 255");
+        new(ErrorCode.MEMORY_READ_FAILED, $"Failed to read from secure memory: {reason}");
 
     public static KeySplittingFailure KeyDerivationFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.KeyDerivationFailed, $"Key derivation failed: {reason}", ex);
-
-    public static KeySplittingFailure KeyReconstructionFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.KeyReconstructionFailed, $"Key reconstruction failed: {reason}", ex);
-
-    public static KeySplittingFailure KeySplittingFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.KeySplittingFailed, $"Key splitting failed: {reason}", ex);
-
-    public static KeySplittingFailure HardwareSecurityUnavailable(string reason) =>
-        new(ErrorCode.HardwareSecurityUnavailable, $"Hardware security unavailable: {reason}");
-
-    public static KeySplittingFailure MinimumSharesNotMet(int successCount, int required) =>
-        new(ErrorCode.MinimumSharesNotMet, $"Failed to store minimum required shares. Only {successCount} of {required} succeeded");
-
-    public static KeySplittingFailure InvalidKeyLength(int length) =>
-        new(ErrorCode.InvalidKeyLength, $"Invalid key length: {length}");
-
-    public static KeySplittingFailure InvalidKeyData(string reason) =>
-        new(ErrorCode.InvalidKeyData, $"Invalid key data: {reason}");
-
-    public static KeySplittingFailure HmacKeyRemovalFailed(string reason, Exception? ex = null) =>
-        new(ErrorCode.HmacKeyRemovalFailed, $"Failed to remove HMAC key: {reason}", ex);
-
-    public static KeySplittingFailure InvalidDataFormat(string reason) =>
-        new(ErrorCode.InvalidDataFormat, $"Invalid data format: {reason}");
-
-    public static KeySplittingFailure KeyNotFoundInKeychain(string keyIdentifier) =>
-        new(ErrorCode.KeyNotFoundInKeychain, $"Key not found in keychain: {keyIdentifier}");
-
-    public static KeySplittingFailure FromSodiumFailure(Sodium.SodiumFailure failure) =>
-        new(ErrorCode.ALLOCATION_FAILED, $"Sodium operation failed: {failure.Message}", failure.InnerException);
+        new(ErrorCode.KEY_DERIVATION_FAILED, $"Key derivation failed: {reason}", ex);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(Utilities.ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
+        new(Utilities.ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL);
 
     public override string ToString() => $"[KeySplittingFailure.{Code}] {Message}";
 }

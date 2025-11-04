@@ -16,8 +16,5 @@ public sealed class MetaDataSystemFailure
     public Exception? InnerException { get; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static MetaDataSystemFailure ComponentNotFound(string? details = null)
-    {
-        return new MetaDataSystemFailure(MetaDataSystemFailureType.RequiredComponentNotFound, details);
-    }
+    public static MetaDataSystemFailure ComponentNotFound(string? details = null) => new(MetaDataSystemFailureType.REQUIRED_COMPONENT_NOT_FOUND, details);
 }

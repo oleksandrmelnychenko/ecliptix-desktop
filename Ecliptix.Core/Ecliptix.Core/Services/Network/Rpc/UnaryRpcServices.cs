@@ -352,7 +352,7 @@ public sealed class UnaryRpcServices : IUnaryRpcServices
         {
             NetworkFailure failure = await _errorProcessor.ProcessAsync(rpcEx).ConfigureAwait(false);
 
-            if (failure.FailureType != NetworkFailureType.ProtocolStateMismatch)
+            if (failure.FailureType != NetworkFailureType.PROTOCOL_STATE_MISMATCH)
             {
                 await connectivityService.PublishAsync(
                         ConnectivityIntent.Disconnected(failure))

@@ -72,7 +72,7 @@ internal static class Helpers
         Array.Reverse(bytes, 4, 2);
         Array.Reverse(bytes, 6, 2);
 
-        Guid result = new Guid(bytes);
+        Guid result = new(bytes);
 
         return result;
     }

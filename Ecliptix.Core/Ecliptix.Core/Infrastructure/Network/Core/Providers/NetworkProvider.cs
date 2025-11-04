@@ -271,7 +271,7 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
         if (connection == null)
         {
             return Result<Option<EcliptixSessionState>, NetworkFailure>.Err(
-                new NetworkFailure(NetworkFailureType.DataCenterNotResponding,
+                new NetworkFailure(NetworkFailureType.DATA_CENTER_NOT_RESPONDING,
                     "Connection has not been established yet."));
         }
 
@@ -1148,9 +1148,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
             return failure;
         }
 
-        if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CORRELATION_ID))
+        if (failure.UserError is { } userError && string.IsNullOrWhiteSpace(userError.CorrelationId))
         {
-            return failure with { UserError = userError with { CORRELATION_ID = context.CorrelationId } };
+            return failure with { UserError = userError with { CorrelationId = context.CorrelationId } };
         }
 
         return failure;
@@ -1167,9 +1167,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private static bool ShouldReinitOnFailure(NetworkFailure failure)
     {
         return failure.FailureType is
-            NetworkFailureType.DataCenterNotResponding or
-            NetworkFailureType.DataCenterShutdown or
-            NetworkFailureType.ProtocolStateMismatch;
+            NetworkFailureType.DATA_CENTER_NOT_RESPONDING or
+            NetworkFailureType.DATA_CENTER_SHUTDOWN or
+            NetworkFailureType.PROTOCOL_STATE_MISMATCH;
     }
 
     private static NetworkFailure ApplyReinitIfNeeded(
@@ -2096,10 +2096,10 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
     private static bool ShouldQueueSecrecyChannelRetry(NetworkFailure failure)
     {
-        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
-            or NetworkFailureType.DataCenterShutdown
-            or NetworkFailureType.ProtocolStateMismatch
-            or NetworkFailureType.RsaEncryptionFailure;
+        return failure.FailureType is NetworkFailureType.DATA_CENTER_NOT_RESPONDING
+            or NetworkFailureType.DATA_CENTER_SHUTDOWN
+            or NetworkFailureType.PROTOCOL_STATE_MISMATCH
+            or NetworkFailureType.RSA_ENCRYPTION_FAILURE;
     }
 
     private void QueueSecrecyChannelEstablishRetry(uint connectId, PubKeyExchangeType EXCHANGE_TYPE, int? maxRetries,

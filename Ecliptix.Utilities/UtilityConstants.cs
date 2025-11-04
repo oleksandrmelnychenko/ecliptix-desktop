@@ -52,9 +52,4 @@ internal static class UtilityConstants
         public const byte MSG_INFO_VALUE = 0x01;
         public const byte CHAIN_INFO_VALUE = 0x02;
     }
-
-    internal static class NetworkConstants
-    {
-        public const uint MIN_REQUEST_ID = 10;
-    }
 }

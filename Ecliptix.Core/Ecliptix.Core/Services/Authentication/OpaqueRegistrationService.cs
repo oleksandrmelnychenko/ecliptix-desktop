@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Sockets;
 using System.Reactive.Concurrency;
 using System.Security.Cryptography;
@@ -360,9 +357,9 @@ internal sealed class OpaqueRegistrationService(
 
     private static bool IsTransientRegistrationFailure(NetworkFailure failure)
     {
-        return failure.FailureType is NetworkFailureType.DataCenterNotResponding
-            or NetworkFailureType.DataCenterShutdown
-            or NetworkFailureType.OperationCancelled;
+        return failure.FailureType is NetworkFailureType.DATA_CENTER_NOT_RESPONDING
+            or NetworkFailureType.DATA_CENTER_SHUTDOWN
+            or NetworkFailureType.OPERATION_CANCELLED;
     }
 
     private static string GetNetworkFailureMessage(NetworkFailure failure) =>
@@ -380,8 +377,8 @@ internal sealed class OpaqueRegistrationService(
                     AuthenticationConstants.ErrorMessages.SESSION_EXPIRED_START_OVER));
         }
 
-        if (failure.FailureType is not (NetworkFailureType.DataCenterNotResponding
-            or NetworkFailureType.DataCenterShutdown))
+        if (failure.FailureType is not (NetworkFailureType.DATA_CENTER_NOT_RESPONDING
+            or NetworkFailureType.DATA_CENTER_SHUTDOWN))
         {
             return;
         }
@@ -400,16 +397,16 @@ internal sealed class OpaqueRegistrationService(
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(userError.I_18N_KEY) &&
-            (string.Equals(userError.I_18N_KEY, AuthenticationConstants.SESSION_NOT_FOUND_KEY,
+        if (!string.IsNullOrWhiteSpace(userError.I18NKey) &&
+            (string.Equals(userError.I18NKey, AuthenticationConstants.SESSION_NOT_FOUND_KEY,
                  StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(userError.I_18N_KEY, AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY,
+             string.Equals(userError.I18NKey, AuthenticationConstants.VERIFICATION_SESSION_EXPIRED_KEY,
                  StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
 
-        return userError.ERROR_CODE == ErrorCode.NOT_FOUND;
+        return userError.ErrorCode == ErrorCode.NOT_FOUND;
     }
 
     private readonly record struct RegistrationAttemptResult(

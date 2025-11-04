@@ -24,89 +24,89 @@ public record NetworkFailure(
                 ? null
                 : new
                 {
-                    UserError.ERROR_CODE,
-                    UserError.I_18N_KEY,
+                    ERROR_CODE = UserError.ErrorCode,
+                    I_18N_KEY = UserError.I18NKey,
                     UserError.Message,
-                    UserError.RETRYABLE,
-                    UserError.RETRY_AFTER_MILLISECONDS,
-                    UserError.CORRELATION_ID,
-                    UserError.LOCALE,
+                    RETRYABLE = UserError.Retryable,
+                    RETRY_AFTER_MILLISECONDS = UserError.RetryAfterMilliseconds,
+                    CORRELATION_ID = UserError.CorrelationId,
+                    LOCALE = UserError.Locale,
                     UserError.GrpcStatusCode
                 }
         };
     }
 
     public static NetworkFailure InvalidRequestType(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.InvalidRequestType, details, inner) { UserError = userError };
+        new(NetworkFailureType.INVALID_REQUEST_TYPE, details, inner) { UserError = userError };
 
     public static NetworkFailure DataCenterNotResponding(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.DataCenterNotResponding, details, inner) { UserError = userError };
+        new(NetworkFailureType.DATA_CENTER_NOT_RESPONDING, details, inner) { UserError = userError };
 
     public static NetworkFailure DataCenterShutdown(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.DataCenterShutdown, details, inner) { UserError = userError };
+        new(NetworkFailureType.DATA_CENTER_SHUTDOWN, details, inner) { UserError = userError };
 
     public static NetworkFailure RsaEncryption(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.RsaEncryptionFailure, details, inner) { UserError = userError };
+        new(NetworkFailureType.RSA_ENCRYPTION_FAILURE, details, inner) { UserError = userError };
 
     public static NetworkFailure ProtocolStateMismatch(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.ProtocolStateMismatch, details, inner) { UserError = userError };
+        new(NetworkFailureType.PROTOCOL_STATE_MISMATCH, details, inner) { UserError = userError };
 
     public static NetworkFailure OperationCancelled(string? details = null, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.OperationCancelled, details ?? "Operation was cancelled", inner)
+        new(NetworkFailureType.OPERATION_CANCELLED, details ?? "Operation was cancelled", inner)
         {
             UserError = userError
         };
 
     public static NetworkFailure CriticalAuthenticationFailure(string details, Exception? inner = null, UserFacingError? userError = null) =>
-        new(NetworkFailureType.CriticalAuthenticationFailure, details, inner) { UserError = userError };
+        new(NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE, details, inner) { UserError = userError };
 
     public override GrpcErrorDescriptor ToGrpcDescriptor()
     {
         if (UserError is not null)
         {
             return new GrpcErrorDescriptor(
-                UserError.ERROR_CODE,
+                UserError.ErrorCode,
                 UserError.GrpcStatusCode ?? StatusCode.Internal,
-                UserError.I_18N_KEY,
-                UserError.RETRYABLE ?? false,
-                UserError.RETRY_AFTER_MILLISECONDS);
+                UserError.I18NKey,
+                UserError.Retryable ?? false,
+                UserError.RetryAfterMilliseconds);
         }
 
         return FailureType switch
         {
-            NetworkFailureType.DataCenterNotResponding => new GrpcErrorDescriptor(
+            NetworkFailureType.DATA_CENTER_NOT_RESPONDING => new GrpcErrorDescriptor(
                 ErrorCode.SERVICE_UNAVAILABLE,
                 StatusCode.Unavailable,
-                ErrorI18nKeys.SERVICE_UNAVAILABLE,
-                RETRYABLE: true),
-            NetworkFailureType.DataCenterShutdown => new GrpcErrorDescriptor(
+                ErrorI18NKeys.SERVICE_UNAVAILABLE,
+                Retryable: true),
+            NetworkFailureType.DATA_CENTER_SHUTDOWN => new GrpcErrorDescriptor(
                 ErrorCode.SERVICE_UNAVAILABLE,
                 StatusCode.Unavailable,
-                ErrorI18nKeys.SERVICE_UNAVAILABLE),
-            NetworkFailureType.InvalidRequestType => new GrpcErrorDescriptor(
+                ErrorI18NKeys.SERVICE_UNAVAILABLE),
+            NetworkFailureType.INVALID_REQUEST_TYPE => new GrpcErrorDescriptor(
                 ErrorCode.VALIDATION_FAILED,
                 StatusCode.InvalidArgument,
-                ErrorI18nKeys.VALIDATION),
-            NetworkFailureType.RsaEncryptionFailure => new GrpcErrorDescriptor(
+                ErrorI18NKeys.VALIDATION),
+            NetworkFailureType.RSA_ENCRYPTION_FAILURE => new GrpcErrorDescriptor(
                 ErrorCode.INTERNAL_ERROR,
                 StatusCode.Internal,
-                ErrorI18nKeys.INTERNAL),
-            NetworkFailureType.ProtocolStateMismatch => new GrpcErrorDescriptor(
+                ErrorI18NKeys.INTERNAL),
+            NetworkFailureType.PROTOCOL_STATE_MISMATCH => new GrpcErrorDescriptor(
                 ErrorCode.PRECONDITION_FAILED,
                 StatusCode.FailedPrecondition,
-                ErrorI18nKeys.PRECONDITION_FAILED),
-            NetworkFailureType.OperationCancelled => new GrpcErrorDescriptor(
+                ErrorI18NKeys.PRECONDITION_FAILED),
+            NetworkFailureType.OPERATION_CANCELLED => new GrpcErrorDescriptor(
                 ErrorCode.CANCELLED,
                 StatusCode.Cancelled,
-                ErrorI18nKeys.CANCELLED),
-            NetworkFailureType.CriticalAuthenticationFailure => new GrpcErrorDescriptor(
+                ErrorI18NKeys.CANCELLED),
+            NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => new GrpcErrorDescriptor(
                 ErrorCode.UNAUTHENTICATED,
                 StatusCode.Unauthenticated,
-                ErrorI18nKeys.UNAUTHENTICATED),
+                ErrorI18NKeys.UNAUTHENTICATED),
             _ => new GrpcErrorDescriptor(
                 ErrorCode.INTERNAL_ERROR,
                 StatusCode.Internal,
-                ErrorI18nKeys.INTERNAL)
+                ErrorI18NKeys.INTERNAL)
         };
     }
 }

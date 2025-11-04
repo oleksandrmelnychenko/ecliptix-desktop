@@ -18,24 +18,15 @@ public static class OptionExtensions
 
     public static T GetValueOrDefault<T>(this Option<T> option, T defaultValue) => option.ValueOr(defaultValue);
 
-    public static T GetValueOrDefault<T>(this Option<T> option, Func<T> defaultFactory)
-    {
-        ArgumentNullException.ThrowIfNull(defaultFactory);
-        return option.IsSome ? option.Value! : defaultFactory();
-    }
+    public static T GetValueOrDefault<T>(this Option<T> option, Func<T> defaultFactory) => option.IsSome ? option.Value! : defaultFactory();
 
     public static void Do<T>(this Option<T> option, Action<T> action)
     {
-        ArgumentNullException.ThrowIfNull(action);
         if (option.IsSome)
         {
             action(option.Value!);
         }
     }
 
-    public static Option<T> Or<T>(this Option<T> option, Func<Option<T>> alternativeFactory)
-    {
-        ArgumentNullException.ThrowIfNull(alternativeFactory);
-        return option.IsSome ? option : alternativeFactory();
-    }
+    public static Option<T> Or<T>(this Option<T> option, Func<Option<T>> alternativeFactory) => option.IsSome ? option : alternativeFactory();
 }

@@ -882,7 +882,7 @@ public sealed class VerifyOtpViewModel : Core.MVVM.ViewModelBase, IRoutableViewM
     private bool IsServerUnavailableError(string errorMessage)
     {
         string serverUnavailableText = _localizationService["error.server_unavailable"];
-        string serviceUnavailableText = _localizationService[ErrorI18nKeys.SERVICE_UNAVAILABLE];
+        string serviceUnavailableText = _localizationService[ErrorI18NKeys.SERVICE_UNAVAILABLE];
 
         return errorMessage.Contains(serverUnavailableText, StringComparison.OrdinalIgnoreCase) ||
                errorMessage.Contains(serviceUnavailableText, StringComparison.OrdinalIgnoreCase) ||

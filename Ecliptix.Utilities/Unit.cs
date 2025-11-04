@@ -4,20 +4,11 @@ public readonly struct Unit : IEquatable<Unit>
 {
     public static readonly Unit Value = new();
 
-    public bool Equals(Unit other)
-    {
-        return true;
-    }
+    public bool Equals(Unit other) => true;
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Unit;
-    }
+    public override bool Equals(object? obj) => obj is Unit;
 
-    public override int GetHashCode()
-    {
-        return UtilityConstants.UnitType.HASH_CODE;
-    }
+    public override int GetHashCode() => UtilityConstants.UnitType.HASH_CODE;
 
     public static bool operator ==(Unit left, Unit right)
     {
@@ -33,8 +24,5 @@ public readonly struct Unit : IEquatable<Unit>
         return false;
     }
 
-    public override string ToString()
-    {
-        return UtilityConstants.UnitType.STRING_REPRESENTATION;
-    }
+    public override string ToString() => UtilityConstants.UnitType.STRING_REPRESENTATION;
 }

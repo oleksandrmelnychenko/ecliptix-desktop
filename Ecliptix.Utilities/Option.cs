@@ -14,15 +14,9 @@ public readonly record struct Option<T>
 
     public static Option<T> None => new(false, default);
 
-    public static Option<T> Some(T value)
-    {
-        return new Option<T>(true, value);
-    }
+    public static Option<T> Some(T value) => new(true, value);
 
-    public TResult Match<TResult>(Func<T, TResult> onSome, Func<TResult> onNone)
-    {
-        return IsSome ? onSome(Value!) : onNone();
-    }
+    public TResult Match<TResult>(Func<T, TResult> onSome, Func<TResult> onNone) => IsSome ? onSome(Value!) : onNone();
 
     public void Match(Action<T> onSome, Action onNone)
     {
@@ -36,18 +30,9 @@ public readonly record struct Option<T>
         }
     }
 
-    public T ValueOr(T fallback)
-    {
-        return IsSome ? Value! : fallback;
-    }
+    public T ValueOr(T fallback) => IsSome ? Value! : fallback;
 
-    public Option<TResult> Map<TResult>(Func<T, TResult> selector)
-    {
-        return IsSome ? Option<TResult>.Some(selector(Value!)) : Option<TResult>.None;
-    }
+    public Option<TResult> Map<TResult>(Func<T, TResult> selector) => IsSome ? Option<TResult>.Some(selector(Value!)) : Option<TResult>.None;
 
-    public static Option<T> From(T? value)
-    {
-        return value is not null ? Some(value) : None;
-    }
+    public static Option<T> From(T? value) => value is not null ? Some(value) : None;
 }

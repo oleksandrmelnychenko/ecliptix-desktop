@@ -4,8 +4,8 @@ namespace Ecliptix.Utilities.Failures.Validations;
 
 public enum ValidationFailureType
 {
-    SignInFailed,
-    LoginAttemptExceeded
+    SIGN_IN_FAILED,
+    LOGIN_ATTEMPT_EXCEEDED
 }
 
 public record ValidationFailure(
@@ -26,17 +26,17 @@ public record ValidationFailure(
     }
 
     public static ValidationFailure SignInFailed(string details, Exception? inner = null) =>
-        new(ValidationFailureType.SignInFailed, details, inner);
+        new(ValidationFailureType.SIGN_IN_FAILED, details, inner);
 
     public static ValidationFailure LoginAttemptExceeded(string details, Exception? inner = null) =>
-        new(ValidationFailureType.LoginAttemptExceeded, details, inner);
+        new(ValidationFailureType.LOGIN_ATTEMPT_EXCEEDED, details, inner);
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
         FailureType switch
         {
-            ValidationFailureType.LoginAttemptExceeded => new GrpcErrorDescriptor(
-                ErrorCode.MAX_ATTEMPTS_REACHED, StatusCode.ResourceExhausted, ErrorI18nKeys.MAX_ATTEMPTS),
+            ValidationFailureType.LOGIN_ATTEMPT_EXCEEDED => new GrpcErrorDescriptor(
+                ErrorCode.MAX_ATTEMPTS_REACHED, StatusCode.ResourceExhausted, ErrorI18NKeys.MAX_ATTEMPTS),
             _ => new GrpcErrorDescriptor(
-                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18nKeys.VALIDATION)
+                ErrorCode.VALIDATION_FAILED, StatusCode.InvalidArgument, ErrorI18NKeys.VALIDATION)
         };
 }

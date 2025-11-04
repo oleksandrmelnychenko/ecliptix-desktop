@@ -104,11 +104,11 @@ public sealed class SecrecyChannelRpcServices : ISecrecyChannelRpcServices
                 UserFacingError userError = failure.UserError ??
                                             new UserFacingError(
                                                 ErrorCode.UNAUTHENTICATED,
-                                                ErrorI18nKeys.UNAUTHENTICATED,
+                                                ErrorI18NKeys.UNAUTHENTICATED,
                                                 failure.Message);
 
                 failure = new NetworkFailure(
-                    NetworkFailureType.CriticalAuthenticationFailure,
+                    NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE,
                     userError.Message,
                     rpcEx)
                 {

@@ -82,15 +82,15 @@ internal sealed class ConnectivityPublisher : IDisposable
 
             return failure.FailureType switch
             {
-                NetworkFailureType.DataCenterShutdown => ConnectivityReason.ServerShutdown,
-                NetworkFailureType.OperationCancelled => ConnectivityReason.OperationCancelled,
-                NetworkFailureType.CriticalAuthenticationFailure => ConnectivityReason.SecurityError,
-                NetworkFailureType.InvalidRequestType => ConnectivityReason.SecurityError,
-                NetworkFailureType.EcliptixProtocolFailure => ConnectivityReason.SecurityError,
-                NetworkFailureType.RsaEncryptionFailure => ConnectivityReason.SecurityError,
-                NetworkFailureType.ProtocolStateMismatch => ConnectivityReason.SecurityError,
-                NetworkFailureType.ConnectionFailed => ConnectivityReason.HandshakeFailed,
-                NetworkFailureType.DataCenterNotResponding => ConnectivityReason.RpcFailure,
+                NetworkFailureType.DATA_CENTER_SHUTDOWN => ConnectivityReason.ServerShutdown,
+                NetworkFailureType.OPERATION_CANCELLED => ConnectivityReason.OperationCancelled,
+                NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE => ConnectivityReason.SecurityError,
+                NetworkFailureType.INVALID_REQUEST_TYPE => ConnectivityReason.SecurityError,
+                NetworkFailureType.ECLIPTIX_PROTOCOL_FAILURE => ConnectivityReason.SecurityError,
+                NetworkFailureType.RSA_ENCRYPTION_FAILURE => ConnectivityReason.SecurityError,
+                NetworkFailureType.PROTOCOL_STATE_MISMATCH => ConnectivityReason.SecurityError,
+                NetworkFailureType.CONNECTION_FAILED => ConnectivityReason.HandshakeFailed,
+                NetworkFailureType.DATA_CENTER_NOT_RESPONDING => ConnectivityReason.RpcFailure,
                 _ => ConnectivityReason.Unknown
             };
         }

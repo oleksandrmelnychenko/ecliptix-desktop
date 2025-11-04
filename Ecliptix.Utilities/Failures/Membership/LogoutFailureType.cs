@@ -2,11 +2,11 @@ namespace Ecliptix.Utilities.Failures.Membership;
 
 public enum LogoutFailureType
 {
-    NetworkRequestFailed,
-    AlreadyLoggedOut,
+    NETWORK_REQUEST_FAILED,
+    ALREADY_LOGGED_OUT,
     SESSION_NOT_FOUND,
-    InvalidMembershipIdentifier,
-    CryptographicOperationFailed,
-    InvalidRevocationProof,
-    UnexpectedError
+    INVALID_MEMBERSHIP_IDENTIFIER,
+    CRYPTOGRAPHIC_OPERATION_FAILED,
+    INVALID_REVOCATION_PROOF,
+    UNEXPECTED_ERROR
 }

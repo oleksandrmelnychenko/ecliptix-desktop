@@ -27,10 +27,8 @@ public static class SodiumFailureMessages
     public const string ALLOCATION_FAILED = "sodium_malloc failed to allocate {0} bytes.";
     public const string UNEXPECTED_ALLOCATION_ERROR = "Unexpected error during allocation ({0} bytes).";
     public const string OBJECT_DISPOSED = "Cannot access disposed resource '{0}'.";
-    public const string DATA_TOO_LARGE = "Data length ({0}) exceeds allocated buffer size ({1}).";
     public const string REFERENCE_COUNT_FAILED = "Failed to increment reference count.";
     public const string DISPOSED_AFTER_ADD_REF = "{0} disposed after AddRef.";
-    public const string UNEXPECTED_WRITE_ERROR = "Unexpected error during write operation.";
     public const string BUFFER_TOO_SMALL = "Destination buffer size ({0}) is smaller than the allocated size ({1}).";
     public const string UNEXPECTED_READ_ERROR = "Unexpected error during read operation.";
     public const string NEGATIVE_READ_LENGTH = "Requested read length cannot be negative ({0}).";

@@ -344,7 +344,7 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
     private Result<SodiumSecureMemoryHandle, EcliptixProtocolFailure> DeriveSharedSecretKey(LocalPublicKeyBundle peerBundle)
     {
-        return ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X_3DH_INFO);
+        return ecliptixSystemIdentityKeys.X3dhDeriveSharedSecret(peerBundle, Constants.X3DhInfo);
     }
 
     private Result<Unit, EcliptixProtocolFailure> FinalizeExchange(

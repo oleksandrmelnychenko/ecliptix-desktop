@@ -139,7 +139,7 @@ internal sealed class OpaqueAuthenticationService(
 
                 lastError = protocolResult.UnwrapErr();
 
-                bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+                bool isRetryableError = lastError.FailureType == AuthenticationFailureType.NETWORK_REQUEST_FAILED;
 
                 if (!isRetryableError || attempt >= MAX_PROTOCOL_RECREATE_ATTEMPTS)
                 {
@@ -179,8 +179,8 @@ internal sealed class OpaqueAuthenticationService(
             return false;
         }
 
-        return !string.IsNullOrWhiteSpace(failure.UserError.I_18N_KEY) &&
-               string.Equals(failure.UserError.I_18N_KEY, AuthenticationConstants.INVALID_CREDENTIALS_KEY,
+        return !string.IsNullOrWhiteSpace(failure.UserError.I18NKey) &&
+               string.Equals(failure.UserError.I18NKey, AuthenticationConstants.INVALID_CREDENTIALS_KEY,
                    StringComparison.OrdinalIgnoreCase);
     }
 
@@ -533,7 +533,7 @@ internal sealed class OpaqueAuthenticationService(
 
     private static bool ShouldRetrySignInAttempt(AuthenticationFailure failure, int attempt)
     {
-        bool isRetryableError = failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+        bool isRetryableError = failure.FailureType == AuthenticationFailureType.NETWORK_REQUEST_FAILED;
         return isRetryableError && attempt < MAX_SIGN_IN_FLOW_ATTEMPTS;
     }
 
@@ -544,15 +544,15 @@ internal sealed class OpaqueAuthenticationService(
             return false;
         }
 
-        return failure.FailureType == AuthenticationFailureType.NetworkRequestFailed;
+        return failure.FailureType == AuthenticationFailureType.NETWORK_REQUEST_FAILED;
     }
 
     private static AuthenticationFailure MapValidationFailure(ValidationFailure validation)
     {
         return validation.FailureType switch
         {
-            ValidationFailureType.SignInFailed => AuthenticationFailure.InvalidCredentials(validation.Message),
-            ValidationFailureType.LoginAttemptExceeded => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
+            ValidationFailureType.SIGN_IN_FAILED => AuthenticationFailure.InvalidCredentials(validation.Message),
+            ValidationFailureType.LOGIN_ATTEMPT_EXCEEDED => AuthenticationFailure.LoginAttemptExceeded(validation.Message),
             _ => AuthenticationFailure.UnexpectedError(validation.Message)
         };
     }
@@ -730,7 +730,7 @@ internal sealed class OpaqueAuthenticationService(
         {
             NetworkFailure networkFailure = recreateProtocolResult.UnwrapErr();
 
-            if (networkFailure.FailureType == NetworkFailureType.CriticalAuthenticationFailure)
+            if (networkFailure.FailureType == NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE)
             {
                 Serilog.Log.Error(
                     "[LOGIN-PROTOCOL-RECREATE-CRITICAL] Critical authentication failure - server cannot derive identity keys. MembershipId: {MembershipId}, ERROR: {ERROR}",
@@ -842,9 +842,9 @@ internal sealed class OpaqueAuthenticationService(
 
         return failure.FailureType switch
         {
-            NetworkFailureType.CriticalAuthenticationFailure =>
+            NetworkFailureType.CRITICAL_AUTHENTICATION_FAILURE =>
                 AuthenticationFailure.CriticalAuthenticationError(message),
-            NetworkFailureType.InvalidRequestType when IsInvalidCredentialFailure(failure) =>
+            NetworkFailureType.INVALID_REQUEST_TYPE when IsInvalidCredentialFailure(failure) =>
                 AuthenticationFailure.InvalidCredentials(message),
             _ => AuthenticationFailure.NetworkRequestFailed(message)
         };

@@ -693,5 +693,5 @@ public record SecureStorageFailure(string Message) : FailureBase(Message)
     public override object ToStructuredLog() => new { Message, Type = "SecureStorageFailure" };
 
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
-        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18nKeys.INTERNAL);
+        new(ErrorCode.INTERNAL_ERROR, StatusCode.Internal, ErrorI18NKeys.INTERNAL);
 }
