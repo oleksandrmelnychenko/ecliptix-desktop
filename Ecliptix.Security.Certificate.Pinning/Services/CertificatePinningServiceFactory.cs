@@ -45,7 +45,7 @@ public sealed class CertificatePinningServiceFactory : ICertificatePinningServic
             return _service;
         }
 
-        Task.Run(async () => await service.DisposeAsync()).Wait();
+        service.DisposeAsync().AsTask().GetAwaiter().GetResult();
         return Option<CertificatePinningService>.None;
     }
 

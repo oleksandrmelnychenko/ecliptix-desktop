@@ -25,6 +25,7 @@ internal sealed class StrongSubscription<T>(Func<T, bool> filter, Func<T, Task> 
         {
             return handler(typedMessage);
         }
+
         return null;
     }
 }
