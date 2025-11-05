@@ -49,7 +49,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
     private readonly byte[]? _persistentDhPublicKey;
     private readonly PubKeyExchangeType _exchangeType;
 
-    private long _lastRatchetTimeTicks = DateTime.UtcNow.Ticks;
     private long _nonceCounter;
     private volatile bool _isFirstReceivingRatchet;
     private volatile bool _disposed;
@@ -458,9 +457,8 @@ internal sealed class EcliptixProtocolConnection : IDisposable
             }
 
             uint currentIndex = currentIndexResult.Unwrap();
-            DateTime lastRatchetTime = new DateTime(Interlocked.Read(ref _lastRatchetTimeTicks), DateTimeKind.Utc);
             bool shouldRatchetNow = _isFirstReceivingRatchet ||
-                                    _ratchetConfig.ShouldRatchet(currentIndex + 1, lastRatchetTime, _receivedNewDhKey);
+                                    _ratchetConfig.ShouldRatchet(currentIndex + 1, _receivedNewDhKey);
 
             if (!shouldRatchetNow)
             {
@@ -1158,7 +1156,6 @@ internal sealed class EcliptixProtocolConnection : IDisposable
     {
         _replayProtection.OnRatchetRotation();
         _receivedNewDhKey = false;
-        Interlocked.Exchange(ref _lastRatchetTimeTicks, DateTime.UtcNow.Ticks);
 
         Result<Unit, EcliptixProtocolFailure> metadataKeyResult = DeriveMetadataEncryptionKey();
         if (metadataKeyResult.IsErr)
@@ -1416,8 +1413,7 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
 
         uint currentIndex = currentIndexResult.Unwrap();
-        DateTime lastRatchetTime = new DateTime(Interlocked.Read(ref _lastRatchetTimeTicks), DateTimeKind.Utc);
-        bool shouldRatchet = _ratchetConfig.ShouldRatchet(currentIndex + 1, lastRatchetTime, _receivedNewDhKey);
+        bool shouldRatchet = _ratchetConfig.ShouldRatchet(currentIndex + 1, _receivedNewDhKey);
 
 
         if (!shouldRatchet)

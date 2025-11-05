@@ -983,12 +983,9 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     {
         RatchetConfig config = EXCHANGE_TYPE switch
         {
-            PubKeyExchangeType.ServerStreaming => new RatchetConfig
-            {
-                DhRatchetEveryNMessages = 20,
-                MaxChainAge = TimeSpan.FromMinutes(5),
-                MaxMessagesWithoutRatchet = 100
-            },
+            PubKeyExchangeType.ServerStreaming => RatchetConfig.Create(
+                dhRatchetEveryNMessages: 20,
+                maxMessagesWithoutRatchet: 100),
             _ => RatchetConfig.Default
         };
 

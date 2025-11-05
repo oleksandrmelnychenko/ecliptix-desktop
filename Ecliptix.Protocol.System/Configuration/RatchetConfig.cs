@@ -2,50 +2,52 @@ namespace Ecliptix.Protocol.System.Configuration;
 
 internal sealed class RatchetConfig
 {
-    public static readonly RatchetConfig Default = new();
+    public static readonly RatchetConfig Default = CreateDefault();
 
-    public uint DhRatchetEveryNMessages { get; init; } = 10;
+    public required uint DhRatchetEveryNMessages { get; init; }
 
-    public bool EnablePerMessageRatchet { get; init; } = false;
+    public required uint MaxMessagesWithoutRatchet { get; init; }
 
-    public bool RatchetOnNewDhKey { get; init; } = true;
+    public bool ShouldRatchet(uint messageIndex, bool receivedNewDhKey) =>
+        receivedNewDhKey ||
+        messageIndex % DhRatchetEveryNMessages == 0 ||
+        messageIndex >= MaxMessagesWithoutRatchet;
 
-    public TimeSpan MaxChainAge { get; init; } = ProtocolSystemConstants.Timeouts.DefaultMaxChainAge;
-
-    public uint MaxMessagesWithoutRatchet { get; init; } = 1000;
-
-    public bool ShouldRatchet(uint messageIndex, DateTime lastRatchetTime, bool receivedNewDhKey, DateTime currentTime)
+    public static RatchetConfig Create(uint dhRatchetEveryNMessages, uint maxMessagesWithoutRatchet)
     {
-        if (EnablePerMessageRatchet)
-        {
-            return true;
-        }
+        ValidateParameters(dhRatchetEveryNMessages, maxMessagesWithoutRatchet);
 
-        if (RatchetOnNewDhKey && receivedNewDhKey)
+        return new RatchetConfig
         {
-            return true;
-        }
-
-        if (messageIndex > 0 && messageIndex % DhRatchetEveryNMessages == 0)
-        {
-            return true;
-        }
-
-        if (currentTime - lastRatchetTime > MaxChainAge)
-        {
-            return true;
-        }
-
-        if (messageIndex >= MaxMessagesWithoutRatchet)
-        {
-            return true;
-        }
-
-        return false;
+            DhRatchetEveryNMessages = dhRatchetEveryNMessages,
+            MaxMessagesWithoutRatchet = maxMessagesWithoutRatchet
+        };
     }
 
-    public bool ShouldRatchet(uint messageIndex, DateTime lastRatchetTime, bool receivedNewDhKey)
+    private static RatchetConfig CreateDefault() => new()
     {
-        return ShouldRatchet(messageIndex, lastRatchetTime, receivedNewDhKey, DateTime.UtcNow);
+        DhRatchetEveryNMessages = 10,
+        MaxMessagesWithoutRatchet = 1000
+    };
+
+    private static void ValidateParameters(uint dhRatchetEveryNMessages, uint maxMessagesWithoutRatchet)
+    {
+        if (dhRatchetEveryNMessages == 0)
+        {
+            throw new ArgumentException(
+                "DhRatchetEveryNMessages cannot be 0 (would cause division by zero in ratchet logic)",
+                nameof(dhRatchetEveryNMessages));
+        }
+
+        if (maxMessagesWithoutRatchet < dhRatchetEveryNMessages)
+        {
+            throw new ArgumentException(
+                string.Format(
+                    global::System.Globalization.CultureInfo.InvariantCulture,
+                    "MaxMessagesWithoutRatchet ({0}) cannot be less than DhRatchetEveryNMessages ({1}). This creates a conflicting configuration.",
+                    maxMessagesWithoutRatchet,
+                    dhRatchetEveryNMessages),
+                nameof(maxMessagesWithoutRatchet));
+        }
     }
 }
