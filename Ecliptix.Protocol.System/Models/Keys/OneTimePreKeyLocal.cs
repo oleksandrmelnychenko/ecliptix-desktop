@@ -6,6 +6,13 @@ using Sodium;
 
 namespace Ecliptix.Protocol.System.Models.Keys;
 
+[global::System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1815:Override equals and operator equals on value types",
+    Justification = "This struct holds cryptographic key material and secure memory handles. " +
+                    "Implementing equality would be semantically incorrect and potentially dangerous: " +
+                    "1) Structural equality on reference fields (handles/arrays) compares references, not key material. " +
+                    "2) Comparing cryptographic key bytes directly could introduce timing attack vulnerabilities. " +
+                    "3) The struct is never compared for equality in the codebase - it's identified by PreKeyId. " +
+                    "4) The struct is disposable and manages unmanaged resources that shouldn't be compared.")]
 public readonly struct OneTimePreKeyLocal : IDisposable
 {
     private readonly byte[] _publicKey;
