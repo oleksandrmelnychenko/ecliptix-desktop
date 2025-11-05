@@ -61,7 +61,6 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] originalMasterKeyBytes = readResult.Unwrap();
-            Log.Debug("[IDENTITY-STORE] Read original master key: {Length} bytes", originalMasterKeyBytes.Length);
 
             Result<Unit, AuthenticationFailure> cleanupResult = await CleanupCorruptedIdentityIfNeededAsync(context).ConfigureAwait(false);
             if (cleanupResult.IsErr)
@@ -70,7 +69,6 @@ internal sealed class IdentityService : IIdentityService
             }
 
             await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
-            Log.Debug("[IDENTITY-STORE] Master key stored, verifying...");
 
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(context).ConfigureAwait(false);
 
@@ -90,18 +88,14 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] loadedMasterKeyBytes = loadedReadResult.Unwrap();
-            Log.Debug("[IDENTITY-STORE] Loaded master key for verification: {Length} bytes", loadedMasterKeyBytes.Length);
 
             if (!CryptographicOperations.FixedTimeEquals(originalMasterKeyBytes, loadedMasterKeyBytes))
             {
-                Log.Error("[IDENTITY-STORE] Master key verification FAILED - bytes do not match! Original: {OrigLen} bytes, Loaded: {LoadLen} bytes",
-                    originalMasterKeyBytes.Length, loadedMasterKeyBytes.Length);
                 CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed("Master key verification failed"));
             }
 
-            Log.Information("[IDENTITY-STORE] Master key verification SUCCESS");
             CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
         }
@@ -150,7 +144,7 @@ internal sealed class IdentityService : IIdentityService
 
         if (deleteResult.IsErr)
         {
-            Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {ERROR}",
+            Log.Warning("[STATE-CLEANUP-FULL-DELETE] Failed to delete protocol state file for ConnectId: {ConnectId}, ERROR: {Error}",
                 connectId, deleteResult.UnwrapErr().Message);
         }
 
@@ -159,7 +153,7 @@ internal sealed class IdentityService : IIdentityService
 
         if (clearResult.IsErr)
         {
-            Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {ERROR}",
+            Log.Warning("[STATE-CLEANUP-FULL] Identity cache clear failed: {Error}",
                 clearResult.UnwrapErr().Message);
         }
 
@@ -167,7 +161,7 @@ internal sealed class IdentityService : IIdentityService
             await _applicationSecureStorageProvider.SetApplicationMembershipAsync(null).ConfigureAwait(false);
         if (membershipClearResult.IsErr)
         {
-            Log.Warning("[STATE-CLEANUP-FULL] Failed to clear membership state: {ERROR}",
+            Log.Warning("[STATE-CLEANUP-FULL] Failed to clear membership state: {Error}",
                 membershipClearResult.UnwrapErr().Message);
         }
 
@@ -187,9 +181,6 @@ internal sealed class IdentityService : IIdentityService
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
 
-            Log.Debug("[IDENTITY-STORE-INTERNAL] Wrapped master key: {Size} bytes, encrypted: {IsEncrypted}",
-                protectedKey.Length, wrappingKey != null);
-
             Result<Unit, SecureStorageFailure> saveResult =
                 await _storage.SaveStateAsync(protectedKey, storageKey, context.MembershipBytes).ConfigureAwait(false);
 
@@ -202,7 +193,6 @@ internal sealed class IdentityService : IIdentityService
             {
                 string keychainKey = context.KeychainKey;
                 await _platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
-                Log.Information("[IDENTITY-STORE-INTERNAL] Wrapping key stored in keychain: {KeychainKey}", keychainKey);
 
                 byte[]? verifyKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
                 if (verifyKey == null)
@@ -211,11 +201,10 @@ internal sealed class IdentityService : IIdentityService
                 }
                 else
                 {
-                    Log.Debug("[IDENTITY-STORE-INTERNAL] Wrapping key verified in keychain: {KeychainKey}", keychainKey);
                     CryptographicOperations.ZeroMemory(verifyKey);
                 }
             }
-            else if (hardwareAvailable && wrappingKey == null)
+            else if (hardwareAvailable)
             {
                 Log.Warning("[IDENTITY-STORE-INTERNAL] Hardware security available but no wrapping key generated (unencrypted storage)");
             }
@@ -333,79 +322,21 @@ internal sealed class IdentityService : IIdentityService
 
         try
         {
-            if (!hardwareSecurityAvailable)
+            UnwrapResult unwrapResult = hardwareSecurityAvailable
+                ? await UnwrapWithHardwareSecurityAsync(protectedKey, context).ConfigureAwait(false)
+                : UnwrapWithoutHardwareSecurity(protectedKey);
+
+            if (unwrapResult.Result.IsErr)
             {
-                Log.Debug("[IDENTITY-UNWRAP] Hardware security not available, using unencrypted storage");
-                masterKeyBytes = protectedKey.AsSpan().ToArray();
-            }
-            else
-            {
-                string keychainKey = context.KeychainKey;
-                Log.Debug("[IDENTITY-UNWRAP] Attempting to retrieve wrapping key from keychain: {KeychainKey}", keychainKey);
-                wrappingKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
-
-                if (wrappingKey == null)
-                {
-                    int expectedUnencryptedSize = SecureStorageConstants.Identity.AES_KEY_SIZE;
-                    int minEncryptedSize = SecureStorageConstants.Identity.AES_IV_SIZE + expectedUnencryptedSize;
-
-                    if (protectedKey.Length > expectedUnencryptedSize)
-                    {
-                        Log.Error("[IDENTITY-UNWRAP] Wrapping key not found in keychain but protected key appears encrypted (size: {Size} bytes, expected unencrypted: {Expected} bytes). Cannot decrypt without wrapping key.",
-                            protectedKey.Length, expectedUnencryptedSize);
-
-                        return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                            AuthenticationFailure.KeychainCorrupted(
-                                $"Master key is encrypted but wrapping key is missing from keychain. " +
-                                $"This typically occurs when the keychain was cleared but encrypted files remain. " +
-                                $"Protected key size: {protectedKey.Length} bytes. " +
-                                $"Automatic re-initialization required."));
-                    }
-
-                    Log.Warning("[IDENTITY-UNWRAP] Hardware security available but wrapping key not found in keychain, treating as unencrypted");
-                    masterKeyBytes = protectedKey.AsSpan().ToArray();
-                }
-                else
-                {
-                    Log.Debug("[IDENTITY-UNWRAP] Decrypting master key using wrapping key from keychain");
-                    using Aes aes = Aes.Create();
-                    aes.Key = wrappingKey;
-
-                    ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
-
-                    if (protectedSpan.Length <= SecureStorageConstants.Identity.AES_IV_SIZE)
-                    {
-                        Log.Error("[IDENTITY-UNWRAP] Protected key too small to contain IV, expected > {Expected}, got {Actual}",
-                            SecureStorageConstants.Identity.AES_IV_SIZE, protectedSpan.Length);
-                        throw new InvalidOperationException($"Protected key size invalid: {protectedSpan.Length} bytes");
-                    }
-
-                    iv = protectedSpan[..SecureStorageConstants.Identity.AES_IV_SIZE].ToArray();
-                    encryptedKey = protectedSpan[SecureStorageConstants.Identity.AES_IV_SIZE..].ToArray();
-
-                    aes.IV = iv;
-                    masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
-                }
+                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(unwrapResult.Result.UnwrapErr());
             }
 
-            Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
-                SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
-            if (allocResult.IsErr)
-            {
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
-            }
+            masterKeyBytes = unwrapResult.Result.Unwrap();
+            wrappingKey = unwrapResult.WrappingKey;
+            encryptedKey = unwrapResult.EncryptedKey;
+            iv = unwrapResult.Iv;
 
-            SodiumSecureMemoryHandle handle = allocResult.Unwrap();
-            Result<Unit, SodiumFailure> writeResult = handle.Write(masterKeyBytes);
-            if (writeResult.IsErr)
-            {
-                handle.Dispose();
-                return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
-                    AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
-            }
-
-            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
+            return WriteToSecureMemory(masterKeyBytes);
         }
         catch (Exception ex)
         {
@@ -414,25 +345,126 @@ internal sealed class IdentityService : IIdentityService
         }
         finally
         {
-            if (masterKeyBytes != null)
-            {
-                CryptographicOperations.ZeroMemory(masterKeyBytes);
-            }
+            CleanupSensitiveData(masterKeyBytes, wrappingKey, encryptedKey, iv);
+        }
+    }
 
-            if (wrappingKey != null)
-            {
-                CryptographicOperations.ZeroMemory(wrappingKey);
-            }
+    private static UnwrapResult UnwrapWithoutHardwareSecurity(byte[] protectedKey)
+    {
+        return new UnwrapResult(
+            Result<byte[], AuthenticationFailure>.Ok(protectedKey.AsSpan().ToArray()),
+            null,
+            null,
+            null);
+    }
 
-            if (encryptedKey != null)
-            {
-                CryptographicOperations.ZeroMemory(encryptedKey);
-            }
+    private async Task<UnwrapResult> UnwrapWithHardwareSecurityAsync(byte[] protectedKey, IdentityContext context)
+    {
+        string keychainKey = context.KeychainKey;
+        Log.Debug("[IDENTITY-UNWRAP] Attempting to retrieve wrapping key from keychain: {KeychainKey}", keychainKey);
+        byte[]? wrappingKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
 
-            if (iv != null)
-            {
-                CryptographicOperations.ZeroMemory(iv);
-            }
+        if (wrappingKey == null)
+        {
+            Result<byte[], AuthenticationFailure> result = HandleMissingWrappingKey(protectedKey);
+            return new UnwrapResult(result, null, null, null);
+        }
+
+        return DecryptWithWrappingKey(protectedKey, wrappingKey);
+    }
+
+    private readonly record struct UnwrapResult(
+        Result<byte[], AuthenticationFailure> Result,
+        byte[]? WrappingKey,
+        byte[]? EncryptedKey,
+        byte[]? Iv);
+
+    private static Result<byte[], AuthenticationFailure> HandleMissingWrappingKey(byte[] protectedKey)
+    {
+        const int expectedUnencryptedSize = SecureStorageConstants.Identity.AES_KEY_SIZE;
+
+        if (protectedKey.Length > expectedUnencryptedSize)
+        {
+            return Result<byte[], AuthenticationFailure>.Err(
+                AuthenticationFailure.KeychainCorrupted(
+                    $"Master key is encrypted but wrapping key is missing from keychain. " +
+                    $"This typically occurs when the keychain was cleared but encrypted files remain. " +
+                    $"Protected key size: {protectedKey.Length} bytes. " +
+                    $"Automatic re-initialization required."));
+        }
+
+        return Result<byte[], AuthenticationFailure>.Ok(protectedKey.AsSpan().ToArray());
+    }
+
+    private static UnwrapResult DecryptWithWrappingKey(byte[] protectedKey, byte[] wrappingKey)
+    {
+        using Aes aes = Aes.Create();
+        aes.Key = wrappingKey;
+
+        ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
+
+        if (protectedSpan.Length <= SecureStorageConstants.Identity.AES_IV_SIZE)
+        {
+            Log.Error("[IDENTITY-UNWRAP] Protected key too small to contain IV, expected > {Expected}, got {Actual}",
+                SecureStorageConstants.Identity.AES_IV_SIZE, protectedSpan.Length);
+            throw new InvalidOperationException($"Protected key size invalid: {protectedSpan.Length} bytes");
+        }
+
+        byte[] iv = protectedSpan[..SecureStorageConstants.Identity.AES_IV_SIZE].ToArray();
+        byte[] encryptedKey = protectedSpan[SecureStorageConstants.Identity.AES_IV_SIZE..].ToArray();
+
+        aes.IV = iv;
+        byte[] masterKeyBytes = aes.DecryptCbc(encryptedKey, iv);
+
+        return new UnwrapResult(
+            Result<byte[], AuthenticationFailure>.Ok(masterKeyBytes),
+            wrappingKey,
+            encryptedKey,
+            iv);
+    }
+
+    private static Result<SodiumSecureMemoryHandle, AuthenticationFailure> WriteToSecureMemory(byte[] masterKeyBytes)
+    {
+        Result<SodiumSecureMemoryHandle, SodiumFailure> allocResult =
+            SodiumSecureMemoryHandle.Allocate(masterKeyBytes.Length);
+        if (allocResult.IsErr)
+        {
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.SECURE_MEMORY_ALLOCATION_FAILED($"Failed to allocate secure memory: {allocResult.UnwrapErr().Message}"));
+        }
+
+        SodiumSecureMemoryHandle handle = allocResult.Unwrap();
+        Result<Unit, SodiumFailure> writeResult = handle.Write(masterKeyBytes);
+        if (writeResult.IsErr)
+        {
+            handle.Dispose();
+            return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                AuthenticationFailure.SECURE_MEMORY_WRITE_FAILED($"Failed to write to secure memory: {writeResult.UnwrapErr().Message}"));
+        }
+
+        return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Ok(handle);
+    }
+
+    private static void CleanupSensitiveData(byte[]? masterKeyBytes, byte[]? wrappingKey, byte[]? encryptedKey, byte[]? iv)
+    {
+        if (masterKeyBytes != null)
+        {
+            CryptographicOperations.ZeroMemory(masterKeyBytes);
+        }
+
+        if (wrappingKey != null)
+        {
+            CryptographicOperations.ZeroMemory(wrappingKey);
+        }
+
+        if (encryptedKey != null)
+        {
+            CryptographicOperations.ZeroMemory(encryptedKey);
+        }
+
+        if (iv != null)
+        {
+            CryptographicOperations.ZeroMemory(iv);
         }
     }
 
