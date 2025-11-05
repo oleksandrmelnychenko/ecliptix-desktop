@@ -61,19 +61,19 @@ public static class ApplicationConstants
 
     public static class ConfigurationKeys
     {
-        public const string DEFAULT_THEME = "DEFAULT_THEME";
-        public const string ENVIRONMENT = "ENVIRONMENT";
-        public const string DATA_CENTER_CONNECTION_STRING = "DATA_CENTER_CONNECTION_STRING";
-        public const string COUNTRY_CODE_API = "COUNTRY_CODE_API";
-        public const string DOMAIN_NAME = "DOMAIN_NAME";
-        public const string CULTURE = "CULTURE";
-        public const string ENCRYPTED_STATE_PATH = "ENCRYPTED_STATE_PATH";
-        public const string STATE_PATH = "STATE_PATH";
-        public const string INITIAL_RETRY_DELAY = "INITIAL_RETRY_DELAY";
-        public const string MAX_RETRY_DELAY = "MAX_RETRY_DELAY";
-        public const string MAX_RETRIES = "MAX_RETRIES";
-        public const string PER_ATTEMPT_TIMEOUT = "PER_ATTEMPT_TIMEOUT";
-        public const string USE_ADAPTIVE_RETRY = "USE_ADAPTIVE_RETRY";
+        public const string DEFAULT_THEME = "DefaultTheme";
+        public const string ENVIRONMENT = "Environment";
+        public const string DATA_CENTER_CONNECTION_STRING = "DataCenterConnectionString";
+        public const string COUNTRY_CODE_API = "CountryCodeApi";
+        public const string DOMAIN_NAME = "DomainName";
+        public const string CULTURE = "Culture";
+        public const string ENCRYPTED_STATE_PATH = "EncryptedStatePath";
+        public const string STATE_PATH = "StatePath";
+        public const string INITIAL_RETRY_DELAY = "InitialRetryDelay";
+        public const string MAX_RETRY_DELAY = "MaxRetryDelay";
+        public const string MAX_RETRIES = "MaxRetries";
+        public const string PER_ATTEMPT_TIMEOUT = "PerAttemptTimeout";
+        public const string USE_ADAPTIVE_RETRY = "UseAdaptiveRetry";
     }
 
     public static class Logging

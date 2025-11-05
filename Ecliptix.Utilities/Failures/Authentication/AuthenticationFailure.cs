@@ -73,6 +73,9 @@ public record AuthenticationFailure(
     public static AuthenticationFailure CriticalAuthenticationError(string details, Exception? inner = null) =>
         new(AuthenticationFailureType.CRITICAL_AUTHENTICATION_ERROR, details, inner);
 
+    public static AuthenticationFailure KeychainCorrupted(string details, Exception? inner = null) =>
+        new(AuthenticationFailureType.KEYCHAIN_CORRUPTED, details, inner);
+
     public override GrpcErrorDescriptor ToGrpcDescriptor() =>
         FailureType switch
         {

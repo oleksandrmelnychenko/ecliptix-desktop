@@ -61,8 +61,16 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] originalMasterKeyBytes = readResult.Unwrap();
+            Log.Debug("[IDENTITY-STORE] Read original master key: {Length} bytes", originalMasterKeyBytes.Length);
+
+            Result<Unit, AuthenticationFailure> cleanupResult = await CleanupCorruptedIdentityIfNeededAsync(context).ConfigureAwait(false);
+            if (cleanupResult.IsErr)
+            {
+                Log.Warning("[IDENTITY-STORE] Failed to cleanup corrupted identity: {Error}", cleanupResult.UnwrapErr().Message);
+            }
 
             await StoreIdentityInternalAsync(masterKeyHandle, context).ConfigureAwait(false);
+            Log.Debug("[IDENTITY-STORE] Master key stored, verifying...");
 
             Result<SodiumSecureMemoryHandle, AuthenticationFailure> loadResult = await LoadMasterKeyAsync(context).ConfigureAwait(false);
 
@@ -82,14 +90,18 @@ internal sealed class IdentityService : IIdentityService
             }
 
             byte[] loadedMasterKeyBytes = loadedReadResult.Unwrap();
+            Log.Debug("[IDENTITY-STORE] Loaded master key for verification: {Length} bytes", loadedMasterKeyBytes.Length);
 
             if (!CryptographicOperations.FixedTimeEquals(originalMasterKeyBytes, loadedMasterKeyBytes))
             {
+                Log.Error("[IDENTITY-STORE] Master key verification FAILED - bytes do not match! Original: {OrigLen} bytes, Loaded: {LoadLen} bytes",
+                    originalMasterKeyBytes.Length, loadedMasterKeyBytes.Length);
                 CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
                 return Result<Unit, AuthenticationFailure>.Err(
                     AuthenticationFailure.IdentityStorageFailed("Master key verification failed"));
             }
 
+            Log.Information("[IDENTITY-STORE] Master key verification SUCCESS");
             CryptographicOperations.ZeroMemory(loadedMasterKeyBytes);
             return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
         }
@@ -174,6 +186,10 @@ internal sealed class IdentityService : IIdentityService
         {
             (byte[] protectedKey, byte[]? returnedWrappingKey) = await WrapMasterKeyAsync(masterKeyHandle).ConfigureAwait(false);
             wrappingKey = returnedWrappingKey;
+
+            Log.Debug("[IDENTITY-STORE-INTERNAL] Wrapped master key: {Size} bytes, encrypted: {IsEncrypted}",
+                protectedKey.Length, wrappingKey != null);
+
             Result<Unit, SecureStorageFailure> saveResult =
                 await _storage.SaveStateAsync(protectedKey, storageKey, context.MembershipBytes).ConfigureAwait(false);
 
@@ -186,6 +202,22 @@ internal sealed class IdentityService : IIdentityService
             {
                 string keychainKey = context.KeychainKey;
                 await _platformProvider.StoreKeyInKeychainAsync(keychainKey, wrappingKey).ConfigureAwait(false);
+                Log.Information("[IDENTITY-STORE-INTERNAL] Wrapping key stored in keychain: {KeychainKey}", keychainKey);
+
+                byte[]? verifyKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
+                if (verifyKey == null)
+                {
+                    Log.Error("[IDENTITY-STORE-INTERNAL] CRITICAL: Wrapping key was stored but cannot be retrieved immediately! KeychainKey: {KeychainKey}", keychainKey);
+                }
+                else
+                {
+                    Log.Debug("[IDENTITY-STORE-INTERNAL] Wrapping key verified in keychain: {KeychainKey}", keychainKey);
+                    CryptographicOperations.ZeroMemory(verifyKey);
+                }
+            }
+            else if (hardwareAvailable && wrappingKey == null)
+            {
+                Log.Warning("[IDENTITY-STORE-INTERNAL] Hardware security available but no wrapping key generated (unencrypted storage)");
             }
         }
         finally
@@ -270,13 +302,16 @@ internal sealed class IdentityService : IIdentityService
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Error(ex, "[IDENTITY-WRAP] Failed to wrap master key with hardware security");
+
             if (masterKeyBytes == null)
             {
                 throw;
             }
 
+            Log.Warning("[IDENTITY-WRAP] Falling back to unencrypted storage for master key");
             return (masterKeyBytes.AsSpan().ToArray(), null);
         }
         finally
@@ -300,23 +335,51 @@ internal sealed class IdentityService : IIdentityService
         {
             if (!hardwareSecurityAvailable)
             {
+                Log.Debug("[IDENTITY-UNWRAP] Hardware security not available, using unencrypted storage");
                 masterKeyBytes = protectedKey.AsSpan().ToArray();
             }
             else
             {
                 string keychainKey = context.KeychainKey;
+                Log.Debug("[IDENTITY-UNWRAP] Attempting to retrieve wrapping key from keychain: {KeychainKey}", keychainKey);
                 wrappingKey = await _platformProvider.GetKeyFromKeychainAsync(keychainKey).ConfigureAwait(false);
 
                 if (wrappingKey == null)
                 {
+                    int expectedUnencryptedSize = SecureStorageConstants.Identity.AES_KEY_SIZE;
+                    int minEncryptedSize = SecureStorageConstants.Identity.AES_IV_SIZE + expectedUnencryptedSize;
+
+                    if (protectedKey.Length > expectedUnencryptedSize)
+                    {
+                        Log.Error("[IDENTITY-UNWRAP] Wrapping key not found in keychain but protected key appears encrypted (size: {Size} bytes, expected unencrypted: {Expected} bytes). Cannot decrypt without wrapping key.",
+                            protectedKey.Length, expectedUnencryptedSize);
+
+                        return Result<SodiumSecureMemoryHandle, AuthenticationFailure>.Err(
+                            AuthenticationFailure.KeychainCorrupted(
+                                $"Master key is encrypted but wrapping key is missing from keychain. " +
+                                $"This typically occurs when the keychain was cleared but encrypted files remain. " +
+                                $"Protected key size: {protectedKey.Length} bytes. " +
+                                $"Automatic re-initialization required."));
+                    }
+
+                    Log.Warning("[IDENTITY-UNWRAP] Hardware security available but wrapping key not found in keychain, treating as unencrypted");
                     masterKeyBytes = protectedKey.AsSpan().ToArray();
                 }
                 else
                 {
+                    Log.Debug("[IDENTITY-UNWRAP] Decrypting master key using wrapping key from keychain");
                     using Aes aes = Aes.Create();
                     aes.Key = wrappingKey;
 
                     ReadOnlySpan<byte> protectedSpan = protectedKey.AsSpan();
+
+                    if (protectedSpan.Length <= SecureStorageConstants.Identity.AES_IV_SIZE)
+                    {
+                        Log.Error("[IDENTITY-UNWRAP] Protected key too small to contain IV, expected > {Expected}, got {Actual}",
+                            SecureStorageConstants.Identity.AES_IV_SIZE, protectedSpan.Length);
+                        throw new InvalidOperationException($"Protected key size invalid: {protectedSpan.Length} bytes");
+                    }
+
                     iv = protectedSpan[..SecureStorageConstants.Identity.AES_IV_SIZE].ToArray();
                     encryptedKey = protectedSpan[SecureStorageConstants.Identity.AES_IV_SIZE..].ToArray();
 
@@ -376,6 +439,59 @@ internal sealed class IdentityService : IIdentityService
     private async Task<byte[]> GenerateWrappingKeyAsync() => await _platformProvider.GenerateSecureRandomAsync(SecureStorageConstants.Identity.AES_KEY_SIZE).ConfigureAwait(false);
 
     private bool IsHardwareSecurityAvailable() => _hardwareSecurityAvailable.Value;
+
+    private async Task<Result<Unit, AuthenticationFailure>> CleanupCorruptedIdentityIfNeededAsync(IdentityContext context)
+    {
+        try
+        {
+            Result<byte[], SecureStorageFailure> loadResult =
+                await _storage.LoadStateAsync(context.StorageKey, context.MembershipBytes).ConfigureAwait(false);
+
+            if (loadResult.IsErr)
+            {
+                return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+            }
+
+            byte[] protectedKey = loadResult.Unwrap();
+            int expectedUnencryptedSize = SecureStorageConstants.Identity.AES_KEY_SIZE;
+            bool hardwareSecurityAvailable = IsHardwareSecurityAvailable();
+
+            if (hardwareSecurityAvailable && protectedKey.Length > expectedUnencryptedSize)
+            {
+                byte[]? wrappingKey = await _platformProvider.GetKeyFromKeychainAsync(context.KeychainKey).ConfigureAwait(false);
+
+                if (wrappingKey == null)
+                {
+                    Log.Warning("[IDENTITY-CLEANUP] Detected corrupted identity - encrypted data without wrapping key. Cleaning up...");
+
+                    Result<Unit, SecureStorageFailure> deleteStorageResult =
+                        await _storage.DeleteStateAsync(context.StorageKey).ConfigureAwait(false);
+
+                    if (deleteStorageResult.IsErr)
+                    {
+                        Log.Error("[IDENTITY-CLEANUP] Failed to delete corrupted storage: {Error}",
+                            deleteStorageResult.UnwrapErr().Message);
+                    }
+                    else
+                    {
+                        Log.Information("[IDENTITY-CLEANUP] Successfully cleaned up corrupted identity storage");
+                    }
+                }
+                else
+                {
+                    CryptographicOperations.ZeroMemory(wrappingKey);
+                }
+            }
+
+            return Result<Unit, AuthenticationFailure>.Ok(Unit.Value);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "[IDENTITY-CLEANUP] Exception during corrupted identity cleanup");
+            return Result<Unit, AuthenticationFailure>.Err(
+                AuthenticationFailure.IdentityStorageFailed($"Failed to cleanup corrupted identity: {ex.Message}", ex));
+        }
+    }
 
     private sealed class IdentityContext(string membershipId)
     {

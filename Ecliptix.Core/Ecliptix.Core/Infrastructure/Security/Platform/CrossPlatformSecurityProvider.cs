@@ -92,12 +92,24 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
                     Result<Unit, SecureStorageFailure> result = GetPlatformStore(identifier, key);
                     if (result.IsErr)
                     {
-                        StoreInEncryptedFile(identifier, key);
+                        Log.Warning("[KEYCHAIN-STORE-PLATFORM] Platform store failed: {Error}, falling back to encrypted file", result.UnwrapErr().Message);
+                        Result<Unit, SecureStorageFailure> fileResult = StoreInEncryptedFile(identifier, key);
+                        if (fileResult.IsErr)
+                        {
+                            Log.Error("[KEYCHAIN-STORE-FILE] Encrypted file store FAILED: {Error}", fileResult.UnwrapErr().Message);
+                            throw new InvalidOperationException($"Failed to store key: {fileResult.UnwrapErr().Message}");
+                        }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    StoreInEncryptedFile(identifier, key);
+                    Log.Error(ex, "[KEYCHAIN-STORE-EXCEPTION] Exception during store, attempting encrypted file fallback");
+                    Result<Unit, SecureStorageFailure> fileResult = StoreInEncryptedFile(identifier, key);
+                    if (fileResult.IsErr)
+                    {
+                        Log.Error("[KEYCHAIN-STORE-FILE] Encrypted file store FAILED: {Error}", fileResult.UnwrapErr().Message);
+                        throw new InvalidOperationException($"Failed to store key: {fileResult.UnwrapErr().Message}", ex);
+                    }
                 }
             }
         });
@@ -326,6 +338,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
         try
         {
             string keyFile = GetKeyFilePath(identifier);
+
             Option<byte[]> machineKeyOpt = GetMachineKey();
             if (!machineKeyOpt.IsSome)
             {
@@ -355,6 +368,7 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
                 using FileStream fs = File.Create(keyFile);
                 fs.Write(buffer, 0, AES_IV_SIZE + encryptedLength);
+                fs.Flush(true);
 
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -378,10 +392,9 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
     private Result<byte[], SecureStorageFailure> GetFromEncryptedFile(string identifier)
     {
         string keyFile = GetKeyFilePath(identifier);
+
         if (!File.Exists(keyFile))
         {
-            Log.Debug("[KEYCHAIN-FILE] Key file not found. Identifier: {Identifier}, Path: {Path}",
-                identifier, keyFile);
             return Result<byte[], SecureStorageFailure>.Err(
                 new SecureStorageFailure("Key file not found"));
         }
@@ -471,8 +484,11 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
             try
             {
                 _cachedMachineKey = File.ReadAllBytes(machineKeyFile);
+
                 if (_cachedMachineKey.Length != AES_KEY_SIZE)
                 {
+                    Log.Error("[MACHINE-KEY] Invalid machine key size: {ActualSize}, expected: {ExpectedSize}",
+                        _cachedMachineKey.Length, AES_KEY_SIZE);
                     _cachedMachineKey = null;
                     return Option<byte[]>.None;
                 }
@@ -481,9 +497,60 @@ internal sealed class CrossPlatformSecurityProvider : IPlatformSecurityProvider
 
                 if (!CryptographicOperations.FixedTimeEquals(derivedKey, _cachedMachineKey))
                 {
+                    Log.Warning("[MACHINE-KEY] Machine key verification failed - regenerating from current machine ID");
                     CryptographicOperations.ZeroMemory(derivedKey);
                     _cachedMachineKey = null;
-                    return Option<byte[]>.None;
+
+                    try
+                    {
+                        File.Delete(machineKeyFile);
+
+                        try
+                        {
+                            string[] existingKeyFiles = Directory.GetFiles(_keychainPath, "*.key");
+                            if (existingKeyFiles.Length > 0)
+                            {
+                                Log.Warning("[MACHINE-KEY] Deleting {Count} obsolete encrypted key files", existingKeyFiles.Length);
+                                foreach (string keyFile in existingKeyFiles)
+                                {
+                                    try
+                                    {
+                                        File.Delete(keyFile);
+                                    }
+                                    catch (Exception fileEx)
+                                    {
+                                        Log.Warning(fileEx, "[MACHINE-KEY] Failed to delete obsolete key file: {File}", Path.GetFileName(keyFile));
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception cleanupEx)
+                        {
+                            Log.Warning(cleanupEx, "[MACHINE-KEY] Failed to cleanup obsolete key files: {ERROR}", cleanupEx.Message);
+                        }
+
+                        _cachedMachineKey = DeriveKeyFromMachineId(machineId);
+
+                        try
+                        {
+                            File.WriteAllBytes(machineKeyFile, _cachedMachineKey);
+                            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                File.SetUnixFileMode(machineKeyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                            }
+                        }
+                        catch (Exception writeEx)
+                        {
+                            Log.Error(writeEx, "[MACHINE-KEY-ERROR] Failed to write regenerated machine key file: {ERROR}", writeEx.Message);
+                        }
+
+                        return Option<byte[]>.Some(_cachedMachineKey);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        Log.Error(deleteEx, "[MACHINE-KEY-ERROR] Failed to delete corrupted machine key file: {ERROR}", deleteEx.Message);
+                        return Option<byte[]>.None;
+                    }
                 }
 
                 CryptographicOperations.ZeroMemory(derivedKey);

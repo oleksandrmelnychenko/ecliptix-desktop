@@ -93,8 +93,8 @@ public static class LocalizationKeys
             public const string WELCOME = "Authentication.SignIn.Welcome";
             public const string MOBILE_PLACEHOLDER = "Authentication.SignIn.MobilePlaceholder";
             public const string MOBILE_HINT = "Authentication.SignIn.MobileHint";
-            public const string SECURE_KEY_PLACEHOLDER = "Authentication.SignIn.SECURE_KEY_PLACEHOLDER";
-            public const string SECURE_KEY_HINT = "Authentication.SignIn.SECURE_KEY_HINT";
+            public const string SECURE_KEY_PLACEHOLDER = "Authentication.SignIn.SecureKeyPlaceholder";
+            public const string SECURE_KEY_HINT = "Authentication.SignIn.SecureKeyHint";
             public const string ACCOUNT_RECOVERY = "Authentication.SignIn.AccountRecovery";
             public const string CONTINUE = "Authentication.SignIn.Continue";
         }
