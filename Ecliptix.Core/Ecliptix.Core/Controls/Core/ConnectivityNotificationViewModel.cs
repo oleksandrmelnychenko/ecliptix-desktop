@@ -178,7 +178,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
         return languageTrigger;
     }
 
-    private ConnectivityObservables CreateConnectivityObservables(IConnectivityService connectivityService)
+    private static ConnectivityObservables CreateConnectivityObservables(IConnectivityService connectivityService)
     {
         IObservable<ConnectivitySnapshot> snapshots = connectivityService.ConnectivityStream
             .Publish()
@@ -243,7 +243,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             issueCategory, detailedStatus, statusText, statusDescription, statusIcon, retryButtonText);
     }
 
-    private IObservable<DetailedConnectivityStatus> CombineInternetAndServerStatus(
+    private static IObservable<DetailedConnectivityStatus> CombineInternetAndServerStatus(
         IObservable<DetailedConnectivityStatus?> internetStatus,
         IObservable<DetailedConnectivityStatus?> serverStatus)
     {
@@ -275,7 +275,7 @@ public sealed class ConnectivityNotificationViewModel : ReactiveObject, IDisposa
             _ => ConnectivityIssueCategory.ServerUnreachable
         };
 
-    private VisibilityObservables CreateVisibilityObservables(
+    private static VisibilityObservables CreateVisibilityObservables(
         IObservable<ConnectivitySnapshot> snapshots,
         IObservable<ManualRetryRequestedEvent> manualRetryEvents)
     {

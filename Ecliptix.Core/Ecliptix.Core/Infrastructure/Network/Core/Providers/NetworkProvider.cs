@@ -414,9 +414,20 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
 
         try
         {
+            ServiceRequestContext serviceContext = new()
+            {
+                ConnectId = connectId,
+                ServiceType = serviceType,
+                PlainBuffer = plainBuffer,
+                FlowType = flowType,
+                OnCompleted = onCompleted,
+                RequestContext = effectiveContext,
+                RetryBehavior = retryBehavior
+            };
+
             return await ExecuteRequestWithProtocolAsync(
-                connectId, serviceType, plainBuffer, flowType, onCompleted, effectiveContext,
-                retryBehavior, waitForRecovery, cancellationContext.OperationToken).ConfigureAwait(false);
+                    serviceContext, waitForRecovery, cancellationContext.OperationToken)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -477,29 +488,24 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     }
 
     private async Task<Result<Unit, NetworkFailure>> ExecuteRequestWithProtocolAsync(
-        uint connectId,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        RpcRequestContext effectiveContext,
-        RetryBehavior retryBehavior,
+        ServiceRequestContext requestContext,
         bool waitForRecovery,
         CancellationToken operationToken)
     {
         await WaitForOutageRecoveryAsync(operationToken, waitForRecovery).ConfigureAwait(false);
         operationToken.ThrowIfCancellationRequested();
 
-        if (!_connections.TryGetValue(connectId, out EcliptixProtocolSystem? protocolSystem))
+        if (!_connections.TryGetValue(requestContext.ConnectId, out EcliptixProtocolSystem? protocolSystem))
         {
             return HandleMissingConnection();
         }
 
-        uint logicalOperationId = GenerateLogicalOperationId(connectId, serviceType, plainBuffer);
+        uint logicalOperationId = GenerateLogicalOperationId(
+            requestContext.ConnectId, requestContext.ServiceType, requestContext.PlainBuffer);
 
         Result<Unit, NetworkFailure> networkResult = await ExecuteServiceFlowAsync(
-            protocolSystem, logicalOperationId, serviceType, plainBuffer, flowType,
-            onCompleted, effectiveContext, retryBehavior, connectId, operationToken).ConfigureAwait(false);
+                protocolSystem, logicalOperationId, requestContext, operationToken)
+            .ConfigureAwait(false);
 
         if (networkResult.IsOk && Volatile.Read(ref _outageState) == 1)
         {
@@ -531,33 +537,43 @@ public sealed class NetworkProvider : INetworkProvider, IDisposable, IProtocolEv
     private async Task<Result<Unit, NetworkFailure>> ExecuteServiceFlowAsync(
         EcliptixProtocolSystem protocolSystem,
         uint logicalOperationId,
-        RpcServiceType serviceType,
-        byte[] plainBuffer,
-        ServiceFlowType flowType,
-        Func<byte[], Task<Result<Unit, NetworkFailure>>> onCompleted,
-        RpcRequestContext effectiveContext,
-        RetryBehavior retryBehavior,
-        uint connectId,
+        ServiceRequestContext requestContext,
         CancellationToken operationToken)
     {
-        return flowType switch
+        return requestContext.FlowType switch
         {
-            ServiceFlowType.Single => await SendUnaryRequestAsync(protocolSystem, logicalOperationId,
-                    serviceType, plainBuffer, flowType, onCompleted, connectId, retryBehavior, operationToken)
+            ServiceFlowType.Single => await SendUnaryRequestAsync(
+                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.OnCompleted, requestContext.ConnectId,
+                    requestContext.RetryBehavior, operationToken)
                 .ConfigureAwait(false),
-            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(protocolSystem,
-                logicalOperationId,
-                serviceType, plainBuffer, flowType, effectiveContext, onCompleted, retryBehavior, connectId,
-                operationToken).ConfigureAwait(false),
-            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(protocolSystem, logicalOperationId,
-                    serviceType, plainBuffer, flowType, effectiveContext, operationToken)
+            ServiceFlowType.ReceiveStream => await SendReceiveStreamRequestAsync(
+                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.RequestContext, requestContext.OnCompleted,
+                    requestContext.RetryBehavior, requestContext.ConnectId, operationToken)
                 .ConfigureAwait(false),
-            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(protocolSystem,
-                    logicalOperationId, serviceType, plainBuffer, flowType, effectiveContext, operationToken)
+            ServiceFlowType.SendStream => await SendSendStreamRequestAsync(
+                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.RequestContext, operationToken)
+                .ConfigureAwait(false),
+            ServiceFlowType.BidirectionalStream => await SendBidirectionalStreamRequestAsync(
+                    protocolSystem, logicalOperationId, requestContext.ServiceType, requestContext.PlainBuffer,
+                    requestContext.FlowType, requestContext.RequestContext, operationToken)
                 .ConfigureAwait(false),
             _ => Result<Unit, NetworkFailure>.Err(
-                NetworkFailure.InvalidRequestType($"Unsupported flow type: {flowType}"))
+                NetworkFailure.InvalidRequestType($"Unsupported flow type: {requestContext.FlowType}"))
         };
+    }
+
+    private readonly struct ServiceRequestContext
+    {
+        public required uint ConnectId { get; init; }
+        public required RpcServiceType ServiceType { get; init; }
+        public required byte[] PlainBuffer { get; init; }
+        public required ServiceFlowType FlowType { get; init; }
+        public required Func<byte[], Task<Result<Unit, NetworkFailure>>> OnCompleted { get; init; }
+        public required RpcRequestContext RequestContext { get; init; }
+        public required RetryBehavior RetryBehavior { get; init; }
     }
 
     private readonly struct RequestCancellationContext : IDisposable

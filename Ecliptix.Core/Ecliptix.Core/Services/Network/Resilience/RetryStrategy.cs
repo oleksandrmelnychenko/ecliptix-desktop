@@ -67,6 +67,17 @@ public sealed class RetryStrategy : IRetryStrategy
         }
     }
 
+    private readonly struct RetryAttemptContext<TResponse>
+    {
+        public required TimeSpan[] RetryDelays { get; init; }
+        public required string OperationKey { get; init; }
+        public required string OperationName { get; init; }
+        public required uint ConnectId { get; init; }
+        public required RpcServiceType? ServiceType { get; init; }
+        public required CancellationToken CancellationToken { get; init; }
+        public required RequiresConnectionRecoveryDelegate<TResponse> ConnectionRecoveryDelegate { get; init; }
+    }
+
     public RetryStrategy(
         RetryStrategyConfiguration strategyConfiguration,
         IConnectivityService connectivityService,
@@ -584,14 +595,24 @@ public sealed class RetryStrategy : IRetryStrategy
         RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate =
             RetryDecisionFactory.CreateConnectionRecoveryDelegate<TResponse>();
 
+        RetryAttemptContext<TResponse> attemptContext = new()
+        {
+            RetryDelays = retryDelays,
+            OperationKey = operationKey,
+            OperationName = operationName,
+            ConnectId = connectId,
+            ServiceType = serviceType,
+            CancellationToken = cancellationToken,
+            ConnectionRecoveryDelegate = connectionRecoveryDelegate
+        };
+
         IAsyncPolicy<Result<TResponse, NetworkFailure>> retryPolicy = Policy<Result<TResponse, NetworkFailure>>
             .Handle<TimeoutRejectedException>()
             .OrResult(result => shouldRetryDelegate(result))
             .WaitAndRetryAsync(
                 retryDelays,
                 (outcome, delay, retryCount, context) => OnRetryAttemptAsync(
-                    outcome, delay, retryCount, context, retryDelays, operationKey, operationName,
-                    connectId, serviceType, cancellationToken, connectionRecoveryDelegate));
+                    outcome, delay, retryCount, context, attemptContext));
 
         IAsyncPolicy<Result<TResponse, NetworkFailure>> timeoutPolicy =
             CreateTimeoutPolicy<TResponse>(operationName, connectId);
@@ -607,13 +628,7 @@ public sealed class RetryStrategy : IRetryStrategy
         TimeSpan delay,
         int retryCount,
         Context context,
-        TimeSpan[] retryDelays,
-        string operationKey,
-        string operationName,
-        uint connectId,
-        RpcServiceType? serviceType,
-        CancellationToken cancellationToken,
-        RequiresConnectionRecoveryDelegate<TResponse> connectionRecoveryDelegate)
+        RetryAttemptContext<TResponse> attemptContext)
     {
         context[ATTEMPT_KEY] = retryCount + 1;
 
@@ -621,22 +636,27 @@ public sealed class RetryStrategy : IRetryStrategy
         bool hasResult = outcome.Exception is null;
         Result<TResponse, NetworkFailure> result = hasResult ? outcome.Result : default;
 
-        LogRetryAttempt(isTimeout, operationName, connectId, retryCount, retryDelays.Length, delay);
-        TrackRetryOperation(retryCount, operationName, connectId, retryDelays.Length, operationKey, serviceType);
+        LogRetryAttempt(isTimeout, attemptContext.OperationName, attemptContext.ConnectId, retryCount,
+            attemptContext.RetryDelays.Length, delay);
+        TrackRetryOperation(retryCount, attemptContext.OperationName, attemptContext.ConnectId,
+            attemptContext.RetryDelays.Length, attemptContext.OperationKey, attemptContext.ServiceType);
 
         NetworkFailure? currentFailure = ExtractCurrentFailure(isTimeout, hasResult, result);
 
-        await PublishRecoveringIntentAsync(currentFailure, connectId, retryCount, delay).ConfigureAwait(false);
+        await PublishRecoveringIntentAsync(currentFailure, attemptContext.ConnectId, retryCount, delay)
+            .ConfigureAwait(false);
 
-        if (retryCount == retryDelays.Length)
+        if (retryCount == attemptContext.RetryDelays.Length)
         {
             await HandleRetriesExhaustedAsync(
-                    operationKey, operationName, connectId, retryCount, retryDelays.Length, currentFailure)
+                    attemptContext.OperationKey, attemptContext.OperationName, attemptContext.ConnectId, retryCount,
+                    attemptContext.RetryDelays.Length, currentFailure)
                 .ConfigureAwait(false);
         }
 
         await EnsureChannelRecoveryIfNeededAsync(
-            isTimeout, hasResult, result, connectionRecoveryDelegate, connectId, cancellationToken)
+                isTimeout, hasResult, result, attemptContext.ConnectionRecoveryDelegate, attemptContext.ConnectId,
+                attemptContext.CancellationToken)
             .ConfigureAwait(false);
     }
 

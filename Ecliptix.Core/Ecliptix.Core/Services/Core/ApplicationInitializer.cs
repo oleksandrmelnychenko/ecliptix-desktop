@@ -75,9 +75,9 @@ public sealed class ApplicationInitializer(
             _ = FetchIpGeolocationInBackgroundAsync().ContinueWith(
                 task =>
                 {
-                    if (task.IsFaulted && task.Exception != null)
+                    if (task is { IsFaulted: true, Exception: not null })
                     {
-                        Serilog.Log.Error(task.Exception,
+                        Log.Error(task.Exception,
                             "[APPLICATION-INITIALIZER] Unhandled exception fetching IP geolocation");
                     }
                 },
@@ -150,15 +150,10 @@ public sealed class ApplicationInitializer(
             .ConfigureAwait(false);
     }
 
-    private static string? ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings)
-    {
-        if (applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false })
-        {
-            return Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString();
-        }
-
-        return null;
-    }
+    private static Option<string> ExtractMembershipId(ApplicationInstanceSettings applicationInstanceSettings) =>
+        applicationInstanceSettings.Membership?.UniqueIdentifier is { IsEmpty: false }
+            ? Option<string>.Some(Helpers.FromByteStringToGuid(applicationInstanceSettings.Membership.UniqueIdentifier).ToString())
+            : Option<string>.None();
 
     private async Task<Result<uint, NetworkFailure>?> TryRestoreExistingSessionAsync(
         uint connectId,

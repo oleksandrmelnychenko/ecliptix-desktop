@@ -229,7 +229,7 @@ public static class LocalizationKeys
             public const string UNEXPECTED_MEMBERSHIP_STATUS = "ResponseErrors.MobileNumber.UnexpectedMembershipStatus";
         }
 
-        public static class Common
+        public static class General
         {
             public const string TIMEOUT_EXCEEDED = "ResponseErrors.Common.TimeoutExceeded";
         }

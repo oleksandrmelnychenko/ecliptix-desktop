@@ -130,7 +130,7 @@ public static class LocalizationData
             "Account on this number already registered. Try sign in or use forgot secure key.",
         [LocalizationKeys.ResponseErrors.MobileNumber.UNEXPECTED_MEMBERSHIP_STATUS] =
             "Unexpected membership status. Please try again.",
-        [LocalizationKeys.ResponseErrors.Common.TIMEOUT_EXCEEDED] = "The operation timed out. Please try again.",
+        [LocalizationKeys.ResponseErrors.General.TIMEOUT_EXCEEDED] = "The operation timed out. Please try again.",
         [LocalizationKeys.ValidationErrors.MobileNumber.REQUIRED] = "Mobile number is required",
         [LocalizationKeys.ValidationErrors.MobileNumberIdentifier.REQUIRED] =
             "Mobile number identifier is required",
@@ -339,7 +339,7 @@ public static class LocalizationData
             "Акаунт з цим номером вже зареєстровано. Спробуйте увійти або скористайтеся відновленням пароля.",
         [LocalizationKeys.ResponseErrors.MobileNumber.UNEXPECTED_MEMBERSHIP_STATUS] =
             "Неочікуваний статус системи. Спробуйте ще раз.",
-        [LocalizationKeys.ResponseErrors.Common.TIMEOUT_EXCEEDED] =
+        [LocalizationKeys.ResponseErrors.General.TIMEOUT_EXCEEDED] =
             "Операція перевищила час очікування. Спробуйте ще раз.",
         [LocalizationKeys.ValidationErrors.SecureKey.REQUIRED] = "Обов'язкове поле",
         [LocalizationKeys.ValidationErrors.SecureKey.MIN_LENGTH] = "Мін. {0} символів",
