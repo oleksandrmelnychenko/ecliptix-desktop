@@ -97,19 +97,21 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
         session.SetEventHandler(currentHandler);
 
-        Result<byte[]?, EcliptixProtocolFailure> dhKeyResult = session.GetCurrentSenderDhPublicKey();
+        Result<Option<byte[]>, EcliptixProtocolFailure> dhKeyResult = session.GetCurrentSenderDhPublicKey();
         if (dhKeyResult.IsErr)
         {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(dhKeyResult.UnwrapErr());
         }
 
-        byte[]? dhPublicKey = dhKeyResult.Unwrap();
-        if (dhPublicKey == null)
+        Option<byte[]> dhPublicKeyOption = dhKeyResult.Unwrap();
+        if (!dhPublicKeyOption.IsSome)
         {
             return Result<PubKeyExchange, EcliptixProtocolFailure>.Err(
                 EcliptixProtocolFailure.PrepareLocal(ProtocolSystemConstants.ProtocolSystem
                     .DH_PUBLIC_KEY_NULL_MESSAGE));
         }
+
+        byte[] dhPublicKey = dhPublicKeyOption.Value!;
 
         PubKeyExchange pubKeyExchange = new()
         {
@@ -125,16 +127,17 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
     public Result<Unit, EcliptixProtocolFailure> CompleteAuthenticatedPubKeyExchange(PubKeyExchange peerMessage,
         byte[] rootKey)
     {
-        Result<byte[]?, EcliptixProtocolFailure> ourDhKeyResult = _protocolConnection?.GetCurrentSenderDhPublicKey() ??
-                                                                  Result<byte[]?, EcliptixProtocolFailure>.Err(
+        Result<Option<byte[]>, EcliptixProtocolFailure> ourDhKeyResult = _protocolConnection?.GetCurrentSenderDhPublicKey() ??
+                                                                  Result<Option<byte[]>, EcliptixProtocolFailure>.Err(
                                                                       EcliptixProtocolFailure.Generic(
                                                                           ProtocolSystemConstants.ProtocolSystem
                                                                               .NO_CONNECTION_MESSAGE));
         if (ourDhKeyResult.IsOk)
         {
-            byte[]? ourDhKey = ourDhKeyResult.Unwrap();
-            if (ourDhKey != null)
+            Option<byte[]> ourDhKeyOption = ourDhKeyResult.Unwrap();
+            if (ourDhKeyOption.IsSome)
             {
+                byte[] ourDhKey = ourDhKeyOption.Value!;
                 Result<bool, SodiumFailure> comparisonResult =
                     SodiumInterop.ConstantTimeEquals(peerMessage.InitialDhPublicKey.Span, ourDhKey);
                 if (comparisonResult.IsOk && comparisonResult.Unwrap())
@@ -269,8 +272,8 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
 
     private Result<Unit, EcliptixProtocolFailure> CheckReflectionAttack(PubKeyExchange peerMessage)
     {
-        Result<byte[]?, EcliptixProtocolFailure> ourDhKeyResult = _protocolConnection?.GetCurrentSenderDhPublicKey() ??
-                                                                  Result<byte[]?, EcliptixProtocolFailure>.Err(
+        Result<Option<byte[]>, EcliptixProtocolFailure> ourDhKeyResult = _protocolConnection?.GetCurrentSenderDhPublicKey() ??
+                                                                  Result<Option<byte[]>, EcliptixProtocolFailure>.Err(
                                                                       EcliptixProtocolFailure.Generic(
                                                                           ProtocolSystemConstants.ProtocolSystem
                                                                               .NO_CONNECTION_MESSAGE));
@@ -279,12 +282,13 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
 
-        byte[]? ourDhKey = ourDhKeyResult.Unwrap();
-        if (ourDhKey == null)
+        Option<byte[]> ourDhKeyOption = ourDhKeyResult.Unwrap();
+        if (!ourDhKeyOption.IsSome)
         {
             return Result<Unit, EcliptixProtocolFailure>.Ok(Unit.Value);
         }
 
+        byte[] ourDhKey = ourDhKeyOption.Value!;
         Result<bool, SodiumFailure> comparisonResult =
             SodiumInterop.ConstantTimeEquals(peerMessage.InitialDhPublicKey.Span, ourDhKey);
 
@@ -778,15 +782,15 @@ internal sealed class EcliptixProtocolSystem(EcliptixSystemIdentityKeys ecliptix
             return Result<byte[], EcliptixProtocolFailure>.Ok([]);
         }
 
-        Result<byte[]?, EcliptixProtocolFailure> keyResult = connection.GetCurrentSenderDhPublicKey();
+        Result<Option<byte[]>, EcliptixProtocolFailure> keyResult = connection.GetCurrentSenderDhPublicKey();
         if (keyResult.IsErr)
         {
             return Result<byte[], EcliptixProtocolFailure>.Err(keyResult.UnwrapErr());
         }
 
-        byte[]? key = keyResult.Unwrap();
+        Option<byte[]> keyOption = keyResult.Unwrap();
 
-        return Result<byte[], EcliptixProtocolFailure>.Ok(key ?? []);
+        return Result<byte[], EcliptixProtocolFailure>.Ok(keyOption.ValueOr([]));
     }
 
     private static byte[] CreateAssociatedData(byte[] id1, byte[] id2)

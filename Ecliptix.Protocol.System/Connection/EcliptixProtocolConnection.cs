@@ -395,23 +395,23 @@ internal sealed class EcliptixProtocolConnection : IDisposable
         }
     }
 
-    public Result<byte[]?, EcliptixProtocolFailure> GetCurrentSenderDhPublicKey()
+    public Result<Option<byte[]>, EcliptixProtocolFailure> GetCurrentSenderDhPublicKey()
     {
         lock (_lock)
         {
             Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
             if (disposedCheck.IsErr)
             {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+                return Result<Option<byte[]>, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
             }
 
             Result<EcliptixProtocolChainStep, EcliptixProtocolFailure> stepResult = EnsureSendingStepInitialized();
             if (stepResult.IsErr)
             {
-                return Result<byte[]?, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr());
+                return Result<Option<byte[]>, EcliptixProtocolFailure>.Err(stepResult.UnwrapErr());
             }
 
-            Result<byte[]?, EcliptixProtocolFailure> keyResult = stepResult.Unwrap().ReadDhPublicKey();
+            Result<Option<byte[]>, EcliptixProtocolFailure> keyResult = stepResult.Unwrap().ReadDhPublicKey();
 
             return keyResult;
         }

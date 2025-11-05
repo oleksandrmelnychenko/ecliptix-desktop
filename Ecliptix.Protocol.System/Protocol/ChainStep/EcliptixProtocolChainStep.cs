@@ -746,21 +746,19 @@ internal sealed class EcliptixProtocolChainStep : IKeyProvider, IDisposable
                     EcliptixProtocolFailureMessages.ChainStep.DH_PUBLIC_KEY_INVALID_SIZE, Constants.X_25519_KEY_SIZE)));
     }
 
-    internal Result<byte[]?, EcliptixProtocolFailure> ReadDhPublicKey()
+    internal Result<Option<byte[]>, EcliptixProtocolFailure> ReadDhPublicKey()
     {
         Result<Unit, EcliptixProtocolFailure> disposedCheck = CheckDisposed();
         if (disposedCheck.IsErr)
         {
-            return Result<byte[]?, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
+            return Result<Option<byte[]>, EcliptixProtocolFailure>.Err(disposedCheck.UnwrapErr());
         }
 
-        byte[]? dbPublicKeyClone = null;
-        if (_dhPublicKey != null)
-        {
-            dbPublicKeyClone = (byte[])_dhPublicKey.Clone();
-        }
+        Option<byte[]> result = _dhPublicKey != null
+            ? Option<byte[]>.Some((byte[])_dhPublicKey.Clone())
+            : Option<byte[]>.None;
 
-        return Result<byte[]?, EcliptixProtocolFailure>.Ok(dbPublicKeyClone);
+        return Result<Option<byte[]>, EcliptixProtocolFailure>.Ok(result);
     }
 
     internal void PruneOldKeys()
